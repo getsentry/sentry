@@ -36,7 +36,6 @@ from sentry.sentry_apps.models.servicehook import ServiceHook
 from sentry.services import eventstore
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.testutils.cases import TransactionTestCase
-from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.skips import requires_snuba
@@ -108,8 +107,8 @@ class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMi
         event = self.store_event(data={}, project_id=project.id)
         assert event.group is not None
         group = event.group
-        merge = Factories.create_issue_merge_operation(project, [group.id], group.id + 1)
-        unmerge = Factories.create_issue_unmerge_operation(project, group.id, ["a" * 32])
+        merge = self.create_issue_merge_operation([group.id], group.id + 1, project=project)
+        unmerge = self.create_issue_unmerge_operation(group.id, ["a" * 32], project=project)
         activity = Activity.objects.create(
             group=group,
             project=project,

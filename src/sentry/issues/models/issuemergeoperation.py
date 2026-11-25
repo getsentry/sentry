@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import timedelta
-from typing import Any, Self
+from typing import Any, NamedTuple, Self
 from uuid import UUID, uuid4
 
 from django.contrib.postgres.fields import ArrayField
@@ -41,7 +41,7 @@ class StaleOperationBatch(Exception):
     """Another worker owns the operation or the batch has already been applied."""
 
 
-class BaseIssueMergeOperation(DefaultFieldsModel):
+class BaseIssueOperation(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Excluded
 
     project = FlexibleForeignKey("sentry.Project")
@@ -115,7 +115,7 @@ class BaseIssueMergeOperation(DefaultFieldsModel):
 
 
 @cell_silo_model
-class IssueMergeOperation(BaseIssueMergeOperation):
+class IssueMergeOperation(BaseIssueOperation):
     # Source issues are deleted by a successful merge. Keep their original IDs.
     source_group_ids = ArrayField(BoundedBigIntegerField())
     destination_group_id = BoundedBigIntegerField()
@@ -129,7 +129,7 @@ class IssueMergeOperation(BaseIssueMergeOperation):
 
 
 @cell_silo_model
-class IssueUnmergeOperation(BaseIssueMergeOperation):
+class IssueUnmergeOperation(BaseIssueOperation):
     source_group_id = BoundedBigIntegerField()
     # GroupHash.hash values selected in a single unmerge request.
     group_hashes = ArrayField(models.CharField(max_length=32))
@@ -140,9 +140,12 @@ class IssueUnmergeOperation(BaseIssueMergeOperation):
         db_table = "sentry_issueunmergeoperation"
 
 
-def unfinished_operations_for_group(
-    *, project_id: int, group_id: int
-) -> list[IssueMergeOperation | IssueUnmergeOperation]:
+class UnfinishedIssueOperations(NamedTuple):
+    merges: list[IssueMergeOperation]
+    unmerges: list[IssueUnmergeOperation]
+
+
+def unfinished_operations_for_group(*, project_id: int, group_id: int) -> UnfinishedIssueOperations:
     merges = IssueMergeOperation.objects.filter(
         Q(source_group_ids__contains=[group_id]) | Q(destination_group_id=group_id),
         project_id=project_id,
@@ -153,4 +156,4 @@ def unfinished_operations_for_group(
         project_id=project_id,
         status__in=UNFINISHED_STATUSES,
     )
-    return [*merges, *unmerges]
+    return UnfinishedIssueOperations(merges=list(merges), unmerges=list(unmerges))

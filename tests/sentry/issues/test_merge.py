@@ -9,18 +9,17 @@ from django.utils import timezone
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.issues.merge import handle_merge
 from sentry.issues.models.issuemergeoperation import (
-    IssueMergeOperation,
     IssueUnmergeOperation,
     OperationStatus,
     OperationStep,
     StaleOperationBatch,
+    UnfinishedIssueOperations,
     unfinished_operations_for_group,
 )
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox
 from sentry.testutils.cases import TestCase
-from sentry.testutils.factories import Factories
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
@@ -77,36 +76,27 @@ class IssueMergeOperationTest(TestCase):
     lease = timedelta(minutes=5)
 
     def test_unfinished_operations_are_scoped_to_project_and_issue(self) -> None:
-        merge = Factories.create_issue_merge_operation(self.project, [1, 2], 3)
-        unmerge = Factories.create_issue_unmerge_operation(
-            self.project,
+        merge = self.create_issue_merge_operation([1, 2], 3)
+        unmerge = self.create_issue_unmerge_operation(
             2,
             ["a" * 32],
             destination_group_id=4,
             status=OperationStatus.NEEDS_ATTENTION,
         )
-        Factories.create_issue_merge_operation(self.create_project(), [2], 3)
-        Factories.create_issue_unmerge_operation(
-            self.project, 2, ["b" * 32], status=OperationStatus.UNABLE_TO_START
-        )
-        Factories.create_issue_merge_operation(
-            self.project, [2], 5, status=OperationStatus.COMPLETE
-        )
+        self.create_issue_merge_operation([2], 3, project=self.create_project())
+        self.create_issue_unmerge_operation(2, ["b" * 32], status=OperationStatus.UNABLE_TO_START)
+        self.create_issue_merge_operation([2], 5, status=OperationStatus.COMPLETE)
 
-        def unfinished(group_id: int) -> set[IssueMergeOperation | IssueUnmergeOperation]:
-            return set(
-                unfinished_operations_for_group(project_id=self.project.id, group_id=group_id)
-            )
+        def unfinished(group_id: int) -> UnfinishedIssueOperations:
+            return unfinished_operations_for_group(project_id=self.project.id, group_id=group_id)
 
-        assert unfinished(2) == {merge, unmerge}
-        assert unfinished(3) == {merge}
-        assert unfinished(4) == {unmerge}
-        assert unfinished(5) == set()
+        assert unfinished(2) == UnfinishedIssueOperations(merges=[merge], unmerges=[unmerge])
+        assert unfinished(3) == UnfinishedIssueOperations(merges=[merge], unmerges=[])
+        assert unfinished(4) == UnfinishedIssueOperations(merges=[], unmerges=[unmerge])
+        assert unfinished(5) == UnfinishedIssueOperations(merges=[], unmerges=[])
 
     def test_rollback_and_replay_a_batch(self) -> None:
-        operation = Factories.create_issue_unmerge_operation(
-            self.project, 11, ["a" * 32], retries_without_progress=2
-        )
+        operation = self.create_issue_unmerge_operation(11, ["a" * 32], retries_without_progress=2)
         token = operation.claim(lease_duration=self.lease)
         assert token is not None
         cursor = {"timestamp": "2024-01-01T00:00:00Z", "event_id": "a" * 32}
@@ -152,7 +142,7 @@ class IssueMergeOperationTest(TestCase):
             apply()
 
     def test_replaced_worker_cannot_apply_its_batch(self) -> None:
-        operation = Factories.create_issue_merge_operation(self.project, [11], 12)
+        operation = self.create_issue_merge_operation([11], 12)
         first = operation.claim(lease_duration=self.lease)
         assert first is not None
         assert operation.claim(lease_duration=self.lease) is None
@@ -180,8 +170,7 @@ class IssueMergeOperationTest(TestCase):
         assert operation.batch_cursor == {"source": 11}
 
     def test_only_runnable_work_can_be_claimed(self) -> None:
-        operation = Factories.create_issue_merge_operation(
-            self.project,
+        operation = self.create_issue_merge_operation(
             [11],
             12,
             status=OperationStatus.RUNNING,

@@ -119,6 +119,7 @@ if TYPE_CHECKING:
         InvestigationOrchestrationEvent,
         InvestigationOrchestrationRun,
     )
+    from sentry.issues.models.issuemergeoperation import IssueMergeOperation, IssueUnmergeOperation
     from sentry.models.apiapplication import ApiApplication
     from sentry.models.apidevicecode import ApiDeviceCode
     from sentry.models.apikey import ApiKey
@@ -601,6 +602,34 @@ class Fixtures:
         if project is None:
             project = self.project
         return Factories.create_group(project, *args, **kwargs)
+
+    def create_issue_merge_operation(
+        self,
+        source_group_ids: list[int],
+        destination_group_id: int,
+        *,
+        project: Project | None = None,
+        **kwargs: Any,
+    ) -> IssueMergeOperation:
+        if project is None:
+            project = self.project
+        return Factories.create_issue_merge_operation(
+            project, source_group_ids, destination_group_id, **kwargs
+        )
+
+    def create_issue_unmerge_operation(
+        self,
+        source_group_id: int,
+        group_hashes: list[str],
+        *,
+        project: Project | None = None,
+        **kwargs: Any,
+    ) -> IssueUnmergeOperation:
+        if project is None:
+            project = self.project
+        return Factories.create_issue_unmerge_operation(
+            project, source_group_id, group_hashes, **kwargs
+        )
 
     def create_group_activity(
         self, group: Group | None = None, *args: Any, **kwargs: Any
