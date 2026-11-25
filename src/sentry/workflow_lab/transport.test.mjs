@@ -15,7 +15,10 @@ test('named runs use the product API and edited drafts use the Lab editor', asyn
   const run = {scenario: 'agent', workflow, input: {test: 1}, max_attempts: 2};
   await startWorkflow(run, examples);
   await startWorkflow({...run, workflow: {...workflow, notebook: false}}, examples);
-  assert.deepEqual(requests.map(r => r.url), ['/org/investigation-workflows/runs/', 'editor/']);
+  assert.deepEqual(
+    requests.map(r => r.url),
+    ['/org/investigation-workflows/runs/', 'editor/']
+  );
   assert.equal(requests[0].body.workflow, 'breached_metrics');
   assert.deepEqual(requests[1].body.workflow, {...workflow, notebook: false});
   assert.equal(requests[1].body.action, 'run_draft');
