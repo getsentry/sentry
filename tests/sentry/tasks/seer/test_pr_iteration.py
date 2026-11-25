@@ -1327,6 +1327,21 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
 
     @patch("sentry.seer.autofix.pr_iteration.completion.redo_stranded_action")
     @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_a_stranded_action_done_elsewhere_clears_the_out_of_credits_comment(
+        self, mock_fetch: MagicMock, mock_redo: MagicMock
+    ) -> None:
+        # Retry PR in the UI pushed the changes, so work resumed even with nothing queued.
+        seer_run = self._strand_with_comment(StrandedAction.PUSH)
+        mock_fetch.return_value = self._state()
+
+        self._call()
+
+        mock_redo.assert_not_called()
+        seer_run.refresh_from_db()
+        assert OUT_OF_CREDITS_COMMENT_EXTRA not in seer_run.extras
+
+    @patch("sentry.seer.autofix.pr_iteration.completion.redo_stranded_action")
+    @patch(f"{TASK_PATH}.fetch_run_status")
     def test_a_redo_refused_again_keeps_the_out_of_credits_comment(
         self, mock_fetch: MagicMock, mock_redo: MagicMock
     ) -> None:

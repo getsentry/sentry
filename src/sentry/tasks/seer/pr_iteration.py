@@ -762,6 +762,10 @@ def _drain_queued_autofix_feedback(
     stranded_action = out_of_credits.stranded_action if out_of_credits else None
     if stranded_action is not None:
         take_out_of_credits(run_id=run_id, organization_id=organization_id)
+        if all_changes_pushed:
+            # Something else already did it, e.g. Retry PR in the UI. Work resumed, so the
+            # next credit stop gets its own comment.
+            clear_out_of_credits_comment(run_id=run_id, organization_id=organization_id)
     if stranded_action is not None and not all_changes_pushed:
         from sentry.seer.autofix.pr_iteration.completion import redo_stranded_action
 
