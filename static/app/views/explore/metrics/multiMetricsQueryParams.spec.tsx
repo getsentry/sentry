@@ -632,7 +632,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
     ]);
   });
 
-  it('updates only its own query when two queries share a label', async () => {
+  it('updates only its own query after an external navigation changes query types', async () => {
     const aggregate = canonicalMetricQueryParam('foo');
     const equation = JSON.stringify({
       metric: {name: '', type: ''},
@@ -671,10 +671,13 @@ describe('MultiMetricsQueryParamsProvider', () => {
 
     act(() => added.setQueryParams(added.queryParams.replace({query: 'span.op:db'})));
 
+    // The navigation keeps the query count but turns the second row into an
+    // equation, so labels are reassigned instead of the equation inheriting
+    // the stale metric label "B".
     expect(result.current.metricQueries.map(metricQuery => metricQuery.label)).toEqual([
       'A',
       'B',
-      'B',
+      'ƒ1',
     ]);
     expect(
       result.current.metricQueries.map(metricQuery => metricQuery.queryParams.query)
