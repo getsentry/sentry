@@ -48,7 +48,6 @@ def test_sustained_step_opens_then_closes_on_recovery() -> None:
     assert opened.start == T0 + 170 * MINUTE
     assert 1.4 < opened.open_ratio < 1.7
     assert closed.ended_at == T0 + 255 * MINUTE
-    assert closed.evidence[-1] == "recovered"
 
 
 def test_error_rate_step_from_zero_uses_an_event_count_floor() -> None:

@@ -121,14 +121,13 @@ class RateShiftTracker:
     def open_keys(self) -> set[SeriesKey]:
         return {key for key, state in self.state.items() if state.open}
 
-    def expire(self, key: SeriesKey, at: datetime, reason: str) -> ChangeEvent | None:
+    def expire(self, key: SeriesKey, at: datetime) -> ChangeEvent | None:
         """End the series' open shift without observing recovery, and reset its state."""
         state = self.state.get(key)
         if state is None or state.open is None:
             return None
         event = state.open
         event.ended_at = at
-        event.evidence.append(reason)
         self.state[key] = RateShiftState(
             spike_minutes=state.spike_minutes, spike_seen=state.spike_seen
         )
@@ -167,7 +166,6 @@ class RateShiftTracker:
                 recovered = log_shift < min_log_shift / 2
             if recovered or (state.hold_until is not None and minute >= state.hold_until):
                 event.ended_at = minute
-                event.evidence.append("recovered" if recovered else "held: new level")
                 state.open = None
                 return "close", event
             return None
@@ -231,9 +229,6 @@ class RateShiftTracker:
             detected_at=minute,
             peak_ratio=pooled_ratio,
             open_ratio=pooled_ratio,
-            evidence=[
-                f"step {pooled_ratio:.2f}x vs the 2h before, z={z_score:.1f}, +{excess_per_minute:.0f}/min"
-            ],
         )
         state.open = event
         state.level_before = historical_level

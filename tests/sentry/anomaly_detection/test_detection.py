@@ -129,7 +129,6 @@ def test_change_point_hold_closes_while_traffic_is_too_low_to_measure() -> None:
         ("close", event)
     ]
     assert event.ended_at == hold_until
-    assert event.evidence[-1] == "held: new level"
 
 
 def test_change_point_recovery_uses_the_same_seasonal_scale_as_open() -> None:
@@ -152,7 +151,9 @@ def test_change_point_recovery_uses_the_same_seasonal_scale_as_open() -> None:
     )
     [(opened, event)] = [action for i in range(-180, 200) for action in detector.step(minute(i))]
     assert opened == "open"
+    hold_until = detector.state[ERROR_RATE].hold_until
     assert [action for i in range(200, 240) for action in detector.step(minute(i))] == [
         ("close", event)
     ]
-    assert event.evidence[-1] == "recovered"
+    assert hold_until is not None and event.ended_at is not None
+    assert event.ended_at < hold_until  # Recovered, not held at the new level.
