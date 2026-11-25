@@ -8,11 +8,12 @@ from sentry.anomaly_detection.contracts import Metric, SeriesKey, SeriesRow, Sig
 
 Series = dict[datetime, float | None]
 
-# Request totals that, with their numerators, derive a service rate.
-RATES = {
-    Metric.COUNT: (Signal.ERROR_RATE, Metric.ERRORS_PER_REQUEST),
-    Metric.COUNT_SAMPLE: (Signal.FAILED_RATE, Metric.FAILED_PER_REQUEST),
-}
+# Service rates derived from each project and environment's unsliced request totals;
+# rate_parts names the series each one divides.
+_DERIVED_RATES = (
+    (Signal.ERROR_RATE, Metric.ERRORS_PER_REQUEST),
+    (Signal.FAILED_RATE, Metric.FAILED_PER_REQUEST),
+)
 
 
 def build(rows: Iterable[SeriesRow]) -> dict[SeriesKey, Series]:
@@ -68,19 +69,23 @@ def _mask_empty_spans(series: dict[SeriesKey, Series]) -> None:
 
 
 def _derive_rates(series: dict[SeriesKey, Series]) -> None:
-    for key in list(series):
-        rate_spec = RATES.get(key.metric)
-        if key.signal != Signal.REQUESTS or key.dim_value or rate_spec is None:
-            continue
-        rate = SeriesKey(key.project_id, key.env, *rate_spec)
-        parts = rate_parts(rate)
-        assert parts is not None
-        num, den, _ = parts
-        if num in series:
-            numerator = series[num]
+    services = {
+        (key.project_id, key.env)
+        for key in series
+        if key.signal == Signal.REQUESTS and not key.dim_value
+    }
+    for project_id, env in services:
+        for signal, metric in _DERIVED_RATES:
+            rate = SeriesKey(project_id, env, signal, metric)
+            parts = rate_parts(rate)
+            assert parts is not None
+            numerator_key, denominator_key, _ = parts
+            if numerator_key not in series or denominator_key not in series:
+                continue
+            numerator = series[numerator_key]
             series[rate] = {
                 ts: count / value if value and (count := numerator.get(ts)) is not None else None
-                for ts, value in series[den].items()
+                for ts, value in series[denominator_key].items()
             }
 
 

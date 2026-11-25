@@ -1,7 +1,8 @@
 """Shared data for aggregate series and change episodes.
 
-Timestamps are timezone-aware UTC. Series keys and change events are persisted in every
-organization's evaluator checkpoint, so keep them small.
+Timestamps are timezone-aware UTC. Series rows, series keys and change events are persisted
+by position, in hourly snapshots and in every organization's evaluator checkpoint, so keep
+them small and append fields rather than reorder them.
 """
 
 from dataclasses import dataclass
@@ -64,13 +65,13 @@ class SeriesKey(NamedTuple):
 
 
 class SeriesRow(NamedTuple):
-    """One collected bucket of a series."""
+    """One collected bucket of a series. The fields between ts and value are its SeriesKey."""
 
     ts: datetime  # Bucket start (minute or hour), UTC.
-    signal: Signal
-    metric: Metric
     project_id: int
     env: str  # Empty means no environment.
+    signal: Signal
+    metric: Metric
     dim_value: str  # Empty means a project/environment total.
     value: float | None  # None is a known-missing measurement, not zero.
 
@@ -209,6 +210,13 @@ ChangeAction = tuple[ChangeActionKind, ChangeEvent]
 
 
 class Urgency(StrEnum):
+    """How soon a correlated anomaly needs attention, declared from least to most urgent."""
+
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
+
+    @property
+    def rank(self) -> int:
+        """Position in declaration order; compare urgencies by rank, never by their values."""
+        return list(Urgency).index(self)
