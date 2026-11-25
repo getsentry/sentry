@@ -374,7 +374,9 @@ def handle_seer_run_create(object_identifier: int, payload: Any, **kwds: Any) ->
                     if organization is not None:
                         body["monitoring_providers"] = [
                             connection.dict()
-                            for connection in get_monitoring_provider_connections(organization, None)
+                            for connection in get_monitoring_provider_connections(
+                                organization, None
+                            )
                         ]
                 wire_body = {**body, "ref": str(run.uuid)}
                 response = make_feature_run_request(
