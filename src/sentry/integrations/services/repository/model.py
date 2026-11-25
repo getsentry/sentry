@@ -43,6 +43,13 @@ class RpcRepositoryRename(RpcModel):
     url: str
 
 
+class RpcInstallationRepository(RpcModel):
+    external_id: str
+    full_name: str
+    # Built by the caller, which knows the host (e.g. a GitHub Enterprise domain).
+    url: str
+
+
 class RpcRepointIntegrationResult(RpcModel):
     repositories: int
     code_mappings: int

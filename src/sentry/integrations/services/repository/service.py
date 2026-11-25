@@ -11,6 +11,7 @@ from sentry.hybridcloud.rpc.service import RpcService, cell_rpc_method
 from sentry.integrations.services.repository import RpcRepository
 from sentry.integrations.services.repository.model import (
     RpcCreateRepository,
+    RpcInstallationRepository,
     RpcRepointIntegrationResult,
     RpcRepositoryRename,
 )
@@ -248,6 +249,23 @@ class RepositoryService(RpcService):
         """
         Schedules a task to update all GitLab project webhooks for an integration.
         Settings saves are debounced; installations pass force to always repair hooks.
+        """
+
+    @cell_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def schedule_github_repo_reconciliation(
+        self,
+        *,
+        organization_id: int,
+        integration_id: int,
+        organization_integration_id: int,
+        provider: str,
+        repos_added: list[RpcInstallationRepository],
+        repos_removed: list[RpcInstallationRepository],
+    ) -> None:
+        """
+        Enqueues the cell task that applies a GitHub or GitHub Enterprise
+        installation_repositories change. Returns once the task is durably enqueued.
         """
 
     @cell_rpc_method(resolve=ByOrganizationId())

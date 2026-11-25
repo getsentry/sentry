@@ -12,6 +12,9 @@ from django.utils import timezone
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.db.postgres.transactions import enforce_constraints
+from sentry.integrations.github.tasks.reconcile_repos_on_install_change import (
+    reconcile_repos_on_install_change,
+)
 from sentry.integrations.gitlab.tasks import update_all_project_webhooks
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.external_issue import ExternalIssue
@@ -19,6 +22,7 @@ from sentry.integrations.models.repository_project_path_config import Repository
 from sentry.integrations.services.repository import RepositoryService, RpcRepository
 from sentry.integrations.services.repository.model import (
     RpcCreateRepository,
+    RpcInstallationRepository,
     RpcRepointIntegrationResult,
     RpcRepositoryRename,
 )
@@ -35,6 +39,12 @@ from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.users.services.user.model import RpcUser
+from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
+
+# Worst case (2 x 1.5s + 0.1s backoff) stays under the 5s RPC_TIMEOUT, so the caller doesn't
+# give up and retry while an enqueue is still in flight.
+_ENQUEUE_ATTEMPTS = 2
+_ENQUEUE_TIMEOUT_SECONDS = 1.5
 
 
 def _reload_project_option_caches(project_ids: tuple[int, ...], option_key: str) -> None:
@@ -579,6 +589,35 @@ class DatabaseBackedRepositoryService(RepositoryService):
             organization_id=organization_id,
             force=force,
         )
+
+    def schedule_github_repo_reconciliation(
+        self,
+        *,
+        organization_id: int,
+        integration_id: int,
+        organization_integration_id: int,
+        provider: str,
+        repos_added: list[RpcInstallationRepository],
+        repos_removed: list[RpcInstallationRepository],
+    ) -> None:
+        task_kwargs = {
+            "organization_id": organization_id,
+            "integration_id": integration_id,
+            "organization_integration_id": organization_integration_id,
+            "provider": provider,
+            "repos_added": [repo.dict() for repo in repos_added],
+            "repos_removed": [repo.dict() for repo in repos_removed],
+        }
+
+        def enqueue() -> None:
+            delivery = reconcile_repos_on_install_change.apply_async_with_future(kwargs=task_kwargs)
+            if delivery is not None:
+                delivery.result(timeout=_ENQUEUE_TIMEOUT_SECONDS)
+
+        ConditionalRetryPolicy(
+            test_function=lambda attempt_number, _: attempt_number < _ENQUEUE_ATTEMPTS,
+            delay_function=exponential_delay(0.1),
+        )(enqueue)
 
     def auto_link_repos_by_name(
         self,

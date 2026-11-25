@@ -12,6 +12,7 @@ from sentry.hybridcloud.rpc.service import dispatch_to_local_service
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.services.repository.model import (
+    RpcInstallationRepository,
     RpcRepointIntegrationResult,
     RpcRepository,
     RpcRepositoryRename,
@@ -22,8 +23,10 @@ from sentry.integrations.types import ExternalProviders
 from sentry.models.grouplink import GroupLink
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.repository import Repository
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase, TransactionTestCase
-from sentry.testutils.silo import all_silo_test, cell_silo_test
+from sentry.testutils.helpers.task_runner import TaskRunner
+from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, cell_silo_test
 
 
 @all_silo_test
@@ -56,6 +59,89 @@ class ScheduleGitlabProjectWebhooksTest(TestCase):
         delay.assert_called_once_with(
             organization_id=self.organization.id, integration_id=123, force=True
         )
+
+
+def _installation_repo(external_id: str, full_name: str) -> RpcInstallationRepository:
+    return RpcInstallationRepository(
+        external_id=external_id, full_name=full_name, url=f"https://github.com/{full_name}"
+    )
+
+
+@all_silo_test
+class ScheduleGithubRepoReconciliationTest(TestCase):
+    def test_enqueued_task_applies_the_change(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization, external_id="1", provider="github"
+        )
+        org_integration = integration.organizationintegration_set.get()
+        with assume_test_silo_mode(SiloMode.CELL):
+            removed = self.create_repo(
+                project=self.project,
+                name="example-org/old",
+                external_id="2",
+                provider="integrations:github",
+                integration_id=integration.id,
+            )
+
+        with TaskRunner():
+            result = repository_service.schedule_github_repo_reconciliation(
+                organization_id=self.organization.id,
+                integration_id=integration.id,
+                organization_integration_id=org_integration.id,
+                provider="github",
+                repos_added=[_installation_repo("1", "example-org/api")],
+                repos_removed=[_installation_repo("2", "example-org/old")],
+            )
+
+        assert result is None
+        with assume_test_silo_mode(SiloMode.CELL):
+            added = Repository.objects.get(organization_id=self.organization.id, external_id="1")
+            assert added.name == "example-org/api"
+            assert added.url == "https://github.com/example-org/api"
+            assert added.status == ObjectStatus.ACTIVE
+            removed.refresh_from_db()
+            assert removed.status == ObjectStatus.DISABLED
+
+
+@cell_silo_test
+@patch("sentry.utils.retries.time.sleep")
+@patch(
+    "sentry.integrations.services.repository.impl.reconcile_repos_on_install_change.apply_async_with_future"
+)
+class ScheduleGithubRepoReconciliationDeliveryTest(TestCase):
+    def _schedule(self) -> None:
+        repository_service.schedule_github_repo_reconciliation(
+            organization_id=self.organization.id,
+            integration_id=1,
+            organization_integration_id=2,
+            provider="github",
+            repos_added=[_installation_repo("1", "example-org/api")],
+            repos_removed=[],
+        )
+
+    def test_retries_failed_delivery(self, enqueue: MagicMock, _sleep: MagicMock) -> None:
+        enqueue.return_value.result.side_effect = [TimeoutError(), None]
+
+        self._schedule()
+
+        assert enqueue.call_count == 2
+        assert enqueue.call_args.kwargs["kwargs"]["repos_added"] == [
+            {
+                "external_id": "1",
+                "full_name": "example-org/api",
+                "url": "https://github.com/example-org/api",
+            }
+        ]
+
+    def test_raises_when_delivery_keeps_failing(
+        self, enqueue: MagicMock, _sleep: MagicMock
+    ) -> None:
+        enqueue.return_value.result.side_effect = TimeoutError()
+
+        with pytest.raises(TimeoutError):
+            self._schedule()
+
+        assert enqueue.call_count == 2
 
 
 @all_silo_test

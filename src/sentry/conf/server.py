@@ -923,6 +923,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.integrations.github.tasks.link_all_repos",
     "sentry.integrations.github.tasks.pr_comment",
     "sentry.integrations.github.tasks.query_commit_author_public_emails",
+    "sentry.integrations.github.tasks.reconcile_repos_on_install_change",
     "sentry.integrations.github.tasks.sync_repos",
     "sentry.integrations.github.tasks.sync_repos_on_install_change",
     "sentry.integrations.source_code_management.sync_repos",
