@@ -146,4 +146,35 @@ describe('useMetricSamplesTable', () => {
       })
     );
   });
+
+  it('queries the exemplars of histogram metrics', async () => {
+    const mockRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: [], meta: {fields: {}}},
+      method: 'GET',
+    });
+
+    renderHookWithProviders(useMetricSamplesTable, {
+      additionalWrapper: MockMetricQueryParamsContext,
+      initialProps: {
+        traceMetric: {name: 'http.server.duration', type: 'histogram'},
+        fields: ['trace'],
+        limit: 50,
+        ingestionDelaySeconds: 0,
+      },
+    });
+
+    await waitFor(() => {
+      expect(mockRequest).toHaveBeenCalledTimes(1);
+    });
+
+    expect(mockRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/events/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          query: 'metric.name:http.server.duration metric.type:histogram_exemplar',
+        }),
+      })
+    );
+  });
 });

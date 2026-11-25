@@ -181,4 +181,51 @@ describe('useMetricOptions', () => {
       )
     );
   });
+
+  describe('histogram exemplars', () => {
+    it('hides them when OTLP histograms are enabled', async () => {
+      const mockRequest = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events/`,
+        method: 'GET',
+        body: {data: []},
+      });
+
+      renderHookWithProviders(useMetricOptions, {
+        ...context,
+        organization: OrganizationFixture({features: ['tracemetrics-otlp-histograms']}),
+        initialProps: {search: 'http'},
+      });
+
+      await waitFor(() =>
+        expect(mockRequest).toHaveBeenCalledWith(
+          `/organizations/${organization.slug}/events/`,
+          expect.objectContaining({
+            query: expect.objectContaining({
+              query: expect.stringMatching(
+                /^!metric\.type:histogram_exemplar metric\.name:/
+              ),
+            }),
+          })
+        )
+      );
+    });
+
+    it('does not filter metric types otherwise', async () => {
+      const mockRequest = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events/`,
+        method: 'GET',
+        body: {data: []},
+      });
+
+      renderHookWithProviders(useMetricOptions, {...context});
+
+      await waitFor(() => expect(mockRequest).toHaveBeenCalled());
+      expect(mockRequest).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/events/`,
+        expect.objectContaining({
+          query: expect.not.objectContaining({query: expect.anything()}),
+        })
+      );
+    });
+  });
 });

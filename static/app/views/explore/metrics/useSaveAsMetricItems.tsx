@@ -118,6 +118,8 @@ export function useSaveAsMetricItems(options: UseSaveAsMetricItemsOptions) {
     }
 
     const alertsUrls = metricQueries
+      // Alerts don't support histogram metrics yet
+      .filter(metricQuery => metricQuery.metric.type !== 'histogram')
       .filter(
         metricQuery =>
           canUseMetricsEquationsInAlerts(organization) ||

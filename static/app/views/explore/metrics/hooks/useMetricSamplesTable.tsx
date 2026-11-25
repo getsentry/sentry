@@ -18,6 +18,7 @@ import {
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {
   AlwaysPresentTraceMetricFields,
+  HISTOGRAM_EXEMPLAR_METRIC_TYPE,
   NONE_UNIT,
 } from 'sentry/views/explore/metrics/constants';
 import {ingestionDelayedRelativePeriod} from 'sentry/views/explore/metrics/ingestionDelay';
@@ -95,7 +96,13 @@ export function useMetricSamplesQueryString(
 
     if (traceMetric) {
       newSearch.addFilterValue(TraceMetricKnownFieldKey.METRIC_NAME, traceMetric.name);
-      newSearch.addFilterValue(TraceMetricKnownFieldKey.METRIC_TYPE, traceMetric.type);
+      newSearch.addFilterValue(
+        TraceMetricKnownFieldKey.METRIC_TYPE,
+        // A histogram row holds a whole data point, its exemplars are the samples
+        traceMetric.type === 'histogram'
+          ? HISTOGRAM_EXEMPLAR_METRIC_TYPE
+          : traceMetric.type
+      );
       if (traceMetric.unit && traceMetric.unit !== '-') {
         if (traceMetric.unit !== NONE_UNIT) {
           newSearch.addFilterValue(
