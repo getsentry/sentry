@@ -308,7 +308,7 @@ export function ScheduledInvestigationForm(
                                     onChange={crontabField.handleChange}
                                     onRemove={() => field.removeValue(index)}
                                     // An automation always has at least one schedule
-                                    canRemove={index > 0}
+                                    canRemove={field.state.value.length > 1}
                                     disabled={readOnly}
                                     inputProps={inputProps}
                                   />
@@ -344,7 +344,7 @@ export function ScheduledInvestigationForm(
                             tooltipProps={{
                               title: atMax
                                 ? t('You have reached the maximum number of crontabs.')
-                                : undefined,
+                                : t('Add a crontab'),
                             }}
                             onClick={() => field.pushValue(DEFAULT_CRONTAB)}
                           />
