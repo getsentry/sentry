@@ -24,7 +24,12 @@ from sentry.api.event_search import SearchFilter
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap import constants
 from sentry.search.eap.extrapolation_mode import resolve_extrapolation_mode
-from sentry.search.eap.trace_metrics.types import TraceMetric, TraceMetricType
+from sentry.search.eap.trace_metrics.types import (
+    HISTOGRAM_BUCKET_FUNCTIONS,
+    TraceMetric,
+    TraceMetricType,
+    is_histogram_metric,
+)
 from sentry.search.eap.types import EAPResponse, SearchResolverConfig
 from sentry.search.events.constants import NUMERIC_FIELD_TYPES
 from sentry.search.events.types import SnubaParams
@@ -704,13 +709,22 @@ class TraceMetricAggregateDefinition(AggregateDefinition):
                 f"Trace metric aggregates expect argument {self.offset} to be of type AttributeArgumentDefinition"
             )
 
-        resolved_attribute = resolved_arguments[self.offset]
-        if self.attribute_resolver is not None:
-            resolved_attribute = self.attribute_resolver(resolved_attribute)
-
         trace_metric = extract_trace_metric_aggregate_arguments(
             resolved_arguments, offset=self.offset
         )
+        resolved_attribute = resolved_arguments[self.offset]
+        is_histogram = is_histogram_metric(search_config, trace_metric)
+        # Snuba only reads histogram buckets for some aggregates of the value
+        if is_histogram and (
+            self.internal_function not in HISTOGRAM_BUCKET_FUNCTIONS
+            or resolved_attribute
+            != AttributeKey(name="sentry.value", type=AttributeKey.Type.TYPE_DOUBLE)
+        ):
+            raise InvalidSearchQuery(f"{alias} is not supported for histogram metrics")
+        # Snuba only expands the bucket counts when aggregating the value, so keep it instead
+        # of the sentry.project_id optimization for count
+        if self.attribute_resolver is not None and not is_histogram:
+            resolved_attribute = self.attribute_resolver(resolved_attribute)
 
         # The search type for the first argument is always going to be 'number', but
         # the real unit for the metric is stored in the metric_unit field of the trace metric

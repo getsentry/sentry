@@ -26,7 +26,7 @@ from sentry.search.eap.columns import (
 )
 from sentry.search.eap.spans.utils import operate_multiple_columns
 from sentry.search.eap.trace_metrics.config import TraceMetricsSearchResolverConfig
-from sentry.search.eap.trace_metrics.types import TraceMetric
+from sentry.search.eap.trace_metrics.types import TraceMetric, is_histogram_metric
 from sentry.search.eap.validator import literal_validator
 from sentry.search.events.constants import WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS
 
@@ -53,6 +53,7 @@ def _rate_internal(
     trace_metric = search_config.metric or extract_trace_metric_aggregate_arguments(
         args, offset=0 if not settings["conditional"] else 1
     )
+    is_histogram = is_histogram_metric(search_config, trace_metric)
 
     trace_filter: TraceItemFilter | None
     if trace_metric is not None:
@@ -67,6 +68,10 @@ def _rate_internal(
         )
         if trace_metric.metric_type == "counter":
             aggregate = Function.FUNCTION_SUM
+            key = AttributeKey(type=AttributeKey.TYPE_DOUBLE, name="sentry.value")
+        elif is_histogram:
+            # Snuba only expands the bucket counts when aggregating the value
+            aggregate = Function.FUNCTION_COUNT
             key = AttributeKey(type=AttributeKey.TYPE_DOUBLE, name="sentry.value")
         else:
             aggregate = Function.FUNCTION_COUNT
@@ -297,6 +302,7 @@ TRACE_METRICS_FORMULA_DEFINITIONS: dict[str, FormulaDefinition] = {
                         "counter",
                         "gauge",
                         "distribution",
+                        "histogram",
                     ]
                 ),
                 default_arg="",
@@ -327,6 +333,7 @@ TRACE_METRICS_FORMULA_DEFINITIONS: dict[str, FormulaDefinition] = {
                         "counter",
                         "gauge",
                         "distribution",
+                        "histogram",
                     ]
                 ),
                 default_arg="",
