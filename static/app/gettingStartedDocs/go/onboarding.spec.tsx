@@ -32,10 +32,10 @@ describe('go onboarding docs', () => {
   it('renders logs onboarding docs correctly', async () => {
     renderWithOnboardingLayout(docs, {selectedProducts: [ProductSolution.LOGS]});
 
-    const elements = await screen.findAllByText(textWithMarkupMatcher(/EnableLogs/));
-    for (const element of elements) {
-      expect(element).toBeInTheDocument();
-    }
+    expect(await screen.findByText('Logging Integrations')).toBeInTheDocument();
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/EnableLogs/))
+    ).not.toBeInTheDocument();
   });
 
   it('renders performance and logs onboarding docs correctly', async () => {
@@ -50,9 +50,23 @@ describe('go onboarding docs', () => {
       expect(element).toBeInTheDocument();
     }
 
-    const logElements = await screen.findAllByText(textWithMarkupMatcher(/EnableLogs/));
-    for (const element of logElements) {
-      expect(element).toBeInTheDocument();
-    }
+    expect(await screen.findByText('Logging Integrations')).toBeInTheDocument();
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/EnableLogs/))
+    ).not.toBeInTheDocument();
+  });
+
+  it('renders the logs onboarding without EnableLogs', async () => {
+    renderWithOnboardingLayout(
+      {onboarding: docs.logsOnboarding!},
+      {selectedProducts: [ProductSolution.LOGS]}
+    );
+
+    expect(
+      await screen.findByText(textWithMarkupMatcher(/sentry\.NewLogger\(ctx\)/))
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/EnableLogs/))
+    ).not.toBeInTheDocument();
   });
 });

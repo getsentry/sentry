@@ -19,7 +19,7 @@ export const logs = <PlatformOptions extends BasePlatformOptions = BasePlatformO
         {
           type: 'text',
           text: tct(
-            'Install our Go SDK using [code:go get]. The minimum version of the SDK that supports logs is [code:0.33.0].',
+            'Install our Go SDK using [code:go get]. The setup below needs version [code:0.47.0] or later.',
             {code: <code />}
           ),
         },
@@ -43,13 +43,15 @@ export const logs = <PlatformOptions extends BasePlatformOptions = BasePlatformO
           code: `package main
 
 import (
+  "log"
+  "time"
+
   "github.com/getsentry/sentry-go"
 )
 
 func main() {
   err := sentry.Init(sentry.ClientOptions{
     Dsn: "${params.dsn.public}",
-    EnableLogs: true,
   })
   if err != nil {
     log.Fatalf("sentry.Init: %s", err)

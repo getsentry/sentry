@@ -19,12 +19,6 @@ import (
 func main() {
   err := sentry.Init(sentry.ClientOptions{
     Dsn: "${params.dsn.public}",${
-      params.isLogsSelected
-        ? `
-    // Enable logs to be sent to Sentry
-    EnableLogs: true,`
-        : ''
-    }${
       params.isPerformanceSelected
         ? `
     // Set TracesSampleRate to 1.0 to capture 100%
@@ -52,12 +46,6 @@ import (
 func main() {
   err := sentry.Init(sentry.ClientOptions{
     Dsn: "${params.dsn.public}",${
-      params.isLogsSelected
-        ? `
-    // Enable logs to be sent to Sentry
-    EnableLogs: true,`
-        : ''
-    }${
       params.isPerformanceSelected
         ? `
     // Set TracesSampleRate to 1.0 to capture 100%
