@@ -120,15 +120,23 @@ def record_end_send(
         )
 
 
+def retained_event_conditions(project: Project, now: datetime) -> list[Condition]:
+    _, start = outside_retention_with_modified_start(
+        datetime(1970, 1, 1, tzinfo=UTC), now, project.organization
+    )
+    return [
+        Condition(Column("project_id"), Op.EQ, project.id),
+        Condition(Column("timestamp"), Op.GTE, start),
+        Condition(Column("timestamp"), Op.LT, now + ALLOWED_FUTURE_DELTA + timedelta(seconds=1)),
+    ]
+
+
 def record_merge_samples(
     project: Project, operation_id: int, eventstream_state: Mapping[str, Any]
 ) -> None:
     try:
         source_ids = eventstream_state["previous_group_ids"]
         now = datetime.now(UTC)
-        _, start = outside_retention_with_modified_start(
-            datetime(1970, 1, 1, tzinfo=UTC), now, project.organization
-        )
         # Query the stored group IDs directly. Issue queries that expand redirects would
         # also include events already on the survivor.
         group = Column("group_id")
@@ -142,14 +150,8 @@ def record_merge_samples(
                     Function("argMax", [Column("event_id"), Column("timestamp")], alias="sample"),
                 ],
                 where=[
-                    Condition(Column("project_id"), Op.EQ, project.id),
+                    *retained_event_conditions(project, now),
                     Condition(group, Op.IN, source_ids),
-                    Condition(Column("timestamp"), Op.GTE, start),
-                    Condition(
-                        Column("timestamp"),
-                        Op.LT,
-                        now + ALLOWED_FUTURE_DELTA + timedelta(seconds=1),
-                    ),
                     Condition(Column("received"), Op.LTE, now),
                 ],
                 groupby=[group],
