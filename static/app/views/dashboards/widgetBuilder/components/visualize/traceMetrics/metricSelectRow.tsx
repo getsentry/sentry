@@ -112,11 +112,12 @@ export function MetricSelectRow({
 
   // Web vital scores live on the vital metrics as attributes. Offer them as
   // metrics of their own where the trace metrics web vitals dashboards are on.
-  const virtualMetrics = organization.features.includes(
-    'dashboards-web-vitals-trace-metrics'
-  )
-    ? WEB_VITAL_SCORE_METRICS
-    : undefined;
+  // Heat maps cannot display virtual metrics.
+  const virtualMetrics =
+    organization.features.includes('dashboards-web-vitals-trace-metrics') &&
+    state.displayType !== DisplayType.HEATMAP
+      ? WEB_VITAL_SCORE_METRICS
+      : undefined;
 
   const displayFields = getTraceMetricDisplayFields(
     state.displayType,

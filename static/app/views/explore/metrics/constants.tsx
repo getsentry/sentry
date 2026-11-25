@@ -15,6 +15,7 @@ import {
   type SampleTableColumnKey,
   type TraceMetricFieldKey,
 } from './types';
+import {findVirtualTraceMetric} from './virtualMetrics';
 
 export const NONE_UNIT = 'none';
 
@@ -256,10 +257,11 @@ export const DEFAULT_YAXIS_BY_TYPE: Record<string, string> = {
 /**
  * Heat maps plot the distribution of a measurement's values over time, so they
  * only make sense for `distribution` metrics. Counters (always `1`) and gauges
- * have no meaningful value distribution to visualize.
+ * have no meaningful value distribution to visualize, and virtual metrics read
+ * an attribute rather than the value.
  */
 export function doesMetricSupportHeatMapVisualization(metric: TraceMetric): boolean {
-  return metric.type === 'distribution';
+  return metric.type === 'distribution' && !findVirtualTraceMetric(metric);
 }
 
 export const RATE_AGGREGATES = new Set(['per_second', 'per_minute']);

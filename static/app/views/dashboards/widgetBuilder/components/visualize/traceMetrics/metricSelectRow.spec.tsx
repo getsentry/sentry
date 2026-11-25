@@ -649,6 +649,43 @@ describe('MetricSelectRow', () => {
       );
     });
 
+    it('hides the score metrics for a heat map', async () => {
+      const LCP_COUNT = 'count(value,browser.web_vital.lcp,distribution,millisecond)';
+      render(
+        <WidgetBuilderProvider>
+          <MetricSelectRow
+            field={explodeFieldString(LCP_COUNT)}
+            index={0}
+            disabled={false}
+          />
+        </WidgetBuilderProvider>,
+        {
+          organization,
+          initialRouterConfig: {
+            location: {
+              pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+              query: {
+                field: [LCP_COUNT],
+                dataset: WidgetType.TRACEMETRICS,
+                displayType: DisplayType.HEATMAP,
+              },
+            },
+          },
+        }
+      );
+
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'browser.web_vital.lcp'})
+      );
+
+      expect(
+        await screen.findByRole('option', {name: 'browser.web_vital.lcp'})
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('option', {name: 'browser.web_vital.lcp.score'})
+      ).not.toBeInTheDocument();
+    });
+
     it('hides the score metrics without the feature', async () => {
       render(
         <WidgetBuilderProvider>
