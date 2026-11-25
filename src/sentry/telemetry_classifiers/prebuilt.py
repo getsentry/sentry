@@ -15,7 +15,7 @@ ALL_PREBUILT_CLASSIFIERS: tuple[PrebuiltClassifier, ...] = (
         output_type=TelemetryClassifierOutputType.BINARY,
         name="Agent not helpful",
         description="When your agent fails to give users what they asked for.",
-        result_attribute="user_frustration",
+        result_attribute="agent_not_helpful",
         binary_threshold=0.8,
     ),
 )

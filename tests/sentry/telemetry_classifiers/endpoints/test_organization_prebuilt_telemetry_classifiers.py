@@ -27,7 +27,7 @@ class OrganizationPrebuiltTelemetryClassifiersTest(APITestCase):
             "binaryThreshold": 0.8,
             "name": "Agent not helpful",
             "description": "When your agent fails to give users what they asked for.",
-            "resultAttribute": "user_frustration",
+            "resultAttribute": "agent_not_helpful",
         }
 
     def test_filters_by_dataset(self) -> None:
