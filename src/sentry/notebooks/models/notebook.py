@@ -8,6 +8,7 @@ from django.db.models import Q
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, cell_silo_model, sane_repr
 from sentry.db.models.base import DefaultFieldsModel
+from sentry.db.models.creator_reference import CreatorReferenceModel, single_creator_constraint
 from sentry.db.models.fields.bounded import BoundedPositiveIntegerField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.viewer_context import ActorId, actor_id_from_references
@@ -64,19 +65,12 @@ class NotebookFavoriteUser(DefaultFieldsModel):
 
 
 @cell_silo_model
-class Notebook(DefaultFieldsModel):
+class Notebook(CreatorReferenceModel, DefaultFieldsModel):
     """An organization-visible notebook, written by people or by a Seer producer."""
 
     __relocation_scope__ = RelocationScope.Excluded
 
     organization = FlexibleForeignKey("sentry.Organization", on_delete=models.CASCADE)
-    created_by_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
-    created_by_service_account_id = HybridCloudForeignKey(
-        "service_accounts.ServiceAccount", null=True, on_delete="SET_NULL"
-    )
-    created_by_org_auth_token_id = HybridCloudForeignKey(
-        "sentry.OrgAuthToken", null=True, on_delete="SET_NULL"
-    )
 
     title = models.CharField(max_length=255)
     status = models.CharField(
@@ -121,15 +115,7 @@ class Notebook(DefaultFieldsModel):
         db_table = "notebooks_notebook"
         constraints = [
             # At most one creator column is set.
-            models.CheckConstraint(
-                condition=(
-                    Q(created_by_service_account_id__isnull=True)
-                    & Q(created_by_org_auth_token_id__isnull=True)
-                )
-                | (Q(created_by_id__isnull=True) & Q(created_by_org_auth_token_id__isnull=True))
-                | (Q(created_by_id__isnull=True) & Q(created_by_service_account_id__isnull=True)),
-                name="notebook_creator_reference_shape",
-            ),
+            single_creator_constraint("notebook_creator_reference_shape"),
             models.CheckConstraint(
                 condition=(
                     Q(

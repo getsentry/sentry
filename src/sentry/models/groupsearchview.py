@@ -2,7 +2,6 @@ from typing import Any
 
 from django.contrib.postgres.fields.array import ArrayField
 from django.db import models
-from django.db.models import CheckConstraint, Q
 from django.utils.translation import gettext_lazy as _
 
 from sentry.backup.dependencies import PrimaryKeyMap
@@ -10,6 +9,7 @@ from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import cell_silo_model
 from sentry.db.models.base import DefaultFieldsModel, DefaultFieldsModelExisting
+from sentry.db.models.creator_reference import single_creator_constraint
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.models.savedsearch import SortOptions
@@ -81,14 +81,8 @@ class GroupSearchView(DefaultFieldsModelExisting):
         app_label = "sentry"
         db_table = "sentry_groupsearchview"
         constraints = [
-            CheckConstraint(
-                condition=(
-                    Q(created_by_service_account_id__isnull=True)
-                    & Q(created_by_org_auth_token_id__isnull=True)
-                )
-                | (Q(user_id__isnull=True) & Q(created_by_org_auth_token_id__isnull=True))
-                | (Q(user_id__isnull=True) & Q(created_by_service_account_id__isnull=True)),
-                name="sentry_groupsearchview_single_creator",
+            single_creator_constraint(
+                "sentry_groupsearchview_single_creator", user_field="user_id"
             ),
         ]
 
