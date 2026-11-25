@@ -32,7 +32,7 @@ describe('Discover > ResultsChart', () => {
     });
   });
 
-  it('only allows default, daily, previous period, and bar display modes when multiple y axis are selected', async () => {
+  it('disables the top display modes and keeps the others enabled with multiple y-axes', async () => {
     // Top modes need the discover-query feature and a grouped query, otherwise
     // they're hidden or disabled for reasons unrelated to the y-axis count.
     const groupedLocation = LocationFixture({
