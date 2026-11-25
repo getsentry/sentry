@@ -72,11 +72,13 @@ from sentry.tasks.post_process import (
     PostProcessJob,
     _probe_event_links,
     feedback_filter_decorator,
+    link_event_to_user_report,
     locks,
     post_process_group,
     process_siem_security_logging,
     run_post_process_job,
     set_siem_security_log_hook,
+    update_existing_attachments,
 )
 from sentry.testutils.cases import BaseTestCase, PerformanceIssueTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers import with_feature
@@ -3264,6 +3266,65 @@ class PipelineKillswitchTestMixin(BasePostProcessGroupMixin):
             }
         ):
             assert not self.run_pipeline(mock_safe_execute)
+
+    def count_step_killswitch_matches(self, mock_incr: MagicMock) -> int:
+        return len(
+            [
+                call
+                for call in mock_incr.call_args_list
+                if call.args[0] == "killswitches.run"
+                and call.kwargs["tags"]
+                == {
+                    "killswitch_name": "post_process.disable-pipeline-steps",
+                    "decision": "matched",
+                }
+            ]
+        )
+
+    @override_options(
+        {"post_process.disable-pipeline-steps": [{"pipeline_step": "update_existing_attachments"}]}
+    )
+    def test_disabled_step_is_counted_once(self) -> None:
+        """
+        Deciding whether the event link probe may run looks at the killswitch before the
+        pipeline does. That look must not count as a second match.
+        """
+        event = self.create_event(data={}, project_id=self.project.id)
+
+        with patch("sentry.killswitches.metrics.incr") as mock_incr:
+            self.call_post_process_group(
+                is_new=True, is_regression=False, is_new_group_environment=False, event=event
+            )
+
+        assert self.count_step_killswitch_matches(mock_incr) == 1
+
+    @override_options(
+        {"post_process.disable-pipeline-steps": [{"pipeline_step": "link_event_to_user_report"}]}
+    )
+    def test_disabled_step_is_not_counted_when_the_pipeline_halts_before_it(self) -> None:
+        def halt(job: PostProcessJob) -> None:
+            job["halt_post_process"] = True
+
+        event = self.create_event(data={}, project_id=self.project.id)
+
+        with (
+            patch(
+                "sentry.tasks.post_process.GROUP_CATEGORY_POST_PROCESS_PIPELINE",
+                {
+                    GroupCategory.ERROR: [
+                        halt,
+                        update_existing_attachments,
+                        link_event_to_user_report,
+                    ]
+                },
+            ),
+            patch("sentry.killswitches.metrics.incr") as mock_incr,
+        ):
+            self.call_post_process_group(
+                is_new=True, is_regression=False, is_new_group_environment=False, event=event
+            )
+
+        assert self.count_step_killswitch_matches(mock_incr) == 0
 
 
 class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):

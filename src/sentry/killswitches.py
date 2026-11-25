@@ -325,13 +325,11 @@ def killswitch_matches_context(
     return value_matches(killswitch_name, option_value, context, emit_metrics)
 
 
-def value_matches(
-    killswitch_name: str,
-    option_value: KillswitchConfig,
-    context: Context,
-    emit_metrics: bool = True,
-) -> bool:
-    decision = False
+def conditions_match(option_value: KillswitchConfig, context: Context) -> bool:
+    """
+    Whether any condition of the killswitch matches the context. Emits no metrics, for
+    callers that need the answer without acting on it. See `value_matches`.
+    """
     for condition in option_value:
         for field, matching_value in condition.items():
             if matching_value is None:
@@ -344,8 +342,18 @@ def value_matches(
             if str(value) != matching_value:
                 break
         else:
-            decision = True
-            break
+            return True
+
+    return False
+
+
+def value_matches(
+    killswitch_name: str,
+    option_value: KillswitchConfig,
+    context: Context,
+    emit_metrics: bool = True,
+) -> bool:
+    decision = conditions_match(option_value, context)
 
     if emit_metrics or decision:
         # metrics can have a meaningful performance impact, so allow caller to opt out
