@@ -40,6 +40,7 @@ UPDATABLE_BLOCK_FIELDS = CREATABLE_BLOCK_FIELDS - {"kind"}
 _NOTEBOOK_TYPE_LABELS: dict[str, str] = {
     NotebookSourceType.MANUAL: "manual",
     NotebookSourceType.METRIC_OPEN_PERIOD: "breached metrics",
+    NotebookSourceType.DETECTOR: "detector",
 }
 
 

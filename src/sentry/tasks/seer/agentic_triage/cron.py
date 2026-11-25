@@ -32,6 +32,7 @@ from sentry.seer.agentic_triage.models import AgenticTriagePayload, TriageCandid
 from sentry.seer.autofix.constants import (
     AutofixAutomationTuningSettings,
 )
+from sentry.seer.autofix.open_prs import get_open_prs
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     bulk_read_preferences_from_sentry_db,
@@ -750,7 +751,7 @@ def _get_eligible_projects(
             reasons.append("tweaks_disabled")
         if is_legacy_org and is_seer_autotriggered_autofix_rate_limited(project):
             reasons.append("autofix_rate_limited")
-        if stopping_point != AutofixStoppingPoint.OPEN_PR:
+        if stopping_point != AutofixStoppingPoint.OPEN_PR or not get_open_prs(project.get_option):
             # Agentic triage's only output is a PR, so a project that stops
             # short of open_pr can never produce a usable result.
             reasons.append("not_pr_producing")

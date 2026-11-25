@@ -41,6 +41,7 @@ export type SeerProjectSettingUpdatePayload = {
   autoCreatePr?: boolean;
   automationTuning?: UserFacingAutomationTuning;
   integrationId?: string;
+  openPrs?: boolean;
   prIteration?: boolean;
   scannerAutomation?: boolean;
   stoppingPoint?: SeerAutofixStoppingPoint;
@@ -56,6 +57,7 @@ export type SeerProjectSettingResponse = {
   autoCreatePr: boolean | null;
   automationTuning: InternalAutomationTuning;
   integrationId: string | null;
+  openPrs: boolean;
   prIteration: boolean;
   projectId: string;
   projectSlug: string;
