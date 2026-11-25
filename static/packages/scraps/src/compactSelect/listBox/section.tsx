@@ -61,7 +61,9 @@ export function ListBoxSection<T extends ListItemBase>({
             }
           >
             {item.rendered && (
-              <SectionLabel {...headingProps}>{item.rendered}</SectionLabel>
+              <SectionLabel size="md" {...headingProps}>
+                {item.rendered}
+              </SectionLabel>
             )}
           </SectionHeader>
         )}

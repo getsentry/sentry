@@ -24,13 +24,6 @@ export const ListWrap = styled('ul')`
     padding-bottom: calc(${p => p.theme.space.xs} + 1px);
   }
 
-  /* Remove top padding if preceded by search input, since search input already has
-  vertical padding. Account for InputGroup wrapper div. */
-  div:has(input) ~ &&:first-of-type,
-  div:has(input) ~ div > &&:first-of-type {
-    padding-top: 0;
-  }
-
   &:empty {
     padding: 0;
   }
@@ -43,14 +36,6 @@ export const ListWrap = styled('ul')`
 
   :focus-visible {
     outline: none;
-  }
-
-  /* The first section follows a hidden separator in a headerless menu. */
-  [data-menu-has-header='false']
-    &:first-of-type
-    li[role='presentation']:nth-of-type(2)
-    > [data-section-header] {
-    padding-top: 0;
   }
 `;
 
