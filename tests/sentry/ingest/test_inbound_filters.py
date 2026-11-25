@@ -703,24 +703,24 @@ def client_ip_condition(values: list[str]) -> dict[str, object]:
                 {"type": "browser_name", "operator": "equals", "value": ["Chrome"]},
                 {"type": "browser_version", "operator": "lt", "value": ["110"]},
             ],
-            {
-                "op": "and",
-                "inner": [
-                    {"op": "glob", "name": "event.contexts.browser.name", "value": ["Chrome"]},
-                    {
-                        "op": "release",
-                        "name": "event.contexts.browser.version",
-                        "comparator": "lt",
-                        "value": "110",
-                    },
-                ],
-            },
+            guarded(
+                "error",
+                {"op": "glob", "name": "event.contexts.browser.name", "value": ["Chrome"]},
+                {
+                    "op": "release",
+                    "name": "event.contexts.browser.version",
+                    "comparator": "lt",
+                    "value": "110",
+                },
+            ),
             id="browser_on_errors_reads_the_browser_context",
         ),
         pytest.param(
             "error",
             [{"type": "browser_name", "operator": "glob", "value": ["Chrome*"]}],
-            {"op": "glob", "name": "event.contexts.browser.name", "value": ["Chrome*"]},
+            guarded(
+                "error", {"op": "glob", "name": "event.contexts.browser.name", "value": ["Chrome*"]}
+            ),
             id="browser_name_trailing_wildcard",
         ),
         pytest.param(
@@ -738,13 +738,23 @@ def client_ip_condition(values: list[str]) -> dict[str, object]:
         pytest.param(
             "span",
             [{"type": "browser_name", "operator": "glob", "value": ["Edge?Mobile"]}],
-            {"op": "glob", "name": "span.attributes.browser.name.value", "value": ["Edge?Mobile"]},
+            guarded(
+                "span",
+                {
+                    "op": "glob",
+                    "name": "span.attributes.browser.name.value",
+                    "value": ["Edge?Mobile"],
+                },
+            ),
             id="browser_name_single_character_wildcard",
         ),
         pytest.param(
             "error",
             [{"type": "browser_name", "operator": "equals", "value": ["Chrome*"]}],
-            {"op": "glob", "name": "event.contexts.browser.name", "value": [r"Chrome\*"]},
+            guarded(
+                "error",
+                {"op": "glob", "name": "event.contexts.browser.name", "value": [r"Chrome\*"]},
+            ),
             id="browser_name_equals_reads_the_wildcard_literally",
         ),
         pytest.param(
@@ -754,57 +764,61 @@ def client_ip_condition(values: list[str]) -> dict[str, object]:
                 {"type": "browser_version", "operator": "gte", "value": ["120"]},
                 {"type": "browser_version", "operator": "lte", "value": ["122.0.6261"]},
             ],
-            {
-                "op": "and",
-                "inner": [
-                    {
-                        "op": "glob",
-                        "name": "span.attributes.browser.name.value",
-                        "value": ["Chrome*"],
-                    },
-                    {
-                        "op": "release",
-                        "name": "span.attributes.browser.version.value",
-                        "comparator": "gte",
-                        "value": "120",
-                    },
-                    {
-                        "op": "release",
-                        "name": "span.attributes.browser.version.value",
-                        "comparator": "lte",
-                        "value": "122.0.6261",
-                    },
-                ],
-            },
+            guarded(
+                "span",
+                {
+                    "op": "glob",
+                    "name": "span.attributes.browser.name.value",
+                    "value": ["Chrome*"],
+                },
+                {
+                    "op": "release",
+                    "name": "span.attributes.browser.version.value",
+                    "comparator": "gte",
+                    "value": "120",
+                },
+                {
+                    "op": "release",
+                    "name": "span.attributes.browser.version.value",
+                    "comparator": "lte",
+                    "value": "122.0.6261",
+                },
+            ),
             id="browser_version_range_on_spans",
         ),
         pytest.param(
             "log",
             [{"type": "browser_version", "operator": "starts_with", "value": ["109."]}],
-            {"op": "glob", "name": "log.attributes.browser.version.value", "value": ["109.*"]},
+            guarded(
+                "log",
+                {"op": "glob", "name": "log.attributes.browser.version.value", "value": ["109.*"]},
+            ),
             id="browser_version_text_operator_on_logs",
         ),
         pytest.param(
             "metric",
             [{"type": "browser_name", "operator": "does_not_contain", "value": ["Mobile"]}],
-            {
-                "op": "and",
-                "inner": [
-                    {
-                        "op": "glob",
-                        "name": "trace_metric.attributes.browser.name.value",
-                        "value": ["*"],
-                    },
-                    {
-                        "op": "not",
-                        "inner": {
+            guarded(
+                "metric",
+                {
+                    "op": "and",
+                    "inner": [
+                        {
                             "op": "glob",
                             "name": "trace_metric.attributes.browser.name.value",
-                            "value": ["*Mobile*"],
+                            "value": ["*"],
                         },
-                    },
-                ],
-            },
+                        {
+                            "op": "not",
+                            "inner": {
+                                "op": "glob",
+                                "name": "trace_metric.attributes.browser.name.value",
+                                "value": ["*Mobile*"],
+                            },
+                        },
+                    ],
+                },
+            ),
             id="browser_name_negated_on_metrics",
         ),
         pytest.param(
