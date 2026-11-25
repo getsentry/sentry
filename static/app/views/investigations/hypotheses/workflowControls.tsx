@@ -26,6 +26,7 @@ export function WorkflowControls({
   notebookId: string;
   report: WorkflowReport;
 }) {
+  const stopped = report.status === 'failed' || report.status === 'cancelled';
   const organization = useOrganization();
   const client = useQueryClient();
   const [steering, setSteering] = useState(false);
@@ -111,15 +112,9 @@ export function WorkflowControls({
           <Button
             size="sm"
             disabled={mutation.isPending}
-            onClick={() =>
-              mutation.mutate({
-                command: report.status === 'succeeded' ? 'recheck' : 'retry',
-              })
-            }
+            onClick={() => mutation.mutate({command: stopped ? 'retry' : 'recheck'})}
           >
-            {report.status === 'succeeded'
-              ? t('Recheck investigation')
-              : t('Retry investigation')}
+            {stopped ? t('Restart investigation') : t('Recheck investigation')}
           </Button>
         )}
         {report.canSteer && (

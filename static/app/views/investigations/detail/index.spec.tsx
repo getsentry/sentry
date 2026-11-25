@@ -198,6 +198,60 @@ describe('Investigation detail', () => {
     await waitFor(() => expect(detail).toHaveBeenCalledTimes(2));
   });
 
+  it.each(['failed', 'cancelled'] as const)(
+    'restarts a %s workflow from the same notebook',
+    async status => {
+      MockApiClient.addMockResponse({
+        url: detailUrl,
+        body: InvestigationDetailFixture({
+          workflowReport: {
+            runId: 'stopped-run',
+            status,
+            active: false,
+            canCommand: true,
+            activity: [],
+            hypotheses: [],
+            hypothesisBlockKeys: [],
+            summary: null,
+          },
+        }),
+      });
+      const command = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/investigation-workflows/runs/stopped-run/commands/',
+        method: 'POST',
+        body: {id: 'new-run'},
+      });
+      renderView();
+      const restart = await screen.findByRole('button', {name: 'Restart investigation'});
+      MockApiClient.addMockResponse({
+        url: detailUrl,
+        body: InvestigationDetailFixture({
+          workflowReport: {
+            runId: 'new-run',
+            status: 'running',
+            active: true,
+            canCommand: true,
+            activity: [],
+            hypotheses: [],
+            hypothesisBlockKeys: [],
+            summary: null,
+          },
+        }),
+      });
+      await userEvent.click(restart);
+      expect(command).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({data: {command: 'retry', requestId: expect.any(String)}})
+      );
+      expect(
+        await screen.findByRole('button', {name: 'Stop investigation'})
+      ).toBeEnabled();
+      expect(
+        screen.queryByRole('button', {name: 'Restart investigation'})
+      ).not.toBeInTheDocument();
+    }
+  );
+
   describe('while a workflow notebook is running', () => {
     beforeEach(() => {
       jest.useFakeTimers();

@@ -1752,7 +1752,9 @@ describe('NextStepCard', () => {
       />
     );
 
-    await userEvent.click(within(getCard()).getByRole('button', {name: 'Try again'}));
+    await userEvent.click(
+      within(getCard()).getByRole('button', {name: 'Retry follow-up'})
+    );
 
     expect(retry).toHaveBeenCalledWith(
       retryFollowUpUrl,
@@ -1782,14 +1784,16 @@ describe('NextStepCard', () => {
       />
     );
 
-    await userEvent.click(within(getCard()).getByRole('button', {name: 'Try again'}));
+    await userEvent.click(
+      within(getCard()).getByRole('button', {name: 'Retry follow-up'})
+    );
 
     expect(
       await screen.findByText("This can't be sent to Seer again.")
     ).toBeInTheDocument();
   });
 
-  it('sends a retry once when Try again is clicked twice', async () => {
+  it('sends a retry once when Retry follow-up is clicked twice', async () => {
     let respond!: () => void;
     const retry = MockApiClient.addMockResponse({
       url: retryFollowUpUrl,
@@ -1821,7 +1825,7 @@ describe('NextStepCard', () => {
       />
     );
 
-    const button = within(getCard()).getByRole('button', {name: 'Try again'});
+    const button = within(getCard()).getByRole('button', {name: 'Retry follow-up'});
     await userEvent.click(button);
     await waitFor(() => expect(button).toBeDisabled());
     await userEvent.click(button);
@@ -1848,7 +1852,7 @@ describe('NextStepCard', () => {
     );
 
     expect(
-      within(getCard()).queryByRole('button', {name: 'Try again'})
+      within(getCard()).queryByRole('button', {name: 'Retry follow-up'})
     ).not.toBeInTheDocument();
   });
 
@@ -1872,7 +1876,7 @@ describe('NextStepCard', () => {
     );
 
     expect(
-      within(getCard()).queryByRole('button', {name: 'Try again'})
+      within(getCard()).queryByRole('button', {name: 'Retry follow-up'})
     ).not.toBeInTheDocument();
   });
 
@@ -1893,7 +1897,7 @@ describe('NextStepCard', () => {
     );
 
     expect(
-      within(getCard()).queryByRole('button', {name: 'Try again'})
+      within(getCard()).queryByRole('button', {name: 'Retry follow-up'})
     ).not.toBeInTheDocument();
   });
 
