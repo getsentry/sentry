@@ -183,7 +183,7 @@ class FirstUserErrors:
 
     def __call__(self, _organization: Organization, query: Query, _referrer: str) -> list[SnubaRow]:
         bounds = {
-            (condition.lhs.name, condition.op): condition.rhs.replace(tzinfo=None)
+            (condition.lhs.name, condition.op): condition.rhs
             for condition in query.where or ()
             if isinstance(condition, Condition)
             and isinstance(condition.lhs, Column)
@@ -256,7 +256,7 @@ def test_new_failure_thresholds_match_live_and_catchup_across_hour_close(
 ) -> None:
     organization = Organization(id=1)
     project = Project(id=PROJECT, organization=organization)
-    group = Group(id=1, project=project, first_seen=_at(56).replace(tzinfo=UTC), message="failure")
+    group = Group(id=1, project=project, first_seen=_at(56), message="failure")
     # These timestamps represent the first occurrence of each distinct user.
     first_users = [_at(minute) for minute, count in new_users for _ in range(count)]
     minute_rows = [

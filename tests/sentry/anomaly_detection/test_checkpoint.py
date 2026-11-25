@@ -2,7 +2,7 @@ import zlib
 from collections import Counter, deque
 from collections.abc import Sequence
 from dataclasses import replace
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from math import copysign, inf
 from random import Random
 from unittest.mock import patch
@@ -16,7 +16,6 @@ from sentry.anomaly_detection.contracts import (
     ChangeEvent,
     ChangeType,
     Metric,
-    NoveltyEvidence,
     SeriesKey,
     SeriesRow,
     Service,
@@ -35,7 +34,7 @@ from sentry.anomaly_detection.evaluation.organization import (
 from sentry.anomaly_detection.evaluation.series import samples_key
 from sentry.anomaly_detection.inputs.measurements import MAX_ENVIRONMENTS, MAX_SLICES, SPAN_SLICES
 
-START = datetime(2024, 1, 8, 12)
+START = datetime(2024, 1, 8, 12, tzinfo=UTC)
 PROJECT = 42
 ENV = "production"
 ENDPOINT = "/checkout"
@@ -430,7 +429,7 @@ def test_rotating_full_slice_cohorts_bound_checkpoint_state() -> None:
     history = checkpoint.state.series_history
     assert history.watched.keys() == history.series_states.keys() == expected_keys
     assert checkpoint.series.keys() == expected_keys | {
-        replace(key, metric=Metric.COUNT_SAMPLE) for key in expected_keys
+        key._replace(metric=Metric.COUNT_SAMPLE) for key in expected_keys
     }
     assert all(state.counts for state in history.series_states.values())
     assert checkpoint.state.novelty.coverage.keys() == failure_keys((1, 2, 3, 4))
@@ -494,7 +493,7 @@ def test_live_slice_and_samples_survive_two_full_rotations() -> None:
 def test_over_capacity_active_slices_expire_deterministically() -> None:
     evaluator = OrgEvaluator(Footprints(), projects=(PROJECT,))
     cap = 2 * MAX_ENVIRONMENTS * MAX_SLICES
-    keys = [replace(LATENCY, dim_value=f"/route/{i:03}") for i in range(cap + 1)]
+    keys = [LATENCY._replace(dim_value=f"/route/{i:03}") for i in range(cap + 1)]
     # Reverse encounter order, and give the otherwise first tie loser a newer observation.
     for key in reversed(keys):
         evaluator.series[key] = {START: 400.0}
@@ -515,12 +514,11 @@ def test_over_capacity_active_slices_expire_deterministically() -> None:
     assert series_states.keys() == kept
     assert evaluator.series.keys() == kept | {samples_key(key) for key in kept}
     assert event is not None and event.ended_at == _at(1)
-    assert event.evidence == ["expired: active episode exceeded checkpoint cohort budget"]
 
 
 def test_stale_slice_evicts_watch_state_but_keeps_aggregate_presence() -> None:
     stale = SeriesKey(PROJECT, ENV, Signal.ENDPOINTS, Metric.FAILURE_RATE, "/retired")
-    current = replace(stale, dim_value=ENDPOINT)
+    current = stale._replace(dim_value=ENDPOINT)
     total = SeriesKey(PROJECT, ENV, Signal.REQUESTS, Metric.COUNT)
     _, checkpoint = advance_org(
         rows=[
@@ -591,7 +589,6 @@ def _unobserved_open_slice() -> tuple[AnomalyDecision, Checkpoint]:
 def _assert_expires_then_closes_quietly(opened: AnomalyDecision, checkpoint: Checkpoint) -> None:
     expired = checkpoint.state.correlation.open_groups[opened.group_key].root
     assert expired.ended_at == _at(1569)
-    assert expired.evidence == ["expired: measurements no longer collected"]
 
     decisions, _ = advance_org(
         rows=(),
@@ -648,8 +645,8 @@ def test_checkpoint_prunes_old_group_members_without_losing_live_aliases() -> No
     (group,) = evaluator.corr.groups
     group.members[episode_key(root)].closed_at = _at(5)
 
-    alias_key = replace(LATENCY, dim_value="/alias")
-    old = root.replace(key=replace(alias_key, project_id=43), start=_at(1), issue_ids=(123,))
+    alias_key = LATENCY._replace(dim_value="/alias")
+    old = root.replace(key=alias_key._replace(project_id=43), start=_at(1), issue_ids=(123,))
     live = root.replace(key=alias_key, start=_at(400), ended_at=None)
     recent = root.replace(key=alias_key, start=_at(390), ended_at=_at(395), issue_ids=(456,))
     group.members[episode_key(old)] = MemberState(old, 4.0, closed_at=old.ended_at)
@@ -709,7 +706,7 @@ def test_project_scope_change_retires_mixed_group_without_rebinding(
 ) -> None:
     disabled = 43
     retained_key = LATENCY
-    removed_key = replace(LATENCY, project_id=disabled)
+    removed_key = LATENCY._replace(project_id=disabled)
     retained = ChangeEvent(
         retained_key,
         ChangeType.SLOWDOWN,
@@ -796,7 +793,7 @@ def test_project_scope_change_retires_mixed_group_without_rebinding(
     assert candidate is restored.series_history.series_states[retained_key].open
 
 
-def _checkpoint_with_pending_issue(novelty: NoveltyEvidence | None = None) -> Checkpoint:
+def _checkpoint_with_pending_issue(actual: float = 10.0, expected: float = 10.0) -> Checkpoint:
     evaluator = OrgEvaluator(Footprints(), projects=(PROJECT,))
     evaluator.series[LATENCY] = {_at(-1): 100.0}
     evaluator.series_history.refresh()
@@ -805,10 +802,9 @@ def _checkpoint_with_pending_issue(novelty: NoveltyEvidence | None = None) -> Ch
             SeriesKey(PROJECT, ENV, Signal.NEW_ISSUE, Metric.COUNT_UNIQUE_USER, "123"),
             ChangeType.NEW_FAILURE_MODE,
             _at(-1),
-            10.0,
-            10.0,
+            actual,
+            expected,
             0.9,
-            novelty=novelty,
         )
     )
     evaluator.state.next_minute = START
@@ -827,15 +823,14 @@ def test_unreadable_or_other_version_checkpoint_decodes_to_none() -> None:
     assert codec.decode(zlib.compress(b"\x93\x01\x02\x03")) is None
 
 
-def test_non_finite_novelty_survives_round_trip() -> None:
-    novelty = NoveltyEvidence(return_days=inf, size=-inf, history_days=14.0)
-    checkpoint = _round_trip(_checkpoint_with_pending_issue(novelty))
+def test_non_finite_measurements_survive_round_trip() -> None:
+    checkpoint = _round_trip(_checkpoint_with_pending_issue(actual=inf, expected=-inf))
     (restored,) = checkpoint.state.pending_issues
-    assert restored.novelty == novelty
+    assert (restored.actual, restored.expected) == (inf, -inf)
 
 
 def test_empty_advance_with_narrower_scope_keeps_other_projects_hourly_support() -> None:
-    keys = [replace(LATENCY, project_id=project) for project in (PROJECT, 43)]
+    keys = [LATENCY._replace(project_id=project) for project in (PROJECT, 43)]
     hours = [START - timedelta(days=day) for day in range(1, 8)]
     evaluator = OrgEvaluator(Footprints(), projects=(PROJECT, 43))
     for key in keys:

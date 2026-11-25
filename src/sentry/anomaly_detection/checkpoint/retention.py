@@ -4,7 +4,7 @@ Policy only: each component forgets, expires and prunes its own state.
 """
 
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 from sentry.anomaly_detection.contracts import Metric, SeriesKey, Signal
 from sentry.anomaly_detection.evaluation.organization import (
@@ -84,7 +84,7 @@ def evict_stale_series(
     )
     environments: dict[int, dict[str, tuple[bool, datetime]]] = defaultdict(dict)
     for key, points in evaluator.series.items():
-        seen = next(reversed(points), datetime.min)
+        seen = next(reversed(points), datetime.min.replace(tzinfo=UTC))
         priority = (key in live, live.get(key, seen))
         if key.dim_value:
             if seen >= floor:
@@ -120,13 +120,8 @@ def evict_stale_series(
     over_cap = 0
     expirations = []
     for key in sorted(evicted | expired):
-        reason = (
-            "expired: measurements no longer collected"
-            if key in expired
-            else "expired: active episode exceeded checkpoint cohort budget"
-        )
         for tracker in (history, rate_shifts):
-            if (event := tracker.expire(key, at, reason)) is not None:
+            if (event := tracker.expire(key, at)) is not None:
                 expirations.append(event)
                 over_cap += key not in expired
     # Another metric may still need an expired series' slice or environment, so only

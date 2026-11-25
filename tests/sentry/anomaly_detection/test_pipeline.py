@@ -195,7 +195,7 @@ def test_duration_promotion_waits_for_supported_anomaly_after_gap() -> None:
     )
     (opened,) = expected
     assert opened.timestamp == supported_return and not opened.is_resolved
-    assert latent.novelty and latent.novelty["opened_on_duration"] is True
+    assert latent.detected_at == supported_return
 
     # A restarted poll catches up through the gap and healthy return, publishing
     # exactly what the uninterrupted evaluator published from the checkpoint on.
