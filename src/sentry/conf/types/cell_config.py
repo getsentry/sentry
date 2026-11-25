@@ -8,7 +8,7 @@ class CellConfig(TypedDict):
     snowflake_id: int
     address: str
     api_gateway_address: NotRequired[str]
-    h2_address: NotRequired[str]
+    api_gateway_h2_address: NotRequired[str]
     visible: NotRequired[bool]
 
 

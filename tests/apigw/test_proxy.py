@@ -102,7 +102,13 @@ def test_proxied_cell_headers_gateway_marker() -> None:
 
 
 def test_cell_address_selection() -> None:
-    cell = Cell("eu", 2, "http://eu", api_gateway_address="http://eu-gw", h2_address="http://eu-h2")
+    cell = Cell(
+        "eu",
+        2,
+        "http://eu",
+        api_gateway_address="http://eu-gw",
+        api_gateway_h2_address="http://eu-h2",
+    )
     endpoints = apigw_app.config.endpoints
     with mock.patch.object(endpoints, "use_cell_gw", True):
         with mock.patch.object(endpoints, "protos", {}):

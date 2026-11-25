@@ -97,7 +97,7 @@ class Cell:
     api_gateway_address: str | None = None
     """optional address for API gateway traffic."""
 
-    h2_address: str | None = None
+    api_gateway_h2_address: str | None = None
     """optional address for API gateway traffic over HTTP/2."""
 
     visible: bool = True
@@ -238,7 +238,7 @@ def _parse_raw_config(cell_config: list[CellConfig]) -> Iterable[Cell]:
             snowflake_id=config_value["snowflake_id"],
             address=config_value["address"],
             api_gateway_address=config_value.get("api_gateway_address", None),
-            h2_address=config_value.get("h2_address", None),
+            api_gateway_h2_address=config_value.get("api_gateway_h2_address", None),
             visible=config_value.get("visible", True),
         )
 
