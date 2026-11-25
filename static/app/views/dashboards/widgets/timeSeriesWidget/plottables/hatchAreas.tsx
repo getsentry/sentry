@@ -1,6 +1,10 @@
 import type {CustomSeriesOption, CustomSeriesRenderItem} from 'echarts';
 
-import type {CartesianCoordSys} from 'sentry/components/charts/bands/bandShapes';
+import {
+  BAND_Z,
+  HATCH_Z2,
+  type CartesianCoordSys,
+} from 'sentry/components/charts/bands/bandShapes';
 import {defined} from 'sentry/utils/defined';
 import type {TimeRange} from 'sentry/utils/timeSeries/mergeTimeRanges';
 
@@ -12,8 +16,7 @@ import type {
 
 type HatchAreasConfig = {
   /**
-   * Hatch color. Areas are hatched over a transparent fill, so grid lines show
-   * through the gaps between stripes
+   * Color of the stripes
    */
   color: string;
   /**
@@ -22,6 +25,11 @@ type HatchAreasConfig = {
    * axis the chart already has
    */
   dataType: PlottableTimeSeriesValueType;
+  /**
+   * Color of the translucent wash under the stripes. Use the chart's background
+   * color, so the data fades toward it without changing its hue
+   */
+  fadeColor: string;
   /**
    * Identifies the plottable. It becomes the ECharts series ID and name, so it
    * must be unique among the chart's plottables
@@ -38,9 +46,14 @@ type HatchAreasPlottingOptions = {
 };
 
 /**
- * Hatched areas that span the full height of the plot over stretches of time, drawn
- * behind the data. Unlike time series plottables, it has no data of its own,
- * so it never takes up a Y axis, a legend item, or a tooltip row.
+ * Hatched areas that span the full height of the plot over stretches of time,
+ * drawn over the data. A translucent wash fades the data under them, so series
+ * colors don't clash with the stripes, and the stripes run unbroken across data
+ * and empty space alike. Canvas patterns are anchored to the chart's origin, so
+ * the stripes line up across areas, bars, and gaps without any offsets.
+ *
+ * Unlike time series plottables, it has no data of its own, so it never takes
+ * up a Y axis, a legend item, or a tooltip row.
  */
 export class HatchAreas implements Plottable {
   ranges: readonly TimeRange[];
@@ -102,8 +115,9 @@ export class HatchAreas implements Plottable {
         // Mapping only `x` keeps the timestamps out of the Y axis extent
         encode: {x: [0, 1]},
         renderItem: this.renderItem,
-        // Behind line, area, and bar series, which default to 2
-        z: 1,
+        // Line and area series default to 3, and each element sets a `z2`
+        // that puts the hatch over them
+        z: BAND_Z - 1,
         clip: true,
         silent: true,
         animation: false,
@@ -124,23 +138,43 @@ export class HatchAreas implements Plottable {
     }
 
     const {y, height} = params.coordSys as CartesianCoordSys;
+    const shape = {x: left, y, width: right - left, height};
 
+    // A decal copies its element's opacity, so the wash and the stripes need
+    // separate elements to have different opacities
     return {
-      type: 'rect',
-      silent: true,
-      shape: {x: left, y, width: right - left, height},
-      style: {
-        // A decal only draws over a fill
-        fill: 'transparent',
-        decal: {
-          symbol: 'rect',
-          symbolSize: 1,
-          dashArrayX: [1, 0],
-          dashArrayY: [2, 2],
-          rotation: -Math.PI / 4,
-          color: this.config.color,
+      type: 'group',
+      children: [
+        {
+          type: 'rect',
+          silent: true,
+          z2: HATCH_Z2,
+          shape,
+          style: {fill: this.config.fadeColor, opacity: WASH_OPACITY},
         },
-      },
+        {
+          type: 'rect',
+          silent: true,
+          z2: HATCH_Z2,
+          shape,
+          style: {
+            // A decal only draws over a fill
+            fill: 'transparent',
+            opacity: STRIPE_OPACITY,
+            decal: {
+              symbol: 'rect',
+              symbolSize: 1,
+              dashArrayX: [1, 0],
+              dashArrayY: [2, 2],
+              rotation: -Math.PI / 4,
+              color: this.config.color,
+            },
+          },
+        },
+      ],
     };
   };
 }
+
+const WASH_OPACITY = 0.5;
+const STRIPE_OPACITY = 0.6;

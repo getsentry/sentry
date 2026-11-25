@@ -176,7 +176,7 @@ export abstract class ContinuousTimeSeries<
   }
 
   /**
-   * Converts an item to an ECharts data point. Fields the plottable segments by ride along on the point, so the tooltip can read them for whichever point is hovered
+   * Converts an item to an ECharts data point. Confidence, and any fields the plottable segments by, ride along on the point, so the tooltip can read them for whichever point is hovered
    */
   protected toDataPoint(
     item: TimeSeriesItem,
@@ -184,7 +184,7 @@ export abstract class ContinuousTimeSeries<
   ): ContinuousTimeSeriesDataPoint {
     return {
       value: timeSeriesItemToEChartsDataPoint(item),
-      confidence: segmentBy.includes('confidence') ? getConfidence(item) : undefined,
+      confidence: getConfidence(item),
       completeness: segmentBy.includes('completeness')
         ? getCompleteness(item)
         : undefined,
