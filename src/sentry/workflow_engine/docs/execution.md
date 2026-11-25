@@ -371,7 +371,7 @@ normal successful cleanup. They remain until expiry or manual cleanup.
 ## Action Selection and Dispatch
 
 Actions whose handlers reject the event are excluded before frequency checks and history
-creation. Evaluations without a group include only Inbox workflows.
+creation.
 
 [`processors/action.py`](../processors/action.py) applies two different controls:
 

@@ -770,10 +770,6 @@ class TestActivityWorkflowSelection(BaseWorkflowTest):
     def test_activity_selection_does_not_require_detector_links(self) -> None:
         with self.feature("organizations:workflow-engine-activity-workflows"):
             assert select_workflows(self.event_data, [], None) == {self.inbox}
-            group_less = WorkflowEventData(
-                event=self.event_data.event, organization=self.organization
-            )
-            assert select_workflows(group_less, {self.detector}, None) == {self.inbox}
 
     def test_lookup_does_not_match_activity_kinds(self) -> None:
         for activity_type in (ActivityType.NOTE, ActivityType.SEER_PR_READY_FOR_REVIEW):

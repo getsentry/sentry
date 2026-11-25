@@ -554,10 +554,6 @@ def select_workflows(
     environment: Environment | None,
 ) -> set[Workflow]:
     """Select by source; workflow conditions decide which activity kinds match."""
-    if event_data.group is None:
-        if isinstance(event_data.event, Activity):
-            return get_activity_workflows(event_data, environment)
-        return set()
     if isinstance(event_data.event, GroupEvent):
         return get_workflows_by_detectors(detectors, environment)
     if isinstance(event_data.event, Activity):
