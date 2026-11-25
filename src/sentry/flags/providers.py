@@ -17,14 +17,27 @@ from sentry.flags.models import (
     FlagWebHookSigningSecretModel,
 )
 from sentry.silo.base import SiloLimit
+from sentry.timeseries_annotations.producers.feature_flag_change import (
+    record_feature_flag_change_as_annotation,
+)
 from sentry.utils.safe import get_path
 
 
 def write(rows: list["FlagAuditLogRow"]) -> None:
+    """Persist FlagAuditLog rows, then best-effort fan out timeseries annotations.
+
+    Annotation failures must never fail the FlagLog write (inbound-filter pattern).
+    """
+    if not rows:
+        return
+
     try:
-        FlagAuditLogModel.objects.bulk_create(FlagAuditLogModel(**row) for row in rows)
+        created = FlagAuditLogModel.objects.bulk_create([FlagAuditLogModel(**row) for row in rows])
     except SiloLimit.AvailabilityError:
-        pass
+        return
+
+    for flag_log in created:
+        record_feature_flag_change_as_annotation(flag_log)
 
 
 """Provider definitions.
@@ -101,6 +114,9 @@ class LaunchDarklyItemSerializer(serializers.Serializer):
     member = serializers.DictField(required=False, allow_null=True)
     name = serializers.CharField(max_length=256, required=True)
     description = serializers.CharField(allow_blank=True, required=True)
+    comment = serializers.CharField(allow_blank=True, required=False)
+    currentVersion = serializers.DictField(required=False, allow_null=True)
+    previousVersion = serializers.DictField(required=False, allow_null=True)
 
 
 SUPPORTED_LAUNCHDARKLY_ACTIONS = {
@@ -160,7 +176,7 @@ class LaunchDarklyProvider:
                 "flag": result["name"],
                 "organization_id": self.organization_id,
                 "provider": PROVIDER_MAP["launchdarkly"],
-                "tags": {"description": result["description"]},
+                "tags": _launchdarkly_tags(result, access),
             }
         ]
 
@@ -172,6 +188,62 @@ class LaunchDarklyProvider:
             self.signature,
         )
         return validator.validate()
+
+
+def _parse_launchdarkly_resource(resource: str) -> tuple[str | None, str | None]:
+    """Parse ``proj/<project>:env/<environment>:flag/<key>`` into project + environment."""
+    project: str | None = None
+    environment: str | None = None
+    for part in resource.split(":"):
+        if part.startswith("proj/"):
+            project = part[len("proj/") :] or None
+        elif part.startswith("env/"):
+            environment = part[len("env/") :] or None
+    return project, environment
+
+
+def _launchdarkly_tags(result: dict[str, Any], access: dict[str, Any]) -> dict[str, Any]:
+    """Build FlagAuditLog tags from an LD audit-log webhook payload.
+
+    ``description`` remains the change changelog (back-compat). Purpose text
+    lives in ``flag_description``. Other keys are cheap, stable, non-PII
+    signals useful for deciding whether a change matters.
+    """
+    tags: dict[str, Any] = {
+        "description": result["description"],
+        "change_type": access["action"],
+    }
+
+    current = result.get("currentVersion") or {}
+    previous = result.get("previousVersion") or {}
+
+    flag_description = current.get("description") or previous.get("description")
+    if flag_description:
+        tags["flag_description"] = flag_description
+
+    project, environment = _parse_launchdarkly_resource(access.get("resource") or "")
+    if project:
+        tags["project"] = project
+    if environment:
+        tags["environment"] = environment
+
+    if kind := current.get("kind"):
+        tags["kind"] = kind
+    if "temporary" in current:
+        tags["temporary"] = str(bool(current["temporary"])).lower()
+    if "deprecated" in current:
+        tags["deprecated"] = str(bool(current["deprecated"])).lower()
+
+    if environment:
+        env_cfg = get_path(current, "environments", environment)
+        if isinstance(env_cfg, dict) and "on" in env_cfg:
+            tags["on"] = str(bool(env_cfg["on"])).lower()
+
+    comment = (result.get("comment") or "").strip()
+    if comment:
+        tags["comment"] = comment
+
+    return tags
 
 
 def _handle_launchdarkly_actions(action: str) -> int:
@@ -203,6 +275,10 @@ class GenericItemSerializer(serializers.Serializer):
     created_at = serializers.DateTimeField(required=True)
     created_by = GenericItemCreatedBySerializer(required=True)
     flag = serializers.CharField(required=True, max_length=256)
+    # Optional enrichment: purpose text, change changelog, and free-form tags.
+    description = serializers.CharField(allow_blank=True, required=False)
+    flag_description = serializers.CharField(allow_blank=True, required=False)
+    tags = serializers.DictField(child=serializers.CharField(), required=False)
 
 
 class GenericMetaSerializer(serializers.Serializer):
@@ -212,6 +288,18 @@ class GenericMetaSerializer(serializers.Serializer):
 class GenericRequestSerializer(serializers.Serializer):
     data = GenericItemSerializer(many=True, required=True)  # type: ignore[assignment]
     meta = GenericMetaSerializer(required=True)
+
+
+def _generic_tags(item: dict[str, Any]) -> dict[str, Any]:
+    """Merge optional Generic protocol enrichment fields into tags."""
+    tags: dict[str, Any] = dict(item.get("tags") or {})
+    description = (item.get("description") or "").strip()
+    if description:
+        tags["description"] = description
+    flag_description = (item.get("flag_description") or "").strip()
+    if flag_description:
+        tags["flag_description"] = flag_description
+    return tags
 
 
 class GenericProvider:
@@ -242,7 +330,7 @@ class GenericProvider:
                         "flag": item["flag"],
                         "organization_id": self.organization_id,
                         "provider": PROVIDER_MAP["generic"],
-                        "tags": {},
+                        "tags": _generic_tags(item),
                     }
                 )
 
@@ -293,6 +381,8 @@ class UnleashItemSerializer(serializers.Serializer):
     )
     project = serializers.CharField(required=False, allow_null=True)
     environment = serializers.CharField(required=False, allow_null=True)
+    # Present on some Unleash feature payloads; optional so older webhooks still validate.
+    description = serializers.CharField(allow_blank=True, required=False, allow_null=True)
 
 
 def _get_user(validated_event: dict[str, Any]) -> tuple[str, int]:
@@ -338,6 +428,11 @@ class UnleashProvider:
 
         if result.get("environment"):
             tags["environment"] = result.get("environment")
+
+        # Optional purpose text when present on the webhook payload.
+        flag_description = (result.get("description") or "").strip()
+        if flag_description:
+            tags["flag_description"] = flag_description
 
         return [
             {
