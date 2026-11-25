@@ -204,7 +204,6 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
         traceSlug={traceSlug}
       />
       <TraceInnerLayout>
-        <TraceWaterfallVersionBanner />
         <TraceTabsAndVitals
           tabsConfig={tabsConfig}
           rootEventResults={rootEventResults}
@@ -292,57 +291,6 @@ function TraceProjectGuard({
   }
 
   return <NoProjectMessage organization={organization}>{children}</NoProjectMessage>;
-}
-
-function TraceWaterfallVersionBanner() {
-  const organization = useOrganization();
-  const openForm = useFeedbackForm();
-  const {isDismissed, dismiss} = useDismissAlert({
-    key: 'trace-waterfall-version-message',
-  });
-
-  if (
-    !organization.features.includes('trace-waterfall-version-message') ||
-    isDismissed ||
-    !openForm
-  ) {
-    return null;
-  }
-
-  return (
-    <Alert
-      variant="info"
-      trailingItems={
-        <Alert.Button
-          variant="transparent"
-          icon={<IconClose size="sm" />}
-          onClick={dismiss}
-          aria-label={t('Dismiss')}
-        />
-      }
-    >
-      {tct(
-        "You're seeing a new version of the trace waterfall that shows the full distributed trace. We'd love your [feedback].",
-        {
-          feedback: (
-            <Button
-              variant="link"
-              onClick={() =>
-                openForm({
-                  tags: {
-                    'feedback.source': 'trace-waterfall-version-message',
-                    'feedback.owner': 'performance',
-                  },
-                })
-              }
-            >
-              {t('feedback')}
-            </Button>
-          ),
-        }
-      )}
-    </Alert>
-  );
 }
 
 function TraceInnerLayout(props: FlexProps) {
