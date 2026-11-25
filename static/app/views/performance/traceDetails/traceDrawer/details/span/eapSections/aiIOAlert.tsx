@@ -160,6 +160,12 @@ function PythonContent({
 );`}
       </CodeBlock>
       <Prose>
+        {tct(
+          'On SDK 3.x, AI inputs and outputs are captured by default, so check that [code:data_collection] does not turn them off.',
+          {code: <StyledCode />}
+        )}
+      </Prose>
+      <Prose>
         {tct('For more details, see the [link:integration docs].', {
           link: <ExternalLink href={integrationLink} />,
         })}
