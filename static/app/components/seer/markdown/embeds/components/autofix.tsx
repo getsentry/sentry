@@ -359,7 +359,6 @@ function AutofixRefContent({id, shortId, step}: AutofixRefContentProps) {
     !!codeChangesSection &&
     getOutOfCreditsStep(codeChangesSection) === 'pr_iteration';
 
-  // A single run keeps why it stopped on its root cause section.
   const stop = section && isRootCauseSection(section) ? getSingleRunStop(section) : null;
 
   const block = (
@@ -430,7 +429,6 @@ function AutofixRefContent({id, shortId, step}: AutofixRefContentProps) {
     return block;
   }
 
-  // Beside the collapsed block rather than inside it, so the reason stays in view.
   return (
     <Stack gap="md">
       {defined(getAutofixArtifactFromSection(section)) && block}

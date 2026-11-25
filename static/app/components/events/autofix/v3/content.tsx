@@ -193,7 +193,6 @@ function SeerDrawerArtifacts({autofix, groupId, sections}: SeerDrawerArtifactsPr
 
         if (isRootCauseSection(section)) {
           const stop = getSingleRunStop(section);
-          // A run that stopped before writing a root cause leaves its card empty.
           const hasRootCause = !stop || defined(getAutofixArtifactFromSection(section));
           return (
             <Fragment key={key}>
