@@ -39,6 +39,35 @@ describe('PipelineModal', () => {
 
     expect(await screen.findByText('Hello!')).toBeInTheDocument();
     expect(screen.queryByText(/Step 1 of 1/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Back'})).not.toBeInTheDocument();
+  });
+
+  it('shows a back button when a host modal shows the flow in place', async () => {
+    MockApiClient.addMockResponse({
+      url: API_URL,
+      method: 'POST',
+      body: {
+        step: 'step_one',
+        stepIndex: 0,
+        totalSteps: 1,
+        provider: 'dummy',
+        data: {message: 'Hello!'},
+      },
+      match: [MockApiClient.matchData({action: 'initialize', provider: 'dummy'})],
+    });
+    const onBack = jest.fn();
+
+    renderGlobalModal({organization});
+
+    act(() =>
+      openModal(deps => (
+        <PipelineModal {...deps} type="integration" provider="dummy" onBack={onBack} />
+      ))
+    );
+
+    expect(await screen.findByText('Hello!')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Back'}));
+    expect(onBack).toHaveBeenCalledTimes(1);
   });
 
   it('renders the step counter row when the pipeline has more than one step', async () => {

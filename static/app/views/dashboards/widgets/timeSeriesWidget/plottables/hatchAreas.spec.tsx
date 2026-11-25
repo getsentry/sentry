@@ -1,9 +1,16 @@
 import type {CustomSeriesRenderItemAPI, CustomSeriesRenderItemParams} from 'echarts';
 
+import {BAND_Z, HATCH_Z2} from 'sentry/components/charts/bands/bandShapes';
+
 import {HatchAreas} from './hatchAreas';
 
 describe('HatchAreas', () => {
-  const config = {name: 'areas', color: '#f0f0f2', dataType: 'number' as const};
+  const config = {
+    name: 'areas',
+    color: '#f0f0f2',
+    dataType: 'number' as const,
+    fadeColor: '#ffffff',
+  };
 
   it('clips areas to the bounds it is plotted with', () => {
     const areas = new HatchAreas(
@@ -27,7 +34,7 @@ describe('HatchAreas', () => {
     expect(new HatchAreas([], config).isEmpty).toBe(true);
   });
 
-  it('draws a hatched area across the full plot height behind the data', () => {
+  it('draws a wash with stripes over the data', () => {
     const [series] = new HatchAreas([{start: 1_000, end: 3_000}], config).toSeries();
 
     expect(series).toEqual(
@@ -36,12 +43,12 @@ describe('HatchAreas', () => {
         encode: {x: [0, 1]},
         silent: true,
         tooltip: {show: false},
-        z: 1,
+        z: BAND_Z - 1,
       })
     );
 
     const values = [1_000, 3_000];
-    const element = series!.renderItem!(
+    const item = series!.renderItem!(
       {
         dataIndex: 0,
         coordSys: {type: 'cartesian2d', x: 0, y: 10, width: 500, height: 200},
@@ -52,14 +59,26 @@ describe('HatchAreas', () => {
       } as unknown as CustomSeriesRenderItemAPI
     );
 
-    expect(element).toEqual(
-      expect.objectContaining({
-        type: 'rect',
-        shape: {x: 100, y: 10, width: 200, height: 200},
-        style: expect.objectContaining({
-          decal: expect.objectContaining({color: '#f0f0f2'}),
+    const shape = {x: 100, y: 10, width: 200, height: 200};
+    expect(item).toEqual({
+      type: 'group',
+      children: [
+        expect.objectContaining({
+          type: 'rect',
+          z2: HATCH_Z2,
+          shape,
+          style: {fill: '#ffffff', opacity: 0.5},
         }),
-      })
-    );
+        expect.objectContaining({
+          type: 'rect',
+          z2: HATCH_Z2,
+          shape,
+          style: expect.objectContaining({
+            opacity: 0.6,
+            decal: expect.objectContaining({color: '#f0f0f2', dashArrayY: [2, 2]}),
+          }),
+        }),
+      ],
+    });
   });
 });
