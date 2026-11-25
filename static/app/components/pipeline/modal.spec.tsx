@@ -1,8 +1,19 @@
+import {useState} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {act, renderGlobalModal, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
-import {openPipelineModal} from './modal';
+import {Button} from '@sentry/scraps/button';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
+import {openModal} from '@sentry/scraps/modal';
+
+import {openPipelineModal, PipelineModal} from './modal';
 
 const organization = OrganizationFixture();
 const API_URL = `/organizations/${organization.slug}/pipeline/integration_pipeline/`;
@@ -67,5 +78,66 @@ describe('PipelineModal', () => {
     act(() => openPipelineModal({type: 'integration', provider: 'dummy', onError}));
 
     await waitFor(() => expect(onError).toHaveBeenCalledWith('Installation failed'));
+  });
+
+  it('runs in place inside a host modal and hands control back when it finishes', async () => {
+    MockApiClient.addMockResponse({
+      url: API_URL,
+      method: 'POST',
+      body: {
+        step: 'step_one',
+        stepIndex: 0,
+        totalSteps: 1,
+        provider: 'dummy',
+        data: {message: 'Hello!'},
+      },
+      match: [MockApiClient.matchData({action: 'initialize', provider: 'dummy'})],
+    });
+    MockApiClient.addMockResponse({
+      url: API_URL,
+      method: 'POST',
+      body: {status: 'complete', data: {result: 'Installed'}},
+      match: [MockApiClient.matchData({name: 'Test'})],
+    });
+    const onComplete = jest.fn();
+
+    function HostModal(deps: ModalRenderProps) {
+      const [installing, setInstalling] = useState(false);
+
+      if (installing) {
+        return (
+          <PipelineModal
+            {...deps}
+            closeModal={() => setInstalling(false)}
+            type="integration"
+            provider="dummy"
+            onComplete={onComplete}
+          />
+        );
+      }
+
+      return (
+        <deps.Body>
+          Host content
+          <Button onClick={() => setInstalling(true)}>Connect</Button>
+        </deps.Body>
+      );
+    }
+
+    renderGlobalModal({organization});
+
+    act(() => openModal(deps => <HostModal {...deps} />));
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Connect'}));
+    expect(await screen.findByText('Hello!')).toBeInTheDocument();
+    expect(screen.queryByText('Host content')).not.toBeInTheDocument();
+
+    await userEvent.type(screen.getByRole('textbox', {name: 'Your name'}), 'Test');
+    await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Done'}));
+
+    expect(onComplete).toHaveBeenCalledWith({result: 'Installed'});
+    expect(await screen.findByText('Host content')).toBeInTheDocument();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 });

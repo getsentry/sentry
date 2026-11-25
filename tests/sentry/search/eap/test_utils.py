@@ -42,7 +42,16 @@ def test_serialize_search_type_maps_to_the_public_type_name(
 
 @pytest.mark.parametrize(
     ("attribute_count", "min_chunks", "expected"),
-    [(0, 2, 2), (1000, 2, 2), (1001, 2, 3), (3000, 2, 6), (3001, 2, 7), (2500, 4, 5)],
+    [
+        (0, 2, 2),
+        (140, 1, 1),
+        (141, 1, 2),
+        (1120, 2, 8),
+        (1121, 2, 9),
+        (3360, 2, 24),
+        (3361, 2, 25),
+        (2800, 4, 20),
+    ],
 )
 def test_get_stats_chunk_count(attribute_count: int, min_chunks: int, expected: int) -> None:
     assert get_stats_chunk_count(attribute_count, min_chunks) == expected

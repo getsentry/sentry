@@ -17,7 +17,6 @@ import type {Organization} from 'sentry/types/organization';
 
 import {Referrer} from './constants';
 import ClassifierDetail from './detail';
-import type {TelemetryClassifier} from './types';
 
 const RESULT_FIELD = 'tags[sentry.enrichment.user_frustration,number]';
 const COUNT_FIELDS = ['count_unique(gen_ai.conversation.id)', 'count_unique(user)'];
@@ -76,7 +75,7 @@ describe('ClassifierDetail', () => {
     });
   }
 
-  function mockClassifier(params: Partial<TelemetryClassifier> = {}) {
+  function mockClassifier(params: Parameters<typeof TelemetryClassifierFixture>[0] = {}) {
     return MockApiClient.addMockResponse({
       url: detailUrl,
       body: TelemetryClassifierFixture({id: '10', ...params}),
@@ -494,7 +493,7 @@ describe('ClassifierDetail', () => {
   });
 
   it('shows every result without a filter for non-binary classifiers', async () => {
-    mockClassifier({outputType: null, binaryThreshold: null});
+    mockClassifier({outputType: 'score', binaryThreshold: null});
     mockResults([
       {
         'gen_ai.conversation.id': 'conv-1',

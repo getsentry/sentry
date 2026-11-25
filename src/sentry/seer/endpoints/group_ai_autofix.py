@@ -64,7 +64,11 @@ from sentry.seer.autofix.coding_agent import (
 from sentry.seer.autofix.commit_author import commit_author_for_user
 from sentry.seer.autofix.constants import PUBLISH_SCOPES, AutofixReferrer
 from sentry.seer.autofix.exceptions import NoSeerQuotaException, SeerOutOfCreditsException
-from sentry.seer.autofix.feature.dispatch import get_run_billing_feature
+from sentry.seer.autofix.feature.dispatch import (
+    get_run_billing_feature,
+    should_use_single_run,
+    single_run_stopping_point,
+)
 from sentry.seer.autofix.feature.models import FEATURE_ID as AUTOFIX_FEATURE_ID
 from sentry.seer.autofix.feature.models import SINGLE_RUN_FEATURE_ID
 from sentry.seer.autofix.on_completion_hook import get_run_stopping_point
@@ -435,7 +439,16 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
         data = serializer.validated_data
         step = data.get("step", "root_cause")
         stopping_point = data.get("stopping_point")
-        _require_publish_scope(request, group, step, {stopping_point})
+        stopping_points = {stopping_point}
+        is_new_run = data.get("sentry_run_id") is None and data.get("run_id") is None
+        if (
+            stopping_point is None
+            and is_new_run
+            and should_use_single_run(group, step)
+            and single_run_stopping_point(group.project, None) == AutofixStoppingPoint.OPEN_PR
+        ):
+            stopping_points.add(AutofixStoppingPoint.OPEN_PR.value)
+        _require_publish_scope(request, group, step, stopping_points)
 
         # Prefer sentry_run_id (a uuid.UUID) over numeric run_id; None = new run.
         sentry_run_id_param: uuid.UUID | None = data.get("sentry_run_id")

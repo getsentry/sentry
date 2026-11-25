@@ -45,6 +45,45 @@ describe('useAddIntegration', () => {
     expect(result.current.state).toEqual({status: 'installing', providerKey: 'github'});
   });
 
+  it('hands the flow to modalParams.openPipeline instead of opening its own modal', () => {
+    const openPipelineModalSpy = jest
+      .spyOn(pipelineModal, 'openPipelineModal')
+      .mockImplementation(() => {});
+    const openPipeline = jest.fn();
+    const onInstall = jest.fn();
+
+    const {result} = renderHookWithProviders(() => useAddIntegration());
+
+    act(() =>
+      result.current.startFlow({
+        provider,
+        organization: OrganizationFixture(),
+        onInstall,
+        modalParams: {title: 'Connect source control', openPipeline},
+      })
+    );
+
+    expect(openPipelineModalSpy).not.toHaveBeenCalled();
+    expect(openPipeline).toHaveBeenCalledWith({
+      type: 'integration',
+      provider: 'github',
+      initialData: undefined,
+      title: 'Connect source control',
+      onComplete: expect.any(Function),
+      onError: expect.any(Function),
+      onClose: expect.any(Function),
+    });
+
+    // The host reports back through the same callbacks as the hook's own modal.
+    act(() => openPipeline.mock.calls[0][0].onComplete(integration));
+    expect(onInstall).toHaveBeenCalledWith(integration);
+    expect(result.current.state).toEqual({
+      status: 'complete',
+      providerKey: 'github',
+      integration,
+    });
+  });
+
   it('passes urlParams as initialData to the pipeline modal', () => {
     const openPipelineModalSpy = jest
       .spyOn(pipelineModal, 'openPipelineModal')

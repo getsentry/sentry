@@ -35,7 +35,16 @@ interface PipelineModalProps<
   title?: string;
 }
 
-function PipelineModal<
+/**
+ * The flow's header and body. `openPipelineModal` shows it in a modal of its own.
+ *
+ * A modal that's already open can show it in place of its own content instead, since opening a
+ * second modal would replace the first. The host passes its own modal props, with `closeModal`
+ * swapped for a function that goes back to the host's content. The flow calls it when it
+ * finishes. The host also calls the flow's `onClose` when the user leaves early, such as by
+ * closing the host, as closing the flow's own modal would.
+ */
+export function PipelineModal<
   T extends RegisteredPipelineType,
   P extends ProvidersByType[T] = ProvidersByType[T],
 >({
@@ -157,7 +166,7 @@ function PipelineModal<
   );
 }
 
-interface OpenPipelineModalOptions<
+export interface OpenPipelineModalOptions<
   T extends RegisteredPipelineType,
   P extends ProvidersByType[T] = ProvidersByType[T],
 > {
