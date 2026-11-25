@@ -5,8 +5,8 @@ import pytest
 from sentry.anomaly_detection.state import (
     STATE_TTL,
     AnomalyDetectionState,
-    _client,
     _key,
+    client,
     delete_state,
     get_state,
     set_state,
@@ -19,7 +19,7 @@ BLOB = b"\x78\x9c\xff\x00checkpoint"
 
 
 def _ttl(organization_id: int) -> int:
-    return _client().ttl(_key(organization_id))
+    return client().ttl(_key(organization_id))
 
 
 def test_round_trips_state_with_ttl() -> None:
@@ -33,7 +33,7 @@ def test_round_trips_state_with_ttl() -> None:
 
 def test_overwrite_replaces_state_and_restarts_ttl() -> None:
     set_state(ORG_ID, next_minute=MINUTE, checkpoint=BLOB)
-    _client().expire(_key(ORG_ID), 10)
+    client().expire(_key(ORG_ID), 10)
     later = MINUTE + timedelta(minutes=5)
 
     set_state(ORG_ID, next_minute=later, checkpoint=b"")

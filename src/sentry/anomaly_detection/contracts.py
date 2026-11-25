@@ -1,8 +1,8 @@
 """Shared data for aggregate series and change episodes.
 
-Timestamps are timezone-aware UTC. Series rows, series keys and change events are persisted
-by position, in hourly snapshots and in every organization's evaluator checkpoint, so keep
-them small and append fields rather than reorder them.
+Timestamps are timezone-aware UTC. Series keys, services and change events are persisted by
+position, in daily shapes and in every organization's evaluator checkpoint, so keep them
+small and append fields rather than reorder them.
 """
 
 from dataclasses import dataclass

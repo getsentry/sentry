@@ -17,10 +17,7 @@ from sentry.anomaly_detection.contracts import (
     SeriesRow,
     Signal,
 )
-from sentry.anomaly_detection.inputs import (
-    hourly_snapshot,
-    measurements,
-)
+from sentry.anomaly_detection.inputs import measurements
 from sentry.anomaly_detection.inputs.measurements import (
     ERROR_RELEASE,
     ERROR_USER,
@@ -31,13 +28,13 @@ from sentry.anomaly_detection.inputs.measurements import (
     collect,
 )
 from sentry.anomaly_detection.inputs.query import ScopedSpans
+from sentry.anomaly_detection.state import client
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.rpc_dataset_common import LimitBy as SpanLimitBy
 from sentry.snuba.spans_rpc import Spans
 from sentry.testutils.cases import TestCase
 from sentry.utils import snuba_rpc
-from sentry.utils.cache import cache
 from sentry.utils.snuba import SnubaError
 
 START = datetime(2025, 10, 1, tzinfo=UTC)
@@ -247,9 +244,19 @@ class TestCollection(TestCase):
             )
             in rows
         )
-        assert all(
-            value is None for ts, _, _, _, _, dim, value in rows if ts == START + MINUTE and dim
-        )
+        # A covered slice with no traffic in a bucket counts 0, without latency or failures.
+        empty = [
+            (metric, value)
+            for ts, _, _, _, metric, dim, value in rows
+            if ts in (START + MINUTE, START + 2 * MINUTE) and dim
+        ]
+        assert {metric for metric, _ in empty} == {
+            Metric.COUNT,
+            Metric.COUNT_SAMPLE,
+            Metric.P95_DURATION,
+            Metric.FAILURE_RATE,
+        }
+        assert all(value == (0.0 if metric.is_count else None) for metric, value in empty)
 
     def test_propagates_failure_and_rejects_overflowing_slice_partitions(self) -> None:
         with (
@@ -366,96 +373,10 @@ class TestCollection(TestCase):
         # The errors inventory scans the lookback once.
         error_starts = [call.args[0].query.where[1].rhs for call in raw.call_args_list]
         assert [rhs for rhs in error_starts if rhs < START] == [lookback]
-
-
-class TestHourlySnapshot(TestCase):
-    ROWS = [
-        SeriesRow(START, 1, "", Signal.ERRORS, Metric.COUNT, "", 4.0),
-        SeriesRow(START, 1, "prod", Signal.ENDPOINTS, Metric.P95_DURATION, "GET /x", None),
-    ]
-    HOUR = START + timedelta(hours=2)
-
-    def test_reuses_snapshot_within_hour(self) -> None:
-        with mock.patch.object(hourly_snapshot, "collect", return_value=self.ROWS) as collected:
-            first = hourly_snapshot.hourly_rows(self.organization, [self.project], self.HOUR)
-            second = hourly_snapshot.hourly_rows(
-                self.organization, [self.project], self.HOUR + 30 * MINUTE
+        # Inventories live in the organization's Redis slot and expire on their own.
+        for dataset in ("errors", "spans"):
+            key = (
+                f"anomaly-detection:{{{self.organization.id}}}:environments:v1:"
+                f"{self.project.id}:{dataset}:60"
             )
-        collected.assert_called_once_with(
-            self.organization, [self.project], self.HOUR - timedelta(days=16), self.HOUR, "1h"
-        )
-        assert first == second == self.ROWS
-        (errors, latency) = second
-        assert errors.ts.tzinfo is UTC
-        assert type(errors.signal) is Signal and type(errors.metric) is Metric
-        assert latency.value is None
-
-    def test_large_snapshot_is_chunked_and_reused(self) -> None:
-        rows = [
-            SeriesRow(START, 1, "prod", Signal.ENDPOINTS, Metric.COUNT, f"/{index}", float(index))
-            for index in range(500)
-        ]
-        with (
-            mock.patch.object(hourly_snapshot, "_CHUNK_BYTES", 256),
-            mock.patch.object(hourly_snapshot, "cache", wraps=cache) as spy,
-            mock.patch.object(hourly_snapshot, "collect", return_value=rows) as collected,
-        ):
-            assert hourly_snapshot.hourly_rows(self.organization, [self.project], self.HOUR) == rows
-            assert hourly_snapshot.hourly_rows(self.organization, [self.project], self.HOUR) == rows
-        collected.assert_called_once()
-        (chunks, _), _ = spy.set_many.call_args
-        assert len(chunks) > 1
-        assert all(len(chunk) <= 256 for chunk in chunks.values())
-
-    def test_missing_or_corrupt_chunk_recollects_and_repairs(self) -> None:
-        with (
-            mock.patch.object(hourly_snapshot, "_CHUNK_BYTES", 16),
-            mock.patch.object(hourly_snapshot, "cache", wraps=cache) as spy,
-            mock.patch.object(hourly_snapshot, "collect", return_value=self.ROWS) as collected,
-            mock.patch.object(hourly_snapshot, "metrics") as metrics,
-        ):
-            hourly_snapshot.hourly_rows(self.organization, [self.project], self.HOUR)
-            (chunks, _), _ = spy.set_many.call_args
-            first_chunk, last_chunk = list(chunks)[0], list(chunks)[-1]
-
-            cache.delete(first_chunk)
-            assert hourly_snapshot.hourly_rows(self.organization, [self.project], self.HOUR) == (
-                self.ROWS
-            )
-            # The recollection rewrote the snapshot.
-            assert hourly_snapshot.hourly_rows(self.organization, [self.project], self.HOUR) == (
-                self.ROWS
-            )
-            assert collected.call_count == 2
-
-            cache.set(last_chunk, b"corrupt", 3600)
-            assert hourly_snapshot.hourly_rows(self.organization, [self.project], self.HOUR) == (
-                self.ROWS
-            )
-            assert hourly_snapshot.hourly_rows(self.organization, [self.project], self.HOUR) == (
-                self.ROWS
-            )
-            assert collected.call_count == 3
-        assert metrics.incr.call_args_list == [
-            mock.call("anomaly_detection.hourly_snapshot_corrupt", tags={"reason": "missing"}),
-            mock.call("anomaly_detection.hourly_snapshot_corrupt", tags={"reason": "digest"}),
-        ]
-
-    def test_project_scopes_and_hours_do_not_collide(self) -> None:
-        other = self.create_project(organization=self.organization)
-        scopes = [
-            ([self.project], self.HOUR),
-            ([self.project, other], self.HOUR),
-            ([self.project], self.HOUR + timedelta(hours=1)),
-        ]
-        snapshots = [
-            [SeriesRow(START, 1, "", Signal.ERRORS, Metric.COUNT, "", float(index))]
-            for index in range(len(scopes))
-        ]
-        with mock.patch.object(hourly_snapshot, "collect", side_effect=snapshots) as collected:
-            for _ in range(2):
-                assert [
-                    hourly_snapshot.hourly_rows(self.organization, projects, end)
-                    for projects, end in scopes
-                ] == snapshots
-        assert collected.call_count == len(scopes)
+            assert 0 < client().ttl(key) <= 600

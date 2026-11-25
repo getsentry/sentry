@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Literal
 
+import msgspec
 from sentry_protos.snuba.v1.endpoint_time_series_pb2 import TimeSeries
 from snuba_sdk import (
     And,
@@ -37,14 +38,13 @@ from sentry.anomaly_detection.inputs.query import (
     span_attribute_filter,
     utc,
 )
+from sentry.anomaly_detection.state import client, org_key
 from sentry.search.eap.rpc_utils import and_trace_item_filters, or_trace_item_filters
 from sentry.search.events.types import SnubaParams, SnubaRow
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.rpc_dataset_common import LimitBy as SpanLimitBy
 from sentry.snuba.spans_rpc import Spans
-from sentry.types.cell import get_local_cell
 from sentry.utils import snuba_rpc
-from sentry.utils.cache import cache
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
@@ -106,13 +106,24 @@ class IncompleteCollection(RuntimeError):
     """A response violated a collection bound; don't advance over incomplete data."""
 
 
-def _environment_cache_key(
+def _environment_key(
     organization: Organization, project: Project, dataset: str, rollup: int
 ) -> str:
-    return (
-        f"anomaly-detection:environments:v1:{get_local_cell().name}:"
-        f"{organization.id}:{project.id}:{dataset}:{rollup}"
-    )
+    return org_key(organization.id, "environments", "v1", str(project.id), dataset, str(rollup))
+
+
+def _cached_inventory[T](key: str, type_: type[T]) -> T | None:
+    value = client().get(key)
+    if value is None:
+        return None
+    try:
+        return msgspec.msgpack.decode(value, type=type_)
+    except msgspec.DecodeError:
+        return None
+
+
+def _cache_inventory(key: str, inventory: object) -> None:
+    client().set(key, msgspec.msgpack.encode(inventory), ex=_ENVIRONMENT_CACHE_TTL)
 
 
 def _normalize(
@@ -193,15 +204,15 @@ def _collect_errors(
         # Fill the slots from a cached inventory ranked without excluding those
         # scopes: at most MAX_ENVIRONMENTS current and request scopes each can
         # precede the prior ones, so twice the bound always fills every slot.
-        cache_key = _environment_cache_key(organization, project, "errors", rollup)
-        inventory: list[str] | None = cache.get(cache_key)
+        cache_key = _environment_key(organization, project, "errors", rollup)
+        inventory = _cached_inventory(cache_key, list[str])
         if inventory is None:
             inventory = _error_environments(
                 organization,
                 error_where(project, start - _ENVIRONMENT_LOOKBACK, end),
                 2 * MAX_ENVIRONMENTS,
             )
-            cache.set(cache_key, inventory, _ENVIRONMENT_CACHE_TTL)
+            _cache_inventory(cache_key, inventory)
         covered = set(envs)
         envs.extend([name for name in inventory if name not in covered][:prior_slots])
     if not envs:
@@ -335,8 +346,8 @@ def _request_environments(
     organization: Organization, project: Project, start: datetime, end: datetime, rollup: int
 ) -> tuple[str, ...]:
     """Rank request scopes over the lookback, so a silent window still reports zeros."""
-    key = _environment_cache_key(organization, project, "spans", rollup)
-    cached: list[tuple[str, float]] | None = cache.get(key)
+    key = _environment_key(organization, project, "spans", rollup)
+    cached = _cached_inventory(key, list[tuple[str, float]])
     if cached is None:
         discovery = SnubaParams(
             organization=organization,
@@ -345,7 +356,7 @@ def _request_environments(
             end=end,
         )
         counts = _span_environments(discovery, REQUEST_QUERY)
-        cache.set(key, list(counts.items()), _ENVIRONMENT_CACHE_TTL)
+        _cache_inventory(key, list(counts.items()))
     else:
         # Merge the current window so the cache never delays a new environment.
         current = SnubaParams(organization=organization, projects=[project], start=start, end=end)
@@ -478,23 +489,21 @@ def _scoped_span_series(
                     "Spans time series did not return a value for every bucket"
                 )
             grouped[key].append(series)
-        present: set[tuple[datetime, str]] = set()
+        present: set[tuple[datetime, tuple[str, ...]]] = set()
         for key, group_series in grouped.items():
             if len(group_series) != len({item.label for item in group_series}):
                 raise IncompleteCollection("Duplicate group/metric in Spans time series")
-            data = Spans.process_timeseries_list(group_series, config).timeseries
-            if not signal.dimension:
-                # EAP emits a placeholder with null for every aggregate in an
-                # empty bucket. Missing or partially populated metrics remain
-                # unknown rather than being synthesized as zero.
-                data = [
-                    point
-                    for point in data
-                    if not all(
-                        aggregate in point and point[aggregate] is None for aggregate in aggregates
-                    )
-                ]
-                present.update((utc(point["time"]), key[0]) for point in data)
+            # EAP emits a placeholder with null for every aggregate in an empty bucket.
+            # Missing or partially populated metrics remain unknown rather than being
+            # synthesized as zero.
+            data = [
+                point
+                for point in Spans.process_timeseries_list(group_series, config).timeseries
+                if not all(
+                    aggregate in point and point[aggregate] is None for aggregate in aggregates
+                )
+            ]
+            present.update((utc(point["time"]), key) for point in data)
             yield from _normalize(
                 data,
                 project_id=project.id,
@@ -505,17 +514,25 @@ def _scoped_span_series(
                 env=key[0],
                 dimension=key[1] if signal.dimension else "",
             )
-        if not signal.dimension:
-            for index in range(bucket_count):
-                timestamp = left + timedelta(seconds=index * rollup)
-                for (env,) in groups:
-                    bucket = timestamp, env
-                    if bucket in present or (
-                        positive_requests is not None and bucket not in positive_requests
-                    ):
-                        continue
-                    for metric in signal.metrics:
-                        yield SeriesRow(timestamp, project.id, env, signal.name, metric, "", 0.0)
+        # Every covered slice was measured in every bucket: no traffic counts 0, and
+        # its latency and failure share are unknown.
+        for index in range(bucket_count):
+            timestamp = left + timedelta(seconds=index * rollup)
+            for group in groups:
+                if (timestamp, group) in present or (
+                    positive_requests is not None and (timestamp, group[0]) not in positive_requests
+                ):
+                    continue
+                for metric in signal.metrics:
+                    yield SeriesRow(
+                        timestamp,
+                        project.id,
+                        group[0],
+                        signal.name,
+                        metric,
+                        group[1] if signal.dimension else "",
+                        0.0 if metric.is_count else None,
+                    )
 
 
 def collect(
