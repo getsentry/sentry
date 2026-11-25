@@ -65,11 +65,11 @@ export type TeamInsightsEventParameters = {
   'issue_details.action_clicked': IssueDetailsWithAlert & {
     action_type:
       | 'deleted'
-      | 'mark_reviewed'
       | 'bookmarked'
       | 'subscribed'
       | 'shared'
       | 'discarded'
+      | 'add_inbound_filter'
       | 'open_in_discover'
       | 'assign'
       | GroupStatus;

@@ -63,6 +63,7 @@ class ProjectSeerSettingsEndpointBaseTest(APITestCase):
             "automationTuning": "off",
             "scannerAutomation": True,
             "prIteration": self.pr_iteration_default,
+            "openPrs": False,
             "reposCount": 0,
             "repoProviders": [],
         }
@@ -82,6 +83,7 @@ class ProjectSeerSettingsEndpointBaseTest(APITestCase):
         assert response.data["autoCreatePr"] is None
         assert response.data["automationTuning"] == "medium"
         assert response.data["scannerAutomation"] is False
+        assert response.data["openPrs"] is True
 
     def test_get_external_agent_with_integration_id(self, mock_is_seat_based: MagicMock) -> None:
         """A project with an external handoff should return the agent, integration ID,
@@ -259,6 +261,19 @@ class ProjectSeerSettingsEndpointBaseTest(APITestCase):
         assert response.data["prIteration"] is True
         stored = ProjectOption.objects.get(project=self.project, key="sentry:seer_pr_iteration")
         assert stored.value is True
+
+    def test_put_open_prs(self, mock_is_seat_based: MagicMock) -> None:
+        self.project.update_option(
+            "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM
+        )
+        self.project.update_option("sentry:seer_automated_run_stopping_point", "open_pr")
+
+        response = self.client.put(self.url, data={"openPrs": False}, format="json")
+
+        assert response.status_code == 200
+        assert response.data["openPrs"] is False
+        assert response.data["stoppingPoint"] == "open_pr"
+        assert self.project.get_option("sentry:seer_open_prs") is False
 
     def test_put_stopping_point(self, mock_is_seat_based: MagicMock) -> None:
         response = self.client.put(self.url, data={"stoppingPoint": "open_pr"}, format="json")
@@ -442,6 +457,7 @@ class ProjectSeerSettingsEndpointBaseTest(APITestCase):
 
             assert entry is not None
             assert entry.data["project_id"] == self.project.id
+            assert entry.data["project_count"] == 1
 
 
 class ProjectSeerSettingsEndpointSeatBasedBillingTest(ProjectSeerSettingsEndpointBaseTest):
@@ -563,6 +579,7 @@ class OrganizationSeerProjectSettingsEndpointBaseTest(APITestCase):
             "automationTuning": "off",
             "scannerAutomation": True,
             "prIteration": self.pr_iteration_default,
+            "openPrs": False,
             "reposCount": 0,
             "repoProviders": [],
         }
@@ -582,6 +599,7 @@ class OrganizationSeerProjectSettingsEndpointBaseTest(APITestCase):
         assert response.data[0]["autoCreatePr"] is None
         assert response.data[0]["automationTuning"] == "medium"
         assert response.data[0]["scannerAutomation"] is False
+        assert response.data[0]["openPrs"] is True
 
     def test_get_external_agent_with_integration_id(self, mock_is_seat_based: MagicMock) -> None:
         """A project configured with an external handoff should return the agent,

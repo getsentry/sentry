@@ -1,12 +1,10 @@
 from collections.abc import Callable
-from typing import cast
 from unittest.mock import MagicMock, patch
 
 from sentry.dynamic_sampling import RESERVED_IDS, RuleType
 from sentry.dynamic_sampling.rules.biases.boost_low_volume_transactions_bias import (
     BoostLowVolumeTransactionsBias,
 )
-from sentry.models.project import Project
 
 
 def _create_mocks() -> tuple[
@@ -59,9 +57,7 @@ def test_transaction_boost_known_projects(get_transaction_sample_rates: MagicMoc
     t1_factor = t1_rate / rate / implicit_factor
     t2_factor = t2_rate / rate / implicit_factor
 
-    rules = BoostLowVolumeTransactionsBias().generate_rules(
-        project=cast(Project, project), base_sample_rate=rate
-    )
+    rules = BoostLowVolumeTransactionsBias().generate_rules(project=project, base_sample_rate=rate)
     expected = [
         {
             "samplingValue": {"type": "factor", "value": t1_factor},
@@ -120,7 +116,5 @@ def test_transaction_boost_unknown_projects(get_transaction_sample_rates: MagicM
     rate = 0.2
     get_transaction_sample_rates.return_value = ({}, rate)
 
-    rules = BoostLowVolumeTransactionsBias().generate_rules(
-        project=cast(Project, project), base_sample_rate=rate
-    )
+    rules = BoostLowVolumeTransactionsBias().generate_rules(project=project, base_sample_rate=rate)
     assert rules == []

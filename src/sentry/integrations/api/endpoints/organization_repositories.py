@@ -24,6 +24,7 @@ from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.plugins.base import bindings
 from sentry.ratelimits.config import SENTRY_RATELIMITER_GROUP_DEFAULTS, RateLimitConfig
+from sentry.seer.scm_connect import mark_no_scm_integration
 
 
 @extend_schema(tags=["Organizations"])
@@ -127,7 +128,7 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
         elif status:
             queryset = queryset.none()
 
-        return self.paginate(
+        response = self.paginate(
             request=request,
             queryset=queryset,
             order_by="name",
@@ -135,6 +136,7 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
             paginator_cls=OffsetPaginator,
             count_hits=True,
         )
+        return mark_no_scm_integration(request, response, organization)
 
     def post(self, request: Request, organization: Organization) -> Response:
         if not request.user.is_authenticated:

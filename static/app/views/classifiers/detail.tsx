@@ -134,14 +134,10 @@ function ClassifierDetails({
             align="right"
           />
         </DescriptionList.Details>
-        {classifier.outputType && (
-          <Fragment>
-            <DescriptionList.Term>{t('Output type')}</DescriptionList.Term>
-            <DescriptionList.Details>
-              {getOutputTypeLabel(classifier.outputType)}
-            </DescriptionList.Details>
-          </Fragment>
-        )}
+        <DescriptionList.Term>{t('Output type')}</DescriptionList.Term>
+        <DescriptionList.Details>
+          {getOutputTypeLabel(classifier.outputType)}
+        </DescriptionList.Details>
         {classifier.createdBy && (
           <Fragment>
             <DescriptionList.Term>{t('Created by')}</DescriptionList.Term>

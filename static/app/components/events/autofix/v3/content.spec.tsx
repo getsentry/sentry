@@ -164,13 +164,61 @@ describe('SeerDrawerContent', () => {
       expect(mockOpenSeerExplorer).toHaveBeenCalledWith({runId: 776});
     });
 
-    it('disables Open Autofix while the chat is open on this run', () => {
+    it('shows only the hand-off while the chat is open on this run', async () => {
       mockIsOpen = true;
       mockChatRunId = 776;
       render(
         <SeerDrawerContent
           aiConfig={makeAiConfig()}
           autofix={makeAutofix({runState: singleRun})}
+          group={GroupFixture()}
+        />
+      );
+
+      await waitFor(() =>
+        expect(screen.getByRole('button', {name: 'Hand off'})).toBeEnabled()
+      );
+      expect(
+        screen.queryByRole('button', {name: 'Open Autofix'})
+      ).not.toBeInTheDocument();
+      mockIsOpen = false;
+      mockChatRunId = null;
+    });
+
+    it('keeps a disabled hand-off while the chat is open and coding agents fail to load', async () => {
+      const agentsRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/coding-agents/',
+        statusCode: 500,
+      });
+      mockIsOpen = true;
+      mockChatRunId = 776;
+      render(
+        <SeerDrawerContent
+          aiConfig={makeAiConfig()}
+          autofix={makeAutofix({runState: singleRun})}
+          group={GroupFixture()}
+        />
+      );
+
+      await waitFor(() => expect(agentsRequest).toHaveBeenCalled());
+      expect(screen.getByRole('button', {name: 'Hand off'})).toBeDisabled();
+      mockIsOpen = false;
+      mockChatRunId = null;
+    });
+
+    it('disables Open Autofix while the chat is open and there is no root cause yet', () => {
+      mockIsOpen = true;
+      mockChatRunId = 776;
+      render(
+        <SeerDrawerContent
+          aiConfig={makeAiConfig()}
+          autofix={makeAutofix({
+            runState: {
+              ...singleRun,
+              status: 'processing',
+              blocks: singleRun.blocks.map(block => ({...block, artifacts: []})),
+            },
+          })}
           group={GroupFixture()}
         />
       );
@@ -282,11 +330,7 @@ describe('SeerDrawerContent', () => {
         autofix={makeAutofix({startStep})}
         group={GroupFixture()}
       />,
-      {
-        organization: OrganizationFixture({
-          features: ['autofix-single-run', 'seat-based-seer-enabled'],
-        }),
-      }
+      {organization: OrganizationFixture({features: ['autofix-single-run']})}
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Add Context'}));

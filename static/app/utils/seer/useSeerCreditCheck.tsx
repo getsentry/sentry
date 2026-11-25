@@ -28,7 +28,12 @@ export type SeerCreditOperation =
  * - `daily_cap_exceeded`: the operation would take today's spend over the
  *   org's daily usage limit.
  */
-export type SeerCreditDenialReason = 'not_enough_credits' | 'daily_cap_exceeded';
+export const SEER_CREDIT_DENIAL_REASONS = [
+  'not_enough_credits',
+  'daily_cap_exceeded',
+] as const;
+
+export type SeerCreditDenialReason = (typeof SEER_CREDIT_DENIAL_REASONS)[number];
 
 interface SeerCreditCheckResponse {
   /**

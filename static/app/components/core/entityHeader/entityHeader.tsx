@@ -3,13 +3,15 @@ import {Text} from '@sentry/scraps/text';
 
 import {Placeholder} from 'sentry/components/placeholder';
 
-import type {EntityHeaderMetadataItemProps} from './items/entityHeaderMetadataItem';
+import type {
+  EntityHeaderMetadataItemProps,
+  ResolvedMetadataItem,
+} from './items/entityHeaderMetadataItem';
 import {
   EntityHeaderMetadataItem,
   EntityHeaderMetadataItemSkeleton,
-  hasMetadataContent,
   MetadataDivider,
-  warnOnEmptyMetadataValues,
+  resolveMetadataItem,
 } from './items/entityHeaderMetadataItem';
 import type {EntityHeaderPeopleProps} from './items/entityHeaderPeople';
 import {EntityHeaderPeople} from './items/entityHeaderPeople';
@@ -116,19 +118,6 @@ export function EntityHeader({
     .filter((entry): entry is {index: number; stat: EntityHeaderStatProps} =>
       Boolean(entry.stat)
     );
-  // While loading, a value is often empty until its data lands.
-  for (const item of isLoading ? [] : (metadata?.items ?? [])) {
-    if (item) {
-      warnOnEmptyMetadataValues(item);
-    }
-  }
-  const visibleMetadata = (metadata?.items ?? [])
-    .map((item, index) => ({item, index}))
-    .filter(
-      (entry): entry is {index: number; item: EntityHeaderMetadataItemProps} =>
-        // An item that draws nothing must not count as the row's last item.
-        entry.item !== null && hasMetadataContent(entry.item)
-    );
 
   const peopleLoading = Boolean(people) && (isLoading || Boolean(people?.isLoading));
   // A slot that loads on its own schedule still leaves the region in flux, so
@@ -143,17 +132,28 @@ export function EntityHeader({
   // row is there if either one is.
   const hasStatsRow = hasStats || hasPeople;
   const hasSubtitle = Boolean(subtitle);
-  // Declared, not resolved. A caller whose items are all gated on a request
-  // has none of them on the first paint, and keying the row off that would
-  // bring the whole row — and the height of the page below it — in late.
-  const hasMetadata = Boolean(metadata) && (isLoading || visibleMetadata.length > 0);
-  // So while loading, every declared slot holds a space, nulls included.
+  // While loading, declared, not resolved. A caller whose items are all gated
+  // on a request has none of them on the first paint, and keying the row off
+  // that would bring the whole row — and the height of the page below it — in
+  // late. So every declared slot holds a skeleton, nulls included, and none is
+  // resolved, since a value is often empty until its data lands. Once loaded,
+  // each item is resolved here, once, so one that draws nothing never counts
+  // as the row's last item.
   const metadataSlots: Array<{
+    hasGraphic: boolean;
     index: number;
-    item: EntityHeaderMetadataItemProps | null;
+    item: ResolvedMetadataItem | null;
   }> = isLoading
-    ? (metadata?.items ?? []).map((item, index) => ({item, index}))
-    : visibleMetadata;
+    ? (metadata?.items ?? []).map((item, index) => ({
+        index,
+        item: null,
+        hasGraphic: Boolean(item?.leadingGraphic),
+      }))
+    : (metadata?.items ?? []).flatMap((declared, index) => {
+        const item = declared ? resolveMetadataItem(declared) : null;
+        return item ? [{index, item, hasGraphic: false}] : [];
+      });
+  const hasMetadata = Boolean(metadata) && (isLoading || metadataSlots.length > 0);
   const hasContext = hasSubtitle || hasMetadata;
 
   const {columns, areas} = getGridTemplate({hasStatsRow, hasContext});
@@ -169,7 +169,7 @@ export function EntityHeader({
       // silently is not.
       aria-busy={isAnyLoading}
     >
-      <Grid columns={columns} areas={areas} gap="md" align="start">
+      <Grid columns={columns} areas={areas} gap="sm" align="start">
         <Container area="title" minWidth={0}>
           <EntityHeaderTitle {...title} isLoading={isLoading} />
         </Container>
@@ -198,18 +198,17 @@ export function EntityHeader({
                 minWidth={0}
                 minHeight={METADATA_ROW_HEIGHT}
               >
-                {metadataSlots.map(({item, index}, position) => {
+                {metadataSlots.map(({item, index, hasGraphic}, position) => {
                   const isLast = position === metadataSlots.length - 1;
                   const trailing = isLast ? null : <MetadataDivider />;
                   return item ? (
-                    <EntityHeaderMetadataItem
-                      key={index}
-                      {...item}
-                      trailing={trailing}
-                      isLoading={isLoading}
-                    />
+                    <EntityHeaderMetadataItem key={index} {...item} trailing={trailing} />
                   ) : (
-                    <EntityHeaderMetadataItemSkeleton key={index} trailing={trailing} />
+                    <EntityHeaderMetadataItemSkeleton
+                      key={index}
+                      hasGraphic={hasGraphic}
+                      trailing={trailing}
+                    />
                   );
                 })}
               </Flex>

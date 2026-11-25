@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Iterator, Sequence
-from typing import TYPE_CHECKING, Any, Generic, Protocol, TypeVar, cast, overload
+from typing import TYPE_CHECKING, Any, Generic, Protocol, TypeVar, overload
 
 from sentry.grouping.component import (
     BaseGroupingComponent,
@@ -436,9 +436,7 @@ def get_single_grouping_component(
     )
 
     assert len(components_by_variant) == 1
-    return cast(
-        "FrameGroupingComponent | ExceptionGroupingComponent", components_by_variant[variant_name]
-    )
+    return components_by_variant[variant_name]
 
 
 def get_grouping_components_by_variant(

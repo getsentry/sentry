@@ -231,6 +231,13 @@
       }
     },
     {
+      "crumbs": "Settings → Account → Appearance",
+      "path": "/settings/account/appearance/",
+      "when": {
+        "flag": "theme-variants"
+      }
+    },
+    {
       "crumbs": "Settings → Account → Security",
       "path": "/settings/account/security/"
     },

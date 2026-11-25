@@ -14,10 +14,10 @@ import {Text} from '@sentry/scraps/text';
 import {useAutofixCreditCheck} from 'sentry/components/events/autofix/autofixCredits';
 import {AUTOFIX_USER_CONTEXT_MAX_LENGTH} from 'sentry/components/events/autofix/types';
 import type {useExplorerAutofix} from 'sentry/components/events/autofix/useExplorerAutofix';
+import {PeekingBug} from 'sentry/components/peekingBug/peekingBug';
 import {SeerOutOfCreditsCta} from 'sentry/components/seer/outOfCredits/seerOutOfCreditsCta';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
-import {orgHasNewSeerPlan} from 'sentry/utils/seer/orgHasNewSeerPlan';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {useOpenSingleRunChat} from './useToggleSingleRunChat';
@@ -96,10 +96,7 @@ export function AutofixStartCard({
     </Button>
   );
 
-  if (
-    !organization.features.includes('autofix-single-run') ||
-    !orgHasNewSeerPlan(organization)
-  ) {
+  if (!organization.features.includes('autofix-single-run')) {
     return (
       <Stack gap="md">
         {/* The Billing Gates design gives the sidebar one card: the notice takes the explainer's place. */}
@@ -112,7 +109,7 @@ export function AutofixStartCard({
         ) : (
           <LegacyStartCardContent />
         )}
-        {startButton}
+        <PeekingBug>{startButton}</PeekingBug>
       </Stack>
     );
   }
@@ -127,7 +124,7 @@ export function AutofixStartCard({
           variant="muted"
         />
       ) : null}
-      <Flex border="muted" radius="md" padding="lg" containerType="inline-size">
+      <Flex border="secondary" radius="md" padding="lg" containerType="inline-size">
         <Flex
           gap="lg"
           width="100%"
@@ -156,7 +153,7 @@ export function AutofixStartCard({
                 {t('Add Context')}
               </Button>
             )}
-            {startButton}
+            <PeekingBug>{startButton}</PeekingBug>
           </Stack>
           {showContext ? (
             <ContextInput
@@ -186,7 +183,7 @@ export function AutofixStartCard({
 function LegacyStartCardContent() {
   return (
     <Flex
-      border="muted"
+      border="secondary"
       radius="md"
       padding="lg"
       gap="lg"

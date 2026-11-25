@@ -24,6 +24,7 @@ from sentry.seer.autofix.utils import (
     MAX_SEER_REPOS_PER_PROJECT,
     SEAT_BASED_STOPPING_POINTS,
     USAGE_BASED_STOPPING_POINTS,
+    AgenticTriageCohort,
     AutofixState,
     AutofixStoppingPoint,
     AutomationCodingAgent,
@@ -33,6 +34,7 @@ from sentry.seer.autofix.utils import (
     clear_preference_automation_handoff,
     deduplicate_repositories,
     extract_api_error_message,
+    get_agentic_triage_cohort,
     get_event_matched_project_repo_ids,
     get_org_default_seer_automation_handoff,
     get_repo_url_path,
@@ -332,6 +334,37 @@ class TestIsFreeCohortOrg(TestCase):
     @with_feature("organizations:token-billed-seer-enabled")
     def test_token_billed(self) -> None:
         assert is_free_cohort_org(self.organization) is False
+
+
+class TestGetAgenticTriageCohort(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.organization = self.create_organization(name="test-org")
+
+    def _set_cohort(self, value: str) -> None:
+        self.organization.update_option("sentry:agentic-triage-cohort", value)
+
+    def test_missing_option(self) -> None:
+        assert get_agentic_triage_cohort(self.organization) is None
+
+    def test_invalid_option(self) -> None:
+        self._set_cohort("enterprise")
+        assert get_agentic_triage_cohort(self.organization) is None
+
+    @with_feature("organizations:token-billed-seer-enabled")
+    def test_token_billed_cohorts(self) -> None:
+        for cohort in AgenticTriageCohort:
+            self._set_cohort(cohort.value)
+            assert get_agentic_triage_cohort(self.organization) is cohort
+
+    def test_legacy_and_seat_need_token_billing(self) -> None:
+        for cohort in ("legacy", "seat"):
+            self._set_cohort(cohort)
+            assert get_agentic_triage_cohort(self.organization) is None
+
+    def test_free_without_token_billing(self) -> None:
+        self._set_cohort("free")
+        assert get_agentic_triage_cohort(self.organization) is AgenticTriageCohort.FREE
 
 
 class HasProjectConnectedReposBaseTest(TestCase):

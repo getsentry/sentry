@@ -213,6 +213,13 @@ class EventAttachment(EventAttachmentBase):
         indexes = (
             models.Index(fields=("project_id", "date_added")),
             models.Index(fields=("project_id", "event_id")),
+            # Keeps the per-group crash report limit check cheap for groups that have
+            # many attachments but few crash reports.
+            models.Index(
+                fields=("group_id", "-date_added"),
+                condition=models.Q(type__in=CRASH_REPORT_TYPES),
+                name="sentry_eventatt_crash_grp_idx",
+            ),
         )
 
     __repr__ = sane_repr("event_id", "name")

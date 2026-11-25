@@ -179,7 +179,7 @@ function ProgressItem({
       align="center"
       gap="0 md"
       padding="lg"
-      borderBottom={isLast ? undefined : 'muted'}
+      borderBottom={isLast ? undefined : 'secondary'}
     >
       <Grid row="1" column="1" align="center" justify="center" alignSelf="center">
         <AnimatePresence initial={false}>

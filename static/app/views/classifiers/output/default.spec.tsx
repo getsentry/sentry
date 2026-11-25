@@ -13,7 +13,10 @@ const RESULT_FIELD = 'tags[sentry.enrichment.user_frustration,number]';
 
 const organization = OrganizationFixture();
 const timeSeriesUrl = `/organizations/${organization.slug}/events-timeseries/`;
-const classifier = TelemetryClassifierFixture({outputType: null, binaryThreshold: null});
+const classifier = TelemetryClassifierFixture({
+  outputType: 'score',
+  binaryThreshold: null,
+});
 const pageFilters = PageFiltersFixture({projects: [1]});
 
 function DefaultVisualization({filter}: {filter: string}) {

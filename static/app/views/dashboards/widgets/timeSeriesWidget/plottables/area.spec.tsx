@@ -48,12 +48,29 @@ describe('Area', () => {
   });
 
   it.each([
-    {segmentBy: [], lineStyles: [undefined]},
-    {segmentBy: ['completeness'], lineStyles: [undefined, 'dotted']},
-    {segmentBy: ['confidence'], lineStyles: [undefined, 'dashed']},
+    {segmentBy: [], lineStyles: [[undefined, undefined]]},
+    {
+      segmentBy: ['completeness'],
+      lineStyles: [
+        [undefined, undefined],
+        ['dotted', undefined],
+      ],
+    },
+    {
+      segmentBy: ['confidence'],
+      lineStyles: [
+        [undefined, undefined],
+        [undefined, 0.45],
+        [undefined, undefined],
+      ],
+    },
     {
       segmentBy: ['completeness', 'confidence'],
-      lineStyles: [undefined, 'dashed', 'dotted'],
+      lineStyles: [
+        [undefined, undefined],
+        [undefined, 0.45],
+        ['dotted', undefined],
+      ],
     },
   ] as const)('segments by $segmentBy', ({segmentBy, lineStyles}) => {
     const segmentedTimeSeries = TimeSeriesFixture({
@@ -70,6 +87,8 @@ describe('Area', () => {
       yAxisPosition: 'left',
     });
 
-    expect(series.map(s => s.lineStyle?.type)).toEqual(lineStyles);
+    expect(series.map(s => [s.lineStyle?.type, s.lineStyle?.opacity])).toEqual(
+      lineStyles
+    );
   });
 });

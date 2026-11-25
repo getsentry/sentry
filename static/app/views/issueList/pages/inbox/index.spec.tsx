@@ -42,6 +42,7 @@ function InboxPageInContainer() {
 
 describe('InboxPage', () => {
   const organization = OrganizationFixture({
+    access: [...OrganizationFixture().access, 'event:read'],
     features: ['issue-inbox', 'seat-based-seer-enabled'],
   });
   const seerOrganization = organization;
@@ -636,7 +637,7 @@ describe('InboxPage', () => {
   it('renders with the inbox feature', async () => {
     mockSuccessfulSections();
     render(<InboxPage />, {
-      organization: OrganizationFixture({features: ['issue-inbox']}),
+      organization: {...organization, features: ['issue-inbox']},
       initialRouterConfig,
     });
 
@@ -1368,9 +1369,10 @@ describe('InboxPage', () => {
   });
 
   describe('an Autofix pull request that failed for credits', () => {
-    const creditsOrganization = OrganizationFixture({
+    const creditsOrganization = {
+      ...organization,
       features: [...organization.features, 'token-billed-seer-enabled'],
-    });
+    };
 
     function mockOutOfCreditsPullRequest() {
       mockSuccessfulSections();
@@ -1439,7 +1441,7 @@ describe('InboxPage', () => {
       await userEvent.hover(retryButton);
       expect(
         await screen.findByText(
-          "Seer couldn't open a pull request in org/repository because your organization is out of credits."
+          "Seer couldn't open a pull request in org/repository because your organization ran out of credits."
         )
       ).toBeInTheDocument();
     });

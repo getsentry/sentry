@@ -42,6 +42,14 @@ export function isGitHubProvider(provider: string): boolean {
   );
 }
 
+/**
+ * True only for github.com. Seer's PR iteration listens for GitHub webhooks and
+ * leaves out GitHub Enterprise, so unlike `isGitHubProvider` this excludes GHE.
+ */
+export function isGitHubDotComProvider(provider: string): boolean {
+  return provider === 'github' || provider === 'integrations:github';
+}
+
 function toOptimisticRepo(
   repo: SeerProjectRepoCreateInput,
   index: number,
