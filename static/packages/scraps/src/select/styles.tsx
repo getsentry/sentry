@@ -69,7 +69,7 @@ export function getSelectStyles(
       minHeight: form.minHeight,
       fontSize: form.fontSize,
       lineHeight: form.lineHeight,
-      cursor: disabled ? 'not-allowed' : searchable ? 'default' : 'pointer',
+      cursor: disabled ? 'not-allowed' : 'pointer',
       opacity: disabled ? 0.6 : undefined,
     },
     leadingItems: {paddingInlineStart: controlInset},
@@ -96,7 +96,8 @@ export function getSelectStyles(
       color,
       font: 'inherit',
       outline: 'none',
-      cursor: 'inherit',
+      cursor: !disabled && searchable ? 'text' : 'inherit',
+      ':disabled': {cursor: 'not-allowed'},
     },
     singleValue: {
       gridArea: '1 / 1',
