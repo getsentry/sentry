@@ -55,6 +55,7 @@ from sentry.workflow_engine.models import (
     Workflow,
     WorkflowDataConditionGroup,
 )
+from sentry.workflow_engine.types import WorkflowType
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 from sentry.workflow_engine.typings.notification_action import ActionTarget
 
@@ -552,7 +553,7 @@ class TestProjectTransfer(TestCase):
         ).exists()
 
     def test_transfer_invalidates_activity_workflows_for_both_organizations(self) -> None:
-        self.workflow.update(type=Workflow.Type.INBOX)
+        self.workflow.update(type=WorkflowType.INBOX)
         assert get_activity_workflows_by_organization(self.from_org.id, None) == {self.workflow}
         assert get_activity_workflows_by_organization(self.to_org.id, None) == set()
 

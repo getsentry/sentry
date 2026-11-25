@@ -36,7 +36,7 @@ from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.utils import json
-from sentry.workflow_engine.models import Workflow
+from sentry.workflow_engine.types import WorkflowType
 
 
 @override_settings(SENTRY_SELF_HOSTED=False)
@@ -836,7 +836,7 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         alert_workflow = self.create_workflow(organization=self.organization, name="Alert")
 
         hidden_workflow = self.create_workflow(
-            organization=self.organization, name="Hidden", type=Workflow.Type.INBOX
+            organization=self.organization, name="Hidden", type=WorkflowType.INBOX
         )
 
         self.create_detector_workflow(detector=self.keep, workflow=alert_workflow)

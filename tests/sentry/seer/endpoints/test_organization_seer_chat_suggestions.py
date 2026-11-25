@@ -7,7 +7,7 @@ from sentry.models.dashboard_permissions import DashboardPermissions
 from sentry.seer.models import SeerApiError
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
-from sentry.workflow_engine.models import Workflow
+from sentry.workflow_engine.types import WorkflowType
 
 PAYLOAD = {
     "route": "/issues/:groupId/",
@@ -247,7 +247,7 @@ class OrganizationSeerChatSuggestionsEndpointTest(APITestCase):
     def test_passes_no_alert_edit_access_for_hidden_workflow(
         self, mock_run_oneshot: MagicMock
     ) -> None:
-        workflow = self.create_workflow(organization=self.organization, type=Workflow.Type.INBOX)
+        workflow = self.create_workflow(organization=self.organization, type=WorkflowType.INBOX)
 
         assert (
             self._can_edit_node_type(

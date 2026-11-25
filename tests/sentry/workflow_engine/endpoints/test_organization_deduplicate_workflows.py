@@ -22,6 +22,7 @@ from sentry.workflow_engine.models import (
     WorkflowActionGroupStatus,
 )
 from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.types import WorkflowType
 
 
 class MockWorkflowConfig(TypedDict, total=False):
@@ -393,7 +394,7 @@ class DeduplicateWorkflowsTypeTest(TestCase):
         identical_alert_workflow = self.create_workflow(organization=self.organization)
 
         hidden_workflow = self.create_workflow(
-            organization=self.organization, type=Workflow.Type.INBOX
+            organization=self.organization, type=WorkflowType.INBOX
         )
 
         deduplicate_workflows(self.organization)

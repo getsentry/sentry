@@ -33,6 +33,7 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
 from sentry.workflow_engine.registry import condition_handler_registry
+from sentry.workflow_engine.types import WorkflowType
 from sentry.workflow_engine.typings.notification_action import ActionTarget, ActionType
 from tests.sentry.workflow_engine.test_base import (
     BaseWorkflowTest,
@@ -69,7 +70,7 @@ class OrganizationWorkflowIndexGetTest(OrganizationWorkflowDetailsBaseTest):
 
     def test_hidden_workflow_is_not_found(self) -> None:
         hidden_workflow = self.create_workflow(
-            organization_id=self.organization.id, type=Workflow.Type.INBOX
+            organization_id=self.organization.id, type=WorkflowType.INBOX
         )
 
         self.get_error_response(self.organization.slug, hidden_workflow.id, status_code=404)
@@ -1823,7 +1824,7 @@ class OrganizationDeleteWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
 
     def test_hidden_workflow_not_found(self) -> None:
         hidden_workflow = self.create_workflow(
-            organization_id=self.organization.id, type=Workflow.Type.INBOX
+            organization_id=self.organization.id, type=WorkflowType.INBOX
         )
 
         self.get_error_response(self.organization.slug, hidden_workflow.id, status_code=404)

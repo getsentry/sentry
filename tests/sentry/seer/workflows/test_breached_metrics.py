@@ -68,6 +68,7 @@ from sentry.workflow_engine.types import (
     ActionInvocation,
     DetectorPriorityLevel,
     WorkflowEventData,
+    WorkflowType,
 )
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
@@ -763,7 +764,7 @@ class MetricMonitorSelectionTest(OccurrenceTestMixin, TestCase):
         workflow = updated.backing_workflow
         assert workflow is not None
         assert workflow.name == "Seer automation"
-        assert workflow.type == Workflow.Type.SEER_INVESTIGATION
+        assert workflow.type == WorkflowType.SEER_INVESTIGATION
         assert list(
             Action.objects.filter(
                 dataconditiongroupaction__condition_group__workflowdataconditiongroup__workflow=workflow

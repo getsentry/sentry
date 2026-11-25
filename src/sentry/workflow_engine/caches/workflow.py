@@ -6,7 +6,7 @@ from django.db.models import Q
 from sentry.models.environment import Environment
 from sentry.workflow_engine.caches import CacheMapping
 from sentry.workflow_engine.models import Detector, DetectorWorkflow, Workflow
-from sentry.workflow_engine.types import DetectorId
+from sentry.workflow_engine.types import DetectorId, WorkflowType
 from sentry.workflow_engine.utils import scopedstats
 from sentry.workflow_engine.utils.metrics import metrics_incr
 
@@ -49,7 +49,7 @@ def get_activity_workflows_by_organization(
         metrics_incr(f"{METRIC_PREFIX}.activity.miss")
         workflows = set(
             Workflow.objects.filter(
-                organization_id=organization_id, type=Workflow.Type.INBOX, enabled=True
+                organization_id=organization_id, type=WorkflowType.INBOX, enabled=True
             ).select_related("environment")
         )
         _activity_workflow_cache.set(organization_id, workflows)

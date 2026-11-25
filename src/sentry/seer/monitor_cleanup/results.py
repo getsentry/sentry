@@ -17,6 +17,7 @@ from sentry.seer.monitor_cleanup.schemas import (
 from sentry.seer.workflows.schemas import WorkflowResultError
 from sentry.users.services.user.service import user_service
 from sentry.workflow_engine.models import Detector, DetectorWorkflow, Workflow
+from sentry.workflow_engine.types import WorkflowType
 
 
 def parse_monitor_cleanup_results(
@@ -66,7 +67,7 @@ def parse_project_monitor_cleanup_result(
             detector_id__in=monitors,
             workflow_id__in=alert_ids,
             workflow__organization_id=organization_id,
-            workflow__type=Workflow.Type.ALERT,
+            workflow__type=WorkflowType.ALERT,
         ).select_related("workflow")
     }
     return {

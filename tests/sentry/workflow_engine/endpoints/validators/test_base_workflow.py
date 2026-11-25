@@ -32,6 +32,7 @@ from sentry.workflow_engine.models import (
     Workflow,
     WorkflowDataConditionGroup,
 )
+from sentry.workflow_engine.types import WorkflowType
 from tests.sentry.workflow_engine.test_base import MockActionHandler, MockActionValidatorTranslator
 
 
@@ -722,17 +723,17 @@ class TestWorkflowValidatorCreate(TestCase):
 
     def test_create_workflow_ignores_type_field(self) -> None:
         validator = WorkflowValidator(
-            data={**self.valid_data, "type": Workflow.Type.INBOX}, context=self.context
+            data={**self.valid_data, "type": WorkflowType.INBOX}, context=self.context
         )
 
         assert validator.is_valid() is True
 
         workflow = validator.create(validator.validated_data)
 
-        assert workflow.type == Workflow.Type.ALERT
+        assert workflow.type == WorkflowType.ALERT
 
     def test_create_workflow_limit_ignores_hidden_workflows(self) -> None:
-        self.create_workflow(organization=self.organization, type=Workflow.Type.INBOX)
+        self.create_workflow(organization=self.organization, type=WorkflowType.INBOX)
 
         with self.options({"workflow_engine.max_workflows_per_org": 1}):
             validator = WorkflowValidator(data=self.valid_data, context=self.context)
@@ -925,7 +926,7 @@ class TestWorkflowValidatorUpdate(TestCase):
     def test_update_workflow_ignores_type_field(
         self, mock_action_validator: mock.MagicMock
     ) -> None:
-        self.valid_data["type"] = Workflow.Type.INBOX
+        self.valid_data["type"] = WorkflowType.INBOX
 
         validator = WorkflowValidator(data=self.valid_data, context=self.context)
 
@@ -933,7 +934,7 @@ class TestWorkflowValidatorUpdate(TestCase):
 
         workflow = validator.update(self.workflow, validator.validated_data)
 
-        assert workflow.type == Workflow.Type.ALERT
+        assert workflow.type == WorkflowType.ALERT
 
     def test_update__remove_trigger_conditions(self, mock_action_validator: mock.MagicMock) -> None:
         assert self.workflow.when_condition_group
