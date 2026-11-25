@@ -283,15 +283,6 @@ const workspaceResolutionRules = ['app', 'gsApp', 'gsAdmin'].map(directory => ({
   resolve: {modules: [path.join(staticPrefix, directory, 'node_modules')]},
 }));
 
-const notebookEntry = path.join(
-  import.meta.dirname,
-  'src/sentry/workflow_lab/notebook.tsx'
-);
-const notebookImports =
-  DEV_MODE && fs.existsSync(notebookEntry)
-    ? ['sentry/utils/setupStatics', notebookEntry]
-    : undefined;
-
 const appConfig: Configuration = {
   name: 'app',
   mode: WEBPACK_MODE,
@@ -306,8 +297,6 @@ const appConfig: Configuration = {
      * The order here matters for `getsentry`
      */
     app: ['sentry/utils/setupStatics', 'sentry'],
-
-    ...(notebookImports && {workflowNotebook: notebookImports}),
 
     // admin interface
     gsAdmin: ['sentry/utils/setupStatics', path.join(staticPrefix, 'gsAdmin')],
@@ -1059,9 +1048,6 @@ const rsbuildConfig: RsbuildConfig = {
       source: {
         entry: {
           app: {import: ['sentry/utils/setupStatics', 'sentry'], html: false},
-          ...(notebookImports && {
-            workflowNotebook: {import: notebookImports, html: false},
-          }),
           gsAdmin: {
             import: ['sentry/utils/setupStatics', path.join(staticPrefix, 'gsAdmin')],
             html: false,

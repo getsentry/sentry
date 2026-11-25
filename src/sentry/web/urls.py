@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import re
-from importlib.util import find_spec
 
 from django.conf import settings
 from django.conf.urls import include
@@ -106,9 +105,6 @@ if getattr(settings, "SERVE_UPLOADED_FILES", settings.DEBUG):
             name="sentry-serve-media",
         )
     ]
-
-if settings.DEBUG and find_spec("sentry.workflow_lab") is not None:
-    urlpatterns.append(re_path(r"^workflow-lab/", include("sentry.workflow_lab.urls")))
 
 if settings.DEBUG:
     # Special favicon in debug mode
