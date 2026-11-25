@@ -10,6 +10,7 @@ from rest_framework.response import Response
 from sentry_protos.snuba.v1.downsampled_storage_pb2 import DownsampledStorageConfig
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import ExtrapolationMode
 
+from sentry.api.endpoints.timeseries import IncompleteReason
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.utils.snuba_rpc import _make_rpc_requests
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
@@ -27,6 +28,8 @@ def build_expected_timeseries(
     sample_count: Sequence[object] | None = None,
     sample_rate: Sequence[object] | None = None,
     confidence: Sequence[object] | None = None,
+    *,
+    exceeds_query_range: Sequence[int] = (),
 ) -> list[dict[str, object]]:
     if expected_comparison is not None:
         assert len(expected_comparison) == len(expected)
@@ -49,6 +52,9 @@ def build_expected_timeseries(
             "timestamp": start.timestamp() * 1000 + interval * index,
             "value": value,
         }
+        if index in exceeds_query_range:
+            current_value["incomplete"] = True
+            current_value["incompleteReason"] = IncompleteReason.EXCEEDS_QUERY_RANGE
         if expected_comparison is not None:
             current_value["comparisonValue"] = expected_comparison[index]
         if sample_count is not None:
@@ -144,6 +150,44 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             "valueUnit": None,
             "interval": 3_600_000,
         }
+
+    def test_buckets_clipped_by_requested_range_are_marked_incomplete(self) -> None:
+        start = self.start + timedelta(minutes=30)
+        end = self.start + timedelta(hours=3, minutes=30)
+        self.store_spans(
+            [
+                self.create_span({"description": "foo"}, start_ts=self.start + offset)
+                for offset in [
+                    timedelta(minutes=10),
+                    timedelta(minutes=40),
+                    timedelta(hours=1, minutes=5),
+                    timedelta(hours=2, minutes=5),
+                    timedelta(hours=3, minutes=20),
+                    timedelta(hours=3, minutes=40),
+                ]
+            ]
+        )
+
+        response = self._do_request(
+            data={
+                "start": start,
+                "end": end,
+                "interval": "1h",
+                "yAxis": "count()",
+                "project": self.project.id,
+                "dataset": "spans",
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        (timeseries,) = response.data["timeSeries"]
+        assert timeseries["values"] == build_expected_timeseries(
+            self.start,
+            3_600_000,
+            [1, 1, 1, 1],
+            ignore_accuracy=True,
+            exceeds_query_range=[0, 3],
+        )
 
     def test_debug_param(self) -> None:
         self.user = self.create_user("user@example.com", is_superuser=False)
@@ -260,7 +304,11 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert len(timeseries["values"]) == 7
         assert timeseries["yAxis"] == "p50(measurements.lcp)"
         assert timeseries["values"] == build_expected_timeseries(
-            rounded_start, interval, [0, 0, 0, 0, 0, 0, 2], ignore_accuracy=True
+            rounded_start,
+            interval,
+            [0, 0, 0, 0, 0, 0, 2],
+            ignore_accuracy=True,
+            exceeds_query_range=[0, 6],
         )
         assert timeseries["groupBy"] == [{"key": "span.description", "value": "bar"}]
         assert timeseries["meta"] == {
@@ -276,7 +324,11 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert len(timeseries["values"]) == 7
         assert timeseries["yAxis"] == "avg(measurements.lcp)"
         assert timeseries["values"] == build_expected_timeseries(
-            rounded_start, interval, [0, 0, 0, 0, 0, 0, 2], ignore_accuracy=True
+            rounded_start,
+            interval,
+            [0, 0, 0, 0, 0, 0, 2],
+            ignore_accuracy=True,
+            exceeds_query_range=[0, 6],
         )
         assert timeseries["groupBy"] == [{"key": "span.description", "value": "bar"}]
         assert timeseries["meta"] == {
@@ -292,7 +344,11 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert len(timeseries["values"]) == 7
         assert timeseries["yAxis"] == "p50(measurements.lcp)"
         assert timeseries["values"] == build_expected_timeseries(
-            rounded_start, interval, [0, 0, 0, 0, 0, 0, 1], ignore_accuracy=True
+            rounded_start,
+            interval,
+            [0, 0, 0, 0, 0, 0, 1],
+            ignore_accuracy=True,
+            exceeds_query_range=[0, 6],
         )
         assert timeseries["groupBy"] is None
         assert timeseries["meta"] == {
@@ -308,7 +364,11 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert len(timeseries["values"]) == 7
         assert timeseries["yAxis"] == "avg(measurements.lcp)"
         assert timeseries["values"] == build_expected_timeseries(
-            rounded_start, interval, [0, 0, 0, 0, 0, 0, 1], ignore_accuracy=True
+            rounded_start,
+            interval,
+            [0, 0, 0, 0, 0, 0, 1],
+            ignore_accuracy=True,
+            exceeds_query_range=[0, 6],
         )
         assert timeseries["groupBy"] is None
         assert timeseries["meta"] == {

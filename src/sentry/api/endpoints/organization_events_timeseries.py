@@ -372,6 +372,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
             self.validate_comparison_delta(comparison_delta, snuba_params, organization)
             rollup = self.get_rollup(request, snuba_params, top_events, use_rpc)
             snuba_params.granularity_secs = rollup
+            query_range = (snuba_params.start_date, snuba_params.end_date)
             axes = request.GET.getlist("yAxis", ["count()"])
             include_measured_ingestion_delay_metadata = features.has(
                 "organizations:measured-ingestion-delay-metadata",
@@ -420,6 +421,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                     rollup,
                     dataset,
                     organization,
+                    query_range,
                     ingestion_delay_status,
                 ),
                 status=200,
@@ -687,6 +689,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         rollup: int,
         dataset: ModuleType,
         organization: Organization,
+        query_range: tuple[datetime, datetime],
         ingestion_delay_status: IngestionDelayStatus | None = None,
     ) -> StatsResponse:
         # We need the current timestamp for the Ingestion Delay incomplete reason
@@ -720,6 +723,8 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
             retention_start=now - timedelta(days=retention_days).total_seconds()
             if retention_days
             else None,
+            query_start=query_range[0].timestamp(),
+            query_end=query_range[1].timestamp(),
         )
 
         response = StatsResponse(
