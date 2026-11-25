@@ -25,8 +25,8 @@ class OrganizationPrebuiltTelemetryClassifiersTest(APITestCase):
             "dataset": "conversation",
             "outputType": "binary",
             "binaryThreshold": 0.8,
-            "name": "User frustration",
-            "description": "When your users become frustrated with the agent they are speaking with.",
+            "name": "Agent not helpful",
+            "description": "When your agent fails to give users what they asked for.",
             "resultAttribute": "user_frustration",
         }
 
