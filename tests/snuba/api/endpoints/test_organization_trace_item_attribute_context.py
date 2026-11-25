@@ -229,6 +229,18 @@ class OrganizationTraceItemAttributeContextEndpointTest(
         context = TraceItemAttributeContext.objects.get(attribute_key="my_custom_attr")
         assert context.brief is None
 
+    def test_clears_additional_context_when_blank(self) -> None:
+        self.store_attribute(my_custom_attr="value")
+        data = {"dataset": "spans", "attributeType": "string", "brief": "My custom attribute"}
+        self.do_request("my_custom_attr", {**data, "additionalContext": "Longer notes."})
+
+        response = self.do_request("my_custom_attr", {**data, "additionalContext": ""})
+
+        assert response.status_code == 200, response.data
+        assert response.data["additionalContext"] is None
+        context = TraceItemAttributeContext.objects.get(attribute_key="my_custom_attr")
+        assert context.additional_context is None
+
     def test_org_wide_context(self) -> None:
         self.store_attribute(my_custom_attr="value")
 
