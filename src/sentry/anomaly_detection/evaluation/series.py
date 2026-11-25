@@ -83,10 +83,11 @@ def _derive_rates(series: dict[SeriesKey, Series]) -> None:
             if numerator_key not in series or denominator_key not in series:
                 continue
             numerator = series[numerator_key]
-            series[rate] = {
-                ts: count / value if value and (count := numerator.get(ts)) is not None else None
-                for ts, value in series[denominator_key].items()
-            }
+            rates: Series = {}
+            for ts, requests in series[denominator_key].items():
+                count = numerator.get(ts)
+                rates[ts] = count / requests if requests and count is not None else None
+            series[rate] = rates
 
 
 def has_traffic(series: Mapping[SeriesKey, Series], project_id: int, env: str) -> bool:

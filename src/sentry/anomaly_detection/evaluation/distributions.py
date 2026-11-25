@@ -70,14 +70,12 @@ def beta_binomial_sf(successes: float, trials: float, a: float, b: float) -> flo
 
     # Sum away from the mean, so the terms shrink until they stop mattering.
     if k > n * a / (a + b):
-        return min(
-            1.0,
-            _sum_terms(
-                log_pmf(k),
-                range(k, n),
-                lambda x: (n - x) / (x + 1) * (x + a) / (n - x - 1 + b),
-            ),
+        upper = _sum_terms(
+            log_pmf(k),
+            range(k, n),
+            lambda x: (n - x) / (x + 1) * (x + a) / (n - x - 1 + b),
         )
+        return min(1.0, upper)
     lower = _sum_terms(
         log_pmf(k - 1),
         range(k - 1, 0, -1),
@@ -121,7 +119,7 @@ def poisson_sf(k: int, mean: float) -> float:
     """
     if k <= 0:
         return 1.0
-    if not mean:
+    if mean <= 0:
         return 0.0
     return _regularized_gamma(k, mean, upper=False)
 
