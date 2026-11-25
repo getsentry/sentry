@@ -9,8 +9,8 @@ import {toast} from '@sentry/scraps/toast';
 
 import {InfiniteTable} from 'sentry/components/infiniteTable/infiniteTable';
 import type {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
+import {OnOffDropdownMenu} from 'sentry/components/seer/onOffDropdownMenu';
 import {PreferredAgentDropdownMenu} from 'sentry/components/seer/preferredAgentDropdownMenu';
-import {PrIterationDropdownMenu} from 'sentry/components/seer/prIterationDropdownMenu';
 import {StoppingPointDropdownMenu} from 'sentry/components/seer/stoppingPointDropdownMenu';
 import {getNextSort} from 'sentry/components/tables/getNextSort';
 import {t, tct, tn} from 'sentry/locale';
@@ -19,6 +19,7 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {ListItemSelectedState} from 'sentry/utils/list/listItemSelectedState';
 import {ListSelectAllCheckbox} from 'sentry/utils/list/listSelectAllCheckbox';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
+import {useShowOpenPrs} from 'sentry/utils/seer/openPrs';
 import {
   getSeerProjectSettingsMutationKey,
   type SeerBulkEditVariables,
@@ -97,6 +98,21 @@ const COLUMNS = [
   },
 ];
 
+const OPEN_PRS_COLUMN = {
+  title: (
+    <Flex gap="sm" align="center">
+      {t('Open PRs')}
+      <InfoTip
+        title={t(
+          'When Seer finds a fix, it opens a PR. You can still ask Seer to open a PR when this is off.'
+        )}
+      />
+    </Flex>
+  ),
+  key: 'open_prs',
+  sortKey: undefined,
+};
+
 export function ProjectTableHeader({
   bulkEdit,
   mutableSearch,
@@ -106,6 +122,12 @@ export function ProjectTableHeader({
 }: Props) {
   const organization = useOrganization();
   const canWrite = useCanWriteSettings();
+  const showOpenPrs = useShowOpenPrs();
+  const columns = showOpenPrs
+    ? COLUMNS.flatMap(column =>
+        column.key === 'automation_steps' ? [column, OPEN_PRS_COLUMN] : [column]
+      )
+    : COLUMNS;
 
   const listItemCheckboxState = useListItemCheckboxContext();
   const {countSelected, selectAll, selectedIds} = listItemCheckboxState;
@@ -143,7 +165,7 @@ export function ProjectTableHeader({
               listItemCheckboxState={listItemCheckboxState}
             />
           </InfiniteTable.HeaderCell>
-          {COLUMNS.map(({title, key, sortKey}) => (
+          {columns.map(({title, key, sortKey}) => (
             <InfiniteTable.HeaderCell
               key={key}
               handleSortClick={
@@ -224,7 +246,38 @@ export function ProjectTableHeader({
                 );
               }}
             />
-            <PrIterationDropdownMenu
+            {showOpenPrs && (
+              <OnOffDropdownMenu
+                triggerLabel={t('Open PRs')}
+                isDisabled={isDisabled}
+                onChange={openPrs => {
+                  mutate(
+                    {query: mutableSearch.formatString(), selectedIds, openPrs},
+                    {
+                      onError: () =>
+                        toast.error(
+                          tn(
+                            'Failed to update Open PRs for %s project',
+                            'Failed to update Open PRs for %s projects',
+                            projectIds.length
+                          )
+                        ),
+                      onSuccess: () => {
+                        toast.success(
+                          tn(
+                            'Open PRs updated for %s project',
+                            'Open PRs updated for %s projects',
+                            projectIds.length
+                          )
+                        );
+                      },
+                    }
+                  );
+                }}
+              />
+            )}
+            <OnOffDropdownMenu
+              triggerLabel={t('Auto-Iterate on PRs')}
               isDisabled={isDisabled}
               onChange={prIteration => {
                 mutate(
