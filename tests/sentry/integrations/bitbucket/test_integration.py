@@ -18,7 +18,7 @@ from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.utils.atlassian_connect import AtlassianConnectValidationError
 from sentry.models.repository import Repository
-from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.shared_integrations.exceptions import ApiPaginationTruncated, IntegrationError
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
@@ -128,6 +128,61 @@ class BitbucketIntegrationTest(APITestCase):
             {"identifier": "sentryuser/repo-1", "name": "sentryuser/repo-1", "external_id": "{r1}"},
         ]
         assert len(responses.calls) == 1
+
+    @responses.activate
+    def test_get_repositories_raises_when_page_limit_cuts_off_pages(self) -> None:
+        base_url = "https://api.bitbucket.org/2.0/repositories/sentryuser"
+        responses.add(
+            responses.GET,
+            base_url,
+            json={
+                "values": [{"full_name": "sentryuser/repo-1", "uuid": "{r1}"}],
+                "next": f"{base_url}?pagelen=100&page=2",
+            },
+        )
+        responses.add(
+            responses.GET,
+            f"{base_url}?pagelen=100&page=2",
+            json={
+                "values": [{"full_name": "sentryuser/repo-2", "uuid": "{r2}"}],
+                "next": f"{base_url}?pagelen=100&page=3",
+            },
+        )
+
+        installation = self.integration.get_installation(self.organization.id)
+        assert isinstance(installation, BitbucketIntegration)
+        with pytest.raises(ApiPaginationTruncated) as exc_info:
+            installation.get_repositories(page_number_limit=2, raise_on_page_limit=True)
+        assert exc_info.value.partial_data == [
+            {"identifier": "sentryuser/repo-1", "name": "sentryuser/repo-1", "external_id": "{r1}"},
+            {"identifier": "sentryuser/repo-2", "name": "sentryuser/repo-2", "external_id": "{r2}"},
+        ]
+        assert len(responses.calls) == 2
+
+    @responses.activate
+    def test_get_repositories_no_raise_when_last_page_at_limit(self) -> None:
+        base_url = "https://api.bitbucket.org/2.0/repositories/sentryuser"
+        responses.add(
+            responses.GET,
+            base_url,
+            json={
+                "values": [{"full_name": "sentryuser/repo-1", "uuid": "{r1}"}],
+                "next": f"{base_url}?pagelen=100&page=2",
+            },
+        )
+        responses.add(
+            responses.GET,
+            f"{base_url}?pagelen=100&page=2",
+            json={"values": [{"full_name": "sentryuser/repo-2", "uuid": "{r2}"}]},
+        )
+
+        installation = self.integration.get_installation(self.organization.id)
+        assert isinstance(installation, BitbucketIntegration)
+        result = installation.get_repositories(page_number_limit=2, raise_on_page_limit=True)
+        assert result == [
+            {"identifier": "sentryuser/repo-1", "name": "sentryuser/repo-1", "external_id": "{r1}"},
+            {"identifier": "sentryuser/repo-2", "name": "sentryuser/repo-2", "external_id": "{r2}"},
+        ]
 
     @responses.activate
     def test_get_repositories_zero_page_limit_returns_first_page(self) -> None:

@@ -11,6 +11,8 @@ import {
 import {useTheme} from '@emotion/react';
 
 import type {
+  BackgroundToken,
+  BorderToken,
   BorderVariant,
   BreakpointSize,
   ContainerBreakpointSize,
@@ -221,14 +223,28 @@ function resolveMargin(sizeComponent: Margin, theme: Theme) {
   return theme.space[sizeComponent] ?? theme.space['0'];
 }
 
-function borderValue(key: Exclude<BorderVariant, 'none'>, theme: Theme): string {
-  if (key === 'primary') {
-    return theme.tokens.border[key];
+export function getBackground(
+  background: BackgroundToken | undefined,
+  _breakpoint: ResponsiveBreakpoint | undefined,
+  theme: Theme
+): string | undefined {
+  if (background === undefined) {
+    return undefined;
   }
-  if (key === 'muted' || key === 'secondary') {
-    return theme.tokens.border.secondary;
+
+  let node: unknown = theme.tokens.background;
+  for (const segment of background.split('.')) {
+    node = (node as Record<string, unknown>)[segment];
   }
-  return theme.tokens.border[key].vibrant;
+  return node as string;
+}
+
+function borderValue(path: BorderToken, theme: Theme): string {
+  let node: unknown = theme.tokens.border;
+  for (const segment of path.split('.')) {
+    node = (node as Record<string, unknown>)[segment];
+  }
+  return node as string;
 }
 
 export function getBorder(
@@ -246,7 +262,7 @@ export function getBorder(
 
   return border
     .split(' ')
-    .map(b => `1px solid ${borderValue(b as Exclude<BorderVariant, 'none'>, theme)}`)
+    .map(b => `1px solid ${borderValue(b as BorderToken, theme)}`)
     .join(' ');
 }
 

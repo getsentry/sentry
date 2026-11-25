@@ -33,6 +33,8 @@ from sentry.core.endpoints.organization_details import (
     ERR_SSO_ENABLED,
 )
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
+from sentry.hybridcloud.models.outbox import CellOutbox
+from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.authprovider import AuthProvider
 from sentry.models.avatars.organization_avatar import OrganizationAvatar
@@ -46,6 +48,7 @@ from sentry.signals import project_created
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import APITestCase, TwoFactorAPITestCase
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode_of, cell_silo_test, create_test_cells
 from sentry.testutils.skips import requires_snuba
@@ -1736,6 +1739,31 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
         assert response.data["hasGranularReplayPermissions"] is False
         assert response.data["replayAccessMembers"] == []
+
+
+class OrganizationUpdateAsyncReplicationTest(OrganizationDetailsTestBase):
+    method = "put"
+
+    def _put(self, **data: object) -> bool:
+        """Saves the org and returns whether its outbox row is still pending."""
+        with self.captureOnCommitCallbacks(execute=True):
+            self.get_success_response(self.organization.slug, **data)
+        return CellOutbox.objects.filter(
+            shard_scope=OutboxScope.ORGANIZATION_SCOPE,
+            shard_identifier=self.organization.id,
+            category=OutboxCategory.ORGANIZATION_UPDATE,
+            object_identifier=self.organization.id,
+        ).exists()
+
+    @override_options({"hybridcloud.outbox.organization_async_replication.enabled": True})
+    def test_only_require_2fa_changes_drain(self) -> None:
+        with assume_test_silo_mode_of(Authenticator):
+            TotpInterface().enroll(self.user)
+
+        assert self._put(name="hello world")
+        assert not self._put(require2FA=True)
+        assert self._put(name="hello again")
+        assert not self._put(require2FA=False)
 
 
 class OrganizationDeleteTest(OrganizationDetailsTestBase):

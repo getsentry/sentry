@@ -23,7 +23,7 @@ import {ActionTarget, ActionType} from 'sentry/types/workflowEngine/actions';
 import AutomationConfiguration from './detail/configuration';
 import AutomationDetail from './detail';
 import {MetricAutomationForm} from './metricAutomationForm';
-import NewMetricAutomation from './new';
+import NewAutomationPage from './new';
 
 describe('MetricAutomationForm', () => {
   const organization = OrganizationFixture({
@@ -140,7 +140,7 @@ describe('MetricAutomationForm', () => {
       method: 'POST',
       body: config,
     });
-    const {router} = render(<NewMetricAutomation />, {
+    const {router} = render(<NewAutomationPage />, {
       organization,
       initialRouterConfig: {
         location: {pathname: '/organizations/org-slug/seer/automations/new/'},
@@ -159,7 +159,7 @@ describe('MetricAutomationForm', () => {
     await userEvent.click(
       screen.getByRole('button', {name: /1 project · 5 permissions/})
     );
-    expect(screen.getByText('1 connected monitor')).toBeInTheDocument();
+    expect(screen.getByText('Connected Monitors')).toBeInTheDocument();
     expect(
       screen.queryByRole('button', {name: 'Remove checkout-api'})
     ).not.toBeInTheDocument();

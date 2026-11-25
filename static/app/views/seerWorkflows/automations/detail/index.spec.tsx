@@ -60,7 +60,7 @@ describe('AutomationDetail', () => {
     await findLoadedPage();
 
     // Breadcrumb title and page header
-    expect(screen.getAllByRole('heading', {name: 'Agentic triage'})).toHaveLength(2);
+    expect(screen.getAllByRole('heading', {name: 'Agentic Triage'})).toHaveLength(2);
     expect(
       screen.getByText('Automatically triage and fix the most fixable Issues.')
     ).toBeInTheDocument();

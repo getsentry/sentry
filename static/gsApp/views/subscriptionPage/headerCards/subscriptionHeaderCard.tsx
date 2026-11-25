@@ -18,7 +18,7 @@ export function SubscriptionHeaderCard({
     <Stack
       padding="xl"
       background="primary"
-      border={isHighlighted ? 'accent' : 'primary'}
+      border={isHighlighted ? 'accent.vibrant' : 'primary'}
       radius="md"
       gap="lg"
     >

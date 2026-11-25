@@ -1,5 +1,8 @@
 import {Fragment} from 'react';
+import {IconStar} from '@sentry/icons/star';
+import {expectTypeOf} from 'expect-type';
 import {UserFixture} from 'sentry-fixture/user';
+import type {DistributedOmit} from 'type-fest';
 
 import {
   isInaccessible,
@@ -10,8 +13,15 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {Tag} from '@sentry/scraps/badge';
-import type {EntityHeaderProps, EntityHeaderStatProps} from '@sentry/scraps/entityHeader';
+import {DateTimeProvider} from '@sentry/scraps/dateTime';
+import type {
+  EntityHeaderMetadataItemProps,
+  EntityHeaderMetadataListEntry,
+  EntityHeaderProps,
+  EntityHeaderStatProps,
+} from '@sentry/scraps/entityHeader';
 import {EntityHeader} from '@sentry/scraps/entityHeader';
+import {ContainerQueryContext} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 describe('EntityHeader', () => {
@@ -1344,6 +1354,86 @@ describe('EntityHeader', () => {
       });
     });
 
+    describe('dates', () => {
+      // 2025-06-09T04:05:09Z, which is the evening before in Los Angeles.
+      const date = new Date('2025-06-09T04:05:09Z');
+
+      function renderItems(items: EntityHeaderMetadataItemProps[]) {
+        render(
+          <EntityHeader
+            title={{type: 'text', label: 'Replay', value: 'Session'}}
+            metadata={{label: 'Replay properties', items}}
+          />
+        );
+      }
+
+      it.each([
+        ['12', 'Jun 8, 2025 9:05:09 PM PDT'],
+        ['24', 'Jun 8, 2025 21:05:09 PDT'],
+      ] as const)(
+        'draws an absolute date in the standard format on a %s hour clock',
+        (clock, expected) => {
+          render(
+            <DateTimeProvider value={{timezone: 'America/Los_Angeles', clock}}>
+              <EntityHeader
+                title={{type: 'text', label: 'Replay', value: 'Session'}}
+                metadata={{
+                  label: 'Replay properties',
+                  items: [{label: 'Started at', type: 'date', date}],
+                }}
+              />
+            </DateTimeProvider>
+          );
+
+          expect(screen.getByText(expected)).toBeInTheDocument();
+          expect(screen.getByText(expected).tagName).toBe('TIME');
+        }
+      );
+
+      it('heads a relative date card with the item label, as one tab stop', async () => {
+        renderItems([
+          {
+            label: 'Last seen',
+            type: 'date',
+            mode: 'full',
+            date: new Date(Date.now() - 5 * 60 * 1000),
+            format: 'relative',
+          },
+        ]);
+
+        const trigger = screen.getByText('5min ago');
+        expect(trigger.tagName).toBe('TIME');
+        await userEvent.tab();
+        expect(trigger).toHaveFocus();
+        expect(await screen.findByText('UTC')).toBeInTheDocument();
+        // The card reads label, relative time, then the timezone rows.
+        expect(trigger).toHaveAccessibleDescription(/^Last seen\s*5min ago.*UTC/);
+        await userEvent.tab();
+        expect(document.body).toHaveFocus();
+      });
+
+      // Type-only: typecheck is the assertion. These calls check nothing at runtime.
+      it('takes no tooltip or value on a date', () => {
+        type DateItem = {date: Date; label: string; type: 'date'};
+        expectTypeOf<DateItem>().toExtend<EntityHeaderMetadataItemProps>();
+        // A date explains itself, so it takes no tooltip.
+        expectTypeOf<
+          DateItem & {tooltip: string}
+        >().not.toExtend<EntityHeaderMetadataItemProps>();
+        // A date takes `date`, not a formatted `value`.
+        expectTypeOf<
+          DateItem & {value: string}
+        >().not.toExtend<EntityHeaderMetadataItemProps>();
+
+        type DateEntry = {date: Date; key: string; type: 'date'};
+        expectTypeOf<DateEntry>().toExtend<EntityHeaderMetadataListEntry>();
+        // A date entry takes no tooltip either.
+        expectTypeOf<
+          DateEntry & {tooltip: string}
+        >().not.toExtend<EntityHeaderMetadataListEntry>();
+      });
+    });
+
     it('renders a tooltip on a metadata item', async () => {
       render(
         <EntityHeader
@@ -1364,6 +1454,310 @@ describe('EntityHeader', () => {
 
       await userEvent.hover(screen.getByText('TTFB'));
       expect(await screen.findByText('Time to First Byte')).toBeInTheDocument();
+    });
+  });
+
+  describe('metadata lists', () => {
+    function toolEntries(names: string[]): EntityHeaderMetadataListEntry[] {
+      return names.map(name => ({key: name, label: 'Tool', type: 'text', value: name}));
+    }
+
+    const tools = ['search', 'fetch', 'browse', 'summarize', 'translate'];
+
+    function renderTools(
+      list: Partial<Extract<EntityHeaderMetadataItemProps, {type: 'list'}>>,
+      props: Partial<EntityHeaderProps> = {}
+    ) {
+      return render(
+        <EntityHeader
+          title={{type: 'text', label: 'Conversation', value: 'Trip planning'}}
+          metadata={{
+            label: 'Conversation properties',
+            items: [
+              {label: 'Model', type: 'text', value: 'gpt-5'},
+              {label: 'Tools', type: 'list', items: toolEntries(tools), ...list},
+            ],
+          }}
+          {...props}
+        />
+      );
+    }
+
+    it('shows up to maxVisible entries, then a collapsed "+N more" button', () => {
+      renderTools({maxVisible: 3});
+
+      const list = screen.getByRole('list', {name: 'Tools'});
+      const entries = within(list).getAllByRole('listitem');
+      // Collapsed entries are not drawn; the button says how many remain.
+      expect(entries.map(entry => entry.textContent)).toEqual([
+        ...tools.slice(0, 3).map(tool => `Tool${tool}`),
+        '+2 more',
+      ]);
+      expect(within(entries[3]!).getByRole('button', {name: '+2 more'})).toHaveAttribute(
+        'aria-expanded',
+        'false'
+      );
+
+      // The nested list is one item of the metadata row, beside the others.
+      const row = screen.getByRole('list', {name: 'Conversation properties'});
+      const items = [...row.children];
+      expect(items).toHaveLength(2);
+      expect(items[1]).toContainElement(list);
+    });
+
+    it('draws the label in full mode without reading it twice', () => {
+      const {rerender} = renderTools({maxVisible: 3});
+      expect(screen.queryByText('Tools')).not.toBeInTheDocument();
+
+      rerender(
+        <EntityHeader
+          title={{type: 'text', label: 'Conversation', value: 'Trip planning'}}
+          metadata={{
+            label: 'Conversation properties',
+            items: [
+              {label: 'Tools', type: 'list', items: toolEntries(tools), mode: 'full'},
+            ],
+          }}
+        />
+      );
+
+      expect(isInaccessible(screen.getByText('Tools'))).toBe(true);
+      expect(screen.getByRole('list', {name: 'Tools'})).toBeInTheDocument();
+    });
+
+    it.each([undefined, tools.length])(
+      'shows every entry and no trigger when maxVisible is %s',
+      maxVisible => {
+        renderTools({maxVisible});
+
+        const entries = within(screen.getByRole('list', {name: 'Tools'})).getAllByRole(
+          'listitem'
+        );
+        expect(entries).toHaveLength(tools.length);
+        expect(screen.queryByRole('button', {name: /more$/})).not.toBeInTheDocument();
+      }
+    );
+
+    it('renders a skeleton while loading', () => {
+      renderTools({maxVisible: 3}, {isLoading: true});
+
+      // Title, the text item and the list item.
+      expect(screen.getAllByTestId('loading-placeholder')).toHaveLength(3);
+      expect(screen.queryByRole('list', {name: 'Tools'})).not.toBeInTheDocument();
+      expect(screen.queryByText('search')).not.toBeInTheDocument();
+    });
+
+    it('draws each entry as a metadata value, link and qualifiers included', () => {
+      renderTools({
+        items: [
+          {
+            key: 'search',
+            label: 'Tool',
+            type: 'link',
+            value: 'search',
+            to: '/tools/search/',
+          },
+          {
+            key: 'fetch',
+            label: 'Tool',
+            type: 'text',
+            value: 'fetch',
+            secondary: {label: 'calls', value: '3'},
+          },
+        ],
+      });
+
+      const list = screen.getByRole('list', {name: 'Tools'});
+      expect(within(list).getByRole('link', {name: 'Tool search'})).toHaveAttribute(
+        'href',
+        '/tools/search/'
+      );
+      expect(within(list).getByText('Tool calls')).toBeInTheDocument();
+    });
+
+    it('reads an entry without a label as its value only', () => {
+      renderTools({
+        items: [
+          {key: 'search', type: 'link', value: 'search', to: '/tools/search/'},
+          {
+            key: 'fetch',
+            type: 'text',
+            value: 'fetch',
+            secondary: {label: 'calls', value: '3'},
+          },
+        ],
+      });
+
+      // The list's name says what the entries are, so nothing repeats it.
+      const entries = within(screen.getByRole('list', {name: 'Tools'})).getAllByRole(
+        'listitem'
+      );
+      expect(entries.map(entry => entry.textContent)).toEqual(['search', 'fetchcalls3']);
+      expect(screen.getByRole('link', {name: 'search'})).not.toHaveAttribute(
+        'aria-label'
+      );
+    });
+
+    describe('expanding', () => {
+      const linkAndTooltipEntries: EntityHeaderMetadataListEntry[] = [
+        {key: 'search', label: 'Tool', type: 'text', value: 'search'},
+        {
+          key: 'fetch',
+          label: 'Tool',
+          type: 'link',
+          value: 'fetch',
+          to: '/tools/fetch/',
+          tooltip: 'Fetches a page',
+        },
+        {
+          key: 'browse',
+          label: 'Tool',
+          type: 'text',
+          value: 'browse',
+          tooltip: 'Opens a browser',
+          secondary: {label: 'calls', value: '3'},
+        },
+      ];
+
+      const tabStops = () =>
+        Array.from(
+          screen
+            .getByRole('banner')
+            .querySelectorAll('a[href], button, [tabindex]:not([tabindex="-1"])'),
+          stop => stop.textContent
+        );
+
+      it('reveals the collapsed entries in place, drawn as visible entries are', async () => {
+        renderTools({maxVisible: 1, items: linkAndTooltipEntries});
+
+        // Collapsed, the button is the list's only tab stop.
+        expect(tabStops()).toEqual(['+2 more']);
+
+        await userEvent.click(screen.getByRole('button', {name: '+2 more'}));
+
+        const entries = within(screen.getByRole('list', {name: 'Tools'})).getAllByRole(
+          'listitem'
+        );
+        expect(entries.map(entry => entry.textContent)).toEqual([
+          'Toolsearch',
+          // A link is named by its aria-label, so it draws no label of its own.
+          'fetch',
+          'ToolbrowseTool calls3',
+        ]);
+        expect(screen.getByRole('link', {name: 'Tool fetch'})).toHaveAttribute(
+          'href',
+          '/tools/fetch/'
+        );
+        expect(tabStops()).toEqual(['fetch', 'browse', '3']);
+        await userEvent.hover(screen.getByText('browse'));
+        expect(await screen.findByText('Opens a browser')).toBeInTheDocument();
+      });
+
+      it('moves focus to the first revealed entry, and Tab continues through them', async () => {
+        renderTools({maxVisible: 1, items: linkAndTooltipEntries});
+
+        await userEvent.tab();
+        expect(screen.getByRole('button', {name: '+2 more'})).toHaveFocus();
+        await userEvent.keyboard('{Enter}');
+
+        const entries = within(screen.getByRole('list', {name: 'Tools'})).getAllByRole(
+          'listitem'
+        );
+        expect(entries[1]).toHaveFocus();
+        await userEvent.tab();
+        expect(screen.getByRole('link', {name: 'Tool fetch'})).toHaveFocus();
+        await userEvent.tab();
+        expect(screen.getByText('browse')).toHaveFocus();
+      });
+
+      it('does not move focus again when the items change after expanding', async () => {
+        function Page({names}: {names: string[]}) {
+          return (
+            <Fragment>
+              <EntityHeader
+                title={{type: 'text', label: 'Conversation', value: 'Trip planning'}}
+                metadata={{
+                  label: 'Conversation properties',
+                  items: [
+                    {
+                      label: 'Tools',
+                      type: 'list',
+                      maxVisible: 1,
+                      items: toolEntries(names),
+                    },
+                  ],
+                }}
+              />
+              <input aria-label="Elsewhere" />
+            </Fragment>
+          );
+        }
+
+        const {rerender} = render(<Page names={['search', 'fetch', 'browse']} />);
+        await userEvent.click(screen.getByRole('button', {name: '+2 more'}));
+        await userEvent.click(screen.getByRole('textbox', {name: 'Elsewhere'}));
+
+        // A different entry now sits where the first revealed one was.
+        rerender(<Page names={['search', 'browse', 'fetch']} />);
+
+        expect(screen.getByRole('textbox', {name: 'Elsewhere'})).toHaveFocus();
+      });
+    });
+
+    it('resolves a responsive maxVisible against the header width', () => {
+      render(
+        <ContainerQueryContext.Provider value="md">
+          <EntityHeader
+            title={{type: 'text', label: 'Conversation', value: 'Trip planning'}}
+            metadata={{
+              label: 'Conversation properties',
+              items: [
+                {
+                  label: 'Tools',
+                  type: 'list',
+                  items: toolEntries(tools),
+                  maxVisible: {zero: 1, md: 3, lg: 4},
+                },
+              ],
+            }}
+          />
+        </ContainerQueryContext.Provider>
+      );
+
+      expect(screen.getByText('+2 more')).toBeInTheDocument();
+    });
+
+    it('draws the label and graphic before "+N more" when maxVisible is 0', () => {
+      render(
+        <EntityHeader
+          title={{type: 'text', label: 'Conversation', value: 'Trip planning'}}
+          metadata={{
+            label: 'Conversation properties',
+            items: [
+              {
+                label: 'Tools',
+                type: 'list',
+                mode: 'full',
+                leadingGraphic: <IconStar data-test-id="tools-graphic" />,
+                items: toolEntries(tools),
+                maxVisible: 0,
+              },
+              {label: 'Region', type: 'text', value: 'us'},
+            ],
+          }}
+        />
+      );
+
+      const entries = within(screen.getByRole('list', {name: 'Tools'})).getAllByRole(
+        'listitem'
+      );
+      expect(entries).toHaveLength(1);
+
+      const trigger = entries[0]!;
+      expect(trigger).toHaveTextContent(/^Tools\+5 more$/);
+      expect(within(trigger).getByTestId('tools-graphic')).toBeInTheDocument();
+      expect(within(trigger).getAllByTestId('metadata-divider')).toHaveLength(1);
+      expect(screen.getAllByTestId('metadata-divider')).toHaveLength(1);
     });
   });
 
@@ -1501,6 +1895,255 @@ describe('EntityHeader', () => {
       );
 
       expect(screen.getByRole('banner')).toHaveAttribute('aria-busy', 'false');
+    });
+  });
+
+  describe('metadata dividers', () => {
+    const pipesIn = (element: HTMLElement) =>
+      within(element).queryAllByTestId('metadata-divider');
+
+    const tools = (names: string[]): EntityHeaderMetadataListEntry[] =>
+      names.map(name => ({key: name, label: 'Tool', type: 'text', value: name}));
+
+    function renderRow(
+      items: Array<EntityHeaderMetadataItemProps | null>,
+      props: Partial<EntityHeaderProps> = {}
+    ) {
+      render(
+        <EntityHeader
+          title={{type: 'text', label: 'Conversation', value: 'Trip planning'}}
+          metadata={{label: 'Conversation properties', items}}
+          {...props}
+        />
+      );
+      return screen.getByRole('list', {name: 'Conversation properties'});
+    }
+
+    // The row's own items, not the entries of a list nested in it.
+    const topLevelItems = (row: HTMLElement) =>
+      within(row)
+        .getAllByRole('listitem')
+        .filter(item => item.parentElement === row);
+
+    it('ends every property but the last with a pipe', () => {
+      const row = renderRow([
+        {label: 'Model', type: 'text', value: 'gpt-5'},
+        {label: 'Release', type: 'link', value: '8.42.0', to: '/releases/8.42.0/'},
+        {label: 'Region', type: 'text', value: 'us'},
+      ]);
+
+      expect(topLevelItems(row).map(item => pipesIn(item).length)).toEqual([1, 1, 0]);
+    });
+
+    it('puts no pipe between list entries, and ends the list on its last entry', () => {
+      const row = renderRow([
+        {label: 'Tools', type: 'list', items: tools(['search', 'fetch', 'browse'])},
+        {label: 'Region', type: 'text', value: 'us'},
+      ]);
+
+      const entries = within(screen.getByRole('list', {name: 'Tools'})).getAllByRole(
+        'listitem'
+      );
+      expect(entries.map(entry => pipesIn(entry).length)).toEqual([0, 0, 1]);
+      expect(pipesIn(row)).toHaveLength(1);
+    });
+
+    it('ends a collapsed list on "+N more", and an expanded one on its last entry', async () => {
+      renderRow([
+        {
+          label: 'Tools',
+          type: 'list',
+          items: tools(['search', 'fetch', 'browse', 'summarize']),
+          maxVisible: 2,
+        },
+        {label: 'Region', type: 'text', value: 'us'},
+      ]);
+
+      const entries = () =>
+        within(screen.getByRole('list', {name: 'Tools'})).getAllByRole('listitem');
+      // Two shown, then the trigger.
+      expect(entries().map(entry => pipesIn(entry).length)).toEqual([0, 0, 1]);
+      expect(entries().at(-1)).toHaveTextContent('+2 more');
+
+      await userEvent.click(screen.getByRole('button', {name: '+2 more'}));
+
+      expect(entries().map(entry => pipesIn(entry).length)).toEqual([0, 0, 0, 1]);
+      expect(entries().at(-1)).toHaveTextContent('summarize');
+    });
+
+    it('ends a list that closes the row without a pipe', () => {
+      const row = renderRow([
+        {label: 'Model', type: 'text', value: 'gpt-5'},
+        {label: 'Tools', type: 'list', items: tools(['search', 'fetch']), maxVisible: 1},
+      ]);
+
+      expect(screen.getByText('+1 more')).toBeInTheDocument();
+      expect(pipesIn(row)).toHaveLength(1);
+      expect(pipesIn(topLevelItems(row)[0]!)).toHaveLength(1);
+    });
+
+    it('renders nothing for an empty list, and leaves no dangling pipe before it', () => {
+      const row = renderRow([
+        {label: 'Model', type: 'text', value: 'gpt-5'},
+        null,
+        {label: 'Tools', type: 'list', items: []},
+      ]);
+
+      expect(screen.queryByRole('list', {name: 'Tools'})).not.toBeInTheDocument();
+      expect(within(row).getAllByRole('listitem')).toHaveLength(1);
+      expect(row).toHaveTextContent(/^Modelgpt-5$/);
+      expect(pipesIn(row)).toHaveLength(0);
+    });
+
+    describe('with an empty value', () => {
+      it('leaves out a label-less link entry, and does not count it in "+N more"', () => {
+        renderRow([
+          {
+            label: 'Linked Tools',
+            type: 'list',
+            maxVisible: 2,
+            items: [
+              {key: 'a', type: 'link', value: '', to: '/tools/a/'},
+              {key: 'search', type: 'link', value: 'search', to: '/tools/search/'},
+              {key: 'fetch', type: 'link', value: 'fetch', to: '/tools/fetch/'},
+              {key: 'browse', type: 'link', value: 'browse', to: '/tools/browse/'},
+            ],
+          },
+        ]);
+
+        const list = screen.getByRole('list', {name: 'Linked Tools'});
+        expect(
+          within(list)
+            .getAllByRole('link')
+            .map(link => link.textContent)
+        ).toEqual(['search', 'fetch']);
+        expect(within(list).getAllByRole('listitem')).toHaveLength(3);
+        expect(within(list).getByRole('button', {name: '+1 more'})).toBeInTheDocument();
+      });
+
+      it.each<[string, DistributedOmit<EntityHeaderMetadataItemProps, 'label'>]>([
+        ['an empty string', {type: 'text', value: ''}],
+        ['a blank string', {type: 'text', value: '  '}],
+        // API data typed as `string` can still be missing at runtime.
+        ['an undefined string', {type: 'text', value: undefined as unknown as string}],
+        ['a null string', {type: 'text', value: null as unknown as string}],
+        ['a date with an empty date', {type: 'date', date: ''}],
+        ['a date that does not parse', {type: 'date', date: 'not a date'}],
+        ['an invalid Date', {type: 'date', date: new Date(NaN), format: 'relative'}],
+        ['a date with no offset', {type: 'date', date: '2025-06-09T04:05:09'}],
+        ['a date with no time', {type: 'date', date: '2025-06-08', format: 'relative'}],
+        ['an RFC 2822 date', {type: 'date', date: 'Mon, 09 Jun 2025 04:05:09 GMT'}],
+      ])(
+        'leaves out an item that is %s, with no dangling pipe before it',
+        (name, item) => {
+          const label = `Empty Region ${name}`;
+          const row = renderRow([
+            {label: 'Model', type: 'text', value: 'gpt-5'},
+            {...item, label},
+          ]);
+
+          expect(topLevelItems(row)).toHaveLength(1);
+          expect(row).toHaveTextContent(/^Modelgpt-5$/);
+          expect(pipesIn(row)).toHaveLength(0);
+        }
+      );
+
+      it('leaves out a blank secondary on its own and keeps the item', () => {
+        const row = renderRow([
+          {
+            label: 'Undefined Secondary Browser',
+            type: 'text',
+            value: 'Chrome',
+            // API data typed as `string` can still be missing at runtime.
+            secondary: {label: 'version', value: undefined as unknown as string},
+          },
+        ]);
+
+        expect(row).toHaveTextContent(/^Undefined Secondary BrowserChrome$/);
+      });
+
+      it('leaves out date entries the date formatter cannot read', () => {
+        const row = renderRow([
+          {
+            label: 'Releases',
+            type: 'list',
+            items: [
+              {key: 'a', type: 'date', date: '2025-06-09T04:05:09'},
+              {key: 'b', type: 'date', date: '2025-06-08', format: 'relative'},
+              {key: 'c', type: 'date', date: 'Mon, 09 Jun 2025 04:05:09 GMT'},
+              // API data typed as a date can still be missing at runtime.
+              {key: 'd', type: 'date', date: undefined as unknown as string},
+              {key: 'e', type: 'date', date: new Date('2025-06-09T04:05:09Z')},
+              {key: 'f', type: 'date', date: '2025-06-09T04:05:09Z'},
+              {key: 'g', type: 'date', date: '2025-06-09T04:05:09+02:00'},
+            ],
+          },
+        ]);
+
+        const list = screen.getByRole('list', {name: 'Releases'});
+        expect(within(list).getAllByRole('listitem')).toHaveLength(3);
+        expect(row).not.toHaveTextContent('Invalid date');
+        expect(pipesIn(row)).toHaveLength(0);
+      });
+
+      it('keeps a skeleton for an empty item while loading', () => {
+        renderRow([{label: 'Loading Browser', type: 'text', value: ''}], {
+          isLoading: true,
+        });
+
+        expect(screen.getAllByTestId('loading-placeholder')).toHaveLength(2);
+      });
+
+      it('renders nothing for a list whose entries are all empty', () => {
+        const row = renderRow([
+          {label: 'Model', type: 'text', value: 'gpt-5'},
+          {
+            label: 'Blank Tools',
+            type: 'list',
+            items: [
+              {key: 'a', type: 'link', value: '', to: '/tools/a/'},
+              {key: 'b', type: 'text', value: ' '},
+            ],
+          },
+        ]);
+
+        expect(screen.queryByRole('list', {name: 'Blank Tools'})).not.toBeInTheDocument();
+        expect(screen.queryByRole('link')).not.toBeInTheDocument();
+        expect(row).toHaveTextContent(/^Modelgpt-5$/);
+        expect(pipesIn(row)).toHaveLength(0);
+      });
+    });
+
+    it('ends every skeleton but the last with a pipe while loading', () => {
+      const row = renderRow(
+        [
+          {label: 'Model', type: 'text', value: 'gpt-5'},
+          null,
+          {label: 'Region', type: 'text', value: 'us'},
+        ],
+        {isLoading: true}
+      );
+
+      expect(topLevelItems(row).map(item => pipesIn(item).length)).toEqual([1, 1, 0]);
+    });
+
+    it('keeps the pipes out of the accessibility tree', () => {
+      const row = renderRow([
+        {label: 'Model', type: 'text', value: 'gpt-5'},
+        {label: 'Tools', type: 'list', items: tools(['search', 'fetch'])},
+        {label: 'Region', type: 'text', value: 'us'},
+      ]);
+
+      const pipes = pipesIn(row);
+      expect(pipes).toHaveLength(2);
+      for (const pipe of pipes) {
+        expect(pipe).toHaveAttribute('aria-hidden', 'true');
+        expect(pipe).toBeEmptyDOMElement();
+        expect(isInaccessible(pipe)).toBe(true);
+      }
+      // Model, Tools and Region, then the two tools inside the nested list.
+      expect(within(row).getAllByRole('listitem')).toHaveLength(5);
+      expect(row).toHaveTextContent(/^Modelgpt-5ToolsearchToolfetchRegionus$/);
     });
   });
 

@@ -24,6 +24,8 @@ import {withGlobalFilterFallback} from 'sentry/views/dashboards/utils/withGlobal
 import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
+import {createBreakdownTotalWidget, getBreakdownTotalValue} from './breakdownTotal';
+
 export function getReferrer(displayType: DisplayType) {
   let referrer = '';
 
@@ -39,6 +41,11 @@ export function getReferrer(displayType: DisplayType) {
 }
 
 export type OnDataFetchedProps = {
+  /**
+   * Ungrouped period total of a breakdown legend widget. `undefined` when the
+   * widget has no single total or it hasn't loaded yet.
+   */
+  breakdownTotal?: number | null;
   confidence?: Confidence;
   dataScanned?: 'full' | 'partial';
   heatmapResults?: HeatMapSeries;
@@ -184,6 +191,11 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
     [needsBreakdownTable, widget]
   );
 
+  const breakdownTotalWidget = useMemo(
+    () => (needsBreakdownTable ? createBreakdownTotalWidget(widget) : null),
+    [needsBreakdownTable, widget]
+  );
+
   // oxlint-disable-next-line react/hooks -- Optional per-dataset query hook; the config prop must not change for a mounted card.
   const hookSeriesResults = config.useSeriesQuery?.({
     widget,
@@ -213,6 +225,26 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
   });
 
   // oxlint-disable-next-line react/hooks -- Optional per-dataset query hook; the config prop must not change for a mounted card.
+  const hookBreakdownTotalResults = config.useTableQuery?.({
+    widget: breakdownTotalWidget ?? tableWidget,
+    organization,
+    pageFilters: selection,
+    dashboardFilters,
+    skipDashboardFilterParens,
+    samplingMode: dashboardSamplingMode,
+    enabled: enableSeriesHook && breakdownTotalWidget !== null,
+    limit: 1,
+    widgetInterval,
+  });
+
+  const breakdownTotal = breakdownTotalWidget
+    ? getBreakdownTotalValue(
+        breakdownTotalWidget,
+        hookBreakdownTotalResults?.tableResults
+      )
+    : undefined;
+
+  // oxlint-disable-next-line react/hooks -- Optional per-dataset query hook; the config prop must not change for a mounted card.
   const hookHeatmapResults = config.useHeatmapQuery?.({
     widget,
     organization,
@@ -233,6 +265,7 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
 
   // Track previous raw data to detect when new data arrives
   const prevRawDataRef = useRef<any[] | undefined>(undefined);
+  const prevBreakdownTotalRef = useRef<number | null | undefined>(undefined);
   // Track previous loading state to detect when fetching starts
   const prevLoadingRef = useRef(false);
 
@@ -254,12 +287,17 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
       return;
     }
 
-    // Only process if this is new data (not initial mount)
-    if (hookResults.rawData === prevRawDataRef.current) {
+    // Only process if this is new data (not initial mount). The breakdown total
+    // loads separately, so its arrival also re-reports the time series data.
+    if (
+      hookResults.rawData === prevRawDataRef.current &&
+      breakdownTotal === prevBreakdownTotalRef.current
+    ) {
       return;
     }
 
     prevRawDataRef.current = hookResults.rawData;
+    prevBreakdownTotalRef.current = breakdownTotal;
 
     if (isHeatmap) {
       onDataFetched?.({heatmapResults: (hookResults as any).heatmapResults});
@@ -271,6 +309,7 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
         dataScanned: hookResults.dataScanned,
         isSampled: hookResults.isSampled,
         sampleCount: hookResults.sampleCount,
+        breakdownTotal,
       });
     } else {
       onDataFetched?.({
@@ -279,7 +318,7 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
         totalCount: hookResults.totalCount,
       });
     }
-  }, [hookResults, isHeatmap, isTimeSeriesData, onDataFetched]);
+  }, [breakdownTotal, hookResults, isHeatmap, isTimeSeriesData, onDataFetched]);
 
   // Return hook results, with a fallback for the loading state
   const baseResults = hookResults ?? {loading: true, rawData: []};

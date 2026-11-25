@@ -31,7 +31,12 @@ import {hasExactDuplicate} from './warnings';
 
 function PathsPlaceholder() {
   return (
-    <Container border="muted" radius="md" padding="2xl" style={{borderStyle: 'dashed'}}>
+    <Container
+      border="secondary"
+      radius="md"
+      padding="2xl"
+      style={{borderStyle: 'dashed'}}
+    >
       <Flex justify="center">
         <Text variant="muted">
           {t('Select a repository first to configure code paths')}

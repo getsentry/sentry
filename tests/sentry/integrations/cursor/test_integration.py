@@ -626,10 +626,7 @@ class CursorIntegrationTest(IntegrationTestCase):
             },
         )
 
-        installation = cast(
-            CursorAgentIntegration,
-            integration.get_installation(organization_id=self.organization.id),
-        )
+        installation = integration.get_installation(organization_id=self.organization.id)
 
         display_info = installation.get_dynamic_display_information()
 

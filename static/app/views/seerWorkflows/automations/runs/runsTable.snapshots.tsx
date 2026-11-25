@@ -144,7 +144,7 @@ const TRIGGER_RUNS: SeerAutomationRun[] = [
     trigger: makeMonitorTrigger({groupExists: false, groupShortId: null}),
   }),
   makeRun({id: '203', trigger: makeMonitorTrigger({projectId: '999'})}),
-  makeRun({id: '202', strategy: 'agentic_triage_v2', trigger: {type: 'cron'}}),
+  makeRun({id: '202', strategy: 'scheduled_investigation', trigger: {type: 'cron'}}),
   makeRun({
     id: '201',
     trigger: {type: 'manual_backfill'} as unknown as SeerAutomationRun['trigger'],

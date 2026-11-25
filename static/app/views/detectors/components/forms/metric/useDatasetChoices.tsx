@@ -10,7 +10,6 @@ import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {hasLogAlerts, hasTraceMetricsAlerts} from 'sentry/views/alerts/wizard/utils';
 import {useDetectorFormContext} from 'sentry/views/detectors/components/forms/context';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
-import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 
 /**
  * Returns dataset choices for the metric detector form, handling transactions deprecation
@@ -25,8 +24,7 @@ export function useDatasetChoices(): Array<SelectValue<DetectorDataset>> {
     detector &&
     savedDataset &&
     [Dataset.TRANSACTIONS, Dataset.GENERIC_METRICS].includes(savedDataset);
-  const shouldHideTransactionsDataset =
-    !isExistingTransactionsDetector && deprecateTransactionAlerts(organization);
+  const shouldHideTransactionsDataset = !isExistingTransactionsDetector;
 
   return useMemo(() => {
     const datasetChoices: Array<SelectValue<DetectorDataset>> = [

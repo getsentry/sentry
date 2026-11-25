@@ -124,6 +124,14 @@ ruleTester.run('require-field-component', requireFieldComponent, {
       name: 'ignores callbacks that are not inline',
       code: '<form.Field name="name">{renderField}</form.Field>',
     },
+    {
+      name: 'supports string-keyed destructured field components',
+      code: '<form.AppField name="name">{({"Input": NameInput}) => <NameInput />}</form.AppField>',
+    },
+    {
+      name: 'ignores Field render functions',
+      code: '<><form.AppField name="name">{field => <field.Input />}</form.AppField><form.Field name="other">{field => <CustomInput value={field.state.value} />}</form.Field></>',
+    },
   ],
   invalid: [
     {
@@ -281,6 +289,36 @@ ruleTester.run('require-field-component', requireFieldComponent, {
     {
       name: 'checks namespace AutoSaveForm imports',
       code: 'import * as Forms from "@sentry/scraps/form"; <Forms.AutoSaveForm>{field => <CustomInput />}</Forms.AutoSaveForm>',
+      errors,
+    },
+    {
+      name: 'does not count a destructured field component that is not rendered',
+      code: '<form.AppField name="name">{({Input}) => <CustomInput />}</form.AppField>',
+      errors,
+    },
+    {
+      name: 'does not count computed destructured keys',
+      code: '<form.AppField name="name">{({[Input]: NameInput}) => <NameInput />}</form.AppField>',
+      errors,
+    },
+    {
+      name: 'rejects array destructuring of the field',
+      code: '<form.AppField name="name">{([field]) => <field.Input />}</form.AppField>',
+      errors,
+    },
+    {
+      name: 'does not exempt other attributes with an array value',
+      code: '<form.AppField name="array">{field => <CustomInput value={field.state.value} />}</form.AppField>',
+      errors,
+    },
+    {
+      name: 'does not exempt spread mode attributes',
+      code: '<form.AppField name="name" {...{mode: "array"}}>{field => <CustomInput value={field.state.value} />}</form.AppField>',
+      errors,
+    },
+    {
+      name: 'does not exempt mode attributes without a value',
+      code: '<form.AppField name="name" mode>{field => <CustomInput value={field.state.value} />}</form.AppField>',
       errors,
     },
   ],

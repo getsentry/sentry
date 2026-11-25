@@ -35,6 +35,8 @@ import {
 import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import {android, gaming, sourceMaps} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
+import type {EntryException, Event, ExceptionValue} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
 import type {TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/platform';
@@ -825,7 +827,8 @@ function ObfuscatedErrorWarning({project}: {project: Project}) {
 
 function getModalDescription(
   legacyCondition: CustomInboundFilterCondition | undefined,
-  isReadOnly: boolean
+  isReadOnly: boolean,
+  isEventDraft: boolean
 ): string {
   if (legacyCondition) {
     const {label} = getCondition(legacyCondition.type);
@@ -835,6 +838,11 @@ function getModalDescription(
           'Sentry drops data whose %s matches any pattern below, one per line. Use * in a pattern as a wildcard.',
           label
         );
+  }
+  if (isEventDraft) {
+    return t(
+      'The conditions below come from the event you were looking at. Remove the ones you do not want, and widen the rest with another operator or a * wildcard where one exact value is too narrow. Sentry drops data that meets every condition.'
+    );
   }
   return isReadOnly
     ? t('Sentry drops data that meets every condition below.')
@@ -888,6 +896,70 @@ export function getCustomFilterUrl(
   });
 }
 
+function uniqueNonEmpty(values: Array<string | null | undefined>): string[] {
+  return [...new Set(values.map(value => value?.trim()).filter(Boolean))] as string[];
+}
+
+// Use an exact match for values copied from the event. Filter values can't
+// contain newlines, so for multi-line values (e.g. a long error message) fall
+// back to a glob: escape glob metacharacters, then replace each line break
+// and its surrounding whitespace with `*`.
+function conditionFromLiterals(
+  type: ConditionType,
+  literals: string[]
+): CustomInboundFilterCondition {
+  if (literals.some(literal => literal.includes('\n'))) {
+    return {
+      type,
+      operator: 'glob',
+      value: literals.map(literal =>
+        literal.replace(/[\\*?[\]{}]/g, '\\$&').replace(/\s*\n\s*/g, '*')
+      ),
+    };
+  }
+  return {type, operator: 'equals', value: literals};
+}
+
+// A draft filter that matches the event: one condition per property the event
+// carries a value for, so the user removes what they do not want instead of
+// typing what they do. Exception types and messages come from the raw values
+// where the event has them, which is what Relay saw before symbolication.
+export function getFilterDraftFromEvent(event: Event): FilterFormValues {
+  const exceptions: ExceptionValue[] =
+    event.entries.find(
+      (entry): entry is EntryException => entry.type === EntryType.EXCEPTION
+    )?.data.values ?? [];
+  const message: string | undefined = event.entries.find(
+    entry => entry.type === EntryType.MESSAGE
+  )?.data.formatted;
+
+  const literals: Array<[ConditionType, string[]]> = [
+    ['error_type', uniqueNonEmpty(exceptions.map(exc => exc.rawType || exc.type))],
+    [
+      'error_message',
+      exceptions.length > 0
+        ? uniqueNonEmpty(exceptions.map(exc => exc.rawValue || exc.value))
+        : uniqueNonEmpty([message]),
+    ],
+    ['geo_country_code', uniqueNonEmpty([event.user?.geo?.country_code])],
+    ['release', uniqueNonEmpty([event.release?.version])],
+  ];
+  const conditions: CustomInboundFilterCondition[] = literals
+    .filter(([, values]) => values.length > 0)
+    .map(([type, values]) => conditionFromLiterals(type, values));
+
+  const ipAddress = event.user?.ip_address?.trim();
+  if (ipAddress) {
+    conditions.push({type: 'ip_address', operator: 'cidr', value: [ipAddress]});
+  }
+
+  return {
+    name: event.title.slice(0, 256),
+    dataType: 'error',
+    conditions: conditionsToQuery(conditions),
+  };
+}
+
 function CustomFilterModal({
   Header,
   Body,
@@ -895,11 +967,14 @@ function CustomFilterModal({
   closeModal,
   project,
   filter,
+  initialValues,
   readOnlyReason,
 }: ModalRenderProps & {
   project: Project;
   // The filter to edit. Absent when the modal creates one.
   filter?: CustomInboundFilter;
+  // Starting values of a new filter. Ignored when `filter` is set.
+  initialValues?: FilterFormValues;
   // Why the user cannot edit `filter`. When set, the modal shows the filter with
   // its controls disabled, so someone without write access can still read every
   // condition, and says why in the footer.
@@ -916,7 +991,7 @@ function CustomFilterModal({
   const filterSchema = useMemo(() => getFilterSchema(editor), [editor]);
   const defaultValues = filter
     ? filterToFormValues(filter, editor)
-    : {name: '', dataType: 'error' as const, conditions: ''};
+    : (initialValues ?? {name: '', dataType: 'error' as const, conditions: ''});
   const modalDataTypeOptions = getModalDataTypeOptions(
     getAvailableDataTypeOptions(organization),
     filter ? defaultValues.dataType : undefined
@@ -1029,7 +1104,11 @@ function CustomFilterModal({
         <Stack gap="xs">
           <Heading as="h4">{getModalTitle(isReadOnly, !!filter)}</Heading>
           <Text variant="muted" size="sm">
-            {getModalDescription(legacyCondition, isReadOnly)}
+            {getModalDescription(
+              legacyCondition,
+              isReadOnly,
+              initialValues !== undefined && !filter
+            )}
           </Text>
         </Stack>
       </Header>
@@ -1180,12 +1259,14 @@ function CustomFilterModal({
   );
 }
 
-// Opens the modal to create a filter, or to edit `filter`. Saving goes through
-// the modal, so callers only pick what it opens on. With `readOnlyReason`, the
-// modal shows the filter without letting the user change it.
+// Opens the modal to create a filter, from a draft or from scratch, or to edit
+// `filter`. Saving goes through the modal, so callers only pick what it opens on.
+// With `readOnlyReason`, the modal shows the filter without letting the user
+// change it.
 export function openCustomFilterModal(options: {
   project: Project;
   filter?: CustomInboundFilter;
+  initialValues?: FilterFormValues;
   readOnlyReason?: string;
 }) {
   openModal(deps => <CustomFilterModal {...deps} {...options} />, {

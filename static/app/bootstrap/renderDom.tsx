@@ -8,8 +8,7 @@ export function renderDom<T extends React.ComponentType<any>>(
 ) {
   const rootEl = document.querySelector(container);
 
-  // Note: On pages like `SetupWizard`, we will attempt to mount main App
-  // but will fail because the DOM el wasn't found (which is intentional)
+  // Django-rendered pages without the app's root element skip mounting
   if (!rootEl) {
     return;
   }

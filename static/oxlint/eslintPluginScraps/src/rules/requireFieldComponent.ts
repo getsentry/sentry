@@ -81,8 +81,6 @@ export const requireFieldComponent = defineRule({
     }
 
     return {
-      ...importTracker.visitors,
-
       JSXOpeningElement(node) {
         let name = node.name;
         let componentName: string | undefined;

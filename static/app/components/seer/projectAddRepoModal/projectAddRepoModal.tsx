@@ -37,7 +37,11 @@ import {
   orgDefaultAgentQueryOptions,
   seerAgentIntegrationsSelectQueryOptions,
 } from 'sentry/utils/seer/preferredAgent';
-import {isGitHubProvider} from 'sentry/utils/seer/seerProjectRepos';
+import {NON_GITHUB_PR_ITERATION_WARNING} from 'sentry/utils/seer/prIteration';
+import {
+  isGitHubDotComProvider,
+  isGitHubProvider,
+} from 'sentry/utils/seer/seerProjectRepos';
 import {getInfiniteSeerProjectsSettingsQueryOptions} from 'sentry/utils/seer/seerProjectSettings';
 import {
   PROJECT_STOPPING_POINT_OPTIONS,
@@ -159,6 +163,18 @@ export function ProjectAddRepoModal({Header, Body, Footer, title, closeModal}: P
       form.setFieldValue('agentOption', 'seer');
     }
   }, [isOnlyGithubRepos, form]);
+
+  // Auto-Iterate only runs on github.com PRs. Once repos are added and none of
+  // them is on github.com, show it as off and disabled. Unlike the agent, the
+  // form value is left alone, like on the project page: it does nothing without
+  // a github.com repo, and comes back into effect if one is linked later.
+  // Unresolved repos (still loading) might be on github.com, so they don't count.
+  const hasNoGitHubDotComRepo =
+    repoEntries.length > 0 &&
+    repoEntries.every(entry => {
+      const providerId = repositoriesById.get(entry.repoId)?.provider.id;
+      return providerId !== undefined && !isGitHubDotComProvider(providerId);
+    });
 
   const manageRepositoriesLink = (
     <ExternalLink href={`/settings/${organization.slug}/repos/`} />
@@ -391,7 +407,11 @@ export function ProjectAddRepoModal({Header, Body, Footer, title, closeModal}: P
                     'After opening a PR, Seer automatically pushes fixes when CI checks fail. You can still ask Seer to iterate on a PR yourself.'
                   )}
                 >
-                  <field.Switch checked={field.value} onChange={field.handleChange} />
+                  <field.Switch
+                    checked={hasNoGitHubDotComRepo ? false : field.value}
+                    onChange={field.handleChange}
+                    disabled={hasNoGitHubDotComRepo && NON_GITHUB_PR_ITERATION_WARNING}
+                  />
                 </field.Layout.Row>
               )}
             </form.Field>

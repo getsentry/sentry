@@ -152,8 +152,7 @@ therefore use the stateful handler's default `OK` priority. A missing trigger gr
 invalid and produces no transition.
 
 Detectors that decide without the trigger condition group inherit `BaseDetectorHandler` and
-implement `evaluate`. Detectors that extend the condition evaluation override `evaluate` and
-call `super().evaluate()`, then own the orchestration they add.
+implement `evaluate`.
 
 ### 5. Produce detector output
 
@@ -167,6 +166,13 @@ assign another supported outcome dispatcher or override `on_complete` for custom
 Supported outcome implementations register their `DetectorOutcomeHandler` class with
 `@detector_outcome_registry.add(DetectorOutcome.<KEY>)`. The closed, typed set of keys
 lives in `supported_outcomes.py`; the registry maps each key to its handler implementation.
+
+`DetectorOutcome.SEER_INVESTIGATION` starts a Seer investigation for each occurrence instead
+of creating an issue, and ignores status changes. Each occurrence is one trigger: its UUID
+(`IssueOccurrence.id`) keys the investigation, so task retries reuse it and every new
+occurrence, priority changes included, starts another. The detector's config names the
+service account that creates it (`service_account_id`). Pair it with a detector that only
+produces an occurrence when a group triggers; the anomaly detector does this.
 
 Issue Platform ingestion creates or updates a group. The detector ID in occurrence
 evidence allows ingestion to create a
@@ -249,12 +255,24 @@ expected to degrade safely.
 ### 2. Resolve environment and workflows
 
 The processor resolves the event environment, then
-[`get_workflows_by_detectors`](../caches/workflow.py) loads workflows connected to any
-selected detector. Eligible workflows must be enabled and either global
-(`environment=None`) or connected to the event's environment.
+[`select_workflows`](../processors/workflow.py) selects:
 
-The workflow cache is keyed by detector and environment. Relationship receivers
-invalidate it after committed changes.
+- `GroupEvent`: detector-linked workflows.
+- `Activity`: detector-linked workflows plus the organization's Inbox workflows
+  when `organizations:workflow-engine-activity-workflows` is enabled.
+
+Candidates must be enabled and either global (`environment=None`) or match the
+event's environment. Each workflow is evaluated once. Workflow conditions decide
+which activity kinds match.
+
+The backend routing flag defaults off and is independent of Inbox recording/UI
+flags. Producers and cutover code should check `is_activity_workflow_enabled()`.
+
+`get_activity_workflows()` supports organization-only candidate lookup for future
+investigation events; evaluation still requires a detector.
+
+Detector workflow caches are keyed by detector and environment; the activity
+workflow cache is keyed by organization. Both are invalidated after committed changes.
 
 ### 3. Evaluate WHEN conditions
 

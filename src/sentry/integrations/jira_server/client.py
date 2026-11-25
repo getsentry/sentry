@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping
-from typing import Any, cast
+from typing import Any
 from urllib.parse import parse_qsl
 
 from django.urls import reverse
@@ -116,27 +116,18 @@ class JiraServerClient(ApiClient):
         else:
             q = query.replace('"', '\\"')
             jql = f'text ~ "{q}"'
-        return cast(
-            dict[str, object],
-            self.get(
-                self.SEARCH_URL,
-                params={"jql": jql, "startAt": 0, "maxResults": 20, "fields": "summary"},
-            ),
+        return self.get(
+            self.SEARCH_URL,
+            params={"jql": jql, "startAt": 0, "maxResults": 20, "fields": "summary"},
         )
 
     def create_comment(self, issue_key: int | str, comment: str) -> dict[str, object]:
-        return cast(
-            dict[str, object],
-            self.post(self.COMMENTS_URL % issue_key, data={"body": comment}),
-        )
+        return self.post(self.COMMENTS_URL % issue_key, data={"body": comment})
 
     def update_comment(
         self, issue_key: int | str, comment_id: str, comment: str
     ) -> dict[str, object]:
-        return cast(
-            dict[str, object],
-            self.put(self.COMMENT_URL % (issue_key, comment_id), data={"body": comment}),
-        )
+        return self.put(self.COMMENT_URL % (issue_key, comment_id), data={"body": comment})
 
     def get_projects_list(self, cached: bool = True) -> SequenceApiResponse:
         if not cached:
@@ -163,7 +154,7 @@ class JiraServerClient(ApiClient):
         return ""
 
     def get_versions(self, project: str) -> list[dict[str, object]]:
-        return cast(list[dict[str, object]], self.get_cached(self.VERSIONS_URL % project))
+        return self.get_cached(self.VERSIONS_URL % project)
 
     def get_priorities(self) -> SequenceApiResponse:
         """
@@ -186,11 +177,8 @@ class JiraServerClient(ApiClient):
     def search_users_for_project(self, project: str, username: str) -> list[dict[str, object]]:
         # Jira Server wants a project key, while cloud is indifferent.
         project_key = self.get_project_key_for_id(project)
-        return cast(
-            list[dict[str, object]],
-            self.get_cached(
-                self.USERS_URL, params={"project": project_key, self.user_query_param(): username}
-            ),
+        return self.get_cached(
+            self.USERS_URL, params={"project": project_key, self.user_query_param(): username}
         )
 
     def search_users_for_issue(self, issue_key: str, email: str) -> SequenceApiResponse:
@@ -200,10 +188,7 @@ class JiraServerClient(ApiClient):
 
     def get_user(self, user_id: str) -> dict[str, object]:
         user_id_get_param = self.user_id_get_param()
-        return cast(
-            dict[str, object],
-            self.get_cached(self.USER_URL, params={user_id_get_param: user_id}),
-        )
+        return self.get_cached(self.USER_URL, params={user_id_get_param: user_id})
 
     def create_issue(self, raw_form_data: Mapping[str, object]) -> MappingApiResponse:
         data = {"fields": raw_form_data}
@@ -216,9 +201,7 @@ class JiraServerClient(ApiClient):
         return self.get_cached_sequence(self.STATUS_URL)
 
     def get_transitions(self, issue_key: str) -> SequenceApiResponse:
-        return cast(
-            SequenceApiResponse, self.get_mapping(self.TRANSITION_URL % issue_key)["transitions"]
-        )
+        return self.get_mapping(self.TRANSITION_URL % issue_key)["transitions"]
 
     def transition_issue(self, issue_key: str, transition_id: str) -> MappingApiResponse:
         return self.post_mapping(
@@ -352,7 +335,7 @@ class JiraServerSetupClient(ApiClient):
                 # Fallback to legacy webhook endpoint if we encounter an error
                 webhook_url = self.LEGACY_WEBHOOK_URL
 
-            return cast(dict[str, object], self.post(webhook_url, auth=auth, data=data))
+            return self.post(webhook_url, auth=auth, data=data)
 
     def request(self, *args: Any, **kwargs: Any) -> BaseApiResponse:
         """

@@ -436,7 +436,38 @@ def test_bypassed_status_cannot_be_reported() -> None:
         validate_update(ProgressUpdate(stage=Stage.ANALYZE_PROJECT, status=StageStatus.BYPASSED))
 
 
-def test_bypassed_stage_never_regresses() -> None:
+def test_late_completion_replaces_bypassed_stage() -> None:
+    now = datetime(2020, 1, 1, tzinfo=timezone.utc)
+    advanced = apply_update(
+        make_run(now),
+        ProgressUpdate(stage=Stage.CREATE_PROJECT, status=StageStatus.WAITING),
+        now,
+    )
+    index = STAGE_INDEX[Stage.ANALYZE_PROJECT]
+    assert advanced.stages[index].status is StageStatus.BYPASSED
+
+    late = apply_update(
+        advanced,
+        ProgressUpdate(
+            stage=Stage.ANALYZE_PROJECT,
+            status=StageStatus.COMPLETED,
+            event_note="Platform confirmed.",
+        ),
+        now + timedelta(seconds=1),
+    )
+
+    assert late.stages[index] == StageState(
+        stage=Stage.ANALYZE_PROJECT,
+        status=StageStatus.COMPLETED,
+        event_note="Platform confirmed.",
+    )
+    assert late.stages[:index] == advanced.stages[:index]
+    assert late.stages[index + 1 :] == advanced.stages[index + 1 :]
+    assert late.sequence == advanced.sequence + 1
+
+
+@pytest.mark.parametrize("status", [StageStatus.ACTIVE, StageStatus.WAITING, StageStatus.FAILED])
+def test_unfinished_update_does_not_reopen_bypassed_stage(status: StageStatus) -> None:
     now = datetime(2020, 1, 1, tzinfo=timezone.utc)
     advanced = apply_update(
         make_run(now),
@@ -446,7 +477,7 @@ def test_bypassed_stage_never_regresses() -> None:
 
     late = apply_update(
         advanced,
-        ProgressUpdate(stage=Stage.ANALYZE_PROJECT, status=StageStatus.COMPLETED),
+        ProgressUpdate(stage=Stage.ANALYZE_PROJECT, status=status, event_note="Late update."),
         now + timedelta(seconds=1),
     )
 
@@ -490,7 +521,7 @@ def test_inferred_bypass_clears_stale_event_note() -> None:
         ),
     ],
 )
-def test_bypassed_stage_accepts_late_metadata(
+def test_late_completion_of_bypassed_stage_keeps_metadata(
     later_stage: Stage,
     owning_stage: Stage,
     extra: CreateProjectExtra | VerificationErrorExtra,
@@ -513,6 +544,27 @@ def test_bypassed_stage_accepts_late_metadata(
     )
 
     stage = enriched.stages[list(Stage).index(owning_stage)]
+    assert stage.status is StageStatus.COMPLETED
+    assert stage.extra == extra
+    assert enriched.sequence == advanced.sequence + 1
+
+
+def test_unfinished_update_adds_metadata_to_bypassed_stage() -> None:
+    now = datetime(2020, 1, 1, tzinfo=timezone.utc)
+    advanced = apply_update(
+        make_run(now),
+        ProgressUpdate(stage=Stage.INSTRUMENT_APP, status=StageStatus.ACTIVE),
+        now,
+    )
+    extra = CreateProjectExtra(project_slugs=("example-project",))
+
+    enriched = apply_update(
+        advanced,
+        ProgressUpdate(stage=Stage.CREATE_PROJECT, status=StageStatus.ACTIVE, extra=extra),
+        now + timedelta(seconds=1),
+    )
+
+    stage = enriched.stages[STAGE_INDEX[Stage.CREATE_PROJECT]]
     assert stage.status is StageStatus.BYPASSED
     assert stage.extra == extra
     assert enriched.sequence == advanced.sequence + 1

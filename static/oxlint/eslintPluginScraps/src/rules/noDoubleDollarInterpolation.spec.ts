@@ -24,6 +24,7 @@ ruleTester.run('no-double-dollar-interpolation', noDoubleDollarInterpolation, {
     },
     {code: emotion + 'const price = `$${amount}`;', filename: 'file.tsx'},
     {code: emotion + 'const C = styled.div`content: "\\$"${x};`;', filename: 'file.tsx'},
+    {code: emotion + 'const C = styled.div`--price: ${price}$`;', filename: 'file.tsx'},
   ],
 
   invalid: [

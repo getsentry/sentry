@@ -1,4 +1,4 @@
-import {useEffect, useImperativeHandle, type ReactNode, type RefObject} from 'react';
+import {useEffect, useImperativeHandle} from 'react';
 import {IconAdd} from '@sentry/icons/add';
 import {IconClose} from '@sentry/icons/close';
 import {IconFire} from '@sentry/icons/fire';
@@ -19,7 +19,7 @@ import {
 } from '@sentry/scraps/form';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Switch} from '@sentry/scraps/switch';
-import {Heading, Text} from '@sentry/scraps/text';
+import {Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
 import {t, tn} from 'sentry/locale';
@@ -34,10 +34,6 @@ import {
   allDetectorListsQueryKey,
   detectorListApiOptions,
 } from 'sentry/views/detectors/hooks';
-import type {
-  SeerServiceAccountResponse,
-  SeerWorkflowConfigResponse,
-} from 'sentry/views/seerWorkflows/types';
 import {
   AUTO_REFRESH_INTERVAL,
   getAutomationDetailPath,
@@ -45,14 +41,21 @@ import {
 } from 'sentry/views/seerWorkflows/utils';
 
 import {useCreateConfig, useUpdateConfig} from './hooks/configs';
+import {
+  FormSection,
+  type CreateAutomationFormProps,
+  type EditAutomationFormProps,
+} from './baseForm';
 import {ConnectMonitorsDrawer} from './connectMonitorsDrawer';
 import {MonitorTable} from './monitorTable';
 import {
+  DEFAULT_SERVICE_ACCOUNT_SCOPES,
+  getMonitorScopeProjects,
   getServiceAccountProjectIds,
+  getServiceAccountProjectSelection,
   ServiceAccountPermissions,
   ServiceAccountProjects,
   ServiceAccountSummary,
-  type ServiceAccountProjectAccess,
 } from './serviceAccountAccess';
 
 const schema = z.object({
@@ -68,47 +71,14 @@ const schema = z.object({
     .min(1, t('Give the service account at least one permission.')),
 });
 
-const DEFAULT_SERVICE_ACCOUNT_SCOPES = [
-  'event:read',
-  'member:read',
-  'org:read',
-  'project:read',
-  'team:read',
-];
-
-export type MetricAutomationFormHandle = {reset: () => void};
-
 type Props =
-  | {mode: 'create'}
-  | {
-      config: SeerWorkflowConfigResponse;
-      /**
-       * Lets a submit button outside the form target it
-       */
-      formId: string;
-      /**
-       * Exposes the form's reset so callers outside the form can discard changes
-       */
-      formRef: RefObject<MetricAutomationFormHandle | null>;
-      mode: 'edit';
-      /**
-       * Name edited outside the form, in the page header
-       */
-      name: string;
-      onSaved: () => void;
-      /**
-       * Prevents editing until the user starts configuring
-       */
-      readOnly: boolean;
-      /**
-       * Reports whether any field differs from its saved value
-       */
-      setFormHasChanges: (hasChanges: boolean) => void;
+  | CreateAutomationFormProps
+  | (EditAutomationFormProps & {
       /**
        * Disables save while monitors are loading
        */
       setMonitorsPending: (pending: boolean) => void;
-    };
+    });
 
 export function MetricAutomationForm(props: Props) {
   const organization = useOrganization();
@@ -129,7 +99,9 @@ export function MetricAutomationForm(props: Props) {
         scopes: value.scopes,
         projectIds: getServiceAccountProjectIds(
           value.serviceAccountProjects,
-          monitors.filter(monitor => value.monitorIds.includes(monitor.id))
+          getMonitorScopeProjects(
+            monitors.filter(monitor => value.monitorIds.includes(monitor.id))
+          )
         ).map(Number),
         allProjects: value.serviceAccountProjects.allProjects,
       },
@@ -157,7 +129,7 @@ export function MetricAutomationForm(props: Props) {
       name:
         props.mode === 'create'
           ? t('Breached Metric Investigation')
-          : (props.config.name ?? t('Breached metrics')),
+          : (props.config.name ?? t('Breached Metrics')),
       monitorIds: props.mode === 'create' ? [] : props.config.monitorIds.map(String),
       serviceAccountProjects: getServiceAccountProjectSelection(serviceAccount),
       scopes:
@@ -350,13 +322,17 @@ export function MetricAutomationForm(props: Props) {
               {/* Not configurable yet, so these show the fixed behavior */}
               <DisplayField.Row
                 label={t('Start investigations')}
-                hintText={t('Automatically investigate connected monitor breaches.')}
+                hintText={t(
+                  '(mock) Automatically investigate connected monitor breaches.'
+                )}
               >
                 <Switch checked disabled aria-label={t('Start investigations')} />
               </DisplayField.Row>
               <DisplayField.Row
                 label={t('Send notifications')}
-                hintText={t('Post findings to alert targets of the connected monitors')}
+                hintText={t(
+                  '(mock) Post findings to alert targets of the connected monitors'
+                )}
               >
                 <Switch checked disabled aria-label={t('Send notifications')} />
               </DisplayField.Row>
@@ -375,7 +351,7 @@ export function MetricAutomationForm(props: Props) {
                   <Disclosure.Title>
                     <ServiceAccountSummary
                       access={serviceAccountProjects}
-                      monitors={connectedMonitors}
+                      scopeProjects={getMonitorScopeProjects(connectedMonitors)}
                       scopes={scopes}
                     />
                   </Disclosure.Title>
@@ -459,19 +435,6 @@ export function MetricAutomationForm(props: Props) {
   );
 }
 
-function FormSection({title, children}: {children: ReactNode; title: string}) {
-  return (
-    <Stack gap="md">
-      <Container paddingLeft="md">
-        <Heading as="h2" size="lg">
-          {title}
-        </Heading>
-      </Container>
-      {children}
-    </Stack>
-  );
-}
-
 function ConnectedMonitors({
   monitorIds,
   monitors,
@@ -542,13 +505,4 @@ function ConnectedMonitors({
       />
     </Stack>
   );
-}
-
-function getServiceAccountProjectSelection(
-  serviceAccount: SeerServiceAccountResponse | null
-): ServiceAccountProjectAccess {
-  return {
-    allProjects: serviceAccount?.allProjects ?? false,
-    projectIds: serviceAccount?.projectIds.map(String) ?? [],
-  };
 }

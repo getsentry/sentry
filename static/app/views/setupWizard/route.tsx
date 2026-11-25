@@ -13,8 +13,8 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
-import SetupWizard from 'sentry/views/setupWizard';
 
+import {SetupWizard} from './index';
 import type {WizardSession} from './types';
 import {WizardError} from './wizardError';
 

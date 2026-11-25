@@ -421,7 +421,7 @@ describe('groupDetails', () => {
           query: {
             collapse: ['release', 'tags', 'stats'],
             environment: ['staging'],
-            expand: ['inbox', 'owners'],
+            expand: ['owners'],
           },
         })
       )
@@ -431,7 +431,7 @@ describe('groupDetails', () => {
   it('renders substatus badge', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/`,
-      body: {...group, inbox: null, status: 'unresolved', substatus: 'ongoing'},
+      body: {...group, status: 'unresolved', substatus: 'ongoing'},
     });
     createWrapper();
     expect(await screen.findByText('Ongoing')).toBeInTheDocument();

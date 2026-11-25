@@ -4,7 +4,7 @@ from types import MappingProxyType
 
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.workflow_engine.registry import detector_settings_registry
-from sentry.workflow_engine.types import DetectorAPIOperation, DetectorSettings, DetectorType
+from sentry.workflow_engine.types import DetectorSettings, DetectorType, WorkflowEngineAPIOperation
 
 __all__ = ["PerformanceNPlusOneGroupType"]
 
@@ -19,11 +19,11 @@ class PerformanceDetectorSettings(DetectorSettings):
     # continue to reject creation, detail edits, and deletion through their existing paths.
     api_availability = MappingProxyType(
         {
-            DetectorAPIOperation.DISCOVER: False,
-            DetectorAPIOperation.LIST: True,
-            DetectorAPIOperation.GET: True,
-            DetectorAPIOperation.PUT: True,
-            DetectorAPIOperation.POST: True,
-            DetectorAPIOperation.DELETE: True,
+            WorkflowEngineAPIOperation.DISCOVER: False,
+            WorkflowEngineAPIOperation.LIST: True,
+            WorkflowEngineAPIOperation.GET: True,
+            WorkflowEngineAPIOperation.PUT: True,
+            WorkflowEngineAPIOperation.POST: True,
+            WorkflowEngineAPIOperation.DELETE: True,
         }
     )

@@ -85,6 +85,7 @@ interface VisualizationWidgetProps {
   legendSelection?: LegendSelection;
   onDataFetchStart?: () => void;
   onDataFetched?: (results: {
+    breakdownTotal?: number | null;
     pageLinks?: string;
     tableResults?: any[];
     timeseriesResults?: WidgetTimeSeries[];

@@ -1,5 +1,6 @@
 import {MemoryRouter} from 'react-router';
 
+import {DateTimeProvider} from '@sentry/scraps/dateTime';
 import type {EntityHeaderProps} from '@sentry/scraps/entityHeader';
 import {EntityHeader} from '@sentry/scraps/entityHeader';
 
@@ -41,6 +42,46 @@ const props: EntityHeaderProps = {
     ],
   },
 };
+
+const toolNames = [
+  'search_flights',
+  'book_hotel',
+  'get_weather',
+  'convert_currency',
+  'translate',
+  'find_restaurants',
+  'rent_car',
+  'check_visa',
+  'plan_route',
+  'send_itinerary',
+];
+
+function ToolsHeader({maxVisible}: {maxVisible?: {md: number; zero: number}}) {
+  return (
+    <EntityHeader
+      title={{type: 'text', label: 'Conversation', value: 'Trip planning'}}
+      metadata={{
+        label: 'Conversation properties',
+        items: [
+          {label: 'Model', type: 'text', value: 'gpt-5', mode: 'full'},
+          {
+            label: 'Tools',
+            type: 'list',
+            mode: 'full',
+            maxVisible,
+            items: toolNames.map(name => ({
+              key: name,
+              type: 'text',
+              value: name,
+              variant: name === 'book_hotel' ? 'danger' : undefined,
+            })),
+          },
+          {label: 'Started at', type: 'text', value: '2h ago'},
+        ],
+      }}
+    />
+  );
+}
 
 describe('EntityHeader', () => {
   // The stats sit beside the title above the `lg` container breakpoint (640px)
@@ -153,4 +194,120 @@ describe('EntityHeader', () => {
       })
     );
   });
+
+  // Past `maxVisible` the entries collapse into "+N more"; the rest wrap onto
+  // further lines rather than overflow a narrow header, under a label that
+  // stays on the first line. The harness renders on the server, where there is
+  // no container to measure, so `maxVisible` resolves to its `zero` value at
+  // every width.
+  it.snapshot.each([480, 900])(
+    'metadata list at %s',
+    () => <ToolsHeader maxVisible={{zero: 6, md: 8}} />,
+    viewport => ({viewport, tags: {area: 'core'}})
+  );
+
+  // What "+N more" expands to. The harness cannot click, so a list with no
+  // `maxVisible` draws the same entries; beside the collapsed case at the same
+  // width, only the added lines may differ.
+  it.snapshot('metadata list expanded', () => <ToolsHeader />, {
+    viewport: 480,
+    tags: {area: 'core'},
+  });
+
+  // A value wider than the header truncates, so the pipe after it follows the
+  // text that shows rather than landing on top of it.
+  it.snapshot(
+    'long value',
+    () => (
+      <EntityHeader
+        title={{type: 'text', label: 'Conversation', value: 'Trip planning'}}
+        metadata={{
+          label: 'Conversation properties',
+          items: [
+            {
+              label: 'Model',
+              type: 'text',
+              mode: 'full',
+              value: 'anthropic/claude-opus-very-long-model-identifier-2026',
+            },
+            {label: 'Started at', type: 'text', value: '2h ago'},
+          ],
+        }}
+      />
+    ),
+    {viewport: 240, tags: {area: 'core'}}
+  );
+
+  // Long parts of a property share the space and truncate, while short ones
+  // such as "id" keep their width, so no part overflows under the pipe.
+  it.snapshot(
+    'long parts',
+    () => (
+      <MemoryRouter>
+        <EntityHeader
+          title={{type: 'text', label: 'Conversation', value: 'Trip planning'}}
+          metadata={{
+            label: 'Conversation properties',
+            items: [
+              {
+                label: 'Version label',
+                mode: 'full',
+                type: 'text',
+                value: 'value-of-some-length-here',
+                secondary: {label: 'build', value: 'secondary-value-long-1234567890'},
+              },
+              {
+                label: 'A very long full mode label here',
+                mode: 'full',
+                type: 'link',
+                to: '/x/',
+                value: 'a-linked-value',
+              },
+              {
+                label: 'id',
+                mode: 'full',
+                type: 'text',
+                value: 'a-long-identifier-value-0123456789',
+              },
+              {label: 'Started at', type: 'text', value: '2h ago'},
+            ],
+          }}
+        />
+      </MemoryRouter>
+    ),
+    {viewport: 240, tags: {area: 'core'}}
+  );
+
+  // The harness does not freeze time, so the relative date is anchored to the
+  // render rather than fixed: it always reads "5min ago". The provider pins
+  // the absolute one's timezone and clock.
+  it.snapshot(
+    'dates',
+    () => (
+      <DateTimeProvider value={{timezone: 'America/Los_Angeles', clock: '12'}}>
+        <EntityHeader
+          title={{type: 'text', label: 'Replay user', value: 'anonymous@example.com'}}
+          metadata={{
+            label: 'Replay properties',
+            items: [
+              {
+                label: 'Started at',
+                type: 'date',
+                mode: 'full',
+                date: '2025-06-09T04:05:09Z',
+              },
+              {
+                label: 'Last seen',
+                type: 'date',
+                mode: 'full',
+                date: new Date(Date.now() - 5 * 60 * 1000),
+                format: 'relative',
+              },
+            ],
+          }}
+        />
+      </DateTimeProvider>
+    ),
+    {viewport: 640, tags: {area: 'core'}}
+  );
 });
