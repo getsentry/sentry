@@ -45,7 +45,7 @@ class TelemetryClassifierResponse(TypedDict):
     status: str
     prebuiltClassifierKey: str | None
     naturalLanguagePrompt: str | None
-    outputType: str | None
+    outputType: str
     binaryThreshold: float | None
     createdBy: UserSerializerResponse | None
     dateAdded: datetime
