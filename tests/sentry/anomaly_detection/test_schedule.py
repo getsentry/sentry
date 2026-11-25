@@ -14,6 +14,10 @@ from sentry.anomaly_detection.evaluation.organization import (
     Checkpoint,
     EvaluatorState,
 )
+from sentry.anomaly_detection.evaluation.series import build
+from sentry.anomaly_detection.inputs import shapes as daily_shapes
+from sentry.anomaly_detection.inputs.shapes import DailyShapes, compute, day_of
+from sentry.anomaly_detection.inputs.shapes import store as store_shapes
 from sentry.anomaly_detection.inputs.trace_lookup import TraceLookup
 from sentry.anomaly_detection.state import AnomalyDetectionState, get_state, set_state
 from sentry.constants import ObjectStatus
@@ -65,6 +69,11 @@ def checkpoint_at(next_minute: datetime) -> Checkpoint:
 def checkpoint_holding(*decisions: AnomalyDecision) -> Checkpoint:
     """A checkpoint whose evaluator holds `decisions` open."""
     return Checkpoint({}, {}, EvaluatorState(published={d.group_key: d for d in decisions}))
+
+
+def covering_shapes(organization_id: int, day: datetime) -> DailyShapes:
+    """The day's shapes, as if its build had covered every project."""
+    return DailyShapes(day, frozenset(Project.objects.values_list("id", flat=True)), {}, {})
 
 
 def organization_lease(organization_id: int) -> Lock:
@@ -187,7 +196,7 @@ class TestAnomalySchedule(TestCase):
         with (
             self.feature(FEATURES),
             patch.object(schedule, "collect", return_value=[]) as collect,
-            patch.object(schedule, "hourly_rows", return_value=[]),
+            patch.object(schedule, "load_shapes", side_effect=covering_shapes),
             patch.object(schedule, "collect_new_failure_modes", return_value=[]) as collect_issues,
             patch.object(schedule, "advance_org", return_value=([], CHECKPOINT)) as advance,
         ):
@@ -229,7 +238,7 @@ class TestAnomalySchedule(TestCase):
                 }
             ),
             patch.object(schedule, "collect", return_value=[]),
-            patch.object(schedule, "hourly_rows", return_value=[]),
+            patch.object(schedule, "load_shapes", side_effect=covering_shapes),
             patch.object(schedule, "collect_new_failure_modes", return_value=[]),
             patch.object(schedule, "advance_org", return_value=([], CHECKPOINT)) as advance,
         ):
@@ -260,7 +269,7 @@ class TestAnomalySchedule(TestCase):
         with (
             self.feature(FEATURES),
             patch.object(schedule, "collect", return_value=[]),
-            patch.object(schedule, "hourly_rows", return_value=[]),
+            patch.object(schedule, "load_shapes", side_effect=covering_shapes),
             patch.object(schedule, "collect_new_failure_modes", return_value=[]),
             patch.object(schedule, "advance_org", side_effect=evaluate_under_lease) as advance,
             patch.object(
@@ -319,7 +328,7 @@ class TestAnomalySchedule(TestCase):
         with (
             self.feature(FEATURES),
             patch.object(schedule, "collect", return_value=[]),
-            patch.object(schedule, "hourly_rows", return_value=[]),
+            patch.object(schedule, "load_shapes", side_effect=covering_shapes),
             patch.object(schedule, "collect_new_failure_modes", return_value=[]),
             patch.object(schedule, "advance_org", side_effect=RuntimeError("evaluation failed")),
             patch.object(schedule.run_anomaly_detection, "delay") as enqueue,
@@ -354,7 +363,7 @@ class TestAnomalySchedule(TestCase):
         with (
             self.feature(FEATURES),
             patch.object(schedule, "collect", return_value=[]) as collect,
-            patch.object(schedule, "hourly_rows", return_value=[]),
+            patch.object(schedule, "load_shapes", side_effect=covering_shapes),
             patch.object(schedule, "collect_new_failure_modes", return_value=[]),
             patch.object(schedule, "advance_org", return_value=([], CHECKPOINT)) as advance,
             patch.object(schedule.run_anomaly_detection, "delay") as enqueue,
@@ -390,7 +399,7 @@ class TestAnomalySchedule(TestCase):
         with (
             self.feature(FEATURES),
             patch.object(schedule, "collect", return_value=[]),
-            patch.object(schedule, "hourly_rows", return_value=[]),
+            patch.object(schedule, "load_shapes", side_effect=covering_shapes),
             patch.object(schedule, "collect_new_failure_modes", return_value=[]),
             patch.object(schedule, "advance_org", return_value=([], CHECKPOINT)),
             patch.object(metrics, "incr") as incr,
@@ -420,7 +429,7 @@ class TestAnomalySchedule(TestCase):
         with (
             self.feature(FEATURES),
             patch.object(schedule, "collect", return_value=[]),
-            patch.object(schedule, "hourly_rows", return_value=[]),
+            patch.object(schedule, "load_shapes", side_effect=covering_shapes),
             patch.object(schedule, "collect_new_failure_modes", return_value=[]),
             patch.object(
                 schedule, "advance_org", return_value=([restated], checkpoint_holding(restated))
@@ -447,7 +456,7 @@ class TestAnomalySchedule(TestCase):
         with (
             self.feature(FEATURES),
             patch.object(schedule, "collect", return_value=[]),
-            patch.object(schedule, "hourly_rows", return_value=[]),
+            patch.object(schedule, "load_shapes", side_effect=covering_shapes),
             patch.object(schedule, "collect_new_failure_modes", return_value=[]),
             patch.object(schedule, "advance_org", return_value=([], checkpoint_holding(held))),
             outcome() as handle,
@@ -500,10 +509,10 @@ class TestAnomalySchedule(TestCase):
             for days in range(1, 8)
             for hours in (0, 1, 2)
         ]
+        store_shapes(self.organization.id, compute(build(hourly), day_of(END), [self.project.id]))
         with (
             self.feature(FEATURES),
             patch.object(schedule, "collect", return_value=minute_rows),
-            patch.object(schedule, "hourly_rows", return_value=hourly),
             patch.object(schedule, "collect_new_failure_modes", return_value=[]),
             patch.object(TraceLookup, "footprint", return_value=None),
             outcome() as handle,
@@ -528,7 +537,7 @@ class TestAnomalySchedule(TestCase):
         with (
             self.feature(FEATURES),
             patch.object(schedule, "collect", return_value=[]),
-            patch.object(schedule, "hourly_rows", return_value=[]),
+            patch.object(schedule, "load_shapes", side_effect=covering_shapes),
             patch.object(schedule, "collect_new_failure_modes", return_value=[]),
             patch.object(
                 schedule, "advance_org", return_value=([decision(self.project.id)], CHECKPOINT)
@@ -562,7 +571,7 @@ class TestAnomalySchedule(TestCase):
         with (
             self.feature(FEATURES),
             patch.object(schedule, "collect", return_value=[]) as collect,
-            patch.object(schedule, "hourly_rows", return_value=[]),
+            patch.object(schedule, "load_shapes", side_effect=covering_shapes),
             patch.object(schedule, "collect_new_failure_modes", return_value=[]),
             patch.object(schedule, "advance_org", return_value=([], CHECKPOINT)) as advance,
             patch.object(metrics, "incr") as incr,
@@ -624,3 +633,65 @@ class TestAnomalySchedule(TestCase):
 
         collect.assert_not_called()
         assert get_state(self.organization.id) is None
+
+    def test_missing_shapes_request_one_build_and_wait(self) -> None:
+        self.make_detector(self.project)
+        with (
+            self.feature(FEATURES),
+            patch.object(schedule, "collect") as collect,
+            patch.object(schedule.build_anomaly_detection_shapes, "delay") as build,
+            patch.object(metrics, "incr") as incr,
+        ):
+            assert not schedule._run_organization(self.organization.id, END)
+            assert not schedule._run_organization(self.organization.id, END)
+
+        collect.assert_not_called()
+        # The second run finds the first run's build request still standing.
+        build.assert_called_once_with(self.organization.id, day_of(END).isoformat())
+        incr.assert_any_call("anomaly_detection.shapes_unavailable", tags={"reason": "missing"})
+        assert get_state(self.organization.id) is None
+
+    def test_shapes_without_a_newly_enabled_project_request_a_rebuild(self) -> None:
+        self.make_detector(self.project)
+        store_shapes(
+            self.organization.id,
+            DailyShapes(day_of(END), frozenset({self.project.id}), {}, {}),
+        )
+        self.make_detector(self.create_project())
+        with (
+            self.feature(FEATURES),
+            patch.object(schedule, "collect") as collect,
+            patch.object(schedule.build_anomaly_detection_shapes, "delay") as build,
+            patch.object(metrics, "incr") as incr,
+        ):
+            assert not schedule._run_organization(self.organization.id, END)
+
+        collect.assert_not_called()
+        build.assert_called_once_with(self.organization.id, day_of(END).isoformat())
+        incr.assert_any_call("anomaly_detection.shapes_unavailable", tags={"reason": "scope"})
+
+    def test_build_task_stores_the_days_shapes_for_scoped_projects(self) -> None:
+        self.make_detector(self.project)
+        self.make_detector(self.create_project(organization=self.create_organization()))
+        day = day_of(END)
+        with (
+            self.feature(FEATURES),
+            patch.object(daily_shapes, "collect", return_value=[]) as collect,
+        ):
+            schedule.build_anomaly_detection_shapes(self.organization.id, day.isoformat())
+
+        collect.assert_called_once_with(
+            self.organization, [self.project], day - daily_shapes.LOOKBACK, day, "1h"
+        )
+        stored = daily_shapes.load(self.organization.id, day)
+        assert stored is not None
+        assert stored.projects == {self.project.id}
+
+    def test_build_task_requires_a_utc_midnight_and_the_gate(self) -> None:
+        self.make_detector(self.project)
+        with pytest.raises(ValueError, match="UTC midnight"):
+            schedule.build_anomaly_detection_shapes(self.organization.id, END.isoformat())
+        with patch.object(daily_shapes, "collect") as collect:
+            schedule.build_anomaly_detection_shapes(self.organization.id, day_of(END).isoformat())
+        collect.assert_not_called()
+        assert daily_shapes.load(self.organization.id, END) is None

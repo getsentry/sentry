@@ -35,7 +35,8 @@ from sentry.anomaly_detection.evaluation.organization import (
 )
 from sentry.anomaly_detection.evaluation.series import build, samples_key
 from sentry.anomaly_detection.inputs.measurements import MAX_ENVIRONMENTS, MAX_SLICES, SPAN_SLICES
-from sentry.anomaly_detection.inputs.shapes import SeriesShape, compute, day_of
+from sentry.anomaly_detection.inputs.shapes import DailyShapes, SeriesShape, compute, day_of
+from sentry.anomaly_detection.inputs.shapes import store as store_shapes
 from sentry.anomaly_detection.inputs.trace_lookup import TraceLookup
 from sentry.anomaly_detection.state import get_state
 from sentry.models.organization import Organization
@@ -931,10 +932,12 @@ class TestDenseWorkerCheckpoint(TestCase):
                 for index, key in enumerate(series)
             ]
 
+        store_shapes(
+            self.organization.id, DailyShapes(day_of(first_end), frozenset(project_ids), {}, {})
+        )
         with (
             self.feature(schedule.FEATURE),
             patch.object(schedule, "collect", side_effect=collect),
-            patch.object(schedule, "hourly_rows", return_value=[]),
             patch.object(schedule, "collect_new_failure_modes", return_value=[]),
             patch.object(TraceLookup, "footprint", return_value=None),
         ):

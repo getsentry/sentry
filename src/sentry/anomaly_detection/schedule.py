@@ -19,12 +19,13 @@ from sentry.anomaly_detection.evaluation.organization import (
     Checkpoint,
     EvaluatorConfig,
 )
-from sentry.anomaly_detection.inputs.hourly_snapshot import hourly_rows
 from sentry.anomaly_detection.inputs.measurements import collect
 from sentry.anomaly_detection.inputs.new_failures import (
     collect_new_failure_modes,
     new_failure_thresholds,
 )
+from sentry.anomaly_detection.inputs.shapes import build_shapes, claim_build, day_of
+from sentry.anomaly_detection.inputs.shapes import load as load_shapes
 from sentry.anomaly_detection.inputs.trace_lookup import TraceLookup
 from sentry.anomaly_detection.state import delete_state, get_state, set_state
 from sentry.constants import ObjectStatus
@@ -183,15 +184,7 @@ def _run_organization(organization_id: int, target: datetime) -> bool:
         return False
 
     max_projects = options.get("anomaly_detection.max_projects_per_organization")
-    detector_rows = list(
-        _enabled_detectors()
-        .filter(project__organization_id=organization_id)
-        .order_by("project_id", "id")
-        .distinct("project_id")
-        .select_related("project")
-        # process_detectors reads this to log evaluations, as the detector cache provides it.
-        .annotate(project_organization_id=F("project__organization_id"))[: max_projects + 1]
-    )
+    detector_rows = _scoped_detectors(organization_id, max_projects)
     if not detector_rows:
         delete_state(organization_id)
         return False
@@ -229,14 +222,23 @@ def _run_organization(organization_id: int, target: datetime) -> bool:
         max_catchup = timedelta(minutes=options.get("anomaly_detection.max_catchup_minutes"))
         end = min(end, publish_from + max_catchup)
 
+    # The day's shapes cover it and the day before, so every evaluated minute and every
+    # observation closing by `end`. Evaluating without them would misjudge seasonality.
+    day = day_of(end)
+    shapes = load_shapes(organization_id, day)
+    if shapes is None or not shapes.projects >= detectors.keys():
+        reason = "missing" if shapes is None else "scope"
+        metrics.incr("anomaly_detection.shapes_unavailable", tags={"reason": reason})
+        _request_shapes(organization_id, day)
+        return False
+
     rows = collect(organization, projects, fetch_start, end, "1m")
-    hourly = hourly_rows(organization, projects, end)
     new_issues = collect_new_failure_modes(
-        organization, projects, new_failure_thresholds(hourly), fetch_start, end
+        organization, projects, new_failure_thresholds(shapes), fetch_start, end
     )
     decisions, next_checkpoint = advance_org(
         rows=rows,
-        hourly_rows=hourly,
+        shapes=shapes.series,
         start=publish_from,
         end=end,
         footprints=TraceLookup(organization, projects),
@@ -253,6 +255,53 @@ def _run_organization(organization_id: int, target: datetime) -> bool:
     _publish(decisions, detectors, next_checkpoint.open_groups(), end - _MINUTE)
     set_state(organization_id, next_minute=end, checkpoint=blob)
     return end < target
+
+
+def _scoped_detectors(organization_id: int, max_projects: int) -> list[Detector]:
+    """One enabled detector per project, up to one past the project limit."""
+    return list(
+        _enabled_detectors()
+        .filter(project__organization_id=organization_id)
+        .order_by("project_id", "id")
+        .distinct("project_id")
+        .select_related("project")
+        # process_detectors reads this to log evaluations, as the detector cache provides it.
+        .annotate(project_organization_id=F("project__organization_id"))[: max_projects + 1]
+    )
+
+
+def _request_shapes(organization_id: int, day: datetime) -> None:
+    """Build the day's shapes in their own task, once while a build may be running."""
+    if claim_build(organization_id, day):
+        build_anomaly_detection_shapes.delay(organization_id, day.isoformat())
+
+
+@instrumented_task(
+    name="sentry.anomaly_detection.schedule.build_anomaly_detection_shapes",
+    namespace=workflow_engine_tasks,
+    processing_deadline_duration=240,
+    retry=Retry(times=2, delay=30),
+    silo_mode=SiloMode.CELL,
+)
+def build_anomaly_detection_shapes(organization_id: int, day: str) -> None:
+    """Build an organization's shapes for a day from the hourly history before it.
+
+    The first run of each day requests this, so shapes are built once a day per
+    organization, or again when a newly enabled project needs them.
+    """
+    midnight = datetime.fromisoformat(day)
+    if midnight.utcoffset() != timedelta(0) or midnight != day_of(midnight):
+        raise ValueError("Anomaly detection shapes are built for a UTC midnight")
+    organization = Organization.objects.get_or_none(
+        id=organization_id, status=OrganizationStatus.ACTIVE
+    )
+    if organization is None or not features.has(FEATURE, organization):
+        return
+    max_projects = options.get("anomaly_detection.max_projects_per_organization")
+    detector_rows = _scoped_detectors(organization_id, max_projects)
+    if not detector_rows or len(detector_rows) > max_projects:
+        return
+    build_shapes(organization, [detector.linked_project for detector in detector_rows], midnight)
 
 
 @instrumented_task(
