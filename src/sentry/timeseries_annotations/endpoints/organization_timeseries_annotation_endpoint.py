@@ -62,9 +62,9 @@ class TimeseriesAnnotationPermission(OrganizationPermission):
 class OrganizationTimeseriesAnnotationEndpoint(OrganizationEndpoint):
     owner = ApiOwner.DATA_BROWSING
     publish_status = {
-        "GET": ApiPublishStatus.EXPERIMENTAL,
-        "POST": ApiPublishStatus.EXPERIMENTAL,
-        "PUT": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.PUBLIC,
+        "POST": ApiPublishStatus.PUBLIC,
+        "PUT": ApiPublishStatus.PUBLIC,
     }
     permission_classes = (TimeseriesAnnotationPermission,)
 
