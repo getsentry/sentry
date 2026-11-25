@@ -248,7 +248,13 @@ export function AttributesContent({
             config={{attributeDetailsType: isEAPSpanNode(node) ? 'span' : 'uptime'}}
             pinnedAttribute={pin?.enabled && isEAPSpanNode(node) ? pin.attribute : null}
             renderers={customRenderers}
-            rendererExtra={{theme, location, navigate, organization}}
+            rendererExtra={{
+              theme,
+              location,
+              navigate,
+              organization,
+              projectSlug: project?.slug,
+            }}
             getCustomActions={content => {
               const actions = getTraceAttributesTreeActions({
                 location,
