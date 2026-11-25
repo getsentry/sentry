@@ -759,11 +759,9 @@ def _has_field(name: str) -> GlobCondition:
 
 
 # Restricts a filter to the items of its data type. Relay checks every filter against every
-# item, and other item types answer some of the same fields.
+# item, so without the guard other item types could match on some of the same fields.
 _DATA_TYPE_GUARDS: Mapping[DataType, RuleCondition] = {
     # Matches error events but not transactions, which an `event.*` field would also match.
-    # Relay reads the event's own type as the path prefix, and errors are the `error`,
-    # `default` and `csp` event types.
     DataType.ERROR: {
         "op": "or",
         "inner": [
