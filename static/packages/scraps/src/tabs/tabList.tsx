@@ -66,13 +66,6 @@ const StyledTabListWrap = styled('ul', {shouldForwardProp: tabsShouldForwardProp
     `}
 `;
 
-const StyledTabListOverflowWrap = styled('div')`
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: ${p => p.theme.zIndex.dropdown};
-`;
-
 /**
  * Width (px) reserved on the right edge for the overflow menu trigger button.
  * Kept slightly larger than the actual button so the trigger never overlaps
@@ -276,7 +269,13 @@ function OverflowMenu({overflowMenuItems, disabled, triggerOffset}: OverflowMenu
   const {t} = useTranslation();
 
   return (
-    <TabListOverflowWrap style={{left: triggerOffset}}>
+    <Flex
+      position="absolute"
+      top="0"
+      bottom="0"
+      left={`${triggerOffset}px`}
+      align="center"
+    >
       <DropdownMenu
         items={overflowMenuItems}
         isDisabled={disabled}
@@ -292,7 +291,7 @@ function OverflowMenu({overflowMenuItems, disabled, triggerOffset}: OverflowMenu
           />
         )}
       />
-    </TabListOverflowWrap>
+    </Flex>
   );
 }
 
@@ -481,8 +480,6 @@ export function TabList({variant, ...props}: TabListProps) {
 TabList.Item = TabListItem;
 
 const TabListWrap = StyledTabListWrap;
-
-const TabListOverflowWrap = StyledTabListOverflowWrap;
 
 const OverflowMenuTrigger = styled(OverlayTrigger.IconButton)`
   padding-left: ${p => p.theme.space.md};

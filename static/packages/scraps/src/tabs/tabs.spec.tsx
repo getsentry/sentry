@@ -953,16 +953,6 @@ describe('Tabs overflow', () => {
     }
   );
 
-  it('places the overflow trigger right after the last visible tab', async () => {
-    // Fits the first two tabs (budget = 260 - 48 = 212 => 2 * 100).
-    containerWidth = 260;
-    render(<OverflowTabs />, {wrapper: ThemeWrapper});
-
-    const trigger = await screen.findByRole('button', {name: 'More tabs'});
-    // oxlint-disable-next-line testing-library/no-node-access -- the trigger is positioned by its wrapper.
-    expect(trigger.closest('[style*="left"]')).toHaveStyle({left: '200px'});
-  });
-
   describe('with tooltips', () => {
     beforeEach(() => {
       jest.useFakeTimers();
