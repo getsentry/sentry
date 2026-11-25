@@ -202,7 +202,6 @@ def _run_organization(organization_id: int, target: datetime) -> bool:
     projects = [detector.linked_project for detector in detector_rows]
 
     stored = get_state(organization_id)
-    target_utc = target.replace(tzinfo=UTC)
     stored_minute: datetime | None = None
     checkpoint: Checkpoint | None = None
     if stored is not None:
@@ -211,11 +210,11 @@ def _run_organization(organization_id: int, target: datetime) -> bool:
         max_resume_lag = timedelta(minutes=options.get("anomaly_detection.max_resume_lag_minutes"))
         if checkpoint is None:
             metrics.incr("anomaly_detection.checkpoint_discarded")
-        elif stored_minute < target_utc - max_resume_lag:
+        elif stored_minute < target - max_resume_lag:
             # Replaying a long pause would publish anomalies long after they happened.
             metrics.incr("anomaly_detection.checkpoint_expired")
             checkpoint = None
-        if stored_minute >= target_utc:
+        if stored_minute >= target:
             # A cold start here would republish a minute the detectors already processed.
             return False
     resume_minute = stored_minute if checkpoint is not None else None
@@ -226,7 +225,7 @@ def _run_organization(organization_id: int, target: datetime) -> bool:
         publish_from = end - _MINUTE
         fetch_start = publish_from - _MINUTE_WARMUP
     else:
-        fetch_start = publish_from = resume_minute.astimezone(UTC).replace(tzinfo=None)
+        fetch_start = publish_from = resume_minute
         max_catchup = timedelta(minutes=options.get("anomaly_detection.max_catchup_minutes"))
         end = min(end, publish_from + max_catchup)
 
@@ -252,7 +251,7 @@ def _run_organization(organization_id: int, target: datetime) -> bool:
     # the detectors' per-group dedupe ignores. Committing first could lose transitions.
     # The caller holds the organization's lease, so no other worker writes this state.
     _publish(decisions, detectors, next_checkpoint.open_groups(), end - _MINUTE)
-    set_state(organization_id, next_minute=end.replace(tzinfo=UTC), checkpoint=blob)
+    set_state(organization_id, next_minute=end, checkpoint=blob)
     return end < target
 
 
@@ -267,7 +266,7 @@ def run_anomaly_detection(organization_id: int, end: str) -> None:
     target = datetime.fromisoformat(end)
     if target.utcoffset() != timedelta(0) or target.second or target.microsecond:
         raise ValueError("Anomaly evaluation requires a UTC minute boundary")
-    target = min(target, _closed_end()).replace(tzinfo=None)
+    target = min(target.astimezone(UTC), _closed_end())
     lease = locks.get(
         f"anomaly-detection:org:{get_local_cell().name}:{organization_id}",
         duration=300,
@@ -283,4 +282,4 @@ def run_anomaly_detection(organization_id: int, end: str) -> None:
     with acquired:
         should_continue = _run_organization(organization_id, target)
     if should_continue:
-        run_anomaly_detection.delay(organization_id, target.replace(tzinfo=UTC).isoformat())
+        run_anomaly_detection.delay(organization_id, target.isoformat())

@@ -34,7 +34,7 @@ from sentry.workflow_engine.types import DetectorInvestigation, DetectorPriority
 from tests.sentry.anomaly_detection.test_helpers import anomaly_decision
 
 NOW = datetime(2025, 1, 1, 12, 3, 12, tzinfo=UTC)
-END = datetime(2025, 1, 1, 12, 1)
+END = datetime(2025, 1, 1, 12, 1, tzinfo=UTC)
 START = END - timedelta(minutes=1)
 FEATURES = {schedule.FEATURE: True}
 CHECKPOINT = Checkpoint({}, {}, EvaluatorState())
@@ -83,9 +83,7 @@ class TestAnomalySchedule(TestCase):
         )
 
     def save_state(self, next_minute: datetime, checkpoint: bytes = BLOB) -> None:
-        set_state(
-            self.organization.id, next_minute=next_minute.replace(tzinfo=UTC), checkpoint=checkpoint
-        )
+        set_state(self.organization.id, next_minute=next_minute, checkpoint=checkpoint)
 
     def stored_state(self) -> AnomalyDetectionState:
         state = get_state(self.organization.id)
@@ -123,7 +121,7 @@ class TestAnomalySchedule(TestCase):
         ):
             schedule.schedule_anomaly_detectors()
 
-        enqueue.assert_called_once_with(self.organization.id, END.replace(tzinfo=UTC).isoformat())
+        enqueue.assert_called_once_with(self.organization.id, END.isoformat())
 
     @freeze_time(NOW)
     def test_fanout_rotates_when_capped(self) -> None:
@@ -217,7 +215,7 @@ class TestAnomalySchedule(TestCase):
             CHECKPOINT,
         ]
         state = self.stored_state()
-        assert state.next_minute == expected_end.replace(tzinfo=UTC)
+        assert state.next_minute == expected_end
 
     def test_evaluator_stages_follow_options(self) -> None:
         self.make_detector(self.project)
@@ -249,7 +247,7 @@ class TestAnomalySchedule(TestCase):
         self.make_detector(self.project)
         start = END - timedelta(minutes=31)
         self.save_state(start)
-        target = END.replace(tzinfo=UTC).isoformat()
+        target = END.isoformat()
         lease = organization_lease(self.organization.id)
 
         def evaluate_under_lease(**_kwargs: object) -> tuple[list[AnomalyDecision], Checkpoint]:
@@ -280,7 +278,7 @@ class TestAnomalySchedule(TestCase):
             END,
         ]
         state = self.stored_state()
-        assert state.next_minute == END.replace(tzinfo=UTC)
+        assert state.next_minute == END
         assert not lease.locked()
 
     @freeze_time(NOW)
@@ -292,9 +290,7 @@ class TestAnomalySchedule(TestCase):
             patch.object(schedule.run_anomaly_detection, "delay") as enqueue,
             patch.object(metrics, "incr") as incr,
         ):
-            schedule.run_anomaly_detection(
-                self.organization.id, END.replace(tzinfo=UTC).isoformat()
-            )
+            schedule.run_anomaly_detection(self.organization.id, END.isoformat())
 
         run.assert_not_called()
         enqueue.assert_not_called()
@@ -309,9 +305,7 @@ class TestAnomalySchedule(TestCase):
             patch.object(schedule.run_anomaly_detection, "delay") as enqueue,
             pytest.raises(UnableToAcquireLock),
         ):
-            schedule.run_anomaly_detection(
-                self.organization.id, END.replace(tzinfo=UTC).isoformat()
-            )
+            schedule.run_anomaly_detection(self.organization.id, END.isoformat())
 
         assert not organization_lease(self.organization.id).locked()
         run.assert_not_called()
@@ -331,14 +325,12 @@ class TestAnomalySchedule(TestCase):
             patch.object(schedule.run_anomaly_detection, "delay") as enqueue,
             pytest.raises(RuntimeError, match="evaluation failed"),
         ):
-            schedule.run_anomaly_detection(
-                self.organization.id, END.replace(tzinfo=UTC).isoformat()
-            )
+            schedule.run_anomaly_detection(self.organization.id, END.isoformat())
 
         assert not organization_lease(self.organization.id).locked()
         enqueue.assert_not_called()
         state = self.stored_state()
-        assert state.next_minute == start.replace(tzinfo=UTC)
+        assert state.next_minute == start
         assert state.checkpoint == BLOB
 
     def test_worker_rejects_end_off_utc_minute_boundary(self) -> None:
@@ -368,9 +360,7 @@ class TestAnomalySchedule(TestCase):
             patch.object(schedule.run_anomaly_detection, "delay") as enqueue,
             patch.object(metrics, "incr") as incr,
         ):
-            schedule.run_anomaly_detection(
-                self.organization.id, END.replace(tzinfo=UTC).isoformat()
-            )
+            schedule.run_anomaly_detection(self.organization.id, END.isoformat())
 
         collect.assert_called_once_with(
             self.organization, [self.project], START - timedelta(hours=5), END, "1m"
@@ -381,7 +371,7 @@ class TestAnomalySchedule(TestCase):
         incr.assert_any_call("anomaly_detection.checkpoint_expired")
         enqueue.assert_not_called()
         state = self.stored_state()
-        assert state.next_minute == END.replace(tzinfo=UTC)
+        assert state.next_minute == END
         assert codec.decode(state.checkpoint) == CHECKPOINT
 
     def open_groups(self, detector: Detector, *decisions: AnomalyDecision) -> None:
@@ -481,7 +471,7 @@ class TestAnomalySchedule(TestCase):
 
         collect.assert_not_called()
         state = self.stored_state()
-        assert state.next_minute == END.replace(tzinfo=UTC)
+        assert state.next_minute == END
 
     def test_cold_worker_publishes_anomaly_evaluated_from_measurements(self) -> None:
         self.make_detector(self.project)
@@ -525,9 +515,9 @@ class TestAnomalySchedule(TestCase):
         assert isinstance(investigation, DetectorInvestigation)
         assert handle.call_args.args[0].project_id == self.project.id
         assert evaluation.priority == DetectorPriorityLevel.HIGH
-        assert investigation.detection_time == START.replace(tzinfo=UTC)
+        assert investigation.detection_time == START
         state = self.stored_state()
-        assert state.next_minute == END.replace(tzinfo=UTC)
+        assert state.next_minute == END
         stored = codec.decode(state.checkpoint)
         assert stored is not None
         assert stored.state.next_minute == END
@@ -559,9 +549,9 @@ class TestAnomalySchedule(TestCase):
         [investigation] = results(handle)
         assert isinstance(investigation, DetectorInvestigation)
         assert handle.call_args.args[0].project_id == self.project.id
-        assert investigation.detection_time == START.replace(tzinfo=UTC)
+        assert investigation.detection_time == START
         state = self.stored_state()
-        assert state.next_minute == END.replace(tzinfo=UTC)
+        assert state.next_minute == END
         assert state.checkpoint == BLOB
 
     def test_stale_checkpoint_version_restarts_cold(self) -> None:
@@ -587,7 +577,7 @@ class TestAnomalySchedule(TestCase):
         assert advance.call_args.kwargs["start"] == START
         incr.assert_any_call("anomaly_detection.checkpoint_discarded")
         state = self.stored_state()
-        assert state.next_minute == END.replace(tzinfo=UTC)
+        assert state.next_minute == END
         assert state.checkpoint == BLOB
 
     def test_project_limit_skips_organization(self) -> None:

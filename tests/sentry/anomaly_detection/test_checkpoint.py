@@ -941,13 +941,13 @@ class TestDenseWorkerCheckpoint(TestCase):
             assert not schedule._run_organization(self.organization.id, first_end)
             state = get_state(self.organization.id)
             assert state is not None
-            assert state.next_minute == first_end.replace(tzinfo=UTC)
+            assert state.next_minute == first_end
             assert codec.decode(state.checkpoint) is not None
 
             assert not schedule._run_organization(self.organization.id, second_end)
             state = get_state(self.organization.id)
             assert state is not None
-            assert state.next_minute == second_end.replace(tzinfo=UTC)
+            assert state.next_minute == second_end
 
         restored = codec.decode(state.checkpoint)
         assert restored is not None
