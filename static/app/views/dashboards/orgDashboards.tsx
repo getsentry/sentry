@@ -22,7 +22,7 @@ import {mergeGlobalFilters} from './globalFilter/utils';
 import {useGetPrebuiltDashboard} from './utils/usePopulateLinkedDashboards';
 import {assignTempId} from './layoutUtils';
 import type {DashboardDetails, DashboardListItem} from './types';
-import {getCurrentPageFilters, hasSavedPageFilters} from './utils';
+import {getCurrentPageFilters, hasSavedPageFilters, isGlobalFilter} from './utils';
 
 type OrgDashboardsChildrenProps = {
   dashboard: DashboardDetails | null;
@@ -77,6 +77,19 @@ export function OrgDashboards({children, initialDashboard}: OrgDashboardsProps) 
   });
 
   let selectedDashboard = selectedDashboardState ?? fetchedSelectedDashboard;
+
+  // Saved filters are not validated by the API, so drop malformed global
+  // filters (e.g. missing `tag`) the same way URL filters are dropped.
+  const savedGlobalFilterList = selectedDashboard?.filters?.globalFilter;
+  if (selectedDashboard && savedGlobalFilterList?.some(f => !isGlobalFilter(f))) {
+    selectedDashboard = {
+      ...selectedDashboard,
+      filters: {
+        ...selectedDashboard.filters,
+        globalFilter: savedGlobalFilterList.filter(isGlobalFilter),
+      },
+    };
+  }
 
   const {dashboard: prebuiltDashboard, isLoading: isPrebuiltDashboardLoading} =
     useGetPrebuiltDashboard(selectedDashboard?.prebuiltId);

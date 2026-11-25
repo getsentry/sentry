@@ -499,7 +499,7 @@ const globalFilterSchema = z.looseObject({
 
 const parseAsUnknownJson = parseAsJson(z.unknown());
 
-function isGlobalFilter(value: unknown): value is GlobalFilter {
+export function isGlobalFilter(value: unknown): value is GlobalFilter {
   return globalFilterSchema.safeParse(value).success;
 }
 
