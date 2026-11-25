@@ -10,6 +10,7 @@ from rest_framework.response import Response
 from sentry_protos.snuba.v1.downsampled_storage_pb2 import DownsampledStorageConfig
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import ExtrapolationMode
 
+from sentry.cache import default_cache
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.utils.snuba_rpc import _make_rpc_requests
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
@@ -3079,6 +3080,110 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert timeseries["values"] == build_expected_timeseries(
             self.start, 1_800_000, expected, ignore_accuracy=True
         )
+
+    def test_cache_merge_keeps_buckets_before_refresh_window(self) -> None:
+        event_counts = [6, 0, 6, 3, 0, 3]
+        spans = []
+        for hour, count in enumerate(event_counts):
+            spans.extend(
+                [
+                    self.create_span(
+                        {
+                            "description": "foo",
+                            "sentry_tags": {"status": "success"},
+                            "measurements": {"server_sample_rate": {"value": 0.1}},
+                        },
+                        start_ts=self.start + timedelta(hours=hour, minutes=minute),
+                    )
+                    for minute in range(count)
+                ],
+            )
+        self.store_spans(spans)
+
+        # Each hour's spans land in the first 30m bucket. A cache hit re-reads only the last 3.
+        expected: list[int] = []
+        for count in event_counts:
+            expected.extend([count * 10, 0])
+        data = {
+            "start": self.start,
+            "end": self.end,
+            "interval": "30m",
+            "yAxis": "count(span.duration)",
+            "project": self.project.id,
+            "dataset": "spans",
+        }
+        features = {
+            "organizations:discover-basic": True,
+            "organizations:explore-incremental-timeseries": True,
+        }
+
+        original_get = default_cache.get
+        cache_reads: list[Any] = []
+
+        def record_get(*args: Any, **kwargs: Any) -> Any:
+            value = original_get(*args, **kwargs)
+            cache_reads.append(value)
+            return value
+
+        with (
+            mock.patch(
+                "sentry.api.endpoints.organization_events_timeseries.default_cache.get",
+                side_effect=record_get,
+            ) as cache_get,
+            mock.patch(
+                "sentry.api.endpoints.organization_events_timeseries.default_cache.set",
+                wraps=default_cache.set,
+            ) as cache_set,
+        ):
+            response = self._do_request(data=data, features=features)
+            assert response.status_code == 200, response.content
+            assert cache_get.call_count == 1
+            assert cache_set.call_count == 1
+            assert cache_reads == [None]
+            assert len(response.data["timeSeries"]) == 1
+            assert response.data["timeSeries"][0]["values"] == build_expected_timeseries(
+                self.start, 1_800_000, expected, ignore_accuracy=True
+            )
+
+            response = self._do_request(data=data, features=features)
+            assert response.status_code == 200, response.content
+        assert cache_get.call_count == 2
+        assert cache_set.call_count == 2
+        assert cache_reads[1] is not None
+        assert len(response.data["timeSeries"]) == 1
+        timeseries = response.data["timeSeries"][0]
+        assert timeseries["yAxis"] == "count(span.duration)"
+        assert timeseries["values"] == build_expected_timeseries(
+            self.start, 1_800_000, expected, ignore_accuracy=True
+        )
+
+    def test_comparison_delta_is_not_cache_candidate(self) -> None:
+        with (
+            mock.patch(
+                "sentry.api.endpoints.organization_events_timeseries.default_cache.get"
+            ) as cache_get,
+            mock.patch(
+                "sentry.api.endpoints.organization_events_timeseries.default_cache.set"
+            ) as cache_set,
+        ):
+            response = self._do_request(
+                data={
+                    "start": self.start,
+                    "end": self.end,
+                    "interval": "30m",
+                    "yAxis": "count(span.duration)",
+                    "project": self.project.id,
+                    "dataset": "spans",
+                    "comparisonDelta": 24 * 60 * 60,
+                },
+                features={
+                    "organizations:discover-basic": True,
+                    "organizations:explore-incremental-timeseries": True,
+                },
+            )
+        assert response.status_code == 200, response.content
+        cache_get.assert_not_called()
+        cache_set.assert_not_called()
 
     def test_skip_cache_bypasses_incremental_cache(self) -> None:
         data = {
