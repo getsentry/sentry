@@ -1,7 +1,7 @@
 import {createContext, useEffect, useMemo} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Stack, Container} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 
 import {redirectToProject} from 'sentry/actionCreators/redirectToProject';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -81,9 +81,9 @@ export function ProjectRouteProvider({children, projectSlug}: ProjectRouteProvid
   if (loading || projectRenamed) {
     return (
       <SentryDocumentTitle noSuffix title={title}>
-        <div className="loading-full-layout">
+        <Flex flex="1" align="center">
           <LoadingIndicator />
-        </div>
+        </Flex>
       </SentryDocumentTitle>
     );
   }

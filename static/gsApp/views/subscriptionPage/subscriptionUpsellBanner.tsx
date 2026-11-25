@@ -49,10 +49,7 @@ const getSubscriptionBannerText = (
         : t('Request a Free Sentry Performance Trial'),
       tct(
         '[italicized] your Organization’s owner to start a [featuresName] trial (See what I did there?).',
-        {
-          italicized: <i>{t('Bug')}</i>,
-          featuresName,
-        }
+        {italicized: <i>{t('Bug')}</i>, featuresName}
       ),
     ];
   }
@@ -68,9 +65,7 @@ const getSubscriptionBannerText = (
         t('Request an Upgrade to Business'),
         tct(
           '[italicized] your Organization’s owner to upgrade Sentry (See what I did there?).',
-          {
-            italicized: <i>{t('Bug')}</i>,
-          }
+          {italicized: <i>{t('Bug')}</i>}
         ),
       ];
 };

@@ -20,6 +20,7 @@ from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.incidents.utils.subscription_limits import METRIC_SUBSCRIPTION_FEATURE_FLAGS
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.monitors.grouptype import MonitorIncidentType
+from sentry.monitors.types import DATA_SOURCE_CRON_MONITOR
 from sentry.seer import agent_token
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
@@ -46,7 +47,12 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
-from sentry.workflow_engine.types import DetectorAPIOperation, DetectorPriorityLevel, FeatureGate
+from sentry.workflow_engine.registry import condition_handler_registry
+from sentry.workflow_engine.types import (
+    DetectorPriorityLevel,
+    FeatureGate,
+    WorkflowEngineAPIOperation,
+)
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 from tests.sentry.workflow_engine.endpoints.test_helpers import (
     GATE_FEATURE,
@@ -190,7 +196,7 @@ class OrganizationDetectorDetailsBaseTest(APITestCase):
 class OrganizationDetectorDetailsGetTest(OrganizationDetectorDetailsBaseTest):
     def test_discovery_exclusion_does_not_block_detail(self) -> None:
         with override_detector_api_availability(
-            MetricIssue.slug, {DetectorAPIOperation.DISCOVER: False}
+            MetricIssue.slug, {WorkflowEngineAPIOperation.DISCOVER: False}
         ):
             response = self.get_success_response(self.organization.slug, self.detector.id)
         assert response.data == serialize(self.detector)
@@ -201,7 +207,7 @@ class OrganizationDetectorDetailsGetTest(OrganizationDetectorDetailsBaseTest):
 
     def test_get_feature_gate(self) -> None:
         with override_detector_api_availability(
-            MetricIssue.slug, {DetectorAPIOperation.GET: FeatureGate(GATE_FEATURE)}
+            MetricIssue.slug, {WorkflowEngineAPIOperation.GET: FeatureGate(GATE_FEATURE)}
         ):
             with self.feature({GATE_FEATURE: False}):
                 self.get_error_response(self.organization.slug, self.detector.id, status_code=404)
@@ -212,7 +218,7 @@ class OrganizationDetectorDetailsGetTest(OrganizationDetectorDetailsBaseTest):
 
     def test_list_exclusion_does_not_affect_detail(self) -> None:
         with override_detector_api_availability(
-            MetricIssue.slug, {DetectorAPIOperation.LIST: False}
+            MetricIssue.slug, {WorkflowEngineAPIOperation.LIST: False}
         ):
             response = self.get_success_response(self.organization.slug, self.detector.id)
         assert response.data == serialize(self.detector)
@@ -240,7 +246,7 @@ class OrganizationDetectorDetailsGetTest(OrganizationDetectorDetailsBaseTest):
                 features.default_manager._handler_registry, {GATE_FEATURE: [ActorFeatureHandler()]}
             ),
             override_detector_api_availability(
-                MetricIssue.slug, {DetectorAPIOperation.GET: FeatureGate(GATE_FEATURE)}
+                MetricIssue.slug, {WorkflowEngineAPIOperation.GET: FeatureGate(GATE_FEATURE)}
             ),
         ):
             self.login_as(allowed_user)
@@ -437,8 +443,8 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         with override_detector_api_availability(
             MetricIssue.slug,
             {
-                DetectorAPIOperation.PUT: FeatureGate(GATE_FEATURE),
-                DetectorAPIOperation.LIST: False,
+                WorkflowEngineAPIOperation.PUT: FeatureGate(GATE_FEATURE),
+                WorkflowEngineAPIOperation.LIST: False,
             },
         ):
             with (
@@ -460,7 +466,7 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
     def test_put_excluded_target_type_is_rejected(self) -> None:
         with (
             override_detector_api_availability(
-                MonitorIncidentType.slug, {DetectorAPIOperation.PUT: False}
+                MonitorIncidentType.slug, {WorkflowEngineAPIOperation.PUT: False}
             ),
             assert_querysets_unchanged(**self.detector_querysets()),
         ):
@@ -503,6 +509,25 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         snuba_query = SnubaQuery.objects.get(id=query_subscription.snuba_query.id)
         self.assert_snuba_query_updated(snuba_query)
         mock_schedule_update_project_config.assert_called_once_with(detector)
+
+    def test_update_cannot_remove_internal_condition_without_group_id(self) -> None:
+        condition = self.create_data_condition(
+            condition_group=self.data_condition_group,
+            type=Condition.FIRST_SEEN_EVENT,
+            comparison=True,
+        )
+        del self.valid_data["conditionGroup"]["id"]
+        handler = condition_handler_registry.get(Condition.FIRST_SEEN_EVENT)
+        with mock.patch.object(handler, "is_internal", True):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.detector.id,
+                raw_data={"conditionGroup": self.valid_data["conditionGroup"]},
+                status_code=400,
+            )
+        assert "Internal condition groups" in str(response.data)
+        condition.refresh_from_db()
+        assert condition.type == Condition.FIRST_SEEN_EVENT
 
     def test_update_description(self) -> None:
         assert self.detector.description is None
@@ -577,7 +602,7 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
             status_code=400,
         )
         assert response.data["config"][0] == ErrorDetail(
-            string="Invalid config: 0 is not one of [300, 900, 3600, 86400, 604800, 2592000, None]",
+            string="Invalid config: 0 is not one of [300, 900, 3600, 86400, 604800, 2592000]",
             code="invalid",
         )
 
@@ -590,7 +615,7 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
             status_code=400,
         )
         assert response.data["config"][0] == ErrorDetail(
-            string="Invalid config: 2592001 is not one of [300, 900, 3600, 86400, 604800, 2592000, None]",
+            string="Invalid config: 2592001 is not one of [300, 900, 3600, 86400, 604800, 2592000]",
             code="invalid",
         )
 
@@ -1367,6 +1392,51 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
             status_code=403,
         )
 
+    def test_update_rejects_type_change(self) -> None:
+        other_org = self.create_organization()
+        other_project = self.create_project(organization=other_org)
+        other_subscription = create_snuba_subscription(
+            project=other_project,
+            subscription_type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+            snuba_query=self.snuba_query,
+        )
+        original_status = other_subscription.status
+
+        cron_detector = self.create_detector(
+            project=self.project, type=MonitorIncidentType.slug, enabled=True
+        )
+        cron_data_source = self.create_data_source(
+            organization=self.organization,
+            source_id=str(other_subscription.id),
+            type=DATA_SOURCE_CRON_MONITOR,
+        )
+        self.create_data_source_detector(data_source=cron_data_source, detector=cron_detector)
+
+        response = self.get_error_response(
+            self.organization.slug,
+            cron_detector.id,
+            type=MetricIssue.slug,
+            enabled=False,
+            status_code=400,
+        )
+        assert response.data == {"type": ["The type of a monitor cannot be changed."]}
+
+        cron_detector.refresh_from_db()
+        assert cron_detector.type == MonitorIncidentType.slug
+        assert cron_detector.enabled is True
+        other_subscription.refresh_from_db()
+        assert other_subscription.status == original_status
+
+    def test_update_with_matching_type_succeeds(self) -> None:
+        self.get_success_response(
+            self.organization.slug,
+            self.detector.id,
+            type=MetricIssue.slug,
+            name="Renamed",
+        )
+        self.detector.refresh_from_db()
+        assert self.detector.name == "Renamed"
+
 
 @cell_silo_test
 class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest):
@@ -1377,8 +1447,8 @@ class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest)
         with override_detector_api_availability(
             MetricIssue.slug,
             {
-                DetectorAPIOperation.DELETE: FeatureGate(GATE_FEATURE),
-                DetectorAPIOperation.LIST: False,
+                WorkflowEngineAPIOperation.DELETE: FeatureGate(GATE_FEATURE),
+                WorkflowEngineAPIOperation.LIST: False,
             },
         ):
             with (

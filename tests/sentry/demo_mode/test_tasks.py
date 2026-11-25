@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from hashlib import sha1
 from unittest import mock
 from uuid import uuid1
 
@@ -89,6 +90,30 @@ class SyncArtifactBundlesTest(TestCase):
         )
 
         assert not ArtifactBundle.objects.all().exists()
+
+    @requires_objectstore
+    def test_sync_artifact_bundles_continues_after_missing_object(self) -> None:
+        missing = self.create_artifact_bundle(org=self.source_org, use_objectstore=True)
+        assert missing.storage_path is not None
+        missing.get_objectstore_session().delete(missing.storage_path)
+        source = self.create_artifact_bundle(org=self.source_org, use_objectstore=True)
+
+        with mock.patch("sentry.demo_mode.tasks.sentry_sdk.capture_exception") as capture_exception:
+            _sync_artifact_bundles(
+                source_org=self.source_org,
+                target_org=self.target_org,
+                cutoff_date=self.last_three_days(),
+            )
+
+        capture_exception.assert_called_once()
+        assert isinstance(capture_exception.call_args.args[0], FileNotFoundError)
+        target = ArtifactBundle.objects.get(organization_id=self.target_org.id)
+        assert target.bundle_id == source.bundle_id
+        assert target.file_id is None
+        assert target.storage_path is not None
+        assert target.get_file_size() == source.get_file_size()
+        with target.get_file() as target_contents:
+            assert sha1(target_contents.read()).hexdigest() == source.get_checksum()
 
     def test_sync_artifact_bundles_with_differences(self) -> None:
         (source_artifact_bundle, _, __) = self.set_up_artifact_bundle(

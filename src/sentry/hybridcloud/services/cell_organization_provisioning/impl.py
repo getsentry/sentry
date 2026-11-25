@@ -3,7 +3,6 @@ from django.db.models import Q
 from sentry_sdk import capture_exception
 
 from sentry import roles
-from sentry.db.postgres.transactions import enforce_constraints
 from sentry.hybridcloud.models.outbox import CellOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.hybridcloud.services.cell_organization_provisioning import (
@@ -154,7 +153,8 @@ class DatabaseBackedCellOrganizationProvisioningRpcService(CellOrganizationProvi
 
         provision_options = provision_payload.provision_options
 
-        with outbox_context(transaction.atomic(router.db_for_write(Organization))):
+        # Control reads the new org's mapping right away.
+        with outbox_context(transaction.atomic(router.db_for_write(Organization)), flush=True):
             organization = self._create_organization_and_team(
                 owner=provision_options.owner,
                 slug=provision_options.slug,
@@ -187,7 +187,10 @@ class DatabaseBackedCellOrganizationProvisioningRpcService(CellOrganizationProvi
         ), "Organization slugs can only be updated from temporary aliases"
 
         try:
-            with enforce_constraints(transaction.atomic(using=router.db_for_write(Organization))):
+            # Control routes by slug, so the new one has to replicate right away.
+            with outbox_context(
+                transaction.atomic(using=router.db_for_write(Organization)), flush=True
+            ):
                 org = Organization.objects.get(id=org_slug_temporary_alias_res.organization_id)
                 org.update(slug=org_slug_temporary_alias_res.slug)
 

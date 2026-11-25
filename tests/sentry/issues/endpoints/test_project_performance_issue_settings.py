@@ -24,7 +24,6 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
         self.project = self.create_project()
 
     @patch("sentry.models.ProjectOption.objects.get_value")
-    @with_feature("organizations:performance-view")
     def test_get_project_options_overrides_detection_defaults(self, get_value: MagicMock) -> None:
         response = self.get_success_response(
             self.project.organization.slug, self.project.slug, format="json"
@@ -73,7 +72,6 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
         assert not response.data["web_vitals_detection_enabled"]
 
     @patch("sentry.models.ProjectOption.objects.get_value")
-    @with_feature("organizations:performance-view")
     def test_get_project_options_overrides_threshold_defaults(self, get_value: MagicMock) -> None:
         with override_options(
             {
@@ -146,15 +144,6 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
             assert response.data["consecutive_http_spans_min_time_saved_threshold"] == 1000
             assert response.data["web_vitals_count"] == 10
 
-    def test_get_returns_error_without_feature_enabled(self) -> None:
-        self.get_error_response(
-            self.project.organization.slug,
-            self.project.slug,
-            format="json",
-            status_code=status.HTTP_404_NOT_FOUND,
-        )
-
-    @with_feature("organizations:performance-view")
     def test_put_non_super_user_updates_detection_setting(self) -> None:
         self.login_as(user=self.user, superuser=False)
         response = self.get_error_response(
@@ -172,7 +161,6 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
             },
         }
 
-    @with_feature("organizations:performance-view")
     def test_put_super_user_updates_detection_setting(self) -> None:
         response = self.get_success_response(
             self.project.organization.slug,
@@ -191,7 +179,6 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
         assert not get_response.data["n_plus_one_db_queries_detection_enabled"]
 
     @override_settings(SENTRY_SELF_HOSTED=False)
-    @with_feature("organizations:performance-view")
     @override_options({"superuser.read-write.ga-rollout": True})
     def test_put_superuser_read_write_updates_detection_setting(self) -> None:
         # superuser read-only cannot hit put
@@ -222,7 +209,6 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
 
         assert not get_response.data["function_duration_regression_detection_enabled"]
 
-    @with_feature("organizations:performance-view")
     def test_put_update_non_super_user_option(self) -> None:
         self.login_as(user=self.user, superuser=False)
         response = self.get_success_response(
@@ -242,7 +228,6 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
         assert get_response.data["n_plus_one_db_duration_threshold"] == 3000
 
     @patch("sentry.models.ProjectOption.objects.get_value")
-    @with_feature("organizations:performance-view")
     def test_put_does_not_update_disabled_option(self, get_value: MagicMock) -> None:
         self.login_as(user=self.user, superuser=False)
         get_value.return_value = {
@@ -267,7 +252,6 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
             == get_merged_settings(self.project)["n_plus_one_db_duration_threshold"]
         )
 
-    @with_feature("organizations:performance-view")
     def test_update_project_setting_check_validation(self) -> None:
         response = self.get_error_response(
             self.project.organization.slug,
@@ -283,7 +267,6 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
             ]
         }
 
-    @with_feature("organizations:performance-view")
     def test_update_project_setting_invalid_option(self) -> None:
         response = self.get_error_response(
             self.project.organization.slug,
@@ -295,7 +278,6 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
 
         assert response.data == {"detail": "Invalid settings option"}
 
-    @with_feature("organizations:performance-view")
     def test_project_admins_can_manage_detectors(self) -> None:
         self.login_as(user=self.user, superuser=False)
         response = self.get_success_response(
@@ -308,7 +290,6 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
 
         assert not response.data["n_plus_one_db_queries_detection_enabled"]
 
-    @with_feature("organizations:performance-view")
     def test_project_members_cannot_manage_detectors(self) -> None:
         user = self.create_user("member@localhost")
         self.create_member(
@@ -326,7 +307,6 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
         )
 
     @patch("sentry.api.base.create_audit_entry")
-    @with_feature("organizations:performance-view")
     def test_changing_admin_settings_creates_audit_log(self, create_audit_entry: MagicMock) -> None:
         self.get_success_response(
             self.project.organization.slug,
@@ -347,7 +327,6 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
             "public": self.project.public,
         }
 
-    @with_feature("organizations:performance-view")
     def test_delete_resets_enabled_project_settings(self) -> None:
         self.project.update_option(
             SETTINGS_PROJECT_OPTION_KEY,
@@ -386,7 +365,6 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
             SETTINGS_PROJECT_OPTION_KEY
         )  # removes enabled threshold settings
 
-    @with_feature("organizations:performance-view")
     def test_delete_does_not_resets_enabled_project_settings(self) -> None:
         self.project.update_option(
             SETTINGS_PROJECT_OPTION_KEY,
@@ -426,7 +404,6 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
             == 5000
         )  # setting persists as detection is disabled for corresponding issue
 
-    @with_feature("organizations:performance-view")
     @with_feature("projects:workflow-engine-performance-detectors")
     def test_put_syncs_to_wfe_detector_config(self) -> None:
         """
@@ -466,7 +443,6 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
             == 5000
         )
 
-    @with_feature("organizations:performance-view")
     @with_feature("projects:workflow-engine-performance-detectors")
     def test_delete_resets_enabled_wfe_detector_config(self) -> None:
         """
@@ -520,7 +496,6 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
             == wfe_settings["slow_db_query_duration_threshold"]
         )
 
-    @with_feature("organizations:performance-view")
     @with_feature("projects:workflow-engine-performance-detectors")
     def test_put_toggling_detection_enabled_syncs_wfe_detector_enabled(self) -> None:
         """
@@ -571,7 +546,6 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
         assert legacy_settings["slow_db_queries_detection_enabled"]
         assert wfe_settings["slow_db_queries_detection_enabled"]
 
-    @with_feature("organizations:performance-view")
     @with_feature("projects:workflow-engine-performance-detectors")
     def test_put_updates_threshold_after_re_enabling_detector(self) -> None:
         """
@@ -635,7 +609,6 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
             == 5000
         )
 
-    @with_feature("organizations:performance-view")
     def test_delete_preserves_thresholds_when_no_explicit_enabled_setting(self) -> None:
         """
         Test that DELETE preserves thresholds when there's no explicit detection_enabled setting.
@@ -665,7 +638,6 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
         project_settings = self.project.get_option(SETTINGS_PROJECT_OPTION_KEY)
         assert project_settings["slow_db_query_duration_threshold"] == 5000
 
-    @with_feature("organizations:performance-view")
     @with_feature("projects:workflow-engine-performance-detectors")
     def test_delete_preserves_disabled_wfe_detector_config(self) -> None:
         """

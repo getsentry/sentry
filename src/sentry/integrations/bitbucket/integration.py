@@ -175,8 +175,8 @@ class BitbucketIntegration(RepositoryIntegration[BitbucketApiClient], BitbucketI
         seen: OrderedSet[str] = OrderedSet()
         repos: list[RepositoryInfo] = []
         for repo in chain(
-            cast(BitbucketSearchResponse, exact_search_resp).get("values", []),
-            cast(BitbucketSearchResponse, fuzzy_search_resp).get("values", []),
+            exact_search_resp.get("values", []),
+            fuzzy_search_resp.get("values", []),
         ):
             if repo["full_name"] not in seen:
                 seen.add(repo["full_name"])

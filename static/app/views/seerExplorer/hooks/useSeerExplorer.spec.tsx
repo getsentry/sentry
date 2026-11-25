@@ -2,16 +2,22 @@ import {useQueryClient, type QueryClient} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  cleanup,
+  renderHookWithProviders,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
-import {getApiQueryData, setApiQueryData} from 'sentry/utils/queryClient';
+import {toast} from '@sentry/scraps/toast';
+
 import * as llmContextModule from 'sentry/views/seerExplorer/contexts/llmContext';
 import {
   SeerExplorerChatStateProvider,
   useSeerExplorerChatDispatch,
   useSeerExplorerChatState,
 } from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
-import type {SeerExplorerResponse} from 'sentry/views/seerExplorer/types';
+import type {Block, SeerExplorerResponse} from 'sentry/views/seerExplorer/types';
 import * as seerExplorerUtils from 'sentry/views/seerExplorer/utils';
 
 import {useSeerExplorer} from './useSeerExplorer';
@@ -20,21 +26,18 @@ describe('useSeerExplorer', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     sessionStorage.clear();
-    jest.spyOn(seerExplorerUtils, 'usePageReferrer').mockReturnValue({
-      getPageReferrer: () => '/issues/',
-    });
-    jest.spyOn(llmContextModule, 'useLLMContext').mockReturnValue({
-      getLLMContext: () => ({
-        version: 0,
-        nodes: [],
-        location: {
-          url: window.location.href,
-          name: '/issues/',
-          params: {},
-          query: {},
-        },
-      }),
-    });
+    jest
+      .spyOn(seerExplorerUtils, 'usePageReferrer')
+      .mockReturnValue({getPageReferrer: () => '/issues/'});
+    jest
+      .spyOn(llmContextModule, 'useLLMContext')
+      .mockReturnValue({
+        getLLMContext: () => ({
+          version: 0,
+          nodes: [],
+          location: {url: window.location.href, name: '/issues/', params: {}, query: {}},
+        }),
+      });
   });
 
   const organization = OrganizationFixture({
@@ -71,10 +74,7 @@ describe('useSeerExplorer', () => {
           run_id: 123,
           message: {
             id: 'msg-1',
-            message: {
-              role: 'assistant',
-              content: 'Response content',
-            },
+            message: {role: 'assistant', content: 'Response content'},
             timestamp: '2024-01-01T00:00:00Z',
             loading: false,
           },
@@ -90,10 +90,7 @@ describe('useSeerExplorer', () => {
             blocks: [
               {
                 id: 'msg-1',
-                message: {
-                  role: 'assistant',
-                  content: 'Response content',
-                },
+                message: {role: 'assistant', content: 'Response content'},
                 timestamp: '2024-01-01T00:00:00Z',
                 loading: false,
               },
@@ -119,10 +116,7 @@ describe('useSeerExplorer', () => {
           `/organizations/${organization.slug}/seer/explorer-chat/`,
           expect.objectContaining({
             method: 'POST',
-            data: expect.objectContaining({
-              query: 'Test query',
-              insert_index: 0,
-            }),
+            data: expect.objectContaining({query: 'Test query', insert_index: 0}),
           })
         );
 
@@ -132,12 +126,10 @@ describe('useSeerExplorer', () => {
     });
 
     it('sends structured JSON on dashboard page with feature flag', async () => {
-      jest.spyOn(seerExplorerUtils, 'usePageReferrer').mockReturnValue({
-        getPageReferrer: () => '/dashboard/:dashboardId/',
-      });
-      const org = OrganizationFixture({
-        features: ['seer-explorer'],
-      });
+      jest
+        .spyOn(seerExplorerUtils, 'usePageReferrer')
+        .mockReturnValue({getPageReferrer: () => '/dashboard/:dashboardId/'});
+      const org = OrganizationFixture({features: ['seer-explorer']});
       MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/seer/explorer-chat/`,
         method: 'GET',
@@ -189,12 +181,10 @@ describe('useSeerExplorer', () => {
       '/monitors/uptime/',
       '/seer/investigations/:investigationId/',
     ])('sends structured JSON on structured-context route %s', async (route: string) => {
-      jest.spyOn(seerExplorerUtils, 'usePageReferrer').mockReturnValue({
-        getPageReferrer: () => route,
-      });
-      const org = OrganizationFixture({
-        features: ['seer-explorer'],
-      });
+      jest
+        .spyOn(seerExplorerUtils, 'usePageReferrer')
+        .mockReturnValue({getPageReferrer: () => route});
+      const org = OrganizationFixture({features: ['seer-explorer']});
       MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/seer/explorer-chat/`,
         method: 'GET',
@@ -225,12 +215,10 @@ describe('useSeerExplorer', () => {
     });
 
     it('falls back to ASCII screenshot on non-structured-context page', async () => {
-      jest.spyOn(seerExplorerUtils, 'usePageReferrer').mockReturnValue({
-        getPageReferrer: () => '/settings/account/details/',
-      });
-      const org = OrganizationFixture({
-        features: ['seer-explorer'],
-      });
+      jest
+        .spyOn(seerExplorerUtils, 'usePageReferrer')
+        .mockReturnValue({getPageReferrer: () => '/settings/account/details/'});
+      const org = OrganizationFixture({features: ['seer-explorer']});
       MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/seer/explorer-chat/`,
         method: 'GET',
@@ -262,9 +250,9 @@ describe('useSeerExplorer', () => {
     });
 
     it('sends page_location even on a non-structured-context page', async () => {
-      jest.spyOn(seerExplorerUtils, 'usePageReferrer').mockReturnValue({
-        getPageReferrer: () => '/settings/account/details/',
-      });
+      jest
+        .spyOn(seerExplorerUtils, 'usePageReferrer')
+        .mockReturnValue({getPageReferrer: () => '/settings/account/details/'});
       const org = OrganizationFixture({features: ['seer-explorer']});
       MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/seer/explorer-chat/`,
@@ -525,10 +513,7 @@ describe('useSeerExplorer', () => {
           queryClient = useQueryClient();
           return useSeerExplorer();
         },
-        {
-          organization,
-          additionalWrapper: SeerExplorerChatStateProvider,
-        }
+        {organization, additionalWrapper: SeerExplorerChatStateProvider}
       );
       act(() => {
         result.current.switchToRun(runId);
@@ -567,10 +552,9 @@ describe('useSeerExplorer', () => {
 
       // The old chat's optimistic "processing" status is rolled back in the background.
       expect(
-        getApiQueryData<SeerExplorerResponse>(
-          queryClient,
+        queryClient.getQueryData(
           seerExplorerUtils.makeSeerExplorerQueryKey(organization.slug, runId)
-        )?.session?.status
+        )?.json.session?.status
       ).toBe('completed');
     });
 
@@ -612,10 +596,7 @@ describe('useSeerExplorer', () => {
           queryClient = useQueryClient();
           return useSeerExplorer();
         },
-        {
-          organization,
-          additionalWrapper: SeerExplorerChatStateProvider,
-        }
+        {organization, additionalWrapper: SeerExplorerChatStateProvider}
       );
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/seer/explorer-chat/${runId}/`,
@@ -623,7 +604,11 @@ describe('useSeerExplorer', () => {
         statusCode: 500,
         // Polling stores fresher server data after the optimistic update, before the failure.
         body: () => {
-          setApiQueryData<SeerExplorerResponse>(queryClient, queryKey, freshData);
+          queryClient.setQueryData(queryKey, {
+            json: freshData,
+            headers: {'X-Hits': 7},
+            status: 200,
+          });
           return {detail: 'Server error'};
         },
       });
@@ -644,9 +629,86 @@ describe('useSeerExplorer', () => {
         });
       });
 
-      expect(getApiQueryData<SeerExplorerResponse>(queryClient, queryKey)).toEqual(
-        freshData
+      expect(queryClient.getQueryData(queryKey)?.json).toEqual(freshData);
+      expect(queryClient.getQueryData(queryKey)).toMatchObject({
+        headers: {'X-Hits': 7},
+        status: 200,
+      });
+    });
+
+    it('keeps a sent message on screen when a poll returns the old session mid-send', async () => {
+      const runId = 'run-stale-poll';
+      const url = `/organizations/${organization.slug}/seer/explorer-chat/${runId}/`;
+      const block = (id: string, role: Block['message']['role'], content: string) => ({
+        id,
+        message: {role, content},
+        timestamp: '2024-01-01T00:00:00Z',
+        loading: role === 'assistant',
+      });
+      const question = block('user-1', 'user', 'Question');
+      MockApiClient.addMockResponse({
+        url,
+        method: 'GET',
+        body: {session: {blocks: [question], status: 'completed'}},
+      });
+      let finishSend!: () => void;
+      MockApiClient.addMockResponse({
+        url,
+        method: 'POST',
+        asyncDelay: new Promise<void>(resolve => {
+          finishSend = resolve;
+        }),
+        body: {run_id: 1},
+      });
+
+      let queryClient!: QueryClient;
+      const followUpOnScreen: boolean[] = []; // One entry per render.
+      const {result} = renderHookWithProviders(
+        () => {
+          queryClient = useQueryClient();
+          const explorer = useSeerExplorer();
+          followUpOnScreen.push(
+            !!explorer.sessionData?.blocks.some(b => b.message.content === 'Follow-up')
+          );
+          return explorer;
+        },
+        {organization, additionalWrapper: SeerExplorerChatStateProvider}
       );
+      act(() => result.current.switchToRun(runId));
+      await waitFor(() => expect(result.current.sessionData?.status).toBe('completed'));
+
+      act(() => result.current.sendMessage('Follow-up'));
+      expect(followUpOnScreen.at(-1)).toBe(true);
+      // A poll during the slow send still gets the old session, without the message.
+      await act(() =>
+        queryClient.refetchQueries({
+          queryKey: seerExplorerUtils.makeSeerExplorerQueryKey(organization.slug, runId),
+        })
+      );
+
+      // The server saves the message, then the send finishes.
+      MockApiClient.addMockResponse({
+        url,
+        method: 'GET',
+        asyncDelay: 10,
+        body: {
+          session: {
+            blocks: [
+              question,
+              block('user-2', 'user', 'Follow-up'),
+              block('loading-3', 'assistant', 'Thinking...'),
+            ],
+            status: 'processing',
+            updated_at: new Date().toISOString(),
+          },
+        },
+      });
+      act(() => finishSend());
+      await waitFor(() =>
+        expect(result.current.sessionData?.blocks.map(b => b.id)).toContain('user-2')
+      );
+
+      expect(followUpOnScreen.slice(followUpOnScreen.indexOf(true))).not.toContain(false);
     });
 
     it('keeps the alert when an older send succeeds after a newer send failed', async () => {
@@ -1188,6 +1250,97 @@ describe('useSeerExplorer', () => {
     });
   });
 
+  describe('PR creation errors', () => {
+    const chatUrl = `/organizations/${organization.slug}/seer/explorer-chat/`;
+    const runId = 789;
+
+    function mockPRState(prState: Record<string, unknown>) {
+      MockApiClient.addMockResponse({
+        url: `${chatUrl}${runId}/`,
+        method: 'GET',
+        body: {
+          session: {
+            status: 'completed',
+            blocks: [],
+            updated_at: new Date().toISOString(),
+            repo_pr_states: {
+              'acme/web': {repo_name: 'acme/web', pr_number: null, ...prState},
+            },
+          },
+        },
+      });
+    }
+
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
+
+    afterEach(async () => {
+      try {
+        cleanup();
+        await act(() => jest.runOnlyPendingTimersAsync());
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
+    it('toasts out-of-credits copy instead of the raw error', async () => {
+      const errorSpy = jest.spyOn(toast, 'error');
+      mockPRState({pr_creation_status: 'creating'});
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+        additionalWrapper: SeerExplorerChatStateProvider,
+      });
+      act(() => {
+        result.current.switchToRun(runId);
+      });
+      await waitFor(() => expect(result.current.isPolling).toBe(true));
+
+      mockPRState({
+        pr_creation_status: 'error',
+        pr_creation_error: "Your organization doesn't have enough Seer credits for this.",
+        pr_creation_error_code: 'out_of_credits',
+      });
+
+      // The next poll picks up the failure.
+      await act(() => jest.advanceTimersByTimeAsync(500));
+      await waitFor(() =>
+        expect(errorSpy).toHaveBeenCalledWith(
+          "Seer couldn't open a pull request in acme/web because your organization is out of credits."
+        )
+      );
+    });
+
+    it('toasts daily usage limit copy when the push hit the limit', async () => {
+      const errorSpy = jest.spyOn(toast, 'error');
+      mockPRState({pr_creation_status: 'creating'});
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+        additionalWrapper: SeerExplorerChatStateProvider,
+      });
+      act(() => {
+        result.current.switchToRun(runId);
+      });
+      await waitFor(() => expect(result.current.isPolling).toBe(true));
+
+      mockPRState({
+        pr_creation_status: 'error',
+        pr_creation_error: "Your organization doesn't have enough Seer credits for this.",
+        pr_creation_error_code: 'out_of_credits',
+        credit_denial_reason: 'daily_cap_exceeded',
+      });
+
+      await act(() => jest.advanceTimersByTimeAsync(500));
+      await waitFor(() =>
+        expect(errorSpy).toHaveBeenCalledWith(
+          "Seer couldn't open a pull request in acme/web because your organization hit its daily usage limit."
+        )
+      );
+    });
+  });
+
   describe('Optimistic Thinking Block', () => {
     it('sets optimistic blocks when session is processing with no user block in DB', async () => {
       const chatUrl = `/organizations/${organization.slug}/seer/explorer-chat/`;
@@ -1313,9 +1466,7 @@ describe('useSeerExplorer', () => {
       MockApiClient.addMockResponse({
         url: `${chatUrl}456/`,
         method: 'GET',
-        body: {
-          session: serverSessionData,
-        },
+        body: {session: serverSessionData},
       });
 
       const {result} = renderHookWithProviders(() => useSeerExplorer(), {
@@ -1361,9 +1512,7 @@ describe('useSeerExplorer', () => {
       MockApiClient.addMockResponse({
         url: `${chatUrl}456/`,
         method: 'GET',
-        body: {
-          session: serverSessionData,
-        },
+        body: {session: serverSessionData},
       });
 
       const {result} = renderHookWithProviders(() => useSeerExplorer(), {
@@ -1421,9 +1570,7 @@ describe('useSeerExplorer', () => {
       MockApiClient.addMockResponse({
         url: `${chatUrl}456/`,
         method: 'GET',
-        body: {
-          session: serverSessionData,
-        },
+        body: {session: serverSessionData},
       });
 
       const {result} = renderHookWithProviders(() => useSeerExplorer(), {
@@ -1469,9 +1616,7 @@ describe('useSeerExplorer', () => {
       MockApiClient.addMockResponse({
         url: `${chatUrl}456/`,
         method: 'GET',
-        body: {
-          session: serverSessionData,
-        },
+        body: {session: serverSessionData},
       });
 
       const {result} = renderHookWithProviders(() => useSeerExplorer(), {
@@ -1502,9 +1647,7 @@ describe('useSeerExplorer', () => {
       MockApiClient.addMockResponse({
         url: `${chatUrl}321/`,
         method: 'GET',
-        body: {
-          session: serverSessionData,
-        },
+        body: {session: serverSessionData},
       });
 
       const {result} = renderHookWithProviders(() => useSeerExplorer(), {
@@ -1535,9 +1678,7 @@ describe('useSeerExplorer', () => {
       MockApiClient.addMockResponse({
         url: `${chatUrl}321/`,
         method: 'GET',
-        body: {
-          session: serverSessionData,
-        },
+        body: {session: serverSessionData},
       });
 
       const {result} = renderHookWithProviders(() => useSeerExplorer(), {

@@ -1,6 +1,6 @@
 import {useLayoutEffect, useMemo, useRef} from 'react';
 import type {ComponentType, ReactNode} from 'react';
-import {Global} from '@emotion/react';
+import {css, Global} from '@emotion/react';
 
 import {Stack} from '@sentry/scraps/layout';
 
@@ -9,6 +9,14 @@ import {MarkedLexer} from './marked';
 import {MarkdownStreamingContext, Token} from './token';
 import {streamingAnimationStyles, useStreamingAnimation} from './useStreamingAnimation';
 
+const streamingGlyphStyles = css`
+  --glyph-font-size: 0.85em;
+
+  code {
+    --glyph-font-size: 1em;
+  }
+`;
+
 type WithDefault<Props> = Props & {Default: ComponentType<Props>};
 
 export interface MarkdownTableColumn {
@@ -16,6 +24,8 @@ export interface MarkdownTableColumn {
 }
 
 export type MarkdownComponents = Partial<{
+  /** Text annotated with `annotate`, along with its data. */
+  Annotation: ComponentType<WithDefault<{children: string; data: string}>>;
   Blockquote: ComponentType<WithDefault<{children: ReactNode}>>;
   CodeBlock: ComponentType<WithDefault<{children: string; lang?: string}>>;
   Emphasis: ComponentType<WithDefault<{children: ReactNode}>>;
@@ -193,7 +203,7 @@ export function Markdown({raw, components = {}, variant = 'static'}: MarkdownPro
       gap="lg"
       flex={1}
       style={{overflowWrap: 'break-word'}}
-      data-streaming={isStreaming || undefined}
+      css={isStreaming ? streamingGlyphStyles : undefined}
     >
       {isStreaming && <Global styles={streamingAnimationStyles} />}
       <MarkdownStreamingContext.Provider value={isStreaming}>

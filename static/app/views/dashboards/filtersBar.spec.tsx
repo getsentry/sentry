@@ -220,7 +220,7 @@ describe('FiltersBar', () => {
     renderFilterBar();
     await userEvent.click(screen.getByRole('button', {name: 'Add Global Filter'}));
     await userEvent.click(screen.getByRole('option', {name: dataset}));
-    await userEvent.type(screen.getByRole('textbox'), 'searched');
+    await userEvent.type(screen.getByRole('searchbox'), 'searched');
 
     await waitFor(() =>
       expect(searchRequest).toHaveBeenCalledWith(
@@ -280,17 +280,13 @@ describe('FiltersBar', () => {
       value: 'browser.name:[Chrome]',
     };
     const newLocation = LocationFixture({
-      query: {
-        [DashboardFilterKeys.GLOBAL_FILTER]: JSON.stringify(urlFilter),
-      },
+      query: {[DashboardFilterKeys.GLOBAL_FILTER]: JSON.stringify(urlFilter)},
     });
 
     const onDashboardFilterChange = jest.fn();
     renderFilterBar({
       location: newLocation,
-      filters: {
-        [DashboardFilterKeys.GLOBAL_FILTER]: [savedFilter],
-      },
+      filters: {[DashboardFilterKeys.GLOBAL_FILTER]: [savedFilter]},
       onDashboardFilterChange,
     });
 
@@ -319,9 +315,7 @@ describe('FiltersBar', () => {
     const onDashboardFilterChange = jest.fn();
     const {rerender} = renderFilterBar({
       location: LocationFixture(),
-      filters: {
-        [DashboardFilterKeys.GLOBAL_FILTER]: [savedFilter],
-      },
+      filters: {[DashboardFilterKeys.GLOBAL_FILTER]: [savedFilter]},
       onDashboardFilterChange,
     });
 
@@ -361,16 +355,11 @@ describe('FiltersBar', () => {
       value: 'browser.name:[Chrome]',
     };
     const newLocation = LocationFixture({
-      query: {
-        [DashboardFilterKeys.GLOBAL_FILTER]: JSON.stringify(urlFilter),
-      },
+      query: {[DashboardFilterKeys.GLOBAL_FILTER]: JSON.stringify(urlFilter)},
     });
 
     const onDashboardFilterChange = jest.fn();
-    renderFilterBar({
-      location: newLocation,
-      onDashboardFilterChange,
-    });
+    renderFilterBar({location: newLocation, onDashboardFilterChange});
 
     // Wait for any effects to settle
     await waitFor(() => {
@@ -390,17 +379,13 @@ describe('FiltersBar', () => {
     };
     // Empty string simulates cleared filters (handleChangeFilter stores [''])
     const newLocation = LocationFixture({
-      query: {
-        [DashboardFilterKeys.GLOBAL_FILTER]: '',
-      },
+      query: {[DashboardFilterKeys.GLOBAL_FILTER]: ''},
     });
 
     const onDashboardFilterChange = jest.fn();
     renderFilterBar({
       location: newLocation,
-      filters: {
-        [DashboardFilterKeys.GLOBAL_FILTER]: [savedFilter],
-      },
+      filters: {[DashboardFilterKeys.GLOBAL_FILTER]: [savedFilter]},
       onDashboardFilterChange,
     });
 
@@ -445,9 +430,7 @@ describe('FiltersBar', () => {
     });
 
     it('defaults to normal and can switch to faster', async () => {
-      organization = OrganizationFixture({
-        features: ['low-priority-queries'],
-      });
+      organization = OrganizationFixture({features: ['low-priority-queries']});
       renderFilterBar();
 
       await userEvent.click(
@@ -467,9 +450,7 @@ describe('FiltersBar', () => {
       organization = OrganizationFixture({
         features: ['dashboards-basic', 'dashboards-edit', 'low-priority-queries'],
       });
-      renderFilterBar({
-        dashboard: DashboardFixture([], {queryPriority: 'faster'}),
-      });
+      renderFilterBar({dashboard: DashboardFixture([], {queryPriority: 'faster'})});
 
       expect(
         screen.getByRole('button', {name: 'Query Speed: Fast Querying'})
@@ -485,9 +466,7 @@ describe('FiltersBar', () => {
         method: 'PUT',
         body: DashboardFixture([], {queryPriority: 'faster'}),
       });
-      renderFilterBar({
-        dashboard: DashboardFixture([], {id: '1'}),
-      });
+      renderFilterBar({dashboard: DashboardFixture([], {id: '1'})});
 
       await userEvent.click(
         screen.getByRole('button', {name: 'Query Speed: Balanced Querying'})
@@ -497,10 +476,7 @@ describe('FiltersBar', () => {
       await waitFor(() => {
         expect(updateMock).toHaveBeenCalledWith(
           '/organizations/org-slug/dashboards/1/',
-          expect.objectContaining({
-            method: 'PUT',
-            data: {queryPriority: 'faster'},
-          })
+          expect.objectContaining({method: 'PUT', data: {queryPriority: 'faster'}})
         );
       });
     });
@@ -513,9 +489,7 @@ describe('FiltersBar', () => {
         url: '/organizations/org-slug/dashboards/prebuilt-dashboard-1/',
         method: 'PUT',
       });
-      renderFilterBar({
-        dashboard: DashboardFixture([], {id: 'prebuilt-dashboard-1'}),
-      });
+      renderFilterBar({dashboard: DashboardFixture([], {id: 'prebuilt-dashboard-1'})});
 
       await userEvent.click(
         screen.getByRole('button', {name: 'Query Speed: Balanced Querying'})
@@ -566,18 +540,12 @@ describe('FiltersBar', () => {
       expect(updateMock).toHaveBeenNthCalledWith(
         1,
         '/organizations/org-slug/dashboards/1/',
-        expect.objectContaining({
-          method: 'PUT',
-          data: {queryPriority: 'faster'},
-        })
+        expect.objectContaining({method: 'PUT', data: {queryPriority: 'faster'}})
       );
       expect(updateMock).toHaveBeenNthCalledWith(
         2,
         '/organizations/org-slug/dashboards/1/',
-        expect.objectContaining({
-          method: 'PUT',
-          data: {queryPriority: 'normal'},
-        })
+        expect.objectContaining({method: 'PUT', data: {queryPriority: 'normal'}})
       );
       expect(
         screen.getByRole('button', {name: 'Query Speed: Balanced Querying'})
@@ -626,10 +594,7 @@ describe('FiltersBar', () => {
       expect(updateMock).toHaveBeenNthCalledWith(
         2,
         '/organizations/org-slug/dashboards/1/',
-        expect.objectContaining({
-          method: 'PUT',
-          data: {queryPriority: 'normal'},
-        })
+        expect.objectContaining({method: 'PUT', data: {queryPriority: 'normal'}})
       );
     });
 
@@ -701,10 +666,7 @@ describe('FiltersBar', () => {
       await waitFor(() => {
         expect(updateMock).toHaveBeenCalledWith(
           '/organizations/org-slug/dashboards/1/',
-          expect.objectContaining({
-            method: 'PUT',
-            data: {queryPriority: 'faster'},
-          })
+          expect.objectContaining({method: 'PUT', data: {queryPriority: 'faster'}})
         );
       });
       expect(onDashboardQueryPrioritySaved).not.toHaveBeenCalled();
@@ -713,10 +675,7 @@ describe('FiltersBar', () => {
 });
 
 const mockNetworkRequests = () => {
-  MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/members/',
-    body: [],
-  });
+  MockApiClient.addMockResponse({url: '/organizations/org-slug/members/', body: []});
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/releases/',
     body: [ReleaseFixture()],
@@ -728,12 +687,8 @@ const mockNetworkRequests = () => {
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/measurements-meta/',
     body: {
-      'measurements.custom.measurement': {
-        functions: ['p99'],
-      },
-      'measurements.another.custom.measurement': {
-        functions: ['p99'],
-      },
+      'measurements.custom.measurement': {functions: ['p99']},
+      'measurements.another.custom.measurement': {functions: ['p99']},
     },
   });
   MockApiClient.addMockResponse({

@@ -4,9 +4,9 @@ import {PlatformIcon} from 'platformicons';
 
 import {OrganizationAvatar, ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
+import {DateTime} from '@sentry/scraps/dateTime';
 import {Link} from '@sentry/scraps/link';
 
-import {DateTime} from 'sentry/components/dateTime';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {Version} from 'sentry/components/version';
 import {t} from 'sentry/locale';
@@ -40,11 +40,11 @@ function renderValue(
   if (key === 'threads' && value === undefined) {
     return profileGroup?.profiles.length;
   }
-  if (key === 'received') {
-    return <DateTime date={value} />;
-  }
   if (value === undefined || value === '') {
     return t('ø');
+  }
+  if (key === 'received') {
+    return <DateTime date={value} />;
   }
 
   return value;
@@ -104,12 +104,7 @@ export function ProfileDetails(props: ProfileDetailsProps) {
       }
     };
 
-    return {
-      initialSize,
-      onResize,
-      direction: isSidebarLayout ? 'up' : 'left',
-      min: 26,
-    };
+    return {initialSize, onResize, direction: isSidebarLayout ? 'up' : 'left', min: 26};
   }, [flamegraphPreferences.layout]);
 
   const {onMouseDown, onDoubleClick} = useResizableDrawer(resizableOptions);
@@ -192,11 +187,7 @@ function TransactionDeviceDetails({
   const deviceDetails = useMemo(() => {
     const profileMetadata = profileGroup.metadata;
 
-    const details: Array<{
-      key: string;
-      label: string;
-      value: React.ReactNode;
-    }> = [
+    const details: Array<{key: string; label: string; value: React.ReactNode}> = [
       {
         key: 'model',
         label: t('Model'),
@@ -224,11 +215,7 @@ function TransactionDeviceDetails({
         label: t('OS Version'),
         value: transactionSpan[SpanFields.OS_VERSION] || profileMetadata.deviceOSVersion,
       },
-      {
-        key: 'locale',
-        label: t('Locale'),
-        value: profileMetadata.deviceLocale,
-      },
+      {key: 'locale', label: t('Locale'), value: profileMetadata.deviceLocale},
     ];
 
     return details;
@@ -274,11 +261,7 @@ function TransactionEventDetails({
           })
         : null;
 
-    const details: Array<{
-      key: string;
-      label: string;
-      value: React.ReactNode;
-    }> = [
+    const details: Array<{key: string; label: string; value: React.ReactNode}> = [
       {
         key: 'transaction',
         label: t('Transaction'),
@@ -325,11 +308,7 @@ function TransactionEventDetails({
             1000
         ),
       },
-      {
-        key: 'threads',
-        label: t('Threads'),
-        value: profileGroup.profiles.length,
-      },
+      {key: 'threads', label: t('Threads'), value: profileGroup.profiles.length},
     ];
 
     return details;
@@ -426,10 +405,8 @@ function ProfileEventDetails({
                 <strong>{label}:</strong>
                 <Link
                   to={
-                    makeProjectsPathname({
-                      path: `/${project.slug}/`,
-                      organization,
-                    }) + `?project=${project.id}`
+                    makeProjectsPathname({path: `/${project.slug}/`, organization}) +
+                    `?project=${project.id}`
                   }
                 >
                   <FlexRow>
@@ -463,9 +440,7 @@ function ProfileEventDetails({
                     organization,
                     path: `/${encodeURIComponent(release.version)}/`,
                   }),
-                  query: {
-                    project: profileGroup.metadata.projectID,
-                  },
+                  query: {project: profileGroup.metadata.projectID},
                 }}
               >
                 {formatVersion(release.version)}

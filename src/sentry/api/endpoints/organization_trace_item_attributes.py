@@ -1,6 +1,6 @@
 from collections.abc import Callable, Sequence
 from datetime import datetime, timedelta
-from typing import Any, cast
+from typing import Any, TypeIs, cast, get_args
 
 import sentry_sdk
 from django.db.models import Q
@@ -38,6 +38,7 @@ from sentry.api.endpoints.organization_trace_item_attributes_types import (
     TraceItemAttributeContext,
     TraceItemAttributeKey,
     TraceItemAttributeSource,
+    TraceItemAttributeUnit,
     TraceItemAttributeValidateResponse,
     TraceItemAttributeValidationResult,
 )
@@ -347,6 +348,13 @@ _CONVENTION_TYPE_TO_SEARCH_TYPE: dict[str, str] = {
 }
 
 
+_TRACE_ITEM_ATTRIBUTE_UNITS: frozenset[str] = frozenset(get_args(TraceItemAttributeUnit))
+
+
+def _is_trace_item_attribute_unit(value: str) -> TypeIs[TraceItemAttributeUnit]:
+    return value in _TRACE_ITEM_ATTRIBUTE_UNITS
+
+
 SENTRY_ALWAYS_INCLUDED_ATTRIBUTES: dict[SupportedTraceItemType, frozenset[str]] = {
     SupportedTraceItemType.SPANS: frozenset({"span.description"}),
     SupportedTraceItemType.LOGS: frozenset({"message"}),
@@ -423,6 +431,9 @@ def build_sentry_convention_context(
 
     if deprecation is not None and deprecation.replacement:
         context["replacementAttribute"] = deprecation.replacement
+
+    if metadata.is_in_otel:
+        context["isInOtel"] = True
 
     return context
 
@@ -551,6 +562,30 @@ def is_known_attribute(name: str, definitions: ColumnDefinitions) -> bool:
     return ATTRIBUTE_METADATA.get(name) is not None
 
 
+def resolve_attribute_unit(
+    name: str,
+    public_name: str,
+    attr_type: ColumnType,
+    item_type: SupportedTraceItemType,
+) -> TraceItemAttributeUnit | None:
+    if attr_type != "number":
+        return None
+
+    # A user attribute can share a column's public alias without being that column.
+    column = get_column_definitions(item_type).columns.get(public_name)
+    if column is not None and column.internal_name == name and not column.secondary_alias:
+        if _is_trace_item_attribute_unit(column.search_type):
+            return column.search_type
+
+    metadata = ATTRIBUTE_METADATA.get(public_name) or ATTRIBUTE_METADATA.get(name)
+    if metadata is None or metadata.search_alias is None or metadata.search_alias.type is None:
+        return None
+    if _CONVENTION_TYPE_TO_SEARCH_TYPE.get(metadata.type.value, "number") != "number":
+        return None
+    unit = metadata.search_alias.type
+    return unit if _is_trace_item_attribute_unit(unit) else None
+
+
 def _replacement_superseded_by_present_source(
     public_alias: str,
     item_type: SupportedTraceItemType,
@@ -628,13 +663,22 @@ def as_attribute_key(
         # convention whose name is already the same internally -- e.g.
         # `http.route` -- is missing from it and resolves as a `user` source
         # attribute. A Sentry-defined attribute that isn't a convention (e.g.
-        # `span.description`) instead carries its context on the definition.
-        # Custom attributes get an empty context here; see
-        # attach_custom_attribute_context.
-        context = build_sentry_convention_context(
-            public_name, name, attr_type
-        ) or build_sentry_attribute_context(public_name, attr_type, item_type)
-        attribute_key["context"] = context or {}
+        # `span.description`) instead carries its context on the definition, which
+        # a user attribute merely shadowing its name doesn't share. Custom
+        # attributes get an empty context here; see attach_custom_attribute_context.
+        context: TraceItemAttributeContext = (
+            build_sentry_convention_context(public_name, name, attr_type)
+            or (
+                build_sentry_attribute_context(public_name, attr_type, item_type)
+                if serialized_source["source_type"] == AttributeSourceType.SENTRY.value
+                else None
+            )
+            or {}
+        )
+        unit = resolve_attribute_unit(name, public_name, attr_type, item_type)
+        if unit is not None:
+            context["unit"] = unit
+        attribute_key["context"] = context
 
     return attribute_key
 
@@ -729,6 +773,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
             200: inline_sentry_response_serializer(
                 "ListTraceItemAttributesResponse", list[TraceItemAttributeKey]
             ),
+            400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,

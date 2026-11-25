@@ -151,3 +151,41 @@ class UserNotificationSettingsProvidersPutTest(UserNotificationSettingsProviders
             providers=["github"],
         )
         assert response.data["providers"] == ["Invalid provider"]
+
+    def test_inbox_user_scope(self) -> None:
+        self.get_success_response(
+            "me",
+            user_id=self.user.id,
+            scope_type="user",
+            scope_identifier=self.user.id,
+            type=NotificationSettingEnum.INBOX.value,
+            status_code=status.HTTP_201_CREATED,
+            providers=["email"],
+        )
+        values = dict(
+            NotificationSettingProvider.objects.filter(
+                user_id=self.user.id,
+                scope_type=NotificationScopeEnum.USER.value,
+                scope_identifier=self.user.id,
+                type=NotificationSettingEnum.INBOX.value,
+            ).values_list("provider", "value")
+        )
+        assert (
+            values[ExternalProviderEnum.EMAIL.value] == NotificationSettingsOptionEnum.ALWAYS.value
+        )
+        assert (
+            values[ExternalProviderEnum.SLACK.value] == NotificationSettingsOptionEnum.NEVER.value
+        )
+
+    def test_inbox_rejects_non_user_scope(self) -> None:
+        response = self.get_error_response(
+            "me",
+            user_id=self.user.id,
+            scope_type="organization",
+            scope_identifier=self.organization.id,
+            type=NotificationSettingEnum.INBOX.value,
+            status_code=status.HTTP_400_BAD_REQUEST,
+            providers=["email"],
+        )
+        assert response.data["nonFieldErrors"] == ["Inbox settings only allow user scope"]
+        assert not NotificationSettingProvider.objects.filter(user_id=self.user.id).exists()

@@ -12,7 +12,7 @@ from sentry.apidocs.constants import RESPONSE_TOO_MANY_REQUESTS, RESPONSE_UNAUTH
 from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.examples.user_examples import UserExamples
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.auth.principal import require_user
+from sentry.auth.principal import has_user, require_user
 from sentry.users.api.serializers.user import UserSerializerResponseSelf
 from sentry.users.models.user import User
 
@@ -73,7 +73,7 @@ class IndexEndpoint(Endpoint):
         to a user, such as API keys and organization auth tokens.
         """
         user_data: UserSerializerResponseSelf | None
-        if request.user.is_authenticated:
+        if has_user(request.user):
             user = User.objects.get(id=require_user(request).id)
             user_data = serialize(user, user)
         else:

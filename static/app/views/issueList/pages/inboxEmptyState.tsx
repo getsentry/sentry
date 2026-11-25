@@ -6,6 +6,7 @@ import starryVoidImg from 'sentry-images/spot/starry-void.png';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {EmptyState} from '@sentry/scraps/emptyState';
 
+import {PeekingBug} from 'sentry/components/peekingBug/peekingBug';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -14,10 +15,7 @@ export function InboxEmptyState({
   assignmentFilter,
 }: {
   assignmentFilter: string;
-  alternateInbox?: {
-    label: string;
-    onClick: () => void;
-  };
+  alternateInbox?: {label: string; onClick: () => void};
 }) {
   const organization = useOrganization();
 
@@ -31,15 +29,17 @@ export function InboxEmptyState({
       illustration={<img src={starryVoidImg} alt="" />}
       action={
         <Fragment>
-          <LinkButton
-            to={`/organizations/${organization.slug}/issues/`}
-            icon={<IconClock />}
-            analyticsEventKey="issue_inbox.go_to_issue_feed_clicked"
-            analyticsEventName="Issue Inbox: Go to Issue Feed Clicked"
-            analyticsParams={{assignment_filter: assignmentFilter}}
-          >
-            {t('Go to Issue Feed')}
-          </LinkButton>
+          <PeekingBug>
+            <LinkButton
+              to={`/organizations/${organization.slug}/issues/`}
+              icon={<IconClock />}
+              analyticsEventKey="issue_inbox.go_to_issue_feed_clicked"
+              analyticsEventName="Issue Inbox: Go to Issue Feed Clicked"
+              analyticsParams={{assignment_filter: assignmentFilter}}
+            >
+              {t('Go to Issue Feed')}
+            </LinkButton>
+          </PeekingBug>
           {alternateInbox && (
             <Button onClick={alternateInbox.onClick}>{alternateInbox.label}</Button>
           )}

@@ -90,10 +90,7 @@ describe('releases/utils', () => {
     it('handles no lastEvent for ancient releases', () => {
       expect(
         getReleaseBounds(
-          ReleaseFixture({
-            dateCreated: '2010-05-17T02:41:20Z',
-            lastEvent: undefined,
-          })
+          ReleaseFixture({dateCreated: '2010-05-17T02:41:20Z', lastEvent: undefined})
         )
       ).toEqual({
         releaseStart: '2017-07-19T02:41:20Z',
@@ -118,12 +115,7 @@ describe('releases/utils', () => {
         },
       };
 
-      expect(
-        getReleaseParams({
-          location,
-          releaseBounds,
-        })
-      ).toEqual({
+      expect(getReleaseParams({location, releaseBounds})).toEqual({
         statsPeriod: '30d',
         project: ['456'],
         environment: ['prod'],
@@ -132,14 +124,8 @@ describe('releases/utils', () => {
 
     it('returns release start/end if no other datetime is present', () => {
       expect(
-        getReleaseParams({
-          location: {...locationFixture, query: {}},
-          releaseBounds,
-        })
-      ).toEqual({
-        start: '2020-03-23T01:02:00Z',
-        end: '2020-03-24T02:04:59Z',
-      });
+        getReleaseParams({location: {...locationFixture, query: {}}, releaseBounds})
+      ).toEqual({start: '2020-03-23T01:02:00Z', end: '2020-03-24T02:04:59Z'});
     });
 
     it('returns correct start/end when zoomed in', () => {
@@ -151,10 +137,7 @@ describe('releases/utils', () => {
           },
           releaseBounds,
         })
-      ).toEqual({
-        start: '2021-03-23T01:02:30.000',
-        end: '2022-03-23T01:02:30.000',
-      });
+      ).toEqual({start: '2021-03-23T01:02:30.000', end: '2022-03-23T01:02:30.000'});
     });
   });
 });

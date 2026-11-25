@@ -3,6 +3,7 @@ import {createContext, useCallback, useContext, useMemo, useState} from 'react';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 
 import {NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY} from './constants';
+import {useSettingsNavigation} from './useSettingsNavigation';
 
 /**
  * The three possible states of the secondary navigation sidebar:
@@ -13,6 +14,11 @@ import {NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY} from './constants';
 type SecondaryNavState = 'expanded' | 'collapsed' | 'peek';
 
 interface SecondaryNavigationContext {
+  /**
+   * When false, the page decides whether the sidebar is collapsed, so the user
+   * cannot toggle it and their collapsed preference is left untouched.
+   */
+  collapsible: boolean;
   setView: (view: SecondaryNavState) => void;
   view: SecondaryNavState;
 }
@@ -33,9 +39,18 @@ interface SecondaryNavigationContextProviderProps {
   children: React.ReactNode;
 }
 
-export function SecondaryNavigationContextProvider(
-  props: SecondaryNavigationContextProviderProps
-) {
+interface DesktopSecondaryNavigationContextProviderProps extends SecondaryNavigationContextProviderProps {
+  /**
+   * Keeps the sidebar collapsed, so it only shows as a peek over the page. Used
+   * on pages without a secondary navigation of their own.
+   */
+  forceCollapsed?: boolean;
+}
+
+export function SecondaryNavigationContextProvider({
+  children,
+  forceCollapsed = false,
+}: DesktopSecondaryNavigationContextProviderProps) {
   const [isCollapsedPersisted, setIsCollapsedPersisted] = useLocalStorageState(
     NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY,
     false
@@ -43,27 +58,56 @@ export function SecondaryNavigationContextProvider(
   const [view, setViewState] = useState<SecondaryNavState>(
     isCollapsedPersisted ? 'collapsed' : 'expanded'
   );
+  // Peeks on a force-collapsed page are kept apart from `view`, so they never
+  // overwrite the collapsed preference for the rest of the app.
+  const [isForcedPeek, setIsForcedPeek] = useState(false);
+  // Settings has too little in its sidebar to be worth hiding, so it ignores the
+  // collapsed preference without overwriting it for the rest of the app.
+  const forceExpanded = useSettingsNavigation();
+  const collapsible = !forceExpanded && !forceCollapsed;
+
+  // A peek that was open when the user entered settings or a force-collapsed
+  // page must not reopen as an unhovered peek once they leave.
+  if (!collapsible && view === 'peek') {
+    setViewState('collapsed');
+  }
+  if (!forceCollapsed && isForcedPeek) {
+    setIsForcedPeek(false);
+  }
 
   const setView = useCallback(
     (nextView: SecondaryNavState) => {
+      if (forceExpanded) {
+        return;
+      }
+      if (forceCollapsed) {
+        setIsForcedPeek(nextView === 'peek');
+        return;
+      }
       setViewState(nextView);
       if (nextView !== 'peek') {
         setIsCollapsedPersisted(nextView === 'collapsed');
       }
     },
-    [setIsCollapsedPersisted]
+    [forceExpanded, forceCollapsed, setIsCollapsedPersisted]
   );
 
-  const value = useMemo(() => {
-    return {
-      view,
-      setView,
-    };
-  }, [view, setView]);
+  const currentView: SecondaryNavState = forceExpanded
+    ? 'expanded'
+    : forceCollapsed
+      ? isForcedPeek
+        ? 'peek'
+        : 'collapsed'
+      : view;
+
+  const value = useMemo(
+    () => ({collapsible, view: currentView, setView}),
+    [collapsible, currentView, setView]
+  );
 
   return (
     <SecondaryNavigationContext.Provider value={value}>
-      {props.children}
+      {children}
     </SecondaryNavigationContext.Provider>
   );
 }
@@ -88,7 +132,7 @@ export function MobileSecondaryNavigationContextProvider(
     }
   }, []);
 
-  const value = useMemo(() => ({view, setView}), [view, setView]);
+  const value = useMemo(() => ({collapsible: true, view, setView}), [view, setView]);
 
   return (
     <SecondaryNavigationContext.Provider value={value}>

@@ -60,7 +60,7 @@ export function getNavigationConfiguration({
           id: 'project_attributes',
           path: `${pathPrefix}/attributes/`,
           title: t('Attributes'),
-          badge: () => 'alpha',
+          badge: () => 'beta',
           description: t("Browse a project's log, metric, and span attributes"),
           keywords: [t('attribute'), t('attributes')],
           show: () => !!organization?.features?.includes('attribute-management'),
@@ -146,11 +146,7 @@ export function getNavigationConfiguration({
           keywords: [t('debug file'), t('debug files'), t('symbols'), t('dsyms')],
           badge: debugFilesNeedsReview ? () => 'warning' : undefined,
         },
-        {
-          id: 'project_proguard',
-          path: `${pathPrefix}/proguard/`,
-          title: t('ProGuard'),
-        },
+        {id: 'project_proguard', path: `${pathPrefix}/proguard/`, title: t('ProGuard')},
         {
           id: 'project_source_maps',
           path: `${pathPrefix}/source-maps/`,
@@ -163,12 +159,24 @@ export function getNavigationConfiguration({
           ],
         },
         {
+          id: 'project_symbolication_errors',
+          path: `${pathPrefix}/symbolication-errors/`,
+          title: t('Symbolication Errors'),
+          keywords: [
+            t('symbolication'),
+            t('processing errors'),
+            t('missing dsym'),
+            t('missing source map'),
+          ],
+          description: t('Which uploads are missing, by event count'),
+          show: () => !!organization?.features?.includes('symbolication-errors-page'),
+          badge: () => 'new',
+        },
+        {
           id: 'project_performance',
           path: `${pathPrefix}/performance/`,
           title: t('Performance'),
-          show: () =>
-            !!organization?.features?.includes('performance-view') &&
-            !isSelfHostedErrorsOnly,
+          show: () => !isSelfHostedErrorsOnly,
         },
 
         {

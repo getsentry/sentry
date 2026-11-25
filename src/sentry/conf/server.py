@@ -9,9 +9,9 @@ import os.path
 import re
 import socket
 import sys
-from collections.abc import Callable, Mapping, MutableSequence
+from collections.abc import Callable, Mapping, MutableSequence, Sequence
 from datetime import datetime, timedelta
-from typing import Any, Final, Literal, NotRequired, TypedDict, Union, overload
+from typing import TYPE_CHECKING, Any, Literal, NotRequired, TypedDict, Union, overload
 from urllib.parse import urlparse
 
 import orjson
@@ -19,6 +19,7 @@ from taskbroker_client.scheduler.config import ScheduleConfigMap, crontab
 
 import sentry
 import sentry.utils.types as env_types
+from sentry.conf import api_base_path
 from sentry.conf.api_pagination_allowlist_do_not_modify import (
     SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY,
 )
@@ -32,6 +33,10 @@ from sentry.conf.types.sdk_config import ServerSdkConfig
 from sentry.conf.types.sentry_config import SentryMode
 from sentry.conf.types.service_options import ServiceOptions
 from sentry.conf.types.uptime import UptimeRegionConfig
+
+if TYPE_CHECKING:
+    from django.utils.functional import _StrOrPromise
+    from django_stubs_ext.settings import TemplatesSetting
 
 
 def gettext_noop(s: str) -> str:
@@ -210,7 +215,7 @@ SENTRY_SELFCHAIN_IDEMPOTENCY_REDIS_CLUSTER = "default"
 
 # Hosts that are allowed to use system token authentication.
 # http://en.wikipedia.org/wiki/Reserved_IP_addresses
-INTERNAL_SYSTEM_IPS = (
+INTERNAL_SYSTEM_IPS: Sequence[str] = (
     "0.0.0.0/8",
     "10.0.0.0/8",
     "100.64.0.0/10",
@@ -423,7 +428,7 @@ ROOT_URLCONF = "sentry.conf.urls"
 # to leave things the way they were with Django <1.9.
 DATA_UPLOAD_MAX_MEMORY_SIZE: int | None = None
 
-TEMPLATES = [
+TEMPLATES: list[TemplatesSetting] = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
         "DIRS": [os.path.join(PROJECT_ROOT, "templates")],
@@ -505,6 +510,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.insights",
     "sentry.preprod",
     "sentry.releases",
+    "sentry.timeseries_annotations",
     "sentry.seer",
     "sentry.scm",
     "sentry.cadence",
@@ -655,8 +661,8 @@ CSRF_COOKIE_NAME = "sc"
 
 from django.urls import reverse_lazy
 
-LOGIN_REDIRECT_URL = reverse_lazy("sentry-login-redirect")
-LOGIN_URL = reverse_lazy("sentry-login")
+LOGIN_REDIRECT_URL: _StrOrPromise = reverse_lazy("sentry-login-redirect")
+LOGIN_URL: _StrOrPromise = reverse_lazy("sentry-login")
 
 AUTHENTICATION_BACKENDS = (
     "sentry.utils.auth.EmailAuthBackend",
@@ -716,6 +722,10 @@ VISUALSTUDIO_SCOPES = ["vso.work_write", "vso.project", "vso.code", "vso.release
 # Linear integration (OAuth app credentials)
 LINEAR_CLIENT_ID = ""
 LINEAR_CLIENT_SECRET = ""
+
+# Supabase integration (OAuth app credentials)
+SUPABASE_FOR_SEER_CLIENT_ID = ""
+SUPABASE_FOR_SEER_CLIENT_SECRET = ""
 
 SOCIAL_AUTH_PIPELINE = (
     "social_auth.backends.pipeline.user.get_username",
@@ -913,6 +923,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.hybridcloud.tasks.deliver_webhooks",
     "sentry.hybridcloud.tasks.webhook_backlog_metrics",
     "sentry.inbox.event_retention",
+    "sentry.inbox.item_retention",
     "sentry.ingest.consumer.simple_event",
     "sentry.ingest.transaction_clusterer.tasks",
     "sentry.integrations.bitbucket_server.tasks",
@@ -974,6 +985,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.seer.entrypoints.operator",
     "sentry.seer.entrypoints.slack.messaging",
     "sentry.seer.entrypoints.slack.tasks",
+    "sentry.seer.workflows.scheduled",
     "sentry.seer_workflow_outputs.tasks",
     "sentry.snuba.query_subscriptions.run",
     "sentry.snuba.tasks",
@@ -1037,6 +1049,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.workflow_engine.tasks.delayed_workflows",
     "sentry.workflow_engine.tasks.health_check",
     "sentry.workflow_engine.tasks.workflows",
+    "sentry.workflow_engine.tasks.seer_investigation",
     "sentry.workflow_engine.tasks.actions",
     "sentry.tasks.seer.explorer_index",
     "sentry.tasks.seer.context_engine_index",
@@ -1045,7 +1058,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.seer.agentic_triage.cron",
     "sentry.tasks.seer.autofix_issue_data",
     "sentry.tasks.seer.backfill_supergroups_lightweight",
-    "sentry.telemetry_classifiers.poc_tasks",
+    "sentry.telemetry_classifiers.tasks",
     # Used for tests
     "sentry.taskworker.tasks.examples",
 )
@@ -1062,8 +1075,12 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "schedule": crontab("*/1", "*", "*", "*", "*"),
     },
     "cadence-tick": {
-        "task": "issues:sentry.cadence.tasks.cadence_tick",
+        "task": "cadence:sentry.cadence.tasks.cadence_tick",
         "schedule": timedelta(seconds=10),
+    },
+    "cadence-sweep": {
+        "task": "cadence:sentry.cadence.tasks.cadence_sweep",
+        "schedule": crontab("*/1", "*", "*", "*", "*"),
     },
     "flush-buffers": {
         "task": "buffer:sentry.tasks.process_buffer.process_pending",
@@ -1123,10 +1140,6 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "auto-remove-inbox": {
         "task": "issues:sentry.tasks.auto_remove_inbox",
-        "schedule": crontab("*/15", "*", "*", "*", "*"),
-    },
-    "cleanup-universal-inbox-events": {
-        "task": "notifications:sentry.inbox.event_retention.schedule_inbox_event_cleanup",
         "schedule": crontab("*/15", "*", "*", "*", "*"),
     },
     "schedule-deletions": {
@@ -1194,9 +1207,9 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "telemetry-experience:sentry.dynamic_sampling.per_org.cache_dynamic_sampling_feature_flags",
         "schedule": crontab("0", "*", "*", "*", "*"),
     },
-    "telemetry-classifiers-conversations": {
-        "task": "telemetry.classifiers:sentry.telemetry_classifiers.tasks.schedule_conversation_classifiers",
-        "schedule": crontab("*/5", "*", "*", "*", "*"),
+    "telemetry-classifiers-schedule": {
+        "task": "telemetry.classifiers:sentry.telemetry_classifiers.tasks.schedule_classifiers",
+        "schedule": timedelta(minutes=1),
     },
     "weekly-escalating-forecast": {
         "task": "issues:sentry.tasks.weekly_escalating_forecast.run_escalating_forecast",
@@ -1488,7 +1501,10 @@ def custom_parameter_sort(parameter: _OperationParameter) -> tuple[str, int]:
 
 
 if os.environ.get("OPENAPIGENERATE", False):
-    OLD_OPENAPI_JSON_PATH = "tests/apidocs/openapi-deprecated.json"
+    # The test response check bundles the deprecated docs itself, so it passes its own path.
+    OLD_OPENAPI_JSON_PATH = os.environ.get(
+        "SENTRY_OPENAPI_DEPRECATED_JSON", "tests/apidocs/openapi-deprecated.json"
+    )
     from sentry.apidocs.build import OPENAPI_TAGS, get_old_json_components, get_old_json_paths
 
     SPECTACULAR_SETTINGS = {
@@ -1513,11 +1529,14 @@ if os.environ.get("OPENAPIGENERATE", False):
         "POSTPROCESSING_HOOKS": [
             "sentry.apidocs.hooks.custom_postprocessing_hook",
             "drf_spectacular.hooks.postprocess_schema_enum_id_removal",
+            # Last, so the hooks above see full paths.
+            "sentry.apidocs.hooks.relative_paths_hook",
         ],
         "PREPROCESSING_HOOKS": ["sentry.apidocs.hooks.custom_preprocessing_hook"],
         "SERVERS": [
             {
-                "url": "https://{region}.sentry.io",
+                # The path is the API base path; operation paths are relative to it.
+                "url": f"https://{{region}}.sentry.io{api_base_path.API_BASE_PATH}",
                 "variables": {
                     "region": {
                         "default": "us",
@@ -1567,7 +1586,7 @@ SENTRY_SINGLE_ORGANIZATION = False
 SENTRY_LOGIN_URL: str | None = None
 
 # Default project ID (for internal errors)
-SENTRY_PROJECT = 1
+SENTRY_PROJECT: int | None = 1
 SENTRY_PROJECT_KEY: int | None = None
 
 # Default organization to represent the Internal Sentry project.
@@ -1604,37 +1623,37 @@ SENTRY_FRONTEND_TRACE_PROPAGATION_TARGETS: list[str] | None = None
 # ----
 
 # sample rate for transactions initiated from the frontend
-SENTRY_FRONTEND_APM_SAMPLING = 1 if DEBUG else 0
+SENTRY_FRONTEND_APM_SAMPLING: float = 1 if DEBUG else 0
 
 # sample rate for transactions in the backend
-SENTRY_BACKEND_APM_SAMPLING = 1 if DEBUG else 0
+SENTRY_BACKEND_APM_SAMPLING: float = 1 if DEBUG else 0
 
 # Sample rate for symbolicate_event task transactions
-SENTRY_SYMBOLICATE_EVENT_APM_SAMPLING = 1 if DEBUG else 0
+SENTRY_SYMBOLICATE_EVENT_APM_SAMPLING: float = 1 if DEBUG else 0
 
 # Sample rate for the process_event task transactions
-SENTRY_PROCESS_EVENT_APM_SAMPLING = 1 if DEBUG else 0
+SENTRY_PROCESS_EVENT_APM_SAMPLING: float = 1 if DEBUG else 0
 
 # sample rate for relay's cache invalidation task
-SENTRY_RELAY_TASK_APM_SAMPLING = 1 if DEBUG else 0
+SENTRY_RELAY_TASK_APM_SAMPLING: float = 1 if DEBUG else 0
 
 # sample rate for ingest consumer processing functions
-SENTRY_INGEST_CONSUMER_APM_SAMPLING = 1 if DEBUG else 0
+SENTRY_INGEST_CONSUMER_APM_SAMPLING: float = 1 if DEBUG else 0
 
 # sample rate for suspect commits task
-SENTRY_SUSPECT_COMMITS_APM_SAMPLING = 1 if DEBUG else 0
+SENTRY_SUSPECT_COMMITS_APM_SAMPLING: float = 1 if DEBUG else 0
 
 # sample rate for post_process_group task
-SENTRY_POST_PROCESS_GROUP_APM_SAMPLING = 1 if DEBUG else 0
+SENTRY_POST_PROCESS_GROUP_APM_SAMPLING: float = 1 if DEBUG else 0
 
 # sample rate for all reprocessing tasks (except for the per-event ones)
-SENTRY_REPROCESSING_APM_SAMPLING = 1 if DEBUG else 0
+SENTRY_REPROCESSING_APM_SAMPLING: float = 1 if DEBUG else 0
 
 # sample rate for the ingest-replay-recordings task
-SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING = 0
+SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING: float = 0
 
 # sample rate for the ingest-monitors per-check-in transaction
-SENTRY_MONITORS_CHECKIN_APM_SAMPLING = 1 if DEBUG else 0
+SENTRY_MONITORS_CHECKIN_APM_SAMPLING: float = 1 if DEBUG else 0
 
 # ----
 # end APM config
@@ -1710,7 +1729,7 @@ SENTRY_ALLOW_ORIGIN: str | None = None
 
 # Origins that are allowed to use credentials. This list is in addition
 # to all subdomains of system.url-prefix
-ALLOWED_CREDENTIAL_ORIGINS: list[str] = []
+ALLOWED_CREDENTIAL_ORIGINS: Sequence[str] = []
 
 # Buffer backend
 SENTRY_BUFFER = "sentry.buffer.Buffer"
@@ -1724,7 +1743,7 @@ SENTRY_WORKFLOW_BUFFER_OPTIONS: dict[str, str] = {}
 # XXX: We explicitly require the cache to be configured as its not optional
 # and causes serious confusion with the default django cache
 SENTRY_CACHE: str | None = None
-SENTRY_CACHE_OPTIONS = {"is_default_cache": True}
+SENTRY_CACHE_OPTIONS: dict[str, Any] = {"is_default_cache": True}
 
 # Attachment blob cache backend
 SENTRY_ATTACHMENTS = "sentry.attachments.default.DefaultAttachmentCache"
@@ -1746,7 +1765,9 @@ SENTRY_TRANSACTION_PROCESSING_STORE_OPTIONS: dict[str, str] = {}
 
 # The internal Django cache is still used in many places
 # TODO(dcramer): convert uses over to Sentry's backend
-CACHES = {"default": {"BACKEND": "django.core.cache.backends.dummy.DummyCache"}}
+CACHES: dict[str, dict[str, Any]] = {
+    "default": {"BACKEND": "django.core.cache.backends.dummy.DummyCache"}
+}
 
 # The cache version affects both Django's internal cache (at runtime) as well
 # as Sentry's cache. This automatically overrides VERSION on the default
@@ -1800,7 +1821,7 @@ SENTRY_RATELIMITER_GROUP_CLI = 999
 SENTRY_IMPERSONATION_RATE_LIMIT = 30
 
 # The default value for project-level quotas
-SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE = "90%"
+SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE: str | None = "90%"
 
 # Snuba configuration
 SENTRY_SNUBA = os.environ.get("SNUBA", "http://127.0.0.1:1218")
@@ -1960,6 +1981,10 @@ SENTRY_SCOPES = {
     "alerts:write",
     "dashboard:read",
     "dashboard:write",
+    "membership:read",
+    "membership:write",
+    "membership:invite",
+    "membership:admin",
     "saved_query:read",
     "saved_query:write",
     "seer:read",
@@ -1983,6 +2008,7 @@ SENTRY_READONLY_SCOPES = {
     "event:read",
     "alerts:read",
     "dashboard:read",
+    "membership:read",
     "saved_query:read",
     "seer:read",
     "service_account:read",
@@ -2017,6 +2043,10 @@ SENTRY_SCOPE_HIERARCHY_MAPPING = {
     # Granular scopes are explicit: write does not imply read, so a token that reads
     # and writes needs both scopes.
     "dashboard:write": {"dashboard:write"},
+    "membership:read": {"membership:read"},
+    "membership:write": {"membership:write"},
+    "membership:invite": {"membership:invite"},
+    "membership:admin": {"membership:admin"},
     "saved_query:read": {"saved_query:read"},
     "saved_query:write": {"saved_query:write"},
     "seer:read": {"seer:read"},
@@ -2054,6 +2084,11 @@ GRANULAR_SCOPES = frozenset(
         "saved_query:write",
         "user_preference:read",
         "user_preference:write",
+        # Accepted by endpoints, but not granted by any role yet.
+        "membership:read",
+        "membership:write",
+        "membership:invite",
+        "membership:admin",
     ]
 )
 
@@ -2074,13 +2109,39 @@ DEPRECATED_SCOPE_TRANSLATIONS: dict[str, frozenset[str]] = {
             "user_preference:write",
         ]
     ),
-    # Starring, starred order and last visited accept member:read today, including writes.
+    # Starring and starred order accept member:read today, including writes.
     "member:read": frozenset(
         [
             # Removed once member:read has a full 1:1 translation to granular scopes.
             "member:read",
+            # Org and team membership reads.
+            "membership:read",
             "user_preference:read",
             "user_preference:write",
+        ]
+    ),
+    # Membership scopes don't imply each other, and each endpoint method accepts only the one
+    # it needs. So each member scope translates to the membership scope of every method that
+    # accepts that member scope today, e.g. member:write can read and invite as well as write.
+    "member:invite": frozenset(["member:invite", "membership:invite"]),
+    # Starring and starred order accept member:write too, like member:read.
+    "member:write": frozenset(
+        [
+            "member:write",
+            "membership:read",
+            "membership:invite",
+            "membership:write",
+            "user_preference:read",
+            "user_preference:write",
+        ]
+    ),
+    "member:admin": frozenset(
+        [
+            "member:admin",
+            "membership:read",
+            "membership:invite",
+            "membership:write",
+            "membership:admin",
         ]
     ),
     # No granular replacements yet.
@@ -2148,6 +2209,12 @@ SENTRY_SCOPE_SETS = (
     (
         ("dashboard:write", "Write access to dashboards."),
         ("dashboard:read", "Read access to dashboards."),
+    ),
+    (
+        ("membership:admin", "Admin access to organization and team membership."),
+        ("membership:write", "Write access to organization and team membership."),
+        ("membership:read", "Read access to organization and team membership."),
+        ("membership:invite", "Invite access to organization membership."),
     ),
     (
         ("saved_query:write", "Write access to saved queries."),
@@ -2633,13 +2700,13 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "26.10.1"
+SELF_HOSTED_STABLE_VERSION = "26.11.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
 SENTRY_USE_X_FORWARDED_FOR = True
 
-SENTRY_DEFAULT_INTEGRATIONS = (
+SENTRY_DEFAULT_INTEGRATIONS: tuple[str, ...] = (
     "sentry.integrations.bitbucket.integration.BitbucketIntegrationProvider",
     "sentry.integrations.bitbucket_server.integration.BitbucketServerIntegrationProvider",
     "sentry.integrations.slack.SlackIntegrationProvider",
@@ -2661,6 +2728,7 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.gcp.integration.GcpIntegrationProvider",
     "sentry.integrations.grafana.integration.GrafanaIntegrationProvider",
     "sentry.integrations.linear.integration.LinearIntegrationProvider",
+    "sentry.integrations.supabase.integration.SupabaseIntegrationProvider",
     "sentry.integrations.github_copilot.integration.GithubCopilotIntegrationProvider",
     "sentry.integrations.perforce.integration.PerforceIntegrationProvider",
     "sentry.integrations.cursor_origin.integration.CursorOriginIntegrationProvider",
@@ -2712,11 +2780,11 @@ SENTRY_SDK_THREADING_INTEGRATION = os.environ.get("SENTRY_SDK_DISABLE_THREADING"
 # traces_sample_rate. So that means the true sample rate will be approximately
 # traces_sample_rate * profiles_sample_rate
 # (subject to things like the traces_sampler)
-SENTRY_PROFILES_SAMPLE_RATE = 1 if DEBUG else 0
+SENTRY_PROFILES_SAMPLE_RATE: float = 1 if DEBUG else 0
 
 # We want to test a few schedulers possible in the profiler. Some are platform
 # specific, and each have their own pros/cons. See the sdk for more details.
-SENTRY_PROFILER_MODE: Final = "sleep"
+SENTRY_PROFILER_MODE = "sleep"
 
 # To have finer control over which process will have profiling enabled, this
 # environment variable will be required to enable profiling.
@@ -2738,7 +2806,7 @@ SENTRY_CONTINUOUS_PROFILING_ENABLED = os.environ.get("SENTRY_CONTINUOUS_PROFILIN
 
 # The sample rate to use for continuous profile sessions. This sample rate is
 # evaluated once per process and the decision is used for the remainer of the session.
-SENTRY_PROFILE_SESSION_SAMPLE_RATE = 1 if DEBUG else 0
+SENTRY_PROFILE_SESSION_SAMPLE_RATE: float = 1 if DEBUG else 0
 
 # Tells the sentry sdk to run under the trace lifecycle mode which
 # ensures the profiler is running whenever there is an active trace.
@@ -2767,16 +2835,15 @@ SENTRY_INTERCOM_API_SECRET = ""
 SENTRY_RELAY_STATIC_AUTH: dict[str, Any] = {}
 SENTRY_OBJECTSTORE_CONFIG: dict[str, Any] = {
     "base_url": "http://127.0.0.1:8888",
-    # Test-only token generator with read permission. Only active when no real
+    # Test-only token generator with read/write permission. Only active when no real
     # objectstore config is deployed. Exists so mint_token() does not raise in
     # test/dev environments that lack signing keys.
     "token_generator": {
         "kid": "test",
         "secret_key": "-----BEGIN PRIVATE KEY-----\nMC4CAQAwBQYDK2VwBCIEIOrZqzixETRBXsZl85d83N5nwb71ctTZ3/mwu1TX90vG\n-----END PRIVATE KEY-----\n",
-        "permissions": ["object.read"],
+        "permissions": ["object.read", "object.write"],
     },
 }
-SENTRY_VIEWER_CONTEXT_ENABLED = True
 SENTRY_ANALYTICS_BACKEND = "noop"
 SENTRY_ANALYTICS_OPTIONS: dict[str, Any] = {}
 SENTRY_MAIL_LIST_NAMESPACE = "localhost"
@@ -2826,6 +2893,7 @@ SENTRY_GITHUB_CONSOLE_SDK_APP_ID: int = 0
 SENTRY_SLACK_CLIENT_ID: str = ""
 SENTRY_SLACK_STAGING_CLIENT_ID: str = ""
 SENTRY_MSTEAMS_CLIENT_ID: str = ""
+# Empty tenant ID uses the multi-tenant botframework.com OAuth authority.
 SENTRY_MSTEAMS_TENANT_ID: str = ""
 SENTRY_VERCEL_CLIENT_ID: str = ""
 SENTRY_DISCORD_APPLICATION_ID: str = ""
@@ -2854,8 +2922,6 @@ SENTRY_DSYM_CACHE_PATH: str = "/tmp/sentry-dsym-cache"
 SENTRY_RELEASEFILE_CACHE_PATH: str = "/tmp/sentry-releasefile-cache"
 SENTRY_MAIL_ENABLE_REPLIES: bool = False
 SENTRY_MAIL_REPLY_HOSTNAME: str = ""
-SENTRY_SYSTEM_SUPPORT_EMAIL: str = ""
-SENTRY_SYSTEM_SECURITY_EMAIL: str = ""
 SENTRY_U2F_FACETS: list[str] = []
 SENTRY_SMS_TWILIO_ACCOUNT: str = ""
 SENTRY_SMS_TWILIO_NUMBER: str = ""
@@ -2872,6 +2938,9 @@ EMAIL_SUBJECT_PREFIX = DEAD
 # Shared btw Auth Provider and Social Auth Plugin
 GITHUB_APP_ID = DEAD
 GITHUB_API_SECRET = DEAD
+# The GitHub login client ID before single-organization mode replaces
+# GITHUB_APP_ID with the integration app's. Bootstrap derives it.
+SENTRY_GITHUB_LOGIN_CLIENT_ID: str = ""
 
 # Used by Auth Provider
 GITHUB_REQUIRE_VERIFIED_EMAIL = DEAD
@@ -3098,6 +3167,17 @@ SENTRY_BUILTIN_SOURCES = {
         "url": "https://proton-archive.steamos.cloud/",
         "is_public": True,
     },
+    # Valve's debuginfod server for SteamOS and all public Steam Linux Runtime versions.
+    # See: https://gitlab.steamos.cloud/steamrt/steam-runtime-tools/-/blob/main/docs/slr-for-game-developers.md#debuginfod
+    "steamos": {
+        "type": "http",
+        "id": "sentry:steamos",
+        "name": "SteamOS / Steam Runtime",
+        "layout": {"type": "debuginfod"},
+        "url": "https://debuginfod.steamos.cloud/buildid/",
+        "filters": {"filetypes": ["elf_code", "elf_debug"]},
+        "is_public": True,
+    },
 }
 
 # Relay
@@ -3144,7 +3224,7 @@ INVALID_EMAIL_ADDRESS_PATTERN = re.compile(r"\@qq\.com$", re.I)
 
 # This is customizable for sentry.io, but generally should only be additive
 # (currently the values not used anymore so this is more for documentation purposes)
-SENTRY_USER_PERMISSIONS = ("broadcasts.admin", "users.admin", "options.admin")
+SENTRY_USER_PERMISSIONS: tuple[str, ...] = ("broadcasts.admin", "users.admin", "options.admin")
 
 # WARNING(iker): there are two different formats for KAFKA_CLUSTERS: the one we
 # use below, and a legacy one that still might be used by self-hosted instances.
@@ -3178,7 +3258,7 @@ KAFKA_TOPIC_CONSUMER_CONFIG: dict[str, dict[str, Any]] = {}
 # This must be the default name that matches the topic
 # in sentry.conf.types.kafka_definition and sentry-kafka-schemas
 # and not any environment-specific override value
-KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
+KAFKA_TOPIC_TO_CLUSTER: dict[str, str] = {
     "events": "default",
     "ingest-events-dlq": "default",
     "ingest-events-backlog": "default",
@@ -3265,16 +3345,16 @@ SYMBOLICATOR_POLL_TIMEOUT = 5
 # defined in `src/sentry/lang/native/symbolicator.py`.
 # If a specific setting does not exist, this will fall back to the `default` pool.
 # If that is not configured, it will fall back to the `url` configured in
-# `symbolicator.options`.
+# `SENTRY_SYMBOLICATOR_OPTIONS`.
 # The settings here are intentionally empty and will fall back to
-# `symbolicator.options` for backwards compatibility.
+# `SENTRY_SYMBOLICATOR_OPTIONS` for deployments with a single pool.
 SYMBOLICATOR_POOL_URLS: dict[str, str] = {
     # "default": "...",
     # "js": "...",
     # "jvm": "...",
 }
 
-SENTRY_REQUEST_METRIC_ALLOWED_PATHS = (
+SENTRY_REQUEST_METRIC_ALLOWED_PATHS: tuple[str, ...] = (
     "sentry.web.api",
     "sentry.web.frontend",
     "sentry.api.endpoints",
@@ -3322,7 +3402,7 @@ SENTRY_REPROCESSING_STORE = "sentry.services.eventstore.reprocessing.redis.Redis
 # this cluster is not used to store attachments etc, that still happens on
 # rc-processing. This is just for buffering up event IDs and storing a counter
 # for synchronization/progress report.
-SENTRY_REPROCESSING_STORE_OPTIONS = {"cluster": "default"}
+SENTRY_REPROCESSING_STORE_OPTIONS: dict[str, Any] = {"cluster": "default"}
 
 # When copying attachments for to-be-reprocessed events into processing store,
 # how large is an individual file chunk? Each chunk is stored as Redis key.
@@ -3534,7 +3614,7 @@ GATEWAY_PROXY_TIMEOUT: int | None = (
 # Mapping of (logical topic names, slice id) to physical topic names
 # and kafka broker names. The kafka broker names are used to construct
 # the broker config from KAFKA_CLUSTERS. This is used for slicing only.
-SLICED_KAFKA_TOPICS: Mapping[tuple[str, int], Mapping[str, Any]] = {}
+SLICED_KAFKA_TOPICS: dict[tuple[str, int], Mapping[str, Any]] = {}
 
 # Used by silo tests -- activate all silo mode test decorators even if not marked stable
 FORCE_SILOED_TESTS = os.environ.get("SENTRY_FORCE_SILOED_TESTS", False)
@@ -3599,7 +3679,7 @@ SENTRY_MODEL_CACHE_USE_REPLICA = False
 
 # Additional consumer definitions beyond the ones defined in sentry.consumers.
 # Necessary for getsentry to define custom consumers.
-SENTRY_KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {}
+SENTRY_KAFKA_CONSUMERS: dict[str, ConsumerDefinition] = {}
 
 # sentry devserver should _always_ start the following consumers, identified by
 # key in SENTRY_KAFKA_CONSUMERS or sentry.consumers.KAFKA_CONSUMERS
@@ -3643,7 +3723,6 @@ REGION_PINNED_URL_NAMES = {
     "sentry-api-0-group-user-reports",
     "sentry-api-0-group-attachments",
     "sentry-api-0-group-similar",
-    "sentry-api-0-group-similar-issues-embeddings",
     "sentry-api-0-group-external-issues",
     "sentry-api-0-group-external-issues-details",
     "sentry-api-0-group-integrations",
@@ -3720,7 +3799,7 @@ if ngrok_host:
     CSRF_TRUSTED_ORIGINS = [f"https://*.{ngrok_host}", f"https://{ngrok_host}"]
     ALLOWED_HOSTS = [f".{ngrok_host}", "localhost", "127.0.0.1", ".docker.internal"]
 
-    SESSION_COOKIE_DOMAIN: str = f".{ngrok_host}"
+    SESSION_COOKIE_DOMAIN: str | None = f".{ngrok_host}"
     CSRF_COOKIE_DOMAIN = SESSION_COOKIE_DOMAIN
     SUDO_COOKIE_DOMAIN = SESSION_COOKIE_DOMAIN
 

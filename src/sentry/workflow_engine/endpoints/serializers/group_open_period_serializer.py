@@ -1,9 +1,10 @@
 from collections import defaultdict
 from collections.abc import Iterable, Mapping
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Annotated, Any, TypedDict
 
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.incidents.utils.process_update_helpers import calculate_event_date_from_update_date
 from sentry.models.group import Group
 from sentry.models.groupopenperiod import GroupOpenPeriod
@@ -12,21 +13,31 @@ from sentry.types.group import PriorityLevel
 
 
 class GroupOpenPeriodActivityResponse(TypedDict):
-    id: str
-    type: str
-    value: str | None
-    dateCreated: datetime
-    eventId: str | None
+    id: Annotated[str, ApiDescription("ID of the activity")]
+    type: Annotated[str, ApiDescription("What happened: `opened`, `status_change` or `closed`")]
+    value: Annotated[
+        str | None, ApiDescription("Issue priority after the activity, such as `high`")
+    ]
+    dateCreated: Annotated[datetime, ApiDescription("When the activity happened")]
+    eventId: Annotated[str | None, ApiDescription("ID of the event that caused the activity")]
 
 
 class GroupOpenPeriodResponse(TypedDict):
-    id: str
-    groupId: str
-    shortId: str | None
-    start: datetime
-    end: datetime | None
-    isOpen: bool
-    activities: list[GroupOpenPeriodActivityResponse] | None
+    id: Annotated[str, ApiDescription("ID of the open period")]
+    groupId: Annotated[str, ApiDescription("ID of the issue")]
+    shortId: Annotated[str | None, ApiDescription("Short ID of the issue, such as PROJECT-1A")]
+    start: Annotated[datetime, ApiDescription("When the issue opened, less `bucketSize`")]
+    end: Annotated[
+        datetime | None, ApiDescription("When the issue closed, less `bucketSize`. Null while open")
+    ]
+    isOpen: Annotated[bool, ApiDescription("Whether the open period is still open")]
+    activities: Annotated[
+        list[GroupOpenPeriodActivityResponse] | None,
+        ApiDescription(
+            "Activities in the date range, oldest first, up to 100. With `start`, the last "
+            "activity before it comes first"
+        ),
+    ]
 
 
 class GroupOpenPeriodAttrs(TypedDict):

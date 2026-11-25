@@ -12,24 +12,24 @@ from sentry.notebooks.services.executions import (
 
 
 def _dispatch_after_commit(execution: NotebookBlockExecution) -> None:
-    from sentry.notebooks.tasks import dispatch_investigation_execution
+    from sentry.notebooks.tasks import dispatch_notebook_execution
 
     transaction.on_commit(
-        partial(dispatch_investigation_execution.delay, execution.id),
+        partial(dispatch_notebook_execution.delay, execution.id),
         using=router.db_for_write(NotebookBlockExecution),
     )
 
 
 def schedule_eligible_auto_run_blocks(
-    *, investigation_id: int, user_id: int, retry_failed: bool = False
+    *, notebook_id: int, user_id: int, retry_failed: bool = False
 ) -> None:
     database = router.db_for_write(Notebook)
     with transaction.atomic(using=database):
-        investigation = Notebook.objects.select_for_update().get(id=investigation_id)
-        projects = list(investigation.projects.order_by("id"))
+        notebook = Notebook.objects.select_for_update().get(id=notebook_id)
+        projects = list(notebook.projects.order_by("id"))
         project_ids = [project.id for project in projects]
         blocks = list(
-            investigation.blocks.filter(deleted_at__isnull=True)
+            notebook.blocks.filter(deleted_at__isnull=True)
             .select_related(
                 "current_execution", "content_execution", "result_execution", "notebook"
             )
@@ -56,7 +56,7 @@ def schedule_eligible_auto_run_blocks(
                     continue
             execution, created = create_block_execution(
                 block=block,
-                expected_investigation_version=investigation.version,
+                expected_notebook_version=notebook.version,
                 expected_block_version=block.version,
                 user_id=user_id,
                 project_ids=project_ids,

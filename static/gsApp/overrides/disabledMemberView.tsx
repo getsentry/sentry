@@ -27,9 +27,7 @@ import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
-type Props = {
-  subscription: Subscription;
-};
+type Props = {subscription: Subscription};
 
 function DisabledMemberView(props: Props) {
   const {orgId} = useParams<{orgId: string}>();
@@ -64,11 +62,7 @@ function DisabledMemberView(props: Props) {
 
   const handleUpgradeRequestMutation = useMutation({
     mutationFn: () =>
-      sendUpgradeRequest({
-        api,
-        organization: organization!,
-        type: 'disabledMember',
-      }),
+      sendUpgradeRequest({api, organization: organization!, type: 'disabledMember'}),
     onSuccess: () => {
       setRequested(true);
       trackGetsentryAnalytics('disabled_member_view.clicked_upgrade_request', {
@@ -84,10 +78,7 @@ function DisabledMemberView(props: Props) {
         getApiUrl('/organizations/$organizationIdOrSlug/members/$memberId/', {
           path: {organizationIdOrSlug: String(organization?.slug), memberId: 'me'},
         }),
-        {
-          method: 'DELETE',
-          data: {},
-        }
+        {method: 'DELETE', data: {}}
       );
     },
     onMutate: () => {
@@ -164,9 +155,7 @@ function DisabledMemberView(props: Props) {
                   {requestButton}
                   <Confirm
                     onConfirm={() => handleLeaveMutation.mutate()}
-                    message={tct('Are you sure you want to leave [orgName]?', {
-                      orgName,
-                    })}
+                    message={tct('Are you sure you want to leave [orgName]?', {orgName})}
                   >
                     <Button size="sm" variant="danger">
                       {t('Leave')}

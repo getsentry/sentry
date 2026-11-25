@@ -18,10 +18,7 @@ import type {StacktraceType} from 'sentry/types/stacktrace';
 
 import {OmittedFrames} from './omittedFrames';
 
-type DefaultProps = {
-  expandFirstFrame: boolean;
-  includeSystemFrames: boolean;
-};
+type DefaultProps = {expandFirstFrame: boolean; includeSystemFrames: boolean};
 
 type Props = {
   data: StacktraceType;
@@ -35,6 +32,60 @@ type Props = {
   meta?: Record<any, any>;
   threadId?: number;
 } & Partial<DefaultProps>;
+
+function frameIsVisible(frame: Frame, nextFrame: Frame, includeSystemFrames: boolean) {
+  return (
+    includeSystemFrames ||
+    frame.inApp ||
+    nextFrame?.inApp ||
+    // the last non-app frame
+    (!frame.inApp && !nextFrame)
+  );
+}
+
+function getInitialFrameMap(
+  frames: Frame[],
+  includeSystemFrames: boolean
+): Record<number, boolean> {
+  const indexMap: Record<string, boolean> = {};
+  frames.forEach((frame, frameIdx) => {
+    const nextFrame = frames[frameIdx + 1]!;
+    const repeatedFrame = isRepeatedFrame(frame, nextFrame);
+    if (
+      frameIsVisible(frame, nextFrame, includeSystemFrames) &&
+      !repeatedFrame &&
+      !frame.inApp
+    ) {
+      indexMap[frameIdx] = false;
+    }
+  });
+  return indexMap;
+}
+
+function getInitialFrameCounts(
+  frames: Frame[],
+  includeSystemFrames: boolean
+): Record<number, number> {
+  let count = 0;
+  const countMap: Record<string, number> = {};
+  frames.forEach((frame, frameIdx) => {
+    const nextFrame = frames[frameIdx + 1]!;
+    const repeatedFrame = isRepeatedFrame(frame, nextFrame);
+    if (
+      frameIsVisible(frame, nextFrame, includeSystemFrames) &&
+      !repeatedFrame &&
+      !frame.inApp
+    ) {
+      countMap[frameIdx] = count;
+      count = 0;
+    } else {
+      if (!repeatedFrame && !frame.inApp) {
+        count += 1;
+      }
+    }
+  });
+  return countMap;
+}
 
 export function Content({
   data,
@@ -50,49 +101,11 @@ export function Content({
   frameSourceMapDebuggerData,
   hideSourceMapDebugger = false,
 }: Props) {
-  const [toggleFrameMap, setToggleFrameMap] = useState(setInitialFrameMap());
-
   const {frames = [], registers} = data;
 
-  function frameIsVisible(frame: Frame, nextFrame: Frame) {
-    return (
-      includeSystemFrames ||
-      frame.inApp ||
-      nextFrame?.inApp ||
-      // the last non-app frame
-      (!frame.inApp && !nextFrame)
-    );
-  }
-
-  function setInitialFrameMap(): Record<number, boolean> {
-    const indexMap: Record<string, boolean> = {};
-    (data.frames ?? []).forEach((frame, frameIdx) => {
-      const nextFrame = (data.frames ?? [])[frameIdx + 1]!;
-      const repeatedFrame = isRepeatedFrame(frame, nextFrame);
-      if (frameIsVisible(frame, nextFrame) && !repeatedFrame && !frame.inApp) {
-        indexMap[frameIdx] = false;
-      }
-    });
-    return indexMap;
-  }
-
-  function getInitialFrameCounts(): Record<number, number> {
-    let count = 0;
-    const countMap: Record<string, number> = {};
-    (data.frames ?? []).forEach((frame, frameIdx) => {
-      const nextFrame = (data.frames ?? [])[frameIdx + 1]!;
-      const repeatedFrame = isRepeatedFrame(frame, nextFrame);
-      if (frameIsVisible(frame, nextFrame) && !repeatedFrame && !frame.inApp) {
-        countMap[frameIdx] = count;
-        count = 0;
-      } else {
-        if (!repeatedFrame && !frame.inApp) {
-          count += 1;
-        }
-      }
-    });
-    return countMap;
-  }
+  const [toggleFrameMap, setToggleFrameMap] = useState(() =>
+    getInitialFrameMap(frames, includeSystemFrames)
+  );
 
   const handleToggleFrames = (
     mouseEvent: React.MouseEvent<HTMLElement>,
@@ -107,12 +120,8 @@ export function Content({
   };
 
   const lastFrameIndex = getLastFrameIndex(frames);
-  const frameCountMap = getInitialFrameCounts();
-  const hiddenFrameIndices = getHiddenFrameIndices({
-    data,
-    toggleFrameMap,
-    frameCountMap,
-  });
+  const frameCountMap = getInitialFrameCounts(frames, includeSystemFrames);
+  const hiddenFrameIndices = getHiddenFrameIndices({data, toggleFrameMap, frameCountMap});
 
   const mechanism =
     platform === 'java' && event.tags?.find(({key}) => key === 'mechanism')?.value;
@@ -127,12 +136,12 @@ export function Content({
       const isLastFrame = frameIndex === frames.length - 1;
 
       if (repeatedFrame) {
-        // oxlint-disable-next-line react/todo
+        // oxlint-disable-next-line react/immutability
         nRepeats++;
       }
 
       if (
-        (frameIsVisible(frame, nextFrame) && !repeatedFrame) ||
+        (frameIsVisible(frame, nextFrame, includeSystemFrames) && !repeatedFrame) ||
         hiddenFrameIndices.includes(frameIndex)
       ) {
         const frameProps: DeprecatedLineProps = {

@@ -1,19 +1,22 @@
 export type WorkflowStrategy =
   | 'agentic_triage'
-  | 'agentic_triage_v2'
   | 'breached_metric_investigation'
-  | 'duplicate_monitors';
+  | 'duplicate_monitors'
+  | 'scheduled_investigation';
 
-type SeerWorkflowError = {
-  code: string;
-  message: string;
-};
+type SeerWorkflowError = {code: string; message: string};
+
+/**
+ * Something an execution produced, e.g. a linked investigation
+ */
+type ExecutionOutput = {id: string; title: string; type: 'investigation'};
 
 type SeerWorkflowExecutionBase = {
   dateAdded: string;
   dateCompleted: string | null;
   dateUpdated: string;
   id: string;
+  outputs: ExecutionOutput[];
   seerRunId: string | null;
 };
 
@@ -28,14 +31,56 @@ type SeerWorkflowExecution = SeerWorkflowExecutionBase &
     | {error: SeerWorkflowError; status: 'failed'}
   );
 
+/**
+ * The metric monitor breach that started a run
+ */
+type MonitorTrigger = {
+  /**
+   * The monitor may have since been deleted
+   */
+  detectorId: string;
+  /**
+   * Null when the monitor is deleted, moved out of the trigger's project, or the
+   * viewer can't access it
+   */
+  detectorName: string | null;
+  environment: string | null;
+  eventId: string;
+  /**
+   * False once the triggering issue is deleted
+   */
+  groupExists: boolean;
+  groupId: string;
+  observedAt: string;
+  occurrenceId: string;
+  projectId: string;
+  type: 'monitor';
+  groupShortId?: string | null;
+};
+
+/**
+ * A scheduled run
+ */
+type CronTrigger = {type: 'cron'};
+
+/**
+ * What started a run. Discriminated by `type`; add new trigger variants to this union.
+ */
+type WorkflowTrigger = MonitorTrigger | CronTrigger;
+
 type SeerAutomationRunBase = {
   configId: string;
+  /**
+   * The automation's user-supplied name. Null when unnamed
+   */
+  configName: string | null;
   dateAdded: string;
   dateCompleted: string | null;
   dateUpdated: string;
   executions: SeerWorkflowExecution[];
   id: string;
   strategy: string;
+  trigger: WorkflowTrigger | null;
 };
 
 export type SeerAutomationRun = SeerAutomationRunBase &
@@ -55,9 +100,7 @@ export type SeerAutomationRun = SeerAutomationRunBase &
 
 export type SeerAutomationRunStatus = SeerAutomationRun['status'];
 
-export type SeerAutomationRunsResponse = {
-  runs: SeerAutomationRun[];
-};
+export type SeerAutomationRunsResponse = {runs: SeerAutomationRun[]};
 
 export type WorkflowDisplayStatus =
   | 'succeeded'
@@ -150,7 +193,12 @@ export type SeerWorkflowConfigCreateRequest = {
  */
 export type SeerWorkflowConfigUpdateRequest = {
   enabled?: boolean;
+  /**
+   * Empty means all environments
+   */
+  environments?: string[];
   monitorIds?: number[];
+  name?: string;
   /**
    * [-1] for all projects, otherwise selected project IDs
    */
@@ -158,6 +206,4 @@ export type SeerWorkflowConfigUpdateRequest = {
   serviceAccount?: SeerServiceAccountRequest;
 };
 
-export type SeerWorkflowConfigsResponse = {
-  configs: SeerWorkflowConfigResponse[];
-};
+export type SeerWorkflowConfigsResponse = {configs: SeerWorkflowConfigResponse[]};

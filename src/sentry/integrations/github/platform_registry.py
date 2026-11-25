@@ -187,6 +187,13 @@ FRAMEWORKS: list[FrameworkDef] = [
     },
     # --- Mobile / cross-platform / routing meta-frameworks (sort=1) ---
     {
+        "platform": "expo",
+        "sort": 1,
+        "base_platform": "javascript",
+        "some": [{"match_package": "expo"}],
+        "supersedes": ["react-native", "javascript-react"],
+    },
+    {
         "platform": "react-native",
         "sort": 1,
         "base_platform": "javascript",

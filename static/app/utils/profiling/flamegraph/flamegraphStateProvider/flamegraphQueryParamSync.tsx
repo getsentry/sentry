@@ -1,11 +1,11 @@
 import {useEffect} from 'react';
 import type {Query} from 'history';
 import {parseAsInteger, parseAsString, useQueryStates} from 'nuqs';
-import type * as qs from 'query-string';
 
 import type {DeepPartial} from 'sentry/types/utils';
 import {useFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
 import {Rect} from 'sentry/utils/profiling/speedscope';
+import type * as qs from 'sentry/utils/url/qs';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 
 import type {FlamegraphState} from './flamegraphContext';
@@ -91,10 +91,7 @@ export function decodeFlamegraphStateFromQueryParams(
   }
 
   if (typeof query.tid === 'string' && !isNaN(parseInt(query.tid, 10))) {
-    decoded.profiles = {
-      ...decoded.profiles,
-      threadId: parseInt(query.tid, 10),
-    };
+    decoded.profiles = {...decoded.profiles, threadId: parseInt(query.tid, 10)};
   }
 
   const fov = Rect.decode(query.fov);

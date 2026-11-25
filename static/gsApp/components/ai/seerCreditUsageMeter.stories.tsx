@@ -49,13 +49,13 @@ function NextToSendButton({children}: {children: React.ReactNode}) {
 }
 
 export default Storybook.story('SeerCreditUsageMeter', story => {
-  story('Auto reload off', () => {
+  story('Auto-reload off', () => {
     const organization = useOrganization();
     return (
       <Fragment>
         <Text as="p">
           The usage meter in the Seer chat composer, for billing members of an
-          organization with token-billed Seer. With auto reload off, the tooltip counts
+          organization with token-billed Seer. With auto-reload off, the tooltip counts
           monthly credits. Product code renders{' '}
           <Storybook.JSXNode
             name="SeerCreditUsageMeter"
@@ -68,7 +68,7 @@ export default Storybook.story('SeerCreditUsageMeter', story => {
           <SeerCreditUsageMeterView
             percentUsed={0.75}
             remaining={250}
-            total={1000}
+            countsDailyLimit={false}
             autoReloadEnabled={false}
             hasEnoughCredits
             configureAutoReloadTo={`/settings/${organization.slug}/billing/overview/`}
@@ -79,19 +79,19 @@ export default Storybook.story('SeerCreditUsageMeter', story => {
     );
   });
 
-  story('Auto reload on', () => {
+  story('Auto-reload on', () => {
     const organization = useOrganization();
     return (
       <Fragment>
         <Text as="p">
-          With auto reload on, the tooltip counts all available credits and says they
+          With auto-reload on, the tooltip counts all available credits and says they
           reload automatically.
         </Text>
         <NextToSendButton>
           <SeerCreditUsageMeterView
             percentUsed={0.75}
             remaining={250}
-            total={1000}
+            countsDailyLimit={false}
             autoReloadEnabled
             hasEnoughCredits
             configureAutoReloadTo={`/settings/${organization.slug}/billing/overview/`}
@@ -102,21 +102,21 @@ export default Storybook.story('SeerCreditUsageMeter', story => {
     );
   });
 
-  story('Out of reloads', () => {
+  story('Out of auto-reloads', () => {
     const organization = useOrganization();
     return (
       <Fragment>
         <Text as="p">
-          Auto reload is on but the organization still can't afford a message, so it has
-          used every top-up its threshold allows. The bar turns warning-colored and the
-          tooltip links to the auto reload settings. The out-of-credits alert sits above
-          the composer at the same time.
+          Auto-reload is on but the organization still can't afford a message, so it has
+          used every auto-reload its threshold allows. The bar turns warning-colored and
+          the tooltip links to the auto-reload settings. The out-of-credits alert sits
+          above the composer at the same time.
         </Text>
         <NextToSendButton>
           <SeerCreditUsageMeterView
             percentUsed={0.95}
             remaining={50}
-            total={1000}
+            countsDailyLimit={false}
             autoReloadEnabled
             hasEnoughCredits={false}
             configureAutoReloadTo={`/settings/${organization.slug}/billing/overview/`}
@@ -127,22 +127,46 @@ export default Storybook.story('SeerCreditUsageMeter', story => {
     );
   });
 
-  story('Out of credits with auto reload off', () => {
+  story('Out of credits with auto-reload off', () => {
     const organization = useOrganization();
     return (
       <Fragment>
         <Text as="p">
-          The organization can't afford a message and auto reload is off. The bar is
+          The organization can't afford a message and auto-reload is off. The bar is
           warning-colored, and the out-of-credits alert above the composer offers to turn
-          auto reload on.
+          auto-reload on.
         </Text>
         <NextToSendButton>
           <SeerCreditUsageMeterView
             percentUsed={0.95}
             remaining={50}
-            total={1000}
+            countsDailyLimit={false}
             autoReloadEnabled={false}
             hasEnoughCredits={false}
+            configureAutoReloadTo={`/settings/${organization.slug}/billing/overview/`}
+            forceTooltipVisible
+          />
+        </NextToSendButton>
+      </Fragment>
+    );
+  });
+
+  story('Daily usage limit', () => {
+    const organization = useOrganization();
+    return (
+      <Fragment>
+        <Text as="p">
+          With a daily usage limit, the meter counts down what's left of it today once it
+          would run out before the wallet. With auto-reload on, reloads refill the wallet
+          until the limit stops them, so the meter always counts the limit.
+        </Text>
+        <NextToSendButton>
+          <SeerCreditUsageMeterView
+            percentUsed={0.72}
+            remaining={700}
+            countsDailyLimit
+            autoReloadEnabled
+            hasEnoughCredits
             configureAutoReloadTo={`/settings/${organization.slug}/billing/overview/`}
             forceTooltipVisible
           />
@@ -173,7 +197,7 @@ export default Storybook.story('SeerCreditUsageMeter', story => {
                 <SeerCreditUsageMeterView
                   percentUsed={percentUsed}
                   remaining={Math.round((1 - percentUsed) * 1000)}
-                  total={1000}
+                  countsDailyLimit={false}
                   autoReloadEnabled={false}
                   hasEnoughCredits={hasEnoughCredits}
                   configureAutoReloadTo={configureAutoReloadTo}

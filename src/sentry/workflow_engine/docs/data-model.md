@@ -116,7 +116,7 @@ accessing their settings or saving them raises and logs an error for existing de
 `config_schema=None` skips configuration validation for pipelines that
 validate their own configuration. It does not skip type validation.
 
-`api_availability[DetectorAPIOperation.DISCOVER]` controls type discovery and suggested
+`api_availability[WorkflowEngineAPIOperation.DISCOVER]` controls type discovery and suggested
 validation choices. It defaults to `True`; set it to `False` for internal types or use
 a `FeatureGate` for a rollout. Discovery also requires a handler and `GET` availability;
 suggested choices require a validator. `DISCOVER` does not restrict access to detector
@@ -267,7 +267,7 @@ external action completed.
 
 ### `WorkflowFireHistory`
 
-[`WorkflowFireHistory`](../models/workflow_fire_history.py) stores a Workflow, issue
+[`WorkflowFireHistory`](../models/workflow_fire_history.py) stores a Workflow, optional issue
 group, event ID, notification UUID, and optional detector. It has no action or delivery
 outcome field. Rows are created before inactive-action filtering and event-level
 deduplication, so they record pre-dispatch intent rather than a scheduled or successfully

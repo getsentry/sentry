@@ -27,6 +27,7 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     AttributeAggregation,
     AttributeKey,
     AttributeValue,
+    DoubleArray,
     ExtrapolationMode,
     Function,
     IntArray,
@@ -270,6 +271,19 @@ class SearchResolverQueryTest(TestCase):
         )
         assert having is None
 
+    def test_percentage_in_filter(self) -> None:
+        where, having, _ = self.resolver.resolve_query("app.vitals.stall.percentage:[0,1]")
+        assert where == TraceItemFilter(
+            comparison_filter=ComparisonFilter(
+                key=AttributeKey(
+                    name="app.vitals.stall.percentage", type=AttributeKey.Type.TYPE_DOUBLE
+                ),
+                op=ComparisonFilter.OP_IN,
+                value=AttributeValue(val_double_array=DoubleArray(values=[0.0, 1.0])),
+            )
+        )
+        assert having is None
+
     def test_in_numeric_filter(self) -> None:
         where, having, _ = self.resolver.resolve_query("ai.total_tokens.used:[123,456,789]")
         assert where == TraceItemFilter(
@@ -502,6 +516,39 @@ class SearchResolverQueryTest(TestCase):
                     val=2,
                 )
             )
+
+    def test_max_timestamp_relative_aggregate_query(self) -> None:
+        with freeze_time("2018-12-11 10:20:00"):
+            where, having, _ = self.resolver.resolve_query("max(timestamp):-24h")
+        assert where is None
+        assert having == AggregationFilter(
+            comparison_filter=AggregationComparisonFilter(
+                aggregation=AttributeAggregation(
+                    aggregate=Function.FUNCTION_MAX,
+                    key=AttributeKey(name="sentry.timestamp", type=AttributeKey.Type.TYPE_DOUBLE),
+                    label="max(timestamp)",
+                    extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
+                ),
+                op=AggregationComparisonFilter.OP_GREATER_THAN_OR_EQUALS,
+                val=datetime.fromisoformat("2018-12-10 10:20:00+00:00").timestamp(),
+            )
+        )
+
+    def test_max_timestamp_absolute_aggregate_query(self) -> None:
+        where, having, _ = self.resolver.resolve_query("max(timestamp):>2018-12-10T10:20:00+00:00")
+        assert where is None
+        assert having == AggregationFilter(
+            comparison_filter=AggregationComparisonFilter(
+                aggregation=AttributeAggregation(
+                    aggregate=Function.FUNCTION_MAX,
+                    key=AttributeKey(name="sentry.timestamp", type=AttributeKey.Type.TYPE_DOUBLE),
+                    label="max(timestamp)",
+                    extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
+                ),
+                op=AggregationComparisonFilter.OP_GREATER_THAN,
+                val=datetime.fromisoformat("2018-12-10 10:20:00+00:00").timestamp(),
+            )
+        )
 
     def test_simple_negation_aggregate_query(self) -> None:
         operators = [

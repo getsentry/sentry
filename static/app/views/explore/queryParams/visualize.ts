@@ -52,6 +52,10 @@ export abstract class Visualize {
     this.visible = options?.visible ?? true;
   }
 
+  get hasSelectedChartType(): boolean {
+    return defined(this.selectedChartType);
+  }
+
   abstract clone(): Visualize;
   abstract replace({
     chartType,
@@ -70,9 +74,7 @@ export abstract class Visualize {
   }): Visualize;
 
   serialize(): BaseVisualize {
-    const json: BaseVisualize = {
-      yAxes: [this.yAxis],
-    };
+    const json: BaseVisualize = {yAxes: [this.yAxis]};
 
     if (defined(this.selectedChartType)) {
       json.chartType = this.selectedChartType;

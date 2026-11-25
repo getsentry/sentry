@@ -44,16 +44,11 @@ type AuthPayload = {
   superuserReason?: string;
 };
 
-type AccessDetails = {
-  superuserAccessCategory: string;
-  superuserReason: string;
-};
+type AccessDetails = {superuserAccessCategory: string; superuserReason: string};
 
 type SuperuserStep = {step: 'access'} | {access: AccessDetails; step: 'webauthn'};
 
-type DefaultProps = {
-  closeButton?: boolean;
-};
+type DefaultProps = {closeButton?: boolean};
 
 type Props = DefaultProps &
   Pick<ModalRenderProps, 'Body' | 'Footer' | 'Header'> & {
@@ -70,9 +65,7 @@ type Props = DefaultProps &
     retryRequest?: () => Promise<any>;
   };
 
-const passwordSchema = z.object({
-  password: z.string(),
-});
+const passwordSchema = z.object({password: z.string()});
 
 const accessSchema = z.object({
   superuserAccessCategory: z.string().min(1, t('Select an access category')),
@@ -119,9 +112,7 @@ export function SudoModal({
   const isStaff = accessMode === 'staff';
 
   const [errorType, setErrorType] = useState<ErrorCodes>();
-  const [superuserStep, setSuperuserStep] = useState<SuperuserStep>({
-    step: 'access',
-  });
+  const [superuserStep, setSuperuserStep] = useState<SuperuserStep>({step: 'access'});
 
   const disableU2FForSUForm = ConfigStore.get('disableU2FForSUForm');
 
@@ -217,10 +208,7 @@ export function SudoModal({
 
   const superuserForm = useScrapsForm({
     ...defaultFormOptions,
-    defaultValues: {
-      superuserAccessCategory: '',
-      superuserReason: '',
-    },
+    defaultValues: {superuserAccessCategory: '', superuserReason: ''},
     validators: {onDynamic: accessSchema},
     onSubmit: async ({value}) => {
       const access = accessSchema.parse(value);
@@ -440,20 +428,22 @@ export function SudoModal({
               <Fragment>
                 <superuserForm.AppField name="superuserAccessCategory">
                   {field => (
-                    <field.Radio.Group
+                    <field.RadioGroup
                       value={field.state.value}
                       onChange={field.handleChange}
                     >
-                      <field.Layout.Stack
-                        label={t('Categories of Superuser Access')}
-                        required
-                      >
-                        <Override
-                          name="component:superuser-access-category"
-                          RadioItem={field.Radio.Item}
-                        />
-                      </field.Layout.Stack>
-                    </field.Radio.Group>
+                      {({Item}) => (
+                        <field.Layout.Stack
+                          label={t('Categories of Superuser Access')}
+                          required
+                        >
+                          <Override
+                            name="component:superuser-access-category"
+                            RadioItem={Item}
+                          />
+                        </field.Layout.Stack>
+                      )}
+                    </field.RadioGroup>
                   )}
                 </superuserForm.AppField>
                 <superuserForm.AppField name="superuserReason">

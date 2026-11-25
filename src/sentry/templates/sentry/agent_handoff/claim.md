@@ -1,19 +1,16 @@
-# Claim Your Private Sentry Guide
+# Sentry for Agents
 
-Read the secret token supplied alongside the instructions URL in the user's prompt.
-It is a private, single-use handoff code. Keep it out of HTTP request URLs, logs, and
-conversation output.
-Fetching this page does not claim it.
+The user started this handoff in Sentry and gave you a one-time handoff code. The command
+below installs or updates the Sentry CLI and starts sign-in. If the CLI asks the user to
+approve sign-in, share the approval link and code it prints with the user. Let the command
+keep running while the user approves in their browser. Follow the setup instructions the
+CLI prints after sign-in succeeds.
 
-Detect the operating system and shell where commands will run. Use the Unix command
-for macOS, Linux, and WSL, or PowerShell for native Windows.
+Replace HANDOFF_CODE with the handoff code and run the command for your shell once.
 
-Replace HANDOFF_CODE with the secret token and run only the matching claim command once.
-Follow the Markdown returned by the command.
+{{ unix_installer }}
 
-{{ unix_claim_command }}
+{{ windows_installer }}
 
-{{ windows_claim_command }}
-
-If the user's prompt has no secret token, ask the user to generate a private prompt in
-Sentry. If the claim response is lost or the code is unavailable, request a new prompt.
+If the user didn't give you a handoff code, ask them to copy the prompt from Sentry again.
+If setup fails, follow the CLI's recovery guidance.

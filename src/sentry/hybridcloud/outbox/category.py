@@ -99,6 +99,7 @@ class OutboxCategory(IntEnum):
     ORGANIZATION_PROVISION_ANALYTICS = 51
     SERVICE_ACCOUNT_CREATE = 52
     SERVICE_ACCOUNT_TOKEN_UPDATE = 53
+    SERVICE_ACCOUNT_GRANT_UPDATE = 54
 
     @classmethod
     def as_choices(cls) -> Sequence[tuple[int, int]]:
@@ -387,7 +388,10 @@ class OutboxScope(IntEnum):
     ACTION_SCOPE = scope_categories(12, {OutboxCategory.SENTRY_APP_NORMALIZE_ACTIONS})
     SEER_SCOPE = scope_categories(13, {OutboxCategory.SEER_RUN_CREATE})
     GROUP_SCOPE = scope_categories(14, {OutboxCategory.GROUP_ACTION_LOG_EVENT})
-    SERVICE_ACCOUNT_SCOPE = scope_categories(15, {OutboxCategory.SERVICE_ACCOUNT_CREATE})
+    SERVICE_ACCOUNT_SCOPE = scope_categories(
+        15,
+        {OutboxCategory.SERVICE_ACCOUNT_CREATE, OutboxCategory.SERVICE_ACCOUNT_GRANT_UPDATE},
+    )
 
     def __str__(self) -> str:
         return self.name

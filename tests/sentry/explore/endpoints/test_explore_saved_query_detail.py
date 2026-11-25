@@ -12,8 +12,12 @@ from sentry.explore.models import (
     ExploreSavedQueryProject,
     ExploreSavedQueryStarred,
 )
+from sentry.search.eap.constants import QueryPriorities
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 
@@ -733,6 +737,56 @@ class ExploreSavedQueryDetailTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 403, response.content
 
+    def test_put_updates_query_priority(self) -> None:
+        for dataset in ("spans", "logs"):
+            saved = ExploreSavedQuery.objects.create(
+                organization=self.org,
+                created_by_id=self.user.id,
+                name="Priority query",
+                query={"query": [{"fields": ["timestamp"], "mode": "samples"}]},
+                dataset=(
+                    ExploreSavedQueryDataset.SPANS
+                    if dataset == "spans"
+                    else ExploreSavedQueryDataset.OURLOGS
+                ),
+                query_priority=QueryPriorities.FASTER,
+            )
+            url = reverse("sentry-api-0-explore-saved-query-detail", args=[self.org.slug, saved.id])
+            with self.feature(self.feature_name):
+                response = self.client.put(
+                    url,
+                    {
+                        "name": "Priority query",
+                        "projects": self.project_ids,
+                        "dataset": dataset,
+                        "query": [{"fields": ["timestamp"], "mode": "samples"}],
+                        "range": "24h",
+                        "queryPriority": "normal",
+                    },
+                )
+            assert response.status_code == 200, response.content
+            assert response.data["dataset"] == dataset
+            assert response.data["queryPriority"] == "normal"
+            saved.refresh_from_db()
+            assert saved.query_priority == QueryPriorities.NORMAL
+
+            with self.feature(self.feature_name):
+                response = self.client.put(
+                    url,
+                    {
+                        "name": "Renamed query",
+                        "projects": self.project_ids,
+                        "dataset": dataset,
+                        "query": [{"fields": ["timestamp"], "mode": "samples"}],
+                        "range": "24h",
+                    },
+                )
+            assert response.status_code == 200, response.content
+            assert response.data["queryPriority"] == "normal"
+            saved.refresh_from_db()
+            assert saved.name == "Renamed query"
+            assert saved.query_priority == QueryPriorities.NORMAL
+
 
 class OrganizationExploreQueryVisitTest(APITestCase, SnubaTestCase):
     feature_name = "organizations:visibility-explore-view"
@@ -799,6 +853,41 @@ class OrganizationExploreQueryVisitTest(APITestCase, SnubaTestCase):
         assert not ExploreSavedQueryLastVisited.objects.filter(
             explore_saved_query=self.query
         ).exists()
+
+    def _use_token(self, scope_list: list[str]) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.client.logout()
+            token = self.create_user_auth_token(user=self.user, scope_list=scope_list)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
+
+    @with_feature("organizations:granular-permission-scopes")
+    def test_saved_query_read_can_record_visit(self) -> None:
+        self._use_token(["saved_query:read"])
+        with self.feature(self.feature_name):
+            response = self.client.post(self.url(str(self.query.id)))
+        assert response.status_code == 204, response.content
+        assert ExploreSavedQuery.objects.get(id=self.query.id).visits == 2
+        assert ExploreSavedQueryLastVisited.objects.filter(
+            user_id=self.user.id, explore_saved_query=self.query
+        ).exists()
+
+    @with_feature("organizations:granular-permission-scopes")
+    @override_options({"auth.deprecated-scope-translation.enabled": True})
+    def test_org_read_token_is_translated(self) -> None:
+        self._use_token(["org:read"])
+        with self.feature(self.feature_name):
+            response = self.client.post(self.url(str(self.query.id)))
+        assert response.status_code == 204, response.content
+        assert ExploreSavedQuery.objects.get(id=self.query.id).visits == 2
+
+    @with_feature("organizations:granular-permission-scopes")
+    def test_saved_query_write_cannot_record_visit(self) -> None:
+        # Write does not imply read.
+        self._use_token(["saved_query:write", "user_preference:read", "user_preference:write"])
+        with self.feature(self.feature_name):
+            response = self.client.post(self.url(str(self.query.id)))
+        assert response.status_code == 403
+        assert ExploreSavedQuery.objects.get(id=self.query.id).visits == 1
 
     def test_visit_query_no_access(self) -> None:
         last_visited = self.query.last_visited

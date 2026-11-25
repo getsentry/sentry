@@ -6,7 +6,7 @@ import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Confirm} from '@sentry/scraps/confirm';
 import {Grid, Container} from '@sentry/scraps/layout';
-import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {LinkTabs} from '@sentry/scraps/tabs';
 import {toast} from '@sentry/scraps/toast';
 
 import {openEmailVerification} from 'sentry/actionCreators/modal';
@@ -47,11 +47,7 @@ export default function AccountSecurity() {
 
   const {mutateAsync: closeAllSessions} = useMutation({
     mutationFn: () =>
-      fetchMutation({
-        url: getApiUrl('/auth/'),
-        method: 'DELETE',
-        data: {all: true},
-      }),
+      fetchMutation({url: getApiUrl('/auth/'), method: 'DELETE', data: {all: true}}),
   });
 
   async function handleSessionClose() {
@@ -94,16 +90,18 @@ export default function AccountSecurity() {
     <SentryDocumentTitle title={t('Security')}>
       <SettingsPageHeader title={t('Security')} />
       <Container marginBottom="xl">
-        <Tabs value={activeTab}>
-          <TabList>
-            <TabList.Item key="settings" to={routePrefix}>
-              {t('Settings')}
-            </TabList.Item>
-            <TabList.Item key="sessionHistory" to={`${routePrefix}session-history/`}>
-              {t('Session History')}
-            </TabList.Item>
-          </TabList>
-        </Tabs>
+        <LinkTabs value={activeTab}>
+          {({TabList}) => (
+            <TabList>
+              <TabList.Item key="settings" to={routePrefix}>
+                {t('Settings')}
+              </TabList.Item>
+              <TabList.Item key="sessionHistory" to={`${routePrefix}session-history/`}>
+                {t('Session History')}
+              </TabList.Item>
+            </TabList>
+          )}
+        </LinkTabs>
       </Container>
 
       {!isEmpty && countEnrolled === 0 && <TwoFactorRequired />}

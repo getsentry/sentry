@@ -22,7 +22,7 @@ interface PublicProps {
    * mindful of query params like `cursor` creating a new query key.
    *
    * This is not the same as ApiQueryKey. But you could use:
-   * `safeParseQueryKey(apiQueryKey)?.options`.
+   * `parseQueryKey(apiQueryKey).options`.
    */
   endpointOptions: undefined | QueryKeyEndpointOptions;
 
@@ -133,9 +133,7 @@ export function ListItemCheckboxProvider({
   hits,
   knownIds,
   endpointOptions,
-}: {
-  children: React.ReactNode;
-} & PublicProps) {
+}: {children: React.ReactNode} & PublicProps) {
   const [state, setState] = useState<State>({ids: new Set()});
   const endpointOptionsRef = useRef(endpointOptions);
 

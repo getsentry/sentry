@@ -1,9 +1,10 @@
-from typing import Any
+from datetime import UTC, datetime
 from unittest.mock import patch
 
 import pytest
 from django.db import router, transaction
 
+from sentry.cadence.api import ScheduledTriggerType, get_schedules
 from sentry.constants import ObjectStatus
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.hybridcloud.models.outbox import CellOutbox, OutboxDatabaseError, outbox_context
@@ -18,28 +19,35 @@ from sentry.seer.models.workflow import (
     SeerWorkflowSchedule,
     SeerWorkflowStrategy,
 )
-from sentry.seer.workflows.workflow import (
-    SEER_WORKFLOW_SERVICE_ACCOUNT_OWNER,
+from sentry.seer.workflows.base import (
     AllProjects,
+    AutomationDefinition,
     SeerServiceAccountGrant,
-    SeerWorkflow,
+    SelectedMonitors,
     SelectedProjects,
     WorkflowUpdateError,
 )
+from sentry.seer.workflows.workflow import (
+    SEER_WORKFLOW_SERVICE_ACCOUNT_OWNER,
+    SeerWorkflow,
+)
 from sentry.service_accounts.models import (
     ServiceAccount,
+    ServiceAccountOwnerKind,
     ServiceAccountProject,
     ServiceAccountReplica,
 )
-from sentry.service_accounts.outbox import create_owned_service_account
+from sentry.service_accounts.outbox import ServiceAccountCreatePayload, create_owned_service_account
 from sentry.service_accounts.services.service_account import service_account_service
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, cell_silo_test
 
 GRANT = SeerServiceAccountGrant(scopes=["event:read"])
+PROMPT = {"prompt": "Check checkout latency"}
 
 
 class SeerWorkflowEnsureDefaultsTest(TestCase):
@@ -51,45 +59,60 @@ class SeerWorkflowEnsureDefaultsTest(TestCase):
         first = self.create_project()
 
         SeerWorkflow.ensure_defaults(self.organization.id)
-        (config,) = self.v2_configs()
+        (config,) = self.scheduled_configs()
         later = self.create_project()
         SeerWorkflow.ensure_defaults(self.organization.id)
 
         workflow = SeerWorkflow(config_id=config.id, organization_id=config.organization_id)
-        assert self.v2_configs() == [config]
-        assert self.v2_configs(other) == []
+        assert self.scheduled_configs() == [config]
+        assert self.scheduled_configs(other) == []
         assert workflow.filters.all_projects is True
         assert workflow.filters.environments == []
-        assert workflow.extras.seeded_default == SeerWorkflowStrategy.AGENTIC_TRIAGE_V2
+        assert workflow.extras.seeded_default == SeerWorkflowStrategy.SCHEDULED_INVESTIGATION
+        assert workflow.action_settings == {"skill": "agentic_triage"}
         assert workflow.get_project_ids() == [first.id, later.id]
 
     def test_existing_disabled_config_is_not_reseeded_or_changed(self) -> None:
         selected = self.create_project()
         existing = Factories.create_seer_workflow_config(
             self.organization,
-            strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
+            strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION,
             enabled=False,
             filters={"environments": ["production"]},
+            extras={"seeded_default": SeerWorkflowStrategy.SCHEDULED_INVESTIGATION},
             version=3,
         )
         Factories.create_seer_workflow_config_project(existing, selected)
 
         SeerWorkflow.ensure_defaults(self.organization.id)
 
-        (config,) = self.v2_configs()
+        (config,) = self.scheduled_configs()
         assert config.id == existing.id
         assert config.enabled is False
         assert config.filters == {"environments": ["production"]}
         assert config.version == 3
         workflow = SeerWorkflow(config_id=config.id, organization_id=config.organization_id)
-        assert workflow.extras.seeded_default is None
         assert workflow.get_project_ids() == [selected.id]
 
-    def v2_configs(self, organization: Organization | None = None) -> list[SeerWorkflowConfig]:
+    def test_user_created_config_does_not_replace_the_default(self) -> None:
+        user_created = Factories.create_seer_workflow_config(
+            self.organization,
+            strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION,
+        )
+
+        SeerWorkflow.ensure_defaults(self.organization.id)
+
+        user_config, seeded = self.scheduled_configs()
+        assert user_config.id == user_created.id
+        assert seeded.extras["seeded_default"] == SeerWorkflowStrategy.SCHEDULED_INVESTIGATION
+
+    def scheduled_configs(
+        self, organization: Organization | None = None
+    ) -> list[SeerWorkflowConfig]:
         return list(
             SeerWorkflowConfig.objects.filter(
                 organization=organization or self.organization,
-                strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
+                strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION,
             ).order_by("id")
         )
 
@@ -100,12 +123,14 @@ class SeerWorkflowCreateTest(TestCase):
 
         workflow = SeerWorkflow.create(
             organization_id=self.organization.id,
-            strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
+            strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION,
+            action_settings=PROMPT,
             enabled=True,
             schedule=SeerWorkflowSchedule.DAILY,
-            project_ids=[second.id, first.id],
+            scope=SelectedProjects((second.id, first.id)),
             environments=["production"],
-            extras=SeerWorkflowConfigExtras(name="Daily triage", created_by=self.user.id),
+            name="Daily triage",
+            created_by_id=self.user.id,
             service_account_grant=SeerServiceAccountGrant(
                 scopes=["event:read"], project_ids=[first.id]
             ),
@@ -123,11 +148,10 @@ class SeerWorkflowCreateTest(TestCase):
                     "project_id", flat=True
                 )
             ) == [first.id]
-        assert config.strategy == SeerWorkflowStrategy.AGENTIC_TRIAGE_V2
+        assert config.strategy == SeerWorkflowStrategy.SCHEDULED_INVESTIGATION
         assert config.enabled is True
         assert config.schedule == SeerWorkflowSchedule.DAILY
         assert config.filters == {"all_projects": False, "environments": ["production"]}
-        assert workflow.extras.name == "Daily triage"
         assert config.version == 1
         assert workflow.get_project_ids() == sorted([first.id, second.id])
 
@@ -136,41 +160,98 @@ class SeerWorkflowCreateTest(TestCase):
 
         workflow = SeerWorkflow.create(
             organization_id=self.organization.id,
-            strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
+            strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION,
+            action_settings=PROMPT,
             schedule=SeerWorkflowSchedule.DAILY,
-            project_ids=[-1],
+            scope=AllProjects(),
             service_account_grant=GRANT,
         )
 
         config = workflow.get_config()
         assert config.enabled is False
         assert config.filters == {"all_projects": True, "environments": []}
-        assert workflow.extras.name is None
         assert not SeerWorkflowConfigProject.objects.filter(config=config).exists()
         assert workflow.get_project_ids() == [project.id]
 
     def test_rejects_unconfigurable_strategy(self) -> None:
         with pytest.raises(WorkflowUpdateError, match="cannot be configured"):
-            SeerWorkflow.create(
+            SeerWorkflow.create(  # type: ignore[call-overload]
                 organization_id=self.organization.id,
                 strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE,
                 schedule=SeerWorkflowSchedule.DAILY,
-                project_ids=[],
+                scope=SelectedProjects(()),
                 service_account_grant=GRANT,
             )
         assert not SeerWorkflowConfig.objects.exists()
 
-    def test_rejects_metric_strategy_with_internal_error(self) -> None:
-        with pytest.raises(ValueError, match="Use create_with_monitors") as excinfo:
+    def test_rejects_project_scope_for_monitor_scoped_strategy(self) -> None:
+        with pytest.raises(WorkflowUpdateError, match="selected by connecting monitors"):
+            SeerWorkflow.create(  # type: ignore[call-overload]
+                organization_id=self.organization.id,
+                strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION,
+                scope=SelectedProjects(()),
+                service_account_grant=GRANT,
+            )
+        assert not SeerWorkflowConfig.objects.exists()
+
+    def test_rejects_settings_the_trigger_does_not_take(self) -> None:
+        with pytest.raises(WorkflowUpdateError, match="cron"):
             SeerWorkflow.create(
                 organization_id=self.organization.id,
                 strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION,
-                schedule=SeerWorkflowSchedule.DAILY,
-                project_ids=[],
+                scope=SelectedMonitors(()),
+                extras=SeerWorkflowConfigExtras(trigger_settings={"cron": "0 9 * * 1"}),
                 service_account_grant=GRANT,
             )
-        assert not isinstance(excinfo.value, WorkflowUpdateError)
+        with pytest.raises(WorkflowUpdateError, match="cron"):
+            SeerWorkflow.create(
+                organization_id=self.organization.id,
+                strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION,
+                action_settings=PROMPT,
+                scope=AllProjects(),
+                extras=SeerWorkflowConfigExtras(trigger_settings={"cron": "not a cron"}),
+                service_account_grant=GRANT,
+            )
         assert not SeerWorkflowConfig.objects.exists()
+
+    def test_scheduled_investigation_runs_a_prompt_or_a_skill(self) -> None:
+        for action_settings in ({"prompt": "Check checkout latency"}, {"skill": "agentic_triage"}):
+            workflow = SeerWorkflow.create(
+                organization_id=self.organization.id,
+                strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION,
+                scope=AllProjects(),
+                extras=SeerWorkflowConfigExtras(trigger_settings={"cron": "0 9 * * 1"}),
+                action_settings=action_settings,
+                service_account_grant=GRANT,
+            )
+            assert workflow.action_settings == action_settings
+
+        invalid: tuple[tuple[dict[str, str] | None, str], ...] = (
+            (None, "Set a prompt or a skill"),
+            ({}, "Set a prompt or a skill"),
+            ({"prompt": "Check checkout latency", "skill": "agentic_triage"}, "valid under each"),
+            ({"skill": "unknown"}, "unknown"),
+            ({"prompt": ""}, "too short"),
+        )
+        for invalid_settings, error in invalid:
+            with pytest.raises(WorkflowUpdateError, match=error):
+                SeerWorkflow.create(
+                    organization_id=self.organization.id,
+                    strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION,
+                    scope=AllProjects(),
+                    action_settings=invalid_settings,
+                    service_account_grant=GRANT,
+                )
+
+    def test_metric_automation_takes_no_action_settings(self) -> None:
+        with pytest.raises(WorkflowUpdateError, match="take no settings"):
+            SeerWorkflow.create(
+                organization_id=self.organization.id,
+                strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION,
+                scope=SelectedMonitors(()),
+                action_settings={"prompt": "Check latency"},
+                service_account_grant=GRANT,
+            )
 
     def test_rejects_other_org_project(self) -> None:
         foreign = self.create_project(organization=self.create_organization())
@@ -178,17 +259,19 @@ class SeerWorkflowCreateTest(TestCase):
         with pytest.raises(WorkflowUpdateError, match="must exist in the workflow's organization"):
             SeerWorkflow.create(
                 organization_id=self.organization.id,
-                strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
+                strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION,
+                action_settings=PROMPT,
                 schedule=SeerWorkflowSchedule.DAILY,
-                project_ids=[self.project.id, foreign.id],
+                scope=SelectedProjects((self.project.id, foreign.id)),
                 service_account_grant=GRANT,
             )
         with pytest.raises(WorkflowUpdateError, match="must exist in the workflow's organization"):
             SeerWorkflow.create(
                 organization_id=self.organization.id,
-                strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
+                strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION,
+                action_settings=PROMPT,
                 schedule=SeerWorkflowSchedule.DAILY,
-                project_ids=[self.project.id],
+                scope=SelectedProjects((self.project.id,)),
                 service_account_grant=SeerServiceAccountGrant(
                     scopes=["event:read"], project_ids=[foreign.id]
                 ),
@@ -201,15 +284,16 @@ class SeerWorkflowCreateTest(TestCase):
     def test_caps_configs_per_organization(self) -> None:
         for _ in range(2):
             Factories.create_seer_workflow_config(
-                self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2
+                self.organization, strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION
             )
 
         with pytest.raises(WorkflowUpdateError, match="at most 2 automations"):
             SeerWorkflow.create(
                 organization_id=self.organization.id,
-                strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
+                strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION,
+                action_settings=PROMPT,
                 schedule=SeerWorkflowSchedule.DAILY,
-                project_ids=[self.project.id],
+                scope=SelectedProjects((self.project.id,)),
                 service_account_grant=GRANT,
             )
         assert SeerWorkflowConfig.objects.filter(organization=self.organization).count() == 2
@@ -225,9 +309,10 @@ class SeerWorkflowServiceAccountOutboxTest(TestCase):
         ):
             return SeerWorkflow.create(
                 organization_id=self.organization.id,
-                strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
+                strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION,
+                action_settings=PROMPT,
                 schedule=SeerWorkflowSchedule.DAILY,
-                project_ids=[self.project.id],
+                scope=SelectedProjects((self.project.id,)),
                 service_account_grant=SeerServiceAccountGrant(
                     scopes=["event:read"], project_ids=[self.project.id]
                 ),
@@ -236,7 +321,7 @@ class SeerWorkflowServiceAccountOutboxTest(TestCase):
     def pending_outbox(self) -> CellOutbox:
         return CellOutbox.objects.get(category=OutboxCategory.SERVICE_ACCOUNT_CREATE)
 
-    def pending_payload(self) -> dict[str, Any]:
+    def pending_payload(self) -> ServiceAccountCreatePayload:
         payload = self.pending_outbox().payload
         assert payload is not None
         return payload
@@ -259,7 +344,9 @@ class SeerWorkflowServiceAccountOutboxTest(TestCase):
             category=OutboxCategory.SERVICE_ACCOUNT_CREATE
         ).exists()
         with assume_test_silo_mode(SiloMode.CONTROL):
-            assert ServiceAccount.objects.get(id=account_id).scope_list == ["event:read"]
+            account = ServiceAccount.objects.get(id=account_id)
+        assert account.scope_list == ["event:read"]
+        assert account.owner_kind == ServiceAccountOwnerKind.SEER_WORKFLOW_CONFIG
 
     def test_flush_database_error_keeps_config_for_retry(self) -> None:
         organization, project = self.organization, self.project
@@ -268,9 +355,10 @@ class SeerWorkflowServiceAccountOutboxTest(TestCase):
         ):
             workflow = SeerWorkflow.create(
                 organization_id=organization.id,
-                strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
+                strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION,
+                action_settings=PROMPT,
                 schedule=SeerWorkflowSchedule.DAILY,
-                project_ids=[project.id],
+                scope=SelectedProjects((project.id,)),
                 service_account_grant=SeerServiceAccountGrant(
                     scopes=["event:read"], project_ids=[project.id]
                 ),
@@ -323,7 +411,7 @@ class SeerWorkflowUpdateConfigTest(TestCase):
         super().setUp()
         self.selected = self.create_project()
         self.config = Factories.create_seer_workflow_config(
-            self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2
+            self.organization, strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION
         )
         Factories.create_seer_workflow_config_project(self.config, self.selected)
         self.workflow = SeerWorkflow(
@@ -333,17 +421,17 @@ class SeerWorkflowUpdateConfigTest(TestCase):
     def test_changes_in_one_update_bump_version_once(self) -> None:
         with self.workflow.update_config() as update:
             update.set_enabled(True)
-            update.set_project_selection(AllProjects())
+            update.set_scope(AllProjects())
 
         config = self.workflow.get_config()
         assert config.version == 2
-        assert config.enabled is True
+        assert AutomationDefinition.is_enabled(config) is True
         assert self.workflow.filters.all_projects is True
 
     def test_unchanged_update_does_not_save(self) -> None:
         with self.workflow.update_config() as update:
             update.set_enabled(False)
-            update.set_project_selection(SelectedProjects(project_ids=(self.selected.id,)))
+            update.set_scope(SelectedProjects(project_ids=(self.selected.id,)))
 
         config = self.workflow.get_config()
         assert config.version == 1
@@ -351,10 +439,10 @@ class SeerWorkflowUpdateConfigTest(TestCase):
 
     def test_set_extras_saves_and_bumps_version(self) -> None:
         with self.workflow.update_config() as update:
-            update.set_extras(SeerWorkflowConfigExtras(name="Triage", updated_by="bot"))
+            update.set_extras(SeerWorkflowConfigExtras(updated_by="bot"))
 
         config = self.workflow.get_config()
-        assert config.extras == {"name": "Triage", "updated_by": "bot"}
+        assert config.extras == {"updated_by": "bot"}
         assert config.version == 2
 
     def test_unchanged_extras_does_not_save(self) -> None:
@@ -369,7 +457,7 @@ class SeerWorkflowUpdateConfigTest(TestCase):
         other = self.create_project()
 
         with self.workflow.update_config() as update:
-            update.set_project_selection(SelectedProjects(project_ids=(other.id,)))
+            update.set_scope(SelectedProjects(project_ids=(other.id,)))
 
         assert self.workflow.get_config().version == 2
         assert self.workflow.filters.all_projects is False
@@ -380,12 +468,12 @@ class SeerWorkflowUpdateConfigTest(TestCase):
 
         with pytest.raises(RuntimeError, match="failed"), self.workflow.update_config() as update:
             update.set_enabled(True)
-            update.set_project_selection(SelectedProjects(project_ids=(other.id,)))
+            update.set_scope(SelectedProjects(project_ids=(other.id,)))
             raise RuntimeError("failed")
 
         config = self.workflow.get_config()
         assert config.version == 1
-        assert config.enabled is False
+        assert AutomationDefinition.is_enabled(config) is False
         assert self.workflow.get_project_ids() == [self.selected.id]
 
 
@@ -393,7 +481,7 @@ class SeerWorkflowScopeTest(TestCase):
     def test_scope_requires_active_project_in_organization(self) -> None:
         config = Factories.create_seer_workflow_config(
             self.organization,
-            strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
+            strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION,
             enabled=True,
             filters={"all_projects": False},
         )
@@ -406,7 +494,7 @@ class SeerWorkflowScopeTest(TestCase):
         assert workflow.matches_scope(later.id, None) is False
         other = SeerWorkflow(config_id=config.id, organization_id=config.organization_id)
         with other.update_config() as update:
-            update.set_project_selection(AllProjects())
+            update.set_scope(AllProjects())
         assert workflow.filters.all_projects is True
         assert workflow.matches_scope(later.id, None) is True
         foreign = self.create_project(organization=self.create_organization())
@@ -418,7 +506,7 @@ class SeerWorkflowScopeTest(TestCase):
     def test_scope_requires_enabled_config_and_matching_environment(self) -> None:
         config = Factories.create_seer_workflow_config(
             self.organization,
-            strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
+            strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION,
             enabled=True,
             filters={"all_projects": True, "environments": ["production"]},
         )
@@ -428,20 +516,21 @@ class SeerWorkflowScopeTest(TestCase):
         assert workflow.matches_scope(self.project.id, "staging") is False
         assert workflow.matches_scope(self.project.id, None) is False
 
-        SeerWorkflowConfig.objects.filter(id=config.id).update(enabled=False)
+        assert config.backing_workflow is not None
+        config.backing_workflow.update(enabled=False)
 
         assert workflow.matches_scope(self.project.id, "production") is False
 
     def test_reads_fresh_config_without_changing_previous_results(self) -> None:
         config = Factories.create_seer_workflow_config(
-            self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2
+            self.organization, strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION
         )
         workflow = SeerWorkflow(config_id=config.id, organization_id=self.organization.id)
         original = workflow.get_config()
 
         SeerWorkflowConfig.objects.filter(id=config.id).update(
             filters={"all_projects": True, "environments": ["production"]},
-            extras={"seeded_default": SeerWorkflowStrategy.AGENTIC_TRIAGE_V2},
+            extras={"seeded_default": SeerWorkflowStrategy.SCHEDULED_INVESTIGATION},
             version=2,
         )
 
@@ -449,11 +538,11 @@ class SeerWorkflowScopeTest(TestCase):
         assert workflow.get_config().version == 2
         assert workflow.filters.all_projects is True
         assert workflow.filters.environments == ["production"]
-        assert workflow.extras.seeded_default == SeerWorkflowStrategy.AGENTIC_TRIAGE_V2
+        assert workflow.extras.seeded_default == SeerWorkflowStrategy.SCHEDULED_INVESTIGATION
 
     def test_reads_and_changes_require_matching_organization(self) -> None:
         config = Factories.create_seer_workflow_config(
-            self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2
+            self.organization, strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION
         )
         workflow = SeerWorkflow(config_id=config.id, organization_id=self.create_organization().id)
 
@@ -463,7 +552,7 @@ class SeerWorkflowScopeTest(TestCase):
             workflow.get_project_ids()
         with pytest.raises(SeerWorkflowConfig.DoesNotExist):
             with workflow.update_config() as update:
-                update.set_project_selection(AllProjects())
+                update.set_scope(AllProjects())
 
         config.refresh_from_db()
         assert config.version == 1
@@ -496,7 +585,7 @@ class SeerWorkflowProjectSelectionTest(TestCase):
         )
 
         with workflow.update_config() as update:
-            update.set_project_selection(SelectedProjects(project_ids=(selected.id, selected.id)))
+            update.set_scope(SelectedProjects(project_ids=(selected.id, selected.id)))
         config.refresh_from_db()
         assert config.filters == {
             "all_projects": False,
@@ -519,7 +608,7 @@ class SeerWorkflowProjectSelectionTest(TestCase):
         assert initial_filters.all_projects is False
 
         with workflow.update_config() as update:
-            update.set_project_selection(AllProjects())
+            update.set_scope(AllProjects())
         later = self.create_project()
 
         config.refresh_from_db()
@@ -540,7 +629,7 @@ class SeerWorkflowProjectSelectionTest(TestCase):
         workflow = SeerWorkflow(config_id=config.id, organization_id=config.organization_id)
 
         with workflow.update_config() as update:
-            update.set_project_selection(SelectedProjects(project_ids=()))
+            update.set_scope(SelectedProjects(project_ids=()))
         config.refresh_from_db()
         assert (
             SeerWorkflow(
@@ -560,7 +649,7 @@ class SeerWorkflowProjectSelectionTest(TestCase):
 
         with pytest.raises(ValueError, match="Selected projects must exist"):
             with workflow.update_config() as update:
-                update.set_project_selection(SelectedProjects(project_ids=(valid.id, foreign.id)))
+                update.set_scope(SelectedProjects(project_ids=(valid.id, foreign.id)))
         config.refresh_from_db()
         assert workflow.get_project_ids() == [previous.id]
         assert config.filters == {"all_projects": False}
@@ -578,7 +667,7 @@ class SeerWorkflowProjectSelectionTest(TestCase):
             pytest.raises(RuntimeError, match="failed"),
         ):
             with workflow.update_config() as update:
-                update.set_project_selection(SelectedProjects(project_ids=(selected.id,)))
+                update.set_scope(SelectedProjects(project_ids=(selected.id,)))
         config.refresh_from_db()
         assert workflow.get_project_ids() == [previous.id]
         assert config.filters == {"all_projects": False}
@@ -594,7 +683,7 @@ class SeerWorkflowProjectSelectionTest(TestCase):
             transaction.atomic(router.db_for_write(SeerWorkflowConfig)),
         ):
             with workflow.update_config() as update:
-                update.set_project_selection(AllProjects())
+                update.set_scope(AllProjects())
             assert workflow.filters.all_projects is True
             raise RuntimeError("failed")
 
@@ -624,7 +713,7 @@ class SeerWorkflowProjectSelectionTest(TestCase):
 
         # An explicit selection of every active project counts, even without the flag.
         with workflow.update_config() as update:
-            update.set_project_selection(SelectedProjects(project_ids=(first.id, second.id)))
+            update.set_scope(SelectedProjects(project_ids=(first.id, second.id)))
         assert workflow.filters.all_projects is False
         assert workflow.has_all_projects() is True
 
@@ -637,7 +726,7 @@ class SeerWorkflowProjectSelectionTest(TestCase):
             organization=organization, status=ObjectStatus.PENDING_DELETION
         )
         config = Factories.create_seer_workflow_config(
-            organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2
+            organization, strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION
         )
         workflow = SeerWorkflow(config_id=config.id, organization_id=config.organization_id)
 
@@ -646,13 +735,13 @@ class SeerWorkflowProjectSelectionTest(TestCase):
         assert workflow.has_all_projects() is False
 
         with workflow.update_config() as update:
-            update.set_project_selection(SelectedProjects(project_ids=(project.id,)))
+            update.set_scope(SelectedProjects(project_ids=(project.id,)))
         assert workflow.has_all_projects() is False
 
     def create_config(self, *selected: Project, all_projects: bool = False) -> SeerWorkflowConfig:
         config = Factories.create_seer_workflow_config(
             self.organization,
-            strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
+            strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION,
             filters={"all_projects": all_projects},
         )
         for project in selected:
@@ -666,7 +755,7 @@ class SeerWorkflowServiceAccountTest(TestCase):
         super().setUp()
         self.config = Factories.create_seer_workflow_config(
             self.organization,
-            strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
+            strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION,
             filters={"environments": ["production"]},
             output_policy={"notify": True},
         )
@@ -690,9 +779,10 @@ class SeerWorkflowServiceAccountTest(TestCase):
         with outbox_context(flush=False):
             workflow = SeerWorkflow.create(
                 organization_id=self.organization.id,
-                strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
+                strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION,
+                action_settings=PROMPT,
                 schedule=SeerWorkflowSchedule.DAILY,
-                project_ids=[self.project.id],
+                scope=SelectedProjects((self.project.id,)),
                 service_account_grant=GRANT,
             )
 
@@ -702,6 +792,41 @@ class SeerWorkflowServiceAccountTest(TestCase):
         assert account.id == workflow.get_config().service_account_id
         assert account.scope_list == ["event:read"]
         assert not ServiceAccountReplica.objects.filter(service_account_id=account.id).exists()
+
+    def test_set_service_account_grant_commits_with_the_other_changes(self) -> None:
+        self.link(self.account.id)
+        version = self.workflow.get_config().version
+        grant = SeerServiceAccountGrant(scopes=["project:read"], all_projects=True)
+
+        with pytest.raises(WorkflowUpdateError):
+            with outbox_runner(), self.workflow.update_config() as update:
+                update.set_service_account_grant(grant)
+                update.set_enabled(True)
+                raise WorkflowUpdateError("failed")
+
+        assert not AutomationDefinition.is_enabled(self.workflow.get_config())
+        assert not self.control_service_account(self.account.id).all_projects
+        assert not CellOutbox.objects.filter(
+            category=OutboxCategory.SERVICE_ACCOUNT_GRANT_UPDATE
+        ).exists()
+
+        with outbox_runner(), self.workflow.update_config() as update:
+            update.set_service_account_grant(grant)
+            update.set_enabled(True)
+
+        config = self.workflow.get_config()
+        assert AutomationDefinition.is_enabled(config)
+        assert config.version == version + 1
+        account = self.control_service_account(self.account.id)
+        assert account.scope_list == ["project:read"]
+        assert account.all_projects
+
+        with self.workflow.update_config() as update:
+            assert not update.set_service_account_grant(grant)
+            assert CellOutbox.objects.filter(
+                category=OutboxCategory.SERVICE_ACCOUNT_GRANT_UPDATE
+            ).exists()
+        assert self.workflow.get_config().version == version + 1
 
     def test_resolution_uses_the_account_id_not_the_replica_id(self) -> None:
         with outbox_runner():
@@ -767,14 +892,14 @@ class SeerWorkflowServiceAccountTest(TestCase):
         self.link(self.account.id)
         other = Factories.create_seer_workflow_config(
             self.organization,
-            strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
+            strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION,
             service_account_id=self.account.id,
         )
         with outbox_runner():
             unrelated = Factories.create_service_account(self.organization, name="unrelated")
         unrelated_config = Factories.create_seer_workflow_config(
             self.organization,
-            strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
+            strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION,
             service_account_id=unrelated.id,
         )
         unrelated_workflow = SeerWorkflow(
@@ -816,3 +941,72 @@ class SeerWorkflowServiceAccountTest(TestCase):
             self.workflow.resolve_service_account()
         self.config.refresh_from_db()
         assert self.config.service_account_id == self.account.id
+
+
+class SeerWorkflowScheduleSyncTest(TestCase):
+    def next_scheduled_for(self, config: SeerWorkflowConfig) -> datetime | None:
+        info = get_schedules(
+            organization_id=config.organization_id,
+            trigger_type=ScheduledTriggerType.SEER_WORKFLOW,
+            target_ids=[config.id],
+        ).get(config.id)
+        return info.next_scheduled_for if info else None
+
+    def set_enabled(self, config: SeerWorkflowConfig, enabled: bool) -> SeerWorkflowConfig:
+        workflow = SeerWorkflow(config_id=config.id, organization_id=config.organization_id)
+        with workflow.update_config() as update:
+            update.set_enabled(enabled)
+        return workflow.get_config()
+
+    @freeze_time("2024-03-09 12:00:00")
+    def test_enabling_schedules(self) -> None:
+        config = Factories.create_seer_workflow_config(
+            self.organization, strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION
+        )
+
+        updated = self.set_enabled(config, True)
+
+        assert AutomationDefinition.is_enabled(updated)
+        assert updated.version == 2
+        assert self.next_scheduled_for(config) == datetime(2024, 3, 10, 10, 0, tzinfo=UTC)
+
+    def test_disabling_unschedules(self) -> None:
+        config = Factories.create_seer_workflow_config(
+            self.organization, strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION
+        )
+        self.set_enabled(config, True)
+
+        updated = self.set_enabled(config, False)
+
+        assert not AutomationDefinition.is_enabled(updated)
+        assert updated.version == 3
+        assert self.next_scheduled_for(config) is None
+
+    def test_unchanged_does_not_bump_version_but_repairs_schedule(self) -> None:
+        config = Factories.create_seer_workflow_config(
+            self.organization, strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION, enabled=True
+        )
+
+        updated = self.set_enabled(config, True)
+
+        assert updated.version == 1
+        assert self.next_scheduled_for(config) is not None
+
+    def test_unscheduled_strategy_is_not_scheduled(self) -> None:
+        config = Factories.create_seer_workflow_config(
+            self.organization, strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
+        )
+
+        self.set_enabled(config, True)
+
+        assert self.next_scheduled_for(config) is None
+
+    def test_delete_unschedules(self) -> None:
+        config = Factories.create_seer_workflow_config(
+            self.organization, strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION
+        )
+        self.set_enabled(config, True)
+
+        SeerWorkflow(config_id=config.id, organization_id=config.organization_id).delete()
+
+        assert self.next_scheduled_for(config) is None

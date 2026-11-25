@@ -323,15 +323,14 @@ export function MetricQueryRows({
           disabled
           variant="link"
           icon={<IconAdd />}
-          tooltipProps={{
-            title: t('Only a single equation is allowed at this time'),
-          }}
+          tooltipProps={{title: t('Only a single equation is allowed at this time')}}
           aria-label={t('Add Equation')}
         >
           {t('Add Equation')}
         </Button>
         {canTransform && (
           <AddTransformationButton
+            variant="link"
             traceItemDataset={TraceItemDataset.TRACEMETRICS}
             analyticsSource="dashboards"
             transformations={plottedTransformations}

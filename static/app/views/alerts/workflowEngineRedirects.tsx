@@ -1,17 +1,15 @@
 import {skipToken, useQuery} from '@tanstack/react-query';
 import type {Query} from 'history';
 import {parseAsString, useQueryState, useQueryStates, type inferParserType} from 'nuqs';
-import * as qs from 'query-string';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Redirect} from 'sentry/components/redirect';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
+import * as qs from 'sentry/utils/url/qs';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -274,20 +272,18 @@ function RedirectToIssue({
   const organization = useOrganization();
   const location = useLocation();
 
-  const {data: incidentGroupOpenPeriod, isPending: isOpenPeriodPending} =
-    useApiQuery<IncidentGroupOpenPeriod>(
-      [
-        getApiUrl('/organizations/$organizationIdOrSlug/incident-groupopenperiod/', {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
-        {query: {incident_identifier: alertId}},
-      ],
+  const {data: incidentGroupOpenPeriod, isPending: isOpenPeriodPending} = useQuery({
+    ...apiOptions.as<IncidentGroupOpenPeriod>()(
+      '/organizations/$organizationIdOrSlug/incident-groupopenperiod/',
       {
+        path: {organizationIdOrSlug: organization.slug},
+        query: {incident_identifier: alertId},
         staleTime: 0,
-        enabled: !!alertId,
-        retry: false,
       }
-    );
+    ),
+    enabled: !!alertId,
+    retry: false,
+  });
 
   if (isOpenPeriodPending) {
     return <LoadingIndicator />;
@@ -317,19 +313,17 @@ function RedirectToDetector({
   ruleId: string;
 }) {
   const organization = useOrganization();
-  const {data: alertRuleDetector, isPending: isDetectorPending} =
-    useApiQuery<AlertRuleDetector>(
-      [
-        getApiUrl('/organizations/$organizationIdOrSlug/alert-rule-detector/', {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
-        {query: {alert_rule_id: ruleId}},
-      ],
+  const {data: alertRuleDetector, isPending: isDetectorPending} = useQuery({
+    ...apiOptions.as<AlertRuleDetector>()(
+      '/organizations/$organizationIdOrSlug/alert-rule-detector/',
       {
+        path: {organizationIdOrSlug: organization.slug},
+        query: {alert_rule_id: ruleId},
         staleTime: 0,
-        retry: false,
       }
-    );
+    ),
+    retry: false,
+  });
 
   if (isDetectorPending) {
     return <LoadingIndicator />;
@@ -475,12 +469,7 @@ export function MonitorCreateRedirect() {
 
   return (
     <Redirect
-      to={makeLegacyCreateRedirectPath({
-        alertType,
-        organization,
-        project,
-        query,
-      })}
+      to={makeLegacyCreateRedirectPath({alertType, organization, project, query})}
     />
   );
 }
@@ -499,20 +488,18 @@ export function withOpenPeriodRedirect<P extends Record<string, any>>(
     const location = useLocation();
     const {alertId} = useParams();
 
-    const {data: incidentGroupOpenPeriod, isPending} =
-      useApiQuery<IncidentGroupOpenPeriod>(
-        [
-          getApiUrl('/organizations/$organizationIdOrSlug/incident-groupopenperiod/', {
-            path: {organizationIdOrSlug: organization.slug},
-          }),
-          {query: {incident_identifier: alertId}},
-        ],
+    const {data: incidentGroupOpenPeriod, isPending} = useQuery({
+      ...apiOptions.as<IncidentGroupOpenPeriod>()(
+        '/organizations/$organizationIdOrSlug/incident-groupopenperiod/',
         {
+          path: {organizationIdOrSlug: organization.slug},
+          query: {incident_identifier: alertId},
           staleTime: 0,
-          enabled: !!alertId,
-          retry: false,
         }
-      );
+      ),
+      enabled: !!alertId,
+      retry: false,
+    });
 
     if (isPending) {
       return <LoadingIndicator />;

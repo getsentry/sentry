@@ -59,6 +59,7 @@ class ServiceAccountService(RpcService):
         all_projects: bool,
         created_by_id: int | None,
         idempotency_key: str | None = None,
+        owner_kind: str | None = None,
     ) -> RpcServiceAccount:
         """
         `scope_list` must not be empty, `name` must be at most `MAX_NAME_LENGTH` characters,
@@ -67,6 +68,8 @@ class ServiceAccountService(RpcService):
 
         When `idempotency_key` matches an account in `organization_id`, that account is
         returned unchanged instead of creating another.
+
+        `owner_kind` is a `ServiceAccountOwnerKind` value. None records the owner as unknown.
         """
 
     @rpc_method
@@ -91,9 +94,9 @@ class ServiceAccountService(RpcService):
     @abstractmethod
     def delete_service_account(self, *, organization_id: int, service_account_id: int) -> None:
         """
-        Soft-delete the account: keep the row, turn it off for good and remove its project
-        links. Does nothing when the account isn't in `organization_id` or was already
-        deleted. Callers must write the audit log.
+        Soft-delete the account: keep the row, turn it off for good, remove its project
+        links and deactivate its tokens. Does nothing when the account isn't in
+        `organization_id` or was already deleted. Callers must write the audit log.
         """
 
 

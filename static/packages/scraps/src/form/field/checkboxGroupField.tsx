@@ -11,19 +11,23 @@ import {Text} from '@sentry/scraps/text';
 
 import {BaseField, type BaseFieldProps} from './baseField';
 
-interface CheckboxGroupProps extends BaseFieldProps<HTMLDivElement> {
-  children: React.ReactNode;
-  onChange: (value: string[]) => void;
-  value: string[];
+export interface CheckboxGroupProps<
+  T extends string,
+> extends BaseFieldProps<HTMLDivElement> {
+  children: (components: {
+    Item: (props: CheckboxGroupItemProps<NoInfer<T>>) => React.JSX.Element;
+  }) => React.ReactNode;
+  onChange: (value: Array<NoInfer<T>>) => void;
+  value: T[];
 }
 
-export function CheckboxGroup({
+function CheckboxGroup({
   children,
   value,
   onChange,
   disabled,
   ref,
-}: CheckboxGroupProps) {
+}: CheckboxGroupProps<string>) {
   const field = useFieldContext();
   const labelId = useLabelId();
   const autoSaveContext = useAutoSaveContext();
@@ -66,7 +70,7 @@ export function CheckboxGroup({
               }
             }}
           >
-            {children}
+            {children(checkboxGroupComponents)}
           </Stack>
           {indicator}
         </GroupProvider>
@@ -75,15 +79,17 @@ export function CheckboxGroup({
   );
 }
 
-export function CheckboxGroupItem({
+interface CheckboxGroupItemProps<T extends string> {
+  children: React.ReactNode;
+  value: T;
+  disabled?: boolean;
+}
+
+function CheckboxGroupItem({
   children,
   value: itemValue,
   disabled,
-}: {
-  children: React.ReactNode;
-  value: string;
-  disabled?: boolean;
-}) {
+}: CheckboxGroupItemProps<string>) {
   const {
     checked,
     onChange,
@@ -106,3 +112,11 @@ export function CheckboxGroupItem({
     </Flex>
   );
 }
+
+const checkboxGroupComponents = {Item: CheckboxGroupItem};
+
+// The callback ties the item values to the selected values' type. The runtime
+// components stay shared so that rendering the callback does not remount items.
+export const CheckboxGroupField = CheckboxGroup as <T extends string>(
+  props: CheckboxGroupProps<T>
+) => React.JSX.Element;

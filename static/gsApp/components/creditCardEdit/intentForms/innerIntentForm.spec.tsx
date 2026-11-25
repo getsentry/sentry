@@ -2,8 +2,6 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
-
 import {FTCConsentLocation} from 'getsentry/types';
 
 import {InnerIntentForm} from './innerIntentForm';
@@ -19,7 +17,6 @@ describe('InnerIntentForm', () => {
     location: 0,
     isSubmitting: false,
     cardMode: 'setup' as const,
-    intentDataQueryKey: [''] as unknown as ApiQueryKey,
   };
 
   beforeEach(() => {
@@ -107,9 +104,7 @@ describe('InnerIntentForm', () => {
     );
     render(<InnerIntentForm {...defaultProps} handleSubmit={handleSubmit} />);
 
-    const submitButton = screen.getByRole('button', {
-      name: 'Save Payment Method',
-    });
+    const submitButton = screen.getByRole('button', {name: 'Save Payment Method'});
     await userEvent.click(submitButton);
     expect(submitButton).toBeDisabled();
 

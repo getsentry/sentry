@@ -71,4 +71,5 @@ class TestBuildWorkflowEventDataFromEvent(TestCase):
 
         assert isinstance(result.event, GroupEvent)
         assert result.event.event_id == "test-event-id"
+        assert result.group is not None
         assert result.group.id == self.group.id

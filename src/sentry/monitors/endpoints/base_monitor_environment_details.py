@@ -62,7 +62,7 @@ class MonitorEnvironmentDetailsMixin(BaseEndpointMixin):
                     MonitorStatus.DELETION_IN_PROGRESS,
                 ]
             )
-            .first()
+            .get_or_none()
         )
 
         if not active_monitor_environment or not active_monitor_environment.update(

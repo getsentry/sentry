@@ -20,9 +20,7 @@ describe('QueryFilterBuilder', () => {
   let organization: Organization;
 
   beforeEach(() => {
-    organization = OrganizationFixture({
-      features: [],
-    });
+    organization = OrganizationFixture({features: []});
     jest.mocked(useCustomMeasurements).mockReturnValue({customMeasurements: {}});
     jest
       .mocked(useTraceItemDatasetAttributes)
@@ -39,10 +37,7 @@ describe('QueryFilterBuilder', () => {
       url: '/organizations/org-slug/trace-items/attributes/',
       body: [],
     });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/tags/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/tags/', body: []});
   });
 
   it('renders a dataset-specific query filter bar', async () => {
@@ -172,11 +167,7 @@ describe('QueryFilterBuilder', () => {
         initialRouterConfig: {
           location: {
             pathname: '/mock-pathname/',
-            query: {
-              query: [],
-              dataset: WidgetType.TRANSACTIONS,
-              displayType: DisplayType.LINE,
-            },
+            query: {query: [], dataset: WidgetType.ERRORS, displayType: DisplayType.LINE},
           },
         },
       }
@@ -212,17 +203,13 @@ describe('QueryFilterBuilder', () => {
     expect(await screen.findByText('+ Add Filter')).toBeInTheDocument();
   });
 
-  it('disables search bar when transaction widget type and discover-saved-queries-deprecation feature flag', async () => {
-    const organizationWithFeature = OrganizationFixture({
-      features: ['discover-saved-queries-deprecation'],
-    });
-
+  it('disables search bar for transaction widgets', async () => {
     render(
       <WidgetBuilderProvider>
         <WidgetBuilderQueryFilterBuilder onQueryConditionChange={() => {}} />
       </WidgetBuilderProvider>,
       {
-        organization: organizationWithFeature,
+        organization,
         initialRouterConfig: {
           location: {
             pathname: '/mock-pathname/',
@@ -242,7 +229,7 @@ describe('QueryFilterBuilder', () => {
     expect(searchBar).toBeDisabled();
   });
 
-  it('enables search bar when transaction widget type but no discover-saved-queries-deprecation feature flag', async () => {
+  it('enables search bar for non-transaction widgets', async () => {
     render(
       <WidgetBuilderProvider>
         <WidgetBuilderQueryFilterBuilder onQueryConditionChange={() => {}} />
@@ -252,11 +239,7 @@ describe('QueryFilterBuilder', () => {
         initialRouterConfig: {
           location: {
             pathname: '/mock-pathname/',
-            query: {
-              query: [],
-              dataset: WidgetType.TRANSACTIONS,
-              displayType: DisplayType.LINE,
-            },
+            query: {query: [], dataset: WidgetType.ERRORS, displayType: DisplayType.LINE},
           },
         },
       }

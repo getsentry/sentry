@@ -13,7 +13,6 @@ import type {Location, Query} from 'history';
 import isEqual from 'lodash/isEqual';
 
 import type {Client} from 'sentry/api';
-import {mergeDroppedDataBand} from 'sentry/components/droppedData/band/mergeDroppedDataBand';
 import {useDroppedDataBand} from 'sentry/components/droppedData/band/useDroppedDataBand';
 import type {DroppedDataProps} from 'sentry/components/droppedData/types';
 import {t} from 'sentry/locale';
@@ -37,6 +36,8 @@ import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
 
+import {useBandTooltips} from './bands/bandTooltip';
+import {mergeChartBands} from './bands/mergeChartBands';
 import type {AreaChartProps} from './areaChart';
 import {AreaChart} from './areaChart';
 import type {BarChartProps} from './barChart';
@@ -133,11 +134,8 @@ function Chart({
 }: ChartProps) {
   const [seriesSelection, setSeriesSelection] = useState<Record<string, boolean>>({});
   const chartRef = useRef<ReactEchartsRef>(null);
-  const droppedDataBand = useDroppedDataBand({
-    chartRef,
-    droppedData,
-    utc: zoomRenderProps.utc,
-  });
+  const droppedDataBand = useDroppedDataBand({droppedData});
+  const bands = useBandTooltips([droppedDataBand], {chartRef, utc: zoomRenderProps.utc});
 
   function handleLegendSelectChanged(legendChange: any) {
     const {selected} = legendChange;
@@ -203,13 +201,7 @@ function Chart({
     : seriesSelection;
 
   const legend = showLegend
-    ? {
-        right: 16,
-        top: 12,
-        data,
-        selected,
-        ...legendOptions,
-      }
+    ? {right: 16, top: 12, data, selected, ...legendOptions}
     : undefined;
 
   let series = Array.isArray(releaseSeries)
@@ -250,23 +242,20 @@ function Chart({
     },
   };
 
-  const band = mergeDroppedDataBand(
+  const band = mergeChartBands(
     {
       grid: {left: '24px', right: '24px', top: '32px', bottom: 12},
       xAxis: timeframeXAxis,
       yAxes: [chartOptionsProp?.yAxis ?? defaultYAxis],
       series: additionalSeries,
     },
-    droppedDataBand,
-    droppedData?.onClick
+    bands
   );
 
   const chartOptions = {
     colors: chartColors,
     grid: band.grid,
-    seriesOptions: {
-      showSymbol: false,
-    },
+    seriesOptions: {showSymbol: false},
     tooltip: {
       trigger: 'axis' as const,
       truncate: 80,
@@ -585,7 +574,7 @@ export function EventsChart(props: EventsChartProps) {
 
               return (
                 <TransitionChart
-                  loading={loading}
+                  loading={loading || !!loadingAdditionalSeries}
                   reloading={reloading || !!reloadingAdditionalSeries}
                   height={height ? `${height}px` : undefined}
                 >

@@ -50,9 +50,7 @@ const BASE_CONVERSATION = {
   user: null,
 };
 
-const organization = OrganizationFixture({
-  features: ['gen-ai-conversations'],
-});
+const organization = OrganizationFixture();
 
 function mockConversations(body: Array<Record<string, unknown>>) {
   return MockApiClient.addMockResponse({
@@ -78,6 +76,34 @@ describe('ConversationsTable', () => {
       PageFiltersStore.reset();
       PageFiltersStore.init();
     });
+  });
+
+  it('updates its table cursor while preserving unrelated query filters', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/agents/conversations/`,
+      body: [{...BASE_CONVERSATION, title: 'Paginated conversation'}],
+      headers: {
+        Link: '<https://example.com/next>; rel="next"; results="true"; cursor="next-conversation"',
+      },
+    });
+    const {router} = render(<TestConversationsTable />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/conversations/',
+          query: {environment: ['production', 'staging']},
+        },
+      },
+    });
+    await screen.findByText('Paginated conversation');
+    await userEvent.click(screen.getByRole('button', {name: 'Next'}));
+    await waitFor(() => {
+      expect(router.location.query).toEqual({
+        environment: ['production', 'staging'],
+        tableCursor: 'next-conversation',
+      });
+    });
+    expect(router.location.pathname).toBe('/conversations/');
   });
 
   it('renders the shared no-data state when there are no conversations', async () => {
@@ -135,12 +161,7 @@ describe('ConversationsTable', () => {
       {
         ...BASE_CONVERSATION,
         title: 'A conversation',
-        user: {
-          id: '1',
-          email: 'sarah@example.com',
-          username: null,
-          ip_address: null,
-        },
+        user: {id: '1', email: 'sarah@example.com', username: null, ip_address: null},
       },
     ]);
 
@@ -515,10 +536,7 @@ describe('parseStoredColumnWidths', () => {
 
   it('drops widths below the grid minimum', () => {
     expect(
-      parseStoredColumnWidths({
-        tools: COL_WIDTH_MINIMUM - 1,
-        age: COL_WIDTH_UNDEFINED,
-      })
+      parseStoredColumnWidths({tools: COL_WIDTH_MINIMUM - 1, age: COL_WIDTH_UNDEFINED})
     ).toEqual({});
   });
 

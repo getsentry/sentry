@@ -5,10 +5,9 @@ from urllib.parse import urlencode
 import orjson
 import pytest
 from django.conf import settings
-from django.test import Client, RequestFactory, override_settings
+from django.test import RequestFactory, override_settings
 from django.utils.functional import cached_property
 
-from sentry import options
 from sentry.identity.slack.provider import PREFERRED_ORGANIZATION_ID_KEY
 from sentry.integrations.messaging.metrics import SeerSlackHaltReason
 from sentry.integrations.models.integration import Integration
@@ -21,11 +20,12 @@ from sentry.integrations.slack.utils.auth import set_signing_secret
 from sentry.integrations.slack.utils.constants import SlackScope
 from sentry.integrations.slack.webhooks.base import SlackDMEndpoint
 from sentry.models.organization import Organization, OrganizationStatus
+from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
+from sentry.organizations.services.organization.impl import DatabaseBackedOrganizationService
 from sentry.silo.base import SiloMode
 from sentry.taskworker.adapters import ViewerContextHook
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers import override_options
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
 from sentry.users.models.identity import Identity
 from sentry.viewer_context import (
@@ -52,7 +52,7 @@ class SlackRequestTest(TestCase):
         }
         self.request.body = urlencode(self.request.data).encode("utf-8")
         self.request.META = set_signing_secret(
-            options.get("slack.signing-secret"), self.request.body
+            settings.SENTRY_SLACK_SIGNING_SECRET, self.request.body
         )
 
     @cached_property
@@ -71,7 +71,6 @@ class SlackRequestTest(TestCase):
     def test_exposes_data(self) -> None:
         assert self.slack_request.data["type"] == "foo"
 
-    @override_settings(SENTRY_VIEWER_CONTEXT_ENABLED=True)
     def test_validated_slack_identity_becomes_viewer(self) -> None:
         self.create_integration(
             organization=self.organization, external_id="T001", provider="slack"
@@ -91,7 +90,6 @@ class SlackRequestTest(TestCase):
             propagated = ViewerContext.deserialize(orjson.loads(headers["sentry-viewer-context"]))
             assert propagated.actor.user_id == self.user.id
 
-    @override_settings(SENTRY_VIEWER_CONTEXT_ENABLED=True)
     def test_bot_does_not_use_linked_user(self) -> None:
         self.create_integration(
             organization=self.organization, external_id="T001", provider="slack"
@@ -107,7 +105,6 @@ class SlackRequestTest(TestCase):
             assert ctx is not None
             assert ctx.actor.type == ActorType.UNKNOWN
 
-    @override_settings(SENTRY_VIEWER_CONTEXT_ENABLED=True)
     def test_unlinked_slack_identity_does_not_inherit_user(self) -> None:
         self.create_integration(
             organization=self.organization, external_id="T001", provider="slack"
@@ -123,7 +120,6 @@ class SlackRequestTest(TestCase):
             assert ctx is not None
             assert ctx.actor.type == ActorType.UNKNOWN
 
-    @override_settings(SENTRY_VIEWER_CONTEXT_ENABLED=True)
     def test_invalid_webhook_does_not_set_viewer(self) -> None:
         ctx = ViewerContext(actor=Actor(type=ActorType.UNKNOWN))
         with (
@@ -164,7 +160,7 @@ class SlackRequestTest(TestCase):
             self.slack_request.validate()
         assert e.value.status == 400
 
-    @override_options({"slack.signing-secret": None})  # force token-auth
+    @override_settings(SENTRY_SLACK_SIGNING_SECRET="")  # force token-auth
     def test_returns_401_on_invalid_token(self) -> None:
         self.request.data["token"] = "notthetoken"
 
@@ -187,7 +183,7 @@ class SlackRequestTest(TestCase):
             "api_app_id": "S1",
         }
         request.body = urlencode(self.request.data).encode("utf-8")
-        request.META = (options.get("slack.signing-secret"), self.request.body)
+        request.META = (settings.SENTRY_SLACK_SIGNING_SECRET, self.request.body)
 
         slack_request = SlackRequest(request)
         assert slack_request.team_id is None
@@ -196,96 +192,6 @@ class SlackRequestTest(TestCase):
             "slack_user_id": "2",
             "slack_api_app_id": "S1",
         }
-
-
-@pytest.mark.django_db(databases=["default", "control"])
-class TestSlackCredentialSources:
-    @control_silo_test
-    @pytest.mark.parametrize(
-        "database_options,deployment_options,setting_secret,effective_secret,rejected_secret",
-        [
-            (
-                {"slack.signing-secret": "database-secret"},
-                {},
-                "",
-                "database-secret",
-                "incorrect-secret",
-            ),
-            (
-                {},
-                {"slack.signing-secret": "deployment-secret"},
-                "",
-                "deployment-secret",
-                "incorrect-secret",
-            ),
-            (
-                {"slack.signing-secret": "shared-secret"},
-                {"slack.signing-secret": "shared-secret"},
-                "shared-secret",
-                "shared-secret",
-                "incorrect-secret",
-            ),
-            (
-                {"slack.signing-secret": "database-secret"},
-                {"slack.signing-secret": "deployment-secret"},
-                "deployment-secret",
-                "deployment-secret",
-                "database-secret",
-            ),
-        ],
-        ids=["database-only", "legacy-deployment-only", "matching-dual", "deployment-wins"],
-    )
-    def test_legacy_effective_secret_requires_hmac(
-        self,
-        client: Client,
-        database_options: dict[str, str],
-        deployment_options: dict[str, str],
-        setting_secret: str,
-        effective_secret: str,
-        rejected_secret: str,
-    ) -> None:
-        deployment = {
-            key: value
-            for key, value in settings.SENTRY_OPTIONS.items()
-            if key != "slack.signing-secret"
-        }
-        deployment["slack.verification-token"] = "legacy-token"
-        with override_settings(SENTRY_OPTIONS=deployment):  # noqa: S011
-            options.delete("slack.signing-secret")
-            for key, value in database_options.items():
-                options.set(key, value)
-        deployment.update(deployment_options)
-        body = orjson.dumps(
-            {"type": "url_verification", "challenge": "challenge", "token": "legacy-token"}
-        )
-
-        with override_settings(
-            SENTRY_OPTIONS=deployment,  # noqa: S011
-            SENTRY_SLACK_SIGNING_SECRET=setting_secret,
-            SENTRY_SLACK_VERIFICATION_TOKEN="legacy-token",
-        ):
-            accepted = client.post(
-                "/extensions/slack/event/",
-                data=body,
-                content_type="application/json",
-                **set_signing_secret(effective_secret, body),
-            )
-            rejected = client.post(
-                "/extensions/slack/event/",
-                data=body,
-                content_type="application/json",
-                **set_signing_secret(rejected_secret, body),
-            )
-            token_only = client.post(
-                "/extensions/slack/event/",
-                data=body,
-                content_type="application/json",
-            )
-
-        assert accepted.status_code == 200
-        assert accepted.json() == {"challenge": "challenge"}
-        assert rejected.status_code == 401
-        assert token_only.status_code == 401
 
 
 class SlackEventRequestTest(TestCase):
@@ -307,7 +213,7 @@ class SlackEventRequestTest(TestCase):
         }
         self.request.body = urlencode(self.request.data).encode("utf-8")
         self.request.META = set_signing_secret(
-            options.get("slack.signing-secret"), self.request.body
+            settings.SENTRY_SLACK_SIGNING_SECRET, self.request.body
         )
 
     @cached_property
@@ -316,7 +222,7 @@ class SlackEventRequestTest(TestCase):
 
     def test_ignores_event_validation_on_challenge_request(self) -> None:
         self.request.data = {
-            "token": options.get("slack.verification-token"),
+            "token": settings.SENTRY_SLACK_VERIFICATION_TOKEN,
             "challenge": "abc123",
             "type": "url_verification",
         }
@@ -327,7 +233,7 @@ class SlackEventRequestTest(TestCase):
 
     def test_is_challenge(self) -> None:
         self.request.data = {
-            "token": options.get("slack.verification-token"),
+            "token": settings.SENTRY_SLACK_VERIFICATION_TOKEN,
             "challenge": "abc123",
             "type": "url_verification",
         }
@@ -351,7 +257,7 @@ class SlackEventRequestTest(TestCase):
 
     def test_signing_secret_bad(self) -> None:
         self.request.data = {
-            "token": options.get("slack.verification-token"),
+            "token": settings.SENTRY_SLACK_VERIFICATION_TOKEN,
             "challenge": "abc123",
             "type": "url_verification",
         }
@@ -363,9 +269,9 @@ class SlackEventRequestTest(TestCase):
         assert e.value.status == 401
 
     def test_use_verification_token(self) -> None:
-        with override_options({"slack.signing-secret": None}):
+        with override_settings(SENTRY_SLACK_SIGNING_SECRET=""):
             self.request.data = {
-                "token": options.get("slack.verification-token"),
+                "token": settings.SENTRY_SLACK_VERIFICATION_TOKEN,
                 "challenge": "abc123",
                 "type": "url_verification",
             }
@@ -374,7 +280,9 @@ class SlackEventRequestTest(TestCase):
             self.slack_request.validate()
 
     def test_rejects_non_string_verification_token(self) -> None:
-        with override_options({"slack.signing-secret": None, "slack.verification-token": "12345"}):
+        with override_settings(
+            SENTRY_SLACK_SIGNING_SECRET="", SENTRY_SLACK_VERIFICATION_TOKEN="12345"
+        ):
             self.request.data = {
                 "token": 12345,
                 "challenge": "abc123",
@@ -577,6 +485,38 @@ class SlackEventRequestSeerResolutionTest(TestCase):
         assert result.organization_id is None
         assert result.halt_reason == SeerSlackHaltReason.NO_VALID_ORGANIZATION
 
+    def test_skips_workspace_orgs_without_active_membership(self) -> None:
+        non_member_org = self.create_organization(slug="not-my-org", owner=self.create_user())
+        self.create_organization_integration(
+            organization_id=non_member_org.id, integration=self.integration
+        )
+        inactive_org = self._add_second_org(slug="inactive-org")
+        with assume_test_silo_mode_of(OrganizationMapping):
+            OrganizationMapping.objects.filter(organization_id=inactive_org.id).update(
+                status=OrganizationStatus.PENDING_DELETION
+            )
+        with (
+            assume_test_silo_mode(SiloMode.CONTROL, can_be_monolith=False),
+            patch.object(
+                DatabaseBackedOrganizationService,
+                "get_organization_by_id",
+                autospec=True,
+                side_effect=DatabaseBackedOrganizationService.get_organization_by_id,
+            ) as mock_get_org,
+        ):
+            result = self.slack_request.resolve_seer_organization()
+
+        assert result.organization_id == self.organization.id
+        assert result.halt_reason is None
+        mock_get_org.assert_called_once_with(
+            mock.ANY,
+            id=self.organization.id,
+            user_id=self.slack_user.id,
+            slug=None,
+            include_projects=False,
+            include_teams=False,
+        )
+
     def test_user_membership_unapproved(self) -> None:
         OrganizationMember.objects.filter(
             user_id=self.slack_user.id, organization_id=self.organization.id
@@ -722,14 +662,14 @@ class SlackActionRequestTest(TestCase):
                     "team": {"id": "T001"},
                     "channel": {"id": "1"},
                     "user": {"id": "2"},
-                    "token": options.get("slack.verification-token"),
+                    "token": settings.SENTRY_SLACK_VERIFICATION_TOKEN,
                     "callback_id": '{"issue":"I1"}',
                 }
             ).decode()
         }
         self.request.body = urlencode(self.request.data).encode()
         self.request.META = set_signing_secret(
-            options.get("slack.signing-secret"), self.request.body
+            settings.SENTRY_SLACK_SIGNING_SECRET, self.request.body
         )
 
     @cached_property

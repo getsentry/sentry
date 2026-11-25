@@ -123,10 +123,7 @@ export const GuideStore = {
     const guides = guidesContent.reduce((acc: Guide[], content) => {
       const serverGuide = data.find(guide => guide.guide === content.guide);
       if (serverGuide) {
-        acc.push({
-          ...content,
-          ...serverGuide,
-        });
+        acc.push({...content, ...serverGuide});
       }
       return acc;
     }, []);
@@ -145,10 +142,7 @@ export const GuideStore = {
         guide.guide === currentGuide?.guide ||
         (currentGuide?.markOthersAsSeen && dismissed)
       ) {
-        return {
-          ...guide,
-          seen: true,
-        };
+        return {...guide, seen: true};
       }
 
       return guide;
@@ -185,10 +179,7 @@ export const GuideStore = {
       return;
     }
 
-    trackAnalytics('assistant.guide_cued', {
-      organization: store.getState().orgId,
-      guide,
-    });
+    trackAnalytics('assistant.guide_cued', {organization: store.getState().orgId, guide});
   },
 
   /**

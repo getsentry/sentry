@@ -20,12 +20,7 @@ it('sorts variables and preserves scalar kinds and nested annotations without ty
   expect(variables).toStrictEqual([
     {name: 'count', kind: 'number', value: '42', meta: undefined},
     {name: 'empty', kind: 'null', meta: undefined},
-    {
-      name: 'enabled',
-      kind: 'boolean',
-      value: 'true',
-      meta: undefined,
-    },
+    {name: 'enabled', kind: 'boolean', value: 'true', meta: undefined},
     {
       name: 'items',
       kind: 'array',

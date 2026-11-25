@@ -113,11 +113,7 @@ describe('OrganizationAuthTokensIndex', () => {
       },
     ];
 
-    MockApiClient.addMockResponse({
-      url: ENDPOINT,
-      method: 'GET',
-      body: tokens,
-    });
+    MockApiClient.addMockResponse({url: ENDPOINT, method: 'GET', body: tokens});
 
     render(<OrganizationAuthTokensIndex />, {organization});
 
@@ -152,11 +148,7 @@ describe('OrganizationAuthTokensIndex', () => {
   it('shows empty state', async () => {
     const tokens: OrgAuthToken[] = [];
 
-    MockApiClient.addMockResponse({
-      url: ENDPOINT,
-      method: 'GET',
-      body: tokens,
-    });
+    MockApiClient.addMockResponse({url: ENDPOINT, method: 'GET', body: tokens});
 
     render(<OrganizationAuthTokensIndex />, {organization});
 
@@ -197,11 +189,7 @@ describe('OrganizationAuthTokensIndex', () => {
         },
       ];
 
-      MockApiClient.addMockResponse({
-        url: ENDPOINT,
-        method: 'GET',
-        body: tokens,
-      });
+      MockApiClient.addMockResponse({url: ENDPOINT, method: 'GET', body: tokens});
 
       const deleteMock = MockApiClient.addMockResponse({
         url: `${ENDPOINT}2/`,
@@ -245,11 +233,7 @@ describe('OrganizationAuthTokensIndex', () => {
         },
       ];
 
-      MockApiClient.addMockResponse({
-        url: ENDPOINT,
-        method: 'GET',
-        body: tokens,
-      });
+      MockApiClient.addMockResponse({url: ENDPOINT, method: 'GET', body: tokens});
 
       const deleteMock = MockApiClient.addMockResponse({
         url: `${ENDPOINT}1/`,
@@ -278,9 +262,7 @@ describe('OrganizationAuthTokensIndex', () => {
     });
 
     it('does not allow to revoke without permission', async () => {
-      const org = OrganizationFixture({
-        access: ['org:read'],
-      });
+      const org = OrganizationFixture({access: ['org:read']});
 
       const tokens: OrgAuthToken[] = [
         {
@@ -292,11 +274,7 @@ describe('OrganizationAuthTokensIndex', () => {
         },
       ];
 
-      MockApiClient.addMockResponse({
-        url: ENDPOINT,
-        method: 'GET',
-        body: tokens,
-      });
+      MockApiClient.addMockResponse({url: ENDPOINT, method: 'GET', body: tokens});
 
       render(<OrganizationAuthTokensIndex />, {organization: org});
 

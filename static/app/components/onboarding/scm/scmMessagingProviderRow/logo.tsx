@@ -6,11 +6,7 @@ import {Image} from '@sentry/scraps/image';
 
 import type {ScmMessagingProviderKey} from 'sentry/components/onboarding/scm/messagingProviders';
 
-const LOGOS: Record<ScmMessagingProviderKey, string> = {
-  slack,
-  discord,
-  msteams,
-};
+const LOGOS: Record<ScmMessagingProviderKey, string> = {slack, discord, msteams};
 
 interface ProviderLogoProps {
   providerKey: ScmMessagingProviderKey;

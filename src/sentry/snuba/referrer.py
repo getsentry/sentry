@@ -26,6 +26,7 @@ class Referrer(StrEnum):
     )
     API_AUTH_TOKEN_EVENTS = "api.auth-token.events"
     API_AUTH_TOKEN_EVENTS_FIND_TOPN = "api.auth-token.events.find-topn"
+    API_CLASSIFIERS_DETAIL_INSTANCES_CHART = "api.classifiers.detail.instances-chart"
 
     # ** Dashboards **
 
@@ -404,6 +405,10 @@ class Referrer(StrEnum):
     API_INSIGHTS_AGENTS_TRACE_DRAWER_TOOL_USAGE = (
         "api.insights.agent-monitoring.trace-drawer-tool-usage"
     )
+    API_INSIGHTS_AGENTS_SPAN_DETAILS = "api.insights.agent-monitoring.span-details"
+    API_INSIGHTS_AGENTS_SPAN_DETAILS_TOOL_USAGE = (
+        "api.insights.agent-monitoring.span-details-tool-usage"
+    )
     API_INSIGHTS_AGENTS_TRACES_TABLE = "api.insights.agent-monitoring.traces-table"
     API_INSIGHTS_AGENTS_ONBOARDING = "api.insights.agent-monitoring.onboarding"
 
@@ -579,6 +584,13 @@ class Referrer(StrEnum):
     API_OCCURRENCES_FREQUENCY_STATS_RPC = "api.occurrences.fields-stats.rpc"
     API_TRACE_METRICS_TAG_KEYS_RPC = "api.tracemetrics.tags-keys.rpc"
     API_TRACE_METRICS_TAG_VALUES_RPC = "api.tracemetrics.tags-values.rpc"
+    # Two queries, two referrers: a single grouped scan over all projects (cheap) vs. the
+    # per-distinct-hash payload fetches (the latency-sensitive fan-out). Separate referrers keep
+    # them distinct in query analytics so each can be measured on its own.
+    API_TIMESERIES_ANNOTATIONS_SDK_CONFIG_TIMELINE = (
+        "api.timeseries-annotations.sdk-config.timeline"
+    )
+    API_TIMESERIES_ANNOTATIONS_SDK_CONFIG_PAYLOAD = "api.timeseries-annotations.sdk-config.payload"
 
     API_SPAN_SAMPLE_GET_BOUNDS = "api.spans.sample-get-bounds"
     API_SPAN_SAMPLE_GET_SPAN_DATA = "api.spans.sample-get-span-data"
@@ -642,6 +654,8 @@ class Referrer(StrEnum):
     EVENTSTORE_GET_UNFETCHED_TRANSACTIONS = "eventstore.get_unfetched_transactions"
     EXPORT_EVENTS = "export-events"
     FETCH_EVENTS_FOR_DELETION = "fetch_events_for_deletion"
+    GETSENTRY_API_CUSTOMER_LLM_COST_STATS = "getsentry.api.customer-llm-cost-stats"
+    GETSENTRY_API_CUSTOMER_SEER_USAGE_STATS = "getsentry.api.customer-seer-usage-stats"
     GETSENTRY_API_PENDO_DETAILS = "getsentry.api.pendo-details"
     GETSENTRY_EXPORT_SPANS_GET_TRACES = "getsentry.export.spans.get_traces"
     GETSENTRY_EXPORT_SPANS_GET_ITEM_DETAILS = "getsentry.export.spans.get_item_details"
@@ -863,6 +877,8 @@ class Referrer(StrEnum):
     TASKS_PROCESS_PROJECTS_WITH_SESSIONS_SESSION_COUNT = (
         "tasks.process_projects_with_sessions.session_count"
     )
+    TELEMETRY_CLASSIFIERS_CONVERSATIONS_SELECT = "telemetry_classifiers.conversations.select"
+    TELEMETRY_CLASSIFIERS_CONVERSATIONS_LOAD = "telemetry_classifiers.conversations.load"
     TRANSACTION_ANOMALY_DETECTION = "transaction-anomaly-detection"
 
     TSDB_MODELID_1 = "tsdb-modelid:1"

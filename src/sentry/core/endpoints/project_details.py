@@ -25,7 +25,13 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import DetailedProjectResponse, DetailedProjectSerializer
 from sentry.api.serializers.rest_framework.list import EmptyListField
 from sentry.api.serializers.rest_framework.origin import OriginField
-from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NO_CONTENT, RESPONSE_NOT_FOUND
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_CONFLICT,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NO_CONTENT,
+    RESPONSE_NOT_FOUND,
+)
 from sentry.apidocs.examples.project_examples import ProjectExamples
 from sentry.apidocs.omissions import sentry_schema_serializer
 from sentry.apidocs.parameters import GlobalParams
@@ -266,23 +272,27 @@ E.g. `{'user': ['id', 'email']}`""",
 E.g. `['release', 'environment']`""",
     )
     digestsMinDelay = serializers.IntegerField(
+        required=False,
         min_value=60,
         max_value=3600,
         help_text="Minimum time in seconds to wait before sending an issue digest email.",
     )
     digestsMaxDelay = serializers.IntegerField(
+        required=False,
         min_value=60,
         max_value=3600,
         help_text="Maximum time in seconds to wait before sending an issue digest email.",
     )
     securityToken = serializers.RegexField(
         r"^[-a-zA-Z0-9+/=\s]+$",
+        required=False,
         max_length=255,
         allow_blank=True,
         help_text="Token sent with security reports (CSP, Expect-CT, HPKP) so Sentry can verify their origin.",
     )
     securityTokenHeader = serializers.RegexField(
         r"^[a-zA-Z0-9_\-]+$",
+        required=False,
         max_length=64,
         allow_blank=True,
         help_text="Name of the header carrying the security token on inbound security reports.",
@@ -457,7 +467,7 @@ E.g. `['release', 'environment']`""",
         other = (
             Project.objects.filter(slug=slug, organization=project.organization)
             .exclude(id=project.id)
-            .first()
+            .get_or_none()
         )
         if other is not None:
             raise serializers.ValidationError(
@@ -592,6 +602,40 @@ E.g. `['release', 'environment']`""",
     def validate_safeFields(self, value: list[str]) -> list[str]:
         return validate_pii_selectors(value)
 
+    def validate_options(self, value: dict[str, object]) -> dict[str, object]:
+        # The legacy options writer stores these keys as-is and they end up in the Relay
+        # project config, so they need the same checks as relayPiiConfig, sensitiveFields
+        # and safeFields.
+        if "sentry:relay_pii_config" in value:
+            pii_config = value["sentry:relay_pii_config"]
+            if not isinstance(pii_config, str):
+                raise serializers.ValidationError(
+                    {"sentry:relay_pii_config": "Expected a JSON string."}
+                )
+            try:
+                self.validate_relayPiiConfig(pii_config.strip())
+            except serializers.ValidationError as e:
+                raise serializers.ValidationError({"sentry:relay_pii_config": e.detail})
+
+        for key, validator in (
+            ("sentry:sensitive_fields", self.validate_sensitiveFields),
+            ("sentry:safe_fields", self.validate_safeFields),
+        ):
+            if key not in value:
+                continue
+            fields = value[key]
+            if not isinstance(fields, list) or not all(isinstance(f, str) for f in fields):
+                raise serializers.ValidationError({key: "Expected a list of strings."})
+            normalized = [f.strip().lower() for f in fields]
+            if not all(normalized):
+                raise serializers.ValidationError({key: "Empty values are not allowed."})
+            try:
+                validator(normalized)
+            except serializers.ValidationError as e:
+                raise serializers.ValidationError({key: e.detail})
+
+        return value
+
     def validate_tempestFetchScreenshots(self, value: bool) -> bool:
         organization = self.context["project"].organization
         if not has_tempest_access(organization):
@@ -665,6 +709,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         request=None,
         responses={
             200: DetailedProjectSerializer,
+            400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
@@ -678,7 +723,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         """
         collapse = request.GET.getlist("collapse", [])
         data: _ProjectDetailsResponse = serialize(
-            project, request.user, DetailedProjectSerializer(collapse=collapse)
+            project,
+            request.user,
+            DetailedProjectSerializer(collapse=collapse),
+            access=request.access,
         )
 
         # TODO: should switch to expand and move logic into the serializer
@@ -715,8 +763,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         request=ProjectAdminSerializer,
         responses={
             200: DetailedProjectSerializer,
+            400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
+            409: RESPONSE_CONFLICT,
         },
         examples=ProjectExamples.DETAILED_PROJECT,
     )
@@ -841,7 +891,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 changed_proj_settings["sentry:fingerprinting_rules"] = result["fingerprintingRules"]
         if result.get("securityToken") is not None:
             if project.update_option("sentry:token", result["securityToken"]):
-                changed_proj_settings["sentry:token"] = result["securityToken"]
+                changed_proj_settings["sentry:token"] = "[Filtered]"
         if result.get("securityTokenHeader") is not None:
             if project.update_option("sentry:token_header", result["securityTokenHeader"]):
                 changed_proj_settings["sentry:token_header"] = result["securityTokenHeader"]
@@ -1315,7 +1365,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 )
                 if len(changed_proj_settings) == 1:
                     body_partial: _ProjectDetailsResponse = serialize(
-                        project, request.user, DetailedProjectSerializer()
+                        project, request.user, DetailedProjectSerializer(), access=request.access
                     )
                     return Response(body_partial)
 
@@ -1333,7 +1383,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         )
 
         body: _ProjectDetailsResponse = serialize(
-            project, request.user, DetailedProjectSerializer()
+            project, request.user, DetailedProjectSerializer(), access=request.access
         )
         if not has_dynamic_sampling(project.organization):
             body["dynamicSamplingBiases"] = None

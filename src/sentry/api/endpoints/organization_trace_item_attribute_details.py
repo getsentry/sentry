@@ -19,12 +19,18 @@ from sentry.api.endpoints.organization_trace_item_attributes_merged import (
 )
 from sentry.apidocs.response_types import as_validation_errors
 from sentry.models.organization import Organization
+from sentry.search.eap.types import AttributeSourceType
 
 
 class OrganizationTraceItemAttributeDetailsEndpointSerializer(serializers.Serializer):
     attributeName = serializers.CharField(source="attribute_name", trim_whitespace=False)
     attributeType = serializers.ChoiceField(
         choices=POSSIBLE_ATTRIBUTE_TYPES, source="attribute_type"
+    )
+    attributeSource = serializers.ChoiceField(
+        choices=[source.value for source in AttributeSourceType],
+        required=False,
+        source="attribute_source",
     )
     dataset = serializers.MultipleChoiceField(choices=MERGEABLE_DATASETS, required=False)
 
@@ -52,6 +58,7 @@ class OrganizationTraceItemAttributeDetailsEndpoint(OrganizationTraceItemAttribu
 
         serialized: dict[str, Any] = serializer.validated_data
         attribute_name = serialized["attribute_name"]
+        attribute_source = serialized.get("attribute_source")
         merged = list_merged_attributes(
             self,
             request,
@@ -62,7 +69,15 @@ class OrganizationTraceItemAttributeDetailsEndpoint(OrganizationTraceItemAttribu
             substring_match="",
             include_context=True,
         )
-        matches = [attribute for attribute in merged if attribute["name"] == attribute_name]
+        matches = [
+            attribute
+            for attribute in merged
+            if attribute["name"] == attribute_name
+            and (
+                attribute_source is None
+                or attribute["attributeSource"]["source_type"] == attribute_source
+            )
+        ]
         if not matches:
             return Response({"detail": "Attribute not found."}, status=404)
 
