@@ -12,7 +12,7 @@ class AgenticOnboardingStageCompletedEvent(analytics.Event):
     stage: str
     status: str
     connection_method: str | None = None
-    # The projects the agent reported for the run's create_project stage.
+    # The projects the agent set up in this run. It can pick an existing one or create one.
     project_slugs: list[str] = field(default_factory=list)
 
 
@@ -25,7 +25,7 @@ class AgenticOnboardingStageStatusChangedEvent(analytics.Event):
     stage: str
     status: str
     connection_method: str | None = None
-    # The projects the agent reported for the run's create_project stage.
+    # The projects the agent set up in this run. It can pick an existing one or create one.
     project_slugs: list[str] = field(default_factory=list)
 
 
@@ -37,7 +37,7 @@ class AgenticOnboardingRunCompletedEvent(analytics.Event):
     origin: str | None
     status: str
     connection_method: str | None = None
-    # The projects the agent reported for the run's create_project stage.
+    # The projects the agent set up in this run. It can pick an existing one or create one.
     project_slugs: list[str] = field(default_factory=list)
 
 
