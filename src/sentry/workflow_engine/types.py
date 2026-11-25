@@ -467,7 +467,7 @@ class DetectorSettings(BaseWorkflowEngineSettings):
     filter: ClassVar[Q | None] = None
 
 
-class WorkflowSettings(WorkflowEngineAPIAvailability):
+class WorkflowSettings(BaseWorkflowEngineSettings):
     pass
 
 
