@@ -21,7 +21,7 @@ from sentry.models.group import Group
 from sentry.snuba.referrer import Referrer
 from sentry.testutils.cases import TestCase
 
-START = datetime(2025, 10, 1)  # Collector timestamps are naive UTC.
+START = datetime(2025, 10, 1, tzinfo=UTC)
 MINUTE = timedelta(minutes=1)
 
 
@@ -58,7 +58,7 @@ class TestNewFailures(TestCase):
     ) -> Group:
         return self.create_group(
             project=self.project,
-            first_seen=first_seen.replace(tzinfo=UTC),
+            first_seen=first_seen,
             message=message,
             **kwargs,
         )
@@ -74,7 +74,7 @@ class TestNewFailures(TestCase):
         )
 
     def test_merges_title_and_crosses_on_distinct_users_by_receive_time(self) -> None:
-        first_seen = (START - MINUTE).replace(tzinfo=UTC)
+        first_seen = START - MINUTE
         first = self.create_group(
             project=self.project,
             first_seen=first_seen,
@@ -111,7 +111,6 @@ class TestNewFailures(TestCase):
         )
         assert change.change_type == ChangeType.NEW_FAILURE_MODE
         assert change.detected_at == end
-        assert change.evidence == ["issues:999"]
         assert change.issue_ids == (first.id, second.id)
         (_, environments, _), (_, candidates, _), (_, users, referrer) = (
             call.args for call in query.call_args_list
@@ -122,9 +121,7 @@ class TestNewFailures(TestCase):
             assert set(group_filter.rhs) == {first.id, second.id}
             assert other.id not in group_filter.rhs
         # Users are ordered and bounded by when Sentry received their events.
-        assert _where(users, Column("received")) == Condition(
-            Column("received"), Op.LT, end.replace(tzinfo=UTC)
-        )
+        assert _where(users, Column("received")) == Condition(Column("received"), Op.LT, end)
         assert Function("min", [Column("received")], "first_seen") in users.select
 
     def test_reports_weak_then_strong(self) -> None:
@@ -199,12 +196,10 @@ class TestNewFailures(TestCase):
         assert _where(environments, Column("group_id")).rhs == [group.id]
         # Received in the interval, with timestamps reaching back to the issue onset.
         assert _where_all(environments, Column("received")) == [
-            Condition(Column("received"), Op.LT, (START + MINUTE).replace(tzinfo=UTC)),
-            Condition(Column("received"), Op.GTE, START.replace(tzinfo=UTC)),
+            Condition(Column("received"), Op.LT, START + MINUTE),
+            Condition(Column("received"), Op.GTE, START),
         ]
-        assert _where_all(environments, Column("timestamp"))[0].rhs == (
-            START - 30 * MINUTE
-        ).replace(tzinfo=UTC)
+        assert _where_all(environments, Column("timestamp"))[0].rhs == START - 30 * MINUTE
         assert _where(candidates, error_env()).rhs == ["production"]
 
     def test_skips_projects_without_recent_groups(self) -> None:

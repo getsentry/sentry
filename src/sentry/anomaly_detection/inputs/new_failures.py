@@ -15,7 +15,7 @@ import math
 from collections import defaultdict
 from collections.abc import Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from statistics import median
 from typing import TYPE_CHECKING, NamedTuple
 
@@ -277,7 +277,7 @@ def _window_conditions(
             _minute_floor(min(window.onset for window in windows)),
             end + _MAX_FUTURE_SKEW,
         ),
-        Condition(Column("received"), Op.LT, end.replace(tzinfo=UTC)),
+        Condition(Column("received"), Op.LT, end),
         Condition(
             Column("group_id"), Op.IN, [group.id for window in windows for group in window.groups]
         ),
@@ -305,7 +305,7 @@ def _received_environments(
             groupby=[error_env("env")],
             where=[
                 *_window_conditions(project, windows, end),
-                Condition(Column("received"), Op.GTE, start.replace(tzinfo=UTC)),
+                Condition(Column("received"), Op.GTE, start),
             ],
             # Keep the busiest environments, so short-lived preview environments
             # cannot displace production.
@@ -322,8 +322,8 @@ def _recent_error_groups(project: Project, start: datetime, end: datetime) -> li
         Group.objects.filter(
             project_id=project.id,
             type=ErrorGroupType.type_id,
-            first_seen__gte=(start - _GROUP_LOOKBACK).replace(tzinfo=UTC),
-            first_seen__lt=end.replace(tzinfo=UTC),
+            first_seen__gte=start - _GROUP_LOOKBACK,
+            first_seen__lt=end,
         ).order_by("-times_seen", "id")[: _MAX_NEW_GROUPS + 1]
     )
     if len(groups) > _MAX_NEW_GROUPS:
@@ -387,7 +387,7 @@ def _title_candidates(
     prior_user = Function(
         "and",
         [
-            Function("less", [Column("received"), start.replace(tzinfo=UTC)]),
+            Function("less", [Column("received"), start]),
             Function("notEquals", [user, ""]),
         ],
     )
@@ -481,7 +481,7 @@ def _collect_title_crossings(
         organization,
         [
             *error_where(scope.project, first_minute, window_end + _MAX_FUTURE_SKEW),
-            Condition(Column("received"), Op.LT, window_end.replace(tzinfo=UTC)),
+            Condition(Column("received"), Op.LT, window_end),
             Condition(error_env(), Op.EQ, scope.environment),
             Condition(Column("group_id"), Op.IN, list(issue_ids)),
         ],
@@ -505,7 +505,6 @@ def _collect_title_crossings(
             confidence=0.9 if users >= threshold else 0.5,
             detected_at=detected_at,
             peak_ratio=users / threshold,
-            evidence=[window.title[:200]],
             issue_ids=issue_ids,
         )
 

@@ -370,21 +370,21 @@ class TestAnomalyDetectionIssueEnrichment(TestCase, SnubaTestCase):
             (strong,) = self._collect(thresholds, end, end + timedelta(minutes=1))
 
         assert (weak.detected_at, weak.actual, weak.confidence) == (
-            end.replace(tzinfo=None),
+            end,
             10,
             0.5,
         )
         assert (strong.detected_at, strong.actual, strong.confidence) == (
-            (end + timedelta(minutes=1)).replace(tzinfo=None),
+            end + timedelta(minutes=1),
             11,
             0.9,
         )
         assert weak.key == strong.key
-        assert weak.start == strong.start == start.replace(tzinfo=None)
+        assert weak.start == strong.start == start
 
     def test_hourly_thresholds_scale_with_service_audience(self) -> None:
         start = before_now(minutes=20).replace(second=0, microsecond=0)
-        hour = start.replace(minute=0, tzinfo=None)
+        hour = start.replace(minute=0)
         thresholds = new_failure_thresholds(
             [
                 SeriesRow(
@@ -409,12 +409,12 @@ class TestAnomalyDetectionIssueEnrichment(TestCase, SnubaTestCase):
 
         # 5% of the median hourly audience, 240 users, sets the bar at 12.
         assert (weak.detected_at, weak.actual, weak.expected) == (
-            (start + timedelta(minutes=1)).replace(tzinfo=None),
+            start + timedelta(minutes=1),
             10,
             12.0,
         )
         assert (strong.detected_at, strong.actual, strong.expected) == (
-            (start + timedelta(minutes=2)).replace(tzinfo=None),
+            start + timedelta(minutes=2),
             12,
             12.0,
         )
@@ -437,9 +437,8 @@ class TestAnomalyDetectionIssueEnrichment(TestCase, SnubaTestCase):
 
         assert change.key.dim_value == str(first.id)
         assert change.issue_ids == (first.id, second.id)
-        assert change.evidence == ["Checkout failed"]
         assert (change.detected_at, change.actual, change.confidence) == (
-            (start + timedelta(minutes=2)).replace(tzinfo=None),
+            start + timedelta(minutes=2),
             10,
             0.5,
         )
@@ -461,9 +460,9 @@ class TestAnomalyDetectionIssueEnrichment(TestCase, SnubaTestCase):
         assert self._collect({}, start - timedelta(minutes=1), start) == []
         (change,) = self._collect({}, start, start + timedelta(minutes=1))
 
-        assert change.detected_at == (start + timedelta(minutes=1)).replace(tzinfo=None)
+        assert change.detected_at == start + timedelta(minutes=1)
         assert change.actual == change.expected == 10
-        assert change.start == (start - timedelta(minutes=10)).replace(tzinfo=None)
+        assert change.start == start - timedelta(minutes=10)
 
     def test_late_event_alone_is_observed_in_an_otherwise_silent_window(self) -> None:
         start = before_now(minutes=20).replace(second=0, microsecond=0)
@@ -481,5 +480,5 @@ class TestAnomalyDetectionIssueEnrichment(TestCase, SnubaTestCase):
         (change,) = self._collect({Service(self.project.id, "prod"): 10.0}, start, end)
 
         assert change.key.env == "prod"
-        assert change.detected_at == end.replace(tzinfo=None)
+        assert change.detected_at == end
         assert change.actual == 10
