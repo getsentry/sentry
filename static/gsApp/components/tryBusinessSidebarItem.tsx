@@ -9,16 +9,13 @@ import {PrimaryNavigation} from 'sentry/views/navigation/primary/components';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
 import {TrialStartedSidebarItem} from 'getsentry/components/trialStartedSidebarItem';
-import {withSubscription} from 'getsentry/components/withSubscription';
+import {useSubscription} from 'getsentry/hooks/useSubscription';
 import type {Subscription} from 'getsentry/types';
 import {hasPerformance, isBizPlanFamily, isTrial} from 'getsentry/utils/billing';
 
 const AUTO_OPEN_HASH = '#try-business';
 
-type Props = Parameters<Overrides['sidebar:try-business']>[0] & {
-  organization: Organization;
-  subscription: Subscription;
-};
+type Props = Parameters<Overrides['sidebar:try-business']>[0];
 
 const TRY_BUSINESS_SEEN_KEY = 'sidebar-new-seen:try-business-v1';
 
@@ -58,7 +55,17 @@ function TryBusinessNavigationItem({
   );
 }
 
-function TryBusinessSidebarItem(props: Props) {
+export function TryBusinessSidebarItem(props: Props) {
+  const subscription = useSubscription({organization: props.organization});
+
+  if (!subscription) {
+    return null;
+  }
+
+  return <TryBusinessSidebarItemContent {...props} subscription={subscription} />;
+}
+
+function TryBusinessSidebarItemContent(props: Props & {subscription: Subscription}) {
   const [_rerenderTick, setRerenderTick] = useState(0);
 
   useEffect(() => {
@@ -116,5 +123,3 @@ function TryBusinessSidebarItem(props: Props) {
     />
   );
 }
-
-export default withSubscription(TryBusinessSidebarItem, {noLoader: true});
