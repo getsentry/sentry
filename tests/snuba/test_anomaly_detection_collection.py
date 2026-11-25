@@ -47,13 +47,13 @@ class TestAnomalyDetectionCollection(TestCase, SnubaTestCase, SpanTestCase):
             )
 
         end = start + timedelta(minutes=1)
-        bucket = start.replace(tzinfo=None)
+        bucket = start
         stored = run_errors(
             self.organization,
             Query(
                 match=Entity("events"),
                 select=[Column("event_id"), Column(ERROR_USER)],
-                where=error_where(self.project, bucket, end.replace(tzinfo=None)),
+                where=error_where(self.project, bucket, end),
                 limit=Limit(len(users_by_event) + 1),
             ),
             Referrer.ANOMALY_DETECTION_COLLECT.value,
@@ -90,7 +90,7 @@ class TestAnomalyDetectionCollection(TestCase, SnubaTestCase, SpanTestCase):
 
         rows = collect(self.organization, [self.project], start, end, "1m")
 
-        bucket = timestamp.replace(second=0, tzinfo=None)
+        bucket = timestamp.replace(second=0)
         project = self.project.id
         errors, count, users = Signal.ERRORS, Metric.COUNT, Metric.COUNT_UNIQUE_USER
         before, after = bucket - timedelta(minutes=1), bucket + timedelta(minutes=1)
@@ -106,7 +106,7 @@ class TestAnomalyDetectionCollection(TestCase, SnubaTestCase, SpanTestCase):
         # An errors-only scope remains covered after its last error leaves the window.
         quiet_start = end + timedelta(minutes=1)
         quiet_end = quiet_start + timedelta(minutes=1)
-        quiet_bucket = quiet_start.replace(tzinfo=None)
+        quiet_bucket = quiet_start
         assert collect(self.organization, [self.project], quiet_start, quiet_end, "1m") == [
             SeriesRow(quiet_bucket, project, "production", errors, count, "", 0.0),
             SeriesRow(quiet_bucket, project, "production", errors, users, "", 0.0),
@@ -138,25 +138,25 @@ class TestAnomalyDetectionCollection(TestCase, SnubaTestCase, SpanTestCase):
 
         rows = collect(self.organization, [self.project], start, end, "1m")
 
-        bucket = timestamp.replace(second=0, tzinfo=None)
+        bucket = timestamp.replace(second=0)
         project = self.project.id
-        assert all(start.replace(tzinfo=None) <= row[0] < end.replace(tzinfo=None) for row in rows)
+        assert all(start <= row[0] < end for row in rows)
         totals = {
             (row.ts, row.signal, row.metric): row.value
             for row in rows
             if row.signal in {"requests", "failed_requests"}
         }
         assert totals == {
-            (start.replace(tzinfo=None), "requests", "count()"): 0.0,
-            (start.replace(tzinfo=None), "requests", "count_sample()"): 0.0,
-            (bucket, "failed_requests", "count()"): 1.0,
-            (bucket, "failed_requests", "count_sample()"): 1.0,
-            (bucket, "requests", "count()"): 2.0,
-            (bucket, "requests", "count_sample()"): 2.0,
-            (bucket + timedelta(minutes=1), "requests", "count()"): 0.0,
-            (bucket + timedelta(minutes=1), "requests", "count_sample()"): 0.0,
+            (start, "requests", Metric.COUNT): 0.0,
+            (start, "requests", Metric.COUNT_SAMPLE): 0.0,
+            (bucket, "failed_requests", Metric.COUNT): 1.0,
+            (bucket, "failed_requests", Metric.COUNT_SAMPLE): 1.0,
+            (bucket, "requests", Metric.COUNT): 2.0,
+            (bucket, "requests", Metric.COUNT_SAMPLE): 2.0,
+            (bucket + timedelta(minutes=1), "requests", Metric.COUNT): 0.0,
+            (bucket + timedelta(minutes=1), "requests", Metric.COUNT_SAMPLE): 0.0,
         }
-        assert [row for row in rows if row.ts == bucket and row.metric == "p95(span.duration)"] == [
+        assert [row for row in rows if row.ts == bucket and row.metric == Metric.P95_DURATION] == [
             SeriesRow(
                 bucket,
                 project,
@@ -192,9 +192,9 @@ class TestAnomalyDetectionCollection(TestCase, SnubaTestCase, SpanTestCase):
         )
 
         rows = collect(self.organization, [self.project], start, start + timedelta(minutes=2), "1m")
-        bucket = start.replace(tzinfo=None)
+        bucket = start
         idle = bucket + timedelta(minutes=1)
-        for metric in ("count()", "count_sample()"):
+        for metric in (Metric.COUNT, Metric.COUNT_SAMPLE):
             assert {
                 (ts, signal, env): value
                 for ts, _, env, signal, name, _, value in rows
@@ -210,7 +210,7 @@ class TestAnomalyDetectionCollection(TestCase, SnubaTestCase, SpanTestCase):
         assert {
             (env, dim): value
             for ts, _, env, signal, metric, dim, value in rows
-            if ts == bucket and signal == "endpoints" and metric == "p95(span.duration)"
+            if ts == bucket and signal == "endpoints" and metric == Metric.P95_DURATION
         } == {("", endpoint): 250.0, ("None", endpoint): 500.0}
 
     def test_collect_clean_requests_and_outbound_only_environment(self) -> None:
@@ -246,7 +246,7 @@ class TestAnomalyDetectionCollection(TestCase, SnubaTestCase, SpanTestCase):
 
         series = build(collect(self.organization, [self.project], start, end, "1m"))
 
-        bucket = start.replace(tzinfo=None)
+        bucket = start
         project = self.project.id
         assert series[SeriesKey(project, "production", Signal.REQUESTS, Metric.COUNT)] == {
             bucket: 1.0

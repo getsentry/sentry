@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from typing import Any
 from unittest import mock
 
@@ -40,14 +40,14 @@ from sentry.utils import snuba_rpc
 from sentry.utils.cache import cache
 from sentry.utils.snuba import SnubaError
 
-START = datetime(2025, 10, 1)
+START = datetime(2025, 10, 1, tzinfo=UTC)
 MINUTE = timedelta(minutes=1)
 RAW_SNQL = "sentry.anomaly_detection.inputs.query.raw_snql_query"
 
 
 class TestCollection(TestCase):
     def test_snql_errors_keep_explicit_scopes_and_missing_values(self) -> None:
-        start = START.replace(tzinfo=timezone.utc).astimezone(timezone(timedelta(hours=-7)))
+        start = START.astimezone(timezone(timedelta(hours=-7)))
         replies = [
             {"data": [{"env": "prod,blue"}, {"env": ""}]},
             {"data": []},  # No previously active environments outside current discovery.
@@ -98,9 +98,7 @@ class TestCollection(TestCase):
             assert request.dataset == Dataset.Events.value
             assert request.tenant_ids == {"organization_id": self.organization.id}
             assert request.query.where[0].rhs == self.project.id
-            assert request.query.where[1].rhs == START.replace(tzinfo=timezone.utc) - timedelta(
-                days=int(index == 1)
-            )
+            assert request.query.where[1].rhs == START - timedelta(days=int(index == 1))
             assert request.query.where[2].op == Op.LT
         for call in raw.call_args_list[3:]:
             query = call.args[0].query
@@ -118,7 +116,7 @@ class TestCollection(TestCase):
             "db.name": "primary",
             "span.domain": "example.com",
         }
-        moment = Timestamp(seconds=int(START.replace(tzinfo=timezone.utc).timestamp()))
+        moment = Timestamp(seconds=int(START.timestamp()))
         next_minute = Timestamp(seconds=moment.seconds + 60)
         grouping_queries: set[str] = set()
 
@@ -323,7 +321,7 @@ class TestCollection(TestCase):
         assert raw.call_args.args[0].query.granularity.granularity == 3600
 
     def test_environment_inventory_is_cached_and_merged_with_current_window(self) -> None:
-        lookback = (START - timedelta(days=1)).replace(tzinfo=timezone.utc)
+        lookback = START - timedelta(days=1)
 
         def discover(
             *, params: Any, query_string: str, selected_columns: list[str], **kwargs: object
@@ -362,17 +360,12 @@ class TestCollection(TestCase):
             and len(call.kwargs["selected_columns"]) == 2
         ]
         assert request_windows == [
-            (lookback, (START + MINUTE).replace(tzinfo=timezone.utc)),
-            (
-                (START + MINUTE).replace(tzinfo=timezone.utc),
-                (START + 2 * MINUTE).replace(tzinfo=timezone.utc),
-            ),
+            (lookback, START + MINUTE),
+            (START + MINUTE, START + 2 * MINUTE),
         ]
         # The errors inventory scans the lookback once.
         error_starts = [call.args[0].query.where[1].rhs for call in raw.call_args_list]
-        assert [rhs for rhs in error_starts if rhs < START.replace(tzinfo=timezone.utc)] == [
-            lookback
-        ]
+        assert [rhs for rhs in error_starts if rhs < START] == [lookback]
 
 
 class TestHourlySnapshot(TestCase):
@@ -393,7 +386,7 @@ class TestHourlySnapshot(TestCase):
         )
         assert first == second == self.ROWS
         (errors, latency) = second
-        assert errors.ts.tzinfo is None
+        assert errors.ts.tzinfo is UTC
         assert type(errors.signal) is Signal and type(errors.metric) is Metric
         assert latency.value is None
 

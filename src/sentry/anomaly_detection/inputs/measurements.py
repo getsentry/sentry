@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Literal
 
 from sentry_protos.snuba.v1.endpoint_time_series_pb2 import TimeSeries
@@ -68,6 +68,14 @@ ERROR_RELEASE = "tags[sentry:release]"
 ERROR_METRICS = (Metric.COUNT, Metric.COUNT_UNIQUE_USER)
 SPAN_COUNTS = (Metric.COUNT, Metric.COUNT_SAMPLE)
 SPAN_LATENCY = (*SPAN_COUNTS, Metric.P95_DURATION)
+# The query aggregate of each collected metric, also its key in returned points.
+AGGREGATES = {
+    Metric.COUNT: "count()",
+    Metric.COUNT_SAMPLE: "count_sample()",
+    Metric.COUNT_UNIQUE_USER: "count_unique(user)",
+    Metric.P95_DURATION: "p95(span.duration)",
+    Metric.FAILURE_RATE: "failure_rate()",
+}
 REQUEST_QUERY = "is_transaction:true"
 FAILED_QUERY = f"{REQUEST_QUERY} http.response_status_code:>=500"
 
@@ -123,11 +131,12 @@ def _normalize(
         if not start <= timestamp < end:
             continue
         for metric in metrics:
-            if metric not in point:
+            aggregate = AGGREGATES[metric]
+            if aggregate not in point:
                 continue
-            value = number(point[metric])
+            value = number(point[aggregate])
             if metric in (Metric.P95_DURATION, Metric.FAILURE_RATE) and not number(
-                point.get(Metric.COUNT_SAMPLE)
+                point.get(AGGREGATES[Metric.COUNT_SAMPLE])
             ):
                 value = None
             yield SeriesRow(timestamp, project_id, env, signal, metric, dimension, value)
@@ -280,8 +289,8 @@ def _collect_errors(
                 seen.add(key)
                 point = {
                     "time": timestamp,
-                    Metric.COUNT: row.get("count()"),
-                    Metric.COUNT_UNIQUE_USER: row.get("users"),
+                    AGGREGATES[Metric.COUNT]: row.get("count()"),
+                    AGGREGATES[Metric.COUNT_UNIQUE_USER]: row.get("users"),
                 }
                 yield from _normalize(
                     [point],
@@ -441,11 +450,12 @@ def _scoped_span_series(
                 for group in groups
             )
         )
+        aggregates = [AGGREGATES[metric] for metric in signal.metrics]
         request, _, columns = Spans.get_timeseries_query(
             search_resolver=resolver,
             params=params,
             query_string=signal.query,
-            y_axes=[metric.value for metric in signal.metrics],
+            y_axes=aggregates,
             groupby=fields[1:] if missing else fields,
             referrer=_REFERRER,
             sampling_mode=None,
@@ -461,7 +471,7 @@ def _scoped_span_series(
                 key = ("", *key)
             if key not in allowed:
                 raise IncompleteCollection("Unexpected group in Spans time series")
-            if series.label not in signal.metrics or len(series.buckets) > bucket_count:
+            if series.label not in aggregates or len(series.buckets) > bucket_count:
                 raise IncompleteCollection("Unexpected metric or bucket count in Spans time series")
             if len(series.buckets) != len(series.data_points):
                 raise IncompleteCollection(
@@ -481,7 +491,7 @@ def _scoped_span_series(
                     point
                     for point in data
                     if not all(
-                        metric in point and point[metric] is None for metric in signal.metrics
+                        aggregate in point and point[aggregate] is None for aggregate in aggregates
                     )
                 ]
                 present.update((utc(point["time"]), key[0]) for point in data)
@@ -515,7 +525,7 @@ def collect(
     end: datetime,
     interval: Interval,
 ) -> list[SeriesRow]:
-    """Collect measurements in [start, end), with bucket-aligned naive UTC timestamps.
+    """Collect measurements in [start, end), with bucket-aligned UTC timestamps.
 
     Group discovery bounds the active environments and slices. Only covered
     request and error scopes can report zero; query failures propagate.
@@ -524,10 +534,7 @@ def collect(
     start, end = utc(start), utc(end)
     if start >= end:
         return []
-    if any(
-        value.microsecond or int(value.replace(tzinfo=timezone.utc).timestamp()) % rollup
-        for value in (start, end)
-    ):
+    if any(value.microsecond or int(value.timestamp()) % rollup for value in (start, end)):
         raise ValueError("Anomaly collection window must align with its bucket boundaries")
 
     rows: list[SeriesRow] = []

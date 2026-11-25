@@ -36,12 +36,13 @@ def project_map(organization: Organization, projects: Sequence[Project]) -> dict
 
 
 def utc(value: datetime | str | int) -> datetime:
-    """Normalize to naive UTC, the timestamp form used throughout anomaly detection."""
+    """Normalize to UTC, the timestamp form used throughout anomaly detection. Naive
+    values are taken as UTC."""
     if isinstance(value, str):
         value = datetime.fromisoformat(value)
     elif isinstance(value, int):
         value = datetime.fromtimestamp(value, timezone.utc)
-    return value.astimezone(timezone.utc).replace(tzinfo=None) if value.tzinfo else value
+    return value.astimezone(timezone.utc) if value.tzinfo else value.replace(tzinfo=timezone.utc)
 
 
 def number(value: object) -> float | None:
@@ -59,8 +60,8 @@ def error_env(alias: str | None = None) -> Function:
 def error_where(project: Project, start: datetime, end: datetime) -> list[Condition]:
     return [
         Condition(Column("project_id"), Op.EQ, project.id),
-        Condition(Column("timestamp"), Op.GTE, start.replace(tzinfo=timezone.utc)),
-        Condition(Column("timestamp"), Op.LT, end.replace(tzinfo=timezone.utc)),
+        Condition(Column("timestamp"), Op.GTE, start),
+        Condition(Column("timestamp"), Op.LT, end),
     ]
 
 
