@@ -27,7 +27,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.parameters import GlobalParams
 from sentry.models.organization import Organization
 from sentry.seer import agent_token
-from sentry.seer.endpoints.agent_request import AgentTokenRequestSerializer
+from sentry.seer.endpoints.agent_request import AgentTokenRequestData, AgentTokenRequestSerializer
 from sentry.types.superuser import from_viewer_context_superuser
 from sentry.viewer_context import get_acting_user_id, get_viewer_context
 
@@ -89,7 +89,7 @@ class OrganizationAgentTokenEndpoint(OrganizationEndpoint):
         serializer = AgentTokenRequestSerializer(data=data)
         if not serializer.is_valid():
             return Response({"detail": serializer.errors}, status=400)
-        validated_data = serializer.validated_data
+        validated_data: AgentTokenRequestData = serializer.validated_data
         session_id = validated_data["sessionId"]
         requested_scopes = validated_data.get("requestedScopes")
 

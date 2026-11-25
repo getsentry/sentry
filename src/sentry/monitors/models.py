@@ -72,7 +72,9 @@ MONITOR_CONFIG = {
 
 @cache
 def get_monitor_config_validator() -> jsonschema.protocols.Validator:
-    validator_cls = jsonschema.validators.validator_for(MONITOR_CONFIG)
+    validator_cls: type[jsonschema.protocols.Validator] = jsonschema.validators.validator_for(
+        MONITOR_CONFIG
+    )
     validator_cls.check_schema(MONITOR_CONFIG)
     return validator_cls(MONITOR_CONFIG)
 

@@ -60,7 +60,7 @@ class ChangePasswordRecoverForm(forms.Form):
         super().__init__(*args, **kwargs)
 
     def clean_password(self) -> str:
-        password = self.cleaned_data["password"]
+        password: str = self.cleaned_data["password"]
         password_validation.validate_password(password, user=self.user)
         return password
 
@@ -126,7 +126,7 @@ class RelocationForm(forms.Form):
         return value.lower()
 
     def clean_password(self) -> str:
-        password = self.cleaned_data["password"]
+        password: str = self.cleaned_data["password"]
         password_validation.validate_password(password, user=self.user)
         return password
 

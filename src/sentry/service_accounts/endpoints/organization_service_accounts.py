@@ -333,7 +333,7 @@ class OrganizationServiceAccountIndexEndpoint(OrganizationServiceAccountEndpoint
         )
         if not serializer.is_valid():
             return Response({"detail": serializer.errors}, status=400)
-        data = serializer.validated_data
+        data: ServiceAccountCreateRequestData = serializer.validated_data
         all_projects = data.get("allProjects", False)
         if all_projects:
             _check_can_grant_all_projects(request)
@@ -444,7 +444,7 @@ class OrganizationServiceAccountDetailsEndpoint(ServiceAccountScopedEndpointBase
         )
         if not serializer.is_valid():
             return Response({"detail": serializer.errors}, status=400)
-        data = serializer.validated_data
+        data: ServiceAccountUpdateRequestData = serializer.validated_data
 
         try:
             with outbox_context(transaction.atomic(using=router.db_for_write(ServiceAccount))):

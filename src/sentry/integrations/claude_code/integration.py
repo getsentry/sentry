@@ -424,7 +424,9 @@ class ClaudeCodeAgentIntegration(CodingAgentIntegration):
         client = self.get_client()
         vault_id = self._resolve_vault(client, request)
 
-        state = client.launch(webhook_url=webhook_url, request=request, vault_id=vault_id)
+        state: CodingAgentState = client.launch(
+            webhook_url=webhook_url, request=request, vault_id=vault_id
+        )
         state.integration_id = self.model.id
 
         self._sync_client_ids(client)

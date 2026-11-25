@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 if TYPE_CHECKING:
+    from sentry.issues.issue_occurrence import IssueOccurrence
     from sentry.services.eventstore.models import Event, GroupEvent
 
 
@@ -92,10 +93,10 @@ class EventStream(Service):
             )
 
     def _get_occurrence_data(self, event: Event | GroupEvent) -> MutableMapping[str, Any]:
-        occurrence = getattr(event, "occurrence", None)
+        occurrence: IssueOccurrence | None = getattr(event, "occurrence", None)
         occurrence_data: MutableMapping[str, Any] = {}
         if occurrence:
-            occurrence_data = occurrence.to_dict()
+            occurrence_data = dict(occurrence.to_dict())
             del occurrence_data["evidence_data"]
             del occurrence_data["evidence_display"]
         return occurrence_data

@@ -2153,7 +2153,7 @@ class Factories:
     def create_session() -> SessionBase:
         engine = import_module(settings.SESSION_ENGINE)
 
-        session = engine.SessionStore()
+        session: SessionBase = engine.SessionStore()
         session.save()
         return session
 

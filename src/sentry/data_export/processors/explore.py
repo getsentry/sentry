@@ -192,9 +192,9 @@ class ExploreProcessor:
     @staticmethod
     def get_sampling_mode(organization_id: int, query: dict[str, Any]) -> SAMPLING_MODES | None:
         sampling_mode = query.get("sampling", None)
-        if sampling_mode is not None:
-            sampling_mode = sampling_mode.upper()
-        return sampling_mode
+        if sampling_mode is None:
+            return None
+        return sampling_mode.upper()
 
     def run_query(self, offset: int, limit: int) -> list[dict[str, Any]]:
         query: str = self.explore_query.get("query", "")

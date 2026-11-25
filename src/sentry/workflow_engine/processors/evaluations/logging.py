@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 
 
 def _is_sampled() -> bool:
-    sample_rate = options.get("workflow_engine.evaluation_log_sample_rate")
+    sample_rate: float = options.get("workflow_engine.evaluation_log_sample_rate")
     return random.random() < sample_rate
 
 
@@ -46,7 +46,9 @@ def should_log(
         return True
 
     if not isinstance(result, ProcessDetectorsResult):
-        target_workflow_ids = options.get("workflow_engine.evaluation_log_target_workflow_ids")
+        target_workflow_ids: list[int] = options.get(
+            "workflow_engine.evaluation_log_target_workflow_ids"
+        )
         evaluated_workflow_ids = result.evaluated_workflow_ids()
         if any(workflow_id in evaluated_workflow_ids for workflow_id in target_workflow_ids):
             return True

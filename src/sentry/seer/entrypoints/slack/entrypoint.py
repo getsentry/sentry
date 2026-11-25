@@ -33,6 +33,7 @@ from sentry.seer.autofix.single_run import single_run_stopping_point
 from sentry.seer.autofix.utils import AutofixStoppingPoint, CodingAgentProviderType
 from sentry.seer.credits import OUT_OF_CREDITS, SeerCreditDenialReason, get_run_denial_reason
 from sentry.seer.endpoints.agent_request import (
+    AgentApprovalRequestData,
     AgentApprovalRequestSerializer,
 )
 from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
@@ -129,7 +130,7 @@ def _agent_write_approval(
     )
     if not pending_user_input.id or not approval.is_valid():
         return None
-    validated_data = approval.validated_data
+    validated_data: AgentApprovalRequestData = approval.validated_data
     scopes = validated_data["scopes"]
     if not scopes:
         return None

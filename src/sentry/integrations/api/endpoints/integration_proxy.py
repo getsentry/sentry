@@ -373,7 +373,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         # default timeout when the header is absent or unparseable.
         timeout = decode_proxy_timeout(request.headers.get(PROXY_TIMEOUT_HEADER))
 
-        resp = self.client.request(
+        resp: Response = self.client.request(
             request.method,
             self.proxy_path,
             allow_text=True,

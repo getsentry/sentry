@@ -27,7 +27,7 @@ def json_byte_size(value: Any) -> int:
 
 class RelaxedContractSerializer(serializers.Serializer[Any]):
     def to_internal_value(self, data: Any) -> dict[str, Any]:
-        validated = super().to_internal_value(data)
+        validated: dict[str, Any] = super().to_internal_value(data)
         if not isinstance(data, dict):
             return validated
         passthrough = {key: value for key, value in data.items() if key not in self.fields}
