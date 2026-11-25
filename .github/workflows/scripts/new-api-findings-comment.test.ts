@@ -61,7 +61,15 @@ async function run(
     runId: 7,
     payload: {pull_request: {number: 42, head: {sha: 'deadbeef'}}},
   };
-  await syncNewApiFindingsComment({github, context, findingsPath, checkFailed} as any);
+  const core = {info: () => {}};
+
+  await syncNewApiFindingsComment({
+    github,
+    context,
+    core,
+    findingsPath,
+    checkFailed,
+  } as any);
   return calls;
 }
 
