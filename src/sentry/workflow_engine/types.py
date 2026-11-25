@@ -15,6 +15,7 @@ from typing import (
     TypeAlias,
     TypedDict,
     TypeVar,
+    final,
 )
 from uuid import UUID
 
@@ -238,10 +239,23 @@ class UnsupportedActionEvent(ValueError):
     """The action handler cannot execute with the supplied event context."""
 
 
+def require_issue_group(event_data: WorkflowEventData) -> None:
+    if event_data.group is None:
+        raise UnsupportedActionEvent("This action requires an issue group")
+
+
+def require_project_scoped_detector(invocation: ActionInvocation) -> None:
+    if invocation.detector.project_id is None:
+        raise UnsupportedActionEvent("This action requires a project-scoped detector")
+
+
 class ActionHandler:
     config_schema: ClassVar[dict[str, Any]]
     data_schema: ClassVar[dict[str, Any]]
     required_features: ClassVar[tuple[FeatureGate, ...]] = ()
+    # Subclasses adding checks should extend their parent's validator tuples.
+    event_validators: ClassVar[tuple[Callable[[WorkflowEventData], None], ...]] = ()
+    invocation_validators: ClassVar[tuple[Callable[[ActionInvocation], None], ...]] = ()
 
     class Group(StrEnum):
         NOTIFICATION = "notification"
@@ -283,13 +297,19 @@ class ActionHandler:
 
         return convert_dict_key_case(data, snake_to_camel_case)
 
-    @staticmethod
-    def validate_event_data(event_data: WorkflowEventData) -> None:
+    @final
+    @classmethod
+    def validate_event_data(cls, event_data: WorkflowEventData) -> None:
         """Raise UnsupportedActionEvent for missing context, before dispatch or execution."""
+        for validate in cls.event_validators:
+            validate(event_data)
 
-    @staticmethod
-    def validate_invocation(invocation: ActionInvocation) -> None:
+    @final
+    @classmethod
+    def validate_invocation(cls, invocation: ActionInvocation) -> None:
         """Validate context available only after detector resolution, before execution."""
+        for validate in cls.invocation_validators:
+            validate(invocation)
 
     @staticmethod
     def execute(invocation: ActionInvocation) -> None:

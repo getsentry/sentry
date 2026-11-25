@@ -2,9 +2,6 @@ import logging
 from typing import override
 
 from sentry.models.activity import Activity
-from sentry.notifications.notification_action.action_handler_registry.base import (
-    IssueNotificationActionHandler,
-)
 from sentry.notifications.notification_action.utils import execute_via_activity_type_registry
 from sentry.sentry_apps.services.legacy_webhook.service import (
     get_triggering_rule_name,
@@ -14,7 +11,13 @@ from sentry.sentry_apps.services.legacy_webhook.service import (
 from sentry.services.eventstore.models import GroupEvent
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.registry import action_handler_registry
-from sentry.workflow_engine.types import ActionHandler, ActionInvocation, ConfigTransformer
+from sentry.workflow_engine.types import (
+    ActionHandler,
+    ActionInvocation,
+    ConfigTransformer,
+    require_issue_group,
+    require_project_scoped_detector,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +29,9 @@ def _handle_legacy_webhooks(invocation: ActionInvocation) -> None:
 
 
 @action_handler_registry.register(Action.Type.WEBHOOK)
-class WebhookActionHandler(IssueNotificationActionHandler):
+class WebhookActionHandler(ActionHandler):
+    event_validators = (require_issue_group,)
+    invocation_validators = (require_project_scoped_detector,)
     group = ActionHandler.Group.OTHER
 
     config_schema = {

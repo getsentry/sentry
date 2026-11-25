@@ -11,28 +11,16 @@ from sentry.workflow_engine.types import (
     ActionHandler,
     ActionInvocation,
     ConfigTransformer,
-    UnsupportedActionEvent,
-    WorkflowEventData,
+    require_issue_group,
+    require_project_scoped_detector,
 )
 
 logger = logging.getLogger(__name__)
 
 
-class IssueNotificationActionHandler(ActionHandler):
-    @staticmethod
-    @override
-    def validate_event_data(event_data: WorkflowEventData) -> None:
-        if event_data.group is None:
-            raise UnsupportedActionEvent("This action requires an issue group")
-
-    @staticmethod
-    @override
-    def validate_invocation(invocation: ActionInvocation) -> None:
-        if invocation.detector.project_id is None:
-            raise UnsupportedActionEvent("This action requires a project-scoped detector")
-
-
-class IntegrationActionHandler(IssueNotificationActionHandler, ABC):
+class IntegrationActionHandler(ActionHandler, ABC):
+    event_validators = (require_issue_group,)
+    invocation_validators = (require_project_scoped_detector,)
     provider_slug: IntegrationProviderSlug
 
 

@@ -14,8 +14,7 @@ from sentry.workflow_engine.types import (
     ActionHandler,
     ActionInvocation,
     FeatureGate,
-    UnsupportedActionEvent,
-    WorkflowEventData,
+    require_issue_group,
 )
 
 logger = logging.getLogger(__name__)
@@ -23,6 +22,7 @@ logger = logging.getLogger(__name__)
 
 @action_handler_registry.register(Action.Type.SEER_INVESTIGATION)
 class SeerInvestigationActionHandler(ActionHandler):
+    event_validators = (require_issue_group,)
     group = ActionHandler.Group.OTHER
     required_features = (FeatureGate("organizations:seer-automations"),)
     config_schema = {"type": "object", "properties": {}, "additionalProperties": False}
@@ -45,12 +45,6 @@ class SeerInvestigationActionHandler(ActionHandler):
         "oneOf": [{"required": ["prompt"]}, {"required": ["skill"]}, {"maxProperties": 0}],
         "additionalProperties": False,
     }
-
-    @staticmethod
-    @override
-    def validate_event_data(event_data: WorkflowEventData) -> None:
-        if event_data.group is None:
-            raise UnsupportedActionEvent("This action requires an issue group")
 
     @classmethod
     @override

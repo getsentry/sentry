@@ -1,18 +1,23 @@
 from typing import override
 
 from sentry.notifications.models.notificationaction import ActionTarget
-from sentry.notifications.notification_action.action_handler_registry.base import (
-    IssueNotificationActionHandler,
-)
 from sentry.notifications.notification_action.utils import execute_via_group_type_registry
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.registry import action_handler_registry
 from sentry.workflow_engine.transformers import TargetTypeConfigTransformer
-from sentry.workflow_engine.types import ActionHandler, ActionInvocation, ConfigTransformer
+from sentry.workflow_engine.types import (
+    ActionHandler,
+    ActionInvocation,
+    ConfigTransformer,
+    require_issue_group,
+    require_project_scoped_detector,
+)
 
 
 @action_handler_registry.register(Action.Type.SENTRY_APP)
-class SentryAppActionHandler(IssueNotificationActionHandler):
+class SentryAppActionHandler(ActionHandler):
+    event_validators = (require_issue_group,)
+    invocation_validators = (require_project_scoped_detector,)
     group = ActionHandler.Group.OTHER
 
     config_schema = {
