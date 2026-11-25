@@ -308,8 +308,7 @@ export function ListBox<T extends ListItemBase>({
                     listState={listState}
                     rowProps={section.props}
                     showSectionHeaders={showSectionHeaders}
-                    // Only sections below other rows are separated from them.
-                    showSeparator={section.node.key !== listItems[0]?.key}
+                    showSeparator={section.node !== listItems[0]}
                   >
                     {rows}
                   </ListBoxSection>

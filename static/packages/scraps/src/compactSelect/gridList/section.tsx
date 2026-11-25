@@ -18,7 +18,6 @@ interface GridListSectionProps<T extends ListItemBase> {
   children: React.ReactNode;
   listState: ListState<T>;
   node: Node<T>;
-  /** Whether to render a separator above the section's header. */
   showSeparator: boolean;
   /**
    * Measurement props for the section's own row when the list is virtualized.

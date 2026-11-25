@@ -19,7 +19,6 @@ interface ListBoxSectionProps<T extends ListItemBase> {
   item: Node<T>;
   listState: ListState<T>;
   showSectionHeaders: boolean;
-  /** Whether to render a separator above the section's header. */
   showSeparator: boolean;
   /**
    * Measurement props for the section's own row when the list is virtualized.

@@ -112,16 +112,9 @@ export const SectionToggleButton = styled(Button)<{visible: boolean}>`
   }
 `;
 
-export function SectionSeparator(props: React.HTMLAttributes<HTMLDivElement>) {
+export function SectionSeparator() {
   return (
-    <Stack
-      data-section-separator
-      justify="center"
-      height="8px"
-      padding="0 lg 0 xl"
-      {...props}
-      role="presentation"
-    >
+    <Stack justify="center" height="8px" padding="0 lg 0 xl" role="presentation">
       <MenuSectionSeparator />
     </Stack>
   );
