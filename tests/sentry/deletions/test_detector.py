@@ -1,6 +1,9 @@
+from datetime import timedelta
+from threading import Barrier
 from unittest import mock
 
 import pytest
+from django.db import OperationalError, connections
 
 from sentry import deletions
 from sentry.constants import ObjectStatus
@@ -9,8 +12,11 @@ from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.models import QuerySubscription, SnubaQuery
+from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
+from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.uptime.models import UptimeSubscription, get_uptime_subscription
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.snuba import SnubaError
 from sentry.workflow_engine.models import (
     AlertRuleDetector,
@@ -74,22 +80,46 @@ class DeleteDetectorTest(BaseWorkflowTest, HybridCloudTestMixin):
         assert not QuerySubscription.objects.filter(id=self.subscription.id).exists()
         assert not SnubaQuery.objects.filter(id=self.snuba_query.id).exists()
 
-    def test_unsubscribe_failure_can_be_retried(self) -> None:
-        self.delete_from_snuba.side_effect = [SnubaError("unavailable"), None]
-        with pytest.raises(SnubaError):
-            deletions.exec_sync(self.detector)
-
-        self.subscription.refresh_from_db()
-        assert self.subscription.subscription_id == "123"
-        assert SnubaQuery.objects.filter(id=self.snuba_query.id).exists()
-        assert DataSourceDetector.objects.filter(id=self.data_source_detector.id).exists()
-
+    def test_unsubscribe_failure_does_not_block_deletion(self) -> None:
+        self.delete_from_snuba.side_effect = SnubaError("unavailable")
         deletions.exec_sync(self.detector)
-        assert self.delete_from_snuba.call_args_list == [
-            mock.call(Dataset.Events, "123", EntityKey.Events),
-            mock.call(Dataset.Events, "123", EntityKey.Events),
-        ]
+        self.delete_from_snuba.assert_called_once_with(Dataset.Events, "123", EntityKey.Events)
+        assert not Detector.objects_for_deletion.filter(id=self.detector.id).exists()
         assert not QuerySubscription.objects.filter(id=self.subscription.id).exists()
+        assert not SnubaQuery.objects.filter(id=self.snuba_query.id).exists()
+
+    def test_missing_environment_does_not_block_deletion(self) -> None:
+        self.snuba_query.update(environment_id=999999)
+        deletions.exec_sync(self.detector)
+        self.delete_from_snuba.assert_not_called()
+        assert not Detector.objects_for_deletion.filter(id=self.detector.id).exists()
+        assert not QuerySubscription.objects.filter(id=self.subscription.id).exists()
+
+    def test_database_error_during_unsubscribe_is_retryable(self) -> None:
+        with mock.patch(
+            "sentry.snuba.tasks._get_entity_key_for_delete", side_effect=OperationalError
+        ):
+            with pytest.raises(OperationalError):
+                deletions.exec_sync(self.detector)
+        assert DataSourceDetector.objects.filter(id=self.data_source_detector.id).exists()
+        assert QuerySubscription.objects.filter(id=self.subscription.id).exists()
+        deletions.exec_sync(self.detector)
+        self.delete_from_snuba.assert_called_once_with(Dataset.Events, "123", EntityKey.Events)
+
+    def test_last_two_owners_deleted_in_one_batch(self) -> None:
+        other = self.create_detector(project=self.project, type=MetricIssue.slug)
+        self.create_data_source_detector(data_source=self.data_source, detector=other)
+        task = deletions.get(model=Detector, query={})
+        task.get_child_relations(self.detector)
+        assert DataSourceDetector.objects.filter(data_source=self.data_source).count() == 2
+
+        deletions.exec_sync_many([self.detector, other])
+
+        self.delete_from_snuba.assert_called_once_with(Dataset.Events, "123", EntityKey.Events)
+        assert not Detector.objects_for_deletion.filter(
+            id__in=[self.detector.id, other.id]
+        ).exists()
+        assert not DataSource.objects.filter(id=self.data_source.id).exists()
         assert not SnubaQuery.objects.filter(id=self.snuba_query.id).exists()
 
     def test_multiple_data_sources(self) -> None:
@@ -306,6 +336,62 @@ class DeleteDetectorTest(BaseWorkflowTest, HybridCloudTestMixin):
             run_scheduled_deletions()
 
         assert not UptimeSubscription.objects.filter(id=uptime_sub_id).exists()
+
+
+class ConcurrentDetectorDeletionTest(TransactionTestCase):
+    def test_concurrent_last_owners_and_subscriptions(self) -> None:
+        query = create_snuba_query(
+            SnubaQuery.Type.ERROR,
+            Dataset.Events,
+            "",
+            "count()",
+            timedelta(minutes=1),
+            timedelta(minutes=1),
+            None,
+        )
+        detectors = [
+            self.create_detector(project=self.project, type=MetricIssue.slug) for _ in range(2)
+        ]
+
+        def create_source(remote_id: str) -> DataSource:
+            with mock.patch("sentry.snuba.subscriptions.create_subscription_in_snuba.delay"):
+                subscription = create_snuba_subscription(self.project, "test", query)
+            subscription.update(
+                subscription_id=remote_id, status=QuerySubscription.Status.ACTIVE.value
+            )
+            return self.create_data_source(
+                organization=self.organization, source_id=str(subscription.id)
+            )
+
+        shared_source = create_source("shared")
+        for detector in detectors:
+            self.create_data_source_detector(data_source=shared_source, detector=detector)
+            source = create_source(str(detector.id))
+            self.create_data_source_detector(data_source=source, detector=detector)
+
+        start = Barrier(2, timeout=10)
+
+        def delete_detector(detector: Detector) -> None:
+            try:
+                start.wait()
+                deletions.exec_sync(detector)
+            finally:
+                connections.close_all()
+
+        with (
+            mock.patch("sentry.snuba.tasks._delete_from_snuba") as unsubscribe,
+            ContextPropagatingThreadPoolExecutor(max_workers=2) as workers,
+        ):
+            list(workers.map(delete_detector, detectors))
+
+        expected_ids = ["shared", *(str(detector.id) for detector in detectors)]
+        assert unsubscribe.call_count == len(expected_ids)
+        unsubscribe.assert_has_calls(
+            [mock.call(Dataset.Events, remote_id, EntityKey.Events) for remote_id in expected_ids],
+            any_order=True,
+        )
+        assert not DataSource.objects.filter(id=shared_source.id).exists()
+        assert not SnubaQuery.objects.filter(id=query.id).exists()
 
 
 class DeleteDualWrittenDetectorTest(BaseWorkflowTest, HybridCloudTestMixin):

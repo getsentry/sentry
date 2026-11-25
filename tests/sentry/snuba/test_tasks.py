@@ -580,6 +580,20 @@ class DeleteSubscriptionFromSnubaTest(BaseSnubaTaskTest):
                 == f"/{Dataset.EventsAnalyticsPlatform.value}/{EntityKey.EAPItems.value}/subscriptions/{subscription_id}"
             )
 
+    def test_failed_remote_delete_retains_subscription_for_retry(self) -> None:
+        remote_id = f"1/{uuid4().hex}"
+        subscription = self.create_subscription(
+            QuerySubscription.Status.DELETING, subscription_id=remote_id
+        )
+        with (
+            patch("sentry.snuba.tasks._delete_from_snuba", side_effect=SnubaError("unavailable")),
+            pytest.raises(SnubaError),
+        ):
+            delete_subscription_from_snuba(subscription.id)
+        subscription.refresh_from_db()
+        assert subscription.subscription_id == remote_id
+        assert subscription.status == QuerySubscription.Status.DELETING.value
+
     def test_performance_metrics_skips_snuba(self) -> None:
         subscription_id = f"1/{uuid4().hex}"
         sub = self.create_subscription(

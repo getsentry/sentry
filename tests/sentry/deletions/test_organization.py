@@ -529,13 +529,21 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin, BaseWork
             workflow_condition_group=dcg,
         )
         workflow = self.create_workflow(organization=org, name="Test Workflow")
+        subscription = self.create_snuba_query_subscription(
+            project_id=project.id, subscription_id="123"
+        )
+        source = self.create_data_source(organization=org, source_id=str(subscription.id))
+        self.create_data_source_detector(data_source=source, detector=detector)
 
         org.update(status=OrganizationStatus.PENDING_DELETION)
         self.ScheduledDeletion.schedule(instance=org, days=0)
 
-        with self.tasks():
+        with self.tasks(), patch("sentry.snuba.tasks._delete_from_snuba") as unsubscribe:
             run_scheduled_deletions()
 
+        unsubscribe.assert_not_called()
+        assert not QuerySubscription.objects.filter(id=subscription.id).exists()
+        assert not Organization.objects.filter(id=org.id).exists()
         assert not Project.objects.filter(id=project.id).exists()
         assert not Detector.objects.filter(id=detector.id).exists()
         assert not DataConditionGroup.objects.filter(id=dcg.id).exists()

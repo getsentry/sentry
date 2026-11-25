@@ -1,5 +1,4 @@
 from unittest import mock
-from uuid import uuid4
 
 from sentry import deletions
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
@@ -192,14 +191,15 @@ class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMi
             project=project,
             snuba_query=snuba_query,
             status=0,
-            subscription_id=f"0/{uuid4().hex}",
+            subscription_id="a-snuba-id-maybe",
             query_extra="",
         )
 
         self.ScheduledDeletion.schedule(instance=project, days=0)
-        with self.tasks():
+        with self.tasks(), mock.patch("sentry.snuba.tasks._delete_from_snuba") as unsubscribe:
             run_scheduled_deletions()
 
+        unsubscribe.assert_not_called()
         assert not Project.objects.filter(id=project.id).exists()
         assert not Rule.objects.filter(id=rule.id).exists()
         assert not EnvironmentProject.objects.filter(
@@ -283,7 +283,7 @@ class DeleteWorkflowEngineModelsTest(DeleteProjectTest):
         self.subscription = QuerySubscription.objects.create(
             project=self.workflow_engine_project,
             status=QuerySubscription.Status.ACTIVE.value,
-            subscription_id=f"0/{uuid4().hex}",
+            subscription_id="123",
             snuba_query=self.snuba_query,
         )
         self.data_source = self.create_data_source(
@@ -313,9 +313,11 @@ class DeleteWorkflowEngineModelsTest(DeleteProjectTest):
     def test_delete_detector_data_source(self) -> None:
         self.ScheduledDeletion.schedule(instance=self.workflow_engine_project, days=0)
 
-        with self.tasks():
+        with self.tasks(), mock.patch("sentry.snuba.tasks._delete_from_snuba") as unsubscribe:
             run_scheduled_deletions()
 
+        unsubscribe.assert_not_called()
+        assert not Project.objects.filter(id=self.workflow_engine_project.id).exists()
         assert not Detector.objects.filter(id=self.detector.id).exists()
         assert not DataSource.objects.filter(id=self.data_source.id).exists()
         assert not DataSourceDetector.objects.filter(id=self.data_source_detector.id).exists()
