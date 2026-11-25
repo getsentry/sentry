@@ -379,7 +379,11 @@ export const useSeerExplorer = () => {
       }
       if (isInputNotPendingError(error)) {
         // Another answer (say, from a second tab) got there first, so the run has moved on. Show
-        // where it is now instead of asking again.
+        // where it is now instead of asking again, and drop the alert from any earlier failed
+        // answer, since that failure no longer applies.
+        if (isCurrentRun(params.runId)) {
+          setRequestError(null);
+        }
         queryClient.invalidateQueries({
           queryKey: makeSeerExplorerQueryKey(params.orgSlug, params.runId),
         });
