@@ -286,7 +286,9 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         )
         if seer_run is not None:
             reconcile_milestones(seer_run, state)
-        if not cls._run_completed(organization, run_id, state) and not paused:
+        if state.status == "processing" or (
+            not cls._run_completed(organization, run_id, state) and not paused
+        ):
             if state.status == "error":
                 cls._announce_failure(
                     organization, run_id, group, seer_run, state, state.failure_reason
