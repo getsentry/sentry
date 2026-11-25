@@ -1,7 +1,8 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, within} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import ProjectAttributeDetails from './projectAttributeDetails';
 
@@ -504,5 +505,361 @@ describe('ProjectAttributeDetails', () => {
     });
 
     expect(request).not.toHaveBeenCalled();
+  });
+
+  describe('editing', () => {
+    const {organization: editingOrganization} = initializeOrg({
+      organization: {
+        access: [...OrganizationFixture().access, 'event:write'],
+        features: ['attribute-management', 'data-browsing-attribute-context'],
+      },
+    });
+    const editingDetailsEndpoint = `/organizations/${editingOrganization.slug}/trace-items/attributes/details/`;
+    const contextEndpoint = `/organizations/${editingOrganization.slug}/trace-items/attributes/cart.size/context/`;
+    const routerConfig = {
+      location: {
+        pathname: `/settings/projects/${project.slug}/attributes/number/cart.size/`,
+      },
+      route: '/settings/projects/:projectId/attributes/:attributeType/:attributeName/',
+    };
+    const customAttribute = {
+      name: 'cart.size',
+      attributeType: 'number',
+      attributeSource: {source_type: 'user'},
+      datasets: ['spans', 'logs'],
+      isEditable: true,
+      lastSeen: null,
+      stats: {spans: {lastSeen: null, cardinality: null}},
+      context: {},
+    };
+
+    it('saves the metadata for the project when a custom attribute is edited', async () => {
+      MockApiClient.addMockResponse({url: editingDetailsEndpoint, body: customAttribute});
+      const save = MockApiClient.addMockResponse({
+        url: contextEndpoint,
+        method: 'PUT',
+        body: {
+          contexts: [
+            {
+              brief: 'Items in the cart.',
+              additionalContext: 'Counted at checkout.',
+              examples: ['1', '3'],
+            },
+          ],
+        },
+      });
+
+      render(<ProjectAttributeDetails />, {
+        organization: editingOrganization,
+        outletContext: {project},
+        initialRouterConfig: routerConfig,
+      });
+      await userEvent.click(await screen.findByRole('button', {name: 'Edit'}));
+      await userEvent.type(
+        screen.getByRole('textbox', {name: 'Description'}),
+        'Items in the cart.'
+      );
+      await userEvent.type(
+        screen.getByRole('textbox', {name: 'Notes'}),
+        'Counted at checkout.'
+      );
+      await userEvent.type(
+        screen.getByRole('textbox', {name: 'Examples'}),
+        ' 1 {enter}3{enter}1'
+      );
+      await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+
+      expect(await screen.findByText('Items in the cart.')).toBeInTheDocument();
+      expect(screen.getByText('Applies to this project only.')).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Edit'})).toHaveFocus();
+      expect(screen.getByText('Saved attribute metadata.')).toBeInTheDocument();
+      expect(save).toHaveBeenCalledWith(
+        contextEndpoint,
+        expect.objectContaining({
+          query: {project: project.id},
+          data: {
+            datasets: ['spans', 'logs'],
+            attributeType: 'number',
+            brief: 'Items in the cart.',
+            additionalContext: 'Counted at checkout.',
+            examples: ['1', '3'],
+          },
+        })
+      );
+    });
+
+    it('focuses the description when editing starts', async () => {
+      MockApiClient.addMockResponse({url: editingDetailsEndpoint, body: customAttribute});
+
+      render(<ProjectAttributeDetails />, {
+        organization: editingOrganization,
+        outletContext: {project},
+        initialRouterConfig: routerConfig,
+      });
+      await userEvent.click(await screen.findByRole('button', {name: 'Edit'}));
+
+      expect(screen.getByRole('textbox', {name: 'Description'})).toHaveFocus();
+    });
+
+    it('closes without saving when only whitespace changed', async () => {
+      MockApiClient.addMockResponse({
+        url: editingDetailsEndpoint,
+        body: {
+          ...customAttribute,
+          context: {isCustom: true, brief: 'Items in the cart.'},
+        },
+      });
+      const save = MockApiClient.addMockResponse({url: contextEndpoint, method: 'PUT'});
+
+      render(<ProjectAttributeDetails />, {
+        organization: editingOrganization,
+        outletContext: {project},
+        initialRouterConfig: routerConfig,
+      });
+      await userEvent.click(await screen.findByRole('button', {name: 'Edit'}));
+      await userEvent.type(screen.getByRole('textbox', {name: 'Description'}), '  ');
+      await userEvent.type(screen.getByRole('textbox', {name: 'Notes'}), '{enter} ');
+      await userEvent.type(screen.getByRole('textbox', {name: 'Examples'}), '{enter} ');
+      await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+
+      expect(
+        await screen.findByText('Applies to every project in this organization.')
+      ).toBeInTheDocument();
+      expect(save).not.toHaveBeenCalled();
+    });
+
+    it('keeps the saved examples when only the description changes', async () => {
+      MockApiClient.addMockResponse({
+        url: editingDetailsEndpoint,
+        body: {
+          ...customAttribute,
+          context: {isCustom: true, isProjectScoped: true, examples: ['3\n4', '5']},
+        },
+      });
+      const save = MockApiClient.addMockResponse({
+        url: contextEndpoint,
+        method: 'PUT',
+        body: {contexts: []},
+      });
+
+      render(<ProjectAttributeDetails />, {
+        organization: editingOrganization,
+        outletContext: {project},
+        initialRouterConfig: routerConfig,
+      });
+      await userEvent.click(await screen.findByRole('button', {name: 'Edit'}));
+      await userEvent.type(screen.getByRole('textbox', {name: 'Description'}), 'Items');
+      await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+
+      expect(await screen.findByText('Saved attribute metadata.')).toBeInTheDocument();
+      expect(save).toHaveBeenCalledWith(
+        contextEndpoint,
+        expect.objectContaining({
+          data: expect.objectContaining({examples: ['3\n4', '5']}),
+        })
+      );
+    });
+
+    it('says changes apply to this project only while editing', async () => {
+      MockApiClient.addMockResponse({
+        url: editingDetailsEndpoint,
+        body: {
+          ...customAttribute,
+          context: {isCustom: true, brief: 'Items in the cart.'},
+        },
+      });
+
+      render(<ProjectAttributeDetails />, {
+        organization: editingOrganization,
+        outletContext: {project},
+        initialRouterConfig: routerConfig,
+      });
+      await userEvent.click(await screen.findByRole('button', {name: 'Edit'}));
+
+      expect(screen.getByText('Changes apply to this project only.')).toBeInTheDocument();
+      expect(
+        screen.queryByText('Applies to every project in this organization.')
+      ).not.toBeInTheDocument();
+    });
+
+    it('shows the field error when the description is rejected', async () => {
+      MockApiClient.addMockResponse({url: editingDetailsEndpoint, body: customAttribute});
+      MockApiClient.addMockResponse({
+        url: contextEndpoint,
+        method: 'PUT',
+        statusCode: 400,
+        body: {brief: ['This description is not allowed.']},
+      });
+
+      render(<ProjectAttributeDetails />, {
+        organization: editingOrganization,
+        outletContext: {project},
+        initialRouterConfig: routerConfig,
+      });
+      await userEvent.click(await screen.findByRole('button', {name: 'Edit'}));
+      await userEvent.type(screen.getByRole('textbox', {name: 'Description'}), 'Nope');
+      await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+
+      expect(await screen.findByRole('textbox', {name: 'Description'})).toHaveAttribute(
+        'aria-invalid',
+        'true'
+      );
+    });
+
+    it('disables editing with a reason when the attribute is defined by Sentry', async () => {
+      MockApiClient.addMockResponse({
+        url: editingDetailsEndpoint,
+        body: {
+          ...customAttribute,
+          attributeSource: {source_type: 'sentry'},
+          isEditable: false,
+        },
+      });
+
+      render(<ProjectAttributeDetails />, {
+        organization: editingOrganization,
+        outletContext: {project},
+        initialRouterConfig: routerConfig,
+      });
+      const editButton = await screen.findByRole('button', {name: 'Edit'});
+      await userEvent.hover(editButton);
+
+      expect(editButton).toHaveAttribute('aria-disabled', 'true');
+      expect(
+        await screen.findByText("Sentry-defined attributes can't be edited.")
+      ).toBeInTheDocument();
+    });
+
+    it('disables editing with a reason when the user cannot write events', async () => {
+      const {organization: readOnlyOrganization} = initializeOrg({
+        organization: {
+          features: ['attribute-management', 'data-browsing-attribute-context'],
+        },
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${readOnlyOrganization.slug}/trace-items/attributes/details/`,
+        body: customAttribute,
+      });
+
+      render(<ProjectAttributeDetails />, {
+        organization: readOnlyOrganization,
+        outletContext: {project},
+        initialRouterConfig: routerConfig,
+      });
+      const editButton = await screen.findByRole('button', {name: 'Edit'});
+      await userEvent.hover(editButton);
+
+      expect(editButton).toHaveAttribute('aria-disabled', 'true');
+      expect(
+        await screen.findByText("You don't have permission to edit attribute metadata.")
+      ).toBeInTheDocument();
+    });
+
+    it('says the description applies to every project when it is organization-wide', async () => {
+      MockApiClient.addMockResponse({
+        url: editingDetailsEndpoint,
+        body: {
+          ...customAttribute,
+          context: {isCustom: true, brief: 'Items in the cart.'},
+        },
+      });
+
+      render(<ProjectAttributeDetails />, {
+        organization: editingOrganization,
+        outletContext: {project},
+        initialRouterConfig: routerConfig,
+      });
+
+      expect(
+        await screen.findByText('Applies to every project in this organization.')
+      ).toBeInTheDocument();
+    });
+
+    it('hides editing when attribute context is disabled', async () => {
+      MockApiClient.addMockResponse({url: detailsEndpoint, body: customAttribute});
+
+      render(<ProjectAttributeDetails />, {
+        organization,
+        outletContext: {project},
+        initialRouterConfig: routerConfig,
+      });
+
+      expect(
+        await screen.findByRole('heading', {level: 2, name: 'cart.size'})
+      ).toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Edit'})).not.toBeInTheDocument();
+    });
+
+    it('discards changes and refocuses the edit button when editing is cancelled', async () => {
+      MockApiClient.addMockResponse({
+        url: editingDetailsEndpoint,
+        body: {
+          ...customAttribute,
+          context: {isCustom: true, brief: 'Items in the cart.'},
+        },
+      });
+      const save = MockApiClient.addMockResponse({url: contextEndpoint, method: 'PUT'});
+
+      render(<ProjectAttributeDetails />, {
+        organization: editingOrganization,
+        outletContext: {project},
+        initialRouterConfig: routerConfig,
+      });
+      await userEvent.click(await screen.findByRole('button', {name: 'Edit'}));
+      await userEvent.type(screen.getByRole('textbox', {name: 'Description'}), ' Edited');
+      await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
+
+      expect(screen.getByText('Items in the cart.')).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Edit'})).toHaveFocus();
+      expect(save).not.toHaveBeenCalled();
+    });
+
+    it('shows the error message when the save fails', async () => {
+      MockApiClient.addMockResponse({url: editingDetailsEndpoint, body: customAttribute});
+      MockApiClient.addMockResponse({
+        url: contextEndpoint,
+        method: 'PUT',
+        statusCode: 400,
+        body: {detail: 'Attribute `cart.size` was not found in logs.'},
+      });
+
+      render(<ProjectAttributeDetails />, {
+        organization: editingOrganization,
+        outletContext: {project},
+        initialRouterConfig: routerConfig,
+      });
+      await userEvent.click(await screen.findByRole('button', {name: 'Edit'}));
+      await userEvent.type(screen.getByRole('textbox', {name: 'Description'}), 'Items');
+      await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+
+      expect(
+        await screen.findByText('Attribute `cart.size` was not found in logs.')
+      ).toBeInTheDocument();
+    });
+
+    it('disables editing with a reason when the attribute is an array', async () => {
+      MockApiClient.addMockResponse({
+        url: editingDetailsEndpoint,
+        body: {...customAttribute, attributeType: 'array', isEditable: false},
+      });
+
+      render(<ProjectAttributeDetails />, {
+        organization: editingOrganization,
+        outletContext: {project},
+        initialRouterConfig: {
+          ...routerConfig,
+          location: {
+            pathname: `/settings/projects/${project.slug}/attributes/array/cart.size/`,
+          },
+        },
+      });
+      const editButton = await screen.findByRole('button', {name: 'Edit'});
+      await userEvent.hover(editButton);
+
+      expect(editButton).toHaveAttribute('aria-disabled', 'true');
+      expect(
+        await screen.findByText("Array attributes can't be edited.")
+      ).toBeInTheDocument();
+    });
   });
 });
