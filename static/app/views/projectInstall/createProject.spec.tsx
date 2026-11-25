@@ -2,6 +2,7 @@ import {AutomationFixture} from 'sentry-fixture/automations';
 import {IssueStreamDetectorFixture} from 'sentry-fixture/detectors';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
+import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -18,6 +19,7 @@ import {selectEvent} from 'sentry-test/selectEvent';
 import {toast} from '@sentry/scraps/toast';
 
 import {OrganizationStore} from 'sentry/stores/organizationStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import type {Organization} from 'sentry/types/organization';
 import * as analytics from 'sentry/utils/analytics';
@@ -85,6 +87,7 @@ describe('CreateProject', () => {
     jest.spyOn(toast, 'success').mockClear();
     TeamStore.reset();
     TeamStore.loadUserTeams([teamNoAccess]);
+    ProjectsStore.reset();
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/integrations/',
@@ -535,6 +538,96 @@ describe('CreateProject', () => {
     expect(screen.getByPlaceholderText('project-slug')).toHaveValue('apple-ios');
 
     window.localStorage.removeItem('created-project-context');
+  });
+
+  describe('returning from getting-started', () => {
+    const returnedProject = ProjectFixture({
+      id: '12345',
+      slug: 'my-angular-app',
+      name: 'my-angular-app',
+      platform: 'javascript-angular',
+    });
+
+    function setUpReturnFromGettingStarted() {
+      const {organization} = initializeOrg({
+        organization: {
+          access: ['project:read'],
+          features: ['team-roles'],
+          allowMemberProjectCreation: true,
+        },
+      });
+      TeamStore.loadUserTeams([teamWithAccess]);
+      ProjectsStore.loadInitialData([returnedProject]);
+      window.localStorage.setItem(
+        'created-project-context',
+        JSON.stringify({
+          id: returnedProject.id,
+          name: returnedProject.name,
+          team: teamWithAccess.slug,
+          platform: {
+            key: 'javascript-angular',
+            name: 'Angular',
+            type: 'framework',
+            language: 'javascript',
+            category: 'popular',
+          },
+          wasNameManuallyModified: true,
+        })
+      );
+      const {projectCreationMockRequest} = renderFrameworkModalMockRequests({
+        organization,
+        teamSlug: teamWithAccess.slug,
+      });
+      return {organization, projectCreationMockRequest};
+    }
+
+    afterEach(() => {
+      window.localStorage.removeItem('created-project-context');
+    });
+
+    it('reuses the project when nothing changed instead of creating a duplicate', async () => {
+      const {organization, projectCreationMockRequest} = setUpReturnFromGettingStarted();
+
+      const {router} = render(<CreateProject />, {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/projects/new/',
+            query: {referrer: 'getting-started', project: returnedProject.id},
+          },
+        },
+      });
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Create Project'}));
+
+      await waitFor(() =>
+        expect(router.location.pathname).toContain(
+          `/projects/${returnedProject.slug}/getting-started/`
+        )
+      );
+      expect(router.location.query.projectCreationVariant).toBe('legacy');
+      expect(projectCreationMockRequest).not.toHaveBeenCalled();
+      expect(toast.success).not.toHaveBeenCalled();
+    });
+
+    it('creates a new project when the platform changed', async () => {
+      const {organization, projectCreationMockRequest} = setUpReturnFromGettingStarted();
+
+      render(<CreateProject />, {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/projects/new/',
+            query: {referrer: 'getting-started', project: returnedProject.id},
+          },
+        },
+      });
+
+      await userEvent.click(await screen.findByTestId('platform-apple-ios'));
+      await userEvent.click(screen.getByRole('button', {name: 'Create Project'}));
+
+      expect(projectCreationMockRequest).toHaveBeenCalledTimes(1);
+    });
   });
 
   it('should display success message on proj creation', async () => {
