@@ -3,10 +3,12 @@ import {
   type PropsWithChildren,
   type RefObject,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
 } from 'react';
+import {getFocusableTreeWalker} from '@react-aria/focus';
 import {useFocusWithin, useHover} from '@react-aria/interactions';
 import {mergeProps} from '@react-aria/utils';
 import {IconArrow} from '@sentry/icons/arrow';
@@ -66,6 +68,7 @@ import {PrimaryNavigationWhatsNew} from './primary/whatsNew';
 import {SecondaryNavigation} from './secondary/components';
 import {SecondaryNavigationContent} from './secondary/content';
 import {
+  NAVIGATION_SECONDARY_SIDEBAR_DATA_ATTRIBUTE,
   NAVIGATION_SIDEBAR_SECONDARY_WIDTH_LOCAL_STORAGE_KEY,
   PRIMARY_SIDEBAR_WIDTH,
   SECONDARY_SIDEBAR_WIDTH,
@@ -105,6 +108,20 @@ function NavigationImpl() {
   const {hoverProps, isHovered} = useHover({isDisabled: !canExpandSidebar});
   const [isHeaderFocused, setHeaderFocused] = useState(false);
   const {focusWithinProps} = useFocusWithin({onFocusWithinChange: setHeaderFocused});
+  // Expanding unmounts the Expand tab, so focus would otherwise fall to the body.
+  const focusSidebarOnExpandRef = useRef(false);
+  useLayoutEffect(() => {
+    if (isCollapsed || !focusSidebarOnExpandRef.current) {
+      return;
+    }
+    focusSidebarOnExpandRef.current = false;
+    const sidebar = document.querySelector<HTMLElement>(
+      `[${NAVIGATION_SECONDARY_SIDEBAR_DATA_ATTRIBUTE}]`
+    );
+    if (sidebar) {
+      (getFocusableTreeWalker(sidebar).firstChild() as HTMLElement | null)?.focus();
+    }
+  }, [isCollapsed]);
 
   useLLMContext({
     contextHint: isSettingsNavigation
@@ -150,7 +167,12 @@ function NavigationImpl() {
             <UserDropdown />
           )}
           {canExpandSidebar && (isHovered || isHeaderFocused) && (
-            <PrimaryNavigation.ExpandTab ref={expandTabRef} />
+            <PrimaryNavigation.ExpandTab
+              ref={expandTabRef}
+              onExpand={() => {
+                focusSidebarOnExpandRef.current = true;
+              }}
+            />
           )}
         </PrimaryNavigation.SidebarHeader>
         <PrimaryNavigation.List ref={ref}>

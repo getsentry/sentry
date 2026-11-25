@@ -2258,9 +2258,8 @@ describe('desktop navigation', () => {
         const expand = screen.getByRole('button', {name: 'Expand'});
         expect(expand).toHaveFocus();
         await userEvent.keyboard('{Enter}');
-        expect(
-          screen.getByRole('navigation', {name: 'Secondary Navigation'})
-        ).toBeInTheDocument();
+        const sidebar = screen.getByRole('navigation', {name: 'Secondary Navigation'});
+        expect(sidebar).toContainElement(document.activeElement as HTMLElement);
       });
 
       it('shows saved and starred queries together in the Explore preview', async () => {

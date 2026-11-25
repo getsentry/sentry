@@ -387,6 +387,8 @@ const ButtonWithOverflowVisible = styled(OverlayTrigger.IconButton)<
 `;
 
 interface PrimaryNavigationExpandTabProps {
+  /** Called after the tab expands the sidebar, which also unmounts the tab. */
+  onExpand?: () => void;
   ref?: React.Ref<HTMLButtonElement>;
 }
 
@@ -394,7 +396,7 @@ interface PrimaryNavigationExpandTabProps {
  * Expands a fully hidden secondary sidebar. It sticks out of the rail next to
  * the sidebar header, so it must render inside `PrimaryNavigation.Sidebar`.
  */
-function PrimaryNavigationExpandTab({ref}: PrimaryNavigationExpandTabProps) {
+function PrimaryNavigationExpandTab({ref, onExpand}: PrimaryNavigationExpandTabProps) {
   const toggleProps = useSecondaryNavigationToggle();
   const {hoverProps, isHovered} = useHover({});
   const {focusProps, isFocusVisible} = useFocusRing();
@@ -405,7 +407,7 @@ function PrimaryNavigationExpandTab({ref}: PrimaryNavigationExpandTabProps) {
         ref={ref}
         size="sm"
         variant="transparent"
-        {...mergeProps(toggleProps, hoverProps, focusProps)}
+        {...mergeProps(toggleProps, hoverProps, focusProps, {onClick: onExpand})}
       />
       {isHovered || isFocusVisible ? <ExpandTabRailHighlight aria-hidden="true" /> : null}
     </Fragment>
