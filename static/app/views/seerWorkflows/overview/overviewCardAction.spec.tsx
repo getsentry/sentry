@@ -116,6 +116,32 @@ describe('OverviewCardAction', () => {
     }
   );
 
+  it('opens Seer instead of creating a plan for a single run', async () => {
+    const postRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/2/autofix/',
+      method: 'POST',
+      body: {},
+    });
+
+    const {router} = render(
+      <OverviewCardAction
+        run={runFixture({isSingleRun: true})}
+        sectionKey="needs_investigation"
+      />,
+      {organization}
+    );
+
+    expect(screen.queryByRole('button', {name: 'Create Plan'})).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Open Autofix'}));
+
+    expect(router.location.query.seerDrawer).toBe('2');
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'autofix.overview.open_seer_clicked',
+      expect.objectContaining({run_id: 'run-1', section: 'needs_investigation'})
+    );
+    expect(postRequest).not.toHaveBeenCalled();
+  });
+
   it('routes a Draft PR card to grant permissions when write access is missing', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/2/autofix/repos/',

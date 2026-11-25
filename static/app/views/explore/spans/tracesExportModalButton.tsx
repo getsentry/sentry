@@ -15,20 +15,24 @@ import {ExploreExportModalButton} from 'sentry/views/explore/components/exports/
 import {trackExploreTableExported} from 'sentry/views/explore/components/exports/trackExploreTableExported';
 import type {ExploreExportConfig} from 'sentry/views/explore/components/exports/types';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {
-  AGGREGATES_SAMPLE_FIELDS,
-  type AggregatesTableResult,
-} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
+import {AGGREGATES_SAMPLE_FIELDS} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import type {RawCounts} from 'sentry/views/explore/useRawCounts';
 
+type ExportTableResult = Pick<SpansTableResult, 'eventView'> & {
+  result: Pick<
+    SpansTableResult['result'],
+    'data' | 'error' | 'isPending' | 'isPlaceholderData' | 'pageLinks'
+  >;
+};
+
 type TracesExportModalButtonProps = {
-  aggregatesTableResult: AggregatesTableResult;
+  aggregatesTableResult: ExportTableResult;
   rawSpanCounts: RawCounts;
-  spansTableResult: SpansTableResult;
+  spansTableResult: ExportTableResult;
 };
 
 export function TracesExportModalButton({

@@ -20,7 +20,7 @@ from sentry.workflow_engine.endpoints.utils.filters import (
     get_excluded_detector_types,
 )
 from sentry.workflow_engine.models import Detector
-from sentry.workflow_engine.types import DetectorAPIOperation
+from sentry.workflow_engine.types import WorkflowEngineAPIOperation
 
 
 class DetectorCountResponse(TypedDict):
@@ -75,7 +75,7 @@ class OrganizationDetectorCountEndpoint(OrganizationEndpoint):
             )
             .exclude(
                 type__in=get_excluded_detector_types(
-                    DetectorAPIOperation.LIST, organization, actor=request.user
+                    WorkflowEngineAPIOperation.LIST, organization, actor=request.user
                 )
             )
         )

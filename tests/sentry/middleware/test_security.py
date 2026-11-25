@@ -183,3 +183,19 @@ class SecurityHeadersMiddlewareTest(TestCase):
             processed_response["Content-Security-Policy-Report-Only"]
             == "require-trusted-types-for 'script'"
         )
+
+    @override_settings(
+        REPORTING_ENDPOINTS={
+            "sentry-csp": "https://example.com/api/1/integration/browser/reporting/?sentry_key=abc",
+            "other": "https://example.com/other/",
+        }
+    )
+    def test_reporting_endpoints_header_set(self) -> None:
+        request = self.factory.get("/")
+        response = Response()
+        processed_response = self.middleware.process_response(request, response)
+
+        assert processed_response["Reporting-Endpoints"] == (
+            'sentry-csp="https://example.com/api/1/integration/browser/reporting/?sentry_key=abc", '
+            'other="https://example.com/other/"'
+        )

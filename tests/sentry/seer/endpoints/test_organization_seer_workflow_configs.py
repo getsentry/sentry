@@ -27,6 +27,7 @@ from sentry.seer.models.workflow import (
     SeerWorkflowConfig,
     SeerWorkflowConfigProject,
     SeerWorkflowRun,
+    SeerWorkflowRunSource,
     SeerWorkflowRunStatus,
     SeerWorkflowStrategy,
 )
@@ -1414,6 +1415,72 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         return Factories.create_seer_workflow_config(
             self.organization, strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION, **kwargs
         )
+
+
+@override_settings(SENTRY_SELF_HOSTED=False)
+@with_feature("organizations:seer-automations")
+class OrganizationSeerWorkflowManualRunTest(APITestCase):
+    endpoint = "sentry-api-0-organization-seer-workflow-manual-run"
+    method = "post"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(user=self.user)
+        self.config = Factories.create_seer_workflow_config(
+            self.organization, strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION
+        )
+        Factories.create_seer_workflow_config_project(self.config, self.project)
+        self.workflow = SeerWorkflow(config_id=self.config.id, organization_id=self.organization.id)
+        with self.workflow.update_config() as update:
+            update.set_enabled(True)
+
+    def test_starts_a_manual_run_as_the_caller(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug, configId=self.config.id, status_code=201
+        )
+
+        run = self.workflow.get_runs().get()
+        assert response.data == {"runId": str(run.id)}
+        assert run.source == SeerWorkflowRunSource.MANUAL
+        assert run.status == SeerWorkflowRunStatus.COMPLETE
+        assert run.extras["snapshot"]["inputs"] == {"source": "manual", "user_id": self.user.id}
+
+    def test_disabled_config_returns_400(self) -> None:
+        with self.workflow.update_config() as update:
+            update.set_enabled(False)
+
+        self.get_error_response(self.organization.slug, configId=self.config.id, status_code=400)
+
+        assert not self.workflow.get_runs().exists()
+
+    def test_unavailable_config_returns_404(self) -> None:
+        metric = Factories.create_seer_workflow_config(
+            self.organization, strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
+        )
+        foreign = Factories.create_seer_workflow_config(
+            self.create_organization(owner=self.user),
+            strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION,
+        )
+        for config_id in (metric.id, foreign.id, I64_MAX):
+            self.get_error_response(self.organization.slug, configId=config_id, status_code=404)
+
+    def test_config_id_out_of_range_returns_400(self) -> None:
+        self.get_error_response(self.organization.slug, configId=I64_MAX + 1, status_code=400)
+
+    def test_member_without_access_to_every_project_cannot_run(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        team = self.create_team(organization=self.organization)
+        member = self.create_user()
+        self.create_member(organization=self.organization, user=member, role="member", teams=[team])
+        Factories.create_seer_workflow_config_project(
+            self.config, self.create_project(teams=[team])
+        )
+        self.login_as(member)
+
+        self.get_error_response(self.organization.slug, configId=self.config.id, status_code=403)
+
+        assert not self.workflow.get_runs().exists()
 
 
 @override_settings(SENTRY_SELF_HOSTED=False)

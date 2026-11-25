@@ -130,35 +130,22 @@ SENTRY_DISALLOWED_IPS: tuple[str, ...] = (
     "127.0.0.0/8",
     "169.254.0.0/16",
     "172.16.0.0/12",
-    "192.0.0.0/29",
+    "192.0.0.0/24",
     "192.0.2.0/24",
     "192.88.99.0/24",
     "192.168.0.0/16",
     "198.18.0.0/15",
     "198.51.100.0/24",
+    "203.0.113.0/24",
     "224.0.0.0/4",
     "240.0.0.0/4",
     "255.255.255.255/32",
-    # https://en.wikipedia.org/wiki/IPv6#IPv4-mapped_IPv6_addresses
-    # Subnets match the IPv4 subnets above
-    "::ffff:0:0/104",
-    "::ffff:a00:0/104",
-    "::ffff:6440:0/106",
-    "::ffff:7f00:0/104",
-    "::ffff:a9fe:0/112",
-    "::ffff:ac10:0/108",
-    "::ffff:c000:0/125",
-    "::ffff:c000:200/120",
-    "::ffff:c058:6300/120",
-    "::ffff:c0a8:0/112",
-    "::ffff:c612:0/111",
-    "::ffff:c633:6400/120",
-    "::ffff:e000:0/100",
-    "::ffff:f000:0/100",
-    "::ffff:ffff:ffff/128",
     # https://en.wikipedia.org/wiki/Reserved_IP_addresses#IPv6
-    "::1/128",
+    # plus the deprecated IPv4-compatible (::/96), IPv4-translated
+    # (::ffff:0:0:0/96) and site-local (fec0::/10) ranges
+    "::/96",
     "::ffff:0:0/96",
+    "::ffff:0:0:0/96",
     "64:ff9b::/96",
     "64:ff9b:1::/48",
     "100::/64",
@@ -166,8 +153,11 @@ SENTRY_DISALLOWED_IPS: tuple[str, ...] = (
     "2001:20::/28",
     "2001:db8::/32",
     "2002::/16",
+    "3fff::/20",
+    "5f00::/16",
     "fc00::/7",
     "fe80::/10",
+    "fec0::/10",
     "ff00::/8",
 )
 
@@ -616,6 +606,8 @@ TRUSTED_TYPES_ENABLED = False
 TRUSTED_TYPES_POLICIES: list[str] = []
 TRUSTED_TYPES_REPORT_URI: str | None = None
 
+REPORTING_ENDPOINTS: dict[str, str] = {}
+
 STATIC_ROOT = os.path.realpath(os.path.join(PROJECT_ROOT, "static"))
 STATIC_URL = "/_static/{version}/"
 # webpack assets live at a different URL that is unversioned
@@ -1050,6 +1042,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.workflow_engine.tasks.delayed_workflows",
     "sentry.workflow_engine.tasks.health_check",
     "sentry.workflow_engine.tasks.workflows",
+    "sentry.workflow_engine.tasks.seer_investigation",
     "sentry.workflow_engine.tasks.actions",
     "sentry.tasks.seer.explorer_index",
     "sentry.tasks.seer.context_engine_index",
