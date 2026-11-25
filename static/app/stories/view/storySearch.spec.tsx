@@ -1,4 +1,4 @@
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {StorySearch} from './storySearch';
 
@@ -40,7 +40,11 @@ jest.mock('sentry/stories/storyManifest.generated', () => ({
 describe('StorySearch', () => {
   beforeEach(() => {
     // jsdom has no layout; give the real virtualized list a visible viewport.
-    jest.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(320);
+    jest.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockImplementation(function (
+      this: HTMLElement
+    ) {
+      return this.hasAttribute('data-index') ? 32 : 320;
+    });
     jest.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(320);
   });
   it('finds a nested component and navigates to its section by keyboard', async () => {
@@ -53,9 +57,29 @@ describe('StorySearch', () => {
     expect(
       await screen.findByRole('option', {name: 'Badge › FeatureBadge'})
     ).toBeInTheDocument();
-    await userEvent.keyboard('{ArrowDown}{Enter}');
+    await userEvent.keyboard('{Enter}');
     await waitFor(() => expect(router.location.hash).toBe('#featurebadge'));
     expect(router.location.pathname).toContain('/scraps/core/badge/');
+  });
+
+  it('displays the current story and section as the URL changes', async () => {
+    const {router} = render(<StorySearch />, {
+      initialRouterConfig: {
+        location: {pathname: '/organizations/org-slug/scraps/core/badge/#featurebadge'},
+      },
+    });
+    const input = screen.getByRole('combobox', {name: 'Search stories'});
+    expect(input).toHaveAccessibleDescription('Selected: Badge › FeatureBadge');
+
+    await userEvent.click(input);
+    expect(
+      screen.queryByRole('option', {name: 'Badge › FeatureBadge'})
+    ).not.toBeInTheDocument();
+    await userEvent.click(await screen.findByRole('option', {name: 'Tag'}));
+    expect(input).toHaveAccessibleDescription('Selected: Tag');
+
+    act(() => router.navigate(-1));
+    expect(input).toHaveAccessibleDescription('Selected: Badge › FeatureBadge');
   });
 
   it('distinguishes repeated section titles and navigates to the chosen anchor', async () => {
