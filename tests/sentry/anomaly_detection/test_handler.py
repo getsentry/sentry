@@ -1,5 +1,5 @@
 import dataclasses
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -31,7 +31,7 @@ from sentry.workflow_engine.types import (
 )
 from tests.sentry.anomaly_detection.test_helpers import anomaly_decision
 
-MINUTE = datetime(2025, 1, 1, 12)
+MINUTE = datetime(2025, 1, 1, 12, tzinfo=UTC)
 PRODUCE = (
     "sentry.workflow_engine.handlers.detector_outcome.issue_platform.produce_occurrence_to_kafka"
 )

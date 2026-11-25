@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import override
 
 from sentry.anomaly_detection.contracts import AnomalyGroupKey
@@ -48,7 +48,7 @@ class MinuteDecisions:
     evaluator lost (a cold start, a replay that saw different data) can't stay open.
     """
 
-    minute: datetime  # Naive UTC, like the evaluator.
+    minute: datetime  # UTC, like the evaluator.
     decisions: Mapping[AnomalyGroupKey, AnomalyDecision]
     open_groups: frozenset[AnomalyGroupKey] | None = None
 
@@ -108,7 +108,7 @@ class AnomalyDetectionDetectorHandler(BaseDetectorHandler[MinuteDecisions, Detec
         minutes; dedupe keeps a replayed open/resolve/reopen from starting another investigation.
         """
         packet = data_packet.packet
-        minute = int(packet.minute.replace(tzinfo=UTC).timestamp())
+        minute = int(packet.minute.timestamp())
         state = self.state_manager.get_state_data(list(values))
         evaluations: dict[DetectorGroupKey, DetectorEvaluation] = {}
 
@@ -160,7 +160,7 @@ def _investigation(decision: AnomalyDecision, investigation_id: str) -> Detector
         id=investigation_id,
         title=decision.title,
         subtitle="Anomaly detected",
-        detection_time=decision.timestamp.replace(tzinfo=UTC),
+        detection_time=decision.timestamp,
         environment=decision.env or None,
         evidence_display=[(name, str(value)) for name, value in display],
         evidence_data=evidence,
