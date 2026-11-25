@@ -1,5 +1,6 @@
 import type {SeriesOption} from 'echarts';
 
+import {mergeTimeRanges, type TimeRange} from 'sentry/utils/timeSeries/mergeTimeRanges';
 import {scaleTimeSeriesData} from 'sentry/utils/timeSeries/scaleTimeSeriesData';
 import type {TimeSeriesSegmentField} from 'sentry/utils/timeSeries/segmentTimeSeriesByDisplayStyle';
 import {
@@ -113,6 +114,29 @@ export abstract class ContinuousTimeSeries<
     return values.some(isExtrapolatedTimeSeriesItem) ? 'high' : 'full';
   }
 
+  /**
+   * Stretches of time covered by low confidence buckets. A bucket spans half an
+   * interval either side of its timestamp, the slot a bar fills, so consecutive
+   * buckets merge into one range. Incomplete buckets don't count, as in `confidence`
+   */
+  get lowConfidenceRanges(): TimeRange[] {
+    const {interval} = this.timeSeries.meta;
+
+    return mergeTimeRanges(
+      this.timeSeries.values
+        .filter(
+          datum =>
+            datum.value !== null &&
+            !datum.incomplete &&
+            isLowConfidenceTimeSeriesItem(datum)
+        )
+        .map(({timestamp}) => ({
+          start: timestamp - interval / 2,
+          end: timestamp + interval / 2,
+        }))
+    );
+  }
+
   get needsColor(): boolean {
     return !this.config?.color;
   }
@@ -152,7 +176,7 @@ export abstract class ContinuousTimeSeries<
   }
 
   /**
-   * Converts an item to an ECharts data point. Fields the plottable segments by ride along on the point, so the tooltip can read them for whichever point is hovered
+   * Converts an item to an ECharts data point. Confidence, and any fields the plottable segments by, ride along on the point, so the tooltip can read them for whichever point is hovered
    */
   protected toDataPoint(
     item: TimeSeriesItem,
@@ -160,7 +184,7 @@ export abstract class ContinuousTimeSeries<
   ): ContinuousTimeSeriesDataPoint {
     return {
       value: timeSeriesItemToEChartsDataPoint(item),
-      confidence: segmentBy.includes('confidence') ? getConfidence(item) : undefined,
+      confidence: getConfidence(item),
       completeness: segmentBy.includes('completeness')
         ? getCompleteness(item)
         : undefined,
@@ -176,12 +200,17 @@ export abstract class ContinuousTimeSeries<
 
 export const DEFAULT_SEGMENT_BY: readonly TimeSeriesSegmentField[] = ['completeness'];
 
+/**
+ * Incomplete points don't count: the chart draws them in the incomplete style,
+ * which hides low confidence
+ */
 export function isLowConfidenceDataPoint(data: unknown): boolean {
   return (
     typeof data === 'object' &&
     data !== null &&
     'confidence' in data &&
-    data.confidence === 'low'
+    data.confidence === 'low' &&
+    !('completeness' in data && data.completeness === 'incomplete')
   );
 }
 

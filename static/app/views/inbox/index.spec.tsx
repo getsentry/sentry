@@ -78,7 +78,7 @@ function mockIssuePreviewRequests(groupId: string, activity: GroupActivity[] = [
   });
   MockApiClient.addMockResponse({
     url: `/organizations/org-slug/issues/${groupId}/related/`,
-    body: {data: [], meta: {types: []}},
+    body: {data: [], investigations: [], meta: {types: []}},
   });
 }
 

@@ -61,6 +61,17 @@ describe('MilestoneToast', () => {
     expect(screen.queryByRole('button', {name: 'Draft PR'})).not.toBeInTheDocument();
   });
 
+  it('does not offer Create Plan for a single run', () => {
+    render(
+      <MilestoneToast run={run({isSingleRun: true})} toMilestone="autofix_root_cause" />,
+      {organization}
+    );
+
+    expect(screen.getByText('SEER-1: Root Cause Found')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Open Seer'})).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Create Plan'})).not.toBeInTheDocument();
+  });
+
   it('hides the next-action button while the run is processing', () => {
     render(
       <MilestoneToast

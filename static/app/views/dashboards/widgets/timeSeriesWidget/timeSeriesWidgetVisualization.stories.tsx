@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo, useState, type ReactNode} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import shuffle from 'lodash/shuffle';
@@ -16,8 +16,6 @@ import * as Storybook from 'sentry/stories';
 import type {DateString} from 'sentry/types/core';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {DAY, HOUR, MINUTE} from 'sentry/utils/formatters';
-import {OrganizationContext} from 'sentry/utils/organizationContext';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import type {
   LegendSelection,
   Release,
@@ -887,85 +885,92 @@ export default Storybook.story('TimeSeriesWidgetVisualization', story => {
       <Fragment>
         <p>
           Data points with <code>confidence: 'low'</code> are estimated from too few
-          samples to be reliable. <code>TimeSeriesWidgetVisualization</code> draws them
-          differently from high-confidence data, and the tooltip labels them.
+          samples to be reliable. With <code>showConfidence</code>,{' '}
+          <code>TimeSeriesWidgetVisualization</code> hatches over any stretch of time
+          where a visible series has low confidence data, and the tooltip labels them.
         </p>
 
-        <WithTimeSeriesConfidenceFeature>
-          <Heading as="h3" size="md">
-            Single series, one low-confidence interval
-          </Heading>
-          <Storybook.Grid columns={3}>
-            <GridWidget>
-              <TimeSeriesWidgetVisualization
-                plottables={[new Line(lowConfidenceDuration)]}
-              />
-            </GridWidget>
-            <GridWidget>
-              <TimeSeriesWidgetVisualization
-                plottables={[new Area(lowConfidenceDuration)]}
-              />
-            </GridWidget>
-            <GridWidget>
-              <TimeSeriesWidgetVisualization
-                plottables={[new Bars(lowConfidenceDuration)]}
-              />
-            </GridWidget>
-          </Storybook.Grid>
-
-          <Heading as="h3" size="md">
-            Five series, two low-confidence intervals
-          </Heading>
-          <Storybook.Grid columns={3}>
-            <GridWidget>
-              <TimeSeriesWidgetVisualization
-                plottables={twoIntervalsDurations.map(timeSeries => new Line(timeSeries))}
-              />
-            </GridWidget>
-            <GridWidget>
-              <TimeSeriesWidgetVisualization
-                plottables={twoIntervalsDurations.map(timeSeries => new Area(timeSeries))}
-              />
-            </GridWidget>
-            <GridWidget>
-              <TimeSeriesWidgetVisualization
-                plottables={twoIntervalsDurations.map(
-                  timeSeries => new Bars(timeSeries, {stack: 'all'})
-                )}
-              />
-            </GridWidget>
-          </Storybook.Grid>
-
-          <Heading as="h3" size="md">
-            Multiple lines, five low-confidence intervals
-          </Heading>
-          <LargeWidget>
+        <Heading as="h3" size="md">
+          Single series, one low-confidence interval
+        </Heading>
+        <Storybook.Grid columns={3}>
+          <GridWidget>
             <TimeSeriesWidgetVisualization
-              plottables={[
-                sampleDurationTimeSeries,
-                sampleDurationTimeSeriesP75,
-                sampleDurationTimeSeriesP50,
-              ].map(
-                timeSeries =>
-                  new Line(withLowConfidenceIntervals(timeSeries, fiveIntervals))
+              showConfidence
+              plottables={[new Line(lowConfidenceDuration)]}
+            />
+          </GridWidget>
+          <GridWidget>
+            <TimeSeriesWidgetVisualization
+              showConfidence
+              plottables={[new Area(lowConfidenceDuration)]}
+            />
+          </GridWidget>
+          <GridWidget>
+            <TimeSeriesWidgetVisualization
+              showConfidence
+              plottables={[new Bars(lowConfidenceDuration)]}
+            />
+          </GridWidget>
+        </Storybook.Grid>
+
+        <Heading as="h3" size="md">
+          Five series, two low-confidence intervals
+        </Heading>
+        <Storybook.Grid columns={3}>
+          <GridWidget>
+            <TimeSeriesWidgetVisualization
+              showConfidence
+              plottables={twoIntervalsDurations.map(timeSeries => new Line(timeSeries))}
+            />
+          </GridWidget>
+          <GridWidget>
+            <TimeSeriesWidgetVisualization
+              showConfidence
+              plottables={twoIntervalsDurations.map(timeSeries => new Area(timeSeries))}
+            />
+          </GridWidget>
+          <GridWidget>
+            <TimeSeriesWidgetVisualization
+              showConfidence
+              plottables={twoIntervalsDurations.map(
+                timeSeries => new Bars(timeSeries, {stack: 'all'})
               )}
             />
-          </LargeWidget>
+          </GridWidget>
+        </Storybook.Grid>
 
-          <Heading as="h3" size="md">
-            Multiple bars, more than 95% low confidence
-          </Heading>
-          <LargeWidget>
-            <TimeSeriesWidgetVisualization
-              plottables={[sampleDurationTimeSeries, sampleDurationTimeSeriesP50].map(
-                timeSeries =>
-                  new Bars(withLowConfidenceIntervals(timeSeries, mostlyLowConfidence), {
-                    stack: 'all',
-                  })
-              )}
-            />
-          </LargeWidget>
-        </WithTimeSeriesConfidenceFeature>
+        <Heading as="h3" size="md">
+          Multiple lines, five low-confidence intervals
+        </Heading>
+        <LargeWidget>
+          <TimeSeriesWidgetVisualization
+            showConfidence
+            plottables={[
+              sampleDurationTimeSeries,
+              sampleDurationTimeSeriesP75,
+              sampleDurationTimeSeriesP50,
+            ].map(
+              timeSeries =>
+                new Line(withLowConfidenceIntervals(timeSeries, fiveIntervals))
+            )}
+          />
+        </LargeWidget>
+
+        <Heading as="h3" size="md">
+          Multiple bars, more than 95% low confidence
+        </Heading>
+        <LargeWidget>
+          <TimeSeriesWidgetVisualization
+            showConfidence
+            plottables={[sampleDurationTimeSeries, sampleDurationTimeSeriesP50].map(
+              timeSeries =>
+                new Bars(withLowConfidenceIntervals(timeSeries, mostlyLowConfidence), {
+                  stack: 'all',
+                })
+            )}
+          />
+        </LargeWidget>
       </Fragment>
     );
   });
@@ -1629,19 +1634,4 @@ function withLowConfidenceIntervals(
         : value
     ),
   };
-}
-
-function WithTimeSeriesConfidenceFeature({children}: {children: ReactNode}) {
-  const organization = useOrganization();
-
-  return (
-    <OrganizationContext
-      value={{
-        ...organization,
-        features: [...organization.features, 'data-browsing-time-series-confidence'],
-      }}
-    >
-      {children}
-    </OrganizationContext>
-  );
 }

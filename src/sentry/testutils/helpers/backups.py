@@ -573,6 +573,7 @@ class ExhaustiveFixtures(Fixtures):
             project_id=project.id,
             config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
             owner_user_id=owner_id,
+            created_by_service_account_id=service_account.id,
         )
 
         # AlertRule*
@@ -682,7 +683,7 @@ class ExhaustiveFixtures(Fixtures):
         seer_workflow_config = Factories.create_seer_workflow_config(
             org,
             service_account_id=service_account.id,
-            strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
+            strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION,
             filters={"environments": ["production"]},
         )
         Factories.create_seer_workflow_config_project(seer_workflow_config, project)

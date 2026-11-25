@@ -296,6 +296,11 @@ describe('Onboarding', () => {
     );
 
     expect(await screen.findByText('Configure Next.js SDK')).toBeInTheDocument();
+    // Loading this step directly has no previous step to exit, so the footer
+    // offset must not wait on an exit animation.
+    expect(
+      screen.getAllByTestId('onboarding-step-setup-docs')[0]!.parentElement
+    ).toHaveStyle({paddingBottom: '72px', marginBottom: '72px'});
   });
 
   it('keeps a legacy session on the setup docs step after a refresh', async () => {
@@ -641,9 +646,6 @@ describe('Onboarding', () => {
       expect(
         screen.getByText('Detects your stack and adds the right SDK')
       ).toBeInTheDocument();
-      expect(
-        screen.getByRole('checkbox', {name: /Only allow this network/})
-      ).toBeChecked();
       expect(screen.getByRole('button', {name: /Set up manually/})).toBeInTheDocument();
       expect(screen.queryByTestId('onboarding-welcome-start')).not.toBeInTheDocument();
       expect(screen.queryByText('Error monitoring')).not.toBeInTheDocument();

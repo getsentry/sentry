@@ -16,6 +16,7 @@ import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {SCM_STEP_CONTENT_WIDTH} from 'sentry/components/onboarding/consts';
+import {PeekingBug} from 'sentry/components/peekingBug/peekingBug';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -258,13 +259,15 @@ export function NewWelcomeUI(props: StepProps) {
                 </MotionGrid>
 
                 <MotionFlex {...ONBOARDING_ENTER} width="100%" justify="center">
-                  <Button
-                    variant="primary"
-                    onClick={handleComplete}
-                    data-test-id="onboarding-welcome-start"
-                  >
-                    {t('Let’s get started')}
-                  </Button>
+                  <PeekingBug>
+                    <Button
+                      variant="primary"
+                      onClick={handleComplete}
+                      data-test-id="onboarding-welcome-start"
+                    >
+                      {t('Let’s get started')}
+                    </Button>
+                  </PeekingBug>
                 </MotionFlex>
               </MotionStack>
             )}

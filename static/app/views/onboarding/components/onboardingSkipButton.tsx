@@ -2,14 +2,12 @@ import {IconNext} from '@sentry/icons/next';
 
 import {Button} from '@sentry/scraps/button';
 
-import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
-import {useOnboardingSidebar} from 'sentry/components/onboarding/useOnboardingSidebar';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {QuickStartEventParameters} from 'sentry/utils/analytics/quickStartAnalyticsEvents';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {OnboardingStepId} from 'sentry/views/onboarding/types';
+import {useLeaveOnboarding} from 'sentry/views/onboarding/useLeaveOnboarding';
 
 import {openOnboardingSkipModal} from './onboardingSkipModal';
 
@@ -50,9 +48,7 @@ interface OnboardingSkipButtonProps {
 
 export function OnboardingSkipButton({stepId}: OnboardingSkipButtonProps) {
   const organization = useOrganization();
-  const navigate = useNavigate();
-  const {discardOnboardingSession} = useOnboardingContext();
-  const {activateSidebar} = useOnboardingSidebar();
+  const leaveOnboarding = useLeaveOnboarding();
 
   const config = SKIP_CONFIG_BY_STEP[stepId];
 
@@ -65,14 +61,11 @@ export function OnboardingSkipButton({stepId}: OnboardingSkipButtonProps) {
     openOnboardingSkipModal({
       organization,
       step: stepId,
-      onSkip: () => {
-        // Clear the staged session so the next onboarding visit starts fresh.
-        discardOnboardingSession();
-        activateSidebar({userClicked: false, source: config.sidebarSource});
-        navigate(
-          `/organizations/${organization.slug}/issues/?referrer=${config.referrer}`
-        );
-      },
+      onSkip: () =>
+        leaveOnboarding({
+          to: `/organizations/${organization.slug}/issues/?referrer=${config.referrer}`,
+          sidebarSource: config.sidebarSource,
+        }),
     });
   };
 

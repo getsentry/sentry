@@ -452,9 +452,6 @@
     "@sentry/scraps/no-dom-coupling": {"count": 1},
     "@sentry/scraps/prefer-primitives": {"count": 1}
   },
-  "components/groupPreviewTooltip/stackTracePreview.tsx": {
-    "@sentry/scraps/prefer-primitives": {"count": 1}
-  },
   "components/guidedSteps/guidedSteps.stories.tsx": {"@sentry/prefer-nuqs": {"count": 1}},
   "components/guidedSteps/guidedSteps.tsx": {
     "@sentry/scraps/no-dom-coupling": {"count": 1},
@@ -566,9 +563,6 @@
   "components/onboarding/agenticProgress/useAgenticSetupRun.spec.tsx": {
     "@sentry/require-fake-timer-cleanup": {"count": 1}
   },
-  "components/onboarding/createSampleEventButton.spec.tsx": {
-    "@sentry/require-fake-timer-cleanup": {"count": 1}
-  },
   "components/onboarding/frameworkSuggestionModal.tsx": {
     "@sentry/scraps/no-dom-coupling": {"count": 4},
     "@sentry/scraps/prefer-container-responsive-props": {"count": 1},
@@ -602,7 +596,7 @@
   },
   "components/onboarding/stepper.tsx": {"@sentry/scraps/prefer-primitives": {"count": 1}},
   "components/onboardingWizard/content.tsx": {
-    "@sentry/scraps/no-dom-coupling": {"count": 8},
+    "@sentry/scraps/no-dom-coupling": {"count": 7},
     "@sentry/scraps/prefer-primitives": {"count": 1}
   },
   "components/onboardingWizard/modalTask.tsx": {
@@ -968,9 +962,6 @@
   "components/slider/index.tsx": {"@sentry/scraps/prefer-primitives": {"count": 1}},
   "components/splitDiff.tsx": {"@sentry/scraps/prefer-primitives": {"count": 1}},
   "components/stackTrace/exceptionGroup.tsx": {
-    "@sentry/scraps/prefer-primitives": {"count": 1}
-  },
-  "components/stackTrace/frame/actions/chevron.tsx": {
     "@sentry/scraps/prefer-primitives": {"count": 1}
   },
   "components/stackTrace/frame/frameContent.tsx": {
@@ -2249,9 +2240,6 @@
     "@sentry/scraps/no-dom-coupling": {"count": 1},
     "@sentry/scraps/prefer-primitives": {"count": 3}
   },
-  "views/performance/traceDetails/traceDrawer/details/span/sections/httpErrorCard.tsx": {
-    "@sentry/scraps/prefer-primitives": {"count": 3}
-  },
   "views/performance/traceDetails/traceDrawer/details/styles.tsx": {
     "@sentry/scraps/no-dom-coupling": {"count": 3},
     "@sentry/scraps/prefer-primitives": {"count": 4}
@@ -2474,9 +2462,6 @@
   },
   "views/seerExplorer/components/chat/toolUse.tsx": {
     "@sentry/scraps/no-dom-coupling": {"count": 3}
-  },
-  "views/seerExplorer/components/explorerMenu.tsx": {
-    "@sentry/scraps/prefer-primitives": {"count": 2}
   },
   "views/seerExplorer/components/fileDiffViewer.tsx": {
     "@sentry/scraps/no-dom-coupling": {"count": 1},

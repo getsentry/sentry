@@ -26,6 +26,7 @@ from sentry.seer.models.workflow import (
     SeerWorkflowExecutionStatus,
     SeerWorkflowRun,
     SeerWorkflowRunExecution,
+    SeerWorkflowRunSource,
     SeerWorkflowRunStatus,
     SeerWorkflowStrategy,
 )
@@ -257,14 +258,14 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
     def test_lists_runs_across_configs(self) -> None:
         older = self.create_run()
         other_config = Factories.create_seer_workflow_config(
-            self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2
+            self.organization, strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION
         )
         newer = Factories.create_seer_workflow_run(
             self.organization, workflow_config=other_config, status=SeerWorkflowRunStatus.QUEUED
         )
         foreign_org = self.create_organization(owner=self.user)
         foreign_config = Factories.create_seer_workflow_config(
-            foreign_org, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2
+            foreign_org, strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION
         )
         Factories.create_seer_workflow_run(foreign_org, workflow_config=foreign_config)
         Factories.create_seer_workflow_run(self.organization, workflow_config=foreign_config)
@@ -467,7 +468,7 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
     def test_foreign_and_legacy_configs_are_not_available(self) -> None:
         foreign_org = self.create_organization(owner=self.user)
         foreign_config = Factories.create_seer_workflow_config(
-            foreign_org, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2
+            foreign_org, strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION
         )
         Factories.create_seer_workflow_run(foreign_org, workflow_config=foreign_config)
         response = self.get_success_response(self.organization.slug, config=foreign_config.id)
@@ -715,12 +716,39 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
         ]
 
     def test_returns_cron_trigger_for_scheduled_runs(self) -> None:
-        self.config.update(strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2)
-        self.create_run(trigger_key="2026-11-09T03:00")
+        self.config.update(strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION)
+        self.create_run(trigger_key="2026-11-09T03:00", source=SeerWorkflowRunSource.CRON)
 
         response = self.get_success_response(self.organization.slug)
 
         assert response.data["runs"][0]["trigger"] == {"type": "cron"}
+
+    def test_trigger_is_null_for_scheduled_runs_without_a_source(self) -> None:
+        self.config.update(strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION)
+        self.create_run(trigger_key="2026-11-09T03:00")
+
+        response = self.get_success_response(self.organization.slug)
+
+        assert response.data["runs"][0]["trigger"] is None
+
+    def test_returns_manual_trigger_for_manual_runs_of_scheduled_configs(self) -> None:
+        self.config.update(strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION)
+        self.create_run(source=SeerWorkflowRunSource.MANUAL)
+
+        response = self.get_success_response(self.organization.slug)
+
+        assert response.data["runs"][0]["trigger"] == {"type": "manual"}
+
+    def test_returns_manual_trigger_for_manual_runs_of_monitor_configs(self) -> None:
+        detector = self.create_detector(project=self.project)
+        self.create_run(
+            inputs=self.monitor_inputs(detector.id, self.project.id),
+            source=SeerWorkflowRunSource.MANUAL,
+        )
+
+        response = self.get_success_response(self.organization.slug)
+
+        assert response.data["runs"][0]["trigger"] == {"type": "manual"}
 
     def test_trigger_is_null_without_a_snapshot(self) -> None:
         self.create_run(extras={})

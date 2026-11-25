@@ -28,6 +28,7 @@ from sentry.constants import ObjectStatus
 from sentry.models.project import Project
 from sentry.models.projectrepository import ProjectRepository, ProjectRepositorySource
 from sentry.models.repository import Repository
+from sentry.seer.scm_connect import mark_no_scm_integration
 
 
 class _ProjectRepoLinkResponse(TypedDict):
@@ -126,7 +127,7 @@ class ProjectRepoEndpoint(ProjectEndpoint):
         if include_mapping_count:
             qs = qs.annotate(mapping_count=Count("repositoryprojectpathconfig"))
 
-        return self.paginate(
+        response = self.paginate(
             request=request,
             queryset=qs,
             paginator_cls=OffsetPaginator,
@@ -136,6 +137,7 @@ class ProjectRepoEndpoint(ProjectEndpoint):
                 ProjectRepositorySerializer(include_mapping_count=include_mapping_count),
             ),
         )
+        return mark_no_scm_integration(request, response, project.organization)
 
     @extend_schema(
         operation_id="linkProjectRepository",

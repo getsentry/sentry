@@ -21,6 +21,7 @@ import type {SeerOutOfCreditsCtaProps} from 'sentry/components/seer/outOfCredits
 import {registerOverride} from 'sentry/overrideRegistry';
 import type {Group} from 'sentry/types/group';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import type {SeerCreditDenialReason} from 'sentry/utils/seer/useSeerCreditCheck';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {AutofixRef} from './autofix';
@@ -627,6 +628,26 @@ describe('AutofixRef embed', () => {
       expect(creditCheck).not.toHaveBeenCalled();
     });
 
+    it.each([
+      [
+        'daily_cap_exceeded',
+        'Seer stopped before finishing the code changes because your organization hit its daily usage limit.',
+      ],
+      [
+        'a_future_reason',
+        'Seer stopped before finishing the code changes because your organization ran out of credits.',
+      ],
+    ])('says why a step stopped when denied for %s', async (denialReason, message) => {
+      mockRun({
+        ...makeStoppedRun('code_changes'),
+        credit_denial_reason: denialReason as SeerCreditDenialReason,
+      });
+      render(<AutofixRefFor step="code_changes" />, {organization: creditsOrganization});
+      await expandAll(1);
+
+      expect(screen.getByText(message)).toBeInTheDocument();
+    });
+
     it('disables drafting the pull request again while out of credits', async () => {
       mockRun(withOutOfCreditsPR(makeRunThrough('code_changes', {pullRequest: 'error'})));
       mockCreditCheck('autofix_open_pr', false);
@@ -675,6 +696,29 @@ describe('AutofixRef embed', () => {
         )
       ).toBeInTheDocument();
       expect(screen.queryByText(/This one is on us/)).not.toBeInTheDocument();
+    });
+
+    it('says the pull request step hit the daily usage limit', async () => {
+      const run = withOutOfCreditsPR(
+        makeRunThrough('code_changes', {pullRequest: 'error'})
+      );
+      mockRun({
+        ...run,
+        repo_pr_states: {
+          'getsentry/sentry': {
+            ...run.repo_pr_states!['getsentry/sentry']!,
+            credit_denial_reason: 'daily_cap_exceeded',
+          },
+        },
+      });
+      render(<AutofixRefFor step="pr_iteration" />, {organization: creditsOrganization});
+      await expandAll(1);
+
+      expect(
+        screen.getByText(
+          "Seer couldn't open a pull request in getsentry/sentry because your organization hit its daily usage limit."
+        )
+      ).toBeInTheDocument();
     });
   });
 

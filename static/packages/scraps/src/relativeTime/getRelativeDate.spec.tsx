@@ -68,8 +68,8 @@ it('publishes one locale and complete translated phrase to React and plain calle
             const duration = typeof args[0] === 'string' ? args[0] : '';
             return message === '%s ago'
               ? `il y a ${duration}`
-              : message === 'in %s'
-                ? `dans ${duration}`
+              : message === 'in'
+                ? 'dans'
                 : message;
           },
           tn: (singular, plural, count) =>

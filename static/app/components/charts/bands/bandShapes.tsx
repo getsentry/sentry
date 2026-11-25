@@ -21,6 +21,15 @@ export const BAND_HEIGHT = BAND_PADDING_TOP + BOX_HEIGHT + BAND_PADDING_BOTTOM;
  */
 export const BAND_Z = 4;
 
+/**
+ * The low confidence hatch shares `BAND_Z - 1` with line and area series, so
+ * `z2` puts it over every element they draw, including symbols (100) and end
+ * labels (200). Annotation markers go one above it, so the hatch doesn't fade
+ * them.
+ */
+export const HATCH_Z2 = 1000;
+export const ANNOTATION_MARKER_Z2 = HATCH_Z2 + 1;
+
 const HIGHLIGHT_DIM_OPACITY = 0.6;
 const HIGHLIGHT_WASH_OPACITY = 0.1;
 

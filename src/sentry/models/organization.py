@@ -243,6 +243,12 @@ class Organization(ReplicatedCellModel):
 
     snowflake_redis_key = "organization_snowflake_key"
 
+    @property
+    def default_flush(self) -> bool:  # type: ignore[override]
+        # Only used when no caller passed a flag. Create, rename and require_2fa
+        # changes pass flush=True themselves.
+        return not options.get("hybridcloud.outbox.organization_async_replication.enabled")
+
     def save(self, *args: Any, **kwargs: Any) -> None:
         save_callback = lambda: super(Organization, self).save(*args, **kwargs)
         slugify_target = None

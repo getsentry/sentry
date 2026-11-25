@@ -988,6 +988,15 @@ class Group(Model):
                 query = urlencode(params)
             return organization.absolute_url(path, query=query)
 
+    def get_absolute_replays_url(self, params: Mapping[str, str] | None = None) -> str:
+        # The feedback page shows the feedback's replay inline and has no replays tab.
+        if self.issue_category == GroupCategory.FEEDBACK:
+            return self.get_absolute_url(params=params)
+        organization = self.organization
+        path = f"/organizations/{organization.slug}/issues/{self.id}/replays/"
+        query = urlencode(params) if params else None
+        return organization.absolute_url(path, query=query)
+
     def get_absolute_api_url(self) -> str:
         path = f"/issues/{self.id}/"
         return self.organization.absolute_api_url(path=path)

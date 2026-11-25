@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from enum import StrEnum
 from typing import Any, Literal
 
 from django.db import models
@@ -19,8 +20,8 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 class SeerWorkflowStrategy(models.TextChoices):
     AGENTIC_TRIAGE = "agentic_triage"
     DUPLICATE_MONITORS = "duplicate_monitors"
-    AGENTIC_TRIAGE_V2 = "agentic_triage_v2"
     BREACHED_METRIC_INVESTIGATION = "breached_metric_investigation"
+    SCHEDULED_INVESTIGATION = "scheduled_investigation"
 
 
 # Strategies with one config per organization, found or created by get_or_create_for_strategy.
@@ -31,11 +32,20 @@ SEER_LEGACY_WORKFLOW_STRATEGIES = frozenset(
 
 # Strategies with any number of configs per organization. Each config is looked up by its id.
 SEER_CONFIGURABLE_WORKFLOW_STRATEGIES = frozenset(
-    {SeerWorkflowStrategy.AGENTIC_TRIAGE_V2, SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION}
+    {
+        SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION,
+        SeerWorkflowStrategy.SCHEDULED_INVESTIGATION,
+    }
 )
 
 # Soft bound on configs per organization. Actual count could go over a bit from concurrent writes.
 MAX_WORKFLOW_CONFIGS_PER_ORG = 50
+
+
+class SeerSkill(StrEnum):
+    """A prompt Seer maintains, which an investigation can run instead of a user's prompt."""
+
+    AGENTIC_TRIAGE = "agentic_triage"
 
 
 class SeerWorkflowConfigExtras(BaseModel):

@@ -17,6 +17,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {formatDuration} from 'sentry/utils/duration/formatDuration';
 import {getIntegrationDisplayName} from 'sentry/utils/integrationUtil';
+import {ImpactChip} from 'sentry/views/issueDetails/groupImpact';
 
 import {getAssignedActivityItem} from './activityItem/assignment';
 import {getResolvedInCommitDetails} from './activityItem/commitDetails';
@@ -24,7 +25,6 @@ import {getProviderName} from './activityItem/provider';
 import {getResolvedInReleaseDetails} from './activityItem/releaseDetails';
 import {CommitChip} from './chips/commitChip';
 import {ExternalIssueChip} from './chips/externalIssueChip';
-import {ImpactChip} from './chips/impactChip';
 import {getIntegrationChip} from './chips/integrationChip';
 import {InvestigationChip} from './chips/investigationChip';
 import {ActivityPriorityChip} from './chips/priorityChip';

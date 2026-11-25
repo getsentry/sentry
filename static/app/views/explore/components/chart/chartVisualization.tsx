@@ -43,6 +43,7 @@ interface ChartVisualizationProps {
    * aggregates are plotted on the same chart.
    */
   plottables?: Plottable[];
+  showConfidence?: boolean;
   /**
    * Maximum number of series listed in the tooltip, see
    * `TimeSeriesWidgetVisualization`.
@@ -112,6 +113,7 @@ export function ChartVisualization({
   isDroppedDataLoading = false,
   onAnnotationClick,
   plottables: plottablesOverride,
+  showConfidence,
   tooltipLimit,
 }: ChartVisualizationProps) {
   const defaultPlottables = useChartVisualizationPlottables(chartInfo);
@@ -172,6 +174,7 @@ export function ChartVisualization({
         annotations={annotations}
         onAnnotationClick={onAnnotationClick}
         renderTooltipSeriesDetails={renderTooltipSeriesDetails}
+        showConfidence={showConfidence}
         tooltipLimit={tooltipLimit}
       />
     </StyledTransparentLoadingMask>

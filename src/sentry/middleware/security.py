@@ -20,6 +20,7 @@ class SecurityHeadersMiddleware(MiddlewareMixin):
         response.setdefault("X-XSS-Protection", "1; mode=block")
 
         self.add_trusted_types_header(response)
+        self.add_reporting_endpoints_header(response)
 
         # Add COOP and Report-To headers if COOP_ENABLED
         if getattr(settings, "COOP_ENABLED", False):
@@ -64,3 +65,12 @@ class SecurityHeadersMiddleware(MiddlewareMixin):
             directives.append(f"report-uri {report_uri}")
 
         response[TRUSTED_TYPES_HEADER] = "; ".join(directives)
+
+    def add_reporting_endpoints_header(self, response: Response) -> None:
+        endpoints = getattr(settings, "REPORTING_ENDPOINTS", None)
+        if not endpoints:
+            return
+
+        response["Reporting-Endpoints"] = ", ".join(
+            f'{name}="{url}"' for name, url in endpoints.items()
+        )

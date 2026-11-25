@@ -114,14 +114,6 @@ class HandoffExpired(Exception):
         self.handoff = handoff
 
 
-class HandoffIPMismatch(Exception):
-    """The handoff is pinned to a different client IP address."""
-
-    def __init__(self, handoff: AgentHandoff) -> None:
-        super().__init__("Agent handoff is pinned to a different IP address")
-        self.handoff = handoff
-
-
 @dataclass(frozen=True)
 class IssuedAgentHandoff:
     handoff_id: str
@@ -140,6 +132,16 @@ def _handoff_key(code: str) -> str:
     return f"agent-handoff:v4:{hashlib.sha256_text(code).hexdigest()}"
 
 
+def normalize_handoff_ip(address: str | None) -> str | None:
+    if address is None:
+        return None
+
+    try:
+        return str(ipaddress.ip_address(address))
+    except ValueError:
+        return None
+
+
 def issue_handoff(
     *,
     flow: HandoffFlow,
@@ -147,7 +149,7 @@ def issue_handoff(
     organization_id: int,
     application_id: int,
     scope_list: Sequence[str],
-    ip_address: str,
+    ip_address: str | None,
     disable_ip_pinning: bool = False,
     context: HandoffContext = None,
 ) -> IssuedAgentHandoff:
@@ -161,7 +163,7 @@ def issue_handoff(
             "organization_id": organization_id,
             "application_id": application_id,
             "scope_list": tuple(scope_list),
-            "ip_address": str(ipaddress.ip_address(ip_address)),
+            "ip_address": normalize_handoff_ip(ip_address),
             "disable_ip_pinning": disable_ip_pinning,
             "context": context,
             "expires_at": expires_at,
@@ -180,7 +182,7 @@ def issue_handoff(
     return IssuedAgentHandoff(handoff_id=handoff_id, code=code, expires_at=expires_at)
 
 
-def consume_handoff(code: str, *, ip_address: str | None) -> AgentHandoff | None:
+def consume_handoff(code: str) -> AgentHandoff | None:
     """Consume a handoff once; unavailable codes reveal no previous context."""
     client = _get_redis_client()
     key = _handoff_key(code)
@@ -191,16 +193,6 @@ def consume_handoff(code: str, *, ip_address: str | None) -> AgentHandoff | None
     handoff = _StoredAgentHandoff.parse_raw(value).__root__
     if handoff.expires_at <= timezone.now():
         raise HandoffExpired(handoff)
-
-    if (
-        not handoff.disable_ip_pinning
-        and handoff.ip_address is not None
-        and (
-            ip_address is None
-            or ipaddress.ip_address(handoff.ip_address) != ipaddress.ip_address(ip_address)
-        )
-    ):
-        raise HandoffIPMismatch(handoff)
 
     # Compare-and-delete works on both Redis Cluster and sharded deployments.
     # Only the caller that deletes the value may receive its authorization context.
