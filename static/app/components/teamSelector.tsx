@@ -89,7 +89,7 @@ const getPlaceholderSelectStyles = (theme: Theme): StylesConfig => ({
 
 type Props = DistributedOmit<
   ControlProps<string | null, TeamOption>,
-  'onChange' | 'options'
+  'onChange' | 'options' | 'styles'
 > & {
   onChange: (value: any) => void;
   /**
@@ -133,7 +133,6 @@ export function TeamSelector(props: Props) {
     allowCreate,
     includeUnassigned,
     filterByUserMembership = false,
-    styles: stylesProp,
     onChange,
     useTeamDefaultIfOnlyOne = false,
     ...extraProps
@@ -343,9 +342,8 @@ export function TeamSelector(props: Props) {
     () => ({
       ...(includeUnassigned ? getUnassignedSelectStyles(theme) : {}),
       ...(multiple ? {} : getPlaceholderSelectStyles(theme)),
-      ...stylesProp,
     }),
-    [includeUnassigned, multiple, stylesProp, theme]
+    [includeUnassigned, multiple, theme]
   );
 
   useEffect(() => {

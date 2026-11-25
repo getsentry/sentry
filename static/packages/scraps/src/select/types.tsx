@@ -58,10 +58,8 @@ interface SelectStyleState {
 type SelectStyleSlot =
   | 'container'
   | 'control'
-  | 'groupHeading'
   | 'input'
   | 'menu'
-  | 'menuList'
   | 'menuPortal'
   | 'multiValue'
   | 'multiValueLabel'

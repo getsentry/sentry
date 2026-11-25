@@ -1,4 +1,3 @@
-import type {CSSObject} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Select, type ControlProps, type SelectValue} from '@sentry/scraps/select';
@@ -7,7 +6,7 @@ export function AutomationBuilderSelect<
   TValue,
   TOption extends SelectValue<TValue> = SelectValue<TValue>,
 >(props: ControlProps<TValue, TOption>) {
-  return <StyledSelect styles={selectControlStyles} {...props} />;
+  return <StyledSelect size="sm" {...props} />;
 }
 
 const StyledSelect = styled(Select)`
@@ -18,7 +17,3 @@ const StyledSelect = styled(Select)`
   }
   border: none;
 ` as typeof Select;
-
-export const selectControlStyles = {
-  control: (provided: CSSObject) => ({...provided, minHeight: '32px', padding: 0}),
-};

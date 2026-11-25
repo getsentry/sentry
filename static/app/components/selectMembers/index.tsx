@@ -3,7 +3,12 @@ import styled from '@emotion/styled';
 import {useDebouncedValue} from '@tanstack/react-pacer';
 import {useQuery} from '@tanstack/react-query';
 
-import {Select, type StylesConfig, type SelectValue} from '@sentry/scraps/select';
+import {
+  Select,
+  type BaseSelectProps,
+  type StylesConfig,
+  type SelectValue,
+} from '@sentry/scraps/select';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {UserBadge} from 'sentry/components/idBadge/userBadge';
@@ -34,7 +39,7 @@ interface Props {
   value: SelectMemberValue;
   'aria-label'?: string;
   projectIds?: readonly string[];
-  styles?: StylesConfig;
+  size?: BaseSelectProps<string>['size'];
 }
 
 interface FilterOption {
@@ -93,7 +98,7 @@ function SelectMembers({
   onChange,
   organization,
   projectIds,
-  styles,
+  size,
   value,
 }: Props) {
   const [search, setSearch] = useState('');
@@ -125,20 +130,9 @@ function SelectMembers({
 
   const selectStyles: StylesConfig = useMemo(
     () => ({
-      ...styles,
-      menu: (provided, state) => ({
+      menu: provided => ({...provided, width: 320}),
+      input: provided => ({
         ...provided,
-        ...styles?.menu?.(provided, state),
-        width: 320,
-      }),
-      menuList: (provided, state) => ({
-        ...provided,
-        ...styles?.menuList?.(provided, state),
-        '.option > div': {paddingBlock: 4},
-      }),
-      input: (provided, state) => ({
-        ...provided,
-        ...styles?.input?.(provided, state),
         // Align the caret after the selected member's 20px avatar and 6px gap.
         paddingLeft: hasSelectedMember && !search ? 26 : 0,
       }),
@@ -147,7 +141,7 @@ function SelectMembers({
         svg: {color: state.isSelected ? '#fff' : undefined},
       }),
     }),
-    [styles, hasSelectedMember, search]
+    [hasSelectedMember, search]
   );
 
   // Keep the select disabled until project-scoped members have loaded so the
@@ -160,6 +154,7 @@ function SelectMembers({
         options={[]}
         value={null}
         placeholder={t('Loading')}
+        size={size}
         styles={selectStyles}
       />
     );
@@ -175,6 +170,7 @@ function SelectMembers({
       onInputChange={setSearch}
       onChange={option => onChange(option)}
       value={selectedValue ?? null}
+      size={size}
       styles={selectStyles}
     />
   );
