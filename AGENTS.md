@@ -88,6 +88,7 @@ pnpm --filter @sentry/scraps lint         # Scraps: JS/TS, CSS
 pnpm run lint:suppressions --ci          # check suppression budgets for all workspaces
 pnpm run lint:suppressions --prune       # reduce suppression budgets for all workspaces
 pnpm run lint:format                     # formatting for the whole repository
+pnpm exec oxfmt <files>                   # format selected files only
 pnpm run fix                              # auto-fix
 ```
 
