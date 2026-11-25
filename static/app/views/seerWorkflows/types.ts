@@ -182,7 +182,7 @@ type SeerServiceAccountRequest = {
 /**
  * When a scheduled automation runs
  */
-export type WorkflowCronSchedule = {
+type WorkflowCronSchedule = {
   /**
    * Five field crontab expression, e.g. `0 0 * * *`
    */
