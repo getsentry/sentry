@@ -16,8 +16,12 @@ interface Ratio {
   value: string;
 }
 
-function formatCountRatio(value: number, total: number): Ratio {
-  return {value: formatAbbreviatedNumber(value), total: formatAbbreviatedNumber(total)};
+function formatRatio(
+  value: number,
+  total: number,
+  formatValue: (value: number) => string
+): Ratio {
+  return {value: formatValue(value), total: formatValue(total)};
 }
 
 function totalEventCount(bucket: DroppedDataBucket): number {
@@ -39,18 +43,22 @@ function VolumeRow({label, value, total}: Ratio & {label: string}) {
 interface DroppedDataTooltipSectionProps {
   bucket: DroppedDataBucket;
   dataset: DiscoverDatasets;
+  formatValue?: (value: number) => string;
+  label?: string;
 }
 
 export function DroppedDataTooltipSection({
   bucket,
   dataset,
+  formatValue = formatAbbreviatedNumber,
+  label,
 }: DroppedDataTooltipSectionProps) {
   const totalEvents = totalEventCount(bucket);
 
   return (
     <Container as="section">
       <ChartBandTooltipHeading
-        label={droppedDataLabel(dataset)}
+        label={label ?? droppedDataLabel(dataset)}
         value={formatDroppedShare(bucket.ratio)}
       />
       {bucket.byOutcome.length > 0 && (
@@ -59,7 +67,7 @@ export function DroppedDataTooltipSection({
             <VolumeRow
               key={outcome.outcome}
               label={outcomeLabel(outcome.outcome)}
-              {...formatCountRatio(outcome.count, totalEvents)}
+              {...formatRatio(outcome.count, totalEvents, formatValue)}
             />
           ))}
         </Stack>

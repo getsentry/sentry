@@ -473,6 +473,7 @@ function UsageChartBody({
       yAxis={yAxis}
       yAxes={band.yAxes.length > 1 ? band.yAxes : undefined}
       series={band.series}
+      onClick={band.onClick}
       tooltip={
         chartTooltip
           ? chartTooltip

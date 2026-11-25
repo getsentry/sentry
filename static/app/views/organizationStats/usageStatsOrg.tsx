@@ -153,8 +153,15 @@ function getClientDiscardRows(
 
 type ClientDiscardCountChart = {
   chartData: Pick<ChartData, 'cardStats' | 'chartStats' | 'chartSubLabels'>;
+  /**
+   * Client discards in bytes, banded under the count chart.
+   */
+  byteDroppedData: DroppedDataProps;
+  /**
+   * Client discards in item counts, banded under the bytes chart.
+   */
+  countDroppedData: DroppedDataProps;
   dataCategory: DataCategory;
-  droppedData: DroppedDataProps;
   error: Error | null;
   loading: boolean;
   unit: string;
@@ -336,7 +343,15 @@ export function getChartProps({
       </Footer>
     ),
     dataCategory: chartDataCategory,
-    droppedData: countChart ? undefined : clientDiscardCountChart?.droppedData,
+    // Clicking either band swaps to the other chart
+    droppedData: clientDiscardCountChart
+      ? {
+          ...(countChart
+            ? clientDiscardCountChart.byteDroppedData
+            : clientDiscardCountChart.countDroppedData),
+          onClick: () => handleChangeState({clientDiscard: !clientDiscard}),
+        }
+      : undefined,
     dataTransform: chartData.chartTransform,
     usageDateStart: chartData.chartDateStart,
     usageDateEnd: chartData.chartDateEnd,
@@ -636,22 +651,34 @@ export function UsageStatsOrganization({
           subLabel => subLabel.parentLabel === SeriesTypes.CLIENT_DISCARD
         ),
       },
-      dataCategory: countDataCategory,
-      droppedData: {
+      byteDroppedData: {
         dataset: clientDiscardCountCategory.dataset,
+        label: t('%s Discarded (Bytes)', dataCategoryName),
+        formatValue: getTooltipFormatter(dataCategory),
         // Client discards are often a tiny share of all items, so show any of them
+        minHighlightRatio: Number.MIN_VALUE,
+        ...getClientDiscardRows(dataCategoryApiName, orgStatsReponse.data),
+      },
+      countDroppedData: {
+        dataset: clientDiscardCountCategory.dataset,
+        label: t('%s Discarded (Count)', dataCategoryName),
         minHighlightRatio: Number.MIN_VALUE,
         ...getClientDiscardRows(
           clientDiscardCountCategory.countCategory.name,
           countStatsResponse.data
         ),
       },
+      dataCategory: countDataCategory,
       error: countStatsResponse.error,
       loading: countStatsResponse.isPending,
       unit: clientDiscardCountCategory.unit,
     };
   }, [
     clientDiscardCountCategory,
+    dataCategory,
+    dataCategoryApiName,
+    dataCategoryName,
+    orgStatsReponse.data,
     countStatsResponse.data,
     countStatsResponse.error,
     countStatsResponse.isPending,

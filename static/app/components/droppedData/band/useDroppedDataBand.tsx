@@ -41,6 +41,8 @@ interface DroppedDataBandParams {
   buckets: DroppedDataBucket[];
   dataset: DiscoverDatasets;
   theme: Theme;
+  formatValue?: (value: number) => string;
+  label?: string;
   minHighlightRatio?: number;
   onClick?: () => void;
 }
@@ -149,6 +151,8 @@ function droppedDataRenderItem(
 function createDroppedDataBand({
   buckets,
   dataset,
+  formatValue,
+  label,
   minHighlightRatio,
   onClick,
   theme,
@@ -168,7 +172,12 @@ function createDroppedDataBand({
     tooltipSection: hovered => {
       const bucket = bucketsByStart.get(hovered.start);
       return bucket?.end === hovered.end ? (
-        <DroppedDataTooltipSection bucket={bucket} dataset={dataset} />
+        <DroppedDataTooltipSection
+          bucket={bucket}
+          dataset={dataset}
+          formatValue={formatValue}
+          label={label}
+        />
       ) : null;
     },
     series: bandOffset => ({
@@ -191,8 +200,15 @@ export function useDroppedDataBand({
   droppedData,
 }: UseDroppedDataBandParams): ChartBand | null {
   const theme = useTheme();
-  const {acceptedEvents, dataset, droppedEvents, minHighlightRatio, onClick} =
-    droppedData ?? {};
+  const {
+    acceptedEvents,
+    dataset,
+    droppedEvents,
+    formatValue,
+    label,
+    minHighlightRatio,
+    onClick,
+  } = droppedData ?? {};
 
   const buckets = useMemo(
     () =>
@@ -206,8 +222,16 @@ export function useDroppedDataBand({
   return useMemo(
     () =>
       isVisible && defined(dataset)
-        ? createDroppedDataBand({buckets, dataset, minHighlightRatio, onClick, theme})
+        ? createDroppedDataBand({
+            buckets,
+            dataset,
+            formatValue,
+            label,
+            minHighlightRatio,
+            onClick,
+            theme,
+          })
         : null,
-    [buckets, dataset, isVisible, minHighlightRatio, onClick, theme]
+    [buckets, dataset, formatValue, isVisible, label, minHighlightRatio, onClick, theme]
   );
 }
