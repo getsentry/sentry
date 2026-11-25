@@ -37,18 +37,23 @@ describe('rq onboarding docs', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('renders continuous profiling without the continuous-profiling feature', () => {
+  it('renders no profiling config without the continuous-profiling feature', () => {
     renderWithOnboardingLayout(docs);
 
     // Does not render transaction profiling config, removed in SDK 3.x
     expect(
-      screen.queryByText(textWithMarkupMatcher(/profiles_sample_rate/))
+      screen.queryByText(textWithMarkupMatcher(/profiles_sample_rate=/))
     ).not.toBeInTheDocument();
 
-    // Does render continuous profiling config
+    // Does not render continuous profiling config, dropped without the feature
     expect(
-      screen.getAllByText(textWithMarkupMatcher(/profile_session_sample_rate=1\.0,/))
-    ).not.toHaveLength(0);
+      screen.queryByText(textWithMarkupMatcher(/profile_session_sample_rate=/))
+    ).not.toBeInTheDocument();
+
+    // Explains why profiling is left out
+    expect(
+      screen.getByText(textWithMarkupMatcher(/only available on sentry-sdk 2\.x/))
+    ).toBeInTheDocument();
   });
 
   it('renders continuous profiling', () => {

@@ -6,7 +6,10 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {metricsVerify} from 'sentry/gettingStartedDocs/python/metrics';
-import {alternativeProfiling} from 'sentry/gettingStartedDocs/python/profiling';
+import {
+  alternativeProfiling,
+  isContinuousProfilingSelected,
+} from 'sentry/gettingStartedDocs/python/profiling';
 import {getPythonInstallCodeBlock} from 'sentry/gettingStartedDocs/python/utils';
 import {t, tct} from 'sentry/locale';
 
@@ -23,7 +26,7 @@ sentry_sdk.init(
   traces_sample_rate=1.0,`
       : ''
   }${
-    params.isProfilingSelected
+    isContinuousProfilingSelected(params)
       ? `
   # Set profile_session_sample_rate to 1.0 to profile 100%
   # of profile sessions.
@@ -65,11 +68,11 @@ from jobs import hello
 
 import sentry_sdk
 
-#import { get } from 'lodash';
-Sentry configuration for main.py process (same as above)
+# Sentry configuration for main.py process (same as above)
 ${getInitCallSnippet(params)}
 
 q = Queue(connection=Redis())
+# In SDK 2.x, use sentry_sdk.start_transaction(name="testing_sentry") instead
 with sentry_sdk.start_span(name="testing_sentry"):
     result = q.enqueue(hello, "World")`;
 

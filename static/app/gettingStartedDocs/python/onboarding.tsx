@@ -7,7 +7,7 @@ import {t, tct} from 'sentry/locale';
 
 import {logsVerify} from './logs';
 import {metricsVerify} from './metrics';
-import {alternativeProfiling} from './profiling';
+import {alternativeProfiling, isContinuousProfilingSelected} from './profiling';
 import {getPythonInstallCodeBlock} from './utils';
 
 const getSdkSetupSnippet = (params: DocsParams) => `
@@ -25,7 +25,7 @@ sentry_sdk.init(
     traces_sample_rate=1.0,`
         : ''
     }${
-      params.isProfilingSelected
+      isContinuousProfilingSelected(params)
         ? `
     # Set profile_session_sample_rate to 1.0 to profile 100%
     # of profile sessions.
@@ -33,7 +33,7 @@ sentry_sdk.init(
         : ''
     }
 )${
-  params.isProfilingSelected
+  isContinuousProfilingSelected(params)
     ? `
 
 def slow_function():

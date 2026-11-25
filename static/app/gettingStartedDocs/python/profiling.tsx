@@ -10,6 +10,26 @@ import {t, tct} from 'sentry/locale';
 
 import {getPythonInstallCodeBlock} from './utils';
 
+const PROFILING_DOCS_URL = 'https://docs.sentry.io/platforms/python/profiling/';
+
+// sentry-sdk 3.x only has continuous profiling, and Relay drops continuous
+// profile chunks for organizations without the continuous-profiling feature.
+const isContinuousProfilingAvailable = (params: DocsParams) =>
+  params.profilingOptions?.defaultProfilingMode !== 'transaction';
+
+export const isContinuousProfilingSelected = (params: DocsParams) =>
+  params.isProfilingSelected && isContinuousProfilingAvailable(params);
+
+const getTracingSdkSetupSnippet = (params: DocsParams) => `
+import sentry_sdk
+
+sentry_sdk.init(
+    dsn="${params.dsn.public}",
+    # Set traces_sample_rate to 1.0 to capture 100%
+    # of transactions for tracing.
+    traces_sample_rate=1.0,
+)`;
+
 const getProfilingSdkSetupSnippet = (
   params: DocsParams,
   traceLifecycle: 'manual' | 'trace'
@@ -69,13 +89,21 @@ export const alternativeProfiling = (params: DocsParams): ContentBlock => ({
   type: 'conditional',
   condition: params.isProfilingSelected,
   content: [
-    {
-      type: 'text',
-      text: tct(
-        'Alternatively, you can also explicitly control continuous profiling. See our [link:documentation] for more information.',
-        {link: <ExternalLink href="https://docs.sentry.io/platforms/python/profiling/" />}
-      ),
-    },
+    isContinuousProfilingAvailable(params)
+      ? {
+          type: 'text',
+          text: tct(
+            'Alternatively, you can also explicitly control continuous profiling. See our [link:documentation] for more information.',
+            {link: <ExternalLink href={PROFILING_DOCS_URL} />}
+          ),
+        }
+      : {
+          type: 'text',
+          text: tct(
+            "Profiling on sentry-sdk 3.x needs continuous profiling, which isn't enabled for this organization. Transaction profiling ([code:profiles_sample_rate]) is only available on sentry-sdk 2.x. See our [link:documentation] for more information.",
+            {code: <code />, link: <ExternalLink href={PROFILING_DOCS_URL} />}
+          ),
+        },
   ],
 });
 
@@ -110,17 +138,15 @@ export const profiling = ({
         {
           type: 'code',
           language: 'python',
-          code: getProfilingSdkSetupSnippet(params, traceLifecycle),
+          code: isContinuousProfilingAvailable(params)
+            ? getProfilingSdkSetupSnippet(params, traceLifecycle)
+            : getTracingSdkSetupSnippet(params),
         },
         {
           type: 'text',
           text: tct(
             'For more detailed information on profiling, see the [link:profiling documentation].',
-            {
-              link: (
-                <ExternalLink href="https://docs.sentry.io/platforms/python/profiling/" />
-              ),
-            }
+            {link: <ExternalLink href={PROFILING_DOCS_URL} />}
           ),
         },
         alternativeProfiling(params),
