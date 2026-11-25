@@ -562,6 +562,9 @@ class TestGetEligibleProjects(AgenticTriageFixtures, TestCase):
         # No connected repo.
         self.create_project(organization=org)
 
+        no_open_prs = self._make_eligible(self.create_project(organization=org))
+        no_open_prs.update_option("sentry:seer_open_prs", False)
+
         with patch("sentry.tasks.seer.agentic_triage.cron.logger") as mock_logger:
             result = _get_eligible_projects(org, "manual")
 
