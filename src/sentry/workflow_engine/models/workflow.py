@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import replace
-from typing import Any, ClassVar, TypedDict
+from typing import Any, ClassVar, TypeAlias, TypedDict
 
 from django.conf import settings
 from django.db import models
@@ -61,6 +61,8 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
     objects: ClassVar[WorkflowManager] = WorkflowManager()
     objects_for_deletion: ClassVar[BaseManager[Workflow]] = BaseManager()
+
+    Type: TypeAlias = WorkflowType
 
     name = models.CharField(max_length=256)
     organization = FlexibleForeignKey("sentry.Organization")
