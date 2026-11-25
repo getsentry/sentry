@@ -1,4 +1,4 @@
-import {mutationOptions, useMutation, useQueryClient} from '@tanstack/react-query';
+import {mutationOptions, useQueryClient} from '@tanstack/react-query';
 import merge from 'lodash/merge';
 
 import {toast} from '@sentry/scraps/toast';
@@ -14,13 +14,13 @@ import {useUser} from './useUser';
 type UpdateUserOptionsVariables = Partial<User['options']>;
 
 /**
- * Mutation options for saving user options, for callers such as
- * `AutoSaveForm` that create the mutation themselves.
+ * Mutation options for saving user options. Pass them to `useMutation`, or to
+ * `AutoSaveForm` as `mutationOptions`.
  */
 export function useUserOptionsMutationOptions() {
   const user = useUser();
   const queryClient = useQueryClient();
-  return mutationOptions<User, Error, UpdateUserOptionsVariables, {user: User}>({
+  return mutationOptions({
     mutationFn: (options: UpdateUserOptionsVariables) => {
       return fetchMutation<User>({
         url: getApiUrl('/users/$userId/', {path: {userId: 'me'}}),
@@ -54,8 +54,4 @@ export function useUserOptionsMutationOptions() {
       toast.error('Failed to save user preference');
     },
   });
-}
-
-export function useMutateUserOptions() {
-  return useMutation(useUserOptionsMutationOptions());
 }

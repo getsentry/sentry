@@ -69,7 +69,7 @@ import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
 import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useMutateUserOptions} from 'sentry/utils/useMutateUserOptions';
+import {useUserOptionsMutationOptions} from 'sentry/utils/useMutateUserOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -305,7 +305,7 @@ export function GlobalCommandPaletteActions() {
   const settingsV3 = useSettingsV3();
   const params = useParams();
   const location = useLocation();
-  const {mutateAsync: mutateUserOptions} = useMutateUserOptions();
+  const {mutateAsync: mutateUserOptions} = useMutation(useUserOptionsMutationOptions());
   const {starredViews} = useStarredIssueViews();
   const {data: starredDashboards = []} = useGetStarredDashboards();
   const {mutate: exitSuperuser} = useMutation({

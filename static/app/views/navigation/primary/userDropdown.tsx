@@ -3,6 +3,7 @@ import {useTheme} from '@emotion/react';
 import {IconSettings} from '@sentry/icons/settings';
 import {IconSliders} from '@sentry/icons/sliders';
 import {IconUpload} from '@sentry/icons/upload';
+import {useMutation} from '@tanstack/react-query';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 import {AvatarButton} from '@sentry/scraps/avatarButton';
@@ -16,7 +17,7 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useApi} from 'sentry/utils/useApi';
-import {useMutateUserOptions} from 'sentry/utils/useMutateUserOptions';
+import {useUserOptionsMutationOptions} from 'sentry/utils/useMutateUserOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
@@ -36,7 +37,7 @@ export function UserDropdown() {
   const {layout} = usePrimaryNavigation();
   const portalContainerRef = useRef<HTMLElement | null>(null);
   const theme = useTheme();
-  const {mutate: updateOptions} = useMutateUserOptions();
+  const {mutate: updateOptions} = useMutation(useUserOptionsMutationOptions());
   const settingsV3 = useSettingsV3();
   const organization = useOrganization({allowNull: true});
   const {scope: settingsScope} = useSettingsScope();
