@@ -250,7 +250,9 @@ describe('AutomationDetail', () => {
 
   it('runs the automation now on behalf of the current user', async () => {
     ConfigStore.set('user', UserFixture({id: '7'}));
-    mockConfig(SeerWorkflowConfigFixture({id: '42'}));
+    mockConfig(
+      SeerWorkflowConfigFixture({id: '42', strategy: 'scheduled_investigation'})
+    );
     const manualRunUrl = `/organizations/${organization.slug}/seer/workflows/manual-run/`;
     const manualRunRequest = MockApiClient.addMockResponse({
       url: manualRunUrl,
@@ -269,6 +271,17 @@ describe('AutomationDetail', () => {
       )
     );
     expect(manualRunRequest).toHaveBeenCalledTimes(1);
+  });
+
+  it('hides run now for breached metric automations', async () => {
+    mockConfig(
+      SeerWorkflowConfigFixture({id: '42', strategy: 'breached_metric_investigation'})
+    );
+    renderDetail();
+    await findLoadedPage();
+
+    expect(screen.getByRole('button', {name: 'Edit'})).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Run now'})).not.toBeInTheDocument();
   });
 
   it('deletes the automation after confirming and returns to the list', async () => {

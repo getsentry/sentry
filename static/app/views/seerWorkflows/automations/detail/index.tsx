@@ -23,6 +23,7 @@ import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct, tn} from 'sentry/locale';
+import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -261,21 +262,24 @@ export default function AutomationDetail() {
           )
         }
       />
-      <Button
-        size="sm"
-        busy={manualRun.isPending}
-        onClick={() =>
-          manualRun.mutate(
-            {userId: user.id},
-            {
-              onSuccess: () => toast.success(t('Automation run started.')),
-              onError: () => toast.error(t('Unable to run automation.')),
-            }
-          )
-        }
-      >
-        {t('Run now')}
-      </Button>
+      {config.strategy === 'scheduled_investigation' && (
+        <Button
+          size="sm"
+          busy={manualRun.isPending}
+          onClick={() =>
+            manualRun.mutate(
+              {userId: user.id},
+              {
+                onSuccess: () => toast.success(t('Automation run started.')),
+                onError: error =>
+                  toast.error(t('Unable to run. %s', getRequestErrorUserMessage(error))),
+              }
+            )
+          }
+        >
+          {t('Run now')}
+        </Button>
+      )}
       <Button
         size="sm"
         variant="primary"
