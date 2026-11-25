@@ -29,6 +29,7 @@ import type {TraceItemDetailsResponse} from 'sentry/views/explore/hooks/useTrace
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 import type {TraceMetaQueryResults} from 'sentry/views/performance/traceDetails/traceApi/useTraceMeta';
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/traceDetails/traceApi/useTraceRootEvent';
 import {isTraceItemDetailsResponse} from 'sentry/views/performance/traceDetails/traceApi/utils';
@@ -55,6 +56,15 @@ const LEGACY_USER_KEYS = {
   'user.id': 'id',
 } as const satisfies Record<UserField, string>;
 
+/**
+ * Returns the value unless it is missing or whitespace-only, matching the rule
+ * EntityHeader uses to decide whether a metadata value is drawable. The value
+ * is returned untrimmed so it renders exactly as recorded.
+ */
+function present(value: string | null | undefined): string | undefined {
+  return value?.trim() ? value : undefined;
+}
+
 function getUserFieldLabel(field: UserField): string {
   switch (field) {
     case 'user.email':
@@ -71,10 +81,10 @@ function getUserFieldLabel(field: UserField): string {
 }
 
 function findUser(
-  getValue: (field: UserField) => string | undefined
+  getValue: (field: UserField) => string | null | undefined
 ): TraceProperties['user'] {
   for (const field of USER_FIELDS) {
-    const value = getValue(field);
+    const value = present(getValue(field));
     if (value) {
       return {field, value};
     }
@@ -122,10 +132,10 @@ export function getTraceTitle(
   representativeEvent: TraceTree.RepresentativeTraceEvent | null
 ): {title: string; operation?: string} {
   const representativeTitle = getRepresentativeTitle(representativeEvent);
-  const title = representativeTitle ? stripAnsi(representativeTitle.title) : '';
-  const subtitle = representativeTitle?.subtitle
-    ? stripAnsi(representativeTitle.subtitle)
-    : '';
+  const title = present(representativeTitle && stripAnsi(representativeTitle.title));
+  const subtitle = present(
+    representativeTitle?.subtitle && stripAnsi(representativeTitle.subtitle)
+  );
 
   if (!subtitle) {
     return {title: title || t('Trace')};
@@ -143,12 +153,20 @@ export function getReplayId(rootEvent: RootEvent): string | undefined {
     ? getAttributeValue(rootEvent.attributes, FieldKey.REPLAY_ID, 'string')
     : rootEvent.contexts.replay?.[ReplayContextKey.REPLAY_ID];
 
-  return replayId || undefined;
+  return present(replayId);
 }
 
-function getAttributeProperties({attributes}: TraceItemDetailsResponse): TraceProperties {
+function getAttributeProperties(
+  rootEvent: TraceItemDetailsResponse,
+  dataset: TraceItemDataset | null
+): TraceProperties {
+  // getAttributeValue stops at the first alias that exists, so drop blank
+  // values to let a populated alias, such as `sentry.user.ip`, be found.
+  const attributes = rootEvent.attributes.filter(
+    ({value}) => typeof value !== 'string' || present(value)
+  );
   const getString = (key: string) =>
-    getAttributeValue(attributes, key, 'string') || undefined;
+    present(getAttributeValue(attributes, key, 'string'));
 
   // Resolve the name and version as a pair so a span that has only part of
   // each family can't report a version belonging to a different runtime.
@@ -158,14 +176,15 @@ function getAttributeProperties({attributes}: TraceItemDetailsResponse): TracePr
   const runtimeNameKey = isOtelRuntime ? 'process.runtime.name' : 'runtime.name';
   const runtimeVersionKey = isOtelRuntime ? 'process.runtime.version' : 'runtime.version';
   const runtimeName = getString(runtimeNameKey);
-  const runtimeVersion =
+  const runtimeVersion = present(
     getAttributeValue(
       attributes.filter(
         attribute => prettifyAttributeName(attribute.name) === runtimeVersionKey
       ),
       runtimeVersionKey,
       'string'
-    ) || undefined;
+    )
+  );
 
   const browserName = getString('browser.name');
   const osName = getString('os.name');
@@ -178,7 +197,9 @@ function getAttributeProperties({attributes}: TraceItemDetailsResponse): TracePr
       : undefined,
     os: osName ? {name: osName, version: getString('os.version')} : undefined,
     release: getString('release'),
-    region: getString('region'),
+    // Uptime results store the checking region as a bare `region` attribute,
+    // which on any other item is an arbitrary user attribute.
+    region: dataset === TraceItemDataset.UPTIME_RESULTS ? getString('region') : undefined,
     environment: getString('environment'),
   };
 }
@@ -188,10 +209,10 @@ function asNameAndVersion(context: unknown): NameAndVersion | undefined {
     return undefined;
   }
   const {name, version} = context as {name?: unknown; version?: unknown};
-  if (typeof name !== 'string' || !name) {
+  if (typeof name !== 'string' || !present(name)) {
     return undefined;
   }
-  return {name, version: typeof version === 'string' && version ? version : undefined};
+  return {name, version: typeof version === 'string' ? present(version) : undefined};
 }
 
 function getEventProperties(event: Event): TraceProperties {
@@ -208,11 +229,11 @@ function getEventProperties(event: Event): TraceProperties {
 
   const user = event.user;
   const getTag = (key: string) =>
-    event.tags?.find(tag => tag.key === key)?.value || undefined;
+    present(event.tags?.find(tag => tag.key === key)?.value);
 
   return {
     runtime,
-    user: findUser(field => user?.[LEGACY_USER_KEYS[field]] || undefined),
+    user: findUser(field => user?.[LEGACY_USER_KEYS[field]]),
     browser,
     os: asNameAndVersion(contexts.os),
     release: getTag('release'),
@@ -220,13 +241,20 @@ function getEventProperties(event: Event): TraceProperties {
   };
 }
 
-export function getTraceProperties(rootEvent: RootEvent): TraceProperties | null {
+/**
+ * `dataset` is the trace item type the root event was fetched as, which the
+ * response itself doesn't carry.
+ */
+export function getTraceProperties(
+  rootEvent: RootEvent,
+  dataset: TraceItemDataset | null
+): TraceProperties | null {
   if (!rootEvent) {
     return null;
   }
 
   return isTraceItemDetailsResponse(rootEvent)
-    ? getAttributeProperties(rootEvent)
+    ? getAttributeProperties(rootEvent, dataset)
     : getEventProperties(rootEvent);
 }
 

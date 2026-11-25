@@ -7,6 +7,7 @@ import type {
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 
 import {
@@ -61,6 +62,48 @@ describe('getTraceTitle', () => {
 
     expect(getTraceTitle(representativeEvent)).toEqual({title: 'http.server'});
   });
+
+  it.each([
+    ['whitespace', ' \n '],
+    ['escape codes only', '\x1B[31m\x1B[0m'],
+  ])('falls back to the title when the subtitle is %s', (_name, subtitle) => {
+    const representativeEvent = {
+      event: {traceHeaderTitle: {title: 'http.server', subtitle}},
+      dataset: null,
+    } as unknown as TraceTree.RepresentativeTraceEvent;
+
+    expect(getTraceTitle(representativeEvent)).toEqual({title: 'http.server'});
+  });
+
+  it('falls back to Trace when the title and subtitle are blank', () => {
+    const representativeEvent = {
+      event: {traceHeaderTitle: {title: '  ', subtitle: ' '}},
+      dataset: null,
+    } as unknown as TraceTree.RepresentativeTraceEvent;
+
+    expect(getTraceTitle(representativeEvent)).toEqual({title: 'Trace'});
+  });
+
+  it('does not return a blank title as the operation', () => {
+    const representativeEvent = {
+      event: {traceHeaderTitle: {title: '  ', subtitle: 'GET /users'}},
+      dataset: null,
+    } as unknown as TraceTree.RepresentativeTraceEvent;
+
+    expect(getTraceTitle(representativeEvent)).toEqual({
+      title: 'GET /users',
+      operation: undefined,
+    });
+  });
+
+  it('falls back to Trace for a log with a blank message', () => {
+    const log = {
+      [OurLogKnownFieldKey.MESSAGE]: '  \n ',
+      [OurLogKnownFieldKey.SEVERITY]: 'info',
+    } as OurLogsResponseItem;
+
+    expect(getTraceTitle({event: log, dataset: null})).toEqual({title: 'Trace'});
+  });
 });
 
 describe('getReplayId', () => {
@@ -82,6 +125,17 @@ describe('getReplayId', () => {
     expect(getReplayId(makeTraceItemDetailsResponse([]))).toBeUndefined();
     expect(getReplayId(undefined)).toBeUndefined();
   });
+
+  it('treats a blank replay id as missing', () => {
+    expect(
+      getReplayId(
+        makeTraceItemDetailsResponse([{name: 'replay_id', type: 'str', value: ' '}])
+      )
+    ).toBeUndefined();
+    expect(
+      getReplayId(EventFixture({contexts: {replay: {replay_id: ' '}}}) as any)
+    ).toBeUndefined();
+  });
 });
 
 describe('getTraceProperties', () => {
@@ -96,7 +150,8 @@ describe('getTraceProperties', () => {
           {name: 'browser.version', type: 'str', value: '120.0'},
           {name: 'runtime.name', type: 'str', value: 'node'},
           {name: 'runtime.version', type: 'str', value: '18.0.0'},
-        ])
+        ]),
+        TraceItemDataset.SPANS
       )
     ).toEqual({
       user: {field: 'user.email', value: 'user@example.com'},
@@ -119,7 +174,8 @@ describe('getTraceProperties', () => {
           {name: 'tags[os.name,string]', type: 'str', value: 'Windows'},
           {name: 'tags[browser.name,string]', type: 'str', value: 'Chrome'},
           {name: 'tags[runtime.name,string]', type: 'str', value: 'node'},
-        ])
+        ]),
+        TraceItemDataset.SPANS
       )
     ).toMatchObject({
       user: {field: 'user.email', value: 'user@example.com'},
@@ -136,7 +192,8 @@ describe('getTraceProperties', () => {
           // Sorted the way the API returns it, so the wrapped key comes first.
           {name: 'tags[user.email,string]', type: 'str', value: 'wrapped@example.com'},
           {name: 'user.email', type: 'str', value: 'exact@example.com'},
-        ])
+        ]),
+        TraceItemDataset.SPANS
       )?.user
     ).toEqual({field: 'user.email', value: 'exact@example.com'});
   });
@@ -146,7 +203,8 @@ describe('getTraceProperties', () => {
       getTraceProperties(
         makeTraceItemDetailsResponse([
           {name: 'sentry.environment', type: 'str', value: 'production'},
-        ])
+        ]),
+        TraceItemDataset.SPANS
       )?.environment
     ).toBe('production');
   });
@@ -159,7 +217,8 @@ describe('getTraceProperties', () => {
           {name: 'process.runtime.version', type: 'str', value: '3.12.0'},
           {name: 'runtime.name', type: 'str', value: 'node'},
           {name: 'runtime.version', type: 'str', value: '18.0.0'},
-        ])
+        ]),
+        TraceItemDataset.SPANS
       )?.runtime
     ).toEqual({name: 'CPython', version: '3.12.0'});
   });
@@ -170,7 +229,8 @@ describe('getTraceProperties', () => {
         makeTraceItemDetailsResponse([
           {name: 'process.runtime.name', type: 'str', value: 'CPython'},
           {name: 'runtime.version', type: 'str', value: '18.0.0'},
-        ])
+        ]),
+        TraceItemDataset.SPANS
       )?.runtime
     ).toEqual({name: 'CPython', version: undefined});
   });
@@ -182,7 +242,8 @@ describe('getTraceProperties', () => {
           {name: 'runtime.name', type: 'str', value: 'node'},
           {name: 'process.runtime.version', type: 'str', value: '3.12.0'},
           {name: 'runtime.version', type: 'str', value: '18.0.0'},
-        ])
+        ]),
+        TraceItemDataset.SPANS
       )?.runtime
     ).toEqual({name: 'node', version: '18.0.0'});
   });
@@ -193,9 +254,29 @@ describe('getTraceProperties', () => {
         makeTraceItemDetailsResponse([
           {name: 'user.ip', type: 'str', value: '10.0.0.12'},
           {name: 'user.id', type: 'str', value: '42'},
-        ])
+        ]),
+        TraceItemDataset.SPANS
       )?.user
     ).toEqual({field: 'user.ip', value: '10.0.0.12'});
+  });
+
+  it('reads the region from an uptime result', () => {
+    expect(
+      getTraceProperties(
+        makeTraceItemDetailsResponse([{name: 'region', type: 'str', value: 'us-east-1'}]),
+        TraceItemDataset.UPTIME_RESULTS
+      )?.region
+    ).toBe('us-east-1');
+  });
+
+  it('ignores a region attribute on items that are not uptime results', () => {
+    const response = makeTraceItemDetailsResponse([
+      {name: 'region', type: 'str', value: 'us-east-1'},
+    ]);
+
+    expect(getTraceProperties(response, TraceItemDataset.SPANS)?.region).toBeUndefined();
+    expect(getTraceProperties(response, TraceItemDataset.LOGS)?.region).toBeUndefined();
+    expect(getTraceProperties(response, null)?.region).toBeUndefined();
   });
 
   it('falls back to the username before the IP on a legacy event', () => {
@@ -203,10 +284,104 @@ describe('getTraceProperties', () => {
       user: {id: '42', username: 'jsmith', ip_address: '10.0.0.12'},
     });
 
-    expect(getTraceProperties(event as any)?.user).toEqual({
+    expect(getTraceProperties(event as any, null)?.user).toEqual({
       field: 'user.username',
       value: 'jsmith',
     });
+  });
+
+  it('skips a blank user field on a span and a legacy event', () => {
+    expect(
+      getTraceProperties(
+        makeTraceItemDetailsResponse([
+          {name: 'user.email', type: 'str', value: '  '},
+          {name: 'user.username', type: 'str', value: 'jsmith'},
+        ]),
+        TraceItemDataset.SPANS
+      )?.user
+    ).toEqual({field: 'user.username', value: 'jsmith'});
+
+    expect(
+      getTraceProperties(
+        EventFixture({user: {email: ' ', username: 'jsmith'}}) as any,
+        null
+      )?.user
+    ).toEqual({field: 'user.username', value: 'jsmith'});
+  });
+
+  it('treats blank span attributes as missing', () => {
+    expect(
+      getTraceProperties(
+        makeTraceItemDetailsResponse([
+          {name: 'os.name', type: 'str', value: ' '},
+          {name: 'os.version', type: 'str', value: '10'},
+          {name: 'browser.name', type: 'str', value: 'Chrome'},
+          {name: 'browser.version', type: 'str', value: ' '},
+          {name: 'runtime.name', type: 'str', value: 'node'},
+          {name: 'runtime.version', type: 'str', value: ' '},
+          {name: 'release', type: 'str', value: ' '},
+          {name: 'environment', type: 'str', value: ' '},
+          {name: 'region', type: 'str', value: ' '},
+        ]),
+        TraceItemDataset.UPTIME_RESULTS
+      )
+    ).toEqual({
+      os: undefined,
+      browser: {name: 'Chrome', version: undefined},
+      runtime: {name: 'node', version: undefined},
+      user: undefined,
+      release: undefined,
+      environment: undefined,
+      region: undefined,
+    });
+  });
+
+  it('treats blank contexts and tags on a legacy event as missing', () => {
+    const event = EventFixture({
+      contexts: {
+        runtime: {name: ' ', version: '3.12.0', type: 'runtime'},
+        browser: {name: 'Chrome', version: ' ', type: 'browser'},
+        os: {name: 'Linux', version: '6.1', type: 'os'},
+      },
+      tags: [
+        {key: 'release', value: ' '},
+        {key: 'environment', value: ' '},
+      ],
+    });
+
+    expect(getTraceProperties(event as any, null)).toEqual({
+      runtime: undefined,
+      browser: {name: 'Chrome', version: undefined},
+      os: {name: 'Linux', version: '6.1'},
+      user: undefined,
+      release: undefined,
+      environment: undefined,
+    });
+  });
+
+  it('skips an empty attribute to read a populated alias of the same field', () => {
+    expect(
+      getTraceProperties(
+        makeTraceItemDetailsResponse([
+          {name: 'user.ip_address', type: 'str', value: ''},
+          {name: 'sentry.user.ip', type: 'str', value: '10.0.0.1'},
+        ]),
+        TraceItemDataset.SPANS
+      )?.user
+    ).toEqual({field: 'user.ip', value: '10.0.0.1'});
+  });
+
+  it('reads the deprecated runtime when the process runtime name is empty', () => {
+    expect(
+      getTraceProperties(
+        makeTraceItemDetailsResponse([
+          {name: 'process.runtime.name', type: 'str', value: ''},
+          {name: 'runtime.name', type: 'str', value: 'node'},
+          {name: 'runtime.version', type: 'str', value: '18.0.0'},
+        ]),
+        TraceItemDataset.SPANS
+      )?.runtime
+    ).toEqual({name: 'node', version: '18.0.0'});
   });
 
   it('drops os, browser, and runtime when the name attribute is missing', () => {
@@ -216,7 +391,8 @@ describe('getTraceProperties', () => {
           {name: 'os.version', type: 'str', value: '10'},
           {name: 'browser.version', type: 'str', value: '120.0'},
           {name: 'runtime.version', type: 'str', value: '18.0.0'},
-        ])
+        ]),
+        TraceItemDataset.SPANS
       )
     ).toMatchObject({os: undefined, browser: undefined, runtime: undefined});
   });
@@ -235,7 +411,7 @@ describe('getTraceProperties', () => {
       ],
     });
 
-    expect(getTraceProperties(event as any)).toEqual({
+    expect(getTraceProperties(event as any, null)).toEqual({
       runtime: {name: 'CPython', version: '3.12.0'},
       browser: {name: 'Chrome', version: '120.0'},
       os: {name: 'Linux', version: '6.1'},
@@ -254,7 +430,7 @@ describe('getTraceProperties', () => {
       },
     });
 
-    expect(getTraceProperties(event as any)?.browser).toBeUndefined();
+    expect(getTraceProperties(event as any, null)?.browser).toBeUndefined();
   });
 });
 

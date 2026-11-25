@@ -266,6 +266,79 @@ describe('TraceMetaDataHeader', () => {
         )
       ).toBeInTheDocument();
     });
+
+    it('shows the region an uptime check ran from', () => {
+      const tree = TraceTree.FromTrace(
+        makeEAPTrace([makeUptimeCheck({event_id: 'check-1'})]),
+        {replay: null, organization}
+      );
+
+      const props = {
+        ...baseProps,
+        tree,
+        rootEventResults: {
+          data: {
+            itemId: 'check-1',
+            timestamp: '2024-01-01T00:00:00Z',
+            meta: {},
+            attributes: [{name: 'region', type: 'str', value: 'us-east-1'}],
+          },
+        } as any,
+      } as TraceMetadataHeaderProps;
+      render(<TraceMetaDataHeader {...props} organization={organization} />, {
+        initialRouterConfig: {
+          location: {pathname: '/organizations/org-slug/traces/trace/trace-slug'},
+        },
+      });
+
+      expect(
+        within(screen.getByRole('list', {name: 'Trace properties'})).getByText(
+          'Check from us-east-1'
+        )
+      ).toBeInTheDocument();
+    });
+
+    it('does not show a region attribute on a span as an uptime check region', () => {
+      const tree = TraceTree.FromTrace(
+        makeEAPTrace([
+          makeEAPSpan({
+            event_id: 'span-1',
+            op: 'http.server',
+            is_transaction: true,
+            start_timestamp: 0,
+            end_timestamp: 1,
+            children: [],
+          }),
+        ]),
+        {replay: null, organization}
+      );
+
+      const props = {
+        ...baseProps,
+        tree,
+        rootEventResults: {
+          data: {
+            itemId: 'span-1',
+            timestamp: '2024-01-01T00:00:00Z',
+            meta: {},
+            attributes: [
+              {name: 'region', type: 'str', value: 'us-east-1'},
+              {name: 'environment', type: 'str', value: 'production'},
+            ],
+          },
+        } as any,
+      } as TraceMetadataHeaderProps;
+      render(<TraceMetaDataHeader {...props} organization={organization} />, {
+        initialRouterConfig: {
+          location: {pathname: '/organizations/org-slug/traces/trace/trace-slug'},
+        },
+      });
+
+      const metadata = screen.getByRole('list', {name: 'Trace properties'});
+      expect(within(metadata).getByText('production')).toBeInTheDocument();
+      expect(within(metadata).queryByText(/us-east-1/)).not.toBeInTheDocument();
+      expect(within(metadata).queryByText('Uptime check region')).not.toBeInTheDocument();
+    });
   });
 
   describe('meta', () => {

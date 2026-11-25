@@ -170,7 +170,10 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
             operation: traceTitle.operation,
             organization: props.organization,
             project,
-            properties: getTraceProperties(props.rootEventResults.data),
+            properties: getTraceProperties(
+              props.rootEventResults.data,
+              rep?.dataset ?? null
+            ),
             replayId: getReplayId(props.rootEventResults.data),
             startTimestamp,
           }),
