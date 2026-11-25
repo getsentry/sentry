@@ -204,8 +204,21 @@ export default Storybook.story('Frame variables', story => {
           "'message'": "'hello world'",
           "'client'": '<Client at 0x12345>',
           "'items'": ['1', '2'],
+          // More than five entries, so the dict starts collapsed and shows its preview.
+          "'request'": {
+            "'method'": "'GET'",
+            "'retries'": '3',
+            "'secure'": 'True',
+            "'session'": 'None',
+            "'token'": '[Filtered]',
+            "'client'": '<Client at 0x12345>',
+            "'headers'": {"'accept'": "'*/*'", "'host'": "'example.com'"},
+          },
         }}
-        meta={{"'items'": {'': truncatedItemsMeta}}}
+        meta={{
+          "'items'": {'': truncatedItemsMeta},
+          "'request'": {"'token'": {'': replacedMeta}},
+        }}
       />
     </VariableStory>
   ));
