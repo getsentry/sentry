@@ -7,7 +7,13 @@ from rest_framework.request import Request
 from sentry.api.serializers.models.event import FULL_PAYLOAD_MAX_PER_PAGE
 from sentry.eventstream.snuba import SnubaEventStream
 from sentry.issues.endpoints.group_hashes import GroupHashesEndpoint
+from sentry.issues.models.issuemergeoperation import (
+    IssueUnmergeOperation,
+    OperationStatus,
+    OperationStep,
+)
 from sentry.models.grouphash import GroupHash
+from sentry.tasks.unmerge import start_unmerge
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
@@ -265,6 +271,37 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
                 sample_rate=1.0,
                 tags={"platform": "javascript", "sdk": "sentry.javascript.nextjs"},
             )
+
+    @with_feature("organizations:issue-merge-operation-tracking")
+    def test_tracks_unmerge_through_end_message(self) -> None:
+        self.login_as(user=self.user)
+        event = self.store_event(
+            data={"message": "selected", "timestamp": before_now(minutes=5).isoformat()},
+            project_id=self.project.id,
+        )
+        assert event.group_id is not None
+        group_hash = GroupHash.objects.get(project=self.project, group_id=event.group_id)
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{event.group_id}/hashes/?id={group_hash.hash}"
+        with patch.object(start_unmerge, "delay") as dispatch:
+            response = self.client.put(url)
+        assert response.status_code == 202
+        operation = IssueUnmergeOperation.objects.get(project=self.project)
+        assert operation.status == OperationStatus.QUEUED
+        assert operation.destination_group_id is None
+        assert dispatch.call_args.kwargs["operation_id"] == operation.id
+
+        with self.tasks():
+            start_unmerge(*dispatch.call_args.args, **dispatch.call_args.kwargs)
+        operation.refresh_from_db()
+        group_hash.refresh_from_db()
+        assert operation.actor_id == self.user.id
+        assert operation.group_hashes == [group_hash.hash]
+        assert operation.source_group_id == event.group_id
+        assert operation.destination_group_id == group_hash.group_id != event.group_id
+        assert operation.batch_cursor["event_id"] == event.event_id
+        assert operation.step == OperationStep.WAIT_FOR_SNUBA
+        assert operation.status == OperationStatus.RUNNING
+        assert operation.historical_cutoff is not None
 
     @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
     @with_feature("organizations:service-accounts")

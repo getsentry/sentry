@@ -141,16 +141,18 @@ class EventStream(Service):
     ) -> dict[str, Any]:
         raise NotImplementedError
 
-    def end_merge(self, state: Mapping[str, Any]) -> None:
-        pass
+    def end_merge(self, state: Mapping[str, Any]) -> datetime | None:
+        """Return the historical cutoff if the end message was delivered."""
+        return None
 
     def start_unmerge(
         self, project_id: int, hashes: Collection[str], previous_group_id: int, new_group_id: int
     ) -> Mapping[str, Any] | None:
         pass
 
-    def end_unmerge(self, state: Mapping[str, Any]) -> None:
-        pass
+    def end_unmerge(self, state: Mapping[str, Any]) -> datetime | None:
+        """Return the historical cutoff if the end message was delivered."""
+        return None
 
     def start_delete_tag(self, project_id: int, tag: str) -> Mapping[str, Any]:
         raise NotImplementedError

@@ -59,6 +59,20 @@ class HandleIssueMergeTest(TestCase):
         assert len(merge["children"]) == 4
         assert primary_group.status == GroupStatus.UNRESOLVED
         assert primary_group.substatus == GroupSubStatus.ONGOING
+        assert "operation_id" not in merge_groups.call_args.kwargs
+
+    def test_tracking_write_failure_still_dispatches_merge(self) -> None:
+        with (
+            self.feature("organizations:issue-merge-operation-tracking"),
+            patch.object(
+                IssueMergeOperation.objects, "create", side_effect=RuntimeError("unavailable")
+            ),
+            patch("sentry.tasks.merge.start_merge_groups.delay") as dispatch,
+        ):
+            result = handle_merge(self.groups, self.project_lookup, self.user)
+        assert len(result["children"]) == 4
+        dispatch.assert_called_once()
+        assert "operation_id" not in dispatch.call_args.kwargs
 
     def test_handle_merge_performance_issues(self) -> None:
         group = Group.objects.create(

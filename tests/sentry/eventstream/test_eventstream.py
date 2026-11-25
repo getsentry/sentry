@@ -153,6 +153,23 @@ def test_future_tracking_producer_waits_for_synchronous_send(
     assert produce.call_args.kwargs["asynchronous"] is False
 
 
+@pytest.mark.parametrize("rollout", [0.0, 1.0])
+def test_end_move_only_returns_cutoff_for_delivered_message(
+    isolated_eventstream_producers: None, rollout: float
+) -> None:
+    stream = KafkaEventStream()
+    state = {"project_id": 1, "datetime": "start"}
+    with override_options({"tasks.producer.eventstream.rollout": rollout}):
+        with patch.object(stream, "_send", wraps=stream._send) as send:
+            cutoff = stream.end_merge(state)
+        assert cutoff is not None
+        assert send.call_args.kwargs["extra_data"][0]["datetime"] == json.datetime_to_str(cutoff)
+        assert state["datetime"] == "start"
+        # LocalProducer returns a failed future when the broker rejects the message.
+        with patch.object(LocalBroker, "produce", side_effect=RuntimeError("delivery failed")):
+            assert stream.end_unmerge(state) is None
+
+
 class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
     @pytest.fixture(autouse=True)
     def patch_get_producer(self) -> Generator[None]:

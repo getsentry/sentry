@@ -12,7 +12,14 @@ from taskbroker_client.state import current_task
 from sentry import eventstream, similarity
 from sentry.db.models.base import Model
 from sentry.issues.derived.processing import invalidate_group_derived_data
+from sentry.issues.merge_tracking import (
+    operation_kwargs,
+    record_end_send,
+    record_merge_samples,
+    record_progress,
+)
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
+from sentry.issues.models.issuemergeoperation import IssueMergeOperation, OperationStatus
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.group import Group
 from sentry.seer.similarity.utils import project_uses_seer_similarity
@@ -44,6 +51,7 @@ def start_merge_groups(
     to_object_id: int | str | None = None,
     transaction_id: str | None = None,
     eventstream_state: Mapping[str, Any] | None = None,
+    operation_id: int | None = None,
 ) -> bool:
     if not (from_object_ids and to_object_id):
         logger.error("merge.start.missing_params", extra={"transaction_id": transaction_id})
@@ -75,6 +83,7 @@ def start_merge_groups(
         to_object_id=to_object_id,
         transaction_id=transaction_id,
         eventstream_state=eventstream_state,
+        **operation_kwargs(operation_id),
     )
     if activation_id:
         mark_spawned(_START_TASK_KEY, activation_id)
@@ -95,6 +104,7 @@ def merge_groups(
     transaction_id: str | None = None,
     eventstream_state: Mapping[str, Any] | None = None,
     recursed: bool = False,  # Deprecated: tolerated for in-flight tasks during rolling deploy
+    operation_id: int | None = None,
 ) -> bool:
     # TODO(mattrobenolt): Write tests for all of this
     from sentry.models.activity import Activity
@@ -159,10 +169,17 @@ def merge_groups(
             "merge.halted_by_killswitch",
             extra={"transaction_id": transaction_id, "new_group_id": new_group.id},
         )
-        if eventstream_state:
-            eventstream.backend.end_merge(eventstream_state)
+        cutoff = eventstream.backend.end_merge(eventstream_state) if eventstream_state else None
+        record_progress(
+            IssueMergeOperation,
+            new_group.project_id,
+            operation_id,
+            status=OperationStatus.NEEDS_ATTENTION,
+            historical_cutoff=cutoff,
+        )
         return False
 
+    record_progress(IssueMergeOperation, new_group.project_id, operation_id)
     try:
         group = Group.objects.select_related("project").get(id=from_object_id)
     except Group.DoesNotExist:
@@ -188,7 +205,12 @@ def merge_groups(
         )
 
         has_more = merge_objects(
-            model_list, group, new_group, logger=logger, transaction_id=transaction_id
+            model_list,
+            group,
+            new_group,
+            logger=logger,
+            transaction_id=transaction_id,
+            operation_id=operation_id,
         )
 
         if not has_more:
@@ -233,6 +255,12 @@ def merge_groups(
                     scope.set_extra("new_group_id", new_group.id)
                     scope.set_extra("old_group_id", group.id)
                     sentry_sdk.capture_exception(e, level="warning")
+            record_progress(
+                IssueMergeOperation,
+                new_group.project_id,
+                operation_id,
+                batch_cursor={"completed_source_id": previous_group_id},
+            )
 
     if from_object_ids:
         # This task is recursed until `from_object_ids` is empty and all
@@ -242,6 +270,7 @@ def merge_groups(
             to_object_id=to_object_id,
             transaction_id=transaction_id,
             eventstream_state=eventstream_state,
+            **operation_kwargs(operation_id),
         )
         # Record that this activation has spawned its continuation. A subsequent re-pend of this
         # same activation will short-circuit at the guard above instead of spawning again.
@@ -250,9 +279,13 @@ def merge_groups(
     else:
         invalidate_group_derived_data(new_group.id)
 
+        cutoff = None
         if eventstream_state:
             # All `from_object_ids` have been merged!
-            eventstream.backend.end_merge(eventstream_state)
+            if operation_id is not None:
+                record_merge_samples(new_group.project, operation_id, eventstream_state)
+            cutoff = eventstream.backend.end_merge(eventstream_state)
+        record_end_send(IssueMergeOperation, new_group.project_id, operation_id, cutoff)
 
     return True
 
@@ -264,8 +297,8 @@ def merge_objects(
     limit: int = 1000,
     logger: logging.Logger | None = None,
     transaction_id: str | None = None,
+    operation_id: int | None = None,
 ) -> bool:
-    has_more = False
     for model in models:
         all_fields = [f.name for f in model._meta.get_fields()]
 
@@ -293,7 +326,9 @@ def merge_objects(
             # Only set original_group_id if not already set.
             update_kwargs["original_group_id"] = Coalesce(F("original_group_id"), group.id)
 
+        last_object_id = None
         for obj in queryset[:limit]:
+            last_object_id = obj.id
             try:
                 with transaction.atomic(using=router.db_for_write(model)):
                     project_qs.filter(id=obj.id).update(**update_kwargs)
@@ -318,8 +353,17 @@ def merge_objects(
                             "model": model.__name__,
                         },
                     )
-            has_more = True
 
-        if has_more:
+        if last_object_id is not None:
+            record_progress(
+                IssueMergeOperation,
+                group.project_id,
+                operation_id,
+                batch_cursor={
+                    "source_id": group.id,
+                    "model": model._meta.label,
+                    "last_object_id": last_object_id,
+                },
+            )
             return True
-    return has_more
+    return False

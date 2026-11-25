@@ -9,6 +9,7 @@ import rest_framework
 from sentry import eventstream
 from sentry.apidocs.descriptions import ApiDescription
 from sentry.issues.grouptype import GroupCategory
+from sentry.issues.merge_tracking import operation_kwargs, record_merge_request
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
@@ -58,11 +59,18 @@ def handle_merge(
     )
 
     transaction_id = uuid4().hex
+    operation_id = record_merge_request(
+        project_lookup[primary_group.project_id],
+        group_ids_to_merge,
+        primary_group.id,
+        acting_user.id if acting_user else None,
+    )
     start_merge_groups.delay(
         from_object_ids=group_ids_to_merge,
         to_object_id=primary_group.id,
         transaction_id=transaction_id,
         eventstream_state=eventstream_state,
+        **operation_kwargs(operation_id),
     )
 
     Activity.objects.create(

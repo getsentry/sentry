@@ -2,6 +2,7 @@ import abc
 import dataclasses
 from collections.abc import Collection, Mapping, Sequence
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any, Union
 
 from sentry import eventstream
@@ -67,7 +68,7 @@ class UnmergeReplacement(abc.ABC):
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def stop_snuba_replacement(self, eventstream_state: EventstreamState) -> None:
+    def stop_snuba_replacement(self, eventstream_state: EventstreamState) -> datetime | None:
         raise NotImplementedError()
 
     @abc.abstractmethod
@@ -109,8 +110,8 @@ class PrimaryHashUnmergeReplacement(UnmergeReplacement):
             project.id, self.fingerprints, source_id, destination_id
         )
 
-    def stop_snuba_replacement(self, eventstream_state: EventstreamState) -> None:
-        eventstream.backend.end_unmerge(eventstream_state)
+    def stop_snuba_replacement(self, eventstream_state: EventstreamState) -> datetime | None:
+        return eventstream.backend.end_unmerge(eventstream_state)
 
     def run_postgres_replacement(
         self, project: Project, destination_id: int, locked_primary_hashes: Collection[str]
