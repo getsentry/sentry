@@ -128,6 +128,24 @@ export const SERVICE_ACCOUNT_SENTRY_APP_PERMISSION: PermissionObj = {
   },
 };
 
+// Only offered on personal tokens: it covers state Sentry keeps about the
+// token's user, which integrations and service accounts don't have. The
+// backend doesn't make `user_preference:write` imply read, so Read & Write
+// requests both.
+export const USER_PREFERENCE_SENTRY_APP_PERMISSION: PermissionObj = {
+  resource: 'UserPreference',
+  label: 'User Preferences',
+  help: 'Your stars, recent searches, and dismissed prompts',
+  choices: {
+    'no-access': {label: 'No Access', scopes: []},
+    read: {label: 'Read', scopes: ['user_preference:read']},
+    write: {
+      label: 'Read & Write',
+      scopes: ['user_preference:read', 'user_preference:write'],
+    },
+  },
+};
+
 export const CONTINUOUS_INTEGRATION_SENTRY_APP_PERMISSION: SpecialPermissionObj = {
   fieldName: 'ContinuousIntegration--permission',
   label: 'Continuous Integration (CI)',
@@ -308,7 +326,7 @@ export const GRANULAR_SENTRY_APP_PERMISSIONS: GranularPermissionObj[] = [
     ],
   },
   {
-    resource: 'user_preferences',
+    resource: 'user_preference',
     label: t('User Preferences'),
     help: t('Your personal settings and preferences'),
     levels: [GranularPermissionLevel.READ, GranularPermissionLevel.WRITE],
