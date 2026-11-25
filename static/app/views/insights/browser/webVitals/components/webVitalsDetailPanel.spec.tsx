@@ -9,11 +9,14 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {MOBILE_BROWSER_TYPES} from 'sentry/views/insights/browser/webVitals/utils/deviceType';
 
 import {WebVitalsDetailPanel} from './webVitalsDetailPanel';
 
-const DESKTOP_FILTER =
-  '!browser.name:["Chrome Mobile","Firefox Mobile","Mobile Safari","Edge Mobile","Opera Mobile"]';
+const DESKTOP_FILTER = new MutableSearch('')
+  .addFilterValueList('!browser.name', MOBILE_BROWSER_TYPES)
+  .formatString();
 
 describe('WebVitalsDetailPanel', () => {
   const organization = OrganizationFixture();

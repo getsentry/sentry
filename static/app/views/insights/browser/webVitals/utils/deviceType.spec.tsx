@@ -1,10 +1,16 @@
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
 import {BrowserType} from './queryParameterDecoders/browserType';
-import {addBrowserFilter, getSharedDeviceType, type DeviceType} from './deviceType';
+import {
+  addBrowserFilter,
+  getSharedDeviceType,
+  MOBILE_BROWSER_TYPES,
+  type DeviceType,
+} from './deviceType';
 
-const MOBILE_LIST =
-  '["Chrome Mobile","Firefox Mobile","Mobile Safari","Edge Mobile","Opera Mobile"]';
+const MOBILE_FILTER = new MutableSearch('')
+  .addFilterValueList('browser.name', MOBILE_BROWSER_TYPES)
+  .formatString();
 
 function formatBrowserFilter(browserTypes: BrowserType[], deviceType?: DeviceType) {
   const search = new MutableSearch('');
@@ -44,7 +50,7 @@ describe('addBrowserFilter', () => {
   });
 
   it('covers every browser of the device type when none are selected', () => {
-    expect(formatBrowserFilter([], 'mobile')).toBe(`browser.name:${MOBILE_LIST}`);
-    expect(formatBrowserFilter([], 'desktop')).toBe(`!browser.name:${MOBILE_LIST}`);
+    expect(formatBrowserFilter([], 'mobile')).toBe(MOBILE_FILTER);
+    expect(formatBrowserFilter([], 'desktop')).toBe(`!${MOBILE_FILTER}`);
   });
 });

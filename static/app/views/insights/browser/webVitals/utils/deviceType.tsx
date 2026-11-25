@@ -8,7 +8,7 @@ export type DeviceType = 'desktop' | 'mobile';
 // Relay scores these browsers on the mobile curve, and every other browser,
 // including ones it doesn't know, on the desktop curve. See
 // `_get_mobile_browser_performance_profiles` in `src/sentry/relay/config/__init__.py`.
-const MOBILE_BROWSER_TYPES: BrowserType[] = [
+export const MOBILE_BROWSER_TYPES: BrowserType[] = [
   BrowserType.CHROME_MOBILE,
   BrowserType.FIREFOX_MOBILE,
   BrowserType.SAFARI_MOBILE,
