@@ -30,7 +30,13 @@ import {Spinner} from '@sentry/scraps/spinner';
 import type {FormSize} from '@sentry/scraps/theme';
 import {useTranslation} from '@sentry/scraps/translation';
 import {useOverlay} from '@sentry/scraps/useOverlay';
-import {useVirtualCollection, VirtualRows} from '@sentry/scraps/useVirtualCollection';
+import {
+  flattenSections,
+  getWidestMenuItemKey,
+  useVirtualCollection,
+  useVirtualMenuWidth,
+  VirtualRows,
+} from '@sentry/scraps/useVirtualCollection';
 
 import {createFilter} from './filter';
 import {SelectOption, SelectSection} from './option';
@@ -181,11 +187,13 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
   const blurFrame = useRef<number | null>(null);
   const selectRef = useRef<HTMLDivElement>(null);
   const controlRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
   const footerRef = useRef<HTMLDivElement>(null);
   const [localQuery, setLocalQuery] = useState('');
   const [focused, setFocused] = useState(false);
   const [focusedChip, setFocusedChip] = useState<number | null>(null);
+  const [lockedMenuWidth, setLockedMenuWidth] = useState<number>();
   const query = inputValue ?? localQuery;
 
   const cancelSelectionBlur = useCallback(() => {
@@ -225,6 +233,9 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
     isKeyboardDismissDisabled: true,
     isDismissable: false,
   });
+  if (!isOpen && lockedMenuWidth !== undefined) {
+    setLockedMenuWidth(undefined);
+  }
   useInteractOutside({
     ref: selectRef,
     isDisabled: !isOpen,
@@ -397,6 +408,20 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
     state,
     listRef
   );
+  const selectStyles = getSelectStyles(theme, size, {
+    disabled,
+    focused,
+    hasChips: multiple && selected.length > 0,
+    searchable,
+  });
+  const baseMenuStyle: CSSObject = {...selectStyles.menu, maxWidth: props.maxMenuWidth};
+  const menuStyle = styles?.menu?.(baseMenuStyle, {}) ?? baseMenuStyle;
+  const shouldLockMenuWidth = isOpen && virtualized && menuStyle.width === 'max-content';
+  const widestKey = shouldLockMenuWidth
+    ? getWidestMenuItemKey(
+        flattenSections(state.collection).filter(node => node.type === 'item')
+      )
+    : undefined;
   const virtual = useVirtualCollection({
     collection: state.collection,
     enabled: virtualized,
@@ -404,6 +429,14 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
     focusedKey: isOpen ? selectionManager.focusedKey : null,
     listPadding: 4,
     size,
+    widestKey,
+  });
+  useVirtualMenuWidth({
+    enabled: shouldLockMenuWidth,
+    isWidthCandidateMounted: virtual.rows.some(row => row.node.key === widestKey),
+    isWidthLocked: lockedMenuWidth !== undefined,
+    menuRef,
+    onLockWidth: setLockedMenuWidth,
   });
   const delegate = useMemo(
     () =>
@@ -571,12 +604,6 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
       }
     },
   };
-  const selectStyles = getSelectStyles(theme, size, {
-    disabled,
-    focused,
-    hasChips: multiple && selected.length > 0,
-    searchable,
-  });
   const optionStyle = (option: TOption) => ({
     data: option,
     isDisabled: Boolean(disabled || option.disabled),
@@ -626,8 +653,10 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
       )}
     </Flex>
   );
-  const baseMenuStyle: CSSObject = {...selectStyles.menu, maxWidth: props.maxMenuWidth};
-  const menuStyle = styles?.menu?.(baseMenuStyle, {}) ?? baseMenuStyle;
+  const lockedMenuStyle =
+    shouldLockMenuWidth && lockedMenuWidth !== undefined
+      ? {width: lockedMenuWidth, maxWidth: menuStyle.maxWidth ?? '100%'}
+      : undefined;
   const positionStyle: CSSObject = {
     ...(menuStyle.position === 'initial' ? {marginBlockStart: MENU_GAP} : overlayStyle),
     display: 'flex',
@@ -666,7 +695,7 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
       }}
     >
       <PanelProvider>
-        <div css={menuStyle}>
+        <div ref={menuRef} css={[menuStyle, lockedMenuStyle]}>
           <ul
             {...listBoxProps}
             ref={listRef}
