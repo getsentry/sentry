@@ -256,6 +256,21 @@ describe('Release Health Session Term', () => {
       'android'
     );
     expect(unhandledSessionTerm).toEqual(mobileTermsDescription.unhandled);
+
+    // ANR Rate
+    const anrRateSessionTerm = getSessionTermDescription(SessionTerm.ANR_RATE, 'android');
+    expect(anrRateSessionTerm).toBe(
+      'Percentage of unique users that experienced a fatal App Not Responding (ANR) error'
+    );
+
+    // Foreground ANR Rate
+    const foregroundAnrRateSessionTerm = getSessionTermDescription(
+      SessionTerm.FOREGROUND_ANR_RATE,
+      'android'
+    );
+    expect(foregroundAnrRateSessionTerm).toBe(
+      'Percentage of unique users that experienced a fatal App Not Responding (ANR) error when the app was running in the foreground'
+    );
   });
 
   it('cordova terms', () => {
