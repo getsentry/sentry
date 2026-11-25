@@ -26,7 +26,7 @@ from sentry.workflow_engine.models import DataPacket, Detector, DetectorState
 from sentry.workflow_engine.processors import DetectorEvaluation
 from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import (
-    DetectorAPIOperation,
+    NO_API_OPERATIONS_AVAILABLE,
     DetectorGroupKey,
     DetectorInvestigation,
     DetectorPriorityLevel,
@@ -170,7 +170,7 @@ def _investigation(decision: AnomalyDecision, investigation_id: str) -> Detector
 @detector_settings_registry.register(DetectorType.ANOMALY_DETECTION)
 class AnomalyDetectionDetectorSettings(DetectorSettings):
     handler = AnomalyDetectionDetectorHandler
-    api_availability = {operation: False for operation in DetectorAPIOperation}
+    api_availability = NO_API_OPERATIONS_AVAILABLE
     config_schema = {
         "type": "object",
         "properties": {SERVICE_ACCOUNT_CONFIG_KEY: {"type": "integer", "minimum": 1}},

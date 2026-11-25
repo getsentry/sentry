@@ -24,10 +24,10 @@ from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.tasks import seer_investigation
 from sentry.workflow_engine.tasks.seer_investigation import create_detector_investigation
 from sentry.workflow_engine.types import (
-    DetectorAPIOperation,
     DetectorGroupKey,
     DetectorInvestigation,
     DetectorType,
+    WorkflowEngineAPIOperation,
 )
 from tests.sentry.anomaly_detection.test_helpers import anomaly_decision
 
@@ -118,7 +118,9 @@ class TestAnomalyDetectionDetectorHandler(TestCase):
     def test_registration(self) -> None:
         settings = detector_settings_registry.get(DetectorType.ANOMALY_DETECTION)
         assert settings.handler is AnomalyDetectionDetectorHandler
-        assert settings.api_availability == {operation: False for operation in DetectorAPIOperation}
+        assert settings.api_availability == {
+            operation: False for operation in WorkflowEngineAPIOperation
+        }
         assert isinstance(self.detector.detector_handler, AnomalyDetectionDetectorHandler)
 
     def test_open_starts_investigation_instead_of_an_issue(self) -> None:
