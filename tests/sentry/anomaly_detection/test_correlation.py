@@ -1,6 +1,5 @@
 from collections import Counter
-from dataclasses import replace
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
@@ -22,7 +21,7 @@ from sentry.anomaly_detection.correlation.shared_dependencies import (
 )
 from sentry.anomaly_detection.evaluation.novelty import Novelty
 
-START = datetime(2024, 1, 1)
+START = datetime(2024, 1, 1, tzinfo=UTC)
 MINUTE = timedelta(minutes=1)
 LATENCY = Metric.P95_DURATION
 ORDERS = SeriesKey(2, "production", Signal.OUTBOUND_DB, LATENCY, "orders")
@@ -35,14 +34,14 @@ def _episode(
 
 
 def test_shared_learning_counts_staggered_incidents_in_novelty_history_once() -> None:
-    replica = replace(ORDERS, project_id=3)
+    replica = ORDERS._replace(project_id=3)
     now = START + timedelta(days=3)
     novelty = Novelty()
     minute = START
     while minute < now:
         for key in (ORDERS, replica):
             novelty.observe(key, minute)
-            novelty.observe(replace(key, metric=Metric.FAILURE_RATE), minute)
+            novelty.observe(key._replace(metric=Metric.FAILURE_RATE), minute)
         minute += MINUTE
 
     def record_incident(onset: datetime) -> None:
@@ -50,7 +49,7 @@ def test_shared_learning_counts_staggered_incidents_in_novelty_history_once() ->
         for key in (ORDERS, replica):
             slowdown = _episode(key, onset)
             failures = _episode(
-                replace(key, metric=Metric.FAILURE_RATE), onset + 2 * MINUTE, ChangeType.SPIKE
+                key._replace(metric=Metric.FAILURE_RATE), onset + 2 * MINUTE, ChangeType.SPIKE
             )
             novelty.record(slowdown)
             novelty.record(failures)
