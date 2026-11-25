@@ -93,22 +93,47 @@ def _no_access_response() -> Response:
     )
 
 
-def _parse_run_id(run_id: str | int) -> int | uuid_module.UUID | Response:
+def _resolve_run(
+    run_id: str | int,
+    organization: Organization,
+    *,
+    for_continue: bool,
+    allowed: Callable[[SeerRun], bool] | None,
+) -> ResolvedSeerRun | Response:
+    """Resolve a client-facing run id (numeric ``seer_run_state_id`` or
+    ``SeerRun.uuid``) to a :class:`ResolvedSeerRun`, or an error ``Response``
+    (narrow with ``isinstance``). When ``allowed`` is supplied, the mirrored run
+    must pass it. A numeric id with no ``SeerRun`` row is rejected
+    in that case. For a not-ready run, a poll gets the 200
+    ``{"session": {"status": ...}}`` shape; ``for_continue`` instead gets 409
+    (still mirroring) or 422 (mirror failed).
+    """
+    runs = SeerRun.objects.filter(organization=organization).select_related(
+        "agent__group__project", "agent__project"
+    )
     try:
         seer_run_state_id = int(run_id)
     except (TypeError, ValueError):
         seer_run_state_id = None
+
     if seer_run_state_id is not None:
         if not validate_bigint(seer_run_state_id):
             return Response({"detail": "Invalid run_id"}, status=status.HTTP_400_BAD_REQUEST)
-        return seer_run_state_id
+        run = runs.filter(seer_run_state_id=seer_run_state_id).first()  # noqa: S035
+        if allowed is not None and (run is None or not allowed(run)):
+            return _no_access_response()
+        return ResolvedSeerRun(seer_run_state_id, str(run.uuid) if run else None)
+
     try:
-        return uuid_module.UUID(str(run_id))
+        run_uuid = uuid_module.UUID(str(run_id))
     except (TypeError, ValueError):
         return Response({"detail": "Invalid run_id"}, status=status.HTTP_400_BAD_REQUEST)
 
-
-def _resolve_uuid_run(run: SeerRun, *, for_continue: bool) -> ResolvedSeerRun | Response:
+    run = runs.filter(uuid=run_uuid).first()  # noqa: S035
+    if run is None:
+        return Response({"session": None}, status=status.HTTP_404_NOT_FOUND)
+    if allowed is not None and not allowed(run):
+        return _no_access_response()
     if run.mirror_status == SeerRunMirrorStatus.FAILED:
         if for_continue:
             return Response(
@@ -126,36 +151,6 @@ def _resolve_uuid_run(run: SeerRun, *, for_continue: bool) -> ResolvedSeerRun | 
     return ResolvedSeerRun(run.seer_run_state_id, str(run.uuid))
 
 
-def _resolve_run(
-    run_id: str | int,
-    organization: Organization,
-    *,
-    for_continue: bool,
-    allowed: Callable[[SeerRun], bool] | None,
-) -> ResolvedSeerRun | Response:
-    parsed = _parse_run_id(run_id)
-    if isinstance(parsed, Response):
-        return parsed
-
-    lookup = {"seer_run_state_id": parsed} if isinstance(parsed, int) else {"uuid": parsed}
-    run = (
-        SeerRun.objects.filter(organization=organization, **lookup)
-        .select_related("agent__group__project", "agent__project")
-        .first()  # noqa: S035
-    )
-    if run is None:
-        if not isinstance(parsed, int):
-            return Response({"session": None}, status=status.HTTP_404_NOT_FOUND)
-        if allowed is not None:
-            return _no_access_response()
-        return ResolvedSeerRun(parsed, None)
-    if allowed is not None and not allowed(run):
-        return _no_access_response()
-    if isinstance(parsed, int):
-        return ResolvedSeerRun(parsed, str(run.uuid))
-    return _resolve_uuid_run(run, for_continue=for_continue)
-
-
 def resolve_seer_run(
     run_id: str | int,
     organization: Organization,
@@ -163,14 +158,6 @@ def resolve_seer_run(
     for_continue: bool = False,
     user_id: int | None = None,
 ) -> ResolvedSeerRun | Response:
-    """Resolve a client-facing run id (numeric ``seer_run_state_id`` or
-    ``SeerRun.uuid``) to a :class:`ResolvedSeerRun`, or an error ``Response``
-    (narrow with ``isinstance``). When ``user_id`` is supplied, the mirrored run
-    must belong to that user. A numeric id with no ``SeerRun`` row is rejected
-    in that case. For a not-ready run, a poll gets the 200
-    ``{"session": {"status": ...}}`` shape; ``for_continue`` instead gets 409
-    (still mirroring) or 422 (mirror failed).
-    """
     return _resolve_run(
         run_id,
         organization,
