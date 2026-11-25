@@ -369,7 +369,8 @@ class BitFieldTest(TestCase):
     def test_db_default(self) -> None:
         field = BitFieldTestModel._meta.get_field("flags")
         assert isinstance(field, BitField)
-        assert field.db_default == 3
+        _, _, _, kwargs = field.deconstruct()
+        assert kwargs["db_default"] == 3
 
     def test_pickle_integration(self) -> None:
         inst = BitFieldTestModel.objects.create(flags=1)
