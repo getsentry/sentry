@@ -660,13 +660,7 @@ export function CommandPalette({
           <CommandPaletteNoResults />
         )
       ) : (
-        <ResultsList
-          direction="column"
-          width="100%"
-          paddingTop="xs"
-          maxHeight="min(calc(100vh - 128px - 4rem), 400px)"
-          overflow="auto"
-        >
+        <ResultsList direction="column" width="100%" paddingTop="xs">
           <ListBox
             scrollContainerRef={resultsListRef}
             listState={treeState}
@@ -1247,9 +1241,18 @@ const StyledInputGroupInput = styled(InputGroup.Input)<{seerEnabled?: boolean}>`
 `;
 
 const ResultsList = styled(Flex)`
-  /* The results are already inset by this element's top padding. */
+  /* The results are already inset by this element's top padding. The height limit
+  sits on the scroll area itself, the element the virtualizer observes, so no
+  wrapper between the two can move scrolling elsewhere.
+
+  The limit fills the viewport below the modal and never exceeds 400px. 128px is
+  the modal's 64px top margin, mirrored below it, and 4rem leaves room for the
+  search input and hints. These copy other components' sizes and do not follow
+  them: the modal's top margin is 50px in wide containers, for example. If those
+  sizes change, derive the limit from the modal's layout instead. */
   [data-list-scroll-area] {
     --list-inset: 0px;
+    max-height: calc(min(100vh - 128px - 4rem, 400px) - ${p => p.theme.space.xs});
   }
 
   [data-menu-item-content] {
