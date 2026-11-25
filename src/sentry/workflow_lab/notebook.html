@@ -1,0 +1,11 @@
+{% load sentry_assets sentry_helpers %}
+<!doctype html>
+<html lang="en" data-organization="{{ organization }}" data-organization-api="{% url 'sentry-api-0-organization-details' organization %}">
+<meta charset="utf-8">
+<title>Workflow notebook</title>
+<link rel="stylesheet" href="{% frontend_app_asset_url 'sentry' 'entrypoints/sentry.css' %}">
+<main id="notebook-root">Loading notebook…</main>
+{{ react_config|json_script:"notebook-config" }}
+<script src="../assets/config.js"></script>
+<script src="{% frontend_app_asset_url 'sentry' 'entrypoints/workflowNotebook.js' %}" crossorigin="anonymous"></script>
+</html>
