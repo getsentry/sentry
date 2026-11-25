@@ -864,7 +864,7 @@ class MetricMonitorSelectionTest(OccurrenceTestMixin, TestCase):
             type=MetricIssue.slug,
         )
 
-        with pytest.raises(ValueError, match="active metric monitors in this organization"):
+        with pytest.raises(ValueError, match="must be metric monitors in this organization"):
             create_metric_workflow(
                 self.organization.id,
                 monitor_ids=[self.monitor_ids[0], foreign.id],
@@ -930,20 +930,31 @@ class MetricMonitorSelectionTest(OccurrenceTestMixin, TestCase):
                 project=self.project, type=MetricIssue.slug, status=ObjectStatus.PENDING_DELETION
             ),
             self.create_detector(
-                project=self.project, type=MetricIssue.slug, status=ObjectStatus.DISABLED
-            ),
-            self.create_detector(
                 project=self.create_project(status=ObjectStatus.PENDING_DELETION),
                 type=MetricIssue.slug,
             ),
         ]
         for monitor in invalid_monitors:
-            with pytest.raises(ValueError, match="active metric monitors in this organization"):
+            with pytest.raises(ValueError, match="must be metric monitors in this organization"):
                 self.select_monitors([self.monitor_ids[0], monitor.id])
 
         self.config.refresh_from_db()
         assert self.config.version == 1
         assert not DetectorWorkflow.objects.exists()
+
+    def test_connects_monitors_disabled_by_plan(self) -> None:
+        disabled = self.create_detector(
+            project=self.project, type=MetricIssue.slug, status=ObjectStatus.DISABLED
+        )
+
+        config = self.select_monitors([self.monitor_ids[0], disabled.id])
+
+        assert get_config_monitors_bulk([config])[config.id] == sorted(
+            [
+                (self.monitor_ids[0], self.monitors[0].project_id),
+                (disabled.id, self.project.id),
+            ]
+        )
 
     def test_rejects_foreign_config_and_non_metric_strategy(self) -> None:
         other = Factories.create_seer_workflow_config(

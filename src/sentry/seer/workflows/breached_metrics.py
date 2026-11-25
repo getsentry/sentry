@@ -60,6 +60,9 @@ from sentry.workflow_engine.models import (
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import ActionInvocation
 
+# Monitors disabled by the org's plan can still be connected; they just won't breach until re-enabled.
+CONNECTABLE_MONITOR_STATUSES = (ObjectStatus.ACTIVE, ObjectStatus.DISABLED)
+
 logger = logging.getLogger(__name__)
 
 
@@ -100,7 +103,7 @@ class MetricAlertDefinition(AutomationDefinition[MetricBreachInputs]):
             id__in=DetectorWorkflow.objects.filter(
                 workflow_id=config.backing_workflow_id,
                 workflow__status=ObjectStatus.ACTIVE,
-                detector__status=ObjectStatus.ACTIVE,
+                detector__status__in=CONNECTABLE_MONITOR_STATUSES,
             ).values("detector__project_id")
         )
 
@@ -302,7 +305,7 @@ def get_config_monitors_bulk(
     configs: Sequence[SeerWorkflowConfig], *, project_filter: Sequence[int] | None = None
 ) -> dict[int, list[ConnectedMonitor]]:
     """
-    Return the active metric monitors connected to each metric automation, sorted by
+    Return the connectable metric monitors connected to each metric automation, sorted by
     monitor ID. With ``project_filter``, only monitors in
     those projects are included.
     """
@@ -316,7 +319,7 @@ def get_config_monitors_bulk(
         workflow_id__in=config_ids_by_workflow_id,
         workflow__status=ObjectStatus.ACTIVE,
         detector__type=MetricIssue.slug,
-        detector__status=ObjectStatus.ACTIVE,
+        detector__status__in=CONNECTABLE_MONITOR_STATUSES,
         detector__project__status=ObjectStatus.ACTIVE,
     )
     if project_filter is not None:
@@ -370,13 +373,11 @@ def _validate_monitors(organization_id: int, monitor_ids: set[int]) -> None:
             project__organization_id=organization_id,
             project__status=ObjectStatus.ACTIVE,
             type=MetricIssue.slug,
-            status=ObjectStatus.ACTIVE,
+            status__in=CONNECTABLE_MONITOR_STATUSES,
         ).values_list("id", flat=True)
     )
     if monitor_ids != valid_monitor_ids:
-        raise WorkflowUpdateError(
-            "Selected monitors must be active metric monitors in this organization."
-        )
+        raise WorkflowUpdateError("Selected monitors must be metric monitors in this organization.")
 
 
 def _replace_monitor_connections(
