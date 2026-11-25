@@ -25,7 +25,7 @@ from sentry.anomaly_detection.contracts import (
 )
 from sentry.anomaly_detection.evaluation.baseline import Baseline
 from sentry.anomaly_detection.evaluation.distributions import MAD_TO_SIGMA, MEDIAN_SE_FACTOR
-from sentry.anomaly_detection.evaluation.series import Series, rate_parts
+from sentry.anomaly_detection.evaluation.series import Series, rate_parts, uses_trials
 
 MINUTE = timedelta(minutes=1)
 RATE_FLOOR = 1e-6
@@ -239,7 +239,7 @@ class RateShiftTracker:
     def _observations(self, key: SeriesKey, start: datetime, end: datetime) -> list[_Observation]:
         parts = rate_parts(key)
         assert parts is not None
-        numerator, denominator = (self.series.get(part, {}) for part in parts[:2])
+        numerator, denominator, samples = (self.series.get(part, {}) for part in parts)
         total_traffic = self.series.get(
             SeriesKey(key.project_id, key.env, Signal.REQUESTS, Metric.COUNT), {}
         )
@@ -251,6 +251,12 @@ class RateShiftTracker:
             requests, events = denominator.get(minute), numerator.get(minute)
             if not requests or events is None:
                 continue
+            if uses_trials(key):
+                # Extrapolated failures count each sampled failure many times over, so weigh
+                # the rate as failures out of the sampled requests behind it.
+                if not (trials := samples.get(minute)):
+                    continue
+                events, requests = events / requests * trials, trials
             observations.append(
                 _Observation(
                     minute,

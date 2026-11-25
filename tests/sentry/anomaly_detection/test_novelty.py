@@ -76,16 +76,17 @@ def test_long_spike_does_not_open_a_duplicate_change_point() -> None:
     assert len(detector.state[RATE].spike_minutes) == 150
 
 
-@pytest.mark.parametrize(("sample_failures", "opens"), [(2.0, False), (6.0, True)])
-def test_failed_request_steps_require_sampled_excess(sample_failures: float, opens: bool) -> None:
+@pytest.mark.parametrize(("sampled_requests", "opens"), [(300.0, False), (1_000.0, True)])
+def test_failed_request_steps_require_sampled_excess(sampled_requests: float, opens: bool) -> None:
+    # Failures triple from 0.2% to 0.6% of requests: 1.2 extra sampled failures a minute out
+    # of 300 sampled requests, or 4 out of 1,000. Only the latter is enough evidence.
     counts: Series = {T0 + i * MINUTE: 20.0 if i < 170 else 60.0 for i in range(240)}
     series: dict[SeriesKey, Series] = {
         SeriesKey(1, "prod", Signal.REQUESTS, Metric.COUNT): dict.fromkeys(counts, 10_000.0),
-        SeriesKey(1, "prod", Signal.REQUESTS, Metric.COUNT_SAMPLE): dict.fromkeys(counts, 1_000.0),
+        SeriesKey(1, "prod", Signal.REQUESTS, Metric.COUNT_SAMPLE): dict.fromkeys(
+            counts, sampled_requests
+        ),
         SeriesKey(1, "prod", Signal.FAILED_REQUESTS, Metric.COUNT): counts,
-        SeriesKey(1, "prod", Signal.FAILED_REQUESTS, Metric.COUNT_SAMPLE): {
-            t: 2.0 if i < 170 else sample_failures for i, t in enumerate(counts)
-        },
         FAILED_RATE: dict.fromkeys(counts, None),
     }
     detector = RateShiftTracker(series, Baseline({}))
