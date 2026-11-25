@@ -1,9 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
-
-import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 
 import {useMetricDetectorLimit} from './useMetricDetectorLimit';
 
@@ -13,27 +10,17 @@ const mockOrganization = OrganizationFixture({
 
 const mockOrganizationWithoutFeature = OrganizationFixture({features: []});
 
+const QUOTA_URL = '/organizations/org-slug/detectors/metric-detector-quota/';
+
 describe('useMetricDetectorLimit', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    SubscriptionStore.init();
-
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/alert-rules/',
-      headers: {'X-Hits': '0'},
-      body: [],
-    });
   });
 
-  it('handles feature flag is disabled', () => {
-    SubscriptionStore.set(
-      mockOrganizationWithoutFeature.slug,
-      SubscriptionFixture({organization: mockOrganizationWithoutFeature})
-    );
-    const detectorsRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/detectors/',
-      headers: {'X-Hits': '5'},
-      body: [],
+  it('does not request the quota when the feature flag is disabled', () => {
+    const quotaRequest = MockApiClient.addMockResponse({
+      url: QUOTA_URL,
+      body: {count: 5, limit: 5, hasReachedLimit: true},
     });
 
     const {result} = renderHookWithProviders(() => useMetricDetectorLimit(), {
@@ -47,52 +34,13 @@ describe('useMetricDetectorLimit', () => {
       isLoading: false,
       isError: false,
     });
-
-    expect(detectorsRequest).not.toHaveBeenCalled();
+    expect(quotaRequest).not.toHaveBeenCalled();
   });
 
-  it('handles no subscription data', async () => {
-    SubscriptionStore.set(mockOrganization.slug, null as any);
-    const detectorsRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/detectors/',
-      headers: {'X-Hits': '2'},
-      body: [],
-    });
-
-    const {result} = renderHookWithProviders(() => useMetricDetectorLimit(), {
-      organization: mockOrganization,
-    });
-
-    await waitFor(() => {
-      expect(result.current?.isLoading).toBe(false);
-    });
-
-    expect(result.current).toEqual({
-      hasReachedLimit: false,
-      detectorLimit: -1,
-      detectorCount: -1,
-      isLoading: false,
-      isError: false,
-    });
-
-    expect(detectorsRequest).not.toHaveBeenCalled();
-  });
-
-  it('handles detectors count is below limit', async () => {
-    const subscription = SubscriptionFixture({
-      organization: mockOrganization,
-      planDetails: {
-        ...SubscriptionFixture({organization: mockOrganization}).planDetails,
-        metricDetectorLimit: 4,
-      },
-    });
-
-    SubscriptionStore.set(mockOrganization.slug, subscription);
-
-    const detectorsRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/detectors/',
-      headers: {'X-Hits': '3'},
-      body: [],
+  it('returns the quota below the limit', async () => {
+    MockApiClient.addMockResponse({
+      url: QUOTA_URL,
+      body: {count: 3, limit: 4, hasReachedLimit: false},
     });
 
     const {result} = renderHookWithProviders(() => useMetricDetectorLimit(), {
@@ -102,7 +50,6 @@ describe('useMetricDetectorLimit', () => {
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
-
     expect(result.current).toEqual({
       hasReachedLimit: false,
       detectorLimit: 4,
@@ -110,33 +57,12 @@ describe('useMetricDetectorLimit', () => {
       isLoading: false,
       isError: false,
     });
-
-    expect(detectorsRequest).toHaveBeenCalledWith(
-      '/organizations/org-slug/detectors/',
-      expect.objectContaining({
-        query: expect.objectContaining({
-          query: '!type:issue_stream type:metric',
-          per_page: 1,
-        }),
-      })
-    );
   });
 
-  it('handles detectors count equals limit', async () => {
-    const subscription = SubscriptionFixture({
-      organization: mockOrganization,
-      planDetails: {
-        ...SubscriptionFixture({organization: mockOrganization}).planDetails,
-        metricDetectorLimit: 3,
-      },
-    });
-
-    SubscriptionStore.set(mockOrganization.slug, subscription);
-
+  it('returns the quota at the limit', async () => {
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/detectors/',
-      headers: {'X-Hits': '3'},
-      body: [],
+      url: QUOTA_URL,
+      body: {count: 3, limit: 3, hasReachedLimit: true},
     });
 
     const {result} = renderHookWithProviders(() => useMetricDetectorLimit(), {
@@ -146,7 +72,6 @@ describe('useMetricDetectorLimit', () => {
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
-
     expect(result.current).toEqual({
       hasReachedLimit: true,
       detectorLimit: 3,
@@ -156,21 +81,10 @@ describe('useMetricDetectorLimit', () => {
     });
   });
 
-  it('handles detector limit is -1', async () => {
-    const subscription = SubscriptionFixture({
-      organization: mockOrganization,
-      planDetails: {
-        ...SubscriptionFixture({organization: mockOrganization}).planDetails,
-        metricDetectorLimit: -1,
-      },
-    });
-
-    SubscriptionStore.set(mockOrganization.slug, subscription);
-
-    const detectorsRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/detectors/',
-      headers: {'X-Hits': '10'},
-      body: [],
+  it('returns unlimited when the plan has no limit', async () => {
+    MockApiClient.addMockResponse({
+      url: QUOTA_URL,
+      body: {count: -1, limit: -1, hasReachedLimit: false},
     });
 
     const {result} = renderHookWithProviders(() => useMetricDetectorLimit(), {
@@ -180,7 +94,6 @@ describe('useMetricDetectorLimit', () => {
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
-
     expect(result.current).toEqual({
       hasReachedLimit: false,
       detectorLimit: -1,
@@ -188,25 +101,10 @@ describe('useMetricDetectorLimit', () => {
       isLoading: false,
       isError: false,
     });
-
-    expect(detectorsRequest).not.toHaveBeenCalled();
   });
 
-  it('handles detectors API error gracefully', async () => {
-    const subscription = SubscriptionFixture({
-      organization: mockOrganization,
-      planDetails: {
-        ...SubscriptionFixture({organization: mockOrganization}).planDetails,
-        metricDetectorLimit: 20,
-      },
-    });
-
-    SubscriptionStore.set(mockOrganization.slug, subscription);
-
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/detectors/',
-      statusCode: 500,
-    });
+  it('handles a quota API error gracefully', async () => {
+    MockApiClient.addMockResponse({url: QUOTA_URL, statusCode: 500});
 
     const {result} = renderHookWithProviders(() => useMetricDetectorLimit(), {
       organization: mockOrganization,
@@ -215,10 +113,9 @@ describe('useMetricDetectorLimit', () => {
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
-
     expect(result.current).toEqual({
       hasReachedLimit: false,
-      detectorLimit: 20,
+      detectorLimit: -1,
       detectorCount: -1,
       isLoading: false,
       isError: true,

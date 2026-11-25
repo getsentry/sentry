@@ -21,14 +21,8 @@ interface PreparedPrompt {
   text: string;
 }
 
-interface HandoffPromptOptions<Flow extends AgentHandoffFlow> {
+interface PromptContext<Flow extends AgentHandoffFlow> {
   context: AgentHandoffContext<Flow>;
-  disableIpPinning: boolean;
-}
-
-interface PromptContext<
-  Flow extends AgentHandoffFlow,
-> extends HandoffPromptOptions<Flow> {
   flow: Flow;
   organizationSlug: string;
 }
@@ -36,10 +30,6 @@ interface PromptContext<
 interface CachedHandoff<Flow extends AgentHandoffFlow>
   extends PromptContext<Flow>, Handoff {
   copied?: boolean;
-}
-
-interface CopyPromptOptions {
-  disableIpPinning: boolean;
 }
 
 const PROMPT_EXPIRATION_BUFFER_MS = 60_000;
@@ -52,7 +42,6 @@ function isHandoffStale<Flow extends AgentHandoffFlow>(
     handoff.organizationSlug !== context.organizationSlug ||
     handoff.flow !== context.flow ||
     !isEqual(handoff.context, context.context) ||
-    handoff.disableIpPinning !== context.disableIpPinning ||
     Date.parse(handoff.expiresAt) <= Date.now() + PROMPT_EXPIRATION_BUFFER_MS
   );
 }
@@ -96,9 +85,11 @@ export function useAgentHandoff<Flow extends AgentHandoffFlow>(
     return () => document.removeEventListener('visibilitychange', onVisibilityChange);
   }, []);
 
-  async function getPrompt(options: HandoffPromptOptions<Flow>): Promise<PreparedPrompt> {
+  async function getPrompt(
+    promptTarget: AgentHandoffContext<Flow>
+  ): Promise<PreparedPrompt> {
     const promptContext: PromptContext<Flow> = {
-      ...options,
+      context: promptTarget,
       flow,
       organizationSlug: organization.slug,
     };
@@ -107,7 +98,7 @@ export function useAgentHandoff<Flow extends AgentHandoffFlow>(
     if (cachedHandoff && !isHandoffStale(cachedHandoff, promptContext)) {
       return {
         handoffId: cachedHandoff.handoffId,
-        text: formatHandoffPrompt(cachedHandoff.code, flow, options.context),
+        text: formatHandoffPrompt(cachedHandoff.code, flow, promptTarget),
       };
     }
 
@@ -117,29 +108,25 @@ export function useAgentHandoff<Flow extends AgentHandoffFlow>(
         url: getApiUrl('/organizations/$organizationIdOrSlug/agent-handoff/prompts/', {
           path: {organizationIdOrSlug: organization.slug},
         }),
-        data: {
-          flow,
-          context: options.context,
-          disableIpPinning: options.disableIpPinning,
-        },
+        data: {flow, context: promptTarget},
       });
       handoff.current = {...minted, ...promptContext};
 
       return {
         handoffId: minted.handoffId,
-        text: formatHandoffPrompt(minted.code, flow, options.context),
+        text: formatHandoffPrompt(minted.code, flow, promptTarget),
       };
     } catch {
       throw new Error(t('Unable to create your agent prompt. Try again.'));
     }
   }
 
-  function beginCopy(options: CopyPromptOptions) {
+  function beginCopy() {
     if (!context) {
       return Promise.reject(new Error(t('Your agent prompt is still being prepared.')));
     }
 
-    const preparedPrompt = getPrompt({...options, context});
+    const preparedPrompt = getPrompt(context);
     const clipboardPayload = preparedPrompt.then(
       ({text}) => new Blob([text], {type: 'text/plain'})
     );
@@ -175,12 +162,12 @@ export function useAgentHandoff<Flow extends AgentHandoffFlow>(
     );
   }
 
-  function copyPrompt(options: CopyPromptOptions) {
+  function copyPrompt() {
     if (copyOperation.current) {
       return copyOperation.current;
     }
 
-    const operation = mutation.mutateAsync(beginCopy(options));
+    const operation = mutation.mutateAsync(beginCopy());
     copyOperation.current = operation;
 
     const clearOperation = () => {
@@ -198,6 +185,5 @@ export function useAgentHandoff<Flow extends AgentHandoffFlow>(
     error: mutation.error,
     isPending: mutation.isPending,
     isSuccess: mutation.isSuccess,
-    reset: mutation.reset,
   };
 }

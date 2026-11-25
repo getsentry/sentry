@@ -410,7 +410,8 @@ class ProjectDebugFile(Model):
     def delete(self, *args: Any, **kwargs: Any) -> tuple[int, dict[str, int]]:
         ret = super().delete(*args, **kwargs)
 
-        if self.storage_path is not None:
+        # Retention cleanup leaves the object to expire. Explicit deletions remove it.
+        if self.storage_path is not None and not os.environ.get("_SENTRY_CLEANUP"):
             # Objectstore-backed files cannot be referenced by multiple debug file rows.
             try:
                 self.get_objectstore_session().delete(self.storage_path)

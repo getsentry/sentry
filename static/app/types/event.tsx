@@ -215,10 +215,6 @@ export type ExceptionType = {
 
 // This type is incomplete
 export type EventMetadata = {
-  /**
-   * Set when attachments of the event were dropped because the attachment quota was exceeded.
-   */
-  attachments_quota_exceeded?: boolean;
   current_level?: number;
   directive?: string;
   filename?: string;
@@ -628,6 +624,26 @@ interface BrowserContext {
   version: string;
 }
 
+/**
+ * Added by Relay when it rate limits attachments of the event.
+ */
+interface AttachmentsContext {
+  rate_limited?: Array<{
+    /**
+     * The reason code of the quota that rate limited the attachment, for example `attachment_usage_exceeded`.
+     */
+    reason_code?: string | null;
+    /**
+     * The attachment type, for example `event.minidump`.
+     */
+    type?: string | null;
+  } | null> | null;
+  /**
+   * Sentry stores contexts it doesn't know as `default`.
+   */
+  type?: string;
+}
+
 interface ResponseContext {
   data: unknown;
   type: 'response';
@@ -642,6 +658,7 @@ export type EventContexts = {
   'Memory Info'?: MemoryInfoContext;
   'ThreadPool Info'?: ThreadPoolInfoContext;
   app?: AppContext;
+  attachments?: AttachmentsContext;
   browser?: BrowserContext;
   client_os?: OSContext;
   cloud_resource?: CloudResourceContext;

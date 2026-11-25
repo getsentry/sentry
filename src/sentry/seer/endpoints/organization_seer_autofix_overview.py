@@ -377,6 +377,7 @@ def _serialize_run(
         "codeChanges": code_changes,
         "issue": _serialize_issue(group, serialized_group, repo_eligibility),
         "status": status,
+        "isSingleRun": run.seer_run.agent.source == SINGLE_RUN_FEATURE_ID,
     }
 
 

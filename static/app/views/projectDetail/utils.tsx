@@ -27,7 +27,15 @@ export function getANRIssueQueryText(platform?: PlatformKey) {
     return 'error.type:["Fatal App Hang Fully Blocked","Fatal App Hang Non Fully Blocked"]';
   }
 
+  if (areFatalANRsUnhandledForPlatform(platform)) {
+    return 'mechanism:[ANR,AppExitInfo] error.unhandled:True';
+  }
+
   return 'mechanism:[ANR,AppExitInfo]';
+}
+
+export function areFatalANRsUnhandledForPlatform(platform?: PlatformKey): boolean {
+  return platform === 'android';
 }
 
 // Don't include apple-macos because the ANR rate requires app hangs V2,
