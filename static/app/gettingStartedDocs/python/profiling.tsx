@@ -18,9 +18,8 @@ import sentry_sdk
 
 sentry_sdk.init(
     dsn="${params.dsn.public}",${
-      params.profilingOptions?.defaultProfilingMode === 'continuous'
-        ? traceLifecycle === 'trace'
-          ? `
+      traceLifecycle === 'trace'
+        ? `
     # Set traces_sample_rate to 1.0 to capture 100%
     # of transactions for tracing.
     traces_sample_rate=1.0,
@@ -30,24 +29,15 @@ sentry_sdk.init(
     # Set profile_lifecycle to "trace" to automatically
     # run the profiler on when there is an active transaction
     profile_lifecycle="trace"`
-          : `
+        : `
     # Tracing is not required for profiling to work
     # but for the best experience we recommend enabling it
     traces_sample_rate=1.0,
     # Set profile_session_sample_rate to 1.0 to profile 100%
     # of profile sessions.
     profile_session_sample_rate=1.0`
-        : `
-    # Set traces_sample_rate to 1.0 to capture 100%
-    # of transactions for tracing.
-    traces_sample_rate=1.0,
-    # Set profiles_sample_rate to 1.0 to profile 100%
-    # of sampled transactions.
-    # We recommend adjusting this value in production.
-    profiles_sample_rate=1.0`
     }
 )${
-  params.profilingOptions?.defaultProfilingMode === 'continuous' &&
   traceLifecycle === 'manual'
     ? `
 
@@ -77,14 +67,12 @@ sentry_sdk.profiler.stop_profiler()`
 
 export const alternativeProfiling = (params: DocsParams): ContentBlock => ({
   type: 'conditional',
-  condition:
-    params.isProfilingSelected &&
-    params.profilingOptions?.defaultProfilingMode === 'continuous',
+  condition: params.isProfilingSelected,
   content: [
     {
       type: 'text',
       text: tct(
-        'Alternatively, you can also explicitly control continuous profiling or use transaction profiling. See our [link:documentation] for more information.',
+        'Alternatively, you can also explicitly control continuous profiling. See our [link:documentation] for more information.',
         {link: <ExternalLink href="https://docs.sentry.io/platforms/python/profiling/" />}
       ),
     },
