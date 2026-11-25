@@ -87,5 +87,3 @@ function BillingInformation() {
 }
 
 export default BillingInformation;
-
-export {BillingInformation};
