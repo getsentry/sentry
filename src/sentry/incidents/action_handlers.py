@@ -93,8 +93,12 @@ def generate_incident_trigger_email_context(
             # specified
             threshold = trigger_threshold
 
+    enhanced_privacy = bool(organization.flags.enhanced_privacy)
+
     chart_url = None
-    if features.has("organizations:metric-alert-chartcuterie", organization):
+    if not enhanced_privacy and features.has(
+        "organizations:metric-alert-chartcuterie", organization
+    ):
         try:
             chart_url = build_metric_alert_chart(
                 organization=organization,
@@ -142,6 +146,7 @@ def generate_incident_trigger_email_context(
         "unsubscribe_link": None,
         "chart_url": chart_url,
         "timezone": tz,
+        "enhanced_privacy": enhanced_privacy,
     }
 
 

@@ -284,7 +284,11 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         seer_run = SeerRun.objects.get_or_none(
             organization_id=organization.id, seer_run_state_id=run_id
         )
-        if not cls._run_completed(organization, run_id, state) and not paused:
+        if seer_run is not None:
+            reconcile_milestones(seer_run, state)
+        if state.status == "processing" or (
+            not cls._run_completed(organization, run_id, state) and not paused
+        ):
             if state.status == "error":
                 cls._announce_failure(
                     organization, run_id, group, seer_run, state, state.failure_reason
@@ -317,8 +321,6 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         stop = single_run_stop_payload(state)
         if stop is not None and not {"coding", "pr_created"} & set(reached):
             reached.append("stopped")
-
-        reconcile_milestones(seer_run, state)
 
         # The coding agent writes the fix once Seer names a root cause and a repo for it.
         # A stopped run (transient, ambiguous, not a code fix) never hands off.

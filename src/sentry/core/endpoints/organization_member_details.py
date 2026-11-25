@@ -50,6 +50,7 @@ from sentry.core.endpoints.organization_member_utils import (
     get_allowed_org_roles,
     save_team_assignments,
 )
+from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
@@ -330,8 +331,6 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
 
         assigned_org_role = result.get("orgRole") or result.get("role")
 
-        # Set the team-role before org-role. If the org-role has elevated permissions
-        # on the teams, the team-roles can be overwritten later
         team_roles: tuple[TeamAssignment, ...] | None = None
         teams = None
         if team_assignments is not None:
@@ -353,32 +352,6 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                     },
                     status=400,
                 )
-
-        if team_roles is not None:
-            diff = save_team_assignments(member, None, team_roles)
-        elif "teams" in result:
-            diff = save_team_assignments(member, teams)
-        else:
-            diff = TeamAssignmentDiff([], [])
-
-        for change in diff.added:
-            self.create_audit_entry(
-                request=request,
-                organization=organization,
-                target_object=change.omt_id,
-                target_user_id=member.user_id,
-                event=audit_log.get_event_id("MEMBER_JOIN_TEAM"),
-                data={"email": member.get_email(), "team_slug": change.team.slug},
-            )
-        for change in diff.removed:
-            self.create_audit_entry(
-                request=request,
-                organization=organization,
-                target_object=change.omt_id,
-                target_user_id=member.user_id,
-                event=audit_log.get_event_id("MEMBER_LEAVE_TEAM"),
-                data={"email": member.get_email(), "team_slug": change.team.slug},
-            )
 
         is_update_org_role = assigned_org_role and assigned_org_role != member.role
 
@@ -413,6 +386,35 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                 )
                 return Response({"detail": message}, status=400)
 
+        # Set the team-role before org-role. If the org-role has elevated permissions
+        # on the teams, the team-roles can be overwritten later
+        if team_roles is not None:
+            diff = save_team_assignments(member, None, team_roles)
+        elif "teams" in result:
+            diff = save_team_assignments(member, teams)
+        else:
+            diff = TeamAssignmentDiff([], [])
+
+        for change in diff.added:
+            self.create_audit_entry(
+                request=request,
+                organization=organization,
+                target_object=change.omt_id,
+                target_user_id=member.user_id,
+                event=audit_log.get_event_id("MEMBER_JOIN_TEAM"),
+                data={"email": member.get_email(), "team_slug": change.team.slug},
+            )
+        for change in diff.removed:
+            self.create_audit_entry(
+                request=request,
+                organization=organization,
+                target_object=change.omt_id,
+                target_user_id=member.user_id,
+                event=audit_log.get_event_id("MEMBER_LEAVE_TEAM"),
+                data={"email": member.get_email(), "team_slug": change.team.slug},
+            )
+
+        if is_update_org_role:
             previous_role = member.role
             self._change_org_role(member, assigned_org_role)
 
@@ -460,8 +462,15 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                 omt.role = None
             OrganizationMemberTeam.objects.bulk_update(omts, fields=["role"])
             omt_update_count = len(omts)
+            # Control reads the owner role, so changes to or from owner replicate right away.
+            top_dog = organization_roles.get_top_dog().id
+            owner_change = member.role != role and top_dog in (member.role, role)
             member.role = role
-            member.save()
+            with outbox_context(
+                transaction.atomic(router.db_for_write(OrganizationMember)),
+                flush=True if owner_change else None,
+            ):
+                member.save()
         if omt_update_count > 0:
             metrics.incr(
                 "team_roles.update_to_minimum",

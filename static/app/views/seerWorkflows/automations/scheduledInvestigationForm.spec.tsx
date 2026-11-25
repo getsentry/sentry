@@ -108,6 +108,7 @@ describe('ScheduledInvestigationForm', () => {
         configsUrl,
         expect.objectContaining({
           data: {
+            cronSchedule: {crontab: '0 0 * * *', timezone: 'UTC'},
             strategy: 'scheduled_investigation',
             name: 'Scheduled Investigation',
             enabled: false,
@@ -147,6 +148,82 @@ describe('ScheduledInvestigationForm', () => {
           })
         )
       );
+    });
+
+    it('sends the crontab and timezone when creating', async () => {
+      const create = MockApiClient.addMockResponse({
+        url: configsUrl,
+        method: 'POST',
+        body: config,
+      });
+      render(<ScheduledInvestigationForm mode="create" />, {organization});
+
+      const crontab = screen.getByRole('textbox', {name: 'Crontab Schedule'});
+      await userEvent.clear(crontab);
+      await userEvent.type(crontab, '30 9 * * 1-5');
+      await selectEvent.select(
+        screen.getByRole('textbox', {name: 'Timezone'}),
+        'New York'
+      );
+      await userEvent.click(screen.getByRole('button', {name: 'Create automation'}));
+
+      await waitFor(() =>
+        expect(create).toHaveBeenCalledWith(
+          configsUrl,
+          expect.objectContaining({
+            data: expect.objectContaining({
+              cronSchedule: {crontab: '30 9 * * 1-5', timezone: 'America/New_York'},
+            }),
+          })
+        )
+      );
+    });
+
+    it('saves a pasted tab-separated crontab with spaces', async () => {
+      const create = MockApiClient.addMockResponse({
+        url: configsUrl,
+        method: 'POST',
+        body: config,
+      });
+      render(<ScheduledInvestigationForm mode="create" />, {organization});
+
+      const crontab = screen.getByRole('textbox', {name: 'Crontab Schedule'});
+      await userEvent.clear(crontab);
+      await userEvent.click(crontab);
+      await userEvent.paste('30\t9\t*\t*\t1-5');
+      expect(crontab).toHaveValue('30 9 * * 1-5');
+
+      await userEvent.click(screen.getByRole('button', {name: 'Create automation'}));
+
+      await waitFor(() =>
+        expect(create).toHaveBeenCalledWith(
+          configsUrl,
+          expect.objectContaining({
+            data: expect.objectContaining({
+              cronSchedule: {crontab: '30 9 * * 1-5', timezone: 'UTC'},
+            }),
+          })
+        )
+      );
+    });
+
+    it('blocks saving an invalid crontab', async () => {
+      const create = MockApiClient.addMockResponse({
+        url: configsUrl,
+        method: 'POST',
+        body: config,
+      });
+      render(<ScheduledInvestigationForm mode="create" />, {organization});
+
+      const crontab = screen.getByRole('textbox', {name: 'Crontab Schedule'});
+      await userEvent.clear(crontab);
+      await userEvent.type(crontab, 'every day');
+      await userEvent.click(screen.getByRole('button', {name: 'Create automation'}));
+
+      expect(
+        await screen.findByText('Enter a valid crontab schedule, e.g. 0 0 * * *')
+      ).toBeInTheDocument();
+      expect(create).not.toHaveBeenCalled();
     });
 
     it('defaults to the first accessible project without all-project access', () => {
@@ -433,11 +510,45 @@ describe('ScheduledInvestigationForm', () => {
           `${configsUrl}42/`,
           expect.objectContaining({
             data: {
+              cronSchedule: {crontab: '0 0 * * *', timezone: 'UTC'},
               name: 'Checkout triage',
               projectIds: [1, 2],
               environments: ['production'],
               serviceAccount: {scopes, projectIds: [1, 2], allProjects: false},
             },
+          })
+        )
+      );
+    });
+
+    it('sends the crontab and timezone when saving', async () => {
+      const update = MockApiClient.addMockResponse({
+        url: `${configsUrl}42/`,
+        method: 'PUT',
+        body: config,
+      });
+      render(<AutomationDetail />, {
+        organization,
+        initialRouterConfig: detailRouterConfig,
+      });
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Edit'}));
+      const crontab = screen.getByRole('textbox', {name: 'Crontab Schedule'});
+      await userEvent.clear(crontab);
+      await userEvent.type(crontab, '30 9 * * 1-5');
+      await selectEvent.select(
+        screen.getByRole('textbox', {name: 'Timezone'}),
+        'New York'
+      );
+      await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+
+      await waitFor(() =>
+        expect(update).toHaveBeenCalledWith(
+          `${configsUrl}42/`,
+          expect.objectContaining({
+            data: expect.objectContaining({
+              cronSchedule: {crontab: '30 9 * * 1-5', timezone: 'America/New_York'},
+            }),
           })
         )
       );

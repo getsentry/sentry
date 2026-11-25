@@ -1510,6 +1510,53 @@ class ProjectUpdateTest(APITestCase):
                 "symbolSources": ["Hidden symbol source secret is missing a value"]
             }
 
+    def test_redacted_symbol_source_secrets_destination_changed(self) -> None:
+        with Feature({"organizations:custom-symbol-sources": True}):
+            config = {
+                "id": "honk",
+                "name": "honk source",
+                "layout": {
+                    "type": "native",
+                },
+                "filters": {"filetypes": ["pe"]},
+                "type": "http",
+                "url": "http://honk.beep",
+                "username": "honkhonk",
+                "password": "beepbeep",
+            }
+            self.get_success_response(
+                self.org_slug, self.proj_slug, symbolSources=orjson.dumps([config]).decode()
+            )
+            config["id"] = first_symbol_source_id(self.project.get_option("sentry:symbol_sources"))
+            stored = self.project.get_option("sentry:symbol_sources")
+
+            # Pointing the source elsewhere while keeping the redacted password must not send
+            # the stored password to the new destination.
+            redirected = config.copy()
+            redirected["url"] = "http://attacker.example"
+            redirected["password"] = {"hidden-secret": True}
+            response = self.get_response(
+                self.org_slug, self.proj_slug, symbolSources=orjson.dumps([redirected]).decode()
+            )
+            assert response.status_code == 400
+            assert orjson.loads(response.content) == {
+                "symbolSources": [
+                    "Hidden symbol source secret must be provided again when changing `url`"
+                ]
+            }
+            assert self.project.get_option("sentry:symbol_sources") == stored
+
+            # Changing fields that don't affect the destination still keeps the password.
+            renamed = config.copy()
+            renamed["name"] = "renamed source"
+            renamed["password"] = {"hidden-secret": True}
+            self.get_success_response(
+                self.org_slug, self.proj_slug, symbolSources=orjson.dumps([renamed]).decode()
+            )
+            (saved,) = orjson.loads(self.project.get_option("sentry:symbol_sources"))
+            assert saved["name"] == "renamed source"
+            assert saved["password"] == "beepbeep"
+
     def symbol_sources(self) -> list[dict[str, Any]]:
         project = Project.objects.get(id=self.project.id)
         source1 = {

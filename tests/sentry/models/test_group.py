@@ -351,6 +351,30 @@ class GroupTest(TestCase, SnubaTestCase):
         actual = group.get_absolute_url(params)
         assert actual == expected
 
+    def test_get_absolute_replays_url(self) -> None:
+        org = self.create_organization(slug="org1")
+        project = self.create_project(organization=org)
+        group = self.create_group(id=23, project=project)
+
+        assert (
+            group.get_absolute_replays_url()
+            == "http://testserver/organizations/org1/issues/23/replays/"
+        )
+        assert (
+            group.get_absolute_replays_url({"referrer": "slack"})
+            == "http://testserver/organizations/org1/issues/23/replays/?referrer=slack"
+        )
+
+    def test_get_absolute_replays_url_feedback(self) -> None:
+        org = self.create_organization(slug="org1")
+        project = self.create_project(organization=org)
+        group = self.create_group(id=23, project=project, type=FeedbackGroup.type_id)
+
+        assert group.get_absolute_replays_url({"referrer": "slack"}) == (
+            "http://testserver/organizations/org1/feedback/"
+            f"?referrer=slack&feedbackSlug={project.slug}%3A23&project={project.id}"
+        )
+
     def test_get_absolute_url_event(self) -> None:
         project = self.create_project()
         event = self.store_event(

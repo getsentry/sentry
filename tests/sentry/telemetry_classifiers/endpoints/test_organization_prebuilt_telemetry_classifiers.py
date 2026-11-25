@@ -25,9 +25,9 @@ class OrganizationPrebuiltTelemetryClassifiersTest(APITestCase):
             "dataset": "conversation",
             "outputType": "binary",
             "binaryThreshold": 0.8,
-            "name": "User frustration",
-            "description": "When your users become frustrated with the agent they are speaking with.",
-            "resultAttribute": "user_frustration",
+            "name": "Agent not helpful",
+            "description": "When your agent fails to give users what they asked for.",
+            "resultAttribute": "agent_not_helpful",
         }
 
     def test_filters_by_dataset(self) -> None:

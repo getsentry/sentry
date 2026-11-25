@@ -1061,7 +1061,7 @@ interface GroupActivityUnlinkPlatformExternalIssue extends GroupActivityBase {
   type: GroupActivityType.UNLINK_PLATFORM_EXTERNAL_ISSUE;
 }
 
-type ImpactLevel = 'super_low' | 'low' | 'moderate' | 'high' | 'super_high';
+export type ImpactLevel = 'super_low' | 'low' | 'moderate' | 'high' | 'super_high';
 
 interface ImpactCitation {
   claim: string;
@@ -1069,7 +1069,7 @@ interface ImpactCitation {
   source: string;
 }
 
-interface ImpactAssessment {
+export interface ImpactAssessment {
   citations: ImpactCitation[];
   description: string;
   level: ImpactLevel | null;
