@@ -108,7 +108,7 @@ describe('ScheduledInvestigationForm', () => {
         configsUrl,
         expect.objectContaining({
           data: {
-            cronSchedule: [{crontab: '0 0 * * *', timezone: 'UTC'}],
+            cronSchedules: [{crontab: '0 0 * * *', timezone: 'UTC'}],
             strategy: 'scheduled_investigation',
             name: 'Scheduled Investigation',
             enabled: false,
@@ -172,7 +172,7 @@ describe('ScheduledInvestigationForm', () => {
           configsUrl,
           expect.objectContaining({
             data: expect.objectContaining({
-              cronSchedule: [{crontab: '30 9 * * 1-5', timezone: 'America/New_York'}],
+              cronSchedules: [{crontab: '30 9 * * 1-5', timezone: 'America/New_York'}],
             }),
           })
         )
@@ -200,7 +200,7 @@ describe('ScheduledInvestigationForm', () => {
           configsUrl,
           expect.objectContaining({
             data: expect.objectContaining({
-              cronSchedule: [{crontab: '30 9 * * 1-5', timezone: 'UTC'}],
+              cronSchedules: [{crontab: '30 9 * * 1-5', timezone: 'UTC'}],
             }),
           })
         )
@@ -237,7 +237,7 @@ describe('ScheduledInvestigationForm', () => {
         configsUrl,
         expect.objectContaining({
           data: expect.objectContaining({
-            cronSchedule: [
+            cronSchedules: [
               {crontab: '0 8 * * *', timezone: 'America/New_York'},
               {crontab: '30 9 * * 1-5', timezone: 'America/New_York'},
               {crontab: '0 0 1 * *', timezone: 'America/New_York'},
@@ -257,7 +257,7 @@ describe('ScheduledInvestigationForm', () => {
         configsUrl,
         expect.objectContaining({
           data: expect.objectContaining({
-            cronSchedule: [
+            cronSchedules: [
               {crontab: '15 6 * * *', timezone: 'America/New_York'},
               {crontab: '30 9 * * 1-5', timezone: 'America/New_York'},
               {crontab: '0 12 15 * *', timezone: 'America/New_York'},
@@ -643,7 +643,7 @@ describe('ScheduledInvestigationForm', () => {
           `${configsUrl}42/`,
           expect.objectContaining({
             data: {
-              cronSchedule: [{crontab: '0 0 * * *', timezone: 'UTC'}],
+              cronSchedules: [{crontab: '0 0 * * *', timezone: 'UTC'}],
               name: 'Checkout triage',
               projectIds: [1, 2],
               environments: ['production'],
@@ -680,7 +680,7 @@ describe('ScheduledInvestigationForm', () => {
           `${configsUrl}42/`,
           expect.objectContaining({
             data: expect.objectContaining({
-              cronSchedule: [{crontab: '30 9 * * 1-5', timezone: 'America/New_York'}],
+              cronSchedules: [{crontab: '30 9 * * 1-5', timezone: 'America/New_York'}],
             }),
           })
         )

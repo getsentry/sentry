@@ -144,7 +144,7 @@ export function ScheduledInvestigationForm(
   const mutationError = props.mode === 'create' ? createConfig.error : updateConfig.error;
   const saveConfig = async (value: z.infer<typeof schema>) => {
     const fields = {
-      cronSchedule: value.crontabs.map(crontab => ({crontab, timezone: value.timezone})),
+      cronSchedules: value.crontabs.map(crontab => ({crontab, timezone: value.timezone})),
       projectIds: value.projects.allProjects
         ? [ALL_ACCESS_PROJECTS]
         : value.projects.projectIds.map(Number),
