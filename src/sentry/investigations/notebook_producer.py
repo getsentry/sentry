@@ -168,6 +168,10 @@ def _failed_follow_up(
     ).first()  # noqa: S035
 
 
+def _workflow_accepts_follow_ups(status: str) -> bool:
+    return status not in ("failed", "cancelled")
+
+
 class WorkflowProducerRun(NotebookProducerRun):
     def __init__(self, notebook: Notebook, run: WorkflowRun) -> None:
         self.notebook = notebook
@@ -188,7 +192,7 @@ class WorkflowProducerRun(NotebookProducerRun):
 
     def queue_follow_up(self, command: FollowUpCommand, actor_id: int | None) -> UUID:
         if (
-            self.run.checkpoint["status"] in ("failed", "cancelled")
+            not _workflow_accepts_follow_ups(self.run.checkpoint["status"])
             or self.notebook.status == "archived"
         ):
             raise ApplyFailed(
@@ -244,7 +248,9 @@ class WorkflowProducerRun(NotebookProducerRun):
         return False  # A fresh recheck uses the current monitor snapshot.
 
     def can_resend_follow_up(self, action_request: NotebookActionRequest) -> bool:
-        return self.follow_up_failed(action_request)
+        return _workflow_accepts_follow_ups(
+            self.run.checkpoint["status"]
+        ) and self.follow_up_failed(action_request)
 
     def resend_follow_up(self, action_request: NotebookActionRequest) -> None:
         item = self.run.checkpoint["followups"][str(action_request.followup_request_id)]
@@ -392,9 +398,9 @@ class OrchestrationProducer(NotebookProducer):
                 id__in={item.workflow_run_id for item in item_list if item.workflow_run_id}
             ).values_list("run_id", "notebook_id", "organization_id")
         }
-        for org_id, run_id, saved in WorkflowRun.objects.filter(
+        for org_id, run_id, run_status, saved in WorkflowRun.objects.filter(
             uuid__in=[run_id for _, run_id in bindings], checkpoint__has_key="followups"
-        ).values_list("organization_id", "uuid", "checkpoint__followups"):
+        ).values_list("organization_id", "uuid", "checkpoint__status", "checkpoint__followups"):
             notebook_id = bindings.get((org_id, run_id))
             if notebook_id is None:
                 continue
@@ -403,7 +409,8 @@ class OrchestrationProducer(NotebookProducer):
                     "status": command["status"],
                     "reason": command.get("reason"),
                     "rerun": "started" if command["status"] == "acknowledged" else None,
-                    "retryable": command["status"] == "failed",
+                    "retryable": command["status"] == "failed"
+                    and _workflow_accepts_follow_ups(run_status),
                 }
         return results
 
