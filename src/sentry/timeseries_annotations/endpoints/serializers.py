@@ -91,3 +91,33 @@ class TimeseriesAnnotationPostSerializer(serializers.Serializer):
         if end is not None and end < attrs["startTimestamp"]:
             raise serializers.ValidationError("endTimestamp must be at or after startTimestamp")
         return attrs
+
+
+class TimeseriesAnnotationFilterSerializer(serializers.Serializer):
+    id = serializers.IntegerField(required=False)
+    tags = serializers.DictField(required=False)
+
+    def validate_tags(self, value: dict[str, Any]) -> dict[str, Any]:
+        if not value:
+            raise serializers.ValidationError("must be non-empty")
+        return value
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        if "id" not in attrs and "tags" not in attrs:
+            raise serializers.ValidationError("must include id or tags")
+        return attrs
+
+
+class TimeseriesAnnotationPutSerializer(serializers.Serializer):
+    filters = TimeseriesAnnotationFilterSerializer()
+    description = serializers.CharField(required=False)
+    severity = serializers.ChoiceField(choices=sorted(_SEVERITY_BY_LABEL), required=False)
+    endTimestamp = serializers.DateTimeField(required=False, allow_null=True)
+
+    def validate_severity(self, value: str) -> Severity:
+        return Severity(_SEVERITY_BY_LABEL[value])
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        if not any(field in attrs for field in ("description", "severity", "endTimestamp")):
+            raise serializers.ValidationError("must include description, severity, or endTimestamp")
+        return attrs

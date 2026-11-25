@@ -7,6 +7,7 @@ from sentry.testutils.silo import control_silo_test
 from sentry.users.api.serializers.user import DetailedSelfUserSerializer, DetailedUserSerializer
 from sentry.users.models.authenticator import Authenticator
 from sentry.users.models.user_avatar import UserAvatar
+from sentry.users.models.user_option import UserOption
 from sentry.users.models.useremail import UserEmail
 from sentry.users.models.userpermission import UserPermission
 
@@ -159,3 +160,17 @@ class DetailedSelfUserSerializerTest(TestCase):
         assert len(result["authenticators"]) == 1
         assert result["authenticators"][0]["id"] == str(self.auth.id)
         assert result["permissions"] == ["foo"]
+
+    def test_unknown_stored_theme_variant_dark_falls_back_to_default(self) -> None:
+        UserOption.objects.set_value(user=self.user, key="theme_variant_dark", value="chartreuse")
+
+        result = serialize(self.user, self.user, DetailedSelfUserSerializer())
+
+        assert result["options"]["themeVariantDark"] == "default"
+
+    def test_theme_variant_dark_returns_stored_value(self) -> None:
+        UserOption.objects.set_value(user=self.user, key="theme_variant_dark", value="midnight")
+
+        result = serialize(self.user, self.user, DetailedSelfUserSerializer())
+
+        assert result["options"]["themeVariantDark"] == "midnight"

@@ -51,6 +51,7 @@ import {useIsEditingWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/us
 import {useSegmentSpanWidgetState} from 'sentry/views/dashboards/widgetBuilder/hooks/useSegmentSpanWidgetState';
 import {useTraceMetricsVisualizeModeState} from 'sentry/views/dashboards/widgetBuilder/hooks/useTraceMetricsVisualizeModeState';
 import {convertWidgetToBuilderState} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
+import {hasUnifiedTraceMetricsVisualize} from 'sentry/views/dashboards/widgetBuilder/utils/hasUnifiedTraceMetricsVisualize';
 import type {OnDataFetchedParams} from 'sentry/views/dashboards/widgetCard';
 import {readableConditions} from 'sentry/views/dashboards/widgetCard/widgetLLMContext';
 import {getDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
@@ -146,7 +147,9 @@ function WidgetBuilderSlideoutInner({
     useState(
       organization.features.includes('performance-transaction-deprecation-banner')
     );
-  const traceMetricsVisualizeMode = useTraceMetricsVisualizeModeState();
+  const traceMetricsVisualizeMode = useTraceMetricsVisualizeModeState({
+    disabled: hasUnifiedTraceMetricsVisualize(organization),
+  });
 
   // Tracks whether the user has entered the metrics equation mode since we
   // do not render the filter bar. The metrics equations UI has filters built in.

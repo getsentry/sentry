@@ -18,7 +18,10 @@ import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useOpenPeriods} from 'sentry/views/detectors/hooks/useOpenPeriods';
 import {issueFirstLastReleaseQueryOptions} from 'sentry/views/issueDetails/issueFirstLastReleaseQueryOptions';
-import {groupApiOptions} from 'sentry/views/issueDetails/useGroup';
+import {
+  groupApiOptions,
+  shouldExpandDerivedData,
+} from 'sentry/views/issueDetails/useGroup';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
 function useFetchAllEnvsGroupData(organization: Organization, group: Group) {
@@ -27,7 +30,7 @@ function useFetchAllEnvsGroupData(organization: Organization, group: Group) {
       organizationSlug: organization.slug,
       groupId: group.id,
       environments: [],
-      expandDerivedData: organization.features.includes('issue-inbox'),
+      expandDerivedData: shouldExpandDerivedData(organization),
     }),
     gcTime: 30_000,
   });

@@ -262,6 +262,32 @@ describe('a step that stopped for credits', () => {
       )
     ).toBeInTheDocument();
   });
+
+  it.each([
+    [
+      RootCausePreview,
+      'root_cause',
+      'Seer stopped before finishing the root cause because your organization hit its daily usage limit.',
+    ],
+    [
+      SolutionPreview,
+      'solution',
+      'Seer stopped before finishing the plan because your organization hit its daily usage limit.',
+    ],
+    [
+      CodeChangesPreview,
+      'code_changes',
+      'Seer stopped before finishing the code changes because your organization hit its daily usage limit.',
+    ],
+  ])('says the step stopped at the daily usage limit (%#)', (Preview, step, message) => {
+    render(
+      <Preview
+        section={{...makeStoppedSection(step), creditDenialReason: 'daily_cap_exceeded'}}
+      />
+    );
+
+    expect(screen.getByText(message)).toBeInTheDocument();
+  });
 });
 
 describe('PullRequestsPreview', () => {

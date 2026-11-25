@@ -24,7 +24,7 @@ from django.utils.translation import gettext_lazy as _
 from structlog import get_logger
 
 from bitfield.models import typed_dict_bitfield
-from sentry import features, roles
+from sentry import features, options, roles
 from sentry.backup.dependencies import NormalizedModelName, PrimaryKeyMap
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
@@ -287,6 +287,14 @@ class OrganizationMember(ReplicatedCellModel):
                 using=using,
                 update_fields=update_fields,
             )
+
+    @property
+    def default_flush(self) -> bool:  # type: ignore[override]
+        # Only used when no caller passed a flag to an enclosing outbox_context.
+        if not options.get("hybridcloud.outbox.organization_member_async_replication.enabled"):
+            return True
+        # Control needs new memberships right away; other writes can catch up.
+        return self._state.adding and self.user_id is not None
 
     def refresh_from_db(
         self,

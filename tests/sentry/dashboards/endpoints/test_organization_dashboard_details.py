@@ -39,6 +39,7 @@ from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import BaseMetricsTestCase, OrganizationDashboardWidgetTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
@@ -1224,6 +1225,38 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         response = self.do_request("put", self.url(self.dashboard.id), data=data)
         assert response.status_code == 400, response.data
         assert "queries" in response.data["widgets"][0], response.data
+
+    def test_put_tracemetrics_line_chart_allows_equation_with_aggregate_when_unified(
+        self,
+    ) -> None:
+        data: dict[str, Any] = {
+            "title": "First dashboard",
+            "widgets": [
+                {
+                    "title": "Metrics Equation",
+                    "displayType": "line",
+                    "widgetType": "tracemetrics",
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": [
+                                "avg(value,metric_name,gauge,none)",
+                                "equation|sum(value,metric_name,counter,none) / 100",
+                            ],
+                            "columns": [],
+                            "aggregates": [
+                                "avg(value,metric_name,gauge,none)",
+                                "equation|sum(value,metric_name,counter,none) / 100",
+                            ],
+                            "conditions": "",
+                        }
+                    ],
+                },
+            ],
+        }
+        with self.feature(["organizations:dashboards-trace-metrics-unified-visualize"]):
+            response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
 
     def test_add_widget_with_field_aliases(self) -> None:
         data: dict[str, Any] = {
@@ -4991,6 +5024,48 @@ class OrganizationDashboardVisitTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 204, response.content
         assert Dashboard.objects.get(id=self.dashboard.id).visits == 2
         assert not DashboardLastVisited.objects.filter(dashboard=self.dashboard).exists()
+
+
+@with_feature("organizations:granular-permission-scopes")
+class OrganizationDashboardVisitScopeTest(OrganizationDashboardDetailsTestCase):
+    def url(self, dashboard_id: int | str) -> str:
+        return reverse(
+            "sentry-api-0-organization-dashboard-visit",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "dashboard_id": dashboard_id,
+            },
+        )
+
+    def _use_token(self, scope_list: list[str]) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.client.logout()
+            token = self.create_user_auth_token(user=self.user, scope_list=scope_list)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
+
+    @with_feature("organizations:dashboards-user-last-visited")
+    def test_dashboard_read_can_record_visit(self) -> None:
+        self._use_token(["dashboard:read"])
+        response = self.do_request("post", self.url(self.dashboard.id))
+        assert response.status_code == 204, response.content
+        assert Dashboard.objects.get(id=self.dashboard.id).visits == 2
+        assert DashboardLastVisited.objects.filter(
+            user_id=self.user.id, dashboard=self.dashboard
+        ).exists()
+
+    @override_options({"auth.deprecated-scope-translation.enabled": True})
+    def test_org_read_token_is_translated(self) -> None:
+        self._use_token(["org:read"])
+        response = self.do_request("post", self.url(self.dashboard.id))
+        assert response.status_code == 204, response.content
+        assert Dashboard.objects.get(id=self.dashboard.id).visits == 2
+
+    def test_dashboard_write_cannot_record_visit(self) -> None:
+        # Write does not imply read.
+        self._use_token(["dashboard:write", "user_preference:read", "user_preference:write"])
+        response = self.do_request("post", self.url(self.dashboard.id))
+        assert response.status_code == 403
+        assert Dashboard.objects.get(id=self.dashboard.id).visits == 1
 
 
 class OrganizationDashboardFavoriteTest(OrganizationDashboardDetailsTestCase):

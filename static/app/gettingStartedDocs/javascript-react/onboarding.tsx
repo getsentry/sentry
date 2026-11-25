@@ -151,8 +151,9 @@ export const onboarding: OnboardingConfig = {
       content: [
         {
           type: 'text',
-          text: t(
-            "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
+          text: tct(
+            'Render [code:<ErrorButton />] in one of your components, such as [code:App.jsx], then click "Break the world" to send a test error to Sentry. If you selected Logs or Metrics, clicking the button sends those too.',
+            {code: <code />}
           ),
         },
         {

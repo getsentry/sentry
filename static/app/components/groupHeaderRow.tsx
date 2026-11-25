@@ -11,7 +11,10 @@ import type {Organization} from 'sentry/types/organization';
 import {getMessage} from 'sentry/utils/events';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {groupApiOptions} from 'sentry/views/issueDetails/useGroup';
+import {
+  groupApiOptions,
+  shouldExpandDerivedData,
+} from 'sentry/views/issueDetails/useGroup';
 import {createIssueLink} from 'sentry/views/issueList/utils';
 
 import {EventMessage} from './events/eventMessage';
@@ -45,7 +48,7 @@ function usePreloadGroupOnHover({
           groupId,
           organizationSlug: organization.slug,
           environments: selection.environments,
-          expandDerivedData: organization.features.includes('issue-inbox'),
+          expandDerivedData: shouldExpandDerivedData(organization),
         })
       );
     },

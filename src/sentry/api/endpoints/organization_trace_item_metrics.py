@@ -43,7 +43,7 @@ from sentry.search.eap.constants import (
 )
 from sentry.search.eap.occurrences.query_utils import build_escaped_term_filter
 from sentry.search.eap.types import SearchResolverConfig
-from sentry.snuba.referrer import Referrer, is_valid_referrer
+from sentry.snuba.referrer import Referrer, resolve_client_referrer
 from sentry.snuba.trace_metrics import TraceMetrics
 
 _COUNT_ALIAS = f"count({METRIC_NAME_ALIAS})"
@@ -198,9 +198,9 @@ class OrganizationTraceItemMetricsEndpoint(OrganizationTraceItemAttributesEndpoi
 
         # Allowlist the caller-supplied referrer; fall back to the endpoint
         # default when absent or unrecognized so query analytics stay clean.
-        referrer = serialized.get("referrer")
-        if not referrer or not is_valid_referrer(referrer):
-            referrer = Referrer.API_EXPLORE_TRACEMETRICS_METRICS_LIST.value
+        referrer = resolve_client_referrer(
+            serialized.get("referrer"), Referrer.API_EXPLORE_TRACEMETRICS_METRICS_LIST.value
+        )
 
         query_string = serialized.get("query", "")
         # Authored context lives in TraceItemAttributeValueContext and is gated

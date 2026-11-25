@@ -18,17 +18,11 @@ function renderOutput(
 }
 
 describe('useClassifierOutput', () => {
-  it('shows every result for classifiers without an output type', () => {
-    const {result} = renderOutput(TelemetryClassifierFixture({outputType: null}), {
-      results: 'matches',
-    });
-
-    expect(result.current.filter).toBe('all');
-    expect(result.current.resultQuery).toBe(`has:${RESULT_FIELD}`);
-  });
-
-  it('shows every result for binary classifiers without a threshold', () => {
-    const {result} = renderOutput(TelemetryClassifierFixture({binaryThreshold: null}));
+  it('shows every result for non-binary classifiers', () => {
+    const {result} = renderOutput(
+      TelemetryClassifierFixture({outputType: 'score', binaryThreshold: null}),
+      {results: 'matches'}
+    );
 
     expect(result.current.filter).toBe('all');
     expect(result.current.resultQuery).toBe(`has:${RESULT_FIELD}`);

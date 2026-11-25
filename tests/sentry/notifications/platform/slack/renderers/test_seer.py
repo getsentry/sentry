@@ -1,5 +1,6 @@
 from typing import Any
 from unittest.mock import Mock, patch
+from urllib.parse import urlsplit
 
 from django.test import override_settings
 from slack_sdk.models.blocks import (
@@ -19,6 +20,7 @@ from slack_sdk.models.blocks import (
 from fixtures.seer.webhooks import MOCK_GROUP_ID, MOCK_RUN_ID
 from sentry.integrations.slack.message_builder.routing import decode_action_id
 from sentry.integrations.slack.message_builder.types import SlackAction
+from sentry.models.organization import Organization
 from sentry.notifications.platform.service import NotificationService
 from sentry.notifications.platform.slack.provider import SlackNotificationProvider, SlackRenderable
 from sentry.notifications.platform.slack.renderers.seer import AUTOFIX_CONFIG, SeerSlackRenderer
@@ -324,6 +326,41 @@ class SeerSlackRendererTest(TestCase):
         assert list_element.style == "ordered"
         assert len(list_element.elements) == 3
 
+    def test_render_autofix_update_truncates_long_summary(self) -> None:
+        data = self._create_update(
+            current_point=AutofixStoppingPoint.ROOT_CAUSE, summary="a" * 5000
+        )
+        renderable = SeerSlackRenderer._render_autofix_update(data, link_decorator(data))
+        summary_block = renderable["blocks"][1]
+        assert isinstance(summary_block, SectionBlock)
+        summary_block.validate_json()
+        assert summary_block.text is not None
+        assert len(summary_block.text.text) == SectionBlock.text_max_length
+        assert summary_block.text.text.endswith("...")
+
+    def test_render_autofix_update_truncates_long_diff_inside_fence(self) -> None:
+        data = self._create_update(
+            current_point=AutofixStoppingPoint.CODE_CHANGES,
+            changes=[
+                {
+                    "repo_name": "org/repo",
+                    "title": "Fix the bug",
+                    "description": "Handle the missing value",
+                    "diff": "+ line\n" * 2000,
+                }
+            ],
+        )
+        renderable = SeerSlackRenderer._render_autofix_update(data, link_decorator(data))
+        change_block = renderable["blocks"][1]
+        assert isinstance(change_block, SectionBlock)
+        change_block.validate_json()
+        assert change_block.text is not None
+        text = change_block.text.text
+        assert len(text) == SectionBlock.text_max_length
+        assert text.startswith("_In org/repo_:\n*Fix the bug*\nHandle the missing value\n```+ line")
+        assert text.endswith("...```")
+        assert text.count("```") == 2
+
     @patch(
         "sentry.notifications.platform.templates.seer.organization_service.get_option",
         return_value=False,
@@ -352,8 +389,8 @@ def assert_out_of_credits_message(renderable: SlackRenderable, message: str) -> 
     assert section.text.text == message
 
 
-def assert_billing_button(
-    renderable: SlackRenderable, *, organization_id: int, billing_slug: str
+def assert_auto_reload_button(
+    renderable: SlackRenderable, *, organization: Organization, fragment: str
 ) -> None:
     blocks = renderable["blocks"]
     assert len(blocks) == 2
@@ -364,11 +401,13 @@ def assert_billing_button(
     assert button.text is not None
     assert button.text.text == "Configure auto-reload"
     assert button.url is not None
-    assert f"/settings/{billing_slug}/billing/overview/" in button.url
+    url = urlsplit(button.url)
+    assert url.path == f"/settings/{organization.slug}/billing/overview/"
+    assert url.fragment == fragment
     assert button.action_id is not None
     routing = decode_action_id(button.action_id)
     assert routing.action == SlackAction.SEER_VIEW_BILLING.value
-    assert routing.organization_id == organization_id
+    assert routing.organization_id == organization.id
 
 
 class SeerSlackRendererAutofixOutOfCreditsTest(TestCase):
@@ -378,31 +417,27 @@ class SeerSlackRendererAutofixOutOfCreditsTest(TestCase):
             data=data, rendered_template=SeerAutofixOutOfCreditsTemplate().render(data)
         )
 
-    def test_daily_limit_links_to_billing(self) -> None:
+    def test_daily_limit_links_to_auto_reload_modal(self) -> None:
         renderable = self._render(denial_reason="daily_cap_exceeded")
         assert_out_of_credits_message(renderable, AUTOFIX_DAILY_LIMIT_MESSAGE)
-        assert_billing_button(
+        assert_auto_reload_button(
             renderable,
-            organization_id=self.organization.id,
-            billing_slug=self.organization.slug,
+            organization=self.organization,
+            fragment="open-seer-auto-reload-modal:daily_cap_exceeded",
         )
 
-    def test_links_to_auto_reload_settings(self) -> None:
+    def test_links_to_auto_reload_modal(self) -> None:
         renderable = self._render()
         assert_out_of_credits_message(renderable, AUTOFIX_OUT_OF_CREDITS_MESSAGE)
-        assert_billing_button(
-            renderable,
-            organization_id=self.organization.id,
-            billing_slug=self.organization.slug,
+        assert_auto_reload_button(
+            renderable, organization=self.organization, fragment="open-seer-auto-reload-modal"
         )
 
     def test_auto_reload_already_on(self) -> None:
         renderable = self._render(auto_reload_enabled=True)
         assert_out_of_credits_message(renderable, AUTOFIX_OUT_OF_CREDITS_NO_RELOADS_MESSAGE)
-        assert_billing_button(
-            renderable,
-            organization_id=self.organization.id,
-            billing_slug=self.organization.slug,
+        assert_auto_reload_button(
+            renderable, organization=self.organization, fragment="open-seer-auto-reload-modal"
         )
 
     def test_missing_organization(self) -> None:
@@ -421,31 +456,27 @@ class SeerSlackRendererAgentOutOfCreditsTest(TestCase):
             data=data, rendered_template=SeerAgentOutOfCreditsTemplate().render(data)
         )
 
-    def test_daily_limit_links_to_billing(self) -> None:
+    def test_daily_limit_links_to_auto_reload_modal(self) -> None:
         renderable = self._render(denial_reason="daily_cap_exceeded")
         assert_out_of_credits_message(renderable, AGENT_DAILY_LIMIT_MESSAGE)
-        assert_billing_button(
+        assert_auto_reload_button(
             renderable,
-            organization_id=self.organization.id,
-            billing_slug=self.organization.slug,
+            organization=self.organization,
+            fragment="open-seer-auto-reload-modal:daily_cap_exceeded",
         )
 
-    def test_links_to_auto_reload_settings(self) -> None:
+    def test_links_to_auto_reload_modal(self) -> None:
         renderable = self._render()
         assert_out_of_credits_message(renderable, AGENT_OUT_OF_CREDITS_MESSAGE)
-        assert_billing_button(
-            renderable,
-            organization_id=self.organization.id,
-            billing_slug=self.organization.slug,
+        assert_auto_reload_button(
+            renderable, organization=self.organization, fragment="open-seer-auto-reload-modal"
         )
 
     def test_auto_reload_already_on(self) -> None:
         renderable = self._render(auto_reload_enabled=True)
         assert_out_of_credits_message(renderable, AGENT_OUT_OF_CREDITS_NO_RELOADS_MESSAGE)
-        assert_billing_button(
-            renderable,
-            organization_id=self.organization.id,
-            billing_slug=self.organization.slug,
+        assert_auto_reload_button(
+            renderable, organization=self.organization, fragment="open-seer-auto-reload-modal"
         )
 
 

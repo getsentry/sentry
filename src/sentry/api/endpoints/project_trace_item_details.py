@@ -54,7 +54,7 @@ from sentry.search.eap.utils import (
     translate_search_type_for_internal_column,
 )
 from sentry.search.utils import InvalidQuery, parse_datetime_string
-from sentry.snuba.referrer import Referrer
+from sentry.snuba.referrer import Referrer, resolve_client_referrer
 from sentry.utils import json
 from sentry.utils.attributes import get_attribute
 from sentry.utils.dates import to_datetime
@@ -636,7 +636,9 @@ class ProjectTraceItemDetailsEndpoint(ConditionalGetResponseMixin, ProjectEndpoi
         item_type = serialized.get("item_type")
         sentry_sdk.set_tag("trace_item_details.item_type", item_type)
         sentry_sdk.set_attribute("trace_item_details.item_type", item_type)
-        referrer = serialized.get("referrer", Referrer.API_ORGANIZATION_TRACE_ITEM_DETAILS.value)
+        referrer = resolve_client_referrer(
+            serialized.get("referrer"), Referrer.API_ORGANIZATION_TRACE_ITEM_DETAILS.value
+        )
 
         trace_item_type = None
         if item_type is not None:

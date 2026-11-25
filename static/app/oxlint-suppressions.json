@@ -452,9 +452,6 @@
     "@sentry/scraps/no-dom-coupling": {"count": 1},
     "@sentry/scraps/prefer-primitives": {"count": 1}
   },
-  "components/groupPreviewTooltip/stackTracePreview.tsx": {
-    "@sentry/scraps/prefer-primitives": {"count": 1}
-  },
   "components/guidedSteps/guidedSteps.stories.tsx": {"@sentry/prefer-nuqs": {"count": 1}},
   "components/guidedSteps/guidedSteps.tsx": {
     "@sentry/scraps/no-dom-coupling": {"count": 1},
@@ -965,9 +962,6 @@
   "components/slider/index.tsx": {"@sentry/scraps/prefer-primitives": {"count": 1}},
   "components/splitDiff.tsx": {"@sentry/scraps/prefer-primitives": {"count": 1}},
   "components/stackTrace/exceptionGroup.tsx": {
-    "@sentry/scraps/prefer-primitives": {"count": 1}
-  },
-  "components/stackTrace/frame/actions/chevron.tsx": {
     "@sentry/scraps/prefer-primitives": {"count": 1}
   },
   "components/stackTrace/frame/frameContent.tsx": {
@@ -2468,9 +2462,6 @@
   },
   "views/seerExplorer/components/chat/toolUse.tsx": {
     "@sentry/scraps/no-dom-coupling": {"count": 3}
-  },
-  "views/seerExplorer/components/explorerMenu.tsx": {
-    "@sentry/scraps/prefer-primitives": {"count": 2}
   },
   "views/seerExplorer/components/fileDiffViewer.tsx": {
     "@sentry/scraps/no-dom-coupling": {"count": 1},
