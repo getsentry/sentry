@@ -20,7 +20,6 @@ from snuba_sdk import (
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.models.transaction_threshold import (
     TRANSACTION_METRICS,
@@ -93,9 +92,8 @@ from sentry.search.events.fields import (
     normalize_percentile_alias,
     with_default,
 )
-from sentry.search.events.filter import to_list
+from sentry.search.events.filter import resolve_issue_ids, to_list
 from sentry.search.events.types import SelectType, WhereType
-from sentry.search.exceptions import InvalidIssueSearchQuery
 from sentry.search.utils import DEVICE_CLASS
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
@@ -1715,41 +1713,15 @@ class DiscoverDatasetConfig(DatasetConfig):
         if self.builder.builder_config.skip_field_validation_for_entity_subscription_deletion:
             return None
 
-        operator = search_filter.operator
-        value = to_list(search_filter.value.value)
         # `unknown` is a special value for when there is no issue associated with the event
-        group_short_ids = [v for v in value if v and v != "unknown"]
-        general_group_filter_values = [0 for v in value if not v or v == "unknown"]
-
-        if group_short_ids and self.builder.params.organization is not None:
-            try:
-                groups = Group.objects.by_qualified_short_id_bulk(
-                    self.builder.params.organization.id,
-                    group_short_ids,
-                    # org-wide: the Snuba query is already scoped to the requested projects.
-                    project_ids=None,
-                )
-            except Group.DoesNotExist:
-                raise InvalidIssueSearchQuery(group_short_ids)
-            except Exception:
-                raise InvalidSearchQuery(f"Invalid value '{group_short_ids}' for 'issue:' filter")
-            else:
-                general_group_filter_values.extend(sorted([group.id for group in groups]))
-
-        if general_group_filter_values:
-            return self.builder.convert_search_filter_to_condition(
-                SearchFilter(
-                    SearchKey("issue.id"),
-                    operator,
-                    SearchValue(
-                        general_group_filter_values
-                        if search_filter.is_in_filter
-                        else general_group_filter_values[0]
-                    ),
-                )
+        values = [0 if not v or v == "unknown" else v for v in to_list(search_filter.value.value)]
+        return self.builder.convert_search_filter_to_condition(
+            SearchFilter(
+                SearchKey(ISSUE_ID_ALIAS),
+                search_filter.operator,
+                SearchValue(values if search_filter.is_in_filter else values[0]),
             )
-
-        return None
+        )
 
     def _message_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
         return filter_aliases.message_filter_converter(self.builder, search_filter)
@@ -1809,6 +1781,19 @@ class DiscoverDatasetConfig(DatasetConfig):
     def _issue_id_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
         name = search_filter.key.name
         value = search_filter.value.value
+
+        # Numbers came through the numeric parser; strings are short IDs or numeric IDs from
+        # `issue:` or a mixed list like `issue.id:[123,PROJECT-1]`.
+        issue_values = to_list(value)
+        identifiers = [v for v in issue_values if isinstance(v, str) and v]
+        if identifiers:
+            if self.builder.builder_config.skip_field_validation_for_entity_subscription_deletion:
+                return None
+            group_ids = resolve_issue_ids(
+                self.builder.params.organization_id, self.builder.params.project_ids, identifiers
+            )
+            issue_values = [group_ids[v] if isinstance(v, str) and v else v for v in issue_values]
+            value = issue_values if search_filter.is_in_filter else issue_values[0]
 
         lhs = self.builder.column(name)
         rhs = value

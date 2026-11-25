@@ -269,6 +269,62 @@ class OrganizationEventsOccurrencesDatasetEndpointTest(
         assert len(data) == 1
         assert data[0]["group_id"] == group1.id
 
+    def test_issue_filters_accept_numeric_and_short_ids(self) -> None:
+        group1 = self.create_group(project=self.project)
+        group2 = self.create_group(project=self.project)
+        occurrences = [
+            self.create_eap_occurrence(
+                group_id=group1.id,
+                project=self.project,
+                attributes={"fingerprint": ["g1"]},
+            ),
+            self.create_eap_occurrence(
+                group_id=group2.id,
+                project=self.project,
+                attributes={"fingerprint": ["g2"]},
+            ),
+        ]
+        self.store_eap_items(occurrences)
+        for query in [
+            f"issue:{group1.id}",
+            f"issue.id:{group1.id}",
+            f"issue.id:{group1.qualified_short_id}",
+            f"issue:[{group1.id},{group1.qualified_short_id}]",
+        ]:
+            response = self.request_with_feature_flag(
+                {
+                    "query": query,
+                    "field": ["group_id"],
+                    "statsPeriod": "2h",
+                    "project": [self.project.id],
+                }
+            )
+            assert response.status_code == 200, (query, response.content)
+            assert [row["group_id"] for row in response.data["data"]] == [group1.id], query
+
+    def test_issue_filter_numeric_id_from_another_org_matches_nothing(self) -> None:
+        other_project = self.create_project(organization=self.create_organization())
+        other_group = self.create_group(project=other_project)
+        self.store_eap_items(
+            [
+                self.create_eap_occurrence(
+                    group_id=other_group.id,
+                    project=other_project,
+                    attributes={"fingerprint": ["other"]},
+                )
+            ]
+        )
+        response = self.request_with_feature_flag(
+            {
+                "query": f"issue:{other_group.id}",
+                "field": ["group_id"],
+                "statsPeriod": "2h",
+                "project": [self.project.id],
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == []
+
     def test_issue_filter_or_two_short_ids(self) -> None:
         """Several issue: terms should resolve via one primed bulk lookup (not one DB round-trip per OR branch)."""
         group1 = self.create_group(project=self.project)

@@ -41,7 +41,6 @@ from sentry.api import event_search
 from sentry.discover import arithmetic
 from sentry.exceptions import InvalidFunctionArgumentQuery, InvalidSearchQuery
 from sentry.explore.models import ExploreSavedFormula
-from sentry.models.group import Group, parse_short_id
 from sentry.models.project import Project
 from sentry.search.eap import constants
 from sentry.search.eap.columns import (
@@ -68,22 +67,21 @@ from sentry.search.events import fields
 from sentry.search.events import filter as event_filter
 from sentry.search.events.filter import to_list
 from sentry.search.events.types import SAMPLING_MODES, SnubaParams
-from sentry.search.exceptions import InvalidIssueSearchQuery
 
 logger = logging.getLogger(__name__)
 
 
-def collect_issue_short_ids_from_parsed_terms(terms: Sequence[object]) -> set[str]:
-    """Collect non-empty issue filter values from a parsed search tree (including OR/AND)."""
+def collect_issue_ids_from_parsed_terms(terms: Sequence[object]) -> set[str]:
+    """Collect string `issue` and `issue.id` filter values from a parsed search tree (including OR/AND)."""
     out: set[str] = set()
     for term in terms:
         if isinstance(term, event_search.SearchFilter):
-            if term.key.name == "issue":
+            if term.key.name in (qb_constants.ISSUE_ALIAS, qb_constants.ISSUE_ID_ALIAS):
                 for v in to_list(term.value.value):
-                    if v:
-                        out.add(str(v))
+                    if isinstance(v, str) and v:
+                        out.add(v)
         elif isinstance(term, event_search.ParenExpression):
-            out |= collect_issue_short_ids_from_parsed_terms(term.children)
+            out |= collect_issue_ids_from_parsed_terms(term.children)
     return out
 
 
@@ -113,7 +111,7 @@ class SearchResolver:
             list[VirtualColumnDefinition | None],
         ],
     ] = field(default_factory=dict)
-    qualified_short_id_to_group_id_cache: dict[int, dict[str, int]] = field(default_factory=dict)
+    issue_id_to_group_id_cache: dict[str, int] = field(default_factory=dict)
     _internal_name_to_column: dict[str, ResolvedAttribute] = field(default_factory=dict, repr=False)
 
     def _find_column_by_internal_name(self, internal_name: str) -> ResolvedAttribute | None:
@@ -246,41 +244,25 @@ class SearchResolver:
             )
         )
 
-    def _init_issue_short_id_cache(
+    def _init_issue_id_cache(
         self,
         parsed_terms: Sequence[object],
     ) -> None:
-        """One bulk Group lookup for issue short ids in the query; store maps on this resolver."""
-        if "issue" not in self.definitions.filter_aliases or self.params.organization_id is None:
+        """One bulk Group lookup for issue identifiers in the query; store the map on this resolver."""
+        if (
+            qb_constants.ISSUE_ALIAS not in self.definitions.filter_aliases
+            or self.params.organization_id is None
+        ):
             return
 
-        collected = collect_issue_short_ids_from_parsed_terms(parsed_terms)
+        collected = collect_issue_ids_from_parsed_terms(parsed_terms)
         if not collected:
             return
-        try:
-            groups = list(
-                Group.objects.by_qualified_short_id_bulk(
-                    organization_id=self.params.organization_id,
-                    short_ids_raw=list(collected),
-                    # org-wide: the Snuba query is already scoped to the requested projects.
-                    project_ids=None,
-                )
+        self.issue_id_to_group_id_cache.update(
+            event_filter.resolve_issue_ids(
+                self.params.organization_id, self.params.project_ids, sorted(collected)
             )
-        except Group.DoesNotExist:
-            raise InvalidIssueSearchQuery(sorted(collected))
-
-        idx = {(g.project.slug.lower(), g.short_id): g for g in groups}
-
-        for raw in collected:
-            parsed = parse_short_id(raw)
-            if parsed is None:
-                raise InvalidIssueSearchQuery(sorted(collected))
-            g = idx.get((parsed.project_slug, parsed.short_id))
-            if g is None:
-                raise InvalidIssueSearchQuery(sorted(collected))
-            if g.project.id not in self.qualified_short_id_to_group_id_cache:
-                self.qualified_short_id_to_group_id_cache[g.project.id] = {}
-            self.qualified_short_id_to_group_id_cache[g.project.id][raw] = g.id
+        )
 
     def parse_search_query(self, querystring: str) -> Sequence[event_search.QueryToken]:
         """Helper function so this can be called by validate separately"""
@@ -291,6 +273,11 @@ class SearchResolver:
                 wildcard_free_text=True,
                 allow_regex=self._allows_regex(),
                 has_filter_value=None,
+                issue_short_id_keys=(
+                    {qb_constants.ISSUE_ID_ALIAS}
+                    if qb_constants.ISSUE_ID_ALIAS in self.definitions.filter_aliases
+                    else set()
+                ),
             ),
             params=self.params.filter_params,
             get_field_type=self.get_field_type,
@@ -339,8 +326,8 @@ class SearchResolver:
             else:
                 raise InvalidSearchQuery(f"Parse error for: {querystring}")
 
-        # If occurrences dataset, cache group_id to issues mapping.
-        self._init_issue_short_id_cache(parsed_terms)
+        # If occurrences dataset, cache issue identifier to group_id mapping.
+        self._init_issue_id_cache(parsed_terms)
 
         has_boolean = False
         for term in parsed_terms:
