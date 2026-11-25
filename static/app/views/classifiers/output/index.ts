@@ -5,7 +5,5 @@ import {defaultOutput} from './default';
 import type {ClassifierOutput} from './types';
 
 export function getClassifierOutput(classifier: TelemetryClassifier): ClassifierOutput {
-  return classifier.outputType === 'binary' && classifier.binaryThreshold !== null
-    ? binaryOutput
-    : defaultOutput;
+  return classifier.outputType === 'binary' ? binaryOutput : defaultOutput;
 }

@@ -10,7 +10,9 @@ from django.utils import timezone
 from rest_framework.exceptions import ErrorDetail
 
 from sentry.analytics.events.cron_monitor_created import CronMonitorCreated, FirstCronMonitorCreated
+from sentry.auth.services.auth import AuthenticatedToken
 from sentry.constants import ObjectStatus
+from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.monitors.models import (
     Monitor,
     MonitorStatus,
@@ -27,8 +29,10 @@ from sentry.monitors.validators import (
     MonitorValidator,
 )
 from sentry.quotas.base import SeatAssignmentResult
+from sentry.service_accounts.auth import SERVICE_ACCOUNT_TOKEN_KIND
 from sentry.testutils.cases import MonitorTestCase
 from sentry.testutils.helpers.analytics import assert_any_analytics_event
+from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.types.actor import Actor
 from sentry.utils.outcomes import Outcome
 from sentry.utils.slug import DEFAULT_SLUG_ERROR_MESSAGE
@@ -77,6 +81,9 @@ class MonitorValidatorCreateTest(MonitorTestCase):
         assert monitor.status == ObjectStatus.ACTIVE
         assert monitor.owner_user_id == self.user.id
         assert monitor.owner_team_id is None
+        assert monitor.created_by_id == self.user.id
+        assert monitor.created_by_service_account_id is None
+        assert monitor.created_by_org_auth_token_id is None
         assert monitor.config == {
             "schedule_type": ScheduleType.CRONTAB,
             "schedule": "0 0 * * *",
@@ -104,6 +111,48 @@ class MonitorValidatorCreateTest(MonitorTestCase):
                 from_upsert=False,
             ),
         )
+
+    def _create_monitor_with_auth(self, auth: AuthenticatedToken) -> Monitor:
+        self.request.auth = auth
+        data = {
+            "project": self.project.slug,
+            "name": "My Monitor",
+            "type": "cron_job",
+            "config": {"schedule_type": "crontab", "schedule": "@daily"},
+        }
+        validator = MonitorValidator(data=data, context=self.context)
+        assert validator.is_valid(), validator.errors
+        return validator.save()
+
+    def test_service_account_creator(self) -> None:
+        service_account = self.create_service_account(organization=self.organization)
+        monitor = self._create_monitor_with_auth(
+            AuthenticatedToken(
+                kind=SERVICE_ACCOUNT_TOKEN_KIND,
+                entity_id=service_account.id,
+                organization_id=self.organization.id,
+            )
+        )
+
+        assert monitor.created_by_id is None
+        assert monitor.created_by_service_account_id == service_account.id
+        assert monitor.created_by_org_auth_token_id is None
+
+    def test_org_auth_token_creator(self) -> None:
+        with assume_test_silo_mode_of(OrgAuthToken):
+            token = self.create_org_auth_token(
+                name="ci token",
+                token_hashed="abc123",
+                organization_id=self.organization.id,
+                scope_list=["org:ci"],
+            )
+        auth = AuthenticatedToken.from_token(token)
+        assert auth is not None
+        monitor = self._create_monitor_with_auth(auth)
+
+        assert monitor.created_by_id is None
+        assert monitor.created_by_service_account_id is None
+        assert monitor.created_by_org_auth_token_id == token.id
 
     def test_slug(self) -> None:
         data = {

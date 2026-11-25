@@ -150,6 +150,11 @@ export type FormatterOptions = Pick<
      */
     limit?: number;
     /**
+     * HTML rendered above the series block, e.g. a banner that describes the
+     * data at this point. Receives the series shown in the tooltip.
+     */
+    renderHeader?: (seriesParams: CallbackDataParams[]) => string;
+    /**
      * Extra HTML appended to the series block, e.g. a legend for abbreviated series
      * names. Receives the names of the series in the tooltip. Called on each tooltip
      * render, so it can render a React tree to a string.
@@ -179,6 +184,7 @@ export function getFormatter({
   subLabels = [],
   addSecondsToTimeFormat = false,
   limit,
+  renderHeader,
   renderSeriesDetails,
   skipZeroValuedSubLabels,
 }: FormatterOptions): TooltipComponentFormatterCallback<any> {
@@ -344,8 +350,11 @@ export function getFormatter({
         timestamp
       ) ?? '';
 
+    const header = renderHeader?.(visibleSeriesParams) ?? '';
+
     if (subLabels.length > 0) {
       return [
+        header,
         `<div class="tooltip-series">${series.join('')}${seriesDetails}</div>`,
         '<div class="tooltip-footer">',
         `<div><strong>${t('Date')}:</strong> ${date}</div>`,
@@ -356,6 +365,7 @@ export function getFormatter({
     }
 
     return [
+      header,
       `<div class="tooltip-series">${series.join('')}${seriesDetails}</div>`,
       '<div class="tooltip-footer tooltip-footer-centered">',
       date,

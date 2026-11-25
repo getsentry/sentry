@@ -120,8 +120,8 @@ export function MessagesPanel({
     <PanelContainer>
       {hasNotReportedContent && <NotReportedAlert nodes={nodes} />}
       {systemPrompt && (
-        <MessageRow from="assistant" density="line">
-          <SystemPromptSection systemPrompt={systemPrompt} />
+        <MessageRow from="assistant" density="line" data-node-id={systemPrompt.node.id}>
+          <SystemPromptSection systemPrompt={systemPrompt.prompt} />
         </MessageRow>
       )}
       <TranscriptMessages
