@@ -3,6 +3,7 @@ from unittest import mock
 from sentry import deletions
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.incidents.models.alert_rule import AlertRule
+from sentry.issues.models.issuemergeoperation import IssueMergeOperation, IssueUnmergeOperation
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
@@ -35,6 +36,7 @@ from sentry.sentry_apps.models.servicehook import ServiceHook
 from sentry.services import eventstore
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.testutils.cases import TransactionTestCase
+from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.skips import requires_snuba
@@ -106,6 +108,8 @@ class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMi
         event = self.store_event(data={}, project_id=project.id)
         assert event.group is not None
         group = event.group
+        merge = Factories.create_issue_merge_operation(project, [group.id], group.id + 1)
+        unmerge = Factories.create_issue_unmerge_operation(project, group.id, ["a" * 32])
         activity = Activity.objects.create(
             group=group,
             project=project,
@@ -201,6 +205,8 @@ class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMi
 
         assert not Project.objects.filter(id=project.id).exists()
         assert not Rule.objects.filter(id=rule.id).exists()
+        assert not IssueMergeOperation.objects.filter(id=merge.id).exists()
+        assert not IssueUnmergeOperation.objects.filter(id=unmerge.id).exists()
         assert not EnvironmentProject.objects.filter(
             project_id=project.id, environment_id=env.id
         ).exists()

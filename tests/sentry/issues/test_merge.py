@@ -1,22 +1,33 @@
+from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
 import pytest
 import rest_framework
+from django.db import router, transaction
+from django.utils import timezone
 
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.issues.merge import handle_merge
+from sentry.issues.models.issuemergeoperation import (
+    IssueMergeOperation,
+    IssueUnmergeOperation,
+    OperationStatus,
+    OperationStep,
+    StaleOperationBatch,
+    unfinished_operations_for_group,
+)
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox
 from sentry.testutils.cases import TestCase
+from sentry.testutils.factories import Factories
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json
 
-pytestmark = [requires_snuba]
 
-
+@requires_snuba
 class HandleIssueMergeTest(TestCase):
     def setUp(self) -> None:
         self.groups = []
@@ -60,3 +71,123 @@ class HandleIssueMergeTest(TestCase):
         with pytest.raises(rest_framework.exceptions.ValidationError) as e:
             handle_merge(self.groups, self.project_lookup, self.user)
         assert e.match("Only error issues can be merged.")
+
+
+class IssueMergeOperationTest(TestCase):
+    lease = timedelta(minutes=5)
+
+    def test_unfinished_operations_are_scoped_to_project_and_issue(self) -> None:
+        merge = Factories.create_issue_merge_operation(self.project, [1, 2], 3)
+        unmerge = Factories.create_issue_unmerge_operation(
+            self.project,
+            2,
+            ["a" * 32],
+            destination_group_id=4,
+            status=OperationStatus.NEEDS_ATTENTION,
+        )
+        Factories.create_issue_merge_operation(self.create_project(), [2], 3)
+        Factories.create_issue_unmerge_operation(
+            self.project, 2, ["b" * 32], status=OperationStatus.UNABLE_TO_START
+        )
+        Factories.create_issue_merge_operation(
+            self.project, [2], 5, status=OperationStatus.COMPLETE
+        )
+
+        def unfinished(group_id: int) -> set[IssueMergeOperation | IssueUnmergeOperation]:
+            return set(
+                unfinished_operations_for_group(project_id=self.project.id, group_id=group_id)
+            )
+
+        assert unfinished(2) == {merge, unmerge}
+        assert unfinished(3) == {merge}
+        assert unfinished(4) == {unmerge}
+        assert unfinished(5) == set()
+
+    def test_rollback_and_replay_a_batch(self) -> None:
+        operation = Factories.create_issue_unmerge_operation(
+            self.project, 11, ["a" * 32], retries_without_progress=2
+        )
+        token = operation.claim(lease_duration=self.lease)
+        assert token is not None
+        cursor = {"timestamp": "2024-01-01T00:00:00Z", "event_id": "a" * 32}
+
+        with pytest.raises(RuntimeError, match="interrupted batch"):
+            with operation.apply_batch(
+                worker_token=token,
+                expected_cursor={},
+                next_cursor=cursor,
+                lease_duration=self.lease,
+            ) as locked:
+                locked.update(destination_group_id=12)
+                raise RuntimeError("interrupted batch")
+        operation.refresh_from_db()
+        assert operation.destination_group_id is None
+        assert operation.batch_cursor == {}
+
+        def apply() -> None:
+            with operation.apply_batch(
+                worker_token=token,
+                expected_cursor={},
+                next_cursor=cursor,
+                lease_duration=self.lease,
+            ) as locked:
+                locked.update(destination_group_id=12)
+
+        with pytest.raises(RuntimeError, match="roll back"):
+            with transaction.atomic(using=router.db_for_write(IssueUnmergeOperation)):
+                apply()
+                raise RuntimeError("roll back")
+
+        operation.refresh_from_db()
+        assert operation.destination_group_id is None
+        assert operation.batch_cursor == {}
+        assert operation.retries_without_progress == 2
+
+        apply()
+        committed = IssueUnmergeOperation.objects.get(project_id=self.project.id, id=operation.id)
+        assert committed.destination_group_id == 12
+        assert committed.batch_cursor == cursor
+        assert committed.retries_without_progress == 0
+        with pytest.raises(StaleOperationBatch):
+            apply()
+
+    def test_replaced_worker_cannot_apply_its_batch(self) -> None:
+        operation = Factories.create_issue_merge_operation(self.project, [11], 12)
+        first = operation.claim(lease_duration=self.lease)
+        assert first is not None
+        assert operation.claim(lease_duration=self.lease) is None
+        operation.update(lease_expires_at=timezone.now() - self.lease)
+        second = operation.claim(lease_duration=self.lease)
+        assert second is not None and second != first
+
+        with pytest.raises(StaleOperationBatch):
+            with operation.apply_batch(
+                worker_token=first,
+                expected_cursor={},
+                next_cursor={"source": 11},
+                lease_duration=self.lease,
+            ):
+                pytest.fail("the replaced worker began applying local changes")
+
+        with operation.apply_batch(
+            worker_token=second,
+            expected_cursor={},
+            next_cursor={"source": 11},
+            lease_duration=self.lease,
+        ):
+            pass
+        operation.refresh_from_db()
+        assert operation.batch_cursor == {"source": 11}
+
+    def test_only_runnable_work_can_be_claimed(self) -> None:
+        operation = Factories.create_issue_merge_operation(
+            self.project,
+            [11],
+            12,
+            status=OperationStatus.RUNNING,
+            step=OperationStep.WAIT_FOR_SNUBA,
+            lease_expires_at=timezone.now() - self.lease,
+        )
+        assert operation.claim(lease_duration=self.lease) is None
+        operation.update(status=OperationStatus.NEEDS_ATTENTION, step=OperationStep.MOVE)
+        assert operation.claim(lease_duration=self.lease) is None
