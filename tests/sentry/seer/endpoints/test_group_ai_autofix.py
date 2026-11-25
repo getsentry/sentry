@@ -1210,8 +1210,11 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.data["detail"]["code"] == "user-required"
         mock_trigger_explorer.assert_not_called()
 
+    @patch("sentry.seer.endpoints.utils.sentry_sdk.metrics.count")
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
-    def test_post_kickoff_returns_sentry_run_id(self, mock_trigger_explorer: MagicMock) -> None:
+    def test_post_kickoff_returns_sentry_run_id(
+        self, mock_trigger_explorer: MagicMock, mock_count: MagicMock
+    ) -> None:
         group = self.create_group()
         run = self.create_seer_run(organization=self.organization, seer_run_state_id=777)
         mock_trigger_explorer.return_value = run
@@ -1227,11 +1230,15 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             "sentry_run_id": str(run.uuid),
             "feature_id": AUTOFIX_FEATURE_ID,
         }
+        assert not any(
+            c.args[0] == "seer.run.manual_continuation" for c in mock_count.call_args_list
+        )
 
+    @patch("sentry.seer.endpoints.utils.sentry_sdk.metrics.count")
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_run_state")
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
     def test_post_continue_with_sentry_run_id_resolves_to_numeric_id(
-        self, mock_trigger_explorer: MagicMock, mock_run_state: MagicMock
+        self, mock_trigger_explorer: MagicMock, mock_run_state: MagicMock, mock_count: MagicMock
     ) -> None:
         group = self.create_group()
         run = self.create_seer_run(organization=self.organization, seer_run_state_id=555)
@@ -1259,6 +1266,11 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             "feature_id": AUTOFIX_FEATURE_ID,
         }
         assert mock_trigger_explorer.call_args.kwargs["run_id"] == 555
+        mock_count.assert_any_call(
+            "seer.run.manual_continuation",
+            1,
+            attributes={"org_id": str(self.organization.id), "run_id": "555"},
+        )
         assert (
             mock_trigger_explorer.call_args.kwargs["billing_feature"]
             == SEER_BILLING_FEATURE_AUTOFIX_AGENTIC_TRIAGE
@@ -1296,10 +1308,11 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         }
         assert mock_trigger_explorer.call_args.kwargs["run_id"] == 321
 
+    @patch("sentry.seer.endpoints.utils.sentry_sdk.metrics.count")
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_run_state")
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
     def test_post_continue_while_processing_returns_409_with_the_run_in_flight(
-        self, mock_trigger_explorer: MagicMock, mock_run_state: MagicMock
+        self, mock_trigger_explorer: MagicMock, mock_run_state: MagicMock, mock_count: MagicMock
     ) -> None:
         """A step posted while one is still running is refused, and names the live run.
 
@@ -1328,6 +1341,9 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.data["run_id"] == 555
         assert response.data["sentry_run_id"] == str(run.uuid)
         mock_trigger_explorer.assert_not_called()
+        assert not any(
+            c.args[0] == "seer.run.manual_continuation" for c in mock_count.call_args_list
+        )
 
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_run_state")
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")

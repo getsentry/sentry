@@ -102,6 +102,7 @@ from sentry.seer.endpoints.utils import (
     SEER_PERMISSION_DENIED,
     SeerPaymentRequiredCode,
     get_seer_run,
+    record_manual_continuation,
     refuse_service_account_token,
     resolve_seer_run,
     seer_out_of_credits_response,
@@ -394,7 +395,9 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
         ],
         request=ExplorerAutofixRequestSerializer,
         responses={
-            202: inline_sentry_response_serializer("AutofixPostResponse", AutofixPostResponse),
+            202: inline_sentry_response_serializer(
+                "AutofixPostResponse", AutofixPostResponse | AutofixHandoffResponse
+            ),
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             402: inline_sentry_response_serializer(
@@ -411,8 +414,7 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
     def post(
         self, request: Request, group: Group
     ) -> (
-        Response[AutofixPostResponse]
-        | Response[AutofixHandoffResponse]
+        Response[AutofixPostResponse | AutofixHandoffResponse]
         | Response[None]
         | Response[DetailResponse]
         | Response[AutofixConflictResponse]
@@ -522,7 +524,9 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
 
                     raise PermissionDenied(SEER_PERMISSION_DENIED)
 
-                return Response(handoff_result, status=status.HTTP_202_ACCEPTED)
+                return Response[AutofixPostResponse | AutofixHandoffResponse](
+                    handoff_result, status=status.HTTP_202_ACCEPTED
+                )
             case "open_pr":
                 if resolved_run_id is None:
                     return Response(
@@ -710,6 +714,9 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                     sentry_run_id = str(run.uuid)
                 else:
                     sentry_run_id = resolved_sentry_run_id
+
+        if resolved_run_id is not None:
+            record_manual_continuation(request, run_id=resolved_run_id)
 
         kickoff_body = {
             "run_id": run_id,

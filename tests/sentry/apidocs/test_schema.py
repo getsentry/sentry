@@ -1,9 +1,11 @@
+from typing import Any
 from urllib.parse import urlencode
 
 import pytest
 from django.http import HttpRequest
 from django.test import RequestFactory
 from drf_spectacular.utils import extend_schema
+from openapi_schema_validator import OAS30ReadValidator
 from rest_framework.request import Request
 
 import sentry.apidocs.extensions  # noqa: F401
@@ -23,6 +25,7 @@ from sentry.core.endpoints.organization_member_details import OrganizationMember
 from sentry.core.endpoints.organization_member_index import OrganizationMemberIndexEndpoint
 from sentry.dashboards.endpoints.organization_dashboards import OrganizationDashboardsEndpoint
 from sentry.replays.endpoints.organization_replay_index import OrganizationReplayIndexEndpoint
+from sentry.seer.endpoints.group_ai_autofix import GroupAutofixEndpoint
 from sentry.workflow_engine.endpoints.organization_detector_index import (
     OrganizationDetectorIndexEndpoint,
 )
@@ -30,6 +33,25 @@ from sentry.workflow_engine.endpoints.organization_workflow_index import (
     OrganizationWorkflowIndexEndpoint,
 )
 from tests.sentry.apidocs import generate_schema
+
+
+@pytest.mark.parametrize(
+    ("response", "valid"),
+    [
+        ({"run_id": 123, "sentry_run_id": None, "feature_id": "autofix"}, True),
+        ({"successes": [{"repo_name": "owner/repo"}], "failures": []}, True),
+        ({"run_id": 123, "sentry_run_id": None}, False),
+        ({"successes": []}, False),
+    ],
+)
+def test_autofix_post_response_variants(response: dict[str, Any], valid: bool) -> None:
+    schema = generate_schema(
+        "organizations/<str:organization_id_or_slug>/issues/<int:issue_id>/autofix/",
+        view=GroupAutofixEndpoint,
+    )
+    validator = OAS30ReadValidator(schema["components"]["schemas"]["AutofixPostResponse"])
+
+    assert validator.is_valid(response) is valid
 
 
 @pytest.mark.parametrize(

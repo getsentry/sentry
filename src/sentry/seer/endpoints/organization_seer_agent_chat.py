@@ -53,6 +53,7 @@ from sentry.seer.endpoints.group_ai_autofix import RUN_IN_FLIGHT_CODE
 from sentry.seer.endpoints.utils import (
     SEER_AGENT_CHAT_OUT_OF_CREDITS_DETAIL,
     ResolvedSeerRun,
+    record_manual_continuation,
     refuse_service_account_token,
     resolve_seer_run,
     seer_out_of_credits_response,
@@ -473,6 +474,8 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
 
             single_run_response = _maybe_reply_to_single_run(request, organization, resolved, query)
             if single_run_response is not None:
+                if single_run_response.status_code == 200:
+                    record_manual_continuation(request, run_id=resolved.seer_run_state_id)
                 return single_run_response
 
         is_dashboard_generate_run = resolved is not None and _is_dashboard_generate_run(
@@ -533,6 +536,7 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
                     ui_tools=ui_tools,
                     request=request,
                 )
+                record_manual_continuation(request, run_id=resolved.seer_run_state_id)
                 # A new message closes a popup still asking to fix repository access.
                 record_scm_connect_new_message(
                     organization, acting_user_id(request.user), resolved.seer_run_state_id

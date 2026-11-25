@@ -395,8 +395,11 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         assert response.status_code == 200
         assert mock_client_class.call_args.kwargs["enable_coding"] is True
 
+    @patch("sentry.seer.endpoints.utils.sentry_sdk.metrics.count")
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
-    def test_post_new_conversation_calls_client(self, mock_client_class: MagicMock) -> None:
+    def test_post_new_conversation_calls_client(
+        self, mock_client_class: MagicMock, mock_count: MagicMock
+    ) -> None:
         run_uuid = uuid.uuid4()
         mock_client = MagicMock()
         mock_client.start_run.return_value = MagicMock(seer_run_state_id=456, uuid=run_uuid)
@@ -407,6 +410,9 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
 
         assert response.status_code == 200
         assert response.data == {"run_id": 456, "sentry_run_id": str(run_uuid)}
+        assert not any(
+            c.args[0] == "seer.run.manual_continuation" for c in mock_count.call_args_list
+        )
         mock_client_class.assert_called_once_with(
             self.organization,
             ANY,
@@ -592,8 +598,11 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         assert response.status_code == 200
         assert mock_client_class.call_args.kwargs["enable_coding"] is False
 
+    @patch("sentry.seer.endpoints.utils.sentry_sdk.metrics.count")
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
-    def test_post_continue_conversation_calls_client(self, mock_client_class: MagicMock) -> None:
+    def test_post_continue_conversation_calls_client(
+        self, mock_client_class: MagicMock, mock_count: MagicMock
+    ) -> None:
         run = self.create_seer_run(
             organization=self.organization, seer_run_state_id=789, user_id=self.user.id
         )
@@ -609,6 +618,11 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
 
         assert response.status_code == 200
         assert response.data == {"run_id": 789, "sentry_run_id": str(run.uuid)}
+        mock_count.assert_any_call(
+            "seer.run.manual_continuation",
+            1,
+            attributes={"org_id": str(self.organization.id), "run_id": "789"},
+        )
         mock_client_class.assert_called_once_with(
             self.organization,
             ANY,
@@ -646,10 +660,11 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         )
         return run
 
+    @patch("sentry.seer.endpoints.utils.sentry_sdk.metrics.count")
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.continue_single_run")
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
     def test_reply_to_single_run_uses_autofix_continue(
-        self, mock_client_class: MagicMock, mock_continue: MagicMock
+        self, mock_client_class: MagicMock, mock_continue: MagicMock, mock_count: MagicMock
     ) -> None:
         run = self._single_run(user_id=self.user.id)
 
@@ -661,16 +676,22 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
 
         assert response.status_code == 200
         assert response.data == {"run_id": 901, "sentry_run_id": str(run.uuid)}
+        mock_count.assert_any_call(
+            "seer.run.manual_continuation",
+            1,
+            attributes={"org_id": str(self.organization.id), "run_id": "901"},
+        )
         args, kwargs = mock_continue.call_args
         assert args[0].run == run
         assert args[2] == "make a code fix"
         assert kwargs["can_publish"] is True
         mock_client_class.return_value.continue_run.assert_not_called()
 
+    @patch("sentry.seer.endpoints.utils.sentry_sdk.metrics.count")
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.continue_single_run")
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
     def test_reply_to_single_run_while_it_is_processing_is_409(
-        self, mock_client_class: MagicMock, mock_continue: MagicMock
+        self, mock_client_class: MagicMock, mock_continue: MagicMock, mock_count: MagicMock
     ) -> None:
         run = self._single_run(user_id=self.user.id)
         mock_client_class.return_value.get_run.return_value.status = "processing"
@@ -682,6 +703,9 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         assert response.status_code == 409
         assert response.data["code"] == "run_in_flight"
         mock_continue.assert_not_called()
+        assert not any(
+            c.args[0] == "seer.run.manual_continuation" for c in mock_count.call_args_list
+        )
 
     @with_feature("organizations:token-billed-seer-enabled")
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
