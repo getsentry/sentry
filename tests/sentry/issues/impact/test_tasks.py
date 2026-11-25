@@ -347,6 +347,19 @@ class SelectImpactCandidatesTest(TestCase, SnubaTestCase, OccurrenceTestCase):
         self._store(4)
         assert select_impact_candidates(self.project, 1) == [next_best]
 
+    def test_ties_are_ordered_by_group_id(self) -> None:
+        tied = sorted((self._store(2) for _ in range(3)), key=lambda g: g.id)
+        assert select_impact_candidates(self.project, 10) == tied
+
+    @patch(f"{TASKS}.CANDIDATE_PAGE_SIZE_FACTOR", 1)
+    def test_issue_repeated_across_pages_is_considered_once(self) -> None:
+        assessed, repeated, last = (self._store(1) for _ in range(3))
+        self._mark_assessed(assessed)
+        # Counts shifted between page queries, so `repeated` is on both pages.
+        pages = [[assessed.id, repeated.id], [repeated.id, last.id]]
+        with patch(f"{TASKS}.get_top_groups_by_occurrence_count", side_effect=pages):
+            assert select_impact_candidates(self.project, 2) == [repeated, last]
+
     @patch(f"{TASKS}.MAX_CANDIDATE_PAGES", 1)
     def test_stops_after_max_pages(self) -> None:
         first_page = [self._store(count) for count in range(10, 5, -1)]

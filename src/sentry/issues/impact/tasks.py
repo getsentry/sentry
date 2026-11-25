@@ -167,6 +167,9 @@ def select_impact_candidates(project: Project, limit: int) -> list[Group]:
 
     page_size = limit * CANDIDATE_PAGE_SIZE_FACTOR
     candidates: list[Group] = []
+    # Counts can change between page queries, so an issue can move across a
+    # page boundary and show up twice. Only consider each issue once.
+    seen_group_ids: set[int] = set()
     for page in range(MAX_CANDIDATE_PAGES):
         ranked_group_ids = get_top_groups_by_occurrence_count(
             project, offset=page * page_size, limit=page_size
@@ -174,20 +177,23 @@ def select_impact_candidates(project: Project, limit: int) -> list[Group]:
         if not ranked_group_ids:
             break
 
+        new_group_ids = [gid for gid in ranked_group_ids if gid not in seen_group_ids]
+        seen_group_ids.update(ranked_group_ids)
+
         assessed = set(
             SeerAgentRun.objects.filter(
-                group_id__in=ranked_group_ids, source=IMPACT_FEATURE_ID
+                group_id__in=new_group_ids, source=IMPACT_FEATURE_ID
             ).values_list("group_id", flat=True)
         )
         groups_by_id = {
             g.id: g
             for g in Group.objects.filter(
-                id__in=[gid for gid in ranked_group_ids if gid not in assessed],
+                id__in=[gid for gid in new_group_ids if gid not in assessed],
                 project_id=project.id,
                 status=GroupStatus.UNRESOLVED,
             ).select_related("project", "project__organization")
         }
-        candidates.extend(groups_by_id[gid] for gid in ranked_group_ids if gid in groups_by_id)
+        candidates.extend(groups_by_id[gid] for gid in new_group_ids if gid in groups_by_id)
 
         if len(candidates) >= limit or len(ranked_group_ids) < page_size:
             break
@@ -207,7 +213,8 @@ def get_top_groups_by_occurrence_count(project: Project, *, offset: int, limit: 
         ),
         query_string="",
         selected_columns=["group_id", "count()"],
-        orderby=["-count()"],
+        # group_id breaks ties so pages are stable when counts are equal.
+        orderby=["-count()", "group_id"],
         offset=offset,
         limit=limit,
         referrer=Referrer.ISSUES_IMPACT_SCHEDULED_CANDIDATES.value,
