@@ -652,7 +652,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                 if query:
                     timeseries_query = f"{query} timestamp:>={cache_filter_start}"
                 else:
-                    timeseries_query = "timestamp:>={cache_filter_start}"
+                    timeseries_query = f"timestamp:>={cache_filter_start}"
             result = dataset.run_timeseries_query(
                 params=snuba_params,
                 query_string=timeseries_query,
