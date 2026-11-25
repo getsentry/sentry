@@ -968,6 +968,19 @@ it('opens on the selected option when pressing Down from a closed select', async
   );
 });
 
+it('selects the first search match when the selected option still matches', async () => {
+  const onChange = jest.fn();
+  render(
+    <Select aria-label="Fruit" options={options} value="cherry" onChange={onChange} />,
+    {wrapper: ThemeWrapper}
+  );
+
+  await userEvent.tab();
+  await userEvent.keyboard('e{Enter}');
+
+  expect(onChange).toHaveBeenCalledWith(options[0], expect.anything());
+});
+
 it('runs the caller keyboard handler before opening or choosing options', async () => {
   const onOpenChange = jest.fn();
   render(

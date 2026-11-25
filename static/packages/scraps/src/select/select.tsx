@@ -486,12 +486,15 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
       return;
     }
     if (focusedKey == null && state.collection.size > 0) {
-      selectionManager.setFocusedKey(selectedOptionKey ?? delegate.getFirstKey());
+      selectionManager.setFocusedKey(
+        (query ? null : selectedOptionKey) ?? delegate.getFirstKey()
+      );
     }
   }, [
     delegate,
     isOpen,
     focusedKey,
+    query,
     selectedOptionKey,
     selectionManager,
     state.collection,
