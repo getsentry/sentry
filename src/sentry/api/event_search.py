@@ -1862,8 +1862,7 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
             if value[idx - 1] != "\\":
                 raise _invalid_quote(node.text)
 
-            value = value[idx + 1 :]
-            idx = value.find('"')
+            idx = value.find('"', idx + 1)
 
         return node.text.replace('\\"', '"')
 

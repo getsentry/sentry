@@ -23,7 +23,6 @@ describe('FirstEventFooter', () => {
       <FirstEventFooter
         organization={organization}
         project={project}
-        isLast
         onClickSetupLater={jest.fn()}
       />,
       {organization}
@@ -36,6 +35,7 @@ describe('FirstEventFooter', () => {
         `/organizations/${organization.slug}/issues/20/?referrer=onboarding-first-event-footer`
       )
     );
+    expect(screen.queryByRole('button', {name: 'Set up later'})).not.toBeInTheDocument();
   });
 
   it('falls back to the project issue list when the project has no issues', async () => {
@@ -49,7 +49,6 @@ describe('FirstEventFooter', () => {
       <FirstEventFooter
         organization={organization}
         project={project}
-        isLast
         onClickSetupLater={jest.fn()}
       />,
       {organization}

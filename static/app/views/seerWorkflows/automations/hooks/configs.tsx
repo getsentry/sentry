@@ -108,6 +108,36 @@ export function useUpdateConfig({configId}: {configId: string}) {
 }
 
 /**
+ * Triggers a manual run of an automation, optionally on behalf of a user, and refetches
+ * the organization's runs.
+ */
+export function useManualRun({configId}: {configId: string}) {
+  const organization = useOrganization();
+  const queryClient = useQueryClient();
+  // TODO: Mock endpoint. Use getApiUrl once the API route exists.
+  const manualRunUrl =
+    `/organizations/${organization.slug}/seer/workflows/manual-run/` as ReturnType<
+      typeof getApiUrl
+    >;
+
+  return useMutation({
+    mutationFn: ({userId}: {userId?: string} = {}) =>
+      fetchMutation({
+        url: manualRunUrl,
+        method: 'POST',
+        data: {config_id: configId, ...(userId ? {user_id: userId} : {})},
+      }),
+    onSuccess: () =>
+      queryClient.invalidateQueries(
+        apiOptions.queryFilter(
+          '/organizations/$organizationIdOrSlug/seer/workflows/runs/',
+          {path: {organizationIdOrSlug: organization.slug}}
+        )
+      ),
+  });
+}
+
+/**
  * Deletes an automation's config and refetches the organization's configs.
  */
 export function useDeleteConfig({configId}: {configId: string}) {
