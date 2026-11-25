@@ -4,10 +4,11 @@ import styled from '@emotion/styled';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {InfoText} from '@sentry/scraps/info';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {stripAnnotations} from '@sentry/scraps/markdown/annotation';
 import {Text} from '@sentry/scraps/text';
+import type {SpaceSize} from '@sentry/scraps/theme';
 
 import {t} from 'sentry/locale';
 import {getShortEventId} from 'sentry/utils/events';
@@ -35,6 +36,8 @@ interface AiSpanLabelProps {
   node?: AITraceSpanNode;
   /** One-line summary after the name, e.g. a tool call's arguments. */
   preview?: string | null;
+  /** Space between the name and the preview. Defaults to a single space. */
+  previewGap?: SpaceSize;
 }
 
 /**
@@ -47,6 +50,7 @@ export function AiSpanLabel({
   preview,
   hasError,
   iconVariant = 'inline',
+  previewGap,
 }: AiSpanLabelProps) {
   return (
     <Flex align="center" gap="sm" flex="1" minWidth={0}>
@@ -63,11 +67,13 @@ export function AiSpanLabel({
         </Text>
         {preview ? (
           <Fragment>
-            {' '}
-            <Text size="sm" monospace variant={hasError ? 'danger' : 'muted'}>
-              {/* Tool input previews mark scrubbed values in the conversation view. */}
-              <ScrubbedText>{preview}</ScrubbedText>
-            </Text>
+            {previewGap ? null : ' '}
+            <Container as="span" display="inline" paddingLeft={previewGap}>
+              <Text size="sm" monospace variant={hasError ? 'danger' : 'muted'}>
+                {/* Tool input previews mark scrubbed values in the conversation view. */}
+                <ScrubbedText>{preview}</ScrubbedText>
+              </Text>
+            </Container>
           </Fragment>
         ) : null}
       </InfoText>

@@ -76,6 +76,7 @@ export function TranscriptSpanRow({
           preview={preview}
           hasError={hasError}
           iconVariant="plain"
+          previewGap="md"
         />
       </AiSpanRowButton>
       {node ? <AiSpanIssueLink node={node} /> : null}

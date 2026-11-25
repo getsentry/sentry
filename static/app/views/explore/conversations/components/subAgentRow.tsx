@@ -68,6 +68,7 @@ export function SubAgentRow({
           preview={isOpen ? null : call.preview}
           hasError={call.hasError}
           iconVariant="plain"
+          previewGap="md"
         />
       }
       aside={node ? <AiSpanIssueLink node={node} /> : null}
