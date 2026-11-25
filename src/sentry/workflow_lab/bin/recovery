@@ -20,8 +20,8 @@ from typing import Any
 from uuid import uuid4
 
 ROOT = Path.cwd()  # The caller selects the local Seer checkout.
-sys.path.insert(0, str(ROOT / "src"))
-os.chdir(ROOT)
+# This process imports the Lab fixture definitions and the selected checkout's Seer code.
+sys.path[:0] = [str(Path(__file__).resolve().parents[1]), str(ROOT / "src")]
 os.environ.setdefault("DEV", "1")
 from dotenv import load_dotenv
 
