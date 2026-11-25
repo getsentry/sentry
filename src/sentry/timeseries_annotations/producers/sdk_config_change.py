@@ -409,5 +409,5 @@ def _query_payload(params: SnubaParams, config_hash: str) -> dict[str, Any] | No
 
 
 def _to_datetime(value: float) -> datetime:
-    # timestamp_precise is unix seconds (float), e.g. 1795020154.742.
-    return datetime.fromtimestamp(value, tz=timezone.utc)
+    # EAP ``timestamp_precise`` is nanoseconds since epoch (not seconds).
+    return datetime.fromtimestamp(value / 1e9, tz=timezone.utc)
