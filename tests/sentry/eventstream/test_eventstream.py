@@ -138,58 +138,19 @@ def test_disabled_future_tracking_rollout_does_not_register_producers(
     assert arroyo_producer._pending_futures == {}
 
 
-@pytest.mark.parametrize("asynchronous", [True, False])
 @override_options({"tasks.producer.eventstream.rollout": 1.0})
-def test_future_tracking_producer_preserves_insert_delivery_mode(
+def test_future_tracking_producer_waits_for_synchronous_send(
     isolated_eventstream_producers: None,
-    asynchronous: bool,
 ) -> None:
     eventstream = KafkaEventStream()
     producer = eventstream.get_producer(Topic.EVENTS)
     assert isinstance(producer, FutureTrackingProducer)
 
     with patch.object(producer, "produce", wraps=producer.produce) as produce:
-        result = eventstream._send(
-            project_id=1, _type="insert", extra_data=({},), asynchronous=asynchronous
-        )
+        eventstream._send(project_id=1, _type="insert", extra_data=({},), asynchronous=False)
 
     produce.assert_called_once()
-    assert result is None
-    assert produce.call_args.kwargs["asynchronous"] is asynchronous
-    assert produce.call_args.kwargs["callbacks"] == [eventstream._on_produce_future_done]
-
-
-@override_options({"tasks.producer.eventstream.rollout": 1.0})
-def test_untracked_end_messages_use_the_existing_callback(
-    isolated_eventstream_producers: None,
-) -> None:
-    stream = KafkaEventStream()
-    producer = stream.get_producer(Topic.EVENTS)
-    assert isinstance(producer, FutureTrackingProducer)
-    with patch.object(producer, "produce", wraps=producer.produce) as produce:
-        assert stream.end_merge({"project_id": 1}) is None
-        assert stream.end_unmerge({"project_id": 1}) is None
-    assert produce.call_count == 2
-    for call in produce.call_args_list:
-        assert call.kwargs["asynchronous"] is False
-        assert call.kwargs["callbacks"] == [stream._on_produce_future_done]
-
-
-@pytest.mark.parametrize("rollout", [0.0, 1.0])
-def test_end_move_only_returns_cutoff_for_delivered_message(
-    isolated_eventstream_producers: None, rollout: float
-) -> None:
-    stream = KafkaEventStream()
-    state = {"project_id": 1, "datetime": "start"}
-    with override_options({"tasks.producer.eventstream.rollout": rollout}):
-        with patch.object(stream, "_send", wraps=stream._send) as send:
-            cutoff = stream.end_merge(state, confirm_delivery=True)
-        assert cutoff is not None
-        assert send.call_args.kwargs["extra_data"][0]["datetime"] == json.datetime_to_str(cutoff)
-        assert state["datetime"] == "start"
-        # LocalProducer returns a failed future when the broker rejects the message.
-        with patch.object(LocalBroker, "produce", side_effect=RuntimeError("delivery failed")):
-            assert stream.end_unmerge(state, confirm_delivery=True) is None
+    assert produce.call_args.kwargs["asynchronous"] is False
 
 
 class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):

@@ -308,10 +308,8 @@ class SnubaProtocolEventStream(EventStream):
 
         return state
 
-    def end_merge(
-        self, state: Mapping[str, Any], *, confirm_delivery: bool = False
-    ) -> datetime | None:
-        return self._end_move("end_merge", state, confirm_delivery=confirm_delivery)
+    def end_merge(self, state: Mapping[str, Any]) -> datetime:
+        return self._end_move("end_merge", state)
 
     def start_unmerge(
         self, project_id: int, hashes: Collection[str], previous_group_id: int, new_group_id: int
@@ -332,24 +330,14 @@ class SnubaProtocolEventStream(EventStream):
 
         return state
 
-    def end_unmerge(
-        self, state: Mapping[str, Any], *, confirm_delivery: bool = False
-    ) -> datetime | None:
-        return self._end_move("end_unmerge", state, confirm_delivery=confirm_delivery)
+    def end_unmerge(self, state: Mapping[str, Any]) -> datetime:
+        return self._end_move("end_unmerge", state)
 
-    def _end_move(
-        self, message: str, state: Mapping[str, Any], *, confirm_delivery: bool
-    ) -> datetime | None:
+    def _end_move(self, message: str, state: Mapping[str, Any]) -> datetime:
         cutoff = datetime.now(tz=timezone.utc)
         payload = {**state, "datetime": json.datetime_to_str(cutoff)}
-        delivered = self._send(
-            state["project_id"],
-            message,
-            extra_data=(payload,),
-            asynchronous=False,
-            confirm_delivery=confirm_delivery,
-        )
-        return cutoff if delivered else None
+        self._send(state["project_id"], message, extra_data=(payload,), asynchronous=False)
+        return cutoff
 
     def start_delete_tag(self, project_id: int, tag: str) -> Mapping[str, Any]:
         if not tag:
@@ -455,9 +443,7 @@ class SnubaProtocolEventStream(EventStream):
         headers: MutableMapping[str, str] | None = None,
         skip_semantic_partitioning: bool = False,
         event_type: EventStreamEventType = EventStreamEventType.Error,
-        *,
-        confirm_delivery: bool = False,
-    ) -> bool | None:
+    ) -> None:
         raise NotImplementedError
 
     def _send_item(self, trace_item: TraceItem) -> None:
@@ -474,9 +460,7 @@ class SnubaEventStream(SnubaProtocolEventStream):
         headers: MutableMapping[str, str] | None = None,
         skip_semantic_partitioning: bool = False,
         event_type: EventStreamEventType = EventStreamEventType.Error,
-        *,
-        confirm_delivery: bool = False,
-    ) -> bool | None:
+    ) -> None:
         if headers is None:
             headers = {}
 
@@ -517,7 +501,7 @@ class SnubaEventStream(SnubaProtocolEventStream):
                 raise snuba.SnubaError(
                     f"HTTP {resp.status} response from Snuba! {json.loads(resp.data)}"
                 )
-            return True if confirm_delivery else None
+            return None
         except urllib3.exceptions.HTTPError as err:
             raise snuba.SnubaError(err)
 

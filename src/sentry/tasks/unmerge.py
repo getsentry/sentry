@@ -524,9 +524,7 @@ def unmerge(*posargs: Any, operation_id: int | None = None, **kwargs: Any) -> No
                 unlock_hashes(args.project_id, list(args.locked_primary_hashes))
                 for _unmerge_key, (_destination_id, eventstream_state) in args.destinations.items():
                     if eventstream_state:
-                        cutoff = args.replacement.stop_snuba_replacement(
-                            eventstream_state, confirm_delivery=operation_id is not None
-                        )
+                        cutoff = args.replacement.stop_snuba_replacement(eventstream_state)
             record_progress(
                 IssueUnmergeOperation,
                 args.project_id,
@@ -593,9 +591,7 @@ def unmerge(*posargs: Any, operation_id: int | None = None, **kwargs: Any) -> No
                     "Unmerge complete (eventstream state: %s)", eventstream_state, extra=extra
                 )
                 if eventstream_state:
-                    cutoff = args.replacement.stop_snuba_replacement(
-                        eventstream_state, confirm_delivery=operation_id is not None
-                    )
+                    cutoff = args.replacement.stop_snuba_replacement(eventstream_state)
             record_end_send(IssueUnmergeOperation, args.project_id, operation_id, cutoff)
             logger.info(
                 "unmerge.batch_complete",

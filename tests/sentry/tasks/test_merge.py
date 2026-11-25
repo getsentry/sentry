@@ -37,9 +37,7 @@ class MergeGroupTest(TestCase, SnubaTestCase):
         with self.tasks():
             merge_groups([group1.id], group2.id, eventstream_state=eventstream_state)
 
-        mock_eventstream.end_merge.assert_called_once_with(
-            eventstream_state, confirm_delivery=False
-        )
+        mock_eventstream.end_merge.assert_called_once_with(eventstream_state)
 
     def test_sampling_failure_still_sends_end_message(self) -> None:
         source = self.create_group()
@@ -58,25 +56,19 @@ class MergeGroupTest(TestCase, SnubaTestCase):
             merge_groups(
                 [source.id], survivor.id, eventstream_state=state, operation_id=operation.id
             )
-        send.assert_called_once_with(state, confirm_delivery=True)
+        send.assert_called_once_with(state)
         operation.refresh_from_db()
         assert operation.step == OperationStep.WAIT_FOR_SNUBA
         assert operation.historical_cutoff == cutoff
         assert operation.sample_event_ids_by_source == {}
 
-    def test_unconfirmed_send_does_not_advance_to_snuba(self) -> None:
+    def test_merge_without_an_end_message_needs_attention(self) -> None:
         source = self.create_group()
         survivor = self.create_group()
         operation = Factories.create_issue_merge_operation(self.project, [source.id], survivor.id)
-        state = {"previous_group_ids": [source.id]}
-        with (
-            self.tasks(),
-            patch.object(eventstream.backend, "end_merge", return_value=None) as send,
-        ):
-            merge_groups(
-                [source.id], survivor.id, eventstream_state=state, operation_id=operation.id
-            )
-        send.assert_called_once_with(state, confirm_delivery=True)
+        with self.tasks(), patch.object(eventstream.backend, "end_merge") as send:
+            merge_groups([source.id], survivor.id, operation_id=operation.id)
+        send.assert_not_called()
         operation.refresh_from_db()
         assert operation.status == OperationStatus.NEEDS_ATTENTION
         assert operation.step == OperationStep.MOVE

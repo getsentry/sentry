@@ -141,10 +141,8 @@ class EventStream(Service):
     ) -> dict[str, Any]:
         raise NotImplementedError
 
-    def end_merge(
-        self, state: Mapping[str, Any], *, confirm_delivery: bool = False
-    ) -> datetime | None:
-        """When confirmation is requested, return the cutoff acknowledged by the eventstream."""
+    def end_merge(self, state: Mapping[str, Any]) -> datetime | None:
+        """Return the cutoff used in the historical move command."""
         return None
 
     def start_unmerge(
@@ -152,10 +150,8 @@ class EventStream(Service):
     ) -> Mapping[str, Any] | None:
         pass
 
-    def end_unmerge(
-        self, state: Mapping[str, Any], *, confirm_delivery: bool = False
-    ) -> datetime | None:
-        """When confirmation is requested, return the cutoff acknowledged by the eventstream."""
+    def end_unmerge(self, state: Mapping[str, Any]) -> datetime | None:
+        """Return the cutoff used in the historical move command."""
         return None
 
     def start_delete_tag(self, project_id: int, tag: str) -> Mapping[str, Any]:

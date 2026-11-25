@@ -169,11 +169,7 @@ def merge_groups(
             "merge.halted_by_killswitch",
             extra={"transaction_id": transaction_id, "new_group_id": new_group.id},
         )
-        cutoff = None
-        if eventstream_state:
-            cutoff = eventstream.backend.end_merge(
-                eventstream_state, confirm_delivery=operation_id is not None
-            )
+        cutoff = eventstream.backend.end_merge(eventstream_state) if eventstream_state else None
         record_progress(
             IssueMergeOperation,
             new_group.project_id,
@@ -288,9 +284,7 @@ def merge_groups(
             # All `from_object_ids` have been merged!
             if operation_id is not None:
                 record_merge_samples(new_group.project, operation_id, eventstream_state)
-            cutoff = eventstream.backend.end_merge(
-                eventstream_state, confirm_delivery=operation_id is not None
-            )
+            cutoff = eventstream.backend.end_merge(eventstream_state)
         record_end_send(IssueMergeOperation, new_group.project_id, operation_id, cutoff)
 
     return True

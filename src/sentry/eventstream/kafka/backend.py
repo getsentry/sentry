@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import threading
 import time
-from collections.abc import Callable, Mapping, MutableMapping, Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
 from concurrent.futures import Future
 from datetime import datetime
 from functools import partial
@@ -209,9 +209,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         headers: MutableMapping[str, str] | None = None,
         skip_semantic_partitioning: bool = False,
         event_type: EventStreamEventType = EventStreamEventType.Error,
-        *,
-        confirm_delivery: bool = False,
-    ) -> bool | None:
+    ) -> None:
         if headers is None:
             headers = {}
         headers["operation"] = _type
@@ -232,15 +230,6 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
         try:
             if isinstance(producer, FutureTrackingProducer):
-                callbacks: list[Callable[[Future[BrokerValue[KafkaPayload]]], None]] = [
-                    self._on_produce_future_done
-                ]
-                # A synchronous FutureTrackingProducer waits but swallows delivery
-                # errors. Its callback exposes the actual result of this send.
-                receipt: Future[Future[BrokerValue[KafkaPayload]]] | None = None
-                if confirm_delivery:
-                    receipt = Future()
-                    callbacks.append(receipt.set_result)
                 producer.produce(
                     dest=ArroyoTopic(real_topic),
                     payload=KafkaPayload(
@@ -252,11 +241,9 @@ class KafkaEventStream(SnubaProtocolEventStream):
                         ),
                         headers=[(k, v.encode("utf-8")) for k, v in headers.items()],
                     ),
-                    callbacks=callbacks,
+                    callbacks=[self._on_produce_future_done],
                     asynchronous=asynchronous,
                 )
-                if receipt is not None:
-                    return receipt.result().exception() is None
             else:
                 produce_future = producer.produce(
                     destination=ArroyoTopic(real_topic),
@@ -276,17 +263,13 @@ class KafkaEventStream(SnubaProtocolEventStream):
                 )
         except Exception as error:
             logger.exception("Could not publish message: %s", error)
-            return None
+            return
 
         if not asynchronous and not isinstance(producer, FutureTrackingProducer):
             try:
                 produce_future.result()  # Wait for the message to be delivered to Kafka
             except Exception as error:
                 logger.exception("Could not wait for message delivery: %s", error)
-                return None
-            if confirm_delivery:
-                return True
-        return None
 
     def requires_post_process_forwarder(self) -> bool:
         return True
