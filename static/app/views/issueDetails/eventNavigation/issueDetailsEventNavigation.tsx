@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {IconChevron} from '@sentry/icons/chevron';
 
 import {LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
 import {LinkTabs} from '@sentry/scraps/tabs';
 
 import {t} from 'sentry/locale';
@@ -143,28 +144,33 @@ export function IssueDetailsEventNavigation({
           }}
         />
       </Navigation>
-      <LinkTabs value={currentEventKey} onChange={onTabChange} size="xs">
-        {({TabList}) => (
-          <TabList variant="floating">
-            {eventNavPresets.map(({key, label, tooltip}) => {
-              const eventPath = {
-                pathname: normalizeUrl(baseEventsPath + key + '/'),
-                query: {...location.query, referrer: `${key}-event`},
-              };
-              return (
-                <TabList.Item
-                  to={eventPath}
-                  key={key}
-                  textValue={label}
-                  tooltip={{title: tooltip}}
-                >
-                  {label}
-                </TabList.Item>
-              );
-            })}
-          </TabList>
-        )}
-      </LinkTabs>
+      {/* The tab list sizes itself to its content here, so once a squeeze moves
+          tabs into the overflow menu it never gets the space back to show them
+          again. Never shrinking keeps all three tabs visible. */}
+      <Flex flexShrink={0}>
+        <LinkTabs value={currentEventKey} onChange={onTabChange} size="xs">
+          {({TabList}) => (
+            <TabList variant="floating">
+              {eventNavPresets.map(({key, label, tooltip}) => {
+                const eventPath = {
+                  pathname: normalizeUrl(baseEventsPath + key + '/'),
+                  query: {...location.query, referrer: `${key}-event`},
+                };
+                return (
+                  <TabList.Item
+                    to={eventPath}
+                    key={key}
+                    textValue={label}
+                    tooltip={{title: tooltip}}
+                  >
+                    {label}
+                  </TabList.Item>
+                );
+              })}
+            </TabList>
+          )}
+        </LinkTabs>
+      </Flex>
     </Fragment>
   );
 }
