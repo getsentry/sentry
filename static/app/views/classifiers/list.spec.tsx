@@ -145,7 +145,9 @@ describe('ClassifiersList', () => {
   });
 
   it('shows the classified volume for classifiers without matches', async () => {
-    mockClassifiers([TelemetryClassifierFixture({id: '10', binaryThreshold: null})]);
+    mockClassifiers([
+      TelemetryClassifierFixture({id: '10', outputType: 'score', binaryThreshold: null}),
+    ]);
     MockApiClient.addMockResponse({
       url: timeSeriesUrl,
       body: {
