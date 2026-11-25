@@ -5,6 +5,7 @@ import tempfile
 import time
 import zipfile
 from io import BytesIO
+from pathlib import Path
 from typing import IO, Any
 from unittest.mock import MagicMock, patch
 
@@ -17,6 +18,7 @@ from objectstore_client import Session
 from symbolic.debuginfo import Archive
 
 from sentry.models.debugfile import (
+    BadDif,
     DifMeta,
     ProjectDebugFile,
     create_debug_file_from_dif,
@@ -196,19 +198,17 @@ class DebugFileTest(TestCase):
     def test_file_extension_wasmsourcemap(self) -> None:
         """Test that wasmsourcemap files return .wasm.map file extension."""
         # Create a file with wasmsourcemap content type
-        file = File.objects.create(
-            name="wasmsourcemap",
+        file = self.create_file(
+            name="main.dart.wasm.map",
             type="project.dif",
             headers={"Content-Type": "application/x-wasm-sourcemap+json"},
         )
 
         # Create a ProjectDebugFile
-        dif = ProjectDebugFile.objects.create(
+        dif = self.create_dif_file(
             file=file,
-            checksum="test-checksum",
             object_name="main.dart.wasm.map",
             cpu_name="any",
-            project_id=self.project.id,
             debug_id="bda18fd8-5d4a-4eb8-9302-2d6bfad846b1",
             data={},
         )
@@ -888,3 +888,62 @@ def test_dartsymbolmap_file_missing_debug_id() -> None:
 
         with pytest.raises(BadDif, match="Missing debug_id for dartsymbolmap"):
             detect_dif_from_path(f.name, name="dartsymbolmap.json", debug_id=None)
+
+
+WASM_SOURCE_MAP = '{"version": 3, "sources": ["src/main.c"], "names": [], "mappings": "AAAA"}'
+
+
+def _detect_json_file(tmp_path: Path, content: str, debug_id: str | None) -> list[DifMeta]:
+    path = tmp_path / "main.wasm.map"
+    path.write_text(content)
+    return detect_dif_from_path(str(path), name="main.wasm.map", debug_id=debug_id)
+
+
+def test_wasm_source_map_detected(tmp_path: Path) -> None:
+    detected = _detect_json_file(
+        tmp_path, WASM_SOURCE_MAP, debug_id="BDA18FD8-5D4A-4EB8-9302-2D6BFAD846B1"
+    )
+
+    assert len(detected) == 1
+    dif_meta = detected[0]
+    assert dif_meta.file_format == "wasmsourcemap"
+    assert dif_meta.arch == "any"
+    # Symbolicator looks files up by the normalized (lowercase) debug id.
+    assert dif_meta.debug_id == "bda18fd8-5d4a-4eb8-9302-2d6bfad846b1"
+    assert dif_meta.name == "main.wasm.map"
+    assert dif_meta.data == {"features": []}
+
+
+def test_wasm_source_map_unsupported_version(tmp_path: Path) -> None:
+    content = '{"version": 4, "sources": [], "names": [], "mappings": "AAAA"}'
+
+    with pytest.raises(BadDif, match="Unsupported source map version: 4"):
+        _detect_json_file(tmp_path, content, debug_id="bda18fd8-5d4a-4eb8-9302-2d6bfad846b1")
+
+
+def test_wasm_source_map_index_map_rejected(tmp_path: Path) -> None:
+    content = '{"version": 3, "sections": [{"offset": {"line": 0, "column": 0}, "map": {}}]}'
+
+    with pytest.raises(BadDif, match="Index source maps are not supported"):
+        _detect_json_file(tmp_path, content, debug_id="bda18fd8-5d4a-4eb8-9302-2d6bfad846b1")
+
+
+def test_wasm_source_map_missing_debug_id(tmp_path: Path) -> None:
+    with pytest.raises(BadDif, match="Missing debug_id for wasmsourcemap"):
+        _detect_json_file(tmp_path, WASM_SOURCE_MAP, debug_id=None)
+
+
+def test_wasm_source_map_invalid_debug_id(tmp_path: Path) -> None:
+    with pytest.raises(BadDif, match="Invalid debug_id for wasmsourcemap"):
+        _detect_json_file(tmp_path, WASM_SOURCE_MAP, debug_id="not-a-debug-id")
+
+
+def test_il2cpp_still_detected_alongside_wasm_source_maps(tmp_path: Path) -> None:
+    """A JSON object that is not a source map keeps being stored as il2cpp."""
+    content = '{"/src/Game.cpp": {"12": {"cs_file": "Game.cs", "cs_line": 3}}}'
+
+    detected = _detect_json_file(tmp_path, content, debug_id="bda18fd8-5d4a-4eb8-9302-2d6bfad846b1")
+
+    assert len(detected) == 1
+    assert detected[0].file_format == "il2cpp"
+    assert detected[0].data is None
