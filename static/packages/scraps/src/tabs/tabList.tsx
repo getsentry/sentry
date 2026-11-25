@@ -80,6 +80,13 @@ const StyledTabListOverflowWrap = styled('div')`
  */
 const RESERVED_OVERFLOW_TRIGGER_WIDTH = 48;
 
+/**
+ * Width (px) the tabs may exceed the container by and still count as fitting.
+ * When the page is zoomed, the tab widths can add up to a fraction of a pixel
+ * more than a container that is exactly as wide as them.
+ */
+const SUBPIXEL_TOLERANCE = 0.5;
+
 interface TabOverflow {
   /**
    * Keys of the tabs that don't fit, as a contiguous suffix.
@@ -165,7 +172,7 @@ function useOverflowTabs({
     );
 
     let nextOverflow: TabOverflow;
-    if (fullWidth <= available) {
+    if (fullWidth <= available + SUBPIXEL_TOLERANCE) {
       nextOverflow = NO_OVERFLOW;
     } else {
       // Overflow is needed, so leave room for the trigger button.

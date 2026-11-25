@@ -844,6 +844,14 @@ describe('Tabs overflow', () => {
     expect(screen.queryByRole('button', {name: 'More tabs'})).not.toBeInTheDocument();
     expect(screen.getAllByRole('tab')).toHaveLength(TABS.length);
 
+    // When the page is zoomed, the tabs can measure a fraction of a pixel wider
+    // than the container that holds them exactly. They still fit.
+    resizeContainerTo(tabsWithGaps - 0.02);
+    // The resize is handled on the next animation frame.
+    await act(() => new Promise(requestAnimationFrame));
+
+    expect(screen.queryByRole('button', {name: 'More tabs'})).not.toBeInTheDocument();
+
     // One pixel less than the tabs and their gaps must overflow, which only
     // holds if the gaps are counted.
     resizeContainerTo(tabsWithGaps - 1);
