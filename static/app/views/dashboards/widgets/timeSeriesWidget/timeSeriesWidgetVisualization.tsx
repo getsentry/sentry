@@ -1,6 +1,7 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import {mergeRefs} from '@react-aria/utils';
+import {IconWarning} from '@sentry/icons/warning';
 import * as Sentry from '@sentry/react';
 import type {SeriesOption, XAXisComponentOption, YAXisComponentOption} from 'echarts';
 import type {
@@ -11,6 +12,8 @@ import sum from 'lodash/sum';
 import unescape from 'lodash/unescape';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {useRenderToString} from '@sentry/scraps/renderToString';
+import {Text} from '@sentry/scraps/text';
 
 import type {AnnotationItem} from 'sentry/components/charts/annotations/types';
 import {BAND_Y_AXIS, type BandBucket} from 'sentry/components/charts/bands/bandShapes';
@@ -249,6 +252,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     props.pageFilters?.datetime || pageFilters.selection.datetime;
 
   const theme = useTheme();
+  const renderToString = useRenderToString();
   const navigate = useNavigate();
   const location = useLocation();
   const hasReleaseBubbles =
@@ -443,16 +447,43 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
         const fieldType = correspondingPlottable?.dataType ?? FALLBACK_TYPE;
 
-        const formattedValue = escape(
-          formatTooltipValue(value, fieldType, unitForType[fieldType] ?? undefined)
+        const formattedValue = formatTooltipValue(
+          value,
+          fieldType,
+          unitForType[fieldType] ?? undefined
         );
 
         if (isLowConfidenceDataPoint(valueFormatterParams.data)) {
-          return `${formattedValue} <span style="color: ${theme.tokens.content.warning}">${escape(t('(Low confidence)'))}</span>`;
+          return renderToString(
+            // Trimming the text box, or laying the icon out in a flex row, moves
+            // the value's baseline and makes the row taller than its neighbours
+            <Text variant="inherit" wrap="nowrap" trim={false}>
+              <IconWarning size="xs" aria-hidden style={{verticalAlign: '-0.125em'}} />{' '}
+              {formattedValue}
+            </Text>
+          );
         }
 
-        return formattedValue;
+        return escape(formattedValue);
       },
+      renderHeader: seriesParams =>
+        seriesParams.some(param => isLowConfidenceDataPoint(param.data))
+          ? renderToString(
+              <Flex
+                className="tooltip-header"
+                align="center"
+                gap="sm"
+                background="secondary"
+                borderBottom="secondary"
+                padding="md xl"
+              >
+                <IconWarning size="xs" variant="muted" aria-hidden />
+                <Text size="sm" variant="muted">
+                  {t('Low confidence')}
+                </Text>
+              </Flex>
+            )
+          : '',
       renderSeriesDetails: props.renderTooltipSeriesDetails,
       limit: props.tooltipLimit,
       truncate: false,
