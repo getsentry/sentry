@@ -1,8 +1,8 @@
 import {Alert} from '@sentry/scraps/alert';
 import {Stack} from '@sentry/scraps/layout';
+import {Markdown} from '@sentry/scraps/markdown';
 
 import type {SingleRunStop} from 'sentry/components/events/autofix/useExplorerAutofix';
-import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {t} from 'sentry/locale';
 
 const sentenceSegmenter = new Intl.Segmenter(undefined, {granularity: 'sentence'});
@@ -24,11 +24,11 @@ export function SingleRunStopNotice({stop}: SingleRunStopNoticeProps) {
     <Alert
       variant="warning"
       data-test-id="autofix-single-run-stop"
-      expand={headline === reason ? undefined : <SeerMarkdown raw={reason} />}
+      expand={headline === reason ? undefined : <Markdown raw={reason} />}
     >
       <Stack gap="sm">
-        <SeerMarkdown raw={`**${t('Seer stopped early:')}** ${headline}`} />
-        <SeerMarkdown raw={`**${t('Next step:')}** ${stop.suggestion.trim()}`} />
+        <Markdown raw={`**${t('Seer stopped early:')}** ${headline}`} />
+        <Markdown raw={`**${t('Next step:')}** ${stop.suggestion.trim()}`} />
       </Stack>
     </Alert>
   );
