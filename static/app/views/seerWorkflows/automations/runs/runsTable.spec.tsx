@@ -303,7 +303,7 @@ describe('RunsTable', () => {
 
     render(<RunsTable />, {organization});
 
-    expect(await screen.findByText('Manually triggered')).toBeInTheDocument();
+    expect(await screen.findByText('Manually triggered by')).toBeInTheDocument();
     expect(await screen.findByText('Jane Doe')).toBeInTheDocument();
     expect(userRequest).toHaveBeenCalled();
   });
