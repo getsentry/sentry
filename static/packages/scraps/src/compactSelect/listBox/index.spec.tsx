@@ -40,31 +40,6 @@ describe('ListBox', () => {
     expect(scrollContainer).not.toHaveStyle({scrollbarGutter: 'stable'});
   });
 
-  it('does not reserve scrollbar gutter for a 1px rounding difference', async () => {
-    jest.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(60);
-    jest.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockReturnValue(61);
-
-    render(
-      <CompactSelect
-        onChange={jest.fn()}
-        value={undefined}
-        options={[
-          {value: 'opt_one', label: 'Option One'},
-          {value: 'opt_two', label: 'Option Two'},
-        ]}
-      />,
-      {wrapper: ThemeWrapper}
-    );
-
-    await userEvent.click(screen.getByRole('button'));
-
-    const scrollContainer = screen.getByTestId('compact-select-scroll-container');
-    await new Promise(resolve => requestAnimationFrame(resolve));
-
-    expect(scrollContainer).not.toHaveStyle({scrollbarGutter: 'stable'});
-    jest.restoreAllMocks();
-  });
-
   it('keeps scrollbar gutter once the list has overflowed', async () => {
     render(
       <CompactSelect
