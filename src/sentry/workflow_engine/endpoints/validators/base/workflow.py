@@ -37,7 +37,7 @@ from sentry.workflow_engine.models import (
     WorkflowDataConditionGroup,
 )
 from sentry.workflow_engine.models.data_condition import Condition, get_internal_condition_types
-from sentry.workflow_engine.types import DataConditionHandler
+from sentry.workflow_engine.types import DataConditionHandler, WorkflowType
 
 InputData = dict[str, Any]
 ListInputData = list[InputData]
@@ -418,7 +418,7 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
         assert isinstance(org, Organization)
 
         workflow_count = Workflow.objects.filter(
-            organization_id=org.id, type=Workflow.Type.ALERT
+            organization_id=org.id, type=WorkflowType.ALERT
         ).count()
 
         if features.has("organizations:more-workflows", org):

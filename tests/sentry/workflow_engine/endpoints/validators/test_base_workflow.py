@@ -746,11 +746,11 @@ class TestWorkflowValidatorCreate(TestCase):
         assert workflow.id is not None
 
     def test_create_workflow_limit_only_counts_alerts(self) -> None:
-        self.create_workflow(organization=self.organization, type=Workflow.Type.INBOX)
+        self.create_workflow(organization=self.organization, type=WorkflowType.INBOX)
 
         with (
             override_workflow_api_availability(
-                Workflow.Type.INBOX, WorkflowSettings.DEFAULT_API_AVAILABILITY
+                WorkflowType.INBOX, WorkflowSettings.DEFAULT_API_AVAILABILITY
             ),
             self.options({"workflow_engine.max_workflows_per_org": 1}),
         ):

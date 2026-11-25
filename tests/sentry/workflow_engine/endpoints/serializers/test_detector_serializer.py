@@ -219,13 +219,13 @@ class TestDetectorSerializer(TestCase):
         )
 
         inbox_workflow = self.create_workflow(
-            organization_id=self.organization.id, type=Workflow.Type.INBOX
+            organization_id=self.organization.id, type=WorkflowType.INBOX
         )
 
         self.create_detector_workflow(detector=detector, workflow=inbox_workflow)
 
         with override_workflow_api_availability(
-            Workflow.Type.INBOX, WorkflowSettings.DEFAULT_API_AVAILABILITY
+            WorkflowType.INBOX, WorkflowSettings.DEFAULT_API_AVAILABILITY
         ):
             result = serialize(detector)
 
@@ -237,12 +237,12 @@ class TestDetectorSerializer(TestCase):
         )
 
         inbox_workflow = self.create_workflow(
-            organization_id=self.organization.id, type=Workflow.Type.INBOX
+            organization_id=self.organization.id, type=WorkflowType.INBOX
         )
 
         self.create_detector_workflow(detector=detector, workflow=inbox_workflow)
 
-        with override_workflow_api_availability(Workflow.Type.INBOX, GET_AND_PUT_ONLY_AVAILABILITY):
+        with override_workflow_api_availability(WorkflowType.INBOX, GET_AND_PUT_ONLY_AVAILABILITY):
             result = serialize(detector)
 
         assert result["workflowIds"] == []
@@ -259,7 +259,7 @@ class TestDetectorSerializer(TestCase):
         with (
             self.feature({GATE_FEATURE: [self.organization.slug]}),
             override_workflow_api_availability(
-                Workflow.Type.ALERT, {WorkflowEngineAPIOperation.LIST: FeatureGate(GATE_FEATURE)}
+                WorkflowType.ALERT, {WorkflowEngineAPIOperation.LIST: FeatureGate(GATE_FEATURE)}
             ),
         ):
             result = serialize(detector, self.user)

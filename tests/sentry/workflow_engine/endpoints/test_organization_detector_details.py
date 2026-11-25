@@ -1043,12 +1043,12 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
 
     def test_update_workflows_can_attach_workflow_type_open_for_list(self) -> None:
         inbox_workflow = self.create_workflow(
-            organization_id=self.organization.id, type=Workflow.Type.INBOX
+            organization_id=self.organization.id, type=WorkflowType.INBOX
         )
 
         with (
             override_workflow_api_availability(
-                Workflow.Type.INBOX, WorkflowSettings.DEFAULT_API_AVAILABILITY
+                WorkflowType.INBOX, WorkflowSettings.DEFAULT_API_AVAILABILITY
             ),
             outbox_runner(),
         ):
@@ -1067,14 +1067,14 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         alert_workflow = self.create_workflow(organization_id=self.organization.id)
 
         inbox_workflow = self.create_workflow(
-            organization_id=self.organization.id, type=Workflow.Type.INBOX
+            organization_id=self.organization.id, type=WorkflowType.INBOX
         )
 
         self.create_detector_workflow(detector=self.detector, workflow=inbox_workflow)
 
         with (
             override_workflow_api_availability(
-                Workflow.Type.INBOX, WorkflowSettings.DEFAULT_API_AVAILABILITY
+                WorkflowType.INBOX, WorkflowSettings.DEFAULT_API_AVAILABILITY
             ),
             outbox_runner(),
         ):

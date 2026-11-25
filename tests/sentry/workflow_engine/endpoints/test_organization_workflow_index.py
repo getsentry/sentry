@@ -736,10 +736,10 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
 
     def test_readable_type_closed_for_list_is_not_returned(self) -> None:
         inbox_workflow = self.create_workflow(
-            organization_id=self.organization.id, name="Inbox Workflow", type=Workflow.Type.INBOX
+            organization_id=self.organization.id, name="Inbox Workflow", type=WorkflowType.INBOX
         )
 
-        with override_workflow_api_availability(Workflow.Type.INBOX, GET_AND_PUT_ONLY_AVAILABILITY):
+        with override_workflow_api_availability(WorkflowType.INBOX, GET_AND_PUT_ONLY_AVAILABILITY):
             response = self.get_success_response(
                 self.organization.slug, qs_params={"project": "-1"}
             )
@@ -748,11 +748,11 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
 
     def test_type_open_for_list_is_returned(self) -> None:
         inbox_workflow = self.create_workflow(
-            organization_id=self.organization.id, name="Inbox Workflow", type=Workflow.Type.INBOX
+            organization_id=self.organization.id, name="Inbox Workflow", type=WorkflowType.INBOX
         )
 
         with override_workflow_api_availability(
-            Workflow.Type.INBOX, WorkflowSettings.DEFAULT_API_AVAILABILITY
+            WorkflowType.INBOX, WorkflowSettings.DEFAULT_API_AVAILABILITY
         ):
             response = self.get_success_response(
                 self.organization.slug, qs_params={"project": "-1", "type": "inbox"}
@@ -764,7 +764,7 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
         with (
             self.feature({GATE_FEATURE: False}),
             override_workflow_api_availability(
-                Workflow.Type.ALERT, {WorkflowEngineAPIOperation.LIST: FeatureGate(GATE_FEATURE)}
+                WorkflowType.ALERT, {WorkflowEngineAPIOperation.LIST: FeatureGate(GATE_FEATURE)}
             ),
         ):
             response = self.get_error_response(
@@ -777,7 +777,7 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
         with (
             self.feature({GATE_FEATURE: True}),
             override_workflow_api_availability(
-                Workflow.Type.ALERT, {WorkflowEngineAPIOperation.LIST: FeatureGate(GATE_FEATURE)}
+                WorkflowType.ALERT, {WorkflowEngineAPIOperation.LIST: FeatureGate(GATE_FEATURE)}
             ),
         ):
             response = self.get_success_response(
@@ -2410,10 +2410,10 @@ class OrganizationWorkflowPutTest(OrganizationWorkflowAPITestCase):
             organization_id=self.organization.id,
             name="Inbox Workflow",
             enabled=False,
-            type=Workflow.Type.INBOX,
+            type=WorkflowType.INBOX,
         )
 
-        with override_workflow_api_availability(Workflow.Type.INBOX, GET_AND_PUT_ONLY_AVAILABILITY):
+        with override_workflow_api_availability(WorkflowType.INBOX, GET_AND_PUT_ONLY_AVAILABILITY):
             self.get_success_response(
                 self.organization.slug,
                 qs_params={"project": "-1", "query": "Workflow"},
@@ -2748,12 +2748,12 @@ class OrganizationWorkflowDeleteTest(OrganizationWorkflowAPITestCase):
 
     def test_bulk_delete_by_query_skips_type_closed_for_delete(self) -> None:
         inbox_workflow = self.create_workflow(
-            organization_id=self.organization.id, name="Inbox Workflow", type=Workflow.Type.INBOX
+            organization_id=self.organization.id, name="Inbox Workflow", type=WorkflowType.INBOX
         )
 
         with (
             override_workflow_api_availability(
-                Workflow.Type.INBOX,
+                WorkflowType.INBOX,
                 {
                     **WorkflowSettings.DEFAULT_API_AVAILABILITY,
                     WorkflowEngineAPIOperation.DELETE: False,

@@ -81,10 +81,10 @@ class OrganizationWorkflowIndexGetTest(OrganizationWorkflowDetailsBaseTest):
 
     def test_type_open_for_get_is_returned(self) -> None:
         inbox_workflow = self.create_workflow(
-            organization_id=self.organization.id, type=Workflow.Type.INBOX
+            organization_id=self.organization.id, type=WorkflowType.INBOX
         )
 
-        with override_workflow_api_availability(Workflow.Type.INBOX, GET_AND_PUT_ONLY_AVAILABILITY):
+        with override_workflow_api_availability(WorkflowType.INBOX, GET_AND_PUT_ONLY_AVAILABILITY):
             response = self.get_success_response(self.organization.slug, inbox_workflow.id)
 
         assert response.data == serialize(inbox_workflow)
@@ -264,9 +264,9 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         ]
 
     def test_type_open_for_put_is_updated(self) -> None:
-        self.workflow.update(type=Workflow.Type.INBOX)
+        self.workflow.update(type=WorkflowType.INBOX)
 
-        with override_workflow_api_availability(Workflow.Type.INBOX, GET_AND_PUT_ONLY_AVAILABILITY):
+        with override_workflow_api_availability(WorkflowType.INBOX, GET_AND_PUT_ONLY_AVAILABILITY):
             self.get_success_response(
                 self.organization.slug,
                 self.workflow.id,
@@ -277,11 +277,11 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
 
         assert self.workflow.name == "Updated Workflow"
 
-        assert self.workflow.type == Workflow.Type.INBOX
+        assert self.workflow.type == WorkflowType.INBOX
 
     def test_type_closed_for_put_is_not_found(self) -> None:
         with override_workflow_api_availability(
-            Workflow.Type.ALERT,
+            WorkflowType.ALERT,
             {**WorkflowSettings.DEFAULT_API_AVAILABILITY, WorkflowEngineAPIOperation.PUT: False},
         ):
             self.get_error_response(
@@ -1881,10 +1881,10 @@ class OrganizationDeleteWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
 
     def test_readable_type_closed_for_delete_is_not_found(self) -> None:
         inbox_workflow = self.create_workflow(
-            organization_id=self.organization.id, type=Workflow.Type.INBOX
+            organization_id=self.organization.id, type=WorkflowType.INBOX
         )
 
-        with override_workflow_api_availability(Workflow.Type.INBOX, GET_AND_PUT_ONLY_AVAILABILITY):
+        with override_workflow_api_availability(WorkflowType.INBOX, GET_AND_PUT_ONLY_AVAILABILITY):
             self.get_error_response(self.organization.slug, inbox_workflow.id, status_code=404)
 
         inbox_workflow.refresh_from_db()
