@@ -49,10 +49,11 @@ from sentry.scm.private.stream_producer import produce_event_to_scm_stream
 from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.webhooks")
-from sentry.api.base import Endpoint, cell_silo_endpoint
+from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.types import IntegrationProviderSlug
+from sentry.silo.base import SiloMode
 
 SHA1_PATTERN = r"^sha1=[0-9a-fA-F]{40}$"
 SHA256_PATTERN = r"^sha256=[0-9a-fA-F]{64}$"
@@ -436,14 +437,14 @@ class GitHubEnterpriseWebhookBase(Endpoint):
                 "sentry_meta": None,
                 "type": IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
             },
-            silo="region",
+            silo="region" if SiloMode.get_current_mode() == SiloMode.CELL else "control",
             is_dev=settings.IS_DEV,
         )
 
         return HttpResponse(status=204)
 
 
-@cell_silo_endpoint
+@all_silo_endpoint
 class GitHubEnterpriseWebhookEndpoint(GitHubEnterpriseWebhookBase):
     owner = ApiOwner.CODING_WORKFLOWS
     publish_status = {
@@ -458,7 +459,7 @@ class GitHubEnterpriseWebhookEndpoint(GitHubEnterpriseWebhookBase):
         return super().dispatch(request, *args, **kwargs)
 
 
-@cell_silo_endpoint
+@all_silo_endpoint
 class GitHubEnterpriseGitHubComWebhookEndpoint(GitHubEnterpriseWebhookBase):
     owner = ApiOwner.CODING_WORKFLOWS
     publish_status = {
