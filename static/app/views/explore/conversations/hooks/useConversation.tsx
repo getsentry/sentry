@@ -266,29 +266,6 @@ function createNodeFromApiSpan(
 }
 
 /**
- * The node's closest ancestor among the conversation's nodes. Walks through the
- * conversation's other spans, like spans that aren't gen_ai spans, so they don't
- * cut a node off from its ancestors.
- */
-function findClosestNodeAncestor(
-  spanId: string,
-  parentIdBySpanId: Map<string, string>,
-  nodeMap: Map<string, AITraceSpanNode>
-): AITraceSpanNode | null {
-  const visited = new Set([spanId]);
-  let parentId = parentIdBySpanId.get(spanId);
-  while (parentId && !visited.has(parentId)) {
-    const parent = nodeMap.get(parentId);
-    if (parent) {
-      return parent;
-    }
-    visited.add(parentId);
-    parentId = parentIdBySpanId.get(parentId);
-  }
-  return null;
-}
-
-/**
  * Orders the conversation's spans so that an agent is always followed by its own
  * descendants, the way the Agent Activity tab reads them off the trace tree.
  * Sorting by start time alone interleaves agents that run in parallel, which
@@ -377,12 +354,6 @@ export function buildConversationNodes(
   const traceMap = new Map<string, string>();
   const genAiSpans = allSpans.filter(span => span['gen_ai.operation.type']);
   const nodeMap = new Map<string, AITraceSpanNode>();
-  const parentIdBySpanId = new Map<string, string>();
-  for (const apiSpan of allSpans) {
-    if (apiSpan.parent_span) {
-      parentIdBySpanId.set(apiSpan.span_id, apiSpan.parent_span);
-    }
-  }
 
   const transformedNodes = genAiSpans.map(apiSpan => {
     const node = createNodeFromApiSpan(
@@ -393,8 +364,10 @@ export function buildConversationNodes(
     traceMap.set(node.id, apiSpan.trace);
     return node;
   });
+  // The API links each span to its closest gen_ai ancestor in the conversation.
   for (const node of transformedNodes) {
-    node.parent = findClosestNodeAncestor(node.id, parentIdBySpanId, nodeMap);
+    const parentId = node.value.parent_span_id;
+    node.parent = (parentId && nodeMap.get(parentId)) || null;
   }
 
   return {nodes: orderDepthFirst(transformedNodes), nodeTraceMap: traceMap};
