@@ -108,25 +108,19 @@ export function useUpdateConfig({configId}: {configId: string}) {
 }
 
 /**
- * Triggers a manual run of an automation, optionally on behalf of a user, and refetches
- * the organization's runs.
+ * Triggers a manual run of an automation and refetches the organization's runs.
  */
 export function useManualRun({configId}: {configId: string}) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
-  // TODO: Mock endpoint. Use getApiUrl once the API route exists.
-  const manualRunUrl =
-    `/organizations/${organization.slug}/seer/workflows/manual-run/` as ReturnType<
-      typeof getApiUrl
-    >;
+  const manualRunUrl = getApiUrl(
+    '/organizations/$organizationIdOrSlug/seer/workflows/manual-run/',
+    {path: {organizationIdOrSlug: organization.slug}}
+  );
 
   return useMutation({
-    mutationFn: ({userId}: {userId?: string} = {}) =>
-      fetchMutation({
-        url: manualRunUrl,
-        method: 'POST',
-        data: {config_id: configId, ...(userId ? {user_id: userId} : {})},
-      }),
+    mutationFn: () =>
+      fetchMutation({url: manualRunUrl, method: 'POST', data: {configId}}),
     onSuccess: () =>
       queryClient.invalidateQueries(
         apiOptions.queryFilter(
