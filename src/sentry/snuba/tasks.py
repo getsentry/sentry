@@ -15,6 +15,7 @@ from snuba_sdk import Request
 from taskbroker_client.retry import Retry
 
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
+from sentry.incidents.models.alert_rule import AlertRule
 from sentry.search.events.types import ParamsType
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.entity_subscription import (
@@ -225,8 +226,6 @@ def _remove_remote_subscription(subscription: QuerySubscription) -> None:
 
 
 def delete_query_subscription(subscription: QuerySubscription) -> None:
-    from sentry.incidents.models.alert_rule import AlertRule
-
     _remove_remote_subscription(subscription)
     with transaction.atomic(using=router.db_for_write(SnubaQuery)):
         # Serialize the last-subscription check when several subscriptions share a query.

@@ -3,6 +3,7 @@ import logging
 from django.db import router, transaction
 
 from sentry.deletions.base import BaseRelation, ModelDeletionTask, ModelRelation
+from sentry.incidents.models.alert_rule import AlertRule
 from sentry.workflow_engine.models.data_source import DataSource
 from sentry.workflow_engine.models.data_source_detector import DataSourceDetector
 from sentry.workflow_engine.models.detector import Detector
@@ -14,7 +15,6 @@ class DetectorDeletionTask(ModelDeletionTask[Detector]):
     manager_name = "objects_for_deletion"
 
     def get_child_relations(self, instance: Detector) -> list[BaseRelation]:
-        from sentry.incidents.models.alert_rule import AlertRule
         from sentry.workflow_engine.models import (
             AlertRuleDetector,
             DataConditionGroup,
