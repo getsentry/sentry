@@ -8,7 +8,6 @@ from sentry.issues.merge_completion import complete_if_events_moved
 from sentry.issues.models.issuemergeoperation import OperationStatus, OperationStep
 from sentry.models.grouphash import GroupHash
 from sentry.testutils.cases import SnubaTestCase, TestCase
-from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.utils.snuba import SnubaError
 
@@ -20,8 +19,7 @@ class MergeCompletionTest(TestCase, SnubaTestCase):
         first = self.store_event(data={"message": "survivor"}, project_id=self.project.id)
         assert first.group_id
         second_event_id = uuid4().hex
-        operation = Factories.create_issue_merge_operation(
-            self.project,
+        operation = self.create_issue_merge_operation(
             [first_source.id, second_source.id],
             first.group_id,
             status=OperationStatus.RUNNING,
@@ -51,8 +49,7 @@ class MergeCompletionTest(TestCase, SnubaTestCase):
         sample = self.store_event(data={"message": "still on source"}, project_id=self.project.id)
         assert sample.group_id
         destination = self.create_group()
-        operation = Factories.create_issue_merge_operation(
-            self.project,
+        operation = self.create_issue_merge_operation(
             [sample.group_id],
             destination.id,
             status=OperationStatus.RUNNING,
@@ -79,8 +76,7 @@ class MergeCompletionTest(TestCase, SnubaTestCase):
         assert remaining.group_id and moved.group_id
         remaining_hash = GroupHash.objects.get(project=self.project, group_id=remaining.group_id)
         moved_hash = GroupHash.objects.get(project=self.project, group_id=moved.group_id)
-        operation = Factories.create_issue_unmerge_operation(
-            self.project,
+        operation = self.create_issue_unmerge_operation(
             remaining.group_id,
             [moved_hash.hash, remaining_hash.hash],
             destination_group_id=moved.group_id,
@@ -112,8 +108,7 @@ class MergeCompletionTest(TestCase, SnubaTestCase):
         )
         assert late.group_id == source_event.group_id
         selected_hash.update(group_id=moved.group_id)
-        operation = Factories.create_issue_unmerge_operation(
-            self.project,
+        operation = self.create_issue_unmerge_operation(
             source_event.group_id,
             [selected_hash.hash],
             destination_group_id=moved.group_id,
@@ -127,8 +122,7 @@ class MergeCompletionTest(TestCase, SnubaTestCase):
 
     def test_failed_query_preserves_waiting_row(self) -> None:
         source = self.create_group()
-        operation = Factories.create_issue_merge_operation(
-            self.project,
+        operation = self.create_issue_merge_operation(
             [source.id],
             self.create_group().id,
             status=OperationStatus.RUNNING,
