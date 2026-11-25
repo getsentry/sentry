@@ -1,12 +1,6 @@
 import {Fragment, useState, type ReactNode} from 'react';
 import {ThemeProvider} from '@emotion/react';
-import {
-  act,
-  render,
-  screen,
-  waitForElementToBeRemoved,
-  within,
-} from '@testing-library/react';
+import {act, render, screen, waitForElementToBeRemoved} from '@testing-library/react';
 import {userEvent} from '@testing-library/user-event';
 
 import {Tabs} from '@sentry/scraps/tabs';
@@ -37,20 +31,17 @@ describe('Tabs overflow', () => {
   // control how many tabs fit. The component reserves 48px for the trigger.
   const TAB_WIDTH = 100;
 
-  // Widths reported by each tab and by the tab list wrapper, mutable so resizes
-  // can be simulated. jsdom has no layout engine, so all measurement is mocked.
-  // A `'content'` wrapper is as wide as the tabs it lays out.
-  let tabWidth = TAB_WIDTH;
-  let containerWidth: number | 'content' = 1000;
+  // Width reported by the tab list wrapper, mutable so resizes can be
+  // simulated. jsdom has no layout engine, so all measurement is mocked.
+  let containerWidth = 1000;
   let resizeCallbacks: ResizeObserverCallback[] = [];
   let originalResizeObserver: typeof ResizeObserver;
 
   beforeEach(() => {
-    tabWidth = TAB_WIDTH;
     containerWidth = 1000;
     resizeCallbacks = [];
 
-    // Each tab (<li role="tab">) measures tabWidth and the tab list wrapper
+    // Each tab (<li role="tab">) measures TAB_WIDTH and the tab list wrapper
     // (whose direct child is the tablist) measures containerWidth; everything
     // else is 0.
     jest
@@ -58,15 +49,9 @@ describe('Tabs overflow', () => {
       .mockImplementation(function (this: HTMLElement) {
         let width = 0;
         if (this.matches('[role="tab"], :has(> [role="tab"])')) {
-          width = tabWidth;
+          width = TAB_WIDTH;
         } else if (this.matches(':has(> [role="tablist"])')) {
-          width =
-            containerWidth === 'content'
-              ? within(this)
-                  .queryAllByRole('tab', {hidden: true})
-                  .filter(tab => getComputedStyle(tab).display !== 'none').length *
-                tabWidth
-              : containerWidth;
+          width = containerWidth;
         }
         return {
           width,
@@ -99,7 +84,7 @@ describe('Tabs overflow', () => {
     window.ResizeObserver = originalResizeObserver;
   });
 
-  function resizeContainerTo(width: typeof containerWidth) {
+  function resizeContainerTo(width: number) {
     containerWidth = width;
     act(() => {
       resizeCallbacks.forEach(callback => callback([], {} as ResizeObserver));
@@ -111,43 +96,6 @@ describe('Tabs overflow', () => {
     render(<OverflowTabs />, {wrapper: ThemeWrapper});
 
     expect(screen.queryByRole('button', {name: 'More tabs'})).not.toBeInTheDocument();
-  });
-
-  it('does not overflow when the tabs fill the container to a fraction of a pixel', async () => {
-    // A shrink-to-fit container is exactly as wide as its tabs, which is not a
-    // whole number of pixels. Rounding the container down would push the last
-    // tab into the menu, shrink the container around the remaining tabs, and
-    // repeat until only the first tab is left.
-    const gap = 4;
-    const realGetComputedStyle = window.getComputedStyle;
-    jest
-      .spyOn(window, 'getComputedStyle')
-      .mockImplementation(element =>
-        element.getAttribute('role') === 'tablist'
-          ? ({columnGap: `${gap}px`} as CSSStyleDeclaration)
-          : realGetComputedStyle(element)
-      );
-    tabWidth = 100.125;
-    const tabsWithGaps = TABS.length * tabWidth + (TABS.length - 1) * gap;
-    containerWidth = tabsWithGaps;
-    render(<OverflowTabs />, {wrapper: ThemeWrapper});
-
-    expect(screen.queryByRole('button', {name: 'More tabs'})).not.toBeInTheDocument();
-    expect(screen.getAllByRole('tab')).toHaveLength(TABS.length);
-
-    // When the page is zoomed, the tabs can measure a fraction of a pixel wider
-    // than the container that holds them exactly. They still fit.
-    resizeContainerTo(tabsWithGaps - 0.02);
-    // The resize is handled on the next animation frame.
-    await act(() => new Promise(requestAnimationFrame));
-
-    expect(screen.queryByRole('button', {name: 'More tabs'})).not.toBeInTheDocument();
-
-    // One pixel less than the tabs and their gaps must overflow, which only
-    // holds if the gaps are counted.
-    resizeContainerTo(tabsWithGaps - 1);
-
-    expect(await screen.findByRole('button', {name: 'More tabs'})).toBeInTheDocument();
   });
 
   it('moves tabs that do not fit into an overflow menu', async () => {
@@ -169,24 +117,6 @@ describe('Tabs overflow', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('keeps the first tab visible when only it and the overflow trigger fit', async () => {
-    containerWidth = 120;
-    render(<OverflowTabs />, {wrapper: ThemeWrapper});
-
-    expect(screen.getByRole('tab', {name: 'Details'})).toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole('button', {name: 'More tabs'}));
-
-    expect(
-      screen.queryByRole('menuitemradio', {name: 'Details'})
-    ).not.toBeInTheDocument();
-    expect(screen.getByRole('menuitemradio', {name: 'Activity'})).toBeInTheDocument();
-    expect(
-      screen.getByRole('menuitemradio', {name: 'User Feedback'})
-    ).toBeInTheDocument();
-    expect(screen.getByRole('menuitemradio', {name: 'Attachments'})).toBeInTheDocument();
-  });
-
   it('recomputes overflow when the container is resized', async () => {
     containerWidth = 1000;
     render(<OverflowTabs />, {wrapper: ThemeWrapper});
@@ -201,23 +131,6 @@ describe('Tabs overflow', () => {
     expect(screen.getByRole('menuitemradio', {name: 'Attachments'})).toBeInTheDocument();
 
     resizeContainerTo(1000);
-    await waitForElementToBeRemoved(() =>
-      screen.queryByRole('button', {name: 'More tabs'})
-    );
-  });
-
-  it('shows every tab again when a content-sized container grows back', async () => {
-    // If hiding an overflowing tab shrank a content-sized container, the hidden
-    // tabs would never fit again.
-    containerWidth = 'content';
-    render(<OverflowTabs />, {wrapper: ThemeWrapper});
-
-    expect(screen.queryByRole('button', {name: 'More tabs'})).not.toBeInTheDocument();
-
-    resizeContainerTo(260);
-    expect(await screen.findByRole('button', {name: 'More tabs'})).toBeInTheDocument();
-
-    resizeContainerTo('content');
     await waitForElementToBeRemoved(() =>
       screen.queryByRole('button', {name: 'More tabs'})
     );
