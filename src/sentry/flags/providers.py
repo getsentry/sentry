@@ -237,10 +237,14 @@ class GenericItemSerializer(serializers.Serializer):
     created_at = serializers.DateTimeField(required=True)
     created_by = GenericItemCreatedBySerializer(required=True)
     flag = serializers.CharField(required=True, max_length=256)
-    # Additive optional fields — accept so payloads with these keys are not dropped.
+    # Additive optional fields — accept so payloads with these keys (incl. null) are not dropped.
     description = serializers.CharField(allow_blank=True, required=False, allow_null=True)
     flag_description = serializers.CharField(allow_blank=True, required=False, allow_null=True)
-    tags = serializers.DictField(child=serializers.CharField(), required=False)
+    tags = serializers.DictField(
+        child=serializers.CharField(allow_blank=True),
+        required=False,
+        allow_null=True,
+    )
 
 
 class GenericMetaSerializer(serializers.Serializer):
