@@ -28,7 +28,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {useUser} from 'sentry/utils/useUser';
 import {useUserFromId} from 'sentry/utils/useUserFromId';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
@@ -83,7 +82,6 @@ export default function AutomationDetail() {
   const deleteConfig = useDeleteConfig({configId: automationId});
   const isUpdatingConfig = useIsUpdatingConfig({configId: automationId});
   const manualRun = useManualRun({configId: automationId});
-  const user = useUser();
   const [isConfiguring, setIsConfiguring] = useState(false);
   const [draftName, setDraftName] = useState('');
   const [formHasChanges, setFormHasChanges] = useState(false);
@@ -267,14 +265,11 @@ export default function AutomationDetail() {
           size="sm"
           busy={manualRun.isPending}
           onClick={() =>
-            manualRun.mutate(
-              {userId: user.id},
-              {
-                onSuccess: () => toast.success(t('Run started.')),
-                onError: error =>
-                  toast.error(t('Unable to run. %s', getRequestErrorUserMessage(error))),
-              }
-            )
+            manualRun.mutate(undefined, {
+              onSuccess: () => toast.success(t('Run started.')),
+              onError: error =>
+                toast.error(t('Unable to run. %s', getRequestErrorUserMessage(error))),
+            })
           }
         >
           {t('Run now')}
