@@ -326,12 +326,12 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
 
         assert self.workflow.name == "Test Workflow"
 
-        assert self.workflow.type == Workflow.Type.ALERT
+        assert self.workflow.type == WorkflowType.ALERT
 
     def test_type_open_for_put_rejects_a_different_type(self) -> None:
-        self.workflow.update(type=Workflow.Type.INBOX)
+        self.workflow.update(type=WorkflowType.INBOX)
 
-        with override_workflow_api_availability(Workflow.Type.INBOX, GET_AND_PUT_ONLY_AVAILABILITY):
+        with override_workflow_api_availability(WorkflowType.INBOX, GET_AND_PUT_ONLY_AVAILABILITY):
             response = self.get_error_response(
                 self.organization.slug,
                 self.workflow.id,
@@ -345,7 +345,7 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
 
         assert self.workflow.name == "Test Workflow"
 
-        assert self.workflow.type == Workflow.Type.INBOX
+        assert self.workflow.type == WorkflowType.INBOX
 
     def test_team_admin_can_update_project_scoped_workflow(self) -> None:
         detector = self.create_detector(project=self.project)

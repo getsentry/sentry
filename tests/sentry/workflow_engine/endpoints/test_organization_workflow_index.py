@@ -995,7 +995,7 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
 
         assert response.data["type"] == "alert"
 
-        assert Workflow.objects.get(id=response.data["id"]).type == Workflow.Type.ALERT
+        assert Workflow.objects.get(id=response.data["id"]).type == WorkflowType.ALERT
 
     def test_create_rejects_type_closed_for_post(self) -> None:
         with assert_querysets_unchanged(workflows=Workflow.objects.all()):
@@ -1019,7 +1019,7 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
 
     def test_create_with_type_open_for_post_creates_that_type(self) -> None:
         with override_workflow_api_availability(
-            Workflow.Type.INBOX, WorkflowSettings.DEFAULT_API_AVAILABILITY
+            WorkflowType.INBOX, WorkflowSettings.DEFAULT_API_AVAILABILITY
         ):
             response = self.get_success_response(
                 self.organization.slug, raw_data={**self.valid_workflow, "type": "inbox"}
@@ -1027,13 +1027,13 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
 
         assert response.data["type"] == "inbox"
 
-        assert Workflow.objects.get(id=response.data["id"]).type == Workflow.Type.INBOX
+        assert Workflow.objects.get(id=response.data["id"]).type == WorkflowType.INBOX
 
     def test_create_is_rejected_when_post_feature_gate_is_off(self) -> None:
         with (
             self.feature({GATE_FEATURE: False}),
             override_workflow_api_availability(
-                Workflow.Type.ALERT, {WorkflowEngineAPIOperation.POST: FeatureGate(GATE_FEATURE)}
+                WorkflowType.ALERT, {WorkflowEngineAPIOperation.POST: FeatureGate(GATE_FEATURE)}
             ),
             assert_querysets_unchanged(workflows=Workflow.objects.all()),
         ):
@@ -1047,14 +1047,14 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
         with (
             self.feature({GATE_FEATURE: True}),
             override_workflow_api_availability(
-                Workflow.Type.ALERT, {WorkflowEngineAPIOperation.POST: FeatureGate(GATE_FEATURE)}
+                WorkflowType.ALERT, {WorkflowEngineAPIOperation.POST: FeatureGate(GATE_FEATURE)}
             ),
         ):
             response = self.get_success_response(
                 self.organization.slug, raw_data=self.valid_workflow
             )
 
-        assert Workflow.objects.get(id=response.data["id"]).type == Workflow.Type.ALERT
+        assert Workflow.objects.get(id=response.data["id"]).type == WorkflowType.ALERT
 
     def test_create_workflow__rejects_action_filter_in_triggers(self) -> None:
         self.valid_workflow["triggers"] = {

@@ -729,7 +729,7 @@ class TestWorkflowValidatorCreate(TestCase):
 
         workflow = validator.create(validator.validated_data)
 
-        assert workflow.type == Workflow.Type.ALERT
+        assert workflow.type == WorkflowType.ALERT
 
     def test_create_rejects_type_closed_for_post(self) -> None:
         validator = WorkflowValidator(
@@ -751,7 +751,7 @@ class TestWorkflowValidatorCreate(TestCase):
 
     def test_create_with_type_open_for_post_creates_that_type(self) -> None:
         with override_workflow_api_availability(
-            Workflow.Type.INBOX, WorkflowSettings.DEFAULT_API_AVAILABILITY
+            WorkflowType.INBOX, WorkflowSettings.DEFAULT_API_AVAILABILITY
         ):
             validator = WorkflowValidator(
                 data={**self.valid_data, "type": "inbox"}, context=self.context
@@ -968,7 +968,7 @@ class TestWorkflowValidatorUpdate(TestCase):
 
         workflow = validator.update(self.workflow, validator.validated_data)
 
-        assert workflow.type == Workflow.Type.ALERT
+        assert workflow.type == WorkflowType.ALERT
 
     def test_update_rejects_different_type(self, mock_action_validator: mock.MagicMock) -> None:
         validator = WorkflowValidator(
@@ -982,7 +982,7 @@ class TestWorkflowValidatorUpdate(TestCase):
     def test_update_rejects_alert_type_on_non_alert_workflow(
         self, mock_action_validator: mock.MagicMock
     ) -> None:
-        self.workflow.update(type=Workflow.Type.INBOX)
+        self.workflow.update(type=WorkflowType.INBOX)
 
         validator = WorkflowValidator(
             data={**self.valid_data, "type": "alert"}, context=self.context
@@ -1013,7 +1013,7 @@ class TestWorkflowValidatorUpdate(TestCase):
         assert validator.is_valid() is True
 
         workflow = validator.update(
-            self.workflow, {**validator.validated_data, "type": Workflow.Type.INBOX}
+            self.workflow, {**validator.validated_data, "type": WorkflowType.INBOX}
         )
 
         workflow.refresh_from_db()
