@@ -64,9 +64,20 @@ type MonitorTrigger = {
 type CronTrigger = {type: 'cron'};
 
 /**
+ * A run a user started by hand
+ */
+type ManualTrigger = {
+  type: 'manual';
+  /**
+   * The user who started the run, when known
+   */
+  userId?: string | null;
+};
+
+/**
  * What started a run. Discriminated by `type`; add new trigger variants to this union.
  */
-type WorkflowTrigger = MonitorTrigger | CronTrigger;
+type WorkflowTrigger = MonitorTrigger | CronTrigger | ManualTrigger;
 
 type SeerAutomationRunBase = {
   configId: string;
