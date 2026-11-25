@@ -9,7 +9,8 @@ import type {Node} from '@react-types/shared';
 import {IconCheckmark} from '@sentry/icons/checkmark';
 import {IconChevron} from '@sentry/icons/chevron';
 
-import {type LinkProps, UnstyledLink} from '@sentry/scraps/link';
+import type {LinkProps} from '@sentry/scraps/link';
+import {useLinkBehavior} from '@sentry/scraps/link/linkBehaviorContext';
 import {
   ListItem,
   type ListItemProps,
@@ -213,6 +214,9 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
   const {size} = node.props;
   const {rootMenuState} = useContext(DropdownMenuContext);
   const isLink = to || externalHref;
+  // The router link that Link styles. Rendering StyledInnerWrap `as` Link would
+  // make Emotion serialize both components' styles on every hover.
+  const {Component: RouterLink, behavior: linkBehavior} = useLinkBehavior({to: to ?? ''});
   const resolvedCloseOnSelect = itemCloseOnSelect ?? closeOnSelect;
 
   const actionHandler = () => {
@@ -271,7 +275,7 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
 
   const makeInnerWrapProps = () => {
     if (to) {
-      return {as: UnstyledLink, to};
+      return {as: RouterLink, ...linkBehavior()};
     }
 
     if (externalHref) {
