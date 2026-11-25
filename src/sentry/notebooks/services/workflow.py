@@ -27,6 +27,7 @@ from sentry.notebooks.models import (
 )
 from sentry.notebooks.services.action_requests import sync_snapshot_action_requests
 from sentry.notebooks.services.notebooks import (
+    NotebookWriterConflict,
     _validate_project_ids,
     create_manual_notebook,
     has_default_notebook_title,
@@ -72,7 +73,7 @@ def open_workflow_notebook(
             if (latest is None and previous_run_id is not None) or (
                 latest is not None and latest.run_id not in (run_id, previous_run_id)
             ):
-                raise ConflictError("Another workflow owns this notebook.")
+                raise NotebookWriterConflict("Another workflow owns this notebook.")
         elif previous_run_id is not None:
             raise serializers.ValidationError("A previous run requires a notebook destination.")
         binding, created = NotebookWorkflowRun.objects.get_or_create(
@@ -81,12 +82,12 @@ def open_workflow_notebook(
             defaults={"notebook": destination_notebook, "preserve_title": destination is not None},
         )
         if destination is not None and destination.id != binding.notebook_id:
-            raise ConflictError("This workflow already opened another notebook.")
+            raise NotebookWriterConflict("This workflow already opened another notebook.")
         notebook = Notebook.objects.select_for_update().get(
             pk=binding.notebook_id, organization=organization
         )
         if not created and (latest or latest_workflow_binding(notebook)) != binding:
-            raise ConflictError("Another workflow owns this notebook.")
+            raise NotebookWriterConflict("Another workflow owns this notebook.")
         if created and latest is not None:
             sync_snapshot_action_requests(notebook, [], workflow_run=latest)
             if not latest.preserve_title:
@@ -131,7 +132,18 @@ def validate_embed(value: Any, widgets: list[dict[str, Any]]) -> None:
     try:
         jsonschema.validate(value["body"], widget.get("body") or {})
     except jsonschema.ValidationError as error:
-        raise serializers.ValidationError({"embed": error.message}) from error
+        path = ["embed", "body", *map(str, error.absolute_path)]
+        reason = "Check the widget schema."
+        keyword = error.absolute_schema_path[-1] if error.absolute_schema_path else None
+        if keyword == "required" and isinstance(error.instance, dict):
+            missing = next(key for key in error.validator_value if key not in error.instance)
+            path.append(missing)
+            reason = "This field is required."
+        elif keyword == "type" and isinstance(error.validator_value, str):
+            reason = f"Expected {error.validator_value}."
+        raise serializers.ValidationError(
+            {"embed": {"field": ".".join(path), "reason": reason}}
+        ) from error
 
 
 def link_writer_run(
@@ -147,7 +159,7 @@ def link_writer_run(
         )
         binding = latest_workflow_binding(notebook)
         if binding is None or binding.run_id != run_id:
-            raise ConflictError("Another workflow owns this notebook.")
+            raise NotebookWriterConflict("Another workflow owns this notebook.")
         writer, _ = SeerRun.objects.get_or_create(
             seer_run_state_id=seer_run_state_id,
             defaults={
@@ -160,11 +172,11 @@ def link_writer_run(
             },
         )
         if writer.organization_id != organization.id or writer.type != SeerRunType.EXPLORER:
-            raise ConflictError("The writer run does not match this workflow.")
+            raise NotebookWriterConflict("The writer run does not match this workflow.")
         if binding.writer_run_id != writer.id:
             previous = binding.writer_run
             if previous and (previous.seer_run_state_id or 0) > seer_run_state_id:
-                raise ConflictError("A later writer has already opened this notebook.")
+                raise NotebookWriterConflict("A later writer has already opened this notebook.")
             binding.update(writer_run_id=writer.id)
         return writer.uuid
 
@@ -287,7 +299,12 @@ def deliver_finalizer(
         )
         binding = require_workflow_writer(notebook, binding.run_id, writer_run_id)
         if notebook.status != "active" or content_revision(notebook) != revision:
-            raise ConflictError("Notebook contents changed after authoring.")
+            raise ConflictError(
+                {
+                    "code": "notebook_revision_changed",
+                    "detail": "Notebook contents changed after authoring.",
+                }
+            )
         if binding.delivered.get(section) == revision:
             return
         blocks = notebook.blocks.filter(deleted_at__isnull=True)

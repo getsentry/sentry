@@ -26,7 +26,7 @@ from sentry.notebooks.models import (
     NotebookStatus,
     NotebookWorkflowRun,
 )
-from sentry.notebooks.services.producer_sources import ProducerSource
+from sentry.notebooks.services.producer_sources import ProducerSource, split_workflow_block_key
 
 UPDATABLE_NOTEBOOK_FIELDS = frozenset({"title", "status", "filters"})
 MAX_NOTEBOOK_TITLE_LENGTH = 255
@@ -79,6 +79,11 @@ class NotebookValidationError(NotebookServiceError):
 
 class NotebookConflictError(NotebookServiceError):
     pass
+
+
+class NotebookWriterConflict(ConflictError):
+    def __init__(self, detail: str) -> None:
+        super().__init__({"code": "writer_replaced", "detail": detail})
 
 
 class NotebookSourceNotFound(NotebookServiceError):
@@ -137,9 +142,9 @@ def require_workflow_writer(
     if binding is None:
         raise serializers.ValidationError({"workflowRunId": "Open this notebook first."})
     if binding.run_id != run_id:
-        raise ConflictError("Another workflow owns this notebook.")
+        raise NotebookWriterConflict("Another workflow owns this notebook.")
     if not binding.writer_run or binding.writer_run.seer_run_state_id != writer_run_id:
-        raise ConflictError("This writer is not the registered notebook writer.")
+        raise NotebookWriterConflict("This writer is not the registered notebook writer.")
     return binding
 
 
@@ -477,6 +482,15 @@ def delete_block(
             locked = NotebookBlock.objects.select_for_update().get(id=block.id)
         except NotebookBlock.DoesNotExist:
             raise NotebookSourceNotFound
+        if workflow_run_id is not None:
+            owner, _ = split_workflow_block_key(locked.producer_key or "")
+            if owner != str(workflow_run_id):
+                raise ConflictError(
+                    {
+                        "code": "foreign_block",
+                        "detail": "This workflow can only remove its own blocks.",
+                    }
+                )
         if notebook.status != NotebookStatus.ACTIVE:
             raise NotebookValidationError({"detail": "Archived investigations are read-only."})
         if locked.version != expected_block_version:

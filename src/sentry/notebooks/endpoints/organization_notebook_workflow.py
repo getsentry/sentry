@@ -27,6 +27,7 @@ from sentry.notebooks.endpoints.base import (
 from sentry.notebooks.endpoints.validators.base import StrictCamelSnakeValidator
 from sentry.notebooks.models import Notebook, NotebookBlock, NotebookWorkflowRun
 from sentry.notebooks.services import NotebookValidationError
+from sentry.notebooks.services.notebooks import _validate_project_ids, validate_evidence_scope
 from sentry.notebooks.services.producer_sources import workflow_block_key
 from sentry.notebooks.services.workflow import (
     content_revision,
@@ -62,23 +63,41 @@ def _validate_payload(
     return serializer.validated_data
 
 
-class OpenWorkflowNotebook(StrictCamelSnakeValidator[None]):
-    previous_run_id = serializers.UUIDField(
-        required=False, help_text="Current owner when replacing a notebook workflow."
-    )
+class WorkflowDestination(StrictCamelSnakeValidator[None]):
     notebook_id = serializers.IntegerField(
         min_value=1,
         required=False,
         help_text="Existing notebook ID to open. Omit to create a notebook for this run.",
-    )
-    title = serializers.CharField(
-        max_length=255, help_text="Title to use when creating a notebook."
     )
     project_ids = serializers.ListField(
         child=serializers.IntegerField(min_value=1),
         default=list,
         help_text="Projects represented by the workflow evidence. An empty list means all projects.",
     )
+
+
+class OpenWorkflowNotebook(WorkflowDestination):
+    previous_run_id = serializers.UUIDField(
+        required=False, help_text="Current owner when replacing a notebook workflow."
+    )
+    title = serializers.CharField(
+        max_length=255, help_text="Title to use when creating a notebook."
+    )
+
+
+def _authorized_destination(
+    request: Request, organization: Organization, values: dict[str, Any]
+) -> Notebook | None:
+    destination = None
+    if "notebook_id" in values:
+        destination = Notebook.objects.get_or_none(
+            organization=organization, pk=values["notebook_id"], status="active"
+        )
+        if destination is None:
+            raise ResourceDoesNotExist
+    require_notebook_writer(request, destination)
+    require_project_access(request, values["project_ids"])
+    return destination
 
 
 class SummaryWrite(StrictCamelSnakeValidator[None]):
@@ -196,6 +215,22 @@ class OrganizationNotebookWorkflowEndpoint(OrganizationNotebooksBaseEndpoint):
 
     @extend_schema(
         operation_id="getWorkflowNotebookContext",
+        parameters=[
+            OpenApiParameter(
+                "preflight",
+                OpenApiTypes.INT,
+                description="Set to 1 to check the proposed destination without creating a binding.",
+            ),
+            OpenApiParameter(
+                "notebookId", OpenApiTypes.INT, description="Existing destination for a preflight."
+            ),
+            OpenApiParameter(
+                "projectId",
+                OpenApiTypes.INT,
+                many=True,
+                description="Evidence project for a preflight. Repeat for multiple projects.",
+            ),
+        ],
         request=None,
         responses={
             200: inline_sentry_response_serializer(
@@ -211,6 +246,24 @@ class OrganizationNotebookWorkflowEndpoint(OrganizationNotebooksBaseEndpoint):
         binding: NotebookWorkflowRun | None,
     ) -> Response:
         """Retrieve the caller's block widgets and the current notebook content revision."""
+        if request.query_params.get("preflight") == "1":
+            params = request.query_params
+            values = _validate_payload(
+                WorkflowDestination,
+                {
+                    "projectIds": params.getlist("projectId"),
+                    **({"notebookId": params["notebookId"]} if "notebookId" in params else {}),
+                },
+            )
+            destination = _authorized_destination(request, organization, values)
+            try:
+                evidence = _validate_project_ids(organization.id, values["project_ids"])
+                if destination is not None:
+                    validate_evidence_scope(
+                        list(destination.projects.values_list("id", flat=True)), evidence
+                    )
+            except NotebookValidationError as error:
+                raise serializers.ValidationError(error.errors) from error
         widgets = [
             w for w in get_embed_widgets(organization, request.user) if "block" in w["level"]
         ]
@@ -241,15 +294,7 @@ class OrganizationNotebookWorkflowEndpoint(OrganizationNotebooksBaseEndpoint):
     ) -> Response:
         """Bind this run to an existing notebook or create its destination exactly once."""
         values = _validate_payload(OpenWorkflowNotebook, request.data)
-        destination = None
-        if "notebook_id" in values:
-            destination = Notebook.objects.get_or_none(
-                organization=organization, pk=values["notebook_id"], status="active"
-            )
-            if destination is None:
-                raise ResourceDoesNotExist
-        require_notebook_writer(request, destination)
-        require_project_access(request, values["project_ids"])
+        destination = _authorized_destination(request, organization, values)
         try:
             with transaction.atomic(using=router.db_for_write(Notebook)):
                 notebook = open_workflow_notebook(

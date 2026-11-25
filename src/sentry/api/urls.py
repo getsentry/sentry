@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from django.conf.urls import include
-from django.urls import URLPattern, URLResolver, re_path
+from django.urls import URLPattern, URLResolver, path, re_path
 from django.urls.converters import UUIDConverter
 
 from sentry.agent_handoff.endpoints.claim_agent_handoff import ClaimAgentHandoffEndpoint
@@ -2499,13 +2499,13 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         OrganizationWorkflowCommandsEndpoint.as_view(),
         name="sentry-api-0-organization-investigation-workflow-commands",
     ),
-    re_path(
-        rf"^(?P<organization_id_or_slug>[^/]+)/notebooks/workflow-runs/(?P<workflow_run_id>{UUIDConverter.regex})/$",
+    path(
+        "<str:organization_id_or_slug>/notebooks/workflow-runs/<uuid:workflow_run_id>/",
         OrganizationNotebookWorkflowEndpoint.as_view(),
         name="sentry-api-0-organization-notebook-workflow",
     ),
-    re_path(
-        rf"^(?P<organization_id_or_slug>[^/]+)/notebooks/workflow-runs/(?P<workflow_run_id>{UUIDConverter.regex})/writer/$",
+    path(
+        "<str:organization_id_or_slug>/notebooks/workflow-runs/<uuid:workflow_run_id>/writer/",
         OrganizationNotebookWorkflowWriterEndpoint.as_view(),
         name="sentry-api-0-organization-notebook-workflow-writer",
     ),
