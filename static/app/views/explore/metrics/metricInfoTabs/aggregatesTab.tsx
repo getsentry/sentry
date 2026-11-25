@@ -20,13 +20,11 @@ import type {TableColumn} from 'sentry/views/discover/table/types';
 import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {useMetricAggregatesTable} from 'sentry/views/explore/metrics/hooks/useMetricAggregatesTable';
+import {useTraceMetricFilter} from 'sentry/views/explore/metrics/hooks/useTraceMetricFilter';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {useMetricVisualize} from 'sentry/views/explore/metrics/metricsQueryParams';
 import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
-import {
-  createTraceMetricFilter,
-  getMetricsUnit,
-} from 'sentry/views/explore/metrics/utils';
+import {getMetricsUnit} from 'sentry/views/explore/metrics/utils';
 import {
   useQueryParamsAggregateSortBys,
   useQueryParamsGroupBys,
@@ -98,7 +96,7 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
   const setSorts = useSetQueryParamsAggregateSortBys();
   const groupBys = useQueryParamsGroupBys();
 
-  const traceMetricFilter = createTraceMetricFilter(traceMetric);
+  const traceMetricFilter = useTraceMetricFilter(traceMetric);
 
   const {data} = useQuery({
     ...traceItemAttributeKeysOptions({
