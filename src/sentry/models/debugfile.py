@@ -865,6 +865,49 @@ def _is_source_map(data: Any) -> bool:
     )
 
 
+def _try_normalize_debug_id(debug_id: str) -> str | None:
+    try:
+        return normalize_debug_id(debug_id)
+    except SymbolicError:
+        return None
+
+
+def _wasm_source_map_debug_id(data: dict[str, Any], debug_id: str | None) -> str:
+    """The normalized debug id to store a WASM source map under.
+
+    A map can carry its own id in `debugId` (the source map debug id proposal, which Emscripten
+    fills with the module's build id) or in the legacy `debug_id`. That id wins over the one the
+    client sends. Without either, the client must send the module's build id.
+    """
+    embedded = data.get("debugId")
+    if embedded is None:
+        embedded = data.get("debug_id")
+
+    if embedded is None:
+        if debug_id is None:
+            raise BadDif("Missing debug_id for wasmsourcemap")
+        try:
+            return normalize_debug_id(debug_id)
+        except SymbolicError as e:
+            raise BadDif("Invalid debug_id for wasmsourcemap: %s" % e)
+
+    if not isinstance(embedded, str):
+        raise BadDif("Invalid debugId in wasmsourcemap: %r" % embedded)
+    try:
+        embedded = normalize_debug_id(embedded)
+    except SymbolicError as e:
+        raise BadDif("Invalid debugId in wasmsourcemap: %s" % e)
+
+    if debug_id is not None and _try_normalize_debug_id(debug_id) != embedded:
+        # Symbolicator finds the map by the module's build id. A map stamped with another id is
+        # stored, but never paired with its module.
+        logger.warning(
+            "wasmsourcemap.debug_id_mismatch",
+            extra={"embedded_debug_id": embedded, "debug_id": debug_id},
+        )
+    return embedded
+
+
 def _detect_wasm_source_map(
     data: dict[str, Any], path: str, name: str | None, debug_id: str | None
 ) -> list[DifMeta]:
@@ -872,12 +915,7 @@ def _detect_wasm_source_map(
         raise BadDif("Unsupported source map version: %r" % data["version"])
     if "sections" in data:
         raise BadDif("Index source maps are not supported")
-    if debug_id is None:
-        raise BadDif("Missing debug_id for wasmsourcemap")
-    try:
-        debug_id = normalize_debug_id(debug_id)
-    except SymbolicError as e:
-        raise BadDif("Invalid debug_id for wasmsourcemap: %s" % e)
+    debug_id = _wasm_source_map_debug_id(data, debug_id)
     logger.debug("File loaded as wasmsourcemap: %s", path)
     return [
         DifMeta(

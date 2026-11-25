@@ -1011,6 +1011,47 @@ def test_wasm_source_map_invalid_debug_id(tmp_path: Path) -> None:
         _detect_json_file(tmp_path, WASM_SOURCE_MAP, debug_id="not-a-debug-id")
 
 
+def test_wasm_source_map_embedded_debug_id(tmp_path: Path) -> None:
+    # Emscripten writes the module's build id into the map, without hyphens.
+    content = '{"version": 3, "debugId": "3B5EA884827C57BDAF43D4AEE910713C", "mappings": "AAAA"}'
+
+    detected = _detect_json_file(tmp_path, content, debug_id=None)
+
+    assert len(detected) == 1
+    assert detected[0].file_format == "wasmsourcemap"
+    assert detected[0].debug_id == "3b5ea884-827c-57bd-af43-d4aee910713c"
+
+
+def test_wasm_source_map_embedded_debug_id_wins(tmp_path: Path) -> None:
+    content = (
+        '{"version": 3, "debugId": "3b5ea884-827c-57bd-af43-d4aee910713c", "mappings": "AAAA"}'
+    )
+
+    detected = _detect_json_file(tmp_path, content, debug_id="bda18fd8-5d4a-4eb8-9302-2d6bfad846b1")
+
+    assert len(detected) == 1
+    assert detected[0].debug_id == "3b5ea884-827c-57bd-af43-d4aee910713c"
+
+
+def test_wasm_source_map_legacy_embedded_debug_id(tmp_path: Path) -> None:
+    content = (
+        '{"version": 3, "debug_id": "3b5ea884-827c-57bd-af43-d4aee910713c", "mappings": "AAAA"}'
+    )
+
+    detected = _detect_json_file(tmp_path, content, debug_id=None)
+
+    assert len(detected) == 1
+    assert detected[0].debug_id == "3b5ea884-827c-57bd-af43-d4aee910713c"
+
+
+@pytest.mark.parametrize("embedded", ['"not-a-debug-id"', "42"])
+def test_wasm_source_map_invalid_embedded_debug_id(tmp_path: Path, embedded: str) -> None:
+    content = '{"version": 3, "debugId": %s, "mappings": "AAAA"}' % embedded
+
+    with pytest.raises(BadDif, match="Invalid debugId in wasmsourcemap"):
+        _detect_json_file(tmp_path, content, debug_id="bda18fd8-5d4a-4eb8-9302-2d6bfad846b1")
+
+
 def test_il2cpp_still_detected_alongside_wasm_source_maps(tmp_path: Path) -> None:
     """A JSON object that is not a source map keeps being stored as il2cpp."""
     content = '{"/src/Game.cpp": {"12": {"cs_file": "Game.cs", "cs_line": 3}}}'
