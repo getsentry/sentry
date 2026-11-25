@@ -18,9 +18,7 @@ import {
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import type {Subscription as TSubscription} from 'getsentry/types';
 import {FTCConsentLocation} from 'getsentry/types';
-import BillingInformationView, {
-  BillingInformation,
-} from 'getsentry/views/subscriptionPage/billingInformation';
+import BillingInformation from 'getsentry/views/subscriptionPage/billingInformation';
 
 // Stripe mocks handled by global setup.ts
 // TODO(isabella): tbh most of these tests should be in a spec for the individual panel components
@@ -70,7 +68,7 @@ describe('Subscription > BillingInformation', () => {
       method: 'GET',
     });
 
-    render(<BillingInformationView />, {organization});
+    render(<BillingInformation />, {organization});
 
     expect(
       await screen.findByText('There was an error loading data.')
