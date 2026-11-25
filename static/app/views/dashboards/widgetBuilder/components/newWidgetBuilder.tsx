@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useState} from 'react';
 import {closestCorners, DndContext} from '@dnd-kit/core';
 import {css, Global, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -64,8 +64,10 @@ export function WidgetBuilderV2({
 
   const [translate, setTranslate] = useState(DEFAULT_WIDGET_DRAG_POSITIONING);
 
-  const navigationElementRef = useRef<HTMLDivElement>(null);
   const {ref: measureNavigation, ...dimensions} = useDimensions();
+  // The navigation always has a size once it's on the page (a sidebar, or a
+  // top bar on mobile), so a measurement means it was found.
+  const hasNavigation = dimensions.width > 0 || dimensions.height > 0;
 
   // The navigation lives outside this tree, so find it and measure it directly
   useEffect(() => {
@@ -76,12 +78,7 @@ export function WidgetBuilderV2({
       return;
     }
 
-    navigationElementRef.current = navigationElement;
-    const stopMeasuring = measureNavigation(navigationElement);
-    return () => {
-      stopMeasuring?.();
-      navigationElementRef.current = null;
-    };
+    return measureNavigation(navigationElement);
   }, [measureNavigation]);
 
   const {contentTop} = useTopOffset();
@@ -145,15 +142,10 @@ export function WidgetBuilderV2({
               data-test-id="widget-builder-container"
               left={{zero: '0', 'screen:md': 'auto'}}
               style={
-                // oxlint-disable-next-line react/refs
-                navigationElementRef.current
+                hasNavigation
                   ? isMediumScreen
                     ? {left: 0, top: contentTop, willChange: 'top'}
-                    : {
-                        left: `${dimensions.width ?? 0}px`,
-                        top: contentTop,
-                        willChange: 'left',
-                      }
+                    : {left: `${dimensions.width}px`, top: contentTop, willChange: 'left'}
                   : undefined
               }
             >

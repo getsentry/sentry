@@ -5,13 +5,15 @@ export interface Dimensions {
   width: number;
 }
 
+const EMPTY: Dimensions = {height: 0, width: 0};
+
 /**
  * Measures an element. Attach the returned `ref` to it: the element is measured
  * when it mounts, before the browser paints, and again whenever it resizes.
- * The size is 0 until an element is attached.
+ * The size is 0 while no element is attached.
  */
 export function useDimensions() {
-  const [dimensions, setDimensions] = useState<Dimensions>(() => ({height: 0, width: 0}));
+  const [dimensions, setDimensions] = useState<Dimensions>(EMPTY);
 
   const ref = useCallback((element: Element | null) => {
     if (!element) {
@@ -28,7 +30,10 @@ export function useDimensions() {
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(element);
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      setDimensions(prev => (prev.height === 0 && prev.width === 0 ? prev : EMPTY));
+    };
   }, []);
 
   return useMemo(() => ({ref, ...dimensions}), [ref, dimensions]);
