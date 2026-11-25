@@ -3,8 +3,6 @@ import logging
 from django.db import router, transaction
 
 from sentry.deletions.base import BaseRelation, ModelDeletionTask, ModelRelation
-from sentry.incidents.models.alert_rule import AlertRule
-from sentry.workflow_engine.models.data_source import DataSource
 from sentry.workflow_engine.models.data_source_detector import DataSourceDetector
 from sentry.workflow_engine.models.detector import Detector
 
@@ -15,9 +13,11 @@ class DetectorDeletionTask(ModelDeletionTask[Detector]):
     manager_name = "objects_for_deletion"
 
     def get_child_relations(self, instance: Detector) -> list[BaseRelation]:
+        from sentry.incidents.models.alert_rule import AlertRule
         from sentry.workflow_engine.models import (
             AlertRuleDetector,
             DataConditionGroup,
+            DataSource,
         )
 
         model_relations: list[BaseRelation] = []
@@ -53,10 +53,9 @@ class DetectorDeletionTask(ModelDeletionTask[Detector]):
 
         # Concurrent deletions of the last two detectors must agree on which one
         # owns cleanup. Keep exclusive links until the child deletion succeeds.
-        with transaction.atomic(using=router.db_for_write(DataSource)):
+        with transaction.atomic(using=router.db_for_write(DataSourceDetector)):
             source_ids = set(
-                DataSource.objects.filter(detector=instance)
-                .order_by("id")
+                instance.data_sources.order_by("id")
                 .select_for_update(of=("self",))
                 .values_list("id", flat=True)
             )
