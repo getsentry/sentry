@@ -158,6 +158,7 @@ def resolve_seer_run(
     for_continue: bool = False,
     user_id: int | None = None,
 ) -> ResolvedSeerRun | Response:
+    """Resolve a run id; when ``user_id`` is given, only the run's owner passes."""
     return _resolve_run(
         run_id,
         organization,
@@ -167,6 +168,7 @@ def resolve_seer_run(
 
 
 def _has_run_scope(access: Access, project: Project | None, *, publish: bool) -> bool:
+    """Check Seer write (or publish) scopes on the project, or org-wide when there is none."""
     scopes = PUBLISH_SCOPES if publish else AUTOFIX_RUN_SCOPES
     if project is None:
         return any(access.has_scope(scope) for scope in scopes)
@@ -174,6 +176,7 @@ def _has_run_scope(access: Access, project: Project | None, *, publish: bool) ->
 
 
 def _can_act_on_run(run: SeerRun, access: Access, user_id: int | None, *, publish: bool) -> bool:
+    """Issue and automated runs are open to teammates with scope; personal chats are owner-only."""
     is_owner = user_id is not None and run.user_id == user_id
     try:
         agent: SeerAgentRun | None = run.agent
@@ -199,6 +202,7 @@ def authorize_seer_run(
     *,
     publish: bool = False,
 ) -> ResolvedSeerRun | Response:
+    """Resolve a run id for replying to or updating it, applying the team access rule."""
     return _resolve_run(
         run_id,
         organization,
