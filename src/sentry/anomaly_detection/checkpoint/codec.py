@@ -20,11 +20,12 @@ import msgspec
 from sentry.anomaly_detection.contracts import ChangeEvent, SeriesKey
 from sentry.anomaly_detection.evaluation.organization import Checkpoint, EvaluatorState
 from sentry.anomaly_detection.evaluation.series import Series
+from sentry.anomaly_detection.inputs.shapes import SeriesShape
 
 logger = logging.getLogger(__name__)
 
 # Bump whenever a persisted type changes shape; other versions restart cold.
-CHECKPOINT_VERSION = 5
+CHECKPOINT_VERSION = 6
 _MINUTE = timedelta(minutes=1)
 
 _EVENT_FIELDS = {
@@ -39,7 +40,7 @@ _DenseSeries = tuple[datetime, list[float | None]]
 @dataclass
 class _Payload:
     series: dict[SeriesKey, _DenseSeries | None]
-    hourly: dict[SeriesKey, Series]
+    shapes: dict[SeriesKey, SeriesShape]
     state: EvaluatorState
 
 
@@ -68,7 +69,7 @@ def encode(checkpoint: Checkpoint) -> bytes:
     payload = msgspec.msgpack.encode(
         _Payload(
             series={key: _dense(points) for key, points in checkpoint.series.items()},
-            hourly=checkpoint.hourly,
+            shapes=checkpoint.shapes,
             state=checkpoint.state,
         ),
         enc_hook=enc_hook,
@@ -103,7 +104,7 @@ def decode(blob: bytes) -> Checkpoint | None:
         logger.warning("anomaly_detection.checkpoint_unreadable", exc_info=True)
         return None
     series = {key: _sparse(dense) for key, dense in payload.series.items()}
-    return Checkpoint(series, payload.hourly, payload.state)
+    return Checkpoint(series, payload.shapes, payload.state)
 
 
 def _containers(type_: Any, obj: Any, dec_hook: Any = None) -> Any:

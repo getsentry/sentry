@@ -6,10 +6,18 @@ import pytest
 from snuba_sdk import Column, Condition, Op, Query
 
 from sentry.anomaly_detection.checkpoint.replay import advance_org
-from sentry.anomaly_detection.contracts import ChangeEvent, Metric, SeriesRow, Signal, Urgency
+from sentry.anomaly_detection.contracts import (
+    ChangeEvent,
+    Metric,
+    SeriesRow,
+    Service,
+    Signal,
+    Urgency,
+)
 from sentry.anomaly_detection.evaluation import organization as pipeline
 from sentry.anomaly_detection.inputs import new_failures
 from sentry.anomaly_detection.inputs.measurements import ERROR_USER
+from sentry.anomaly_detection.inputs.shapes import DAY, DailyShapes, day_of
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -219,11 +227,11 @@ class FirstUserErrors:
 
 
 @pytest.mark.parametrize(
-    ("prior_hour", "closing_hour", "new_users", "expected", "page_offsets"),
+    ("prior_day", "closing_day", "new_users", "expected", "page_offsets"),
     [
         pytest.param(
             300.0,
-            900.0,
+            600.0,
             [(56, 14), (57, 1), (59, 15), (60, 1)],
             [(57, 10, 15.0, 0.5), (58, 15, 15.0, 0.9)],
             [0],
@@ -231,7 +239,7 @@ class FirstUserErrors:
         ),
         pytest.param(
             300.0,
-            900.0,
+            600.0,
             [(56, 10), (59, 5), (60, 15)],
             [(57, 10, 15.0, 0.5), (61, 30, 30.0, 0.9)],
             [0],
@@ -239,7 +247,7 @@ class FirstUserErrors:
         ),
         pytest.param(
             24_000.0,
-            620.0,
+            12_310.0,
             [(56, 620)],
             [(57, 10, 1200.0, 0.5), (60, 620, 615.5, 0.9)],
             [0, 500],
@@ -247,30 +255,36 @@ class FirstUserErrors:
         ),
     ],
 )
-def test_new_failure_thresholds_match_live_and_catchup_across_hour_close(
-    prior_hour: float,
-    closing_hour: float,
+def test_new_failure_thresholds_match_live_and_catchup_across_midnight(
+    prior_day: float,
+    closing_day: float,
     new_users: list[tuple[int, int]],
     expected: list[tuple[int, int, float, float]],
     page_offsets: list[int],
 ) -> None:
+    # Minute 60 is midnight, where the daily shapes' users medians change.
+    eve = START.replace(hour=23)
+    midnight = day_of(eve) + timedelta(days=1)
+
+    def at(minute: int) -> datetime:
+        return eve + timedelta(minutes=minute)
+
     organization = Organization(id=1)
     project = Project(id=PROJECT, organization=organization)
-    group = Group(id=1, project=project, first_seen=_at(56), message="failure")
+    group = Group(id=1, project=project, first_seen=at(56), message="failure")
     # These timestamps represent the first occurrence of each distinct user.
-    first_users = [_at(minute) for minute, count in new_users for _ in range(count)]
+    first_users = [at(minute) for minute, count in new_users for _ in range(count)]
     minute_rows = [
-        SeriesRow(_at(minute), PROJECT, ENV, Signal.ERRORS, Metric.COUNT, "", float(count))
+        SeriesRow(at(minute), PROJECT, ENV, Signal.ERRORS, Metric.COUNT, "", float(count))
         for minute, count in new_users
     ]
-    hourly_rows = [
-        SeriesRow(hour, PROJECT, ENV, Signal.ERRORS, Metric.COUNT_UNIQUE_USER, "", users)
-        for hour, users in (
-            (START - timedelta(days=16), 60_000.0),
-            (_at(-60), prior_hour),
-            (START, closing_hour),
-        )
-    ]
+    service = Service(PROJECT, ENV)
+    medians = {
+        # The day before the eve is never observed, so its median must not matter.
+        midnight - timedelta(days=2): 60_000.0,
+        midnight - timedelta(days=1): prior_day,
+        midnight: closing_day,
+    }
 
     error_rows = FirstUserErrors(group, first_users)
 
@@ -279,24 +293,29 @@ def test_new_failure_thresholds_match_live_and_catchup_across_hour_close(
         decisions: list[pipeline.AnomalyDecision] = []
         checkpoint = None
         for left, right in zip(boundaries[:-1], boundaries[1:], strict=True):
-            start, end = _at(left), _at(right)
+            start, end = at(left), at(right)
             error_rows.run_start = start
-            # Match scheduler refresh: at :00 it gains the newly closed bucket
-            # and drops the oldest bucket of its 16-day history.
-            hour = end.replace(minute=0)
-            hourly = [row for row in hourly_rows if hour - timedelta(days=16) <= row.ts < hour]
+            # Match the scheduler: each run reads the shapes of its end's day, which
+            # cover that day and the day before.
+            day = day_of(end)
+            shapes = DailyShapes(
+                day,
+                frozenset({PROJECT}),
+                {},
+                {covered: {service: medians[covered]} for covered in (day - DAY, day)},
+            )
             rows = [row for row in minute_rows if start <= row.ts < end]
             new_issues = new_failures.collect_new_failure_modes(
                 organization,
                 [project],
-                new_failures.new_failure_thresholds(hourly),
+                new_failures.new_failure_thresholds(shapes),
                 start,
                 end,
             )
             issues.extend(new_issues)
             batch, checkpoint = advance_org(
                 rows=rows,
-                hourly_rows=hourly,
+                shapes=shapes.series,
                 start=start,
                 end=end,
                 new_issues=new_issues,
@@ -319,9 +338,9 @@ def test_new_failure_thresholds_match_live_and_catchup_across_hour_close(
     assert error_rows.offsets == page_offsets
     issues, decisions = live
     assert [(e.detected_at, e.actual, e.expected, e.confidence) for e in issues] == [
-        (_at(minute), users, threshold, confidence)
+        (at(minute), users, threshold, confidence)
         for minute, users, threshold, confidence in expected
     ]
     (opened,) = decisions
     assert not opened.is_resolved
-    assert opened.timestamp == _at(expected[-1][0])
+    assert opened.timestamp == at(expected[-1][0])

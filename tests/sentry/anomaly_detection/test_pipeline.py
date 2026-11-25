@@ -182,16 +182,16 @@ def test_duration_promotion_waits_for_supported_anomaly_after_gap() -> None:
     supported_return = unsupported_return + MINUTE
     rows = _routine_slowdown_with_gap_rows(first_look, healthy_return, unsupported_return)
     evaluator = OrgEvaluator(NoFootprints(), projects=(PROJECT,))
-    assert not evaluator.advance(rows=rows, hourly_rows=[], start=start, end=first_look)
+    assert not evaluator.advance(rows=rows, shapes={}, start=start, end=first_look)
     checkpoint = codec.decode(codec.encode(snapshot(evaluator, first_look)))
 
-    assert not evaluator.advance(rows=rows, hourly_rows=[], start=first_look, end=supported_return)
+    assert not evaluator.advance(rows=rows, shapes={}, start=first_look, end=supported_return)
     (latent,) = evaluator.state.admission.absorbed.values()
     assert evaluator.novelty.observed_duration(latent, supported_return) == 61
     assert not evaluator.state.admission.next_look
 
     expected = evaluator.advance(
-        rows=rows, hourly_rows=[], start=supported_return, end=supported_return + MINUTE
+        rows=rows, shapes={}, start=supported_return, end=supported_return + MINUTE
     )
     (opened,) = expected
     assert opened.timestamp == supported_return and not opened.is_resolved
@@ -201,7 +201,7 @@ def test_duration_promotion_waits_for_supported_anomaly_after_gap() -> None:
     # exactly what the uninterrupted evaluator published from the checkpoint on.
     restarted, _ = advance_org(
         rows=rows,
-        hourly_rows=[],
+        shapes={},
         start=first_look,
         end=supported_return + MINUTE,
         footprints=NoFootprints(),

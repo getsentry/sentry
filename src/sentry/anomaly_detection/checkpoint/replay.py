@@ -1,6 +1,6 @@
 """Advance and reconcile an organization's persisted evaluator checkpoint."""
 
-from collections.abc import Collection, Sequence
+from collections.abc import Collection, Mapping, Sequence
 from datetime import datetime
 
 from sentry.anomaly_detection.checkpoint.retention import (
@@ -8,7 +8,7 @@ from sentry.anomaly_detection.checkpoint.retention import (
     evict_stale_series,
     history_floor,
 )
-from sentry.anomaly_detection.contracts import ChangeEvent, SeriesRow
+from sentry.anomaly_detection.contracts import ChangeEvent, SeriesKey, SeriesRow
 from sentry.anomaly_detection.correlation.correlator import FootprintSource
 from sentry.anomaly_detection.evaluation.baseline import MINUTE
 from sentry.anomaly_detection.evaluation.organization import (
@@ -17,12 +17,13 @@ from sentry.anomaly_detection.evaluation.organization import (
     EvaluatorConfig,
     OrgEvaluator,
 )
+from sentry.anomaly_detection.inputs.shapes import SeriesShape
 
 
 def advance_org(
     *,
     rows: Sequence[SeriesRow],
-    hourly_rows: Sequence[SeriesRow],
+    shapes: Mapping[SeriesKey, SeriesShape],
     start: datetime,
     end: datetime,
     footprints: FootprintSource,
@@ -31,11 +32,11 @@ def advance_org(
     checkpoint: Checkpoint | None = None,
     config: EvaluatorConfig | None = None,
 ) -> tuple[Sequence[AnomalyDecision], Checkpoint]:
-    """Advance one organization; pass the full seasonal support in hourly_rows each time.
+    """Advance one organization; pass the day's shapes (see inputs.shapes) each time.
 
-    Minute support is carried across calls; hourly aggregates are loaded by the
-    caller each time. `projects` are the IDs of projects with an enabled detector;
-    pass a footprint source scoped to them. Groups of projects that left scope close.
+    Minute support and the shapes of open slice anchors are carried across calls.
+    `projects` are the IDs of projects with an enabled detector; pass a footprint source
+    scoped to them. Groups of projects that left scope close.
     """
     evaluator = OrgEvaluator(footprints, projects=projects, config=config, checkpoint=checkpoint)
     if start >= end:
@@ -43,7 +44,7 @@ def advance_org(
     scope_closes = evaluator.drop_projects(set(projects), start) if checkpoint else []
     decisions = evaluator.advance(
         rows=rows,
-        hourly_rows=hourly_rows,
+        shapes=shapes,
         start=start,
         end=end,
         new_issues=new_issues,
@@ -65,5 +66,4 @@ def snapshot(evaluator: OrgEvaluator, end: datetime) -> Checkpoint:
         key: {minute: value for minute, value in points.items() if since <= minute < cursor}
         for key, points in evaluator.series.items()
     }
-    hourly = evaluator.hourly_support(*evaluator.baseline.checkpoint_hourly_bounds(cursor))
-    return Checkpoint(series, hourly, evaluator.state)
+    return Checkpoint(series, evaluator.shape_support(), evaluator.state)

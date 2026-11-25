@@ -31,8 +31,9 @@ from sentry.anomaly_detection.evaluation.organization import (
     Checkpoint,
     OrgEvaluator,
 )
-from sentry.anomaly_detection.evaluation.series import samples_key
+from sentry.anomaly_detection.evaluation.series import build, samples_key
 from sentry.anomaly_detection.inputs.measurements import MAX_ENVIRONMENTS, MAX_SLICES, SPAN_SLICES
+from sentry.anomaly_detection.inputs.shapes import SeriesShape, compute, day_of
 
 START = datetime(2024, 1, 8, 12, tzinfo=UTC)
 PROJECT = 42
@@ -74,21 +75,28 @@ def _endpoint_rows(
     ]
 
 
-def _endpoint_hourly() -> list[SeriesRow]:
-    return [
-        SeriesRow(ts, PROJECT, ENV, Signal.ENDPOINTS, metric, ENDPOINT, value)
-        for hour in range(12, 16)
-        for day in range(1, 15)
-        for ts in [START.replace(hour=hour) - timedelta(days=day)]
-        for metric, value in ((Metric.COUNT_SAMPLE, 6000.0), (Metric.P95_DURATION, 100.0))
-    ]
+def _shapes(rows: Sequence[SeriesRow]) -> dict[SeriesKey, SeriesShape]:
+    """The daily shapes a build over these hourly rows stores for START's day."""
+    return compute(build(rows), day_of(START), [PROJECT]).series
+
+
+def _endpoint_shapes() -> dict[SeriesKey, SeriesShape]:
+    return _shapes(
+        [
+            SeriesRow(ts, PROJECT, ENV, Signal.ENDPOINTS, metric, ENDPOINT, value)
+            for hour in range(12, 16)
+            for day in range(1, 15)
+            for ts in [START.replace(hour=hour) - timedelta(days=day)]
+            for metric, value in ((Metric.COUNT_SAMPLE, 6000.0), (Metric.P95_DURATION, 100.0))
+        ]
+    )
 
 
 def test_split_slowdown_matches_continuous_activation_and_resolution() -> None:
-    hourly = _endpoint_hourly()
+    shapes = _endpoint_shapes()
     continuous = OrgEvaluator(Footprints(), projects=(PROJECT,)).advance(
         rows=_endpoint_rows(0, 200),
-        hourly_rows=hourly,
+        shapes=shapes,
         start=START,
         end=_at(200),
     )
@@ -105,7 +113,7 @@ def test_split_slowdown_matches_continuous_activation_and_resolution() -> None:
     for start, stop in zip((0, 121, 145, 158, 179), (121, 145, 158, 179, 200), strict=True):
         decisions, checkpoint = advance_org(
             rows=_endpoint_rows(start, stop),
-            hourly_rows=hourly,
+            shapes=shapes,
             start=_at(start),
             end=_at(stop),
             footprints=Footprints(),
@@ -122,7 +130,7 @@ def test_split_slowdown_matches_continuous_activation_and_resolution() -> None:
 def test_shared_change_event_identity_survives_round_trip() -> None:
     _, checkpoint = advance_org(
         rows=_endpoint_rows(0, 158),
-        hourly_rows=_endpoint_hourly(),
+        shapes=_endpoint_shapes(),
         start=START,
         end=_at(158),
         footprints=Footprints(),
@@ -138,14 +146,13 @@ def test_shared_change_event_identity_survives_round_trip() -> None:
 
 
 @pytest.mark.parametrize(
-    ("recovery_level", "override_hours"),
-    # The 15:00 level is 250. Fresh hourly measurements at the same timestamps must
-    # override carried support.
-    ((250.0, ()), (1000.0, (15,))),
+    ("recovery_level", "collected_again"),
+    # The 15:00 level is 250. A later day's shapes for the slice replace carried ones.
+    ((250.0, False), (1000.0, True)),
     ids=("carried-support", "fresh-override"),
 )
-def test_restored_slowdown_uses_seasonal_history_when_hourly_top_slices_change(
-    recovery_level: float, override_hours: tuple[int, ...]
+def test_restored_slowdown_keeps_its_shape_when_daily_top_slices_change(
+    recovery_level: float, collected_again: bool
 ) -> None:
     # The normal level changes from 100 to 250 at 15:00. A fixed-scale
     # fallback would still see normal 15:00 latency as a slowdown.
@@ -161,23 +168,22 @@ def test_restored_slowdown_uses_seasonal_history_when_hourly_top_slices_change(
     ]
     opening_rows = _endpoint_rows(0, 180, slow_until=180)
     recovery_rows = _endpoint_rows(180, 230, normal=recovery_level)
+    # The next day's build collects another slice, and this one only if collected again,
+    # by then with a new 15:00 level.
     fresh = [
         SeriesRow(ts, project, env, signal, metric, "/other", value)
         for ts, project, env, signal, metric, _, value in hourly
     ] + [
-        row._replace(value=recovery_level if row.metric == Metric.P95_DURATION else row.value)
+        row._replace(value=recovery_level)
+        if row.metric == Metric.P95_DURATION and row.ts.hour == 15
+        else row
         for row in hourly
-        if row.ts.hour in override_hours
+        if collected_again
     ]
-    # This bucket was not closed at the split and must not be persisted then.
-    latest: list[SeriesRow] = [
-        SeriesRow(_at(180), project, env, signal, metric, dim, 10_000.0)
-        for ts, project, env, signal, metric, dim, _ in hourly
-        if ts == _at(180) - timedelta(days=1)
-    ]
+    first, later = _shapes(hourly), _shapes(fresh)
     continuous = OrgEvaluator(Footprints(), projects=(PROJECT,)).advance(
         rows=[*opening_rows, *recovery_rows],
-        hourly_rows=[*hourly, *latest, *fresh],
+        shapes=_shapes([*hourly, *fresh]),
         start=START,
         end=_at(230),
     )
@@ -185,24 +191,18 @@ def test_restored_slowdown_uses_seasonal_history_when_hourly_top_slices_change(
 
     opens, checkpoint = advance_org(
         rows=opening_rows,
-        hourly_rows=[*hourly, *latest],
+        shapes=first,
         start=START,
         end=_at(180),
         footprints=Footprints(),
         projects=(PROJECT,),
     )
     checkpoint = _round_trip(checkpoint)
-    assert checkpoint.hourly == {
-        LATENCY: {
-            ts: value
-            for ts, _, _, _, metric, _, value in hourly
-            if metric == LATENCY.metric and ts.date() >= (START - timedelta(days=14)).date()
-        }
-    }
+    assert checkpoint.shapes == {LATENCY: first[LATENCY]}
 
     closes, checkpoint = advance_org(
         rows=recovery_rows,
-        hourly_rows=fresh,
+        shapes=later,
         start=_at(180),
         end=_at(230),
         footprints=Footprints(),
@@ -210,7 +210,7 @@ def test_restored_slowdown_uses_seasonal_history_when_hourly_top_slices_change(
         checkpoint=checkpoint,
     )
     assert [*opens, *closes] == list(continuous)
-    assert not checkpoint.hourly
+    assert not checkpoint.shapes
 
 
 def test_split_during_change_point_persistence_and_open_episode() -> None:
@@ -228,7 +228,7 @@ def test_split_during_change_point_persistence_and_open_episode() -> None:
 
     expected, _ = advance_org(
         rows=rows(0, 250),
-        hourly_rows=(),
+        shapes={},
         start=START,
         end=_at(250),
         footprints=Footprints(),
@@ -239,7 +239,7 @@ def test_split_during_change_point_persistence_and_open_episode() -> None:
 
     before_open, checkpoint = advance_org(
         rows=rows(0, 166),
-        hourly_rows=(),
+        shapes={},
         start=START,
         end=_at(166),
         footprints=Footprints(),
@@ -247,7 +247,7 @@ def test_split_during_change_point_persistence_and_open_episode() -> None:
     )
     opened, checkpoint = advance_org(
         rows=rows(166, 180),
-        hourly_rows=(),
+        shapes={},
         start=_at(166),
         end=_at(180),
         footprints=Footprints(),
@@ -256,7 +256,7 @@ def test_split_during_change_point_persistence_and_open_episode() -> None:
     )
     closed, _ = advance_org(
         rows=rows(180, 250),
-        hourly_rows=(),
+        shapes={},
         start=_at(180),
         end=_at(250),
         footprints=Footprints(),
@@ -285,7 +285,7 @@ def test_closed_group_can_continue_with_pending_issue_after_restart() -> None:
     issues = [issue(0, 0), issue(34, 47)]
     initial, checkpoint = advance_org(
         rows=(),
-        hourly_rows=(),
+        shapes={},
         start=START,
         end=_at(46),
         footprints=Footprints(),
@@ -298,7 +298,7 @@ def test_closed_group_can_continue_with_pending_issue_after_restart() -> None:
     assert pending.issue_ids == (123,)
     continued, checkpoint = advance_org(
         rows=(),
-        hourly_rows=(),
+        shapes={},
         start=_at(46),
         end=_at(94),
         footprints=Footprints(),
@@ -307,7 +307,7 @@ def test_closed_group_can_continue_with_pending_issue_after_restart() -> None:
     )
     continuous = OrgEvaluator(Footprints(), projects=(PROJECT,)).advance(
         rows=(),
-        hourly_rows=(),
+        shapes={},
         start=START,
         end=_at(94),
         new_issues=issues,
@@ -327,7 +327,7 @@ def test_minute_support_is_bounded_without_losing_the_episode_anchor_window() ->
             for ts, value in values.items()
         ]
         + [SeriesRow(_at(0), PROJECT, "staging", Signal.REQUESTS, Metric.COUNT, "", 100.0)],
-        hourly_rows=(),
+        shapes={},
         start=START,
         end=_at(1570),
         footprints=Footprints(),
@@ -405,7 +405,7 @@ def test_rotating_full_slice_cohorts_bound_checkpoint_state() -> None:
                 for dim in range(MAX_SLICES)
                 for metric, value in ((Metric.COUNT_SAMPLE, 500.0), (Metric.FAILURE_RATE, 0.02))
             ],
-            hourly_rows=(),
+            shapes={},
             start=_at(batch),
             end=_at(batch + 1),
             footprints=Footprints(),
@@ -438,7 +438,7 @@ def test_rotating_full_slice_cohorts_bound_checkpoint_state() -> None:
 def test_live_slice_and_samples_survive_two_full_rotations() -> None:
     (opened,), checkpoint = advance_org(
         rows=_endpoint_rows(0, 155),
-        hourly_rows=(),
+        shapes={},
         start=START,
         end=_at(155),
         footprints=Footprints(),
@@ -462,7 +462,7 @@ def test_live_slice_and_samples_survive_two_full_rotations() -> None:
                 for dim in range(MAX_SLICES)
                 for metric, value in ((Metric.COUNT_SAMPLE, 100.0), (Metric.P95_DURATION, 100.0))
             ],
-            hourly_rows=(),
+            shapes={},
             start=_at(minute),
             end=_at(minute + 1),
             footprints=Footprints(),
@@ -480,7 +480,7 @@ def test_live_slice_and_samples_survive_two_full_rotations() -> None:
 
     (closed,), _ = advance_org(
         rows=_endpoint_rows(157, 200),
-        hourly_rows=(),
+        shapes={},
         start=_at(157),
         end=_at(200),
         footprints=Footprints(),
@@ -528,7 +528,7 @@ def test_stale_slice_evicts_watch_state_but_keeps_aggregate_presence() -> None:
             ),
             SeriesRow(START, PROJECT, ENV, total.signal, total.metric, "", 100.0),
         ],
-        hourly_rows=(),
+        shapes={},
         start=START,
         end=_at(1),
         footprints=Footprints(),
@@ -543,7 +543,7 @@ def test_stale_slice_evicts_watch_state_but_keeps_aggregate_presence() -> None:
                 _at(1569), PROJECT, ENV, current.signal, current.metric, current.dim_value, None
             )
         ],
-        hourly_rows=(),
+        shapes={},
         start=_at(1),
         end=_at(1570),
         footprints=Footprints(),
@@ -574,7 +574,7 @@ def _unobserved_open_slice() -> tuple[AnomalyDecision, Checkpoint]:
 
     decisions, checkpoint = advance_org(
         rows=(),
-        hourly_rows=(),
+        shapes={},
         start=_at(31),
         end=_at(1569),
         footprints=Footprints(),
@@ -592,7 +592,7 @@ def _assert_expires_then_closes_quietly(opened: AnomalyDecision, checkpoint: Che
 
     decisions, _ = advance_org(
         rows=(),
-        hourly_rows=(),
+        shapes={},
         start=_at(1570),
         end=_at(1585),
         footprints=Footprints(),
@@ -607,7 +607,7 @@ def test_uncollected_open_slice_expires_without_claiming_recovery() -> None:
 
     decisions, checkpoint = advance_org(
         rows=(),
-        hourly_rows=(),
+        shapes={},
         start=_at(1569),
         end=_at(1570),
         footprints=Footprints(),
@@ -625,7 +625,7 @@ def test_unmeasured_open_slice_expires_without_claiming_recovery() -> None:
 
     decisions, checkpoint = advance_org(
         rows=[SeriesRow(_at(1569), PROJECT, ENV, LATENCY.signal, LATENCY.metric, ENDPOINT, None)],
-        hourly_rows=(),
+        shapes={},
         start=_at(1569),
         end=_at(1570),
         footprints=Footprints(),
@@ -678,7 +678,7 @@ def test_checkpoint_prunes_old_group_members_without_losing_live_aliases() -> No
 def test_novelty_retains_recent_excursions_but_ages_out_old_ones() -> None:
     _, checkpoint = advance_org(
         rows=_endpoint_rows(0, 200),
-        hourly_rows=(),
+        shapes={},
         start=START,
         end=_at(200),
         footprints=Footprints(),
@@ -689,7 +689,7 @@ def test_novelty_retains_recent_excursions_but_ages_out_old_ones() -> None:
     assert checkpoint.state.novelty.coverage
     _, checkpoint = advance_org(
         rows=(),
-        hourly_rows=(),
+        shapes={},
         start=_at(200),
         end=_at(200) + timedelta(days=15),
         footprints=Footprints(),
@@ -764,7 +764,7 @@ def test_project_scope_change_retires_mixed_group_without_rebinding(
 
     decisions, checkpoint = advance_org(
         rows=[SeriesRow(_at(32), disabled, ENV, Signal.REQUESTS, Metric.COUNT, "", 100.0)],
-        hourly_rows=(),
+        shapes={},
         start=_at(32),
         end=_at(33),
         footprints=Footprints(),
@@ -829,13 +829,13 @@ def test_non_finite_measurements_survive_round_trip() -> None:
     assert (restored.actual, restored.expected) == (inf, -inf)
 
 
-def test_empty_advance_with_narrower_scope_keeps_other_projects_hourly_support() -> None:
+def test_empty_advance_with_narrower_scope_keeps_other_projects_shape_support() -> None:
     keys = [LATENCY._replace(project_id=project) for project in (PROJECT, 43)]
-    hours = [START - timedelta(days=day) for day in range(1, 8)]
+    shape = SeriesShape(day_of(START) - timedelta(days=1), 100.0, bytes([128] * 48))
     evaluator = OrgEvaluator(Footprints(), projects=(PROJECT, 43))
     for key in keys:
         evaluator.series[key] = {_at(-1): 400.0}
-        evaluator.hourly[key] = dict.fromkeys(hours, 100.0)
+        evaluator.shapes[key] = shape
     evaluator.series_history.refresh()
     for key in keys:
         state = evaluator.series_history.state.series_states[key]
@@ -847,7 +847,7 @@ def test_empty_advance_with_narrower_scope_keeps_other_projects_hourly_support()
     # drop the seasonal support of open anchored episodes it still retains.
     decisions, checkpoint = advance_org(
         rows=(),
-        hourly_rows=(),
+        shapes={},
         start=START,
         end=START,
         footprints=Footprints(),
@@ -857,4 +857,4 @@ def test_empty_advance_with_narrower_scope_keeps_other_projects_hourly_support()
     assert not decisions
     restored = _round_trip(checkpoint)
     assert set(restored.state.series_history.series_states) == set(keys)
-    assert restored.hourly == {key: dict.fromkeys(hours, 100.0) for key in keys}
+    assert restored.shapes == dict.fromkeys(keys, shape)
