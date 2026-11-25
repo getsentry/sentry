@@ -453,10 +453,7 @@ class TestEnrichment(TestCase):
         queries = [sample, *footprint_queries]
         assert all(
             (query.resolver.params.start, query.resolver.params.end)
-            == (
-                (START - MINUTE).replace(tzinfo=timezone.utc),
-                observation_end.replace(tzinfo=timezone.utc),
-            )
+            == (START - MINUTE, observation_end)
             for query in queries
         )
         service = Service(project, "prod")
@@ -483,7 +480,6 @@ class TestEnrichment(TestCase):
             10,
             10,
             0.9,
-            evidence=["issues:999"],
             detected_at=detected,
             issue_ids=(11, 12),
         )
@@ -500,15 +496,14 @@ class TestEnrichment(TestCase):
         errors.assert_called_once()
         snql = errors.call_args.args[1]
         first, last, *_ = snql.where[1:]
-        assert first.rhs == (detected - 15 * MINUTE).replace(tzinfo=timezone.utc)
-        assert last.rhs == detected.replace(tzinfo=timezone.utc)
+        assert first.rhs == detected - 15 * MINUTE
+        assert last.rhs == detected
         assert last.op == Op.LT
         assert snql.where[-1].lhs == Column("group_id")
         assert snql.where[-1].rhs == [11, 12]
         (queries,) = spans.call_args.args
         assert len(queries) == 6
-        expected_end = detected.replace(tzinfo=timezone.utc)
-        assert all(query.resolver.params.end == expected_end for query in queries)
+        assert all(query.resolver.params.end == detected for query in queries)
         assert all(query.resolver.config.filters == (("trace", (trace,)),) for query in queries)
 
     def test_untraced_error_does_not_sample_matching_transaction_names(self) -> None:

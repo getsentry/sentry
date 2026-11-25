@@ -94,16 +94,15 @@ class TestAnomalyDetectionTraceLookup(TestCase, SnubaTestCase, SpanTestCase):
             ]
         )
 
-        start = onset.replace(tzinfo=None)
         change = ChangeEvent(
             SeriesKey(self.project.id, "production", Signal.ERRORS, Metric.COUNT),
             ChangeType.SPIKE,
-            start,
+            onset,
             2,
             0,
             0.9,
         )
-        observation_end = start + timedelta(minutes=4)
+        observation_end = onset + timedelta(minutes=4)
         with mock.patch.object(trace_lookup, "_TRACE_SAMPLE", 1):
             lookup = trace_lookup.TraceLookup(self.organization, [self.project, backend])
             footprint = lookup.footprint(change, observation_end)
