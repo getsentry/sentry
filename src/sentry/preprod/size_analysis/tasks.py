@@ -548,14 +548,17 @@ def _run_size_analysis_comparison(
         extra={"comparison_id": comparison.id},
     )
 
-    with transaction.atomic(router.db_for_write(PreprodArtifactSizeComparison)):
-        file = File.objects.create(
-            name=str(comparison.id),
-            type="size_analysis_comparison.json",
-            headers={"Content-Type": "application/json"},
-        )
-        file.putfile(BytesIO(dumps_htmlsafe(comparison_results.dict()).encode()))
+    # The file is written with no transaction open. `FileBlob.from_file` records each
+    # path it hands to storage, and a rollback would take that record with it and
+    # leave the bytes behind for good.
+    file = File.objects.create(
+        name=str(comparison.id),
+        type="size_analysis_comparison.json",
+        headers={"Content-Type": "application/json"},
+    )
+    file.putfile(BytesIO(dumps_htmlsafe(comparison_results.dict()).encode()))
 
+    with transaction.atomic(router.db_for_write(PreprodArtifactSizeComparison)):
         comparison.file_id = file.id
         comparison.state = PreprodArtifactSizeComparison.State.SUCCESS
         comparison.save()
