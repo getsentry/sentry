@@ -742,8 +742,9 @@ describe('Tabs overflow', () => {
 
   // Widths reported by each tab and by the tab list wrapper, mutable so resizes
   // can be simulated. jsdom has no layout engine, so all measurement is mocked.
+  // A `'content'` wrapper is as wide as the tabs it lays out.
   let tabWidth = TAB_WIDTH;
-  let containerWidth = 1000;
+  let containerWidth: number | 'content' = 1000;
   let resizeCallbacks: ResizeObserverCallback[] = [];
   let originalResizeObserver: typeof ResizeObserver;
 
@@ -767,7 +768,14 @@ describe('Tabs overflow', () => {
           width = tabWidth;
           // oxlint-disable-next-line testing-library/no-node-access -- jsdom requires explicit geometry for each measured wrapper.
         } else if (this.querySelector(':scope > [role="tablist"]')) {
-          width = containerWidth;
+          width =
+            containerWidth === 'content'
+              ? Array.from(
+                  // oxlint-disable-next-line testing-library/no-node-access -- jsdom has no layout, so a content-sized wrapper is measured from its tabs.
+                  this.querySelectorAll<HTMLElement>('[role="tab"]'),
+                  tab => (getComputedStyle(tab).display === 'none' ? 0 : tabWidth)
+                ).reduce((sum, tabSize) => sum + tabSize, 0)
+              : containerWidth;
         }
         return {
           width,
@@ -800,7 +808,7 @@ describe('Tabs overflow', () => {
     window.ResizeObserver = originalResizeObserver;
   });
 
-  function resizeContainerTo(width: number) {
+  function resizeContainerTo(width: typeof containerWidth) {
     containerWidth = width;
     act(() => {
       resizeCallbacks.forEach(callback => callback([], {} as ResizeObserver));
@@ -900,51 +908,17 @@ describe('Tabs overflow', () => {
   });
 
   it('shows every tab again when a content-sized container grows back', async () => {
-    // A content-sized container is as wide as the tabs it lays out. If hiding an
-    // overflowing tab shrank it, the hidden tabs would never fit again.
-    let squeezed = false;
-    jest
-      .spyOn(HTMLElement.prototype, 'getBoundingClientRect')
-      .mockImplementation(function (this: HTMLElement) {
-        let width = 0;
-        if (this.getAttribute('role') === 'tab') {
-          width = tabWidth;
-          // oxlint-disable-next-line testing-library/no-node-access -- jsdom requires explicit geometry for each measured wrapper.
-        } else if (this.querySelector(':scope > [role="tablist"]')) {
-          width = squeezed
-            ? 260
-            : Array.from(
-                // oxlint-disable-next-line testing-library/no-node-access -- jsdom has no layout, so the wrapper width comes from the tabs it lays out.
-                this.querySelectorAll<HTMLElement>('[role="tab"]'),
-                tab => (getComputedStyle(tab).display === 'none' ? 0 : tabWidth)
-              ).reduce((sum, tabSize) => sum + tabSize, 0);
-        }
-        return {
-          width,
-          height: 0,
-          top: 0,
-          bottom: 0,
-          left: 0,
-          right: width,
-          x: 0,
-          y: 0,
-          toJSON: () => ({}),
-        };
-      });
-    const resize = () =>
-      act(() => {
-        resizeCallbacks.forEach(callback => callback([], {} as ResizeObserver));
-      });
+    // If hiding an overflowing tab shrank a content-sized container, the hidden
+    // tabs would never fit again.
+    containerWidth = 'content';
     render(<OverflowTabs />, {wrapper: ThemeWrapper});
 
     expect(screen.queryByRole('button', {name: 'More tabs'})).not.toBeInTheDocument();
 
-    squeezed = true;
-    resize();
+    resizeContainerTo(260);
     expect(await screen.findByRole('button', {name: 'More tabs'})).toBeInTheDocument();
 
-    squeezed = false;
-    resize();
+    resizeContainerTo('content');
     await waitForElementToBeRemoved(() =>
       screen.queryByRole('button', {name: 'More tabs'})
     );
