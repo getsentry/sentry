@@ -73,14 +73,15 @@ export function AnimatedActivity({
   return (
     <Activity mode={activityMode}>
       <MotionContainer
-        ref={elementRef}
         area="1 / 1"
         position={layoutMode === 'pop' && isExiting ? 'absolute' : 'relative'}
         width="100%"
         initial={mode === 'visible' ? false : initial}
         animate={controls}
       >
-        {children}
+        {/* Motion components don't reattach when their ref prop changes, so a
+            swapped-out ref never gets its cleanup. A plain element does. */}
+        <Container ref={elementRef}>{children}</Container>
       </MotionContainer>
     </Activity>
   );
