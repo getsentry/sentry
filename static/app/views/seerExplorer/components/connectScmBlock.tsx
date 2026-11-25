@@ -30,7 +30,7 @@ import type {
   RespondToUserInputOptions,
 } from 'sentry/views/seerExplorer/types';
 
-import {openConnectScmModal} from './connectScmModal';
+import {isFound, openConnectScmModal, type RepoAccess} from './connectScmModal';
 
 // The fix usually lands a few seconds after the user makes it (a webhook, then a sync job), and
 // the slowest normal path (a sync retrying) takes about 6 minutes. After that it stops, and only
@@ -53,25 +53,6 @@ function getRequestInstallKey(pauseId: string) {
 
 function getAutoResumeKey(pauseId: string) {
   return ['seer-explorer-scm-auto-resume', {pauseId}] as const;
-}
-
-interface RepoAccess {
-  connectedAccounts: string[];
-  /**
-   * `found` when Seer can open the repo, `unknown` when Sentry can't say why it can't, or the
-   * reason it can't.
-   */
-  status: string;
-}
-
-/**
- * Whether Seer can open the repo now. Seer never pauses for a name that matches more than one
- * repo (it tells the agent instead), so the popup counts that as found.
- */
-// TODO(joey): Handle `repo_ambiguous` properly, e.g. by saying the name matches more than one
-// repo and asking the user which one, instead of counting it as found.
-function isFound(status: string) {
-  return status === 'found' || status === 'repo_ambiguous';
 }
 
 /** Whether checking again can't help: Seer can open the repo, or Sentry can't say why not. */
