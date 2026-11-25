@@ -82,6 +82,7 @@ class ResolvedColumn:
     # Values are stored and searched in one canonical case, so case insensitive search is skipped:
     # wrapping an indexed column like trace_id in lower() stops ClickHouse from narrowing by it.
     canonical_case: bool = False
+    wildcard_allowed: bool = True
     # Indicates this attribute is a secondary alias for the attribute.
     # It exists for compatibility or convenience reasons and should NOT be preferred.
     secondary_alias: bool = False

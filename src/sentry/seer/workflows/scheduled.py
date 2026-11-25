@@ -10,10 +10,10 @@ from __future__ import annotations
 
 import functools
 import logging
-from collections.abc import Collection, Sequence
+from collections.abc import Collection, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-from typing import Any, Literal, assert_never
+from typing import Any, ClassVar, Literal, assert_never
 
 from django.db.models import QuerySet
 from pydantic import BaseModel, validator
@@ -35,6 +35,7 @@ from sentry.cadence.api import (
 from sentry.constants import ObjectStatus
 from sentry.models.project import Project
 from sentry.seer.models.workflow import (
+    SeerSkill,
     SeerWorkflowConfig,
     SeerWorkflowConfigExtras,
     SeerWorkflowConfigProject,
@@ -62,6 +63,13 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.utils import metrics
+from sentry.workflow_engine.models import (
+    Action,
+    DataConditionGroup,
+    DataConditionGroupAction,
+    Workflow,
+    WorkflowDataConditionGroup,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -139,7 +147,17 @@ class ScheduleDefinition(AutomationDefinition[ScheduledRunInputs]):
     strategy = SeerWorkflowStrategy.SCHEDULED_INVESTIGATION
     inputs_type = ScheduledRunInputs
     settings_type = ScheduleSettings
+    takes_action_settings = True
+    seeded_action_settings: ClassVar[Mapping[str, Any]] = {"skill": SeerSkill.AGENTIC_TRIAGE.value}
     scoped_by: Literal["projects", "monitors"] = "projects"
+
+    def setup(self, update: ConfigUpdate, workflow: Workflow) -> None:
+        action = Action.objects.create(type=Action.Type.SEER_INVESTIGATION, config={}, data={})
+        action_group = DataConditionGroup.objects.create(
+            organization_id=update.config.organization_id, logic_type=DataConditionGroup.Type.ALL
+        )
+        WorkflowDataConditionGroup.objects.create(workflow=workflow, condition_group=action_group)
+        DataConditionGroupAction.objects.create(condition_group=action_group, action=action)
 
     def projects(self, config: SeerWorkflowConfig) -> QuerySet[Project]:
         projects = Project.objects.filter(

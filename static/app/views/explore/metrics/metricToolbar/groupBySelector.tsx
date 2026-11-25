@@ -12,9 +12,9 @@ import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useGroupByFields} from 'sentry/views/explore/hooks/useGroupByFields';
 import {useValidatedGroupBys} from 'sentry/views/explore/hooks/useValidatedGroupBys';
 import {HiddenTraceMetricGroupByFields} from 'sentry/views/explore/metrics/constants';
+import {useTraceMetricFilter} from 'sentry/views/explore/metrics/hooks/useTraceMetricFilter';
 import {useValidateMetricsTab} from 'sentry/views/explore/metrics/hooks/useValidateMetricsTab';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
-import {createTraceMetricFilter} from 'sentry/views/explore/metrics/utils';
 import {
   useQueryParamsGroupBys,
   useSetQueryParamsGroupBys,
@@ -75,7 +75,7 @@ export function GroupBySelector({
     onGroupBysCleanup: setGroupBys,
   });
 
-  const traceMetricFilter = createTraceMetricFilter(traceMetric);
+  const traceMetricFilter = useTraceMetricFilter(traceMetric);
 
   const {data, isLoading} = useQuery({
     ...traceItemAttributeKeysOptions({

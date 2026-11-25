@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from enum import StrEnum
 from typing import Any, Literal
 
 from django.db import models
@@ -39,6 +40,12 @@ SEER_CONFIGURABLE_WORKFLOW_STRATEGIES = frozenset(
 
 # Soft bound on configs per organization. Actual count could go over a bit from concurrent writes.
 MAX_WORKFLOW_CONFIGS_PER_ORG = 50
+
+
+class SeerSkill(StrEnum):
+    """A prompt Seer maintains, which an investigation can run instead of a user's prompt."""
+
+    AGENTIC_TRIAGE = "agentic_triage"
 
 
 class SeerWorkflowConfigExtras(BaseModel):

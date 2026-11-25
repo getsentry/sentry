@@ -8,11 +8,7 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {t} from 'sentry/locale';
 
-import {
-  HandoffIpPinningCheckbox,
-  HandoffPromptAlerts,
-  HandoffPromptBox,
-} from './handoffPromptParts';
+import {HandoffPromptBox, HandoffPromptError} from './handoffPromptParts';
 import {AgentHandoffFlow, type AddFeatureContext} from './types';
 import {useHandoffPromptCopy} from './useHandoffPromptCopy';
 
@@ -35,8 +31,11 @@ export function AgentHandoffProductPrompt({
   onCopySuccess,
   onSelect,
 }: AgentHandoffProductPromptProps) {
-  const {copyPrompt, copyDisabled, handoff, useIpPinning, toggleIpPinning} =
-    useHandoffPromptCopy({flow: AgentHandoffFlow.ADD_FEATURE, context, onCopySuccess});
+  const {copyPrompt, copyDisabled, handoff} = useHandoffPromptCopy({
+    flow: AgentHandoffFlow.ADD_FEATURE,
+    context,
+    onCopySuccess,
+  });
 
   return (
     <Stack gap="2xl">
@@ -54,12 +53,7 @@ export function AgentHandoffProductPrompt({
             onSelect={onSelect}
           />
 
-          <Flex align="center" justify="between" gap="xl" paddingTop="xs">
-            <HandoffIpPinningCheckbox
-              disabled={copyDisabled}
-              useIpPinning={useIpPinning}
-              onToggle={toggleIpPinning}
-            />
+          <Flex justify="end" paddingTop="xs">
             <Button
               aria-label={t('Copy prompt')}
               disabled={copyDisabled}
@@ -71,7 +65,7 @@ export function AgentHandoffProductPrompt({
             </Button>
           </Flex>
 
-          <HandoffPromptAlerts useIpPinning={useIpPinning} error={handoff.error} />
+          <HandoffPromptError error={handoff.error} />
         </Stack>
 
         <Stack gap="lg">

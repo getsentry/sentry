@@ -1,6 +1,6 @@
 import isEqual from 'lodash/isEqual';
 
-import {DurationUnit, FractionUnit, type DataUnit} from 'sentry/utils/discover/fields';
+import {DurationUnit, type DataUnit} from 'sentry/utils/discover/fields';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
 import {
   ORDER,
@@ -36,15 +36,24 @@ export function webVitalP75Field(vital: WebVitals): string {
   return webVitalMetricField('p75', vital);
 }
 
+/**
+ * Each web vital metric carries its score ratio (0 to 1) as a numeric
+ * attribute, so scores come from the vital's own metric.
+ */
+function webVitalScoreRatioAttribute(vital: WebVitals): string {
+  return `tags[score.ratio.${vital},number]`;
+}
+
 function webVitalScoreMetricField(
   aggregation: 'avg' | 'count',
   vital: WebVitals
 ): string {
   return traceMetricField(
     aggregation,
-    `browser.web_vital.${vital}.score`,
+    webVitalMetricName(vital),
     'distribution',
-    FractionUnit.RATIO
+    WEB_VITAL_METRIC_UNITS[vital],
+    webVitalScoreRatioAttribute(vital)
   );
 }
 
