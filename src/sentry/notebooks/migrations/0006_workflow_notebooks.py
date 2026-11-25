@@ -26,14 +26,48 @@ class Migration(CheckedMigration):
     dependencies = [
         ("notebooks", "0005_add_comment_mentions"),
         ("seer", "0046_add_workflow_config_backing_workflow"),
-        ("sentry", "1262_remove_gal_project_option_value_id_index"),
+        ("sentry", "1268_artifactbundle_file_nullable"),
     ]
 
     operations = [
         migrations.AddField(
             model_name="notebook",
-            name="workflow_project_ids",
-            field=models.JSONField(null=True),
+            name="workflow_evidence_scope",
+            field=models.CharField(db_default="none", default="none", max_length=16),
+        ),
+        migrations.CreateModel(
+            name="NotebookEvidenceProject",
+            fields=[
+                (
+                    "id",
+                    sentry.db.models.fields.bounded.BoundedBigAutoField(
+                        primary_key=True, serialize=False
+                    ),
+                ),
+                ("date_updated", models.DateTimeField(auto_now=True)),
+                ("date_added", models.DateTimeField(auto_now_add=True)),
+                (
+                    "notebook",
+                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="evidence_project_links",
+                        to="notebooks.notebook",
+                    ),
+                ),
+                (
+                    "project",
+                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                        null=True, on_delete=django.db.models.deletion.SET_NULL, to="sentry.project"
+                    ),
+                ),
+            ],
+            options={
+                "constraints": [
+                    models.UniqueConstraint(
+                        fields=("notebook", "project"), name="notebook_unique_evidence_project"
+                    )
+                ],
+            },
         ),
         migrations.AddField(
             model_name="notebookblock",
