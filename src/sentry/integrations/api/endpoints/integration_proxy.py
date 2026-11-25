@@ -478,6 +478,14 @@ class InternalIntegrationProxyEndpoint(Endpoint):
             except ApiInvalidRequestError as error:
                 lifecycle.record_halt(error)
                 raise
+            except ApiForbiddenError as error:
+                # The provider refused to authorize the integration (e.g. the GitHub App
+                # installation was suspended by the customer). This is an expected state
+                # of the integration rather than a bug, so halt instead of creating an
+                # issue. handle_exception_with_details still emits the forbidden_error
+                # metric and returns a 403 to the caller.
+                lifecycle.record_halt(error)
+                raise
 
         self._add_metric(
             metric_name=IntegrationProxySuccessMetricType.COMPLETE_RESPONSE_CODE,

@@ -740,12 +740,17 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
             mock_metrics=mock_metrics,
         )
 
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @override_settings(SENTRY_SUBNET_SECRET=SENTRY_SUBNET_SECRET, SILO_MODE=SiloMode.CONTROL)
     @patch.object(ExampleIntegration, "get_client")
     @patch.object(InternalIntegrationProxyEndpoint, "client", spec=IntegrationProxyClient)
     @patch.object(metrics, "incr")
     def test_handles_api_forbidden_error(
-        self, mock_metrics: MagicMock, mock_client: MagicMock, mock_get_client: MagicMock
+        self,
+        mock_metrics: MagicMock,
+        mock_client: MagicMock,
+        mock_get_client: MagicMock,
+        mock_record_event: MagicMock,
     ) -> None:
         signature_path = f"/{self.proxy_path}"
         headers = create_request_headers(
@@ -780,6 +785,12 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
             count=0,
             mock_metrics=mock_metrics,
         )
+        # A forbidden response (e.g. a suspended GitHub App installation) is an expected
+        # integration state, so the proxy lifecycle halts instead of creating an issue.
+        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.STARTED, 2)
+        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 1)
+        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.HALTED, 1)
+        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.FAILURE, 0)
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @override_settings(SENTRY_SUBNET_SECRET=SENTRY_SUBNET_SECRET, SILO_MODE=SiloMode.CONTROL)
