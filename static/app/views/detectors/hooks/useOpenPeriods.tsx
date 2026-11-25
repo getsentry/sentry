@@ -48,13 +48,15 @@ export function useOpenPeriods(
 }
 
 export function useOpenPeriodCount(
-  params: {groupId: string} & Pick<CommonParams, 'start' | 'end' | 'statsPeriod'>
+  params: {groupId: string} & Pick<CommonParams, 'start' | 'end' | 'statsPeriod'>,
+  options: {enabled?: boolean} = {}
 ) {
   const organization = useOrganization();
 
   return useQuery({
     ...openPeriodsApiOptions({organization, limit: 1, ...params}),
     select: ({headers}) => headers['X-Hits'] ?? 0,
+    ...options,
   });
 }
 

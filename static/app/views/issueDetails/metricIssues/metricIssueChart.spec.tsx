@@ -1,4 +1,7 @@
-import {MetricDetectorFixture} from 'sentry-fixture/detectors';
+import {
+  MetricDetectorFixture,
+  SnubaQueryDataSourceFixture,
+} from 'sentry-fixture/detectors';
 import {EventFixture} from 'sentry-fixture/event';
 import {EventsStatsFixture} from 'sentry-fixture/events';
 import {GroupFixture} from 'sentry-fixture/group';
@@ -25,7 +28,14 @@ describe('MetricIssueChart', () => {
 
   const detector = MetricDetectorFixture({projectId: project.id});
   const event = EventFixture({
-    occurrence: {evidenceData: {detectorId: detector.id}, type: 8001},
+    id: 'event-1',
+    occurrence: {
+      evidenceData: {
+        detectorId: detector.id,
+        dataSources: [SnubaQueryDataSourceFixture()],
+      },
+      type: 8001,
+    },
   });
 
   const context = {
@@ -193,6 +203,39 @@ describe('MetricIssueChart', () => {
     await waitFor(() => {
       expect(dispatch).toHaveBeenCalledWith({type: 'UPDATE_EVENT_COUNT', count: 2});
     });
+  });
+
+  it('zooms to the open period with one request on an event route', async () => {
+    setMockDate(Date.parse('2024-01-10T00:00:00Z'));
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/open-periods/`,
+      body: [{id: '101', start: '2024-01-01T00:00:00Z', end: '2024-01-01T00:05:00Z'}],
+      match: [MockApiClient.matchQuery({eventId: event.id})],
+    });
+
+    const {router} = render(
+      <IssueDetailsContext value={context}>
+        <EventDetailsHeader group={group} project={project} event={event} />
+      </IssueDetailsContext>,
+      {
+        organization,
+        initialRouterConfig: {
+          route: '/organizations/:orgId/issues/:groupId/events/:eventId/',
+          location: {
+            pathname: `/organizations/${organization.slug}/issues/${group.id}/events/${event.id}/`,
+          },
+        },
+      }
+    );
+
+    expect(await screen.findByTestId('area-chart')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(router.location.query).toEqual({
+        start: '2023-12-31T23:48:00',
+        end: '2024-01-01T00:15:00',
+      })
+    );
+    expect(mockStats).toHaveBeenCalledTimes(1);
   });
 
   it('shows detector load error message when detector request fails', async () => {
