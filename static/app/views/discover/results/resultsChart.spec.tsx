@@ -7,11 +7,7 @@ import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingL
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {EventView} from 'sentry/utils/discover/eventView';
-import {
-  DiscoverDatasets,
-  DISPLAY_MODE_OPTIONS,
-  DisplayModes,
-} from 'sentry/utils/discover/types';
+import {DiscoverDatasets, DisplayModes} from 'sentry/utils/discover/types';
 
 import {ResultsChartContainer} from './resultsChart';
 
@@ -37,11 +33,17 @@ describe('Discover > ResultsChart', () => {
   });
 
   it('only allows default, daily, previous period, and bar display modes when multiple y axis are selected', async () => {
+    // Top modes need the discover-query feature and a grouped query, otherwise
+    // they're hidden or disabled for reasons unrelated to the y-axis count.
+    const groupedLocation = LocationFixture({
+      pathname: '/',
+      query: {query: 'tag:value', field: ['transaction', 'count()', 'failure_count()']},
+    });
     render(
       <ResultsChartContainer
-        organization={organization}
-        eventView={eventView}
-        location={location}
+        organization={OrganizationFixture({features: [...features, 'discover-query']})}
+        eventView={EventView.fromSavedQueryOrLocation(undefined, groupedLocation)}
+        location={groupedLocation}
         onAxisChange={() => {}}
         onIntervalChange={() => {}}
         onDisplayChange={() => {}}
@@ -54,18 +56,18 @@ describe('Discover > ResultsChart', () => {
 
     await userEvent.click(screen.getByText(/Display/));
 
-    DISPLAY_MODE_OPTIONS.forEach(({value, label}) => {
-      if (
-        [
-          DisplayModes.DEFAULT,
-          DisplayModes.DAILY,
-          DisplayModes.PREVIOUS,
-          DisplayModes.BAR,
-        ].includes(value)
-      ) {
-        expect(screen.getByRole('option', {name: String(label)})).toBeEnabled();
-      }
-    });
+    for (const label of ['Total Period', 'Previous Period', 'Total Daily', 'Bar Chart']) {
+      expect(screen.getByRole('option', {name: label})).not.toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+    }
+    for (const label of ['Top Period', 'Top Daily']) {
+      expect(screen.getByRole('option', {name: label})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+    }
   });
 
   it('does not display a chart if no y axis is selected', async () => {
