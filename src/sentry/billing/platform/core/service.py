@@ -9,6 +9,7 @@ import time
 from collections.abc import Callable, Generator
 from typing import Any, TypeVar, overload
 
+from django.core.exceptions import ObjectDoesNotExist
 from google.protobuf.json_format import MessageToDict
 from google.protobuf.message import Message
 from sentry_sdk import traces
@@ -245,15 +246,20 @@ def service_method(
                         sample_rate=1.0,
                     )
 
-                    logger.exception(
-                        "billing.service.method.error",
-                        extra={
-                            "duration_ms": duration_ms,
-                            "error": str(e),
-                            "error_type": type(e).__name__,
-                            **extras,
-                        },
-                    )
+                    error_extra = {
+                        "duration_ms": duration_ms,
+                        "error": str(e),
+                        "error_type": type(e).__name__,
+                        **extras,
+                    }
+                    if isinstance(e, ObjectDoesNotExist):
+                        # Callers catch a missing row to fall back to another lookup, so
+                        # reporting it here would flag a normal result as an error. A miss
+                        # that no caller catches still fails the request or task, and is
+                        # reported there.
+                        logger.info("billing.service.method.error", extra=error_extra)
+                    else:
+                        logger.exception("billing.service.method.error", extra=error_extra)
                     raise
 
         return wrapper

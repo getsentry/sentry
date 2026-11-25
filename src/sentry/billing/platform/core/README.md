@@ -24,6 +24,8 @@ All metrics include `service` and `method` tags.
 
 Structured logs at start, success, and error with service name, method name, and duration.
 
+Errors are logged with `logger.exception`, so Sentry reports them. `ObjectDoesNotExist` is logged at info instead: callers catch a missing row to fall back to another lookup, and a miss that no caller catches still fails the request or task and is reported there.
+
 ## Example
 
 ```python

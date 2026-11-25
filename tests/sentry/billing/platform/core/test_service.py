@@ -4,6 +4,7 @@ from unittest import mock
 from unittest.mock import MagicMock
 
 import pytest
+from django.core.exceptions import ObjectDoesNotExist
 from google.protobuf.wrappers_pb2 import Int32Value, StringValue
 
 from sentry.billing.platform.core import BillingService, service_method
@@ -136,6 +137,57 @@ class TestBillingService:
                 "service": "TestService",
                 "method": "failing_method",
                 "error_type": "ValueError",
+            },
+            sample_rate=1.0,
+        )
+
+    @mock.patch("sentry.billing.platform.core.service.logger")
+    def test_service_method_logs_unexpected_error_as_exception(
+        self, mock_logger: MagicMock
+    ) -> None:
+        """Unexpected errors are logged with logger.exception so Sentry reports them."""
+
+        class TestService(BillingService):
+            @service_method
+            def failing_method(self, request: StringValue) -> StringValue:
+                raise ValueError("Something went wrong")
+
+        with pytest.raises(ValueError):
+            TestService().failing_method(StringValue(value="test"))
+
+        mock_logger.exception.assert_called_once()
+        assert mock_logger.exception.call_args.args == ("billing.service.method.error",)
+        assert mock_logger.exception.call_args.kwargs["extra"]["error_type"] == "ValueError"
+        mock_logger.info.assert_not_called()
+
+    @mock.patch("sentry.billing.platform.core.service.metrics")
+    @mock.patch("sentry.billing.platform.core.service.logger")
+    def test_service_method_logs_does_not_exist_at_info(
+        self, mock_logger: MagicMock, mock_metrics: MagicMock
+    ) -> None:
+        """A missing row is logged at info and re-raised, because callers catch it to fall back."""
+
+        class RowDoesNotExist(ObjectDoesNotExist):
+            pass
+
+        class TestService(BillingService):
+            @service_method
+            def get_row(self, request: StringValue) -> StringValue:
+                raise RowDoesNotExist("Row matching query does not exist.")
+
+        with pytest.raises(RowDoesNotExist):
+            TestService().get_row(StringValue(value="test"))
+
+        mock_logger.exception.assert_not_called()
+        mock_logger.info.assert_called_once()
+        assert mock_logger.info.call_args.args == ("billing.service.method.error",)
+        assert mock_logger.info.call_args.kwargs["extra"]["error_type"] == "RowDoesNotExist"
+        mock_metrics.incr.assert_any_call(
+            "billing.service.method.error",
+            tags={
+                "service": "TestService",
+                "method": "get_row",
+                "error_type": "RowDoesNotExist",
             },
             sample_rate=1.0,
         )
