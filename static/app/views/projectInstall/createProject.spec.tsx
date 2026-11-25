@@ -587,6 +587,7 @@ describe('CreateProject', () => {
 
     it('reuses the project when nothing changed instead of creating a duplicate', async () => {
       const {organization, projectCreationMockRequest} = setUpReturnFromGettingStarted();
+      const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
 
       const {router} = render(<CreateProject />, {
         organization,
@@ -608,6 +609,35 @@ describe('CreateProject', () => {
       expect(router.location.query.projectCreationVariant).toBe('legacy');
       expect(projectCreationMockRequest).not.toHaveBeenCalled();
       expect(toast.success).not.toHaveBeenCalled();
+
+      expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+        'project_creation.project_reused',
+        expect.objectContaining({project_id: returnedProject.id, variant: 'legacy'})
+      );
+      const eventNames = trackAnalyticsSpy.mock.calls.map(([eventName]) => eventName);
+      expect(eventNames).not.toContain('project_creation_page.created');
+      expect(eventNames).not.toContain('project_creation.project_details_create_clicked');
+    });
+
+    it('still creates a project when the projects list has not loaded', async () => {
+      const {organization, projectCreationMockRequest} = setUpReturnFromGettingStarted();
+      ProjectsStore.reset();
+
+      render(<CreateProject />, {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/projects/new/',
+            query: {referrer: 'getting-started', project: returnedProject.id},
+          },
+        },
+      });
+
+      const createButton = await screen.findByRole('button', {name: 'Create Project'});
+      expect(createButton).toBeEnabled();
+      await userEvent.click(createButton);
+
+      expect(projectCreationMockRequest).toHaveBeenCalledTimes(1);
     });
 
     it('creates a new project when the platform changed', async () => {

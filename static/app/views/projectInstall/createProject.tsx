@@ -104,16 +104,6 @@ function isUnchangedFromCreatedProject({
   );
 }
 
-function getIssueAlertBreakdown({
-  shouldCreateCustomRule,
-  shouldCreateRule,
-}: Pick<RequestDataFragment, 'shouldCreateCustomRule' | 'shouldCreateRule'>) {
-  if (shouldCreateCustomRule) {
-    return 'Custom';
-  }
-  return shouldCreateRule ? 'Default' : 'No Rule';
-}
-
 function getMissingValues({
   team,
   projectName,
@@ -195,11 +185,10 @@ export function CreateProject() {
     return referrer === 'getting-started' && projectId === createdProject?.id;
   }, [referrer, projectId, createdProject?.id]);
 
-  const {projects, initiallyLoaded: projectsLoaded} = useProjects();
+  const {projects} = useProjects();
   const returnedProject = autoFill
     ? projects.find(p => p.id === createdProject?.id)
     : undefined;
-  const isReturnCheckPending = autoFill && !projectsLoaded;
 
   const notificationActionParam = useMemo(() => {
     return autoFill && createdProject?.notificationRule?.actions
@@ -381,7 +370,11 @@ export function CreateProject() {
 
         trackAnalytics('project_creation_page.created', {
           organization,
-          issue_alert: getIssueAlertBreakdown(alertRuleConfig),
+          issue_alert: alertRuleConfig.shouldCreateCustomRule
+            ? 'Custom'
+            : alertRuleConfig.shouldCreateRule
+              ? 'Default'
+              : 'No Rule',
           project_id: project.id,
           platform: selectedPlatform.key,
           workflow_ids: workflowIds,
@@ -458,17 +451,10 @@ export function CreateProject() {
           notificationSelection,
         })
       ) {
-        trackAnalytics('project_creation.project_details_create_clicked', {
+        trackAnalytics('project_creation.project_reused', {
           organization,
-          variant: 'legacy',
-        });
-        trackAnalytics('project_creation_page.created', {
-          organization,
-          issue_alert: getIssueAlertBreakdown(alertRuleConfig),
           project_id: returnedProject.id,
           platform: platform.key,
-          workflow_ids: [],
-          notification_rule_created: false,
           variant: 'legacy',
         });
         navigateToGettingStarted(returnedProject.slug);
@@ -519,7 +505,6 @@ export function CreateProject() {
       returnedProject,
       createdProject,
       notificationSelection,
-      alertRuleConfig,
       navigateToGettingStarted,
     ]
   );
@@ -722,13 +707,11 @@ export function CreateProject() {
                     !(
                       canUserCreateProject &&
                       formErrorCount === 0 &&
-                      !isReturnCheckPending &&
                       !(isNotifyingViaIntegration && validateChannel.isFetching)
                     )
                   }
                   busy={
                     createProjectAndRules.isPending ||
-                    isReturnCheckPending ||
                     (isNotifyingViaIntegration && validateChannel.isFetching)
                   }
                   onClick={() => debounceHandleProjectCreation(formData)}
