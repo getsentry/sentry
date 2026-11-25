@@ -69,6 +69,7 @@ from sentry.search.events import filter as event_filter
 from sentry.search.events.filter import to_list
 from sentry.search.events.types import SAMPLING_MODES, SnubaParams
 from sentry.search.exceptions import InvalidIssueSearchQuery
+from sentry.utils.validators import WILDCARD_NOT_ALLOWED
 
 logger = logging.getLogger(__name__)
 
@@ -552,6 +553,9 @@ class SearchResolver:
 
         if context_definition is not None and term.value.is_wildcard():
             raise InvalidSearchQuery(f"Cannot use wildcards with {term.key.name}")
+
+        if not resolved_column.wildcard_allowed and term.value.is_wildcard():
+            raise InvalidSearchQuery(WILDCARD_NOT_ALLOWED.format(term.key.name))
 
         value = term.value.value
         if self.params.is_timeseries_request and context_definition is not None:
@@ -1189,6 +1193,7 @@ class SearchResolver:
                 validator=internal_match.validator,
                 normalizer=internal_match.normalizer,
                 canonical_case=internal_match.canonical_case,
+                wildcard_allowed=internal_match.wildcard_allowed,
                 processor=internal_match.processor,
             )
         else:

@@ -46,6 +46,9 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
     {
       id: 'anr-rate',
       title: t('ANR / App Hang Rate'),
+      description: t(
+        'Percentage of unique users that experienced a fatal App Not Responding (ANR) error or a fatal App Hang'
+      ),
       displayType: DisplayType.BIG_NUMBER,
       widgetType: WidgetType.RELEASE,
       interval: '5m',

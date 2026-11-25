@@ -15,6 +15,7 @@ from sentry.lang.native.sources import (
     SOURCES_WITHOUT_APPSTORE_CONNECT,
     InvalidSourcesError,
     _sources_validator,
+    backfill_source,
     filter_ignored_sources,
     get_sources_for_project,
     parse_sources,
@@ -347,3 +348,135 @@ class TestIgnoredSourcesFiltering:
                 "sentry:tvos-source",
                 "custom",
             ]
+
+
+HIDDEN = {"hidden-secret": True}
+
+STORED_SOURCES: dict[str, dict[str, Any]] = {
+    "http": {
+        "id": "src",
+        "type": "http",
+        "name": "http",
+        "layout": {"type": "native"},
+        "url": "https://symbols.example.com/",
+        "username": "user",
+        "password": "secret",
+    },
+    "s3": {
+        "id": "src",
+        "type": "s3",
+        "name": "s3",
+        "layout": {"type": "native"},
+        "bucket": "bucket",
+        "region": "us-east-1",
+        "access_key": "AKIA",
+        "secret_key": "secret",
+    },
+    "gcs": {
+        "id": "src",
+        "type": "gcs",
+        "name": "gcs",
+        "layout": {"type": "native"},
+        "bucket": "bucket",
+        "client_email": "sa@example.iam.gserviceaccount.com",
+        "private_key": "secret",
+    },
+    "azure": {
+        "id": "src",
+        "type": "azure",
+        "name": "azure",
+        "layout": {"type": "native"},
+        "account": "account",
+        "container": "container",
+        "tenant_id": "tenant",
+        "client_id": "client",
+        "client_secret": "secret",
+    },
+}
+
+SECRET_FIELD = {
+    "http": "password",
+    "s3": "secret_key",
+    "gcs": "private_key",
+    "azure": "client_secret",
+}
+
+BINDING_FIELDS = [
+    ("http", "url"),
+    ("http", "username"),
+    ("s3", "bucket"),
+    ("s3", "region"),
+    ("s3", "access_key"),
+    ("gcs", "bucket"),
+    ("gcs", "client_email"),
+    ("azure", "account"),
+    ("azure", "container"),
+    ("azure", "tenant_id"),
+    ("azure", "client_id"),
+]
+
+
+def _redacted(source_type: str) -> dict[str, Any]:
+    source = copy.deepcopy(STORED_SOURCES[source_type])
+    source[SECRET_FIELD[source_type]] = HIDDEN
+    return source
+
+
+@pytest.mark.parametrize("source_type", sorted(STORED_SOURCES))
+def test_backfill_source_restores_secret(source_type: str) -> None:
+    source = _redacted(source_type)
+    backfill_source(source, STORED_SOURCES[source_type])
+    assert source == STORED_SOURCES[source_type]
+
+
+@pytest.mark.parametrize("source_type", sorted(STORED_SOURCES))
+def test_backfill_source_allows_non_destination_changes(source_type: str) -> None:
+    source = _redacted(source_type)
+    source["name"] = "renamed"
+    source["layout"] = {"type": "symstore", "casing": "lowercase"}
+    source["filters"] = {"filetypes": ["pe"]}
+    if source_type != "http":
+        source["prefix"] = "other/prefix"
+    backfill_source(source, STORED_SOURCES[source_type])
+    assert source[SECRET_FIELD[source_type]] == "secret"
+
+
+@pytest.mark.parametrize(("source_type", "field"), BINDING_FIELDS)
+def test_backfill_source_rejects_destination_change(source_type: str, field: str) -> None:
+    source = _redacted(source_type)
+    source[field] = "attacker-controlled"
+    with pytest.raises(InvalidSourcesError, match=field):
+        backfill_source(source, STORED_SOURCES[source_type])
+    assert source[SECRET_FIELD[source_type]] == HIDDEN
+
+
+@pytest.mark.parametrize(("source_type", "field"), BINDING_FIELDS)
+def test_backfill_source_allows_destination_change_with_new_secret(
+    source_type: str, field: str
+) -> None:
+    source = copy.deepcopy(STORED_SOURCES[source_type])
+    source[field] = "new-destination"
+    source[SECRET_FIELD[source_type]] = "new-secret"
+    backfill_source(source, STORED_SOURCES[source_type])
+    assert source[SECRET_FIELD[source_type]] == "new-secret"
+
+
+def test_backfill_source_rejects_removed_destination_field() -> None:
+    source = _redacted("http")
+    del source["username"]
+    with pytest.raises(InvalidSourcesError, match="username"):
+        backfill_source(source, STORED_SOURCES["http"])
+
+
+def test_backfill_source_rejects_type_change() -> None:
+    # Reuse the stored s3 source's secret under a different source type.
+    source = _redacted("gcs")
+    source["private_key"] = HIDDEN
+    with pytest.raises(InvalidSourcesError, match="type"):
+        backfill_source(source, STORED_SOURCES["s3"])
+
+
+def test_backfill_source_missing_original() -> None:
+    source = _redacted("http")
+    with pytest.raises(InvalidSourcesError, match="missing a value"):
+        backfill_source(source, None)
