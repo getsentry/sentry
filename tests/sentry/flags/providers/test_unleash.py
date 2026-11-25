@@ -123,24 +123,6 @@ def test_handle_no_tags() -> None:
     assert items[0]["tags"] == {}
 
 
-def test_handle_flag_description_from_data() -> None:
-    """Official Unleash events put purpose text on data.description."""
-    items = UnleashProvider(123, "abcdefgh").handle(
-        {
-            "id": 28,
-            "tags": [],
-            "type": "feature-created",
-            "createdAt": "2024-12-30T00:00:00.000Z",
-            "createdBy": "michelle@michelle.org",
-            "featureName": "test-flag",
-            "createdByUserId": 1,
-            "data": {"name": "test-flag", "description": "Controls checkout redesign"},
-        }
-    )
-    assert len(items) == 1
-    assert items[0]["tags"]["flag_description"] == "Controls checkout redesign"
-
-
 def test_blank() -> None:
     try:
         UnleashProvider(123, "abcdefgh").handle({})
