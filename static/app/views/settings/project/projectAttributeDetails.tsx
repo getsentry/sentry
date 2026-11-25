@@ -220,7 +220,7 @@ function getEditDisabledReason(
   if (attribute.attributeType === 'array') {
     return t("Array attributes can't be edited.");
   }
-  return t("Attributes named like a Sentry-defined attribute can't be edited.");
+  return t("This attribute can't be edited.");
 }
 
 function AttributeMetadata({
