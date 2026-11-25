@@ -325,12 +325,25 @@ class IntegrationRepositoryProvider(Generic[InstT]):
         that weren't created because a repo already existed for them. A repo that was already
         active on its integration has its config refreshed but is not reported as updated.
         """
-        configs_by_external_id = index_repository_configs(
+        return self.reconcile_repositories(
             [
                 self.build_repository_config(organization=organization, data=config)
                 for config in configs
-            ]
+            ],
+            organization,
         )
+
+    def reconcile_repositories(
+        self,
+        repository_configs: Sequence[RepositoryConfig],
+        organization: RpcOrganization,
+        organization_integration_id: int | None = None,
+    ) -> tuple[list[RpcRepository], list[RpcRepository], list[RepositoryConfig]]:
+        """
+        ``create_repositories`` for already-built configs. Pass the configs' organization
+        integration to save transfers a control lookup.
+        """
+        configs_by_external_id = index_repository_configs(repository_configs)
 
         existing_repos = self._find_repositories(organization, set(configs_by_external_id))
         plan = plan_repository_reconciliation(
@@ -350,7 +363,9 @@ class IntegrationRepositoryProvider(Generic[InstT]):
         ]
 
         transferred_repos, untransferable = self._transfer_repositories(
-            organization, [*plan.to_transfer, *plan.conflicts]
+            organization,
+            [*plan.to_transfer, *plan.conflicts],
+            organization_integration_id=organization_integration_id,
         )
 
         not_created = already_created + list(plan.already_active_configs) + untransferable
@@ -423,6 +438,7 @@ class IntegrationRepositoryProvider(Generic[InstT]):
         self,
         organization: RpcOrganization,
         repos_and_configs: Sequence[tuple[RpcRepository, RepositoryConfig]],
+        organization_integration_id: int | None = None,
     ) -> tuple[list[RpcRepository], list[RepositoryConfig]]:
         """
         Moves each repo from its current integration onto the config's, if the provider allows
@@ -433,7 +449,11 @@ class IntegrationRepositoryProvider(Generic[InstT]):
         for repo, repo_config in repos_and_configs:
             moved = None
             if self.can_transfer_repositories:
-                moved = self._transfer_repository(organization, repo_config)
+                moved = self._transfer_repository(
+                    organization,
+                    repo_config,
+                    organization_integration_id=organization_integration_id,
+                )
             if moved is not None:
                 transferred.append(moved)
                 continue
@@ -455,7 +475,10 @@ class IntegrationRepositoryProvider(Generic[InstT]):
         return transferred, untransferable
 
     def _transfer_repository(
-        self, organization: RpcOrganization, repo_config: RepositoryConfig
+        self,
+        organization: RpcOrganization,
+        repo_config: RepositoryConfig,
+        organization_integration_id: int | None = None,
     ) -> RpcRepository | None:
         """
         Moves the org's existing repository with this external_id onto the config's
@@ -485,18 +508,20 @@ class IntegrationRepositoryProvider(Generic[InstT]):
         if repo is None:
             return None
 
-        org_integration = integration_service.get_organization_integration(
-            integration_id=new_integration_id, organization_id=organization.id
-        )
-        if org_integration is None:
-            return None
+        if organization_integration_id is None:
+            org_integration = integration_service.get_organization_integration(
+                integration_id=new_integration_id, organization_id=organization.id
+            )
+            if org_integration is None:
+                return None
+            organization_integration_id = org_integration.id
 
         previous_integration_id = repo.integration_id
         repo = self._apply_repo_config(repo, repo_config)
         if not repository_service.transfer_repository_to_integration(
             organization_id=organization.id,
             update=repo,
-            organization_integration_id=org_integration.id,
+            organization_integration_id=organization_integration_id,
         ):
             return None
 
