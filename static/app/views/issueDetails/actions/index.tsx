@@ -5,6 +5,7 @@ import {IconCheckmark} from '@sentry/icons/checkmark';
 import {IconClock} from '@sentry/icons/clock';
 import {IconCopy} from '@sentry/icons/copy';
 import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconFilter} from '@sentry/icons/filter';
 import {IconSubscribed} from '@sentry/icons/subscribed';
 import {IconUnsubscribed} from '@sentry/icons/unsubscribed';
 import {IconUpload} from '@sentry/icons/upload';
@@ -35,19 +36,17 @@ import {t} from 'sentry/locale';
 import {IssueListCacheStore} from 'sentry/stores/IssueListCacheStore';
 import type {Event} from 'sentry/types/event';
 import {EventOrGroupType} from 'sentry/types/event';
-import type {Group, GroupStatusResolution, MarkReviewed} from 'sentry/types/group';
+import type {Group, GroupStatusResolution} from 'sentry/types/group';
 import {GroupStatus, GroupSubstatus} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {stripAnsi} from 'sentry/utils/ansiEscapeCodes';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {displayReprocessEventAction} from 'sentry/utils/displayReprocessEventAction';
 import {getAnalyticsDataForGroup, getMessage, getTitle} from 'sentry/utils/events';
 import {getStacktraceBody} from 'sentry/utils/getStacktraceBody';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {getAnalyicsDataForProject} from 'sentry/utils/projects';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -55,6 +54,10 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {isVersionInfoSemver} from 'sentry/views/explore/releases/utils';
 import {discardIssueMutationOptions} from 'sentry/views/issueDetails/discardIssueMutationOptions';
 import {Divider} from 'sentry/views/issueDetails/divider';
+import {
+  useAssessImpact,
+  useHasImpactAssessment,
+} from 'sentry/views/issueDetails/groupImpact';
 import {GroupPriorityCommandPaletteAction} from 'sentry/views/issueDetails/groupPriority';
 import {GroupHeaderAssigneeCommandPaletteAction} from 'sentry/views/issueDetails/header/assigneeSelector';
 import {groupQueryFilter} from 'sentry/views/issueDetails/useGroup';
@@ -70,9 +73,8 @@ import {StatusBanner} from './statusBanner';
 import {SubscribeAction} from './subscribeAction';
 
 type UpdateData =
-  | {isBookmarked: boolean; inbox?: boolean}
-  | {isSubscribed: boolean; inbox?: boolean}
-  | MarkReviewed
+  | {isBookmarked: boolean}
+  | {isSubscribed: boolean}
   | GroupStatusResolution;
 
 const isResolutionStatus = (data: UpdateData): data is GroupStatusResolution => {
@@ -93,10 +95,6 @@ const getUpdateSuccessMessage = (group: Group, data: UpdateData) => {
       default:
         return;
     }
-  }
-
-  if (data.inbox === false) {
-    return t('Issue marked reviewed');
   }
 
   return;
@@ -225,27 +223,8 @@ export function GroupActions({
   });
   const queryClient = useQueryClient();
   const {mutate: discardIssue} = useMutation(discardIssueMutationOptions({navigate}));
-  const {mutate: assessImpact, isPending: isAssessingImpact} = useMutation({
-    mutationFn: () =>
-      fetchMutation<{runId: string}>({
-        method: 'POST',
-        url: getApiUrl(
-          '/organizations/$organizationIdOrSlug/issues/$issueId/impact/assess/',
-          {path: {organizationIdOrSlug: organization.slug, issueId: group.id}}
-        ),
-      }),
-    onMutate: () => {
-      toast.loading(t('Starting impact assessment\u2026'));
-    },
-    onSuccess: () => {
-      toast.dismiss();
-      toast.success(t('Impact assessment started'));
-    },
-    onError: () => {
-      toast.dismiss();
-      toast.error(t('Unable to start impact assessment'));
-    },
-  });
+  const {mutate: assessImpact, isPending: isAssessingImpact} = useAssessImpact(group);
+  const hasImpactAssessment = useHasImpactAssessment();
 
   const bookmarkKey = group.isBookmarked ? 'unbookmark' : 'bookmark';
   const bookmarkTitle = group.isBookmarked ? t('Remove bookmark') : t('Bookmark');
@@ -285,7 +264,6 @@ export function GroupActions({
       | 'deleted'
       | 'bookmarked'
       | 'subscribed'
-      | 'mark_reviewed'
       | 'discarded'
       | 'add_inbound_filter'
       | GroupStatus,
@@ -340,9 +318,6 @@ export function GroupActions({
         Object.keys(data.statusDetails || {})[0]
       );
     }
-    if ((data as {inbox: boolean}).inbox !== undefined) {
-      trackIssueAction('mark_reviewed');
-    }
     IssueListCacheStore.reset();
 
     try {
@@ -396,6 +371,7 @@ export function GroupActions({
       'You need project write access to add custom inbound filters'
     );
   }
+  const isInboundFilterAllowed = addInboundFilterDisabledReason === undefined;
 
   const onAddInboundFilter = () => {
     if (!event) {
@@ -583,6 +559,13 @@ export function GroupActions({
                 }
               />
             )}
+            {canAddInboundFilter && isInboundFilterAllowed && (
+              <CMDKAction
+                display={{label: t('Add Inbound Filter'), icon: <IconFilter />}}
+                keywords={['inbound', 'filter', 'drop', 'custom filter', 'data filter']}
+                onAction={onAddInboundFilter}
+              />
+            )}
             {stacktraceBody && (
               <CMDKAction
                 display={{label: t('Copy Stack Trace'), icon: <IconCopy />}}
@@ -670,20 +653,12 @@ export function GroupActions({
               key: 'impact-assessment',
               label: t('Assess impact'),
               trailingItems: <FeatureBadge type="alpha" />,
-              hidden: !organization.features.includes('seer-impact-assessment'),
+              hidden: !hasImpactAssessment,
               disabled: disabled || isAssessingImpact,
               details: isAssessingImpact
                 ? t('Impact assessment is being started')
                 : undefined,
               onAction: () => assessImpact(),
-            },
-            {
-              key: 'mark-review',
-              label: t('Mark reviewed'),
-              disabled: !group.inbox || disabled,
-              details:
-                !group.inbox || disabled ? t('Issue has been reviewed') : undefined,
-              onAction: () => onUpdate({inbox: false}),
             },
             {key: bookmarkKey, label: bookmarkTitle, onAction: onToggleBookmark},
             {
@@ -696,7 +671,7 @@ export function GroupActions({
               key: 'add-inbound-filter',
               label: t('Add Inbound Filter'),
               hidden: !canAddInboundFilter,
-              disabled: addInboundFilterDisabledReason !== undefined,
+              disabled: !isInboundFilterAllowed,
               details: addInboundFilterDisabledReason,
               onAction: onAddInboundFilter,
             },

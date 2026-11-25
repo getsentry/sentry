@@ -72,6 +72,7 @@ from sentry.workflow_engine.types import (
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 GRANT = SeerServiceAccountGrant(scopes=["event:read"])
+PROMPT = {"prompt": "Check checkout latency"}
 
 
 def create_metric_workflow(
@@ -729,7 +730,7 @@ class GetConfigMonitorsBulkTest(TestCase):
             self.organization.id, service_account_grant=GRANT
         ).get_config()
         triage = Factories.create_seer_workflow_config(
-            self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2
+            self.organization, strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION
         )
 
         result = get_config_monitors_bulk(
@@ -895,7 +896,8 @@ class MetricMonitorSelectionTest(OccurrenceTestMixin, TestCase):
         def create_triage() -> SeerWorkflow:
             return SeerWorkflow.create(
                 organization_id=self.organization.id,
-                strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
+                strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION,
+                action_settings=PROMPT,
                 schedule=SeerWorkflowSchedule.DAILY,
                 scope=SelectedProjects(()),
                 service_account_grant=GRANT,
@@ -951,7 +953,7 @@ class MetricMonitorSelectionTest(OccurrenceTestMixin, TestCase):
         with pytest.raises(SeerWorkflowConfig.DoesNotExist), foreign.update_config() as update:
             update.set_scope(SelectedMonitors(tuple(self.monitor_ids)))
 
-        self.config.update(strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2)
+        self.config.update(strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION)
         with pytest.raises(ValueError, match="does not support monitor selection"):
             self.select_monitors(self.monitor_ids)
         assert not DetectorWorkflow.objects.exists()

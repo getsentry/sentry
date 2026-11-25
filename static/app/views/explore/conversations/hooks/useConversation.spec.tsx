@@ -690,50 +690,6 @@ describe('useConversation', () => {
     ]);
   });
 
-  it('nests spans under their agent through spans that are not gen_ai spans', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/agents/conversations/conv-gap/`,
-      body: envelope([
-        {
-          ...BASE_SPAN,
-          'gen_ai.conversation.id': 'conv-gap',
-          span_id: 'agent',
-          parent_span: 'outside-the-conversation',
-          'gen_ai.operation.type': 'agent',
-        },
-        {
-          ...BASE_SPAN,
-          'gen_ai.conversation.id': 'conv-gap',
-          span_id: 'http',
-          parent_span: 'agent',
-          'gen_ai.operation.type': undefined,
-          'span.name': 'GET /search',
-          'span.op': 'http.client',
-        },
-        {
-          ...BASE_SPAN,
-          'gen_ai.conversation.id': 'conv-gap',
-          span_id: 'chat',
-          parent_span: 'http',
-          'gen_ai.operation.type': 'ai_client',
-        },
-      ]),
-    });
-
-    const {result} = renderHookWithProviders(
-      () => useConversation({conversationId: 'conv-gap'}),
-      {organization}
-    );
-
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
-
-    expect(result.current.nodes.map(node => node.id)).toEqual(['agent', 'chat']);
-    const chat = result.current.nodes[1]!;
-    expect(chat.findParent(parent => parent.id === 'agent')?.id).toBe('agent');
-  });
-
   it('keeps spans whose parent links form a cycle', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/agents/conversations/conv-cycle/`,
@@ -875,7 +831,7 @@ describe('useConversation', () => {
     expect(queryArg).not.toHaveProperty('end');
   });
 
-  it('filters to only gen_ai spans', async () => {
+  it('filters to spans with a gen_ai operation type', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/agents/conversations/conv-filter/`,
       body: envelope([
@@ -899,9 +855,9 @@ describe('useConversation', () => {
           'precise.start_ts': 1001,
           project: 'test-project',
           'project.id': 1,
-          'span.name': 'http.client',
+          'span.name': 'gen_ai.generate',
           'span.status': 'ok',
-          span_id: 'span-http',
+          span_id: 'span-untyped',
           trace: 'trace-1',
           // No gen_ai.operation.type - should be filtered out
         },

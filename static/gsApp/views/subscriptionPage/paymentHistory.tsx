@@ -29,7 +29,9 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
-import type {InvoiceBase} from 'getsentry/types';
+import {useSubscription} from 'getsentry/hooks/useSubscription';
+import type {InvoiceBase, Plan, ReceiptType} from 'getsentry/types';
+import {displayBudgetName} from 'getsentry/utils/billing';
 import {formatCurrency} from 'getsentry/utils/formatCurrency';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 import {ContactBillingMembers} from 'getsentry/views/contactBillingMembers';
@@ -77,6 +79,21 @@ function ReceiptStatusTag({payment}: {payment: InvoiceBase}) {
       {capitalize(status.replace('_', ' '))}
     </Tag>
   );
+}
+
+function getReceiptTypeLabel(receiptType: ReceiptType, plan: Plan | undefined) {
+  switch (receiptType) {
+    case 'payg':
+      return displayBudgetName(plan, {title: true});
+    case 'seer_token':
+      return t('Seer auto-reload');
+    case 'credit_grant':
+      return t('Credit from Sentry');
+    case 'subscription':
+      return t('Subscription');
+    default:
+      return null;
+  }
 }
 
 function UsageCsvDownloads({
@@ -185,6 +202,7 @@ function PaymentHistory() {
 
 const COLUMNS: TableColumnConfig[] = [
   {key: 'date', width: 'minmax(min-content, 1fr)'},
+  {key: 'type', width: 'minmax(max-content, 1fr)', visible: {sm: true}},
   {key: 'amount', width: 'minmax(max-content, 1fr)'},
   {
     key: 'status',
@@ -193,6 +211,8 @@ const COLUMNS: TableColumnConfig[] = [
   {key: 'receiptId', width: 'minmax(0, 1fr)', visible: {sm: true}},
   {key: 'download', width: {zero: 'max-content', xl: 'minmax(max-content, 2fr)'}},
 ];
+
+const COLUMNS_WITHOUT_TYPE = COLUMNS.filter(column => column.key !== 'type');
 
 function ReceiptTable({
   isError,
@@ -208,16 +228,22 @@ function ReceiptTable({
   payments: InvoiceBase[] | undefined;
 }) {
   const isSmallContainer = useResponsivePropValue({zero: true, xl: false});
+  // Only token-billed Seer has auto-reloads and credit grants to tell apart.
+  const showReceiptType = organization.features.includes('token-billed-seer-enabled');
+  const subscription = useSubscription();
 
   return (
     <SimpleTable
       aria-label={t('Receipts')}
-      columns={COLUMNS}
+      columns={showReceiptType ? COLUMNS : COLUMNS_WITHOUT_TYPE}
       data-test-id="payment-list"
       scrollable
       header={
         <SimpleTable.HeaderRow>
           <SimpleTable.HeaderCell>{t('Date')}</SimpleTable.HeaderCell>
+          {showReceiptType && (
+            <SimpleTable.HeaderCell>{t('Type')}</SimpleTable.HeaderCell>
+          )}
           <SimpleTable.HeaderCell align="right">{t('Amount')}</SimpleTable.HeaderCell>
           <SimpleTable.HeaderCell>{t('Status')}</SimpleTable.HeaderCell>
           <SimpleTable.HeaderCell>{t('Receipt ID')}</SimpleTable.HeaderCell>
@@ -237,6 +263,15 @@ function ReceiptTable({
                 {moment(payment.dateCreated).format('MMM D, YYYY')}
               </Link>
             </SimpleTable.RowCell>
+            {showReceiptType && (
+              <SimpleTable.RowCell>
+                {payment.receiptType && (
+                  <Text>
+                    {getReceiptTypeLabel(payment.receiptType, subscription?.planDetails)}
+                  </Text>
+                )}
+              </SimpleTable.RowCell>
+            )}
             <SimpleTable.RowCell justify="end">
               <Container>
                 <Text align="right">{formatCurrency(payment.amountBilled ?? 0)}</Text>

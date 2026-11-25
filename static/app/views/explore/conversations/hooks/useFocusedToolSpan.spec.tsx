@@ -32,7 +32,7 @@ describe('useFocusedToolSpan', () => {
     expect(onSpanFound).toHaveBeenNthCalledWith(1, 'span-a');
     expect(onSpanFound).toHaveBeenCalledTimes(1);
 
-    // Matches how the drawer clears focusedTool after selecting the span.
+    // Matches how the conversation detail page clears focusedTool after selecting the span.
     rerender({focusedTool: null});
     expect(onSpanFound).toHaveBeenCalledTimes(1);
 

@@ -58,7 +58,6 @@ const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer
   isTimedOut: false,
   runId: null,
   overrideBashModeEnabled: false,
-  overrideCodeModeEnable: 'off',
   hasSentInterrupt: false,
   sendMessage: jest.fn(),
   requestError: null,
@@ -67,7 +66,6 @@ const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer
   interruptRun: jest.fn(),
   respondToUserInput: jest.fn(),
   setOverrideBashModeEnabled: jest.fn(),
-  setOverrideCodeModeEnable: jest.fn(),
 };
 
 describe('SeerExplorerContent', () => {
@@ -184,7 +182,9 @@ describe('SeerExplorerContent', () => {
       );
 
       expect(screen.getByText('Let me search for issues...')).toBeVisible();
-      expect(screen.queryByRole('button', {name: 'Debug'})).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Seer settings'})
+      ).not.toBeInTheDocument();
     });
   });
 
@@ -1341,6 +1341,30 @@ describe('SeerExplorerContent', () => {
       expect(screen.getByText('Looking at the slowest checkout spans.')).toBeVisible();
     });
 
+    it('says the run stopped at the daily usage limit', async () => {
+      jest
+        .spyOn(useSeerExplorerModule, 'useSeerExplorer')
+        .mockReturnValue({
+          ...defaultHookReturn,
+          runId: 123,
+          sessionData: {
+            blocks: stoppedBlocks,
+            status: 'error',
+            updated_at: '2024-01-01T00:00:20Z',
+            failure_reason: 'out_of_credits',
+            credit_denial_reason: 'daily_cap_exceeded',
+          },
+        });
+
+      renderContent();
+
+      expect(
+        await screen.findByText(
+          'Seer stopped because your organization hit its daily usage limit.'
+        )
+      ).toBeInTheDocument();
+    });
+
     it("leaves Seer's error block alone for other failures", async () => {
       jest
         .spyOn(useSeerExplorerModule, 'useSeerExplorer')
@@ -1652,15 +1676,8 @@ describe('SeerExplorerContent', () => {
     });
   });
 
-  describe('Debug menu', () => {
-    beforeEach(() => {
-      ConfigStore.set(
-        'user',
-        UserFixture({emails: [{email: 'employee@sentry.io', is_verified: true, id: '1'}]})
-      );
-    });
-
-    it('shows the debug menu to employees', async () => {
+  describe('Composer toolbar', () => {
+    function renderContent() {
       render(
         <PictureInPictureProvider>
           <SeerExplorerSessionsProvider>
@@ -1672,7 +1689,30 @@ describe('SeerExplorerContent', () => {
         </PictureInPictureProvider>,
         {organization}
       );
-      expect(await screen.findByRole('button', {name: 'Debug'})).toBeInTheDocument();
+    }
+
+    it('shows the commands menu in the composer toolbar', async () => {
+      renderContent();
+      const commands = await screen.findByRole('button', {name: 'Commands'});
+      expect(screen.getByTestId('seer-composer-toolbar')).toContainElement(commands);
+    });
+
+    it('shows settings in the composer toolbar to employees', async () => {
+      ConfigStore.set(
+        'user',
+        UserFixture({emails: [{email: 'employee@sentry.io', is_verified: true, id: '1'}]})
+      );
+      renderContent();
+      const settings = await screen.findByRole('button', {name: 'Seer settings'});
+      expect(screen.getByTestId('seer-composer-toolbar')).toContainElement(settings);
+    });
+
+    it('hides settings from non-employees when Seer cannot be docked', async () => {
+      renderContent();
+      await screen.findByRole('button', {name: 'Commands'});
+      expect(
+        screen.queryByRole('button', {name: 'Seer settings'})
+      ).not.toBeInTheDocument();
     });
   });
 
@@ -1736,7 +1776,7 @@ describe('SeerExplorerContent', () => {
       await waitFor(() => expect(requestWindow).toHaveBeenCalled());
     });
 
-    it('requests a window when selecting Windowed from the dock-position menu', async () => {
+    it('requests a window when selecting Windowed from Seer settings', async () => {
       const requestWindow = jest
         .fn()
         .mockResolvedValue({
@@ -1774,8 +1814,8 @@ describe('SeerExplorerContent', () => {
       // menu mid-interaction, dropping the `Windowed` item.
       await waitFor(() => expect(input).toHaveFocus());
 
-      await userEvent.click(screen.getByRole('button', {name: 'Dock position'}));
-      await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Windowed'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Seer settings'}));
+      await userEvent.click(await screen.findByRole('option', {name: 'Windowed'}));
       await waitFor(() => expect(requestWindow).toHaveBeenCalled());
     });
   });

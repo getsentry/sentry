@@ -63,7 +63,7 @@ from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.preprod_size import PreprodSize
 from sentry.snuba.processing_errors_rpc import ProcessingErrors
 from sentry.snuba.profile_functions import ProfileFunctions
-from sentry.snuba.referrer import Referrer, is_valid_referrer
+from sentry.snuba.referrer import Referrer, is_valid_referrer, resolve_client_referrer
 from sentry.snuba.rpc_dataset_common import RPCBase
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace_metrics import TraceMetrics
@@ -303,19 +303,16 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
 
         # Force the referrer to "api.auth-token.events" for events requests authorized through a bearer token
         if request.auth:
-            if referrer is not None and is_valid_referrer(referrer):
-                if referrer.startswith("seer."):
-                    sentry_sdk.set_tag("query.from_seer", True)
-                    sentry_sdk.set_attribute("query.from_seer", True)
-                elif referrer.startswith("api.mcp."):
-                    sentry_sdk.set_tag("query.from_mcp", True)
-                    sentry_sdk.set_attribute("query.from_mcp", True)
+            if referrer and referrer.startswith("seer.") and is_valid_referrer(referrer):
+                sentry_sdk.set_tag("query.from_seer", True)
+                sentry_sdk.set_attribute("query.from_seer", True)
+            elif referrer and referrer.startswith("api.mcp.") and is_valid_referrer(referrer):
+                sentry_sdk.set_tag("query.from_mcp", True)
+                sentry_sdk.set_attribute("query.from_mcp", True)
             else:
                 referrer = Referrer.API_AUTH_TOKEN_EVENTS.value
-        elif referrer is None or not referrer:
-            referrer = Referrer.API_ORGANIZATION_EVENTS.value
-        elif not is_valid_referrer(referrer):
-            referrer = Referrer.API_ORGANIZATION_EVENTS.value
+        else:
+            referrer = resolve_client_referrer(referrer, Referrer.API_ORGANIZATION_EVENTS.value)
 
         sentry_sdk.set_tag("query.referrer", referrer)
         sentry_sdk.set_attribute("query.referrer", referrer)

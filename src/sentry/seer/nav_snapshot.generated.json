@@ -231,6 +231,13 @@
       }
     },
     {
+      "crumbs": "Settings → Account → Appearance",
+      "path": "/settings/account/appearance/",
+      "when": {
+        "flag": "theme-variants"
+      }
+    },
+    {
       "crumbs": "Settings → Account → Security",
       "path": "/settings/account/security/"
     },
@@ -938,6 +945,7 @@
       "Backend Overview",
       "Caches",
       "Domain Details",
+      "Elixir Runtime Metrics",
       "Frontend Assets",
       "Frontend Assets Summary",
       "Frontend Overview",

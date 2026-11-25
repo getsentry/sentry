@@ -17,7 +17,6 @@ from typing import (
     IO,
     TYPE_CHECKING,
     Any,
-    BinaryIO,
     ClassVar,
     cast,
     overload,
@@ -411,7 +410,8 @@ class ProjectDebugFile(Model):
     def delete(self, *args: Any, **kwargs: Any) -> tuple[int, dict[str, int]]:
         ret = super().delete(*args, **kwargs)
 
-        if self.storage_path is not None:
+        # Retention cleanup leaves the object to expire. Explicit deletions remove it.
+        if self.storage_path is not None and not os.environ.get("_SENTRY_CLEANUP"):
             # Objectstore-backed files cannot be referenced by multiple debug file rows.
             try:
                 self.get_objectstore_session().delete(self.storage_path)
@@ -1034,7 +1034,7 @@ def create_debug_file_from_dif(
 
 
 def create_files_from_dif_zip(
-    fileobj: BinaryIO | zipfile.ZipFile, project: Project, accept_unknown: bool = False
+    fileobj: IO[bytes] | zipfile.ZipFile, project: Project, accept_unknown: bool = False
 ) -> list[ProjectDebugFile]:
     """Creates all missing debug files from the given zip file.  This
     returns a list of all files created.

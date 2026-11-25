@@ -130,35 +130,22 @@ SENTRY_DISALLOWED_IPS: tuple[str, ...] = (
     "127.0.0.0/8",
     "169.254.0.0/16",
     "172.16.0.0/12",
-    "192.0.0.0/29",
+    "192.0.0.0/24",
     "192.0.2.0/24",
     "192.88.99.0/24",
     "192.168.0.0/16",
     "198.18.0.0/15",
     "198.51.100.0/24",
+    "203.0.113.0/24",
     "224.0.0.0/4",
     "240.0.0.0/4",
     "255.255.255.255/32",
-    # https://en.wikipedia.org/wiki/IPv6#IPv4-mapped_IPv6_addresses
-    # Subnets match the IPv4 subnets above
-    "::ffff:0:0/104",
-    "::ffff:a00:0/104",
-    "::ffff:6440:0/106",
-    "::ffff:7f00:0/104",
-    "::ffff:a9fe:0/112",
-    "::ffff:ac10:0/108",
-    "::ffff:c000:0/125",
-    "::ffff:c000:200/120",
-    "::ffff:c058:6300/120",
-    "::ffff:c0a8:0/112",
-    "::ffff:c612:0/111",
-    "::ffff:c633:6400/120",
-    "::ffff:e000:0/100",
-    "::ffff:f000:0/100",
-    "::ffff:ffff:ffff/128",
     # https://en.wikipedia.org/wiki/Reserved_IP_addresses#IPv6
-    "::1/128",
+    # plus the deprecated IPv4-compatible (::/96), IPv4-translated
+    # (::ffff:0:0:0/96) and site-local (fec0::/10) ranges
+    "::/96",
     "::ffff:0:0/96",
+    "::ffff:0:0:0/96",
     "64:ff9b::/96",
     "64:ff9b:1::/48",
     "100::/64",
@@ -166,8 +153,11 @@ SENTRY_DISALLOWED_IPS: tuple[str, ...] = (
     "2001:20::/28",
     "2001:db8::/32",
     "2002::/16",
+    "3fff::/20",
+    "5f00::/16",
     "fc00::/7",
     "fe80::/10",
+    "fec0::/10",
     "ff00::/8",
 )
 
@@ -194,11 +184,6 @@ SENTRY_WEBHOOK_LOG_REDIS_CLUSTER = "default"
 SENTRY_ARTIFACT_BUNDLES_INDEXING_REDIS_CLUSTER = "default"
 SENTRY_DEBUG_FILES_REDIS_CLUSTER = "default"
 SENTRY_MONITORS_REDIS_CLUSTER = "default"
-
-# Temp: INFRENG-1051, migrating monitors state between self-hosted and valkey Redis clusters
-# When set, system incident writes also go to this cluster.
-# This will get cleaned up as part of INFRENG-1053
-SENTRY_MONITORS_SECONDARY_REDIS_CLUSTER: str | None = None
 SENTRY_STATISTICAL_DETECTORS_REDIS_CLUSTER = "default"
 SENTRY_ESCALATION_THRESHOLDS_REDIS_CLUSTER = "default"
 # Redis cluster for span buffer data and flush locks. Flush locks must remain
@@ -620,6 +605,8 @@ COOP_REPORT_TO: str | None = None
 TRUSTED_TYPES_ENABLED = False
 TRUSTED_TYPES_POLICIES: list[str] = []
 TRUSTED_TYPES_REPORT_URI: str | None = None
+
+REPORTING_ENDPOINTS: dict[str, str] = {}
 
 STATIC_ROOT = os.path.realpath(os.path.join(PROJECT_ROOT, "static"))
 STATIC_URL = "/_static/{version}/"
@@ -1054,6 +1041,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.workflow_engine.tasks.delayed_workflows",
     "sentry.workflow_engine.tasks.health_check",
     "sentry.workflow_engine.tasks.workflows",
+    "sentry.workflow_engine.tasks.seer_investigation",
     "sentry.workflow_engine.tasks.actions",
     "sentry.tasks.seer.explorer_index",
     "sentry.tasks.seer.context_engine_index",
@@ -1079,11 +1067,11 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "schedule": crontab("*/1", "*", "*", "*", "*"),
     },
     "cadence-tick": {
-        "task": "issues:sentry.cadence.tasks.cadence_tick",
+        "task": "cadence:sentry.cadence.tasks.cadence_tick",
         "schedule": timedelta(seconds=10),
     },
     "cadence-sweep": {
-        "task": "issues:sentry.cadence.tasks.cadence_sweep",
+        "task": "cadence:sentry.cadence.tasks.cadence_sweep",
         "schedule": crontab("*/1", "*", "*", "*", "*"),
     },
     "flush-buffers": {
@@ -1986,6 +1974,9 @@ SENTRY_SCOPES = {
     "dashboard:read",
     "dashboard:write",
     "membership:read",
+    "membership:write",
+    "membership:invite",
+    "membership:admin",
     "saved_query:read",
     "saved_query:write",
     "seer:read",
@@ -2045,6 +2036,9 @@ SENTRY_SCOPE_HIERARCHY_MAPPING = {
     # and writes needs both scopes.
     "dashboard:write": {"dashboard:write"},
     "membership:read": {"membership:read"},
+    "membership:write": {"membership:write"},
+    "membership:invite": {"membership:invite"},
+    "membership:admin": {"membership:admin"},
     "saved_query:read": {"saved_query:read"},
     "saved_query:write": {"saved_query:write"},
     "seer:read": {"seer:read"},
@@ -2084,6 +2078,9 @@ GRANULAR_SCOPES = frozenset(
         "user_preference:write",
         # Accepted by endpoints, but not granted by any role yet.
         "membership:read",
+        "membership:write",
+        "membership:invite",
+        "membership:admin",
     ]
 )
 
@@ -2104,7 +2101,7 @@ DEPRECATED_SCOPE_TRANSLATIONS: dict[str, frozenset[str]] = {
             "user_preference:write",
         ]
     ),
-    # Starring, starred order and last visited accept member:read today, including writes.
+    # Starring and starred order accept member:read today, including writes.
     "member:read": frozenset(
         [
             # Removed once member:read has a full 1:1 translation to granular scopes.
@@ -2113,6 +2110,30 @@ DEPRECATED_SCOPE_TRANSLATIONS: dict[str, frozenset[str]] = {
             "membership:read",
             "user_preference:read",
             "user_preference:write",
+        ]
+    ),
+    # Membership scopes don't imply each other, and each endpoint method accepts only the one
+    # it needs. So each member scope translates to the membership scope of every method that
+    # accepts that member scope today, e.g. member:write can read and invite as well as write.
+    "member:invite": frozenset(["member:invite", "membership:invite"]),
+    # Starring and starred order accept member:write too, like member:read.
+    "member:write": frozenset(
+        [
+            "member:write",
+            "membership:read",
+            "membership:invite",
+            "membership:write",
+            "user_preference:read",
+            "user_preference:write",
+        ]
+    ),
+    "member:admin": frozenset(
+        [
+            "member:admin",
+            "membership:read",
+            "membership:invite",
+            "membership:write",
+            "membership:admin",
         ]
     ),
     # No granular replacements yet.
@@ -2181,7 +2202,12 @@ SENTRY_SCOPE_SETS = (
         ("dashboard:write", "Write access to dashboards."),
         ("dashboard:read", "Read access to dashboards."),
     ),
-    (("membership:read", "Read access to organization and team membership."),),
+    (
+        ("membership:admin", "Admin access to organization and team membership."),
+        ("membership:write", "Write access to organization and team membership."),
+        ("membership:read", "Read access to organization and team membership."),
+        ("membership:invite", "Invite access to organization membership."),
+    ),
     (
         ("saved_query:write", "Write access to saved queries."),
         ("saved_query:read", "Read access to saved queries."),
@@ -3131,6 +3157,17 @@ SENTRY_BUILTIN_SOURCES = {
         "layout": {"type": "symstore"},
         "filters": {"filetypes": ["pe", "pdb"]},
         "url": "https://proton-archive.steamos.cloud/",
+        "is_public": True,
+    },
+    # Valve's debuginfod server for SteamOS and all public Steam Linux Runtime versions.
+    # See: https://gitlab.steamos.cloud/steamrt/steam-runtime-tools/-/blob/main/docs/slr-for-game-developers.md#debuginfod
+    "steamos": {
+        "type": "http",
+        "id": "sentry:steamos",
+        "name": "SteamOS / Steam Runtime",
+        "layout": {"type": "debuginfod"},
+        "url": "https://debuginfod.steamos.cloud/buildid/",
+        "filters": {"filetypes": ["elf_code", "elf_debug"]},
         "is_public": True,
     },
 }

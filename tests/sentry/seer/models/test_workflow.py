@@ -24,7 +24,7 @@ class SeerWorkflowConfigTest(TestCase):
         with pytest.raises(ValueError):
             SeerWorkflowConfig.get_or_create_for_strategy(
                 self.organization.id,
-                SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
+                SeerWorkflowStrategy.SCHEDULED_INVESTIGATION,
             )
 
         assert not SeerWorkflowConfig.objects.filter(organization=self.organization).exists()
@@ -55,7 +55,7 @@ class SeerWorkflowConfigTest(TestCase):
 
         v2_configs = [
             Factories.create_seer_workflow_config(
-                self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2
+                self.organization, strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION
             )
             for _ in range(2)
         ]

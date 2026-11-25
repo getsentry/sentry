@@ -29,6 +29,7 @@ import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {GroupActions} from 'sentry/views/issueDetails/actions/index';
+import {GroupImpactBadge, useAssessedImpact} from 'sentry/views/issueDetails/groupImpact';
 import {GroupPriority} from 'sentry/views/issueDetails/groupPriority';
 import {
   IssueDetailsTour,
@@ -71,6 +72,7 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
   const issueTypeConfig = getConfigForIssueType(group, project);
 
   const issueItem = useIssueIdBreadcrumbItem({project, group});
+  const hasImpact = useAssessedImpact(group) !== null;
 
   return (
     <Fragment>
@@ -223,6 +225,12 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
                   <Text variant="muted">{t('Priority')}</Text>
                   <GroupPriority group={group} />
                 </Flex>
+                {hasImpact && (
+                  <Flex align="center" gap="xs">
+                    <Text variant="muted">{t('Impact')}</Text>
+                    <GroupImpactBadge group={group} />
+                  </Flex>
+                )}
                 <Flex align="center" gap="xs">
                   <Text variant="muted">{t('Assignee')}</Text>
                   <GroupHeaderAssigneeSelector

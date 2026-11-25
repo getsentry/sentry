@@ -1,8 +1,8 @@
 export type WorkflowStrategy =
   | 'agentic_triage'
-  | 'agentic_triage_v2'
   | 'breached_metric_investigation'
-  | 'duplicate_monitors';
+  | 'duplicate_monitors'
+  | 'scheduled_investigation';
 
 type SeerWorkflowError = {code: string; message: string};
 
@@ -168,9 +168,24 @@ type SeerServiceAccountRequest = {
 /**
  * Body of a POST to create a workflow config
  */
+/**
+ * When a scheduled automation runs
+ */
+export type WorkflowCronSchedule = {
+  /**
+   * Five field crontab expression, e.g. `0 0 * * *`
+   */
+  crontab: string;
+  /**
+   * IANA timezone the crontab is evaluated in, e.g. `America/New_York`
+   */
+  timezone: string;
+};
+
 export type SeerWorkflowConfigCreateRequest = {
   serviceAccount: SeerServiceAccountRequest;
   strategy: WorkflowStrategy;
+  cronSchedule?: WorkflowCronSchedule;
   enabled?: boolean;
   /**
    * Empty means all environments
@@ -192,7 +207,12 @@ export type SeerWorkflowConfigCreateRequest = {
  * Body of a PUT to a workflow config. Send at most one of projectIds or monitorIds
  */
 export type SeerWorkflowConfigUpdateRequest = {
+  cronSchedule?: WorkflowCronSchedule;
   enabled?: boolean;
+  /**
+   * Empty means all environments
+   */
+  environments?: string[];
   monitorIds?: number[];
   name?: string;
   /**

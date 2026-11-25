@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useState} from 'react';
+import {useCallback, useEffect, useLayoutEffect, useState} from 'react';
 import {IconArrow} from '@sentry/icons/arrow';
 import {AnimatePresence, motion} from 'framer-motion';
 
@@ -290,15 +290,7 @@ export function OnboardingWithoutContext() {
     }
   }, [location.query, navigate, onboardingContext, organization.slug, location.pathname]);
 
-  // Called onExitComplete
   const [containerHasFooter, setContainerHasFooter] = useState(false);
-  const updateAnimationState = () => {
-    if (!stepObj) {
-      return;
-    }
-
-    setContainerHasFooter(stepObj.hasFooter ?? false);
-  };
 
   const goToStep = useCallback(
     (step: StepDescriptor) => {
@@ -378,6 +370,7 @@ export function OnboardingWithoutContext() {
         minHeight="60px"
         align="center"
         top={0}
+        background="primary"
         style={{zIndex: 100}}
       >
         <LogoSentry showWordmark={false} height="24px" />
@@ -401,7 +394,7 @@ export function OnboardingWithoutContext() {
           marginBottom: containerHasFooter ? FOOTER_HEIGHT : undefined,
         }}
       >
-        <AnimatePresence mode="wait" onExitComplete={updateAnimationState}>
+        <AnimatePresence mode="wait">
           <OnboardingStep
             key={stepObj.id}
             {...ONBOARDING_STAGGER}
@@ -409,6 +402,10 @@ export function OnboardingWithoutContext() {
             justify="center"
             data-test-id={`onboarding-step-${stepObj.id}`}
           >
+            <SyncFooterOffset
+              hasFooter={stepObj.hasFooter ?? false}
+              onChange={setContainerHasFooter}
+            />
             {stepObj.Component && (
               <stepObj.Component
                 data-test-id={`onboarding-step-${stepObj.id}`}
@@ -435,6 +432,24 @@ export function OnboardingWithoutContext() {
       </Stack>
     </Stack>
   );
+}
+
+/**
+ * Mounts with its step. In "wait" mode AnimatePresence mounts the next step only
+ * after the previous one has exited, so the offset changes when the step
+ * appears. This includes the first render, where no step exits.
+ */
+function SyncFooterOffset({
+  hasFooter,
+  onChange,
+}: {
+  hasFooter: boolean;
+  onChange: (hasFooter: boolean) => void;
+}) {
+  useLayoutEffect(() => {
+    onChange(hasFooter);
+  }, [hasFooter, onChange]);
+  return null;
 }
 
 function Onboarding() {

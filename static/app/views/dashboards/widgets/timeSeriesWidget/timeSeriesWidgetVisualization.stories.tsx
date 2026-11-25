@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo, useState, type ReactNode} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import shuffle from 'lodash/shuffle';
@@ -8,6 +8,7 @@ import {parseAsString, useQueryState} from 'nuqs';
 import {Button} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {ExternalLink} from '@sentry/scraps/link';
+import {Heading} from '@sentry/scraps/text';
 
 import type {AnnotationItem} from 'sentry/components/charts/annotations/types';
 import {ConfigStore} from 'sentry/stores/configStore';
@@ -15,8 +16,6 @@ import * as Storybook from 'sentry/stories';
 import type {DateString} from 'sentry/types/core';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {DAY, HOUR, MINUTE} from 'sentry/utils/formatters';
-import {OrganizationContext} from 'sentry/utils/organizationContext';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import type {
   LegendSelection,
   Release,
@@ -55,6 +54,25 @@ const sampleDurationTimeSeriesP75: TimeSeries = {
   yAxis: 'p75(span.duration)',
   values: sampleDurationTimeSeries.values.map(datum => {
     return {...datum, value: datum.value ? datum.value * 0.1 + 30 * Math.random() : null};
+  }),
+};
+
+const sampleDurationTimeSeriesP90: TimeSeries = {
+  ...sampleDurationTimeSeries,
+  yAxis: 'p90(span.duration)',
+  values: sampleDurationTimeSeries.values.map(datum => {
+    return {...datum, value: datum.value ? datum.value * 0.7 + 30 * Math.random() : null};
+  }),
+};
+
+const sampleDurationTimeSeriesP95: TimeSeries = {
+  ...sampleDurationTimeSeries,
+  yAxis: 'p95(span.duration)',
+  values: sampleDurationTimeSeries.values.map(datum => {
+    return {
+      ...datum,
+      value: datum.value ? datum.value * 0.85 + 30 * Math.random() : null,
+    };
   }),
 };
 
@@ -836,63 +854,123 @@ export default Storybook.story('TimeSeriesWidgetVisualization', story => {
   });
 
   story('Low Confidence Data', () => {
-    const createLowConfidenceTimeSeriesClone = function (
-      timeSeries: TimeSeries
-    ): TimeSeries {
-      return {
-        ...timeSeries,
-        values: timeSeries.values.map((value, index) => {
-          if ((index > 10 && index < 16) || (index > 30 && index < 33)) {
-            return {...value, confidence: 'low'};
-          }
-          return value;
-        }),
-      };
-    };
+    const lowConfidenceDuration = withLowConfidenceIntervals(sampleDurationTimeSeries, [
+      [20, 25],
+    ]);
 
-    const lowConfidenceDurationTimeSeries = createLowConfidenceTimeSeriesClone(
-      sampleDurationTimeSeries
-    );
-    const lowConfidenceDurationP50TimeSeries = createLowConfidenceTimeSeriesClone(
-      sampleDurationTimeSeriesP50
-    );
+    const twoIntervals: LowConfidenceInterval[] = [
+      [10, 15],
+      [30, 33],
+    ];
+    const twoIntervalsDurations = [
+      sampleDurationTimeSeries,
+      sampleDurationTimeSeriesP95,
+      sampleDurationTimeSeriesP90,
+      sampleDurationTimeSeriesP75,
+      sampleDurationTimeSeriesP50,
+    ].map(timeSeries => withLowConfidenceIntervals(timeSeries, twoIntervals));
+
+    const fiveIntervals: LowConfidenceInterval[] = [
+      [3, 5],
+      [10, 12],
+      [18, 22],
+      [28, 30],
+      [38, 41],
+    ];
+
+    // 47 of 49 points, just over 95% of the chart
+    const mostlyLowConfidence: LowConfidenceInterval[] = [[2, 48]];
 
     return (
       <Fragment>
         <p>
           Data points with <code>confidence: 'low'</code> are estimated from too few
-          samples to be reliable. <code>TimeSeriesWidgetVisualization</code> draws them
-          differently from high-confidence data, and the tooltip labels them.
+          samples to be reliable. With <code>showConfidence</code>,{' '}
+          <code>TimeSeriesWidgetVisualization</code> hatches over any stretch of time
+          where a visible series has low confidence data, and the tooltip labels them.
         </p>
 
-        <WithTimeSeriesConfidenceFeature>
-          <Storybook.SideBySide>
-            <MediumWidget>
-              <TimeSeriesWidgetVisualization
-                plottables={[
-                  new Line(lowConfidenceDurationTimeSeries),
-                  new Line(lowConfidenceDurationP50TimeSeries),
-                ]}
-              />
-            </MediumWidget>
-            <MediumWidget>
-              <TimeSeriesWidgetVisualization
-                plottables={[
-                  new Area(lowConfidenceDurationTimeSeries),
-                  new Area(lowConfidenceDurationP50TimeSeries),
-                ]}
-              />
-            </MediumWidget>
-            <MediumWidget>
-              <TimeSeriesWidgetVisualization
-                plottables={[
-                  new Bars(lowConfidenceDurationTimeSeries, {stack: 'all'}),
-                  new Bars(lowConfidenceDurationP50TimeSeries, {stack: 'all'}),
-                ]}
-              />
-            </MediumWidget>
-          </Storybook.SideBySide>
-        </WithTimeSeriesConfidenceFeature>
+        <Heading as="h3" size="md">
+          Single series, one low-confidence interval
+        </Heading>
+        <Storybook.Grid columns={3}>
+          <GridWidget>
+            <TimeSeriesWidgetVisualization
+              showConfidence
+              plottables={[new Line(lowConfidenceDuration)]}
+            />
+          </GridWidget>
+          <GridWidget>
+            <TimeSeriesWidgetVisualization
+              showConfidence
+              plottables={[new Area(lowConfidenceDuration)]}
+            />
+          </GridWidget>
+          <GridWidget>
+            <TimeSeriesWidgetVisualization
+              showConfidence
+              plottables={[new Bars(lowConfidenceDuration)]}
+            />
+          </GridWidget>
+        </Storybook.Grid>
+
+        <Heading as="h3" size="md">
+          Five series, two low-confidence intervals
+        </Heading>
+        <Storybook.Grid columns={3}>
+          <GridWidget>
+            <TimeSeriesWidgetVisualization
+              showConfidence
+              plottables={twoIntervalsDurations.map(timeSeries => new Line(timeSeries))}
+            />
+          </GridWidget>
+          <GridWidget>
+            <TimeSeriesWidgetVisualization
+              showConfidence
+              plottables={twoIntervalsDurations.map(timeSeries => new Area(timeSeries))}
+            />
+          </GridWidget>
+          <GridWidget>
+            <TimeSeriesWidgetVisualization
+              showConfidence
+              plottables={twoIntervalsDurations.map(
+                timeSeries => new Bars(timeSeries, {stack: 'all'})
+              )}
+            />
+          </GridWidget>
+        </Storybook.Grid>
+
+        <Heading as="h3" size="md">
+          Multiple lines, five low-confidence intervals
+        </Heading>
+        <LargeWidget>
+          <TimeSeriesWidgetVisualization
+            showConfidence
+            plottables={[
+              sampleDurationTimeSeries,
+              sampleDurationTimeSeriesP75,
+              sampleDurationTimeSeriesP50,
+            ].map(
+              timeSeries =>
+                new Line(withLowConfidenceIntervals(timeSeries, fiveIntervals))
+            )}
+          />
+        </LargeWidget>
+
+        <Heading as="h3" size="md">
+          Multiple bars, more than 95% low confidence
+        </Heading>
+        <LargeWidget>
+          <TimeSeriesWidgetVisualization
+            showConfidence
+            plottables={[sampleDurationTimeSeries, sampleDurationTimeSeriesP50].map(
+              timeSeries =>
+                new Bars(withLowConfidenceIntervals(timeSeries, mostlyLowConfidence), {
+                  stack: 'all',
+                })
+            )}
+          />
+        </LargeWidget>
       </Fragment>
     );
   });
@@ -1416,6 +1494,12 @@ const MediumWidget = styled('div')`
   height: 250px;
 `;
 
+const GridWidget = styled('div')`
+  position: relative;
+  min-width: 0;
+  height: 250px;
+`;
+
 const SmallWidget = styled('div')`
   position: relative;
   width: 360px;
@@ -1533,17 +1617,21 @@ const X_AXIS_TICK_TEST_CASES: Array<{endMs: number; label: string; startMs: numb
   },
 ];
 
-function WithTimeSeriesConfidenceFeature({children}: {children: ReactNode}) {
-  const organization = useOrganization();
+/**
+ * Inclusive start and end indexes of a run of low-confidence data points.
+ */
+type LowConfidenceInterval = [start: number, end: number];
 
-  return (
-    <OrganizationContext
-      value={{
-        ...organization,
-        features: [...organization.features, 'data-browsing-time-series-confidence'],
-      }}
-    >
-      {children}
-    </OrganizationContext>
-  );
+function withLowConfidenceIntervals(
+  timeSeries: TimeSeries,
+  intervals: LowConfidenceInterval[]
+): TimeSeries {
+  return {
+    ...timeSeries,
+    values: timeSeries.values.map((value, index) =>
+      intervals.some(([start, end]) => index >= start && index <= end)
+        ? {...value, confidence: 'low'}
+        : value
+    ),
+  };
 }

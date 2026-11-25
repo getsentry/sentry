@@ -9,7 +9,7 @@ from sentry.models.environment import Environment
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import cell_silo_test
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
-from sentry.workflow_engine.types import APIGate, DetectorAPIOperation, FeatureGate
+from sentry.workflow_engine.types import APIGate, FeatureGate, WorkflowEngineAPIOperation
 from tests.sentry.workflow_engine.endpoints.test_helpers import (
     GATE_FEATURE,
     override_detector_api_availability,
@@ -155,10 +155,10 @@ class OrganizationDetectorCountTest(APITestCase):
                 config={"detection_type": AlertRuleDetectionType.STATIC.value},
             )
 
-        cases: tuple[tuple[str, Mapping[DetectorAPIOperation, APIGate]], ...] = (
-            ("get", {DetectorAPIOperation.GET: False}),
-            ("list", {DetectorAPIOperation.LIST: False}),
-            ("list_feature_gate", {DetectorAPIOperation.LIST: FeatureGate(GATE_FEATURE)}),
+        cases: tuple[tuple[str, Mapping[WorkflowEngineAPIOperation, APIGate]], ...] = (
+            ("get", {WorkflowEngineAPIOperation.GET: False}),
+            ("list", {WorkflowEngineAPIOperation.LIST: False}),
+            ("list_feature_gate", {WorkflowEngineAPIOperation.LIST: FeatureGate(GATE_FEATURE)}),
         )
         # LIST also requires GET, so denying either hides the type from counts
         for label, availability in cases:
@@ -197,7 +197,7 @@ class OrganizationDetectorCountTest(APITestCase):
             self.feature({GATE_FEATURE: [self.organization.slug]}),
             override_detector_api_availability(
                 MetricIssue.slug,
-                {operation: FeatureGate(GATE_FEATURE) for operation in DetectorAPIOperation},
+                {operation: FeatureGate(GATE_FEATURE) for operation in WorkflowEngineAPIOperation},
             ),
         ):
             for organization, project in (

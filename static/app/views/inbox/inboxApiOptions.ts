@@ -34,6 +34,8 @@ type InboxItemsTarget =
 
 type UpdateInboxItemsVariables = InboxItemsTarget & {update: InboxItemsUpdate};
 
+type RemoveInboxItemsTarget = {ids: string[]} | 'all-read';
+
 type InboxListData = InfiniteData<ApiResponse<InboxItem[]>>;
 
 export function inboxUnreadCountApiOptions(organization: Organization | null) {
@@ -160,20 +162,22 @@ export function removeInboxItemsMutationOptions({
   const filter = getInboxListsFilter(organization);
 
   return mutationOptions({
-    mutationFn: ({ids}: {ids: string[]}) =>
+    mutationFn: (target: RemoveInboxItemsTarget) =>
       fetchMutation<void>({
         method: 'DELETE',
         url: getApiUrl('/organizations/$organizationIdOrSlug/inbox/', {
           path: {organizationIdOrSlug: organization.slug},
         }),
-        options: {query: {id: ids}},
+        options: {query: target === 'all-read' ? {is_read: 'true'} : {id: target.ids}},
       }),
-    onMutate: async ({ids}) => {
+    // Deleting read items depends on any read-state updates already in flight.
+    scope: {id: `inbox-updates:${organization.id}`},
+    onMutate: async target => {
       await updateCachedInboxItems({
         organization,
         queryClient,
-        target: {selection: ids},
-        updateItem: () => null,
+        target: {selection: target === 'all-read' ? 'all' : target.ids},
+        updateItem: item => (target === 'all-read' && item.isUnread ? item : null),
       });
     },
     onSettled: () => {
