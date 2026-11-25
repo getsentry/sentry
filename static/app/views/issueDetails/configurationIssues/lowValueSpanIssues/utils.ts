@@ -48,7 +48,7 @@ export function getLowValueSpanEvidenceData(
 const JAVASCRIPT_SPAN_FILTERING_DOCS_URL =
   'https://docs.sentry.io/platforms/javascript/configuration/options/#ignoreSpans';
 const PYTHON_SPAN_FILTERING_DOCS_URL =
-  'https://docs.sentry.io/platforms/python/configuration/filtering/#filtering-transaction-events';
+  'https://docs.sentry.io/platforms/python/configuration/filtering/#using-ignore-spans';
 const GENERIC_FILTERING_DOCS_URL =
   'https://docs.sentry.io/platform-redirect/?next=/configuration/filtering/';
 const CUSTOM_INSTRUMENTATION_DOCS_URL =
@@ -170,44 +170,33 @@ ${matcherLines.join('\n')}
 export function getPythonSpanFilterSnippet(
   evidenceData: LowValueSpanEvidenceData
 ): string {
-  const conditions: string[] = [];
-  if (evidenceData.op === null) {
-    conditions.push(`            span.get("op") is None`);
-  } else {
-    conditions.push(`            span.get("op") == ${JSON.stringify(evidenceData.op)}`);
+  const matcherLines: string[] = [];
+  if (evidenceData.description === null && evidenceData.op !== null) {
+    matcherLines.push(
+      `            # NOTE: This span has no description, so it can only be`
+    );
+    matcherLines.push(
+      `            # targeted by op. This will also drop other spans with this op.`
+    );
   }
-  if (evidenceData.description === null) {
-    conditions.push(`            and span.get("description") is None`);
-  } else {
-    conditions.push(
-      `            and span.get("description") == ${JSON.stringify(evidenceData.description)}`
+  if (evidenceData.description !== null) {
+    matcherLines.push(`            "name": ${JSON.stringify(evidenceData.description)},`);
+  }
+  if (evidenceData.op !== null) {
+    matcherLines.push(
+      `            "attributes": {"sentry.op": ${JSON.stringify(evidenceData.op)}},`
     );
   }
 
   return `import sentry_sdk
 
-
-def before_send_transaction(event, hint):
-    reparent = {}
-    kept_spans = []
-    # Filtering span and rewriting parent_id
-    for span in event.get("spans", []):
-        parent = span.get("parent_span_id")
-        while parent in reparent:
-            parent = reparent[parent]
-        if (
-${conditions.join('\n')}
-        ):
-            reparent[span.get("span_id")] = parent
-        else:
-            span["parent_span_id"] = parent
-            kept_spans.append(span)
-
-    event["spans"] = kept_spans
-    return event
-
-
 sentry_sdk.init(
-    before_send_transaction=before_send_transaction,
+    # Requires sentry-sdk 3.x. On 2.x, remove the span from
+    # event["spans"] in before_send_transaction instead.
+    ignore_spans=[
+        {
+${matcherLines.join('\n')}
+        },
+    ],
 )`;
 }
