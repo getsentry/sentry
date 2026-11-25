@@ -57,10 +57,39 @@ export function SelectAsyncField<
   // Fetch options using the provided queryOptions
   const {data: options = [], isPending} = useQuery(queryOptions(debouncedInput));
 
+  // Search results can omit active selections. Keep their option records so
+  // Select can render the chips and include them in the next change.
+  const [selectedOptions, setSelectedOptions] = useState<TOption[]>([]);
+  const missingOptions: TOption[] = [];
+  const nextSelectedOptions = props.multiple
+    ? props.value.flatMap<TOption>(value => {
+        const matches = (option: TOption) =>
+          props.isValueEqual && option.value != null && value != null
+            ? props.isValueEqual(option.value, value)
+            : option.value === value;
+        const current = options.find(matches);
+        if (current) {
+          return [current];
+        }
+        const previous = selectedOptions.find(matches);
+        if (previous) {
+          missingOptions.push(previous);
+          return [previous];
+        }
+        return [];
+      })
+    : [];
+  if (
+    nextSelectedOptions.length !== selectedOptions.length ||
+    nextSelectedOptions.some((option, index) => option !== selectedOptions[index])
+  ) {
+    setSelectedOptions(nextSelectedOptions);
+  }
+
   return (
     <SelectField
       {...props}
-      options={options}
+      options={missingOptions.length > 0 ? [...options, ...missingOptions] : options}
       isLoading={isPending || inputValue !== debouncedInput}
       onInputChange={(input, reason) => {
         if (reason === 'input') {

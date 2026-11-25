@@ -681,6 +681,46 @@ describe('BackendJsonSubmitForm', () => {
       expect(await screen.findByText('searched-repo')).toBeInTheDocument();
     });
 
+    it('keeps earlier selections when an async multi-select search replaces the options', async () => {
+      MockApiClient.addMockResponse({url: '/search', body: []});
+      MockApiClient.addMockResponse({
+        url: '/search',
+        match: [MockApiClient.matchQuery({field: 'repo', query: 'second'})],
+        body: [{value: 'second', label: 'Second Repo'}],
+      });
+
+      render(
+        <BackendJsonSubmitForm
+          fields={[
+            {
+              name: 'repo',
+              type: 'select',
+              label: 'Repository',
+              url: '/search',
+              choices: [['first', 'First Repo']],
+              multiple: true,
+            },
+          ]}
+          onSubmit={onSubmit}
+          submitLabel="Create"
+        />,
+        {organization: org}
+      );
+
+      const input = screen.getByRole('combobox', {name: 'Repository'});
+      await userEvent.click(input);
+      await userEvent.click(await screen.findByRole('option', {name: 'First Repo'}));
+      await userEvent.type(input, 'second');
+      await userEvent.click(await screen.findByRole('option', {name: 'Second Repo'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Create'}));
+
+      await waitFor(() =>
+        expect(onSubmit).toHaveBeenCalledWith(
+          expect.objectContaining({repo: ['first', 'second']})
+        )
+      );
+    });
+
     it('only waits for the fields declared as prefetch dependencies', async () => {
       const prefetchResponse = MockApiClient.addMockResponse({
         url: '/search',
