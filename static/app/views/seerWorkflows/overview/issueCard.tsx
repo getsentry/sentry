@@ -59,15 +59,20 @@ import type {
 } from './types';
 import {useIsInView} from './useIsInView';
 
-function hasCodeChangesError(sectionKey: AutofixStateKey, run: OverviewRun): boolean {
-  return sectionKey === 'code_changes_ready' && run.status === 'error';
+const RUN_ERROR_SECTIONS = new Set<AutofixStateKey>([
+  'needs_investigation',
+  'code_changes_ready',
+]);
+
+function hasRunError(sectionKey: AutofixStateKey, run: OverviewRun): boolean {
+  return RUN_ERROR_SECTIONS.has(sectionKey) && run.status === 'error';
 }
 
 function canShowCodeChanges(sectionKey: AutofixStateKey, run: OverviewRun): boolean {
   return (
     sectionKey === 'code_changes_ready' &&
     Boolean(run.codeChanges?.length) &&
-    !hasCodeChangesError(sectionKey, run)
+    !hasRunError(sectionKey, run)
   );
 }
 
@@ -176,7 +181,7 @@ function OverviewAction({
     );
   }
 
-  if (hasCodeChangesError(sectionKey, run)) {
+  if (hasRunError(sectionKey, run)) {
     return (
       <ActionButtonBar>
         <OpenSeerButton run={run} section={sectionKey} size="sm" />
@@ -584,7 +589,7 @@ export const OverviewCard = memo(function OverviewCardComponent({
       section: sectionKey,
     });
 
-  const showCodeChangesError = hasCodeChangesError(sectionKey, run);
+  const showRunError = hasRunError(sectionKey, run);
   const showCodeChanges = canShowCodeChanges(sectionKey, run);
   const showEnrichmentPlaceholder = enrichmentPending && Boolean(reviewPullRequest?.url);
   const showPullRequestFiles =
@@ -593,7 +598,7 @@ export const OverviewCard = memo(function OverviewCardComponent({
     rootCause ||
     proposedFix ||
     showCodeChanges ||
-    showCodeChangesError ||
+    showRunError ||
     showEnrichmentPlaceholder ||
     showPullRequestFiles
   );
@@ -683,10 +688,10 @@ export const OverviewCard = memo(function OverviewCardComponent({
                 {proposedFix}
               </NarrativeBlock>
             )}
-            {showCodeChangesError ? (
+            {showRunError ? (
               <NarrativeBlock
                 icon={<IconWarning size="xs" variant="secondary" aria-hidden />}
-                label={t('Code Changes')}
+                label={t('Error')}
               >
                 {t('Seer ran into an error on the latest attempt. Open Seer to retry.')}
               </NarrativeBlock>

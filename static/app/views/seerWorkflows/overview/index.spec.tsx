@@ -1989,6 +1989,26 @@ describe('AutofixOverview', () => {
     );
   });
 
+  it('shows an error on an errored single run that stopped at its root cause', async () => {
+    mockOverview({
+      base: {
+        autofix_root_cause: [
+          {...rootCauseRun, isSingleRun: true, status: 'error' as const},
+        ],
+      },
+    });
+
+    renderPage();
+
+    expect(
+      await screen.findByText(
+        'Seer ran into an error on the latest attempt. Open Seer to retry.'
+      )
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Open Autofix'})).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Open Seer'})).toBeInTheDocument();
+  });
+
   it('renders code changes for a completed run', async () => {
     mockOverview({
       base: {autofix_code_changes: [{...codeChangesRun, status: 'completed' as const}]},
