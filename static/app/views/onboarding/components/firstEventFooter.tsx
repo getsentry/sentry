@@ -91,13 +91,16 @@ export function FirstEventFooter({
         {project.firstEvent ? (
           <PeekingBug>
             <LinkButton
-              onClick={() => {
+              onClick={event => {
                 trackAnalytics('onboarding.scm_take_to_error_clicked', {
                   organization,
                   platform: project.platform,
                 });
-                // Finishing onboarding: the next visit must start fresh, not
-                // resume this session.
+                // A modified click opens the issue in a new tab and leaves this
+                // tab in onboarding, so only a plain click ends the session.
+                if (event.metaKey || event.altKey || event.ctrlKey || event.shiftKey) {
+                  return;
+                }
                 discardOnboardingSession();
               }}
               to={
