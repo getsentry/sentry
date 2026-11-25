@@ -9,9 +9,16 @@ from django.template import engines
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_safe
 
+from sentry.auth.principal import require_user
 from sentry.web.client_config import get_client_config
 
 ROOT = Path(__file__).resolve().parent
+ASSET_DIR = ROOT / "assets"
+ASSETS = {
+    asset.relative_to(ASSET_DIR).as_posix(): asset
+    for asset in ASSET_DIR.rglob("*")
+    if asset.suffix in {".js", ".css"} and asset.is_file()
+}
 
 
 @login_required
@@ -27,7 +34,7 @@ def page(
     )
     context = {
         "organization": organization_id_or_slug,
-        "user_id": request.user.id,
+        "user_id": require_user(request).id,
         "csrf": get_token(request),
         "react_config": get_client_config(request) if notebook else None,
     }
@@ -39,7 +46,7 @@ def page(
 
 @require_safe
 def asset(request: HttpRequest, organization_id_or_slug: str, name: str) -> HttpResponse:
-    path = ROOT / "assets" / name
-    if not settings.DEBUG or not path.is_file():
+    path = ASSETS.get(name)
+    if not settings.DEBUG or path is None:
         raise Http404
     return HttpResponse(path.read_bytes(), content_type=mimetypes.guess_type(name)[0])

@@ -7,7 +7,7 @@ from django.test import override_settings
 from django.urls import include, path
 from urllib3.response import HTTPResponse
 
-from sentry.testutils.cases import APITestCase
+from sentry.testutils.cases import APITransactionTestCase
 from sentry.testutils.helpers.features import with_feature
 
 urlpatterns = [
@@ -19,13 +19,14 @@ urlpatterns = [
 @with_feature("organizations:investigations-v2")
 @with_feature("organizations:investigations")
 @override_settings(DEBUG=True, ROOT_URLCONF=__name__)
-class WorkflowLabTest(APITestCase):
+class WorkflowLabTest(APITransactionTestCase):
     def test_standalone_shell(self) -> None:
         self.login_as(self.user)
         base = f"/workflow-lab/{self.organization.slug}/"
         response = self.client.get(base)
         assert response.status_code == 200
         shell = response.content.decode()
+        assert f'data-user="{self.user.id}"' in shell
         assert "entrypoints/app.js" not in shell
         assert 'type="module" src="assets/lab.js"' in shell
         assert (
@@ -41,6 +42,7 @@ class WorkflowLabTest(APITestCase):
                     + str(asset.relative_to(Path(__file__).resolve().parents[1] / "assets"))
                 )
                 assert response.status_code == 200
+        assert self.client.get(base + "assets/missing.js").status_code == 404
         frame = self.client.get(base + "notebook/")
         assert frame.status_code == 200
         assert frame["X-Frame-Options"] == "SAMEORIGIN"
