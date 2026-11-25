@@ -31,6 +31,7 @@ import {SpanEvidenceSection} from 'sentry/components/events/interfaces/performan
 import {TRACE_WATERFALL_PREFERENCES_KEY} from 'sentry/components/events/interfaces/performance/utils';
 import {Request} from 'sentry/components/events/interfaces/request';
 import {Template} from 'sentry/components/events/interfaces/template';
+import {isAndroidAnrMechanism} from 'sentry/components/events/interfaces/utils';
 import {MetricsSection} from 'sentry/components/events/metrics/metricsSection';
 import {OurlogsSection} from 'sentry/components/events/ourlogs/ourlogsSection';
 import {EventPackageData} from 'sentry/components/events/packageData';
@@ -150,7 +151,7 @@ export function EventDetailsContent({
   const projectSlug = project.slug;
   const hasReplay = Boolean(getReplayIdFromEvent(event));
   const mechanism = event.tags?.find(({key}) => key === 'mechanism')?.value;
-  const isANR = mechanism === 'ANR' || mechanism === 'AppExitInfo';
+  const isANR = isAndroidAnrMechanism(mechanism);
 
   useCopyIssueDetails(group, event);
 
