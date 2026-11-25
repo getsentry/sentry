@@ -128,6 +128,7 @@ class TimeseriesAnnotation(DefaultFieldsModel):
     severity = BoundedPositiveIntegerField(
         default=Severity.LOW, db_default=Severity.LOW, choices=Severity.as_choices()
     )
+    pinned = models.BooleanField(default=False, db_default=False)
 
     description = models.TextField()
     tags = models.JSONField(null=True)
