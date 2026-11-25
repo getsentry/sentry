@@ -14,7 +14,6 @@ describe('getClassifierOutput', () => {
   });
 
   it.each([
-    {name: 'without an output type', outputType: null, binaryThreshold: null},
     {name: 'with a score output', outputType: 'score', binaryThreshold: null},
     {name: 'with a choice output', outputType: 'choice', binaryThreshold: null},
   ] as const)(

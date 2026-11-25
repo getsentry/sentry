@@ -18,9 +18,9 @@ function renderOutput(
 }
 
 describe('useClassifierOutput', () => {
-  it('shows every result for classifiers without an output type', () => {
+  it('shows every result for non-binary classifiers', () => {
     const {result} = renderOutput(
-      TelemetryClassifierFixture({outputType: null, binaryThreshold: null}),
+      TelemetryClassifierFixture({outputType: 'score', binaryThreshold: null}),
       {results: 'matches'}
     );
 

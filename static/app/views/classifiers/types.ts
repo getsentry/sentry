@@ -25,12 +25,7 @@ type TelemetryClassifierBase = {
   status: 'disabled' | 'enabled';
 };
 
-export type TelemetryClassifierOutputConfig =
-  | ClassifierOutputConfig
-  | {binaryThreshold: null; outputType: null};
-
-export type TelemetryClassifier = TelemetryClassifierBase &
-  TelemetryClassifierOutputConfig;
+export type TelemetryClassifier = TelemetryClassifierBase & ClassifierOutputConfig;
 
 type PrebuiltClassifierBase = {
   dataset: ClassifierDataset;
