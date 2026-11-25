@@ -57,14 +57,9 @@ describe('Tabs overflow', () => {
       .spyOn(HTMLElement.prototype, 'getBoundingClientRect')
       .mockImplementation(function (this: HTMLElement) {
         let width = 0;
-        if (
-          this.getAttribute('role') === 'tab' ||
-          // oxlint-disable-next-line testing-library/no-node-access -- jsdom requires explicit geometry for each measured wrapper.
-          this.querySelector(':scope > [role="tab"]')
-        ) {
+        if (this.matches('[role="tab"], :has(> [role="tab"])')) {
           width = tabWidth;
-          // oxlint-disable-next-line testing-library/no-node-access -- jsdom requires explicit geometry for each measured wrapper.
-        } else if (this.querySelector(':scope > [role="tablist"]')) {
+        } else if (this.matches(':has(> [role="tablist"])')) {
           width =
             containerWidth === 'content'
               ? within(this)
