@@ -201,7 +201,8 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
             investigation_id=legacy.data["id"]
         ).source
         url = self.start_url + "?version=2"
-        assert self.client.post(url, payload, format="json").status_code == 404
+        with self.feature({FEATURE: False}):
+            assert self.client.post(url, payload, format="json").status_code == 404
 
         def accept(method: str, path: str, *, operation: str, data: dict[str, Any]) -> Response:
             assert (method, path, operation) == ("POST", "/runs", "runs")
@@ -232,13 +233,10 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
             # Seer committed the run, but its HTTP acknowledgement was lost.
             return Response(status=502)
 
-        with (
-            self.feature("organizations:investigations-v2"),
-            mock.patch(
-                "sentry.investigations.endpoints.organization_investigation_start.forward_workflow_request",
-                side_effect=accept,
-            ) as start,
-        ):
+        with mock.patch(
+            "sentry.investigations.endpoints.organization_investigation_start.forward_workflow_request",
+            side_effect=accept,
+        ) as start:
             beta = self.client.post(url, payload, format="json")
             assert beta.status_code == 201, beta.data
             assert "workflowLaunch" not in beta.data
@@ -273,7 +271,6 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
             assert detail.data["workflowReport"]["active"]
             assert detail.data["orchestration"] is None
 
-    @with_feature("organizations:investigations-v2")
     def test_direct_workflow_and_monitor_reuse_the_same_open_period_notebook(self) -> None:
         group, period = self.create_metric_open_period()
         source = {
@@ -333,7 +330,6 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
         start.assert_not_called()
         assert not InvestigationOrchestrationRun.objects.filter(investigation=notebook).exists()
 
-    @with_feature("organizations:investigations-v2")
     def test_retry_keeps_the_prepared_notebook_and_request_id(self) -> None:
         group, period = self.create_metric_open_period()
         payload = {

@@ -86,7 +86,6 @@ class WorkflowStorageTest(APITestCase):
             notebook=notebook, run_id=self.run_id
         ).preserve_title
 
-    @with_feature("organizations:investigations-v2")
     def test_atomic_creation_checkpoint_activity_and_notebook_projection(self) -> None:
         def create() -> Response:
             return self.client.post(self.url, self.payload, format="json", **self.system)

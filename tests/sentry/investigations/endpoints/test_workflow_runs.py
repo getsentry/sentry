@@ -13,18 +13,17 @@ from sentry.viewer_context import decode_viewer_context
 POOL = "sentry.investigations.services.workflow_client.seer_autofix_default_connection_pool"
 
 
-@with_feature("organizations:investigations-v2")
 @with_feature("organizations:investigations")
 class OrganizationWorkflowRunsTest(APITestCase):
     endpoint = "sentry-api-0-organization-investigation-workflow-runs"
 
-    def test_disabled_v2_blocks_workflow_api(self) -> None:
+    def test_disabled_investigations_blocks_workflow_api(self) -> None:
         self.login_as(self.user)
         url = reverse(
             "sentry-api-0-organization-investigation-workflow-run",
             args=[self.organization.slug, str(uuid4())],
         )
-        with self.feature({"organizations:investigations-v2": False}), patch(POOL) as pool:
+        with self.feature({"organizations:investigations": False}), patch(POOL) as pool:
             self.get_error_response(
                 self.organization.slug,
                 method="post",
@@ -40,12 +39,6 @@ class OrganizationWorkflowRunsTest(APITestCase):
                 ).status_code
                 == 404
             )
-            pool.urlopen.assert_not_called()
-
-    def test_disabled_investigations_blocks_workflow_api(self) -> None:
-        self.login_as(self.user)
-        with self.feature({"organizations:investigations": False}), patch(POOL) as pool:
-            self.get_error_response(self.organization.slug, method="post", status_code=404)
             pool.urlopen.assert_not_called()
 
     @override_settings(
