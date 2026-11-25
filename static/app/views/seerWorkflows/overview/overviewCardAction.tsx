@@ -15,7 +15,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {useAutofixCreatePrGate} from 'sentry/components/events/autofix/useAutofixCreatePrGate';
 import {useCodingAgents} from 'sentry/components/events/autofix/v3/useCodingAgents';
-import {useOpenSingleRunChat} from 'sentry/components/events/autofix/v3/useToggleSingleRunChat';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
@@ -24,9 +23,9 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {useOpenSeerLink} from './openSeerButton';
 import {
-  opensSingleRunChat,
-  useNextAction,
   type ActionableSectionKey,
+  isSingleRunAtRootCause,
+  useNextAction,
 } from './overviewActions';
 import type {OverviewRun, ProjectConfig} from './types';
 
@@ -45,8 +44,7 @@ export function OverviewCardAction({
 
   const {autofix, config, isDispatched, trigger} = useNextAction({run, sectionKey});
   const {to: openSeerTo, trackOpen} = useOpenSeerLink(run, sectionKey);
-  const openSingleRunChat = useOpenSingleRunChat();
-  const opensChat = opensSingleRunChat(run, sectionKey);
+  const singleRunAtRootCause = isSingleRunAtRootCause(run, sectionKey);
 
   const repoEligibility = projectConfig
     ? {
@@ -168,19 +166,30 @@ export function OverviewCardAction({
 
   return (
     <ActionButtonBar>
-      {permissionsButton ?? (
-        <Tooltip title={config.description} skipWrapper>
-          <Button
+      {permissionsButton ??
+        (singleRunAtRootCause ? (
+          <LinkButton
             size="sm"
             variant="secondary"
-            icon={opensChat ? <IconSeer /> : <config.Icon />}
-            onClick={opensChat ? () => openSingleRunChat(run.seerRunId) : trigger}
-            disabled={isCreatePrGatePending}
+            icon={<IconSeer />}
+            to={openSeerTo}
+            onClick={trackOpen}
           >
-            {opensChat ? t('Open Autofix') : config.label}
-          </Button>
-        </Tooltip>
-      )}
+            {t('Open Autofix')}
+          </LinkButton>
+        ) : (
+          <Tooltip title={config.description} skipWrapper>
+            <Button
+              size="sm"
+              variant="secondary"
+              icon={<config.Icon />}
+              onClick={trigger}
+              disabled={isCreatePrGatePending}
+            >
+              {config.label}
+            </Button>
+          </Tooltip>
+        ))}
       <DropdownMenu
         items={menuItems}
         trigger={(triggerProps, isOpen) => (

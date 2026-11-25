@@ -79,7 +79,7 @@ export function isActionableSection(
   return sectionKey in ACTIONS;
 }
 
-export function opensSingleRunChat(run: OverviewRun, sectionKey: AutofixStateKey) {
+export function isSingleRunAtRootCause(run: OverviewRun, sectionKey: AutofixStateKey) {
   return Boolean(run.isSingleRun) && sectionKey === 'needs_investigation';
 }
 
@@ -87,7 +87,7 @@ export function getProcessingLabel(
   sectionKey: AutofixStateKey,
   run: OverviewRun
 ): string {
-  return isActionableSection(sectionKey) && !opensSingleRunChat(run, sectionKey)
+  return isActionableSection(sectionKey) && !isSingleRunAtRootCause(run, sectionKey)
     ? ACTIONS[sectionKey].busyLabel
     : t('Working…');
 }
