@@ -8,6 +8,7 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Grid, type GridProps} from '@sentry/scraps/layout';
 
 import {CreateSampleEventButton} from 'sentry/components/onboarding/createSampleEventButton';
+import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {PeekingBug} from 'sentry/components/peekingBug/peekingBug';
 import {t} from 'sentry/locale';
 import {pulsingIndicatorStyles} from 'sentry/styles/pulsingIndicator';
@@ -34,6 +35,7 @@ export function FirstEventFooter({
   onClickSetupLater,
   leading,
 }: FirstEventFooterProps) {
+  const {discardOnboardingSession} = useOnboardingContext();
   const {data: issues} = useQuery({
     ...apiOptions.as<Group[]>()(
       '/projects/$organizationIdOrSlug/$projectIdOrSlug/issues/',
@@ -94,6 +96,9 @@ export function FirstEventFooter({
                   organization,
                   platform: project.platform,
                 });
+                // Finishing onboarding: the next visit must start fresh, not
+                // resume this session.
+                discardOnboardingSession();
               }}
               to={
                 firstIssue
