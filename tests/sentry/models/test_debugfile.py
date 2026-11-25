@@ -622,6 +622,43 @@ class CreateDebugFileTest(APITestCase):
         assert ProjectDebugFile.objects.filter(id=source_map.id).exists()
         assert ProjectDebugFile.objects.filter(id=module.id).exists()
 
+    def test_keep_module_without_features_when_map_is_newer(self) -> None:
+        # A fully stripped module has no features. The newer map must not make the generic rule
+        # treat it as redundant.
+        file = self.create_stored_file(b"stripped wasm module")
+        module, _ = self.create_dif(
+            file=file, file_format="wasm", arch="wasm32", data={"features": []}
+        )
+
+        file = self.create_stored_file(b"source map")
+        source_map, _ = self.create_dif(
+            file=file, file_format="wasmsourcemap", arch="any", data={"features": []}
+        )
+
+        assert ProjectDebugFile.objects.filter(id=module.id).exists()
+        assert ProjectDebugFile.objects.filter(id=source_map.id).exists()
+
+    def test_remove_older_module_when_map_is_newest(self) -> None:
+        # The generic rule still replaces an older module, even when a map is the newest file.
+        file = self.create_stored_file(b"first wasm module")
+        old_module, _ = self.create_dif(
+            file=file, file_format="wasm", arch="wasm32", data={"features": []}
+        )
+
+        file = self.create_stored_file(b"second wasm module")
+        new_module, _ = self.create_dif(
+            file=file, file_format="wasm", arch="wasm32", data={"features": []}
+        )
+
+        file = self.create_stored_file(b"source map")
+        source_map, _ = self.create_dif(
+            file=file, file_format="wasmsourcemap", arch="any", data={"features": []}
+        )
+
+        assert not ProjectDebugFile.objects.filter(id=old_module.id).exists()
+        assert ProjectDebugFile.objects.filter(id=new_module.id).exists()
+        assert ProjectDebugFile.objects.filter(id=source_map.id).exists()
+
     def test_remove_older_wasm_source_map(self) -> None:
         file = self.create_stored_file(b"wasm module")
         module, _ = self.create_dif(

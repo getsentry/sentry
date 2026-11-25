@@ -447,7 +447,10 @@ def clean_redundant_difs(project: Project, debug_id: str) -> None:
     uuidmap_seen = False
     il2cpp_seen = False
     wasmsourcemap_seen = False
-    for i, dif in enumerate(difs):
+    # Whether a file has been kept by the generic rule below. The companion files above share the
+    # debug id but never add to `all_features`, so they must not count as a newer file there.
+    generic_seen = False
+    for dif in difs:
         mime_type = dif.get_content_type()
         if mime_type == DIF_MIMETYPES["bcsymbolmap"]:
             if not bcsymbolmap_seen:
@@ -473,9 +476,10 @@ def clean_redundant_difs(project: Project, debug_id: str) -> None:
             # We always keep the latest file. If it has no features, likely the
             # previous files did not have features either and will be removed, or we
             # keep both. Subsequent uploads will remove this file later.
-            if i > 0 and dif.features <= all_features:
+            if generic_seen and dif.features <= all_features:
                 dif.delete()
             else:
+                generic_seen = True
                 all_features.update(dif.features)
 
 
