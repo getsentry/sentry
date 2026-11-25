@@ -770,11 +770,10 @@ describe('Tabs overflow', () => {
         } else if (this.querySelector(':scope > [role="tablist"]')) {
           width =
             containerWidth === 'content'
-              ? Array.from(
-                  // oxlint-disable-next-line testing-library/no-node-access -- jsdom has no layout, so a content-sized wrapper is measured from its tabs.
-                  this.querySelectorAll<HTMLElement>('[role="tab"]'),
-                  tab => (getComputedStyle(tab).display === 'none' ? 0 : tabWidth)
-                ).reduce((sum, tabSize) => sum + tabSize, 0)
+              ? within(this)
+                  .queryAllByRole('tab', {hidden: true})
+                  .filter(tab => getComputedStyle(tab).display !== 'none').length *
+                tabWidth
               : containerWidth;
         }
         return {
