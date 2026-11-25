@@ -35,10 +35,15 @@ const StyledTabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})<{
     cursor: default;
   }
 
+  /**
+   * Overflowing tabs stay in the layout so the list keeps its full width.
+   * Removing them would shrink a content-sized list around the visible tabs,
+   * and the hidden tabs would never fit again.
+   */
   ${p =>
     p.overflowing &&
     css`
-      display: none;
+      visibility: hidden;
       pointer-events: none;
     `}
 `;

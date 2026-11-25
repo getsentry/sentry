@@ -899,6 +899,57 @@ describe('Tabs overflow', () => {
     );
   });
 
+  it('shows every tab again when a content-sized container grows back', async () => {
+    // A content-sized container is as wide as the tabs it lays out. If hiding an
+    // overflowing tab shrank it, the hidden tabs would never fit again.
+    let squeezed = false;
+    jest
+      .spyOn(HTMLElement.prototype, 'getBoundingClientRect')
+      .mockImplementation(function (this: HTMLElement) {
+        let width = 0;
+        if (this.getAttribute('role') === 'tab') {
+          width = tabWidth;
+          // oxlint-disable-next-line testing-library/no-node-access -- jsdom requires explicit geometry for each measured wrapper.
+        } else if (this.querySelector(':scope > [role="tablist"]')) {
+          width = squeezed
+            ? 260
+            : Array.from(
+                // oxlint-disable-next-line testing-library/no-node-access -- jsdom has no layout, so the wrapper width comes from the tabs it lays out.
+                this.querySelectorAll<HTMLElement>('[role="tab"]'),
+                tab => (getComputedStyle(tab).display === 'none' ? 0 : tabWidth)
+              ).reduce((sum, tabSize) => sum + tabSize, 0);
+        }
+        return {
+          width,
+          height: 0,
+          top: 0,
+          bottom: 0,
+          left: 0,
+          right: width,
+          x: 0,
+          y: 0,
+          toJSON: () => ({}),
+        };
+      });
+    const resize = () =>
+      act(() => {
+        resizeCallbacks.forEach(callback => callback([], {} as ResizeObserver));
+      });
+    render(<OverflowTabs />, {wrapper: ThemeWrapper});
+
+    expect(screen.queryByRole('button', {name: 'More tabs'})).not.toBeInTheDocument();
+
+    squeezed = true;
+    resize();
+    expect(await screen.findByRole('button', {name: 'More tabs'})).toBeInTheDocument();
+
+    squeezed = false;
+    resize();
+    await waitForElementToBeRemoved(() =>
+      screen.queryByRole('button', {name: 'More tabs'})
+    );
+  });
+
   it.each(['click', 'keyboard'])(
     'activates an overflowing tab by %s and closes the menu',
     async interaction => {

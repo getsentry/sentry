@@ -33,6 +33,7 @@ import {tabsShouldForwardProp} from './utils';
 
 const StyledTabListWrap = styled('ul', {shouldForwardProp: tabsShouldForwardProp})<{
   orientation: Orientation;
+  overflowing: boolean;
   variant: TabProps['variant'];
 }>`
   position: relative;
@@ -55,6 +56,14 @@ const StyledTabListWrap = styled('ul', {shouldForwardProp: tabsShouldForwardProp
           align-content: start;
           padding-right: ${p.theme.space.xs};
         `}
+
+  /* Overflowing tabs keep their place in the layout, so clip them to keep them
+     from adding scrollable overflow. */
+  ${p =>
+    p.overflowing &&
+    css`
+      overflow-x: clip;
+    `}
 `;
 
 const StyledTabListOverflowWrap = styled('div')`
@@ -105,10 +114,6 @@ function useOverflowTabs({
   tabListRef: RefObject<HTMLUListElement | null>;
 }) {
   const [overflowTabs, setOverflowTabs] = useState<Array<string | number>>([]);
-  // Cached intrinsic widths per tab key. Overflowing tabs render with
-  // `display: none` and measure 0, so we remember their last measured width to
-  // know when they would fit again as space grows.
-  const tabWidthsRef = useRef(new Map<string | number, number>());
 
   // Measures the list against the available space and updates the overflow set.
   const recompute = useEffectEvent(() => {
@@ -130,21 +135,18 @@ function useOverflowTabs({
     // the `hidden` prop render with `display: none` and take up no space.
     const keys = tabItems.filter(item => !item.hidden).map(item => item.key);
 
-    // Refresh the cached width of every measurable (currently visible) tab.
-    // Overflowing tabs measure 0; their last known width is kept.
-    for (const key of keys) {
-      const measured = elements[key]?.getBoundingClientRect().width ?? 0;
-      if (measured > 0) {
-        tabWidthsRef.current.set(key, measured);
-      }
-    }
+    // Overflowing tabs are only visually hidden (see `Tab`), so every tab still
+    // measures its full width.
+    const tabWidths = new Map(
+      keys.map(key => [key, elements[key]?.getBoundingClientRect().width ?? 0])
+    );
 
     const available = outerWrap.getBoundingClientRect().width;
 
     // Width required to render every tab, without reserving the trigger.
     const fullWidth = keys.reduce(
       (sum: number, key, index) =>
-        sum + (tabWidthsRef.current.get(key) ?? 0) + (index === 0 ? 0 : gap),
+        sum + (tabWidths.get(key) ?? 0) + (index === 0 ? 0 : gap),
       0
     );
 
@@ -162,8 +164,7 @@ function useOverflowTabs({
           nextOverflow.push(key);
           return;
         }
-        const nextUsed =
-          used + (tabWidthsRef.current.get(key) ?? 0) + (index === 0 ? 0 : gap);
+        const nextUsed = used + (tabWidths.get(key) ?? 0) + (index === 0 ? 0 : gap);
         // Always keep the first tab visible so the tab bar never collapses to
         // only the overflow trigger.
         if (index === 0 || nextUsed <= budget) {
@@ -378,6 +379,7 @@ function BaseTabList({
       <TabListWrap
         {...tabListProps}
         orientation={orientation}
+        overflowing={overflowTabs.length > 0}
         ref={tabListRef}
         variant={variant}
       >
