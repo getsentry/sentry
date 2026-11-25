@@ -520,6 +520,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:tracemetrics-90-day-range", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable table support for the trace metrics dataset in dashboards
     manager.add("organizations:tracemetrics-dashboard-table", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Scope trace metric attribute keys by the name co-occurring attribute only, not name and type
+    manager.add("organizations:tracemetrics-cooccurring-name-only", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable trace metrics product (known internally as tracemetrics) in UI and backend
     manager.add("organizations:tracemetrics-enabled", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable trace metrics product to be ingested via Relay
