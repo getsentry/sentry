@@ -51,7 +51,11 @@ class WorkflowCommandRequest(serializers.Serializer):
         required=False,
         help_text="Answers in question order.",
     )
-    note = serializers.CharField(max_length=2000, required=False)
+    note = serializers.CharField(
+        max_length=2000,
+        required=False,
+        help_text="Optional instructions to the running investigation.",
+    )
     command = serializers.ChoiceField(
         choices=["cancel", "provide_input", "steer", "retry", "recheck"],
         help_text="The command to deliver.",
