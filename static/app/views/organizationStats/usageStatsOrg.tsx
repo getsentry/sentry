@@ -564,14 +564,31 @@ export function UsageStatsOrganization({
     }
 
     const countDataCategory = clientDiscardCountCategory.countCategory.plural;
+    const countChartData = mapSeriesToChart({
+      orgStats: countStatsResponse.data,
+      chartDateInterval: chartDateRange.chartDateInterval,
+      chartDateUtc: chartDateRange.chartDateUtc,
+      dataCategory: countDataCategory,
+      endpointQuery: countStatsQuery,
+    });
+
+    // The count chart shows client discards only
     return {
-      chartData: mapSeriesToChart({
-        orgStats: countStatsResponse.data,
-        chartDateInterval: chartDateRange.chartDateInterval,
-        chartDateUtc: chartDateRange.chartDateUtc,
-        dataCategory: countDataCategory,
-        endpointQuery: countStatsQuery,
-      }),
+      chartData: {
+        cardStats: countChartData.cardStats,
+        chartStats: {
+          accepted: [],
+          accepted_stored: [],
+          filtered: [],
+          rateLimited: [],
+          invalid: [],
+          clientDiscard: countChartData.chartStats.clientDiscard,
+          projected: [],
+        },
+        chartSubLabels: countChartData.chartSubLabels.filter(
+          subLabel => subLabel.parentLabel === SeriesTypes.CLIENT_DISCARD
+        ),
+      },
       dataCategory: countDataCategory,
       error: countStatsResponse.error,
       loading: countStatsResponse.isPending,
