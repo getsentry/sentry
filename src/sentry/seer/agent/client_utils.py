@@ -19,7 +19,7 @@ from django.db import router, transaction
 from django.http import HttpRequest
 from django.utils.timezone import now
 from rest_framework.request import Request
-from urllib3 import BaseHTTPResponse, HTTPConnectionPool
+from urllib3 import BaseHTTPResponse, HTTPConnectionPool, Timeout
 from urllib3.exceptions import MaxRetryError
 from urllib3.exceptions import TimeoutError as Urllib3TimeoutError
 
@@ -51,9 +51,13 @@ from sentry.utils.strings import strip_lone_surrogates
 
 logger = logging.getLogger(__name__)
 
+# urllib3 retries a failed connect up to 3 times, even for POSTs, and each try
+# waits the full connect timeout. A short one keeps those tries well inside the
+# 65s deadline of the tasks that call Seer, so a timeout reaches the task's own
+# retry instead of the task being killed first.
 agent_connection_pool = connection_from_url(
     settings.SEER_AUTOFIX_URL,
-    timeout=settings.SEER_DEFAULT_TIMEOUT,
+    timeout=Timeout(connect=5, read=settings.SEER_DEFAULT_TIMEOUT),
 )
 
 
