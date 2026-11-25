@@ -348,7 +348,7 @@ function ManualTriggerCell({trigger}: {trigger: ManualTrigger}) {
     <Flex gap="sm" align="center" wrap="wrap">
       <Flex gap="xs" align="center">
         <IconPlay size="xs" variant="muted" />
-        <Text>{t('Manually triggered')}</Text>
+        <Text>{user ? t('Manually triggered by') : t('Manually triggered')}</Text>
       </Flex>
       {user && (
         <UserBadge
