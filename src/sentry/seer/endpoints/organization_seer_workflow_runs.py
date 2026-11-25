@@ -41,7 +41,6 @@ from sentry.seer.models.workflow import (
 )
 from sentry.seer.monitor_cleanup.runs import create_monitor_cleanup_run
 from sentry.seer.workflows.breached_metrics import MetricBreachInputs
-from sentry.seer.workflows.definitions import is_scheduled
 from sentry.seer_workflow_outputs.models import SeerWorkflowOutputLink
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.safe import get_path
@@ -444,7 +443,7 @@ def serialize_trigger(
     """
     if run.source == SeerWorkflowRunSource.MANUAL:
         return {"type": "manual"}
-    if is_scheduled(strategy):
+    if run.source == SeerWorkflowRunSource.CRON:
         return {"type": "cron"}
     if strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION and get_path(
         run.extras, "snapshot", "inputs"
