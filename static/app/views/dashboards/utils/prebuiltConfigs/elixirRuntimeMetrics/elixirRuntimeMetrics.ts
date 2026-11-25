@@ -6,13 +6,11 @@ import type {
   PrebuiltDashboard,
   PrebuiltWidget,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import {
-  DASHBOARD_DESCRIPTION,
-  DASHBOARD_TITLE,
-} from 'sentry/views/dashboards/utils/prebuiltConfigs/elixirRuntimeMetrics/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {traceMetricField} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/traceMetricField';
 import {SpanFields} from 'sentry/views/insights/types';
+
+import {DASHBOARD_DESCRIPTION, DASHBOARD_TITLE} from './settings';
 
 const INTERVAL = '5m';
 
@@ -28,14 +26,7 @@ function memoryField(type: string) {
 }
 
 function query(aggregates: string[], conditions = ''): WidgetQuery {
-  return {
-    name: '',
-    fields: aggregates,
-    aggregates,
-    columns: [],
-    conditions,
-    orderby: '',
-  };
+  return {name: '', fields: aggregates, aggregates, columns: [], conditions, orderby: ''};
 }
 
 const KPI_WIDGETS = spaceWidgetsEquallyOnRow(

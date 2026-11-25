@@ -1,6 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {ElixirRuntimeMetricsOnboarding} from 'sentry/views/insights/pages/elixirRuntime/onboarding';
+import {ElixirRuntimeMetricsOnboarding} from './onboarding';
 
 describe('ElixirRuntimeMetricsOnboarding', () => {
   it('renders setup instructions', () => {
