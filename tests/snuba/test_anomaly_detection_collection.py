@@ -16,11 +16,9 @@ from sentry.anomaly_detection.contracts import (
 from sentry.anomaly_detection.evaluation.series import build
 from sentry.anomaly_detection.inputs import new_failures
 from sentry.anomaly_detection.inputs.measurements import ERROR_USER, MAX_SLICES, collect
-from sentry.anomaly_detection.inputs.new_failures import (
-    NewFailureThresholds,
-    new_failure_thresholds,
-)
+from sentry.anomaly_detection.inputs.new_failures import NewFailureThresholds
 from sentry.anomaly_detection.inputs.query import error_where, run_errors
+from sentry.anomaly_detection.inputs.shapes import day_of
 from sentry.models.group import Group
 from sentry.snuba.referrer import Referrer
 from sentry.testutils.cases import SnubaTestCase, SpanTestCase, TestCase
@@ -382,23 +380,11 @@ class TestAnomalyDetectionIssueEnrichment(TestCase, SnubaTestCase):
         assert weak.key == strong.key
         assert weak.start == strong.start == start
 
-    def test_hourly_thresholds_scale_with_service_audience(self) -> None:
+    def test_daily_thresholds_scale_with_service_audience(self) -> None:
         start = before_now(minutes=20).replace(second=0, microsecond=0)
-        hour = start.replace(minute=0)
-        thresholds = new_failure_thresholds(
-            [
-                SeriesRow(
-                    hour - timedelta(hours=offset),
-                    self.project.id,
-                    "prod",
-                    Signal.ERRORS,
-                    Metric.COUNT_UNIQUE_USER,
-                    "",
-                    users,
-                )
-                for offset, users in ((1, 240.0), (2, 200.0), (3, 300.0))
-            ]
-        )
+        day = day_of(start)
+        audience = {Service(self.project.id, "prod"): 240.0}
+        thresholds = NewFailureThresholds({day: audience, day + timedelta(days=1): audience})
         group = self._group(start)
         for i in range(10):
             self._error(group, f"user-{i}", start)

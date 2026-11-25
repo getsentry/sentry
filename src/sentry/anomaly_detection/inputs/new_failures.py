@@ -16,7 +16,6 @@ from collections import defaultdict
 from collections.abc import Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from statistics import median
 from typing import TYPE_CHECKING, NamedTuple
 
 from snuba_sdk import (
@@ -37,7 +36,6 @@ from sentry.anomaly_detection.contracts import (
     ChangeType,
     Metric,
     SeriesKey,
-    SeriesRow,
     Service,
     Signal,
 )
@@ -50,6 +48,7 @@ from sentry.anomaly_detection.inputs.query import (
     run_errors,
     utc,
 )
+from sentry.anomaly_detection.inputs.shapes import DAY, DailyShapes, day_of
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.group import Group
 from sentry.snuba.referrer import Referrer
@@ -68,10 +67,6 @@ _GROUP_LOOKBACK = 2 * _ISSUE_LIFETIME
 # Relay replaces event timestamps further than this ahead of receive time.
 _MAX_FUTURE_SKEW = timedelta(minutes=1)
 _MINUTE = timedelta(minutes=1)
-_HOUR = timedelta(hours=1)
-# The scheduler collects 16 days ending at the poll's latest closed hour. Leave
-# enough history to use the same trailing window during warmup and issue replay.
-_THRESHOLD_LOOKBACK = timedelta(days=15)
 _MAX_NEW_GROUPS = 500  # Highest-volume candidate groups per project.
 # Crossing query pages per run, spent on the titles with the most estimated
 # users first. A title that does not fit is not evaluated for this interval,
@@ -80,10 +75,6 @@ _MAX_NEW_GROUPS = 500  # Highest-volume candidate groups per project.
 _MAX_ISSUE_QUERIES = 50
 _ISSUE_USER_PAGE_SIZE = 10_000  # SnQL limits each page to 10,000 rows.
 _MIN_NEW_USERS = 10
-
-
-def _hour_floor(timestamp: datetime) -> datetime:
-    return timestamp.replace(minute=0, second=0, microsecond=0)
 
 
 def _minute_floor(timestamp: datetime) -> datetime:
@@ -95,34 +86,29 @@ def _observed_at(timestamp: datetime) -> datetime:
 
 
 class NewFailureThresholds:
-    def __init__(self, samples: Mapping[Service, Sequence[tuple[datetime, float]]]) -> None:
-        self._samples = samples
-        self._thresholds: dict[tuple[Service, datetime], float] = {}
+    """Scale each service's threshold by its median hourly users before the day."""
+
+    def __init__(self, users: Mapping[datetime, Mapping[Service, float]]) -> None:
+        self._users = users  # Median hourly users by day, see inputs.shapes.
 
     def at(self, scope: Service, observation_end: datetime) -> float:
-        """Scale the threshold using only buckets closed at observation_end."""
-        end = _hour_floor(utc(observation_end))
-        key = scope, end
-        if key not in self._thresholds:
-            start = end - _THRESHOLD_LOOKBACK
-            values = [value for hour, value in self._samples.get(scope, ()) if start <= hour < end]
-            self._thresholds[key] = (
-                max(float(_MIN_NEW_USERS), 0.05 * median(values))
-                if values
-                else float(_MIN_NEW_USERS)
-            )
-        return self._thresholds[key]
+        """The threshold of an observation, from hours closed before its day began."""
+        users = self._users.get(day_of(utc(observation_end)), {}).get(scope)
+        if users is None:
+            return float(_MIN_NEW_USERS)
+        return max(float(_MIN_NEW_USERS), 0.05 * users)
 
     def falling_scopes(self, start: datetime, end: datetime) -> Iterator[Service]:
         """Find environments where existing users can cross without a new error."""
-        boundary = _hour_floor(start) + _HOUR
+        boundary = day_of(utc(start)) + DAY
         while boundary <= end:
-            for scope in self._samples:
+            scopes = {*self._users.get(boundary - DAY, {}), *self._users.get(boundary, {})}
+            for scope in sorted(scopes):
                 if math.ceil(self.at(scope, boundary)) < math.ceil(
-                    self.at(scope, boundary - _HOUR)
+                    self.at(scope, boundary - _MINUTE)
                 ):
                     yield scope
-            boundary += _HOUR
+            boundary += DAY
 
 
 class _ThresholdWindow(NamedTuple):
@@ -149,7 +135,7 @@ class _FailureScope:
             return
 
         while start < end:
-            stop = min(_hour_floor(start) + _HOUR, end)
+            stop = min(day_of(start) + DAY, end)
             yield _ThresholdWindow(start, stop, self.thresholds.at(key, start))
             start = stop
 
@@ -186,17 +172,8 @@ class _IssueCrossing(NamedTuple):
     users: int
 
 
-def new_failure_thresholds(hourly_rows: Sequence[SeriesRow]) -> NewFailureThresholds:
-    samples: dict[Service, list[tuple[datetime, float]]] = defaultdict(list)
-    for row in hourly_rows:
-        if (
-            row.signal == Signal.ERRORS
-            and row.metric == Metric.COUNT_UNIQUE_USER
-            and not row.dim_value
-            and (sample := number(row.value)) is not None
-        ):
-            samples[Service(row.project_id, row.env)].append((utc(row.ts), sample))
-    return NewFailureThresholds(samples)
+def new_failure_thresholds(shapes: DailyShapes) -> NewFailureThresholds:
+    return NewFailureThresholds(shapes.users)
 
 
 def collect_new_failure_modes(
@@ -226,7 +203,7 @@ def collect_new_failure_modes(
         if not windows:
             continue
         environments = set(_received_environments(organization, project, windows, start, end))
-        # Scopes from the bounded hourly snapshot supplement received errors;
+        # Scopes whose threshold falls at midnight supplement received errors;
         # a quiet scope's threshold change cannot displace an active scope.
         environments.update(boundary_environments.get(project_id, ()))
         if environments:

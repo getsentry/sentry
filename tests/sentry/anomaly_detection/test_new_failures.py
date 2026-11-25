@@ -208,19 +208,14 @@ class TestNewFailures(TestCase):
         query.assert_not_called()
 
     def test_boundary_environments_supplement_received_environments(self) -> None:
-        self._group(START + 30 * MINUTE)
-        project = self.project.id
-        # The threshold falls at START + 1h, which makes "quiet" a boundary scope.
+        self._group(START - 30 * MINUTE)
+        quiet = Service(self.project.id, "quiet")
+        # The threshold falls at midnight, START, which makes "quiet" a boundary scope.
         thresholds = new_failures.NewFailureThresholds(
-            {
-                Service(project, "quiet"): [
-                    (START - new_failures._THRESHOLD_LOOKBACK, 1000.0),
-                    (START, 200.0),
-                ]
-            }
+            {START - timedelta(days=1): {quiet: 1000.0}, START: {quiet: 200.0}}
         )
         with mock.patch.object(new_failures, "run_errors", side_effect=[PROD, []]) as query:
-            self._collect(thresholds, START + 59 * MINUTE, START + 61 * MINUTE)
+            self._collect(thresholds, START - MINUTE, START + MINUTE)
         (_, candidates, _) = query.call_args_list[1].args
         assert _where(candidates, error_env()).rhs == ["prod", "quiet"]
 

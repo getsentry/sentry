@@ -29,6 +29,7 @@ from sentry.anomaly_detection.inputs.measurements import (
     collect,
 )
 from sentry.anomaly_detection.inputs.query import ScopedSpans
+from sentry.anomaly_detection.inputs.shapes import DailyShapes
 from sentry.anomaly_detection.state import client
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
@@ -383,26 +384,18 @@ class TestCollection(TestCase):
             assert 0 < client().ttl(key) <= 600
 
 
-def test_failure_thresholds_use_only_observed_hourly_error_users() -> None:
-    rows = [
-        SeriesRow(START, 10, "prod", Signal.ERRORS, Metric.COUNT_UNIQUE_USER, "", 300.0),
-        SeriesRow(
-            START + timedelta(hours=1),
-            10,
-            "prod",
-            Signal.ERRORS,
-            Metric.COUNT_UNIQUE_USER,
-            "",
-            None,
-        ),
-        SeriesRow(START, 10, "stage", Signal.ERRORS, Metric.COUNT_UNIQUE_USER, "", 5.0),
-        SeriesRow(
-            START, 10, "stage", Signal.ERRORS_BY_RELEASE, Metric.COUNT_UNIQUE_USER, "v1", 2000.0
-        ),
-        SeriesRow(START, 10, "unobserved", Signal.ERRORS, Metric.COUNT_UNIQUE_USER, "", None),
-    ]
-    thresholds = new_failures.new_failure_thresholds(rows)
-    observation_end = START + timedelta(hours=2)
-    assert thresholds.at(Service(10, "prod"), observation_end) == 15.0
-    assert thresholds.at(Service(10, "stage"), observation_end) == 10.0
-    assert thresholds.at(Service(10, "unobserved"), observation_end) == 10.0
+def test_failure_thresholds_scale_with_each_days_median_users() -> None:
+    day = START + timedelta(days=1)
+    prod, stage = Service(10, "prod"), Service(10, "stage")
+    thresholds = new_failures.new_failure_thresholds(
+        DailyShapes(
+            day, frozenset({10}), {}, {START: {prod: 300.0}, day: {prod: 400.0, stage: 5.0}}
+        )
+    )
+    # 5% of the day's median hourly users, at least 10.
+    assert thresholds.at(prod, day - MINUTE) == 15.0
+    assert thresholds.at(prod, day) == 20.0
+    assert thresholds.at(stage, day + timedelta(hours=5)) == 10.0
+    assert thresholds.at(Service(10, "unobserved"), day) == 10.0
+    # Neither covered day: no audience to scale by.
+    assert thresholds.at(prod, day + timedelta(days=1)) == 10.0
