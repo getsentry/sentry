@@ -23,7 +23,7 @@ class Migration(CheckedMigration):
 
     dependencies = [
         ("sentry", "1249_remove_artifactbundleindex_url_index"),
-        ("workflow_engine", "0127_normalize_string_condition_results"),
+        ("workflow_engine", "0128_add_detector_non_user_creator"),
     ]
 
     operations = [

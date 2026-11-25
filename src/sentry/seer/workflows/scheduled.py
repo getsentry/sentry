@@ -14,6 +14,7 @@ from collections.abc import Collection, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Any, ClassVar, Literal, assert_never
+from uuid import uuid4
 
 from django.db.models import QuerySet
 from pydantic import BaseModel, validator
@@ -97,6 +98,13 @@ class ScheduledRunInputs(BaseModel):
     scheduled_for: datetime
 
 
+class ManualRunInputs(BaseModel):
+    """The inputs of a manual run, recorded in its snapshot."""
+
+    source: Literal["manual"] = "manual"
+    user_id: int | None = None
+
+
 @functools.cache
 def _daily() -> CronSchedule:
     # Matches the legacy night shift's morning run. Firings are spread over the following
@@ -141,7 +149,7 @@ def sync_schedule(config: SeerWorkflowConfig) -> None:
         )
 
 
-class ScheduleDefinition(AutomationDefinition[ScheduledRunInputs]):
+class ScheduleDefinition(AutomationDefinition[ScheduledRunInputs | ManualRunInputs]):
     """Runs on the config's schedule, over the projects the config selects."""
 
     strategy = SeerWorkflowStrategy.SCHEDULED_INVESTIGATION
@@ -233,6 +241,23 @@ class ScheduleDefinition(AutomationDefinition[ScheduledRunInputs]):
             )
         if not admitted.created:
             return ScheduledRunOutcome("duplicate", run=admitted.lifecycle.get_run())
+        admitted.lifecycle.start()
+        self.dispatch(admitted.lifecycle)
+        return ScheduledRunOutcome("accepted", run=admitted.lifecycle.get_run())
+
+    def admit_manual_run(self, config: LockedConfig, user_id: int | None) -> ScheduledRunOutcome:
+        if not self.is_enabled(config):
+            return ScheduledRunOutcome("ignored", reason="config_disabled")
+        admitted = self.admit_run(
+            config,
+            trigger_key=f"manual:{uuid4().hex}",
+            source=SeerWorkflowRunSource.MANUAL,
+            inputs=ManualRunInputs(user_id=user_id),
+        )
+        if admitted.rejection is not None:
+            return ScheduledRunOutcome(
+                "rejected", reason=admitted.rejection, run=admitted.lifecycle.get_run()
+            )
         admitted.lifecycle.start()
         self.dispatch(admitted.lifecycle)
         return ScheduledRunOutcome("accepted", run=admitted.lifecycle.get_run())

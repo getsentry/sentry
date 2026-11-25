@@ -5,6 +5,7 @@ import {IconCheckmark} from '@sentry/icons/checkmark';
 import {IconClock} from '@sentry/icons/clock';
 import {IconCopy} from '@sentry/icons/copy';
 import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconFilter} from '@sentry/icons/filter';
 import {IconSubscribed} from '@sentry/icons/subscribed';
 import {IconUnsubscribed} from '@sentry/icons/unsubscribed';
 import {IconUpload} from '@sentry/icons/upload';
@@ -370,6 +371,7 @@ export function GroupActions({
       'You need project write access to add custom inbound filters'
     );
   }
+  const isInboundFilterAllowed = addInboundFilterDisabledReason === undefined;
 
   const onAddInboundFilter = () => {
     if (!event) {
@@ -557,6 +559,13 @@ export function GroupActions({
                 }
               />
             )}
+            {canAddInboundFilter && isInboundFilterAllowed && (
+              <CMDKAction
+                display={{label: t('Add Inbound Filter'), icon: <IconFilter />}}
+                keywords={['inbound', 'filter', 'drop', 'custom filter', 'data filter']}
+                onAction={onAddInboundFilter}
+              />
+            )}
             {stacktraceBody && (
               <CMDKAction
                 display={{label: t('Copy Stack Trace'), icon: <IconCopy />}}
@@ -662,7 +671,7 @@ export function GroupActions({
               key: 'add-inbound-filter',
               label: t('Add Inbound Filter'),
               hidden: !canAddInboundFilter,
-              disabled: addInboundFilterDisabledReason !== undefined,
+              disabled: !isInboundFilterAllowed,
               details: addInboundFilterDisabledReason,
               onAction: onAddInboundFilter,
             },

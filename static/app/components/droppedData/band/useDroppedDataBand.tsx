@@ -162,9 +162,9 @@ function createDroppedDataBand({
     buckets,
     height: BAND_HEIGHT,
     onClick,
-    tooltipSection: start => {
-      const bucket = bucketsByStart.get(start);
-      return bucket ? (
+    tooltipSection: hovered => {
+      const bucket = bucketsByStart.get(hovered.start);
+      return bucket?.end === hovered.end ? (
         <DroppedDataTooltipSection bucket={bucket} dataset={dataset} />
       ) : null;
     },

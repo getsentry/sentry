@@ -128,9 +128,11 @@ class Referrer(StrEnum):
     API_EXPLORE_OURLOGS_TIMESERIES = "api.explore.ourlogs-timeseries"
     API_EXPLORE_TRACEMETRICS_TIMESERIES = "api.explore.tracemetrics-timeseries"
     API_EXPLORE_TRACEMETRICS_METRICS_LIST = "api.explore.tracemetrics.metrics-list"
+    API_EXPLORE_METRIC_TRACE_DETAIL = "api.explore.metric-trace-detail"
     API_EXPLORE_SPANS_AGGREGATES_TABLE = "api.explore.spans-aggregates-table"
     API_EXPLORE_SPANS_SAMPLES_TABLE = "api.explore.spans-samples-table"
     API_EXPLORE_SPAN_ITEM_DETAILS = "api.explore.span-item-details"
+    API_EXPLORE_LOG_ITEM_DETAILS = "api.explore.log-item-details"
     API_EXPLORE_SPANS_EXTRAPOLATION_META = "api.explore.spans-extrapolation-meta"
     API_EXPLORE_LOGS_TABLE = "api.explore.logs-table"
     API_EXPLORE_LOGS_TABLE_ROW = "api.explore.logs-table-row"
@@ -955,6 +957,24 @@ def is_valid_referrer(referrer: str | None) -> bool:
             return True
 
     return False
+
+
+# Snuba's allocation policies exempt these from quotas, so only server-side callers may send them.
+SERVER_ONLY_REFERRER_PREFIXES = (Referrer.SUBSCRIPTIONS_EXECUTOR.value, "tsdb-modelid:")
+
+
+def is_valid_client_referrer(referrer: str | None) -> bool:
+    if referrer and referrer.startswith(SERVER_ONLY_REFERRER_PREFIXES):
+        return False
+
+    return is_valid_referrer(referrer)
+
+
+def resolve_client_referrer(referrer: str | None, default: str) -> str:
+    if referrer and is_valid_client_referrer(referrer):
+        return referrer
+
+    return default
 
 
 def validate_referrer(referrer: str | None) -> bool:

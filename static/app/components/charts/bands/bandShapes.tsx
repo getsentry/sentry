@@ -8,18 +8,35 @@ import type {ZRColor} from 'echarts/types/dist/shared';
 
 import {defined} from 'sentry/utils/defined';
 
-const BAND_PADDING_TOP = 2;
-const BAND_PADDING_BOTTOM = 3;
-const BOX_HEIGHT = 4;
+/**
+ * Space above each band's box, between it and the plot or the band above.
+ */
+const BAND_GAP = 2;
+const BOX_HEIGHT = 5;
 const BOX_BORDER_RADIUS = 2;
+const PILL_GAP = 2;
 
-export const BAND_HEIGHT = BAND_PADDING_TOP + BOX_HEIGHT + BAND_PADDING_BOTTOM;
+export const BAND_HEIGHT = BAND_GAP + BOX_HEIGHT;
+
+/**
+ * Space between the last band in a stack and the x-axis.
+ */
+export const BAND_STACK_PADDING_BOTTOM = 3;
 
 /**
  * Above line, area, and bar series so a bucket highlight covers them, and
  * below mark lines such as releases.
  */
 export const BAND_Z = 4;
+
+/**
+ * The low confidence hatch shares `BAND_Z - 1` with line and area series, so
+ * `z2` puts it over every element they draw, including symbols (100) and end
+ * labels (200). Annotation markers go one above it, so the hatch doesn't fade
+ * them.
+ */
+export const HATCH_Z2 = 1000;
+export const ANNOTATION_MARKER_Z2 = HATCH_Z2 + 1;
 
 const HIGHLIGHT_DIM_OPACITY = 0.6;
 const HIGHLIGHT_WASH_OPACITY = 0.1;
@@ -70,22 +87,26 @@ export function clampRange({left, right}: PixelRange, track: PixelRange): PixelR
 }
 
 /**
- * Centred on the bucket start to line up with bar series, and rounded so
- * neighbouring buckets meet without anti-aliased seams.
+ * Lines up with bar series, which centre each bar on its start: the slot is
+ * shifted left by half of one `barInterval`, so a bucket spanning several bars
+ * runs from the left edge of its first bar to the right edge of its last.
+ * Rounded so neighbouring buckets meet without anti-aliased seams.
  */
 export function bucketSlot(
   bucket: BandBucket,
-  api: CustomSeriesRenderItemAPI
+  api: CustomSeriesRenderItemAPI,
+  barInterval = bucket.end - bucket.start
 ): PixelRange | null {
   const [startX] = api.coord([bucket.start, 0]);
   const [endX] = api.coord([bucket.end, 0]);
+  const [barEndX] = api.coord([bucket.start + barInterval, 0]);
 
-  if (!defined(startX) || !defined(endX)) {
+  if (!defined(startX) || !defined(endX) || !defined(barEndX)) {
     return null;
   }
 
-  const halfSlot = (endX - startX) / 2;
-  return {left: Math.round(startX - halfSlot), right: Math.round(endX - halfSlot)};
+  const halfBar = (barEndX - startX) / 2;
+  return {left: Math.round(startX - halfBar), right: Math.round(endX - halfBar)};
 }
 
 /**
@@ -104,7 +125,7 @@ export function bandLayout(
   }
 
   const {x, width} = params.coordSys as CartesianCoordSys;
-  return {track: {left: x, right: x + width}, y: baseY + offset + BAND_PADDING_TOP};
+  return {track: {left: x, right: x + width}, y: baseY + offset + BAND_GAP};
 }
 
 /**
@@ -138,6 +159,27 @@ export function bandRect(
 }
 
 /**
+ * A square-cornered box inset from both ends of its range, so neighbouring
+ * pills are drawn apart. Silent, since hovering goes through `bandHoverTarget`.
+ */
+export function bandPill(
+  range: PixelRange,
+  y: number,
+  fill: ZRColor,
+  {opacity = 1}: {opacity?: number} = {}
+): BandElement {
+  const width = range.right - range.left;
+  const inset = width > PILL_GAP * 2 ? PILL_GAP / 2 : 0;
+
+  return {
+    type: 'rect',
+    silent: true,
+    shape: {x: range.left + inset, y, width: width - inset * 2, height: BOX_HEIGHT},
+    style: {fill, opacity},
+  };
+}
+
+/**
  * Covers the bucket across the band's full height, padding included, so
  * stacked bands meet without a gap that ignores the mouse.
  */
@@ -146,7 +188,7 @@ export function bandHoverTarget(range: PixelRange, y: number): BandElement {
     type: 'rect',
     shape: {
       x: range.left,
-      y: y - BAND_PADDING_TOP,
+      y: y - BAND_GAP,
       width: range.right - range.left,
       height: BAND_HEIGHT,
     },
