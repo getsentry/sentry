@@ -35,6 +35,7 @@ from sentry.seer.models.workflow import (
     SeerWorkflowRun,
     SeerWorkflowRunExecution,
     SeerWorkflowRunExtras,
+    SeerWorkflowRunSource,
     SeerWorkflowRunStatus,
     SeerWorkflowStrategy,
 )
@@ -136,8 +137,13 @@ class CronTriggerResponse(TypedDict):
     type: Literal["cron"]
 
 
-# Discriminated by `type`; add new trigger variants to this union.
-TriggerResponse = MonitorTriggerResponse | CronTriggerResponse
+class ManualTriggerResponse(TypedDict):
+    type: Literal["manual"]
+
+
+# Discriminated by `type`; add new trigger variants to this union. `type` must be a
+# `SeerWorkflowRunSource` value, except `monitor`, the existing name for `event` runs.
+TriggerResponse = MonitorTriggerResponse | CronTriggerResponse | ManualTriggerResponse
 
 
 class SeerWorkflowRunResponseBase(TypedDict):
@@ -436,6 +442,8 @@ def serialize_trigger(
     that project is in `accessible_project_ids` (None means all projects).
     `existing_group_ids` holds the preloaded IDs of trigger groups that have not been deleted.
     """
+    if run.source == SeerWorkflowRunSource.MANUAL:
+        return {"type": "manual"}
     if is_scheduled(strategy):
         return {"type": "cron"}
     if strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION and get_path(
