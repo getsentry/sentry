@@ -51,7 +51,7 @@ class OrganizationTelemetryClassifierDetailsGetTest(APITestCase):
         ):
             self.get_error_response(self.organization.slug, invalid.id, status_code=404)
 
-        assert logs.records[0].classifier_id == invalid.id
+        assert logs.records[0].__dict__["classifier_id"] == invalid.id
 
     def test_unknown_or_invalid_id(self) -> None:
         with self.feature(self.features):
