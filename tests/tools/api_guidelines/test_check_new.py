@@ -7,7 +7,15 @@ from unittest import mock
 
 import pytest
 
-from tools.api_guidelines.check_new import Finding, baselined_counts, changed_paths, find_new, main
+from tools.api_guidelines.check_new import (
+    FINDINGS_PATH,
+    Finding,
+    baselined_counts,
+    changed_paths,
+    find_new,
+    main,
+)
+from tools.api_guidelines.rules import RULES, ApiRule
 
 PATH = "src/sentry/api/endpoints/example.py"
 
@@ -115,10 +123,16 @@ def test_nothing_to_check_exits_0(repo: Path, changed_files: str) -> None:
     assert _run(repo, changed_files) == 0
 
 
-def test_a_missing_exceptions_file_exits_0(repo: Path) -> None:
+def test_a_missing_exceptions_file_exits_1(repo: Path) -> None:
     (repo / "api_exceptions" / "exceptions.json").unlink()
 
-    assert _run(repo, json.dumps([PATH])) == 0
+    assert _run(repo, json.dumps([PATH])) == 1
+
+
+def test_an_exceptions_file_that_isnt_json_exits_1(repo: Path) -> None:
+    (repo / "api_exceptions" / "exceptions.json").write_text('{"entries": [],}')
+
+    assert _run(repo, json.dumps([PATH])) == 1
 
 
 def test_new_findings_exit_0_with_a_warning_annotation_per_line(
@@ -133,6 +147,17 @@ def test_new_findings_exit_0_with_a_warning_annotation_per_line(
     assert annotations == [
         f"warning file={PATH},line=5,title=New API finding S026",
         f"warning file={PATH},line=6,title=New API finding S026",
+    ]
+
+
+def test_new_findings_are_written_for_the_pr_comment(repo: Path) -> None:
+    _run(repo, json.dumps([PATH]))
+
+    rows = json.loads((repo / FINDINGS_PATH).read_text())
+    s026 = RULES[ApiRule.S026]
+    assert rows == [
+        {"path": PATH, "line": 5, "rule": "S026", "title": s026.title, "fix": s026.fix},
+        {"path": PATH, "line": 6, "rule": "S026", "title": s026.title, "fix": s026.fix},
     ]
 
 

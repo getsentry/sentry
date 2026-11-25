@@ -9,6 +9,7 @@ import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfac
 import {
   getHiddenFrameIndices,
   getLastFrameIndex,
+  isAndroidAnrMechanism,
   isRepeatedFrame,
 } from 'sentry/components/events/interfaces/utils';
 import {Panel} from 'sentry/components/panels/panel';
@@ -125,7 +126,7 @@ export function Content({
 
   const mechanism =
     platform === 'java' && event.tags?.find(({key}) => key === 'mechanism')?.value;
-  const isANR = mechanism === 'ANR' || mechanism === 'AppExitInfo';
+  const isANR = isAndroidAnrMechanism(mechanism || undefined);
 
   let nRepeats = 0;
 
