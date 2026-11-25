@@ -7,7 +7,6 @@ checkpoint. The checkpoint holds each project's baselines (keyed by series, and 
 series belongs to a project) and the cross-project correlation state. One value means
 one atomic write, so all projects always resume from the same minute.
 
-Writes don't compare-and-set: callers must hold the organization's evaluation lease.
 State expires when it stops advancing: its organization stopped evaluating, and a later
 run would discard a checkpoint that stale anyway.
 """
