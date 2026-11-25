@@ -106,7 +106,7 @@ export default function AutomationDetail() {
   const {data: displayUser} = useUserFromId({
     id: displayUserId ? Number(displayUserId) : undefined,
   });
-  const nextUpdate =
+  const nextFiring =
     config?.enabled && config.strategy !== 'breached_metric_investigation'
       ? getNextCronFiringBulk(config.cronSchedules)
       : undefined;
@@ -145,11 +145,11 @@ export default function AutomationDetail() {
             })}
       </Text>
       <Stack.Separator />
-      {nextUpdate && (
+      {nextFiring && (
         <Fragment>
           <Text size="sm" variant="muted">
             {tct('Next run [time]', {
-              time: <TimeSince date={nextUpdate} tooltipPrefix={t('Next run')} />,
+              time: <TimeSince date={nextFiring} tooltipPrefix={t('Next run')} />,
             })}
           </Text>
           <Stack.Separator />

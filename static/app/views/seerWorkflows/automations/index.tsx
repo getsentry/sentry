@@ -141,7 +141,7 @@ function AutomationCard({
     : config.projects
         .map(id => projects.find(p => p.id === String(id))?.slug)
         .filter((slug): slug is string => slug !== undefined);
-  const nextUpdate = getNextCronFiringBulk(config.cronSchedules);
+  const nextFiring = getNextCronFiringBulk(config.cronSchedules);
 
   return (
     <Container as="li" display="grid">
@@ -168,11 +168,11 @@ function AutomationCard({
                     {trigger}
                   </Tag>
                 ) : (
-                  nextUpdate && (
+                  nextFiring && (
                     <Tag variant="muted" icon={<IconClock />}>
                       {tct('Next run [time]', {
                         time: (
-                          <TimeSince date={nextUpdate} tooltipPrefix={t('Next run')} />
+                          <TimeSince date={nextFiring} tooltipPrefix={t('Next run')} />
                         ),
                       })}
                     </Tag>
