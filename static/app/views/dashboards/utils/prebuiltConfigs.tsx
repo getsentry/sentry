@@ -16,6 +16,7 @@ import {MCP_RESOURCES_PREBUILT_CONFIG} from './prebuiltConfigs/ai/mcpResources';
 import {MCP_TOOLS_PREBUILT_CONFIG} from './prebuiltConfigs/ai/mcpTools';
 import {BACKEND_OVERVIEW_PREBUILT_CONFIG} from './prebuiltConfigs/backendOverview/backendOverview';
 import {CACHES_PREBUILT_CONFIG} from './prebuiltConfigs/caches/caches';
+import {ELIXIR_RUNTIME_METRICS_PREBUILT_CONFIG} from './prebuiltConfigs/elixirRuntimeMetrics/elixirRuntimeMetrics';
 import {FRONTEND_ASSETS_PREBUILT_CONFIG} from './prebuiltConfigs/frontendAssets/frontendAssets';
 import {FRONTEND_ASSETS_DETAILS_PREBUILT_CONFIG} from './prebuiltConfigs/frontendAssets/frontendAssetsDetails';
 import {FRONTEND_OVERVIEW_PREBUILT_CONFIG} from './prebuiltConfigs/frontendOverview/frontendOverview';
@@ -69,6 +70,7 @@ export enum PrebuiltDashboardId {
   BACKEND_QUEUE_SUMMARY = 27,
   BACKEND_CACHES = 28,
   NODE_RUNTIME_METRICS = 29,
+  ELIXIR_RUNTIME_METRICS = 30,
 }
 
 /** Boolean flags on Project that indicate whether telemetry data has been received. */
@@ -85,9 +87,13 @@ type OnboardingConfig =
       requiredProjectFlags?: ProjectTelemetryFlag[];
     }
   | {
-      componentId: 'agent-monitoring' | 'mcp' | 'node-runtime-metrics';
+      componentId:
+        | 'agent-monitoring'
+        | 'mcp'
+        | 'node-runtime-metrics'
+        | 'elixir-runtime-metrics';
       requiredProjectFlags: ProjectTelemetryFlag[];
-      // Custom onboarding component (AI Agents, MCP, Node.js Runtime Metrics)
+      // Custom onboarding component (AI Agents, MCP, Node.js and Elixir Runtime Metrics)
       type: 'custom';
     }
   | {
@@ -154,6 +160,7 @@ export const PREBUILT_DASHBOARDS: Record<PrebuiltDashboardId, PrebuiltDashboard>
   [PrebuiltDashboardId.BACKEND_QUEUE_SUMMARY]: QUEUE_DETAILS_PREBUILT_CONFIG,
   [PrebuiltDashboardId.BACKEND_CACHES]: CACHES_PREBUILT_CONFIG,
   [PrebuiltDashboardId.NODE_RUNTIME_METRICS]: NODE_RUNTIME_METRICS_PREBUILT_CONFIG,
+  [PrebuiltDashboardId.ELIXIR_RUNTIME_METRICS]: ELIXIR_RUNTIME_METRICS_PREBUILT_CONFIG,
 };
 
 type PrebuiltDashboardVariant = {

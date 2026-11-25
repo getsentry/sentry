@@ -49,12 +49,14 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             validator=validate_span_id,
             normalizer=normalize_span_id,
             canonical_case=True,
+            wildcard_allowed=False,
         ),
         ResolvedAttribute(
             public_alias="parent_span",
             internal_name="sentry.parent_span_id",
             search_type="string",
             validator=[is_empty_string, validate_span_id],
+            wildcard_allowed=False,
         ),
         ResolvedAttribute(
             public_alias="span.name",
@@ -155,6 +157,7 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             validator=validate_event_id,
             normalizer=normalize_event_id_strict,
             canonical_case=True,
+            wildcard_allowed=False,
             context=AttributeContext(
                 brief=(
                     "A trace represents the record of the entire operation you want to "
@@ -577,6 +580,7 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             internal_name="sentry.item_id",
             search_type="string",
             validator=validate_span_id,
+            wildcard_allowed=False,
         ),
         simple_sentry_field(
             "trace.status",

@@ -1,4 +1,5 @@
 import {
+  areFatalANRsUnhandledForPlatform,
   getANRIssueQueryText,
   getANRRateText,
   isPlatformANRCompatible,
@@ -66,12 +67,32 @@ describe('ProjectDetail Utils', () => {
     });
 
     it('returns correct query text for android platform', () => {
-      expect(getANRIssueQueryText('android')).toBe('mechanism:[ANR,AppExitInfo]');
+      expect(getANRIssueQueryText('android')).toBe(
+        'mechanism:[ANR,AppExitInfo] error.unhandled:True'
+      );
+    });
+
+    it('returns correct query text for electron platform', () => {
+      expect(getANRIssueQueryText('javascript-electron')).toBe(
+        'mechanism:[ANR,AppExitInfo]'
+      );
     });
 
     it('returns correct query text for other platforms', () => {
       expect(getANRIssueQueryText('other')).toBe('mechanism:[ANR,AppExitInfo]');
       expect(getANRIssueQueryText()).toBe('mechanism:[ANR,AppExitInfo]');
+    });
+  });
+
+  describe('areFatalANRsUnhandledForPlatform', () => {
+    it('returns true for android', () => {
+      expect(areFatalANRsUnhandledForPlatform('android')).toBe(true);
+    });
+
+    it('returns false for other platforms', () => {
+      expect(areFatalANRsUnhandledForPlatform('javascript-electron')).toBe(false);
+      expect(areFatalANRsUnhandledForPlatform('apple-ios')).toBe(false);
+      expect(areFatalANRsUnhandledForPlatform()).toBe(false);
     });
   });
 });

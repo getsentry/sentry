@@ -25,6 +25,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
+from sentry.telemetry_classifiers.definitions import has_valid_definition
 from sentry.telemetry_classifiers.endpoints.organization_telemetry_classifiers import (
     TelemetryClassifierPermission,
 )
@@ -102,6 +103,9 @@ class OrganizationTelemetryClassifierDetailsEndpoint(OrganizationEndpoint):
         """
         Retrieve a telemetry classifier on a project the caller can access.
         """
+        if not has_valid_definition(classifier):
+            raise ResourceDoesNotExist
+
         return self.respond(
             serialize(classifier, request.user, serializer=TelemetryClassifierSerializer())
         )
@@ -128,6 +132,8 @@ class OrganizationTelemetryClassifierDetailsEndpoint(OrganizationEndpoint):
         """
         if not request.access.has_project_scope(classifier.project, "project:read"):
             raise PermissionDenied
+        if not has_valid_definition(classifier):
+            raise ResourceDoesNotExist
 
         serializer = TelemetryClassifierUpdateRequestSerializer(
             instance=classifier, data=request.data

@@ -58,11 +58,15 @@ const PARTIAL_BLOCK: AutofixSection['blocks'][number] = {
   },
 };
 
-function makeOutOfCreditsSection(blocks: AutofixSection['blocks']): AutofixSection {
+function makeOutOfCreditsSection(
+  blocks: AutofixSection['blocks'],
+  creditDenialReason?: AutofixSection['creditDenialReason']
+): AutofixSection {
   return {
     step: 'root_cause',
     status: 'error',
     failureReason: 'out_of_credits',
+    creditDenialReason,
     blocks: [...blocks, SEER_OUT_OF_CREDITS_BLOCK],
     artifacts: [],
   };
@@ -70,14 +74,16 @@ function makeOutOfCreditsSection(blocks: AutofixSection['blocks']): AutofixSecti
 
 function StoppedForCredits({
   blocks = [PARTIAL_BLOCK],
+  creditDenialReason,
 }: {
   blocks?: AutofixSection['blocks'];
+  creditDenialReason?: AutofixSection['creditDenialReason'];
 }) {
   return (
     <RootCauseCard
       groupId="1"
       autofix={OUT_OF_CREDITS_AUTOFIX}
-      section={makeOutOfCreditsSection(blocks)}
+      section={makeOutOfCreditsSection(blocks, creditDenialReason)}
     />
   );
 }
@@ -96,6 +102,20 @@ export default Storybook.story('RootCauseCard', story => {
       </Text>
       <SeerCreditCheckStub hasEnoughCredits={false}>
         <StoppedForCredits />
+      </SeerCreditCheckStub>
+    </Stack>
+  ));
+
+  story('Stopped at the daily usage limit', () => (
+    <Stack gap="xl">
+      <Text size="sm" variant="muted">
+        The organization hit its daily usage limit while Seer was finding the root cause.
+        The run ends with <code>failure_reason: out_of_credits</code> and{' '}
+        <code>credit_denial_reason: daily_cap_exceeded</code>, so the card says the
+        organization hit its daily usage limit instead of running out of credits.
+      </Text>
+      <SeerCreditCheckStub hasEnoughCredits={false}>
+        <StoppedForCredits creditDenialReason="daily_cap_exceeded" />
       </SeerCreditCheckStub>
     </Stack>
   ));

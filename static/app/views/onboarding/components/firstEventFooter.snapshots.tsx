@@ -32,7 +32,6 @@ function WaitingFooter({organization, project}: WaitingFooterProps) {
               <FirstEventFooter
                 organization={organization}
                 project={project}
-                isLast
                 onClickSetupLater={() => {}}
                 leading={
                   <Button icon={<IconArrow direction="left" />} variant="transparent">

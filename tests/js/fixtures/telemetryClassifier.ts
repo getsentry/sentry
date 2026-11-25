@@ -1,7 +1,15 @@
-import type {TelemetryClassifier} from 'sentry/views/classifiers/types';
+import type {
+  ClassifierOutputConfig,
+  TelemetryClassifier,
+} from 'sentry/views/classifiers/types';
+
+type TelemetryClassifierFixtureParams = Partial<
+  Omit<TelemetryClassifier, keyof ClassifierOutputConfig>
+> &
+  (ClassifierOutputConfig | {binaryThreshold?: never; outputType?: never});
 
 export function TelemetryClassifierFixture(
-  params: Partial<TelemetryClassifier> = {}
+  params: TelemetryClassifierFixtureParams = {}
 ): TelemetryClassifier {
   return {
     id: '1',
