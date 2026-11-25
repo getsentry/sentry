@@ -2,7 +2,7 @@
 
 from bisect import bisect_right
 from collections import defaultdict
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta
 from math import isfinite
@@ -37,6 +37,7 @@ from sentry.anomaly_detection.evaluation.novelty import Novelty, NoveltyState, s
 from sentry.anomaly_detection.evaluation.rate_shifts import RateShiftState, RateShiftTracker
 from sentry.anomaly_detection.evaluation.series import Series, build
 from sentry.anomaly_detection.evaluation.series_history import SeriesHistory, SeriesHistoryState
+from sentry.anomaly_detection.inputs.shapes import SeriesShape
 
 _MINUTE = timedelta(minutes=1)
 _HARM_WINDOW = timedelta(minutes=10)
@@ -116,7 +117,8 @@ class Checkpoint:
     """An evaluator's state with the measurements it needs to resume."""
 
     series: dict[SeriesKey, Series]
-    hourly: dict[SeriesKey, Series]
+    # Shapes the next run's daily shapes may not cover; see OrgEvaluator.shape_support.
+    shapes: dict[SeriesKey, SeriesShape]
     state: EvaluatorState
 
     def open_groups(self) -> dict[int, frozenset[AnomalyGroupKey]]:
@@ -131,7 +133,7 @@ class Checkpoint:
 def evaluate_org(
     *,
     rows: Sequence[SeriesRow],
-    hourly_rows: Sequence[SeriesRow],
+    shapes: Mapping[SeriesKey, SeriesShape],
     start: datetime,
     end: datetime,
     footprints: FootprintSource,
@@ -140,7 +142,7 @@ def evaluate_org(
 ) -> Sequence[AnomalyDecision]:
     """Evaluate [start, end), using earlier minute rows to warm the model (UTC)."""
     return OrgEvaluator(footprints, projects=projects).advance(
-        rows=rows, hourly_rows=hourly_rows, start=start, end=end, new_issues=new_issues
+        rows=rows, shapes=shapes, start=start, end=end, new_issues=new_issues
     )
 
 
@@ -356,9 +358,9 @@ class OrgEvaluator:
         checkpoint = checkpoint or Checkpoint({}, {}, EvaluatorState())
         # Every component reads these same measurement mappings.
         self.series = checkpoint.series
-        self.hourly = checkpoint.hourly
+        self.shapes = checkpoint.shapes
         self.state = state = checkpoint.state
-        self.baseline = Baseline(self.hourly)
+        self.baseline = Baseline(self.shapes)
         self.series_history = SeriesHistory(self.series, self.baseline, state=state.series_history)
         self.rate_shifts = RateShiftTracker(self.series, self.baseline, state=state.rate_shifts)
         self.corr = Correlator(footprints, series=self.series, state=state.correlation)
@@ -379,7 +381,7 @@ class OrgEvaluator:
         self,
         *,
         rows: Sequence[SeriesRow],
-        hourly_rows: Sequence[SeriesRow],
+        shapes: Mapping[SeriesKey, SeriesShape],
         start: datetime,
         end: datetime,
         new_issues: Sequence[ChangeEvent] = (),
@@ -400,7 +402,9 @@ class OrgEvaluator:
                 and (next_minute is None or row.ts >= next_minute)
             ):
                 rows_by_minute[row.ts].append(row)
-        self._load_hourly_baselines(hourly_rows, end)
+        self.shapes.update(
+            (key, shape) for key, shape in shapes.items() if key.project_id in self.projects
+        )
         self._queue_issues([event for event in new_issues if event.key.project_id in self.projects])
 
         first_publish_minute = _minute_ceiling(start)
@@ -446,7 +450,7 @@ class OrgEvaluator:
 
     def drop_projects(self, keep: set[int], boundary: datetime) -> list[AnomalyDecision]:
         """Forget projects whose detectors were disabled; close their published groups."""
-        for measurements in (self.series, self.hourly):
+        for measurements in (self.series, self.shapes):
             for key in [key for key in measurements if key.project_id not in keep]:
                 del measurements[key]
         self.series_history.drop_projects(keep)
@@ -467,33 +471,20 @@ class OrgEvaluator:
         self.decision_log.retain(state.published.keys() - retired.keys())
         return closes
 
-    def hourly_support(self, since: datetime, until: datetime) -> dict[SeriesKey, Series]:
-        """Closed hourly values that live slice anchors need from before the cursor.
+    def shape_support(self) -> dict[SeriesKey, SeriesShape]:
+        """Shapes that live slice anchors need beyond the next run's daily shapes.
 
-        The next collection overlays these by key and hour, including explicit missing
-        values, so omitted top slices keep their seasonal reference.
+        A slice can leave the history a daily build collects while its episode is open.
+        The next run's daily shapes replace these by key, so only omitted slices keep them.
         """
-        support = {}
-        for key, state in self.series_history.state.series_states.items():
-            if not (key.dim_value and state.open and state.anchor_level is not None):
-                continue
-            points: Series = {
-                hour: value
-                for hour, value in sorted(self.hourly.get(key, {}).items())
-                if since <= hour < until
-                and hour == hour.replace(minute=0, second=0, microsecond=0)
-                and value is not None
-            }
-            if points:
-                support[key] = points
-        return support
-
-    def _load_hourly_baselines(self, hourly_rows: Sequence[SeriesRow], end: datetime) -> None:
-        scoped_rows = (
-            row for row in hourly_rows if row.project_id in self.projects and row.ts < end
-        )
-        for key, hourly_values in build(scoped_rows).items():
-            self.hourly.setdefault(key, {}).update(hourly_values)
+        return {
+            key: shape
+            for key, state in self.series_history.state.series_states.items()
+            if key.dim_value
+            and state.open
+            and state.anchor_level is not None
+            and (shape := self.shapes.get(key)) is not None
+        }
 
     def _queue_issues(self, events: Sequence[ChangeEvent]) -> None:
         if not events:

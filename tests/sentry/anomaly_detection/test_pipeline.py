@@ -60,7 +60,7 @@ def test_minute_observations_open_and_resolve_the_same_group() -> None:
     rows = latency_rows(spike_end=165)
     (opened, resolved) = evaluate_org(
         rows=rows,
-        hourly_rows=[],
+        shapes={},
         start=start,
         end=end,
         footprints=NoFootprints(),
@@ -81,7 +81,7 @@ def test_minute_observations_open_and_resolve_the_same_group() -> None:
     # A fresh replay with a different input order computes the same identity and lifecycle.
     assert [opened, resolved] == evaluate_org(
         rows=rows[::-1],
-        hourly_rows=[],
+        shapes={},
         start=start,
         end=end,
         footprints=NoFootprints(),
@@ -97,10 +97,10 @@ def test_absent_sample_source_does_not_resolve_an_open_change() -> None:
     evaluator = OrgEvaluator(NoFootprints(), projects=(PROJECT,))
     before_gap = [row for row in rows if row.ts < gap_end]
     after_gap = [row for row in rows if row.ts >= gap_end]
-    (opened,) = evaluator.advance(rows=before_gap, hourly_rows=[], start=start, end=gap_end)
+    (opened,) = evaluator.advance(rows=before_gap, shapes={}, start=start, end=gap_end)
     assert not opened.is_resolved
 
-    (resolved,) = evaluator.advance(rows=after_gap, hourly_rows=[], start=gap_end, end=end)
+    (resolved,) = evaluator.advance(rows=after_gap, shapes={}, start=gap_end, end=end)
     assert resolved.timestamp > gap_end
     assert resolved == replace(opened, timestamp=resolved.timestamp, is_resolved=True)
 
@@ -110,18 +110,14 @@ def test_unusual_but_short_single_slowdown_does_not_qualify() -> None:
     # Past the 30 minutes a lone latency group needs before it can qualify on duration.
     end = T0 + 160 * MINUTE
     evaluator = OrgEvaluator(NoFootprints(), projects=(PROJECT,))
-    assert not evaluator.advance(
-        rows=latency_rows(spike_end=132), hourly_rows=[], start=start, end=end
-    )
+    assert not evaluator.advance(rows=latency_rows(spike_end=132), shapes={}, start=start, end=end)
     (group,) = evaluator.corr.groups
     assert group.urgency == Urgency.LOW
     assert group.closed_at is None
 
     # The same slowdown, lasting through the window, does publish.
     lasting = OrgEvaluator(NoFootprints(), projects=(PROJECT,))
-    (opened,) = lasting.advance(
-        rows=latency_rows(spike_end=200), hourly_rows=[], start=start, end=end
-    )
+    (opened,) = lasting.advance(rows=latency_rows(spike_end=200), shapes={}, start=start, end=end)
     assert not opened.is_resolved
     assert opened.timestamp >= start + 30 * MINUTE
 
@@ -147,12 +143,12 @@ def test_routine_slowdown_qualifies_when_it_lasts_unusually_long() -> None:
     rows = _routine_slowdown_rows()
 
     evaluator = OrgEvaluator(NoFootprints(), projects=(PROJECT,))
-    assert not evaluator.advance(rows=rows, hourly_rows=[], start=start, end=duration_look)
+    assert not evaluator.advance(rows=rows, shapes={}, start=start, end=duration_look)
     (latent,) = evaluator.state.admission.absorbed.values()
     assert latent.start == start and latent.sustained_at is not None
 
     (opened,) = evaluator.advance(
-        rows=rows, hourly_rows=[], start=duration_look, end=duration_look + MINUTE
+        rows=rows, shapes={}, start=duration_look, end=duration_look + MINUTE
     )
     assert opened.timestamp == duration_look
     assert not opened.is_resolved
@@ -200,7 +196,7 @@ def test_duration_judgment_does_not_see_backdated_peer_opened_on_same_tick() -> 
     rows = _routine_slowdown_rows(flare_minutes=3) + _key_latency_rows(peer_key, peer_p95s, 500.0)
     evaluator = OrgEvaluator(NoFootprints(), projects=(PROJECT,))
     evaluator.series_history.cfg.close_after = 1
-    assert not evaluator.advance(rows=rows, hourly_rows=[], start=start, end=duration_look)
+    assert not evaluator.advance(rows=rows, shapes={}, start=start, end=duration_look)
     (latent,) = evaluator.state.admission.absorbed.values()
     # Only the peer's four backdated minutes qualify; the past flares lasted three.
     evaluator.novelty.cfg.comparable = 15.0
@@ -208,9 +204,7 @@ def test_duration_judgment_does_not_see_backdated_peer_opened_on_same_tick() -> 
     assert prior.unusual
 
     with _recorded_verdicts(evaluator.novelty, "judge_duration") as verdicts:
-        evaluator.advance(
-            rows=rows, hourly_rows=[], start=duration_look, end=duration_look + MINUTE
-        )
+        evaluator.advance(rows=rows, shapes={}, start=duration_look, end=duration_look + MINUTE)
 
     (peer,) = evaluator.novelty.state.history[peer_key]
     assert peer.detected_at == duration_look
@@ -236,14 +230,12 @@ def test_new_failure_mode_opens_only_after_crossing_the_standalone_threshold() -
     )
     weak = issue.replace(actual=10.0, confidence=0.5, detected_at=weak_at)
     evaluator = OrgEvaluator(NoFootprints(), projects=(PROJECT,))
-    assert not evaluator.advance(
-        rows=[], hourly_rows=[], start=T0, end=detected_at, new_issues=[weak]
-    )
+    assert not evaluator.advance(rows=[], shapes={}, start=T0, end=detected_at, new_issues=[weak])
     # The weak crossing was seen but did not open.
     assert len(evaluator.state.known_issues) == 1
     (opened,) = evaluator.advance(
         rows=[],
-        hourly_rows=[],
+        shapes={},
         start=detected_at,
         end=detected_at + MINUTE,
         new_issues=[weak, issue, issue],
@@ -326,7 +318,7 @@ def test_cold_start_does_not_publish_a_group_that_closes_on_the_boundary() -> No
     # Active just before the boundary, so a cold start there publishes it.
     (active,) = evaluate_org(
         rows=[],
-        hourly_rows=[],
+        shapes={},
         start=closes_at - MINUTE,
         end=closes_at,
         footprints=NoFootprints(),
@@ -338,7 +330,7 @@ def test_cold_start_does_not_publish_a_group_that_closes_on_the_boundary() -> No
 
     assert not evaluate_org(
         rows=[],
-        hourly_rows=[],
+        shapes={},
         start=closes_at,
         end=closes_at + MINUTE,
         footprints=NoFootprints(),
@@ -385,10 +377,10 @@ def test_healthy_measurements_restore_latency_detection() -> None:
     # Empty latency percentiles for 70 minutes, then healthy ones.
     rows = _key_latency_rows(key, [0.0] * 70 + [100.0] * 110, 100.0)
     middle = T0 + 61 * MINUTE
-    evaluator.advance(rows=rows, hourly_rows=[], start=T0, end=middle)
+    evaluator.advance(rows=rows, shapes={}, start=T0, end=middle)
     assert key in evaluator.series_history.state.exclude
 
-    evaluator.advance(rows=rows, hourly_rows=[], start=middle, end=T0 + 121 * MINUTE)
+    evaluator.advance(rows=rows, shapes={}, start=middle, end=T0 + 121 * MINUTE)
     assert key not in evaluator.series_history.state.exclude
     assert key in evaluator.series_history.state.watched
 
@@ -423,7 +415,7 @@ def test_rate_shift_config_gates_change_points(
 ) -> None:
     evaluator = OrgEvaluator(NoFootprints(), projects=(PROJECT,), config=config)
     decisions = evaluator.advance(
-        rows=_error_step_rows(), hourly_rows=[], start=T0, end=T0 + 250 * MINUTE
+        rows=_error_step_rows(), shapes={}, start=T0, end=T0 + 250 * MINUTE
     )
 
     assert [
@@ -444,7 +436,7 @@ def test_novelty_admission_config_gates_absorbing_routine_excursions(
     start = T0 + 480 * MINUTE
     evaluator = OrgEvaluator(NoFootprints(), projects=(PROJECT,), config=config)
     decisions = evaluator.advance(
-        rows=_routine_slowdown_rows(), hourly_rows=[], start=start, end=start + 60 * MINUTE
+        rows=_routine_slowdown_rows(), shapes={}, start=start, end=start + 60 * MINUTE
     )
 
     assert [decision.is_resolved for decision in decisions] == expected
@@ -477,6 +469,6 @@ def test_shared_dependency_config_gates_midnight_learning(
             event.ended_at = onset + 10 * MINUTE
             evaluator.novelty.record(event)
 
-    evaluator.advance(rows=[], hourly_rows=[], start=midnight - MINUTE, end=midnight + MINUTE)
+    evaluator.advance(rows=[], shapes={}, start=midnight - MINUTE, end=midnight + MINUTE)
 
     assert (evaluator.corr.shared.get(primary, replica) is not None) is learned

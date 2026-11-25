@@ -20,7 +20,7 @@ def _at(minute: int) -> datetime:
 def _evaluate(rows: Sequence[SeriesRow]) -> Sequence[pipeline.AnomalyDecision]:
     return pipeline.evaluate_org(
         rows=rows,
-        hourly_rows=[],
+        shapes={},
         start=START,
         end=_at(MINUTES),
         footprints=NoFootprints(),
@@ -140,7 +140,7 @@ def test_registered_projects_keep_independent_slowdown_lifecycles() -> None:
     other_rows = [row._replace(project_id=other_project, env="staging") for row in rows]
     decisions = pipeline.evaluate_org(
         rows=rows + other_rows,
-        hourly_rows=[],
+        shapes={},
         start=START,
         end=_at(MINUTES),
         footprints=NoFootprints(),
