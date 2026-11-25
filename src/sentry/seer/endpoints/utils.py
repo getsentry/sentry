@@ -95,25 +95,23 @@ def _no_access_response() -> Response:
 def _can_act_on_run(
     run: SeerRun, user_id: int | None, access: Access | None, publish: bool
 ) -> bool:
-    """Issue and automated runs are open to teammates with scope; personal chats are owner-only."""
-    is_owner = user_id is not None and run.user_id == user_id
+    """Owners can always act; teammates with Seer scope can act on issue and automated runs."""
+    if user_id is not None and run.user_id == user_id:
+        return True
     if access is None:
-        return is_owner
-    scopes = PUBLISH_SCOPES if publish else AUTOFIX_RUN_SCOPES
-    try:
-        agent: SeerAgentRun | None = run.agent
-    except SeerAgentRun.DoesNotExist:
-        agent = None
+        return False
 
+    scopes = PUBLISH_SCOPES if publish else AUTOFIX_RUN_SCOPES
+    agent: SeerAgentRun | None = getattr(run, "agent", None)
     if agent is not None and agent.group_id is not None:
-        if agent.group is None:
-            return is_owner
-        return is_owner or access.has_any_project_scope(agent.group.project, scopes)
-    if run.user_id is not None:
-        return is_owner
-    if agent is not None and agent.project_id is not None:
-        return agent.project is not None and access.has_any_project_scope(agent.project, scopes)
-    return any(access.has_scope(scope) for scope in scopes)
+        project = agent.group.project if agent.group else None
+    elif run.user_id is not None:
+        return False
+    elif agent is not None and agent.project_id is not None:
+        project = agent.project
+    else:
+        return any(access.has_scope(scope) for scope in scopes)
+    return project is not None and access.has_any_project_scope(project, scopes)
 
 
 def resolve_seer_run(
