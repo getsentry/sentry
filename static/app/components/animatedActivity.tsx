@@ -1,4 +1,4 @@
-import {Activity, type ReactNode, useEffect, useState} from 'react';
+import {Activity, type ReactNode, type Ref, useEffect, useState} from 'react';
 import {
   motion,
   type TargetAndTransition,
@@ -17,7 +17,7 @@ interface AnimatedActivityProps {
   initial: TargetAndTransition;
   mode: ActivityMode;
   transition: Transition;
-  elementRef?: (element: HTMLDivElement | null) => void;
+  elementRef?: Ref<HTMLDivElement>;
   layoutMode?: 'normal' | 'pop';
 }
 
@@ -73,7 +73,7 @@ export function AnimatedActivity({
   return (
     <Activity mode={activityMode}>
       <MotionContainer
-        ref={element => elementRef?.(element as HTMLDivElement | null)}
+        ref={elementRef}
         area="1 / 1"
         position={layoutMode === 'pop' && isExiting ? 'absolute' : 'relative'}
         width="100%"
