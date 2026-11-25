@@ -33,10 +33,6 @@ export interface VirtualTraceMetric {
   unit: string;
 }
 
-/**
- * Read inside a function rather than at module load: `sentry/utils/discover/fields`
- * imports this module, so its unit enums do not exist yet while this file loads.
- */
 function webVitalUnit(vital: WebVitals): DataUnit {
   const units: Record<WebVitals, DataUnit> = {
     lcp: DurationUnit.MILLISECOND,
@@ -75,12 +71,6 @@ export function webVitalScoreMetric(vital: WebVitals): VirtualTraceMetric {
 
 let webVitalScoreMetrics: VirtualTraceMetric[] | undefined;
 
-/**
- * The score metric of every web vital. Built on first use rather than at
- * load: `sentry/utils/discover/fields` imports this module to label
- * aggregates, so the unit enums it defines are not initialized yet while
- * this module loads.
- */
 export function getWebVitalScoreMetrics(): VirtualTraceMetric[] {
   webVitalScoreMetrics ??= ORDER.map(webVitalScoreMetric);
   return webVitalScoreMetrics;
