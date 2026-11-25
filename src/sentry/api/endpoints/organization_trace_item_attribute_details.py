@@ -103,9 +103,9 @@ class TraceItemAttributeDetails(MergedTraceItemAttribute, TraceItemAttributeConv
     isEditable: Annotated[
         bool,
         ApiDescription(
-            "Whether custom context can be saved for the attribute: a custom string, number, "
-            "or boolean attribute, stored under its own name, that Sentry doesn't define in any "
-            "of its datasets. Always false without the `data-browsing-attribute-context` "
+            "Whether custom context for the attribute can be edited under its own name: a "
+            "custom string, number, or boolean attribute that Sentry doesn't define or rename "
+            "in any of its datasets. Always false without the `data-browsing-attribute-context` "
             "feature. Saving also needs write access to events in the project"
         ),
     ]
