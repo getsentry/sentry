@@ -3458,6 +3458,9 @@ class TestSingleRunCompletion(TestCase):
         assert self._events(mocks) == []
         mocks["updates"].assert_not_called()
         assert not Activity.objects.filter(group=self.group).exists()
+        assert "autofix.on_completion_hook.run_not_completed" not in [
+            c.args[0] for c in mocks["metrics"].call_args_list
+        ]
 
         completed = self._execute(self._state(single_run_memory_block(_ROOT_CAUSE)))
 
@@ -3660,6 +3663,18 @@ class TestSingleRunCompletion(TestCase):
 
         mocks["consume"].assert_called_once()
         mocks["complete"].assert_not_called()
+
+    def test_plain_reply_drains_the_same_completed_state_once(self) -> None:
+        state = self._state(single_run_memory_block(_ROOT_CAUSE))
+        with patch(f"{COMPLETION_PATH}.count_queued_autofix_feedback", return_value=1):
+            first = self._execute_pr_feedback(state)
+            repeat = self._execute_pr_feedback(state)
+            state.updated_at = "2026-02-10T00:05:00Z"
+            updated = self._execute_pr_feedback(state)
+
+        first["consume"].assert_called_once()
+        repeat["consume"].assert_not_called()
+        updated["consume"].assert_called_once()
 
     def test_plain_reply_does_not_touch_pr_iteration(self) -> None:
         mocks = self._execute_pr_feedback(self._state(single_run_memory_block(_ROOT_CAUSE)))

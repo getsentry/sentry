@@ -265,6 +265,9 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             if feedback_turn and state.status == "completed":
                 fail_pr_iteration_missing_group(organization, state, group_id)
             return
+        seer_run = SeerRun.objects.get_or_none(
+            organization_id=organization.id, seer_run_state_id=run_id
+        )
         if state.status == "completed":
             if feedback_turn:
                 _, referrer = get_current_step(state)
@@ -279,11 +282,8 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                     organization, run_id, react_to_completed_iteration(organization, run_id, state)
                 )
             else:
-                drain_single_run_feedback_queue(organization, group, run_id, state)
+                drain_single_run_feedback_queue(organization, group, run_id, state, seer_run)
         paused = state.status == "awaiting_user_input"
-        seer_run = SeerRun.objects.get_or_none(
-            organization_id=organization.id, seer_run_state_id=run_id
-        )
         if seer_run is not None:
             reconcile_milestones(seer_run, state)
         if not cls._run_completed(organization, run_id, state) and not paused:
@@ -509,19 +509,20 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
     def _run_completed(cls, organization: Organization, run_id: int, state: SeerRunState) -> bool:
         if state.status == "completed":
             return True
-        logger.info(
-            "autofix.on_completion_hook.run_not_completed",
-            extra={
-                "run_id": run_id,
-                "organization_id": organization.id,
-                "status": state.status,
-                "failure_reason": state.failure_reason,
-            },
-        )
-        metrics.incr(
-            "autofix.on_completion_hook.run_not_completed",
-            tags={"status": state.status},
-        )
+        if state.status != "processing":
+            logger.info(
+                "autofix.on_completion_hook.run_not_completed",
+                extra={
+                    "run_id": run_id,
+                    "organization_id": organization.id,
+                    "status": state.status,
+                    "failure_reason": state.failure_reason,
+                },
+            )
+            metrics.incr(
+                "autofix.on_completion_hook.run_not_completed",
+                tags={"status": state.status},
+            )
         return False
 
     @classmethod
