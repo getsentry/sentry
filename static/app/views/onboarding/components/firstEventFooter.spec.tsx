@@ -2,7 +2,16 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  fireEvent,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
+
+import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
+import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';
 
 import {FirstEventFooter} from './firstEventFooter';
 
@@ -60,5 +69,62 @@ describe('FirstEventFooter', () => {
       'href',
       `/organizations/${organization.slug}/issues/?project=${project.id}&referrer=onboarding-first-event-footer`
     );
+  });
+
+  describe('onboarding session', () => {
+    function setUpOnboardingSession() {
+      const project = ProjectFixture({firstEvent: '2026-04-21T00:00:00Z'});
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/issues/`,
+        body: [GroupFixture({id: '20', firstSeen: '2026-04-21T00:00:00Z'})],
+      });
+      sessionStorageWrapper.setItem(
+        'onboarding',
+        JSON.stringify({selectedPlatform: {key: project.platform}})
+      );
+      return project;
+    }
+
+    it('clears the session when the user goes to their error', async () => {
+      const project = setUpOnboardingSession();
+
+      render(
+        <OnboardingContextProvider>
+          <FirstEventFooter
+            organization={organization}
+            project={project}
+            onClickSetupLater={jest.fn()}
+          />
+        </OnboardingContextProvider>,
+        {organization}
+      );
+
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Take me to my error'})
+      );
+
+      expect(sessionStorageWrapper.getItem('onboarding')).toBeNull();
+    });
+
+    it('keeps the session when the error opens in a new tab', async () => {
+      const project = setUpOnboardingSession();
+
+      render(
+        <OnboardingContextProvider>
+          <FirstEventFooter
+            organization={organization}
+            project={project}
+            onClickSetupLater={jest.fn()}
+          />
+        </OnboardingContextProvider>,
+        {organization}
+      );
+
+      fireEvent.click(await screen.findByRole('button', {name: 'Take me to my error'}), {
+        metaKey: true,
+      });
+
+      expect(sessionStorageWrapper.getItem('onboarding')).not.toBeNull();
+    });
   });
 });
