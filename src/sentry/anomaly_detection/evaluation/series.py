@@ -10,6 +10,7 @@ Series = dict[datetime, float | None]
 
 # Service rates derived from each project and environment's unsliced request totals;
 # rate_parts names the series each one divides.
+_RATE_EVENTS = {Signal.ERROR_RATE: Signal.ERRORS, Signal.FAILED_RATE: Signal.FAILED_REQUESTS}
 _DERIVED_RATES = (
     (Signal.ERROR_RATE, Metric.ERRORS_PER_REQUEST),
     (Signal.FAILED_RATE, Metric.FAILED_PER_REQUEST),
@@ -36,18 +37,20 @@ def uses_trials(key: SeriesKey) -> bool:
 
 
 def rate_parts(key: SeriesKey) -> tuple[SeriesKey, SeriesKey, SeriesKey] | None:
-    """Return a service rate's events, denominator, and samples behind that denominator."""
+    """Return a service rate's events, denominator, and samples behind that denominator.
+
+    Rates divide extrapolated counts, never sampled ones: sampled failures over sampled
+    requests misstate the failed share whenever sample rates differ between them.
+    """
+    events = _RATE_EVENTS.get(key.signal)
+    if events is None:
+        return None
     p, e = key.project_id, key.env
-    samples = SeriesKey(p, e, Signal.REQUESTS, Metric.COUNT_SAMPLE)
-    if key.signal == Signal.ERROR_RATE:
-        return (
-            SeriesKey(p, e, Signal.ERRORS, Metric.COUNT),
-            SeriesKey(p, e, Signal.REQUESTS, Metric.COUNT),
-            samples,
-        )
-    if key.signal == Signal.FAILED_RATE:
-        return SeriesKey(p, e, Signal.FAILED_REQUESTS, Metric.COUNT_SAMPLE), samples, samples
-    return None
+    return (
+        SeriesKey(p, e, events, Metric.COUNT),
+        SeriesKey(p, e, Signal.REQUESTS, Metric.COUNT),
+        SeriesKey(p, e, Signal.REQUESTS, Metric.COUNT_SAMPLE),
+    )
 
 
 def samples_key(key: SeriesKey) -> SeriesKey:
