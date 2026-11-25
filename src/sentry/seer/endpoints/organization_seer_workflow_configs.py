@@ -48,6 +48,7 @@ from sentry.seer.workflows.base import (
     SelectedMonitors,
     SelectedProjects,
     WorkflowUpdateError,
+    lock_config,
 )
 from sentry.seer.workflows.breached_metrics import (
     ConnectedMonitor,
@@ -55,6 +56,7 @@ from sentry.seer.workflows.breached_metrics import (
     get_monitor_project_ids,
 )
 from sentry.seer.workflows.definitions import get_definition
+from sentry.seer.workflows.scheduled import ScheduleDefinition
 from sentry.seer.workflows.workflow import SeerWorkflow
 from sentry.service_accounts.models import (
     GRANTABLE_SCOPES,
@@ -63,6 +65,7 @@ from sentry.service_accounts.models import (
 )
 from sentry.service_accounts.services.service_account import RpcServiceAccount
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.utils import metrics
 from sentry.workflow_engine.generated_schema_types import SeerInvestigationActionData
 
 logger = logging.getLogger(__name__)
@@ -839,6 +842,97 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
         if account is not None:
             audit_service_account(self, request, organization, account, "SERVICE_ACCOUNT_REMOVE")
         return Response(status=204)
+
+
+class ManualRunSerializer(serializers.Serializer):
+    configId = serializers.IntegerField(min_value=1)
+
+
+class ManualRunResponse(TypedDict):
+    runId: str
+
+
+@cell_silo_endpoint
+@extend_schema(tags=["Seer"])
+class OrganizationSeerWorkflowManualRunEndpoint(OrganizationEndpoint):
+    owner = ApiOwner.ML_AI
+    publish_status = {"POST": ApiPublishStatus.PRIVATE}
+    permission_classes = (SeerWorkflowConfigPermission,)
+    enforce_rate_limit = True
+    rate_limits = RateLimitConfig(
+        limit_overrides={"POST": {RateLimitCategory.USER: RateLimit(limit=5, window=60)}}
+    )
+
+    @extend_schema(
+        operation_id="Run a Seer automation workflow now",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG],
+        request=ManualRunSerializer,
+        responses={
+            201: inline_sentry_response_serializer("SeerWorkflowManualRun", ManualRunResponse),
+            400: RESPONSE_BAD_REQUEST,
+        },
+    )
+    def post(self, request: Request, organization: Organization) -> Response:
+        """Run a scheduled investigation now, on behalf of the caller.
+
+        Like enabling, it requires access to every project the automation covers.
+        """
+        if not features.has("organizations:seer-automations", organization, actor=request.user):
+            raise NotFound
+
+        serializer = ManualRunSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+
+        try:
+            config = SeerWorkflowConfig.objects.get(
+                id=serializer.validated_data["configId"],
+                organization=organization,
+                strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION,
+            )
+        except SeerWorkflowConfig.DoesNotExist as e:
+            raise NotFound from e
+
+        workflow = SeerWorkflow(config_id=config.id, organization_id=organization.id)
+        try:
+            with lock_config(organization.id, config.id) as locked:
+                denied = _check_project_access(
+                    [ALL_ACCESS_PROJECT_ID]
+                    if workflow.filters.all_projects
+                    else workflow.get_project_ids(),
+                    request=request,
+                    organization=organization,
+                    endpoint=self,
+                )
+                if denied is not None:
+                    raise PermissionDenied(detail=denied)
+                result = ScheduleDefinition().admit_manual_run(locked, acting_user_id(request.user))
+        except SeerWorkflowConfig.DoesNotExist as e:
+            raise NotFound from e
+        metrics.incr(
+            "seer.workflow.manual_run",
+            tags={"outcome": result.outcome, "reason": result.reason or "none"},
+            sample_rate=1.0,
+        )
+        logger.info(
+            "seer.workflow.manual_run",
+            extra={
+                "organization_id": organization.id,
+                "config_id": config.id,
+                "user_id": acting_user_id(request.user),
+                "outcome": result.outcome,
+                "reason": result.reason,
+                "run_id": result.run.id if result.run else None,
+            },
+        )
+        if result.outcome != "accepted" or result.run is None:
+            detail = (
+                "Enable the automation to run it."
+                if result.reason == "config_disabled"
+                else "Couldn't run the automation."
+            )
+            return Response({"detail": detail}, status=400)
+        return Response(ManualRunResponse(runId=str(result.run.id)), status=201)
 
 
 def serialize_workflow_configs(

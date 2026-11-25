@@ -624,6 +624,7 @@ from sentry.seer.endpoints.organization_seer_setup_check import OrganizationSeer
 from sentry.seer.endpoints.organization_seer_workflow_configs import (
     OrganizationSeerWorkflowConfigDetailsEndpoint,
     OrganizationSeerWorkflowConfigsEndpoint,
+    OrganizationSeerWorkflowManualRunEndpoint,
 )
 from sentry.seer.endpoints.organization_seer_workflow_runs import (
     OrganizationSeerWorkflowRunsEndpoint,
@@ -2627,6 +2628,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/seer/workflows/configs/(?P<config_id>[^/]+)/$",
         OrganizationSeerWorkflowConfigDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-seer-workflow-config-details",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/seer/workflows/manual-run/$",
+        OrganizationSeerWorkflowManualRunEndpoint.as_view(),
+        name="sentry-api-0-organization-seer-workflow-manual-run",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer/workflows/runs/$",

@@ -733,11 +733,17 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
 
     def test_returns_manual_trigger_for_manual_runs_of_scheduled_configs(self) -> None:
         self.config.update(strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION)
-        self.create_run(source=SeerWorkflowRunSource.MANUAL)
+        self.create_run(
+            source=SeerWorkflowRunSource.MANUAL,
+            inputs={"source": "manual", "user_id": self.user.id},
+        )
 
         response = self.get_success_response(self.organization.slug)
 
-        assert response.data["runs"][0]["trigger"] == {"type": "manual"}
+        assert response.data["runs"][0]["trigger"] == {
+            "type": "manual",
+            "userId": str(self.user.id),
+        }
 
     def test_returns_manual_trigger_for_manual_runs_of_monitor_configs(self) -> None:
         detector = self.create_detector(project=self.project)
@@ -748,7 +754,7 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
 
         response = self.get_success_response(self.organization.slug)
 
-        assert response.data["runs"][0]["trigger"] == {"type": "manual"}
+        assert response.data["runs"][0]["trigger"] == {"type": "manual", "userId": None}
 
     def test_trigger_is_null_without_a_snapshot(self) -> None:
         self.create_run(extras={})
