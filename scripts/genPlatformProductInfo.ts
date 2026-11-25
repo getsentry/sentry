@@ -1,5 +1,3 @@
-'use strict';
-
 /**
  * Generates static/app/data/platformProductInfo.generated.ts.
  *
@@ -19,20 +17,28 @@
  *   pnpm gen:platform-info               # uses ../sentry-docs as the docs checkout
  *   SENTRY_DOCS_PATH=/path node scripts/genPlatformProductInfo.ts
  */
-import {existsSync, readdirSync, readFileSync, writeFileSync} from 'node:fs';
+import {existsSync, globSync, readFileSync, writeFileSync} from 'node:fs';
 import * as path from 'node:path';
-import {fileURLToPath} from 'node:url';
 
-import * as ts from 'typescript';
+import {
+  type Expression,
+  isArrayLiteralExpression,
+  isAsExpression,
+  isIdentifier,
+  isNewExpression,
+  isObjectLiteralExpression,
+  isPropertyAssignment,
+  isStringLiteral,
+  isTypeAssertion,
+  isVariableStatement,
+  type PropertyAssignment,
+  type SourceFile,
+  SyntaxKind,
+} from 'tsrs/ast';
+import {API} from 'tsrs/sync';
 import {parse as parseYaml} from 'yaml';
 
-// Named THIS_DIR rather than __dirname so SWC's CJS transform (used by Jest)
-// doesn't emit a `const __dirname = ...` that collides with the wrapper-
-// provided binding and crashes the whole frontend test run with a
-// SyntaxError. The original `__dirname` only shadowed the wrapper inside
-// this module anyway, so the rename is behavior-equivalent at runtime.
-const THIS_DIR = path.dirname(fileURLToPath(import.meta.url));
-const SENTRY_ROOT = path.resolve(THIS_DIR, '..');
+const SENTRY_ROOT = path.resolve(import.meta.dirname, '..');
 const DOCS_ROOT = process.env.SENTRY_DOCS_PATH
   ? path.resolve(process.env.SENTRY_DOCS_PATH)
   : path.resolve(SENTRY_ROOT, '..', 'sentry-docs');
@@ -68,12 +74,11 @@ interface PlatformEntry {
   guide: string | null;
   id: string;
   lang: string | null;
-  link: string;
 }
 
-// Map of toggleable products. Mirrors the FEATURE_DISPLAY_ORDER in
-// scmPlatformFeatures.tsx, minus ERROR_MONITORING (always implicit) and
-// METRICS (handled with the extra withMetricsOnboarding gate below).
+// Map of toggleable products to their sentry-docs feature directory. Mirrors
+// the FEATURE_DISPLAY_ORDER in scmPlatformFeatures.tsx, minus ERROR_MONITORING
+// (always implicit). METRICS is also gated on withMetricsOnboarding.
 const FEATURES: Record<string, string> = {
   LOGS: 'logs',
   SESSION_REPLAY: 'session-replay',
@@ -127,35 +132,25 @@ function parseLink(link: string): {lang: string; guide?: string} | null {
 
 // === AST helpers ============================================================
 // We parse the source TS files (platforms.tsx, productSelection.tsx,
-// platformCategories.tsx) with the TypeScript compiler API instead of
+// platformCategories.tsx) with the tsrs compiler API instead of
 // importing the values directly: importing them would pull in the React
 // runtime, browser globals, and webpack-style path aliases that don't resolve
 // in plain Node. AST parsing is enough for our needs because every value we
 // read is a static literal.
 
-function parseTSFile(filePath: string): ts.SourceFile {
-  return ts.createSourceFile(
-    filePath,
-    readFileSync(filePath, 'utf8'),
-    ts.ScriptTarget.Latest,
-    /* setParentNodes */ false,
-    ts.ScriptKind.TSX
-  );
-}
-
 function findExportedConstInitializer(
-  source: ts.SourceFile,
+  sourceFile: SourceFile,
   name: string
-): ts.Expression | undefined {
-  for (const stmt of source.statements) {
+): Expression | undefined {
+  for (const stmt of sourceFile.statements) {
     if (
-      !ts.isVariableStatement(stmt) ||
-      !stmt.modifiers?.some(m => m.kind === ts.SyntaxKind.ExportKeyword)
+      !isVariableStatement(stmt) ||
+      !stmt.modifiers?.some(m => m.kind === SyntaxKind.ExportKeyword)
     ) {
       continue;
     }
     for (const decl of stmt.declarationList.declarations) {
-      if (ts.isIdentifier(decl.name) && decl.name.text === name && decl.initializer) {
+      if (isIdentifier(decl.name) && decl.name.text === name && decl.initializer) {
         return decl.initializer;
       }
     }
@@ -164,19 +159,16 @@ function findExportedConstInitializer(
 }
 
 // Strip surrounding `as Foo` / `<Foo>x` type assertions.
-function unwrapTypeAssertion(expr: ts.Expression): ts.Expression {
-  while (ts.isAsExpression(expr) || ts.isTypeAssertionExpression(expr)) {
+function unwrapTypeAssertion(expr: Expression): Expression {
+  while (isAsExpression(expr) || isTypeAssertion(expr)) {
     expr = expr.expression;
   }
   return expr;
 }
 
 // Property key text from an Identifier or string literal name.
-function propertyKeyName(prop: ts.PropertyAssignment): string | undefined {
-  if (ts.isIdentifier(prop.name)) {
-    return prop.name.text;
-  }
-  if (ts.isStringLiteral(prop.name)) {
+function propertyKeyName(prop: PropertyAssignment): string | undefined {
+  if (isIdentifier(prop.name) || isStringLiteral(prop.name)) {
     return prop.name.text;
   }
   return undefined;
@@ -184,32 +176,32 @@ function propertyKeyName(prop: ts.PropertyAssignment): string | undefined {
 
 // === Source extractors ======================================================
 
-function readPlatforms(): PlatformEntry[] {
-  const source = parseTSFile(PLATFORMS_PATH);
-  const init = findExportedConstInitializer(source, 'platforms');
-  if (!init || !ts.isArrayLiteralExpression(init)) {
+function readPlatforms(api: API): PlatformEntry[] {
+  using source = api.createSourceFileFromFile(PLATFORMS_PATH);
+  const init = findExportedConstInitializer(source.sourceFile, 'platforms');
+  if (!init || !isArrayLiteralExpression(init)) {
     throw new Error('platforms array not found in platforms.tsx');
   }
   const out: PlatformEntry[] = [];
   for (const element of init.elements) {
-    if (!ts.isObjectLiteralExpression(element)) {
+    if (!isObjectLiteralExpression(element)) {
       continue;
     }
     let id: string | undefined;
     let link = '';
     let deprecated = false;
     for (const prop of element.properties) {
-      if (!ts.isPropertyAssignment(prop)) {
+      if (!isPropertyAssignment(prop)) {
         continue;
       }
       const key = propertyKeyName(prop);
-      if (key === 'id' && ts.isStringLiteral(prop.initializer)) {
+      if (key === 'id' && isStringLiteral(prop.initializer)) {
         id = prop.initializer.text;
-      } else if (key === 'link' && ts.isStringLiteral(prop.initializer)) {
+      } else if (key === 'link' && isStringLiteral(prop.initializer)) {
         link = prop.initializer.text;
       } else if (
         key === 'deprecated' &&
-        prop.initializer.kind === ts.SyntaxKind.TrueKeyword
+        prop.initializer.kind === SyntaxKind.TrueKeyword
       ) {
         deprecated = true;
       }
@@ -218,40 +210,35 @@ function readPlatforms(): PlatformEntry[] {
       continue;
     }
 
-    let lang: string | null = null;
-    let guide: string | null = null;
-    const override = CANONICAL_OVERRIDES[id];
-    if (override) {
-      lang = override.lang;
-      guide = override.guide ?? null;
-    } else if (NO_DOCS_TREE.has(id)) {
-      // leave lang null
-    } else if (link) {
-      const parsed = parseLink(link);
-      if (parsed) {
-        lang = parsed.lang;
-        guide = parsed.guide ?? null;
-      }
-    }
-
-    out.push({id, link, deprecated, lang, guide});
+    const canonical = NO_DOCS_TREE.has(id)
+      ? null
+      : (CANONICAL_OVERRIDES[id] ?? parseLink(link));
+    out.push({
+      id,
+      deprecated,
+      lang: canonical?.lang ?? null,
+      guide: canonical?.guide ?? null,
+    });
   }
   return out;
 }
 
-function readLegacyToggleableKeys(): Set<string> {
-  const source = parseTSFile(PSP_PATH);
-  const init = findExportedConstInitializer(source, 'platformProductAvailability');
+function readLegacyToggleableKeys(api: API): Set<string> {
+  using source = api.createSourceFileFromFile(PSP_PATH);
+  const init = findExportedConstInitializer(
+    source.sourceFile,
+    'platformProductAvailability'
+  );
   if (!init) {
     throw new Error('platformProductAvailability not found in productSelection.tsx');
   }
   const obj = unwrapTypeAssertion(init);
-  if (!ts.isObjectLiteralExpression(obj)) {
+  if (!isObjectLiteralExpression(obj)) {
     throw new Error('platformProductAvailability is not an object literal');
   }
   const keys = new Set<string>();
   for (const prop of obj.properties) {
-    if (!ts.isPropertyAssignment(prop)) {
+    if (!isPropertyAssignment(prop)) {
       continue;
     }
     const key = propertyKeyName(prop);
@@ -262,21 +249,21 @@ function readLegacyToggleableKeys(): Set<string> {
   return keys;
 }
 
-function readWithMetricsOnboarding(): Set<string> {
-  const source = parseTSFile(CATEGORIES_PATH);
-  const init = findExportedConstInitializer(source, 'withMetricsOnboarding');
-  if (!init || !ts.isNewExpression(init)) {
+function readWithMetricsOnboarding(api: API): Set<string> {
+  using source = api.createSourceFileFromFile(CATEGORIES_PATH);
+  const init = findExportedConstInitializer(source.sourceFile, 'withMetricsOnboarding');
+  if (!init || !isNewExpression(init)) {
     throw new Error(
       'withMetricsOnboarding new Set() not found in platformCategories.tsx'
     );
   }
   const arg = init.arguments?.[0];
-  if (!arg || !ts.isArrayLiteralExpression(arg)) {
+  if (!arg || !isArrayLiteralExpression(arg)) {
     throw new Error('withMetricsOnboarding Set has no array argument');
   }
   const out = new Set<string>();
   for (const element of arg.elements) {
-    if (ts.isStringLiteral(element)) {
+    if (isStringLiteral(element)) {
       out.add(element.text);
     }
   }
@@ -288,10 +275,7 @@ interface Frontmatter {
   supported?: string[];
 }
 
-function readFrontmatter(file: string): Frontmatter | null {
-  if (!existsSync(file)) {
-    return null;
-  }
+function readFrontmatter(file: string): Frontmatter {
   const text = readFileSync(file, 'utf8');
   const m = text.match(/^---\n([\s\S]*?)\n---/);
   if (!m) {
@@ -323,14 +307,7 @@ function findGuideOverridePage(
 }
 
 // Mirror of sentry-docs/src/frontmatter.ts:isSupported.
-function isSupported(
-  fm: Frontmatter | null,
-  lang: string,
-  guide: string | null
-): boolean {
-  if (!fm) {
-    return false;
-  }
+function isSupported(fm: Frontmatter, lang: string, guide: string | null): boolean {
   const canonical = guide ? `${lang}.${guide}` : lang;
   if (Array.isArray(fm.supported) && fm.supported.length) {
     if (fm.supported.includes(canonical)) {
@@ -355,25 +332,9 @@ function isSupported(
 // nothing for platforms that have neither a curated toggle entry nor a wizard.
 function hasOnboardingWizard(platformId: string): boolean {
   const dir = path.join(GETTING_STARTED_DOCS_DIR, platformId);
-  if (!existsSync(dir)) {
-    return false;
-  }
-  for (const entry of readdirSync(dir, {withFileTypes: true})) {
-    if (!entry.isFile()) {
-      continue;
-    }
-    if (entry.name.endsWith('.spec.tsx') || entry.name.endsWith('.spec.ts')) {
-      continue;
-    }
-    if (!entry.name.endsWith('.tsx') && !entry.name.endsWith('.ts')) {
-      continue;
-    }
-    const content = readFileSync(path.join(dir, entry.name), 'utf8');
-    if (WIZARD_PATTERN.test(content)) {
-      return true;
-    }
-  }
-  return false;
+  return globSync('*.{ts,tsx}', {cwd: dir, exclude: ['*.spec.{ts,tsx}']}).some(file =>
+    WIZARD_PATTERN.test(readFileSync(path.join(dir, file), 'utf8'))
+  );
 }
 
 function deriveProducts(
@@ -385,21 +346,11 @@ function deriveProducts(
   }
   const products: string[] = [];
   for (const [product, feature] of Object.entries(FEATURES)) {
-    let supported: boolean | null = null;
-    if (platform.guide) {
-      const override = findGuideOverridePage(platform.lang, platform.guide, feature);
-      if (override) {
-        supported = isSupported(readFrontmatter(override), platform.lang, platform.guide);
-      }
-    }
-    if (supported === null) {
-      const page = findFeaturePage(platform.lang, feature);
-      supported = page
-        ? isSupported(readFrontmatter(page), platform.lang, platform.guide)
-        : false;
-    }
-
-    if (!supported) {
+    // A guide-specific page takes precedence over the language-level page.
+    const page =
+      (platform.guide && findGuideOverridePage(platform.lang, platform.guide, feature)) ||
+      findFeaturePage(platform.lang, feature);
+    if (!page || !isSupported(readFrontmatter(page), platform.lang, platform.guide)) {
       continue;
     }
     if (product === 'METRICS' && !withMetricsOnboarding.has(platform.id)) {
@@ -442,8 +393,11 @@ import type {PlatformKey} from 'sentry/types/platform';
 
   const entries = Object.entries(map).sort(([a], [b]) => a.localeCompare(b));
   const lines: string[] = [];
+  // Matches the formatter's output so regenerating doesn't leave a diff.
   lines.push(
-    'export const PLATFORM_PRODUCT_INFO: Partial<Record<PlatformKey, readonly ProductSolution[]>> = {'
+    'export const PLATFORM_PRODUCT_INFO: Partial<',
+    '  Record<PlatformKey, readonly ProductSolution[]>',
+    '> = {'
   );
   for (const [platform, products] of entries) {
     const key = /^[a-zA-Z]\w*$/.test(platform) ? platform : `'${platform}'`;
@@ -462,9 +416,10 @@ import type {PlatformKey} from 'sentry/types/platform';
 }
 
 function main() {
-  const platforms = readPlatforms();
-  const legacyKeys = readLegacyToggleableKeys();
-  const withMetricsOnboarding = readWithMetricsOnboarding();
+  using api = new API();
+  const platforms = readPlatforms(api);
+  const legacyKeys = readLegacyToggleableKeys(api);
+  const withMetricsOnboarding = readWithMetricsOnboarding(api);
 
   const out: Record<string, string[]> = {};
   for (const platform of platforms) {
@@ -481,11 +436,6 @@ function main() {
     if (platform.id === 'other') {
       continue;
     }
-    // Only include platforms whose onboarding flow is wizard-driven. The
-    // consumer surfaces information cards for these platforms because the
-    // wizard CLI handles configuration; toggles aren't actionable. Platforms
-    // with neither a curated toggle entry nor a wizard render nothing on the
-    // SCM step.
     if (!hasOnboardingWizard(platform.id)) {
       continue;
     }
