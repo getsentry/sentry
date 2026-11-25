@@ -61,7 +61,7 @@ export function GridListSection<T extends ListItemBase>({
             }
           >
             {node.rendered && (
-              <SectionLabel id={titleId} aria-hidden>
+              <SectionLabel id={titleId} size="md" aria-hidden>
                 {node.rendered}
               </SectionLabel>
             )}
