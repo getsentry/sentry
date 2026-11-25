@@ -17,7 +17,6 @@ urlpatterns = [
 ]
 
 
-@with_feature("organizations:investigations-v2")
 @with_feature("organizations:investigations")
 @override_settings(DEBUG=True, ROOT_URLCONF=__name__)
 class WorkflowLabTest(APITransactionTestCase):
