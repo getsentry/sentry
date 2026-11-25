@@ -394,7 +394,7 @@ describe('ActivitySection', () => {
     expect(screen.getByText(`${user.name} (${user.email})`)).toBeInTheDocument();
   });
 
-  it('renders Slack activity sources', async () => {
+  it('renders messaging integration activity sources', async () => {
     const activityGroup = GroupFixture({
       id: '1338',
       activity: [
@@ -407,11 +407,27 @@ describe('ActivitySection', () => {
           user,
         },
         {
+          type: GroupActivityType.SET_IGNORED,
+          id: 'ignored-1',
+          data: {},
+          dateCreated: '2020-01-02T00:00:00',
+          source: 'discord',
+          user,
+        },
+        {
           type: GroupActivityType.SET_UNRESOLVED,
           id: 'unresolved-1',
           data: {},
-          dateCreated: '2020-01-02T00:00:00',
-          source: 'slack_staging',
+          dateCreated: '2020-01-03T00:00:00',
+          source: 'msteams',
+          user,
+        },
+        {
+          type: GroupActivityType.SET_RESOLVED,
+          id: 'resolved-2',
+          data: {},
+          dateCreated: '2020-01-04T00:00:00',
+          source: 'seer:slack',
           user,
         },
       ],
@@ -424,10 +440,13 @@ describe('ActivitySection', () => {
       </GroupDataContextProvider>
     );
 
-    expect(await screen.findAllByRole('img', {name: 'via Slack'})).toHaveLength(2);
-    expect(screen.getAllByTestId('user-activity-actor')).toHaveLength(2);
+    expect(await screen.findByRole('img', {name: 'via Slack'})).toBeInTheDocument();
+    expect(screen.getByRole('img', {name: 'via Discord'})).toBeInTheDocument();
+    expect(screen.getByRole('img', {name: 'via Microsoft Teams'})).toBeInTheDocument();
+    expect(screen.getByRole('img', {name: 'Seer via Slack'})).toBeInTheDocument();
+    expect(screen.getAllByTestId('user-activity-actor')).toHaveLength(4);
 
-    await userEvent.hover(screen.getAllByRole('img', {name: 'via Slack'})[0]!);
+    await userEvent.hover(screen.getByRole('img', {name: 'via Slack'}));
     expect(await screen.findByText('via Slack')).toBeInTheDocument();
     expect(screen.getByText(`${user.name} (${user.email})`)).toBeInTheDocument();
   });

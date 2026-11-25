@@ -44,7 +44,7 @@ const MCP_CLIENTS: Record<string, {icon: React.ReactNode; name: string}> = {
 
 /**
  * Parses sources like `api`, `sentry-cli`, `mcp:cursor` and `slack`. Other
- * sources, like `web`, aren't shown.
+ * sources, like `web` and `seer:explorer`, aren't shown.
  */
 export function getActivitySource(activity: GroupActivity): ActivitySource | null {
   // Sentry Apps act through the API and are attributed by name instead
@@ -67,6 +67,15 @@ export function getActivitySource(activity: GroupActivity): ActivitySource | nul
     case 'slack':
     case 'slack_staging':
       return {icon: integrationLogo('slack'), description: t('via Slack')};
+    case 'seer':
+      // Seer acting on a request made in Slack. Other Seer sources aren't shown.
+      return client === 'slack'
+        ? {icon: integrationLogo('slack'), description: t('Seer via Slack')}
+        : null;
+    case 'discord':
+      return {icon: integrationLogo('discord'), description: t('via Discord')};
+    case 'msteams':
+      return {icon: integrationLogo('msteams'), description: t('via Microsoft Teams')};
     default:
       return null;
   }
