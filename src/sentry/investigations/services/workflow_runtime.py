@@ -1,11 +1,11 @@
 """Sentry owns the checkpoint. Workers evaluate the graph against a versioned snapshot."""
 
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any
 from uuid import NAMESPACE_URL, UUID, uuid5
 
 from django.db import router, transaction
-from django.db.models import Case, DateTimeField, Value, When
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from rest_framework import serializers
@@ -24,6 +24,9 @@ from sentry.notebooks.services.workflow import open_workflow_notebook
 from sentry.viewer_context import ActorId, ActorType
 
 PAUSED_RECOVERY_INTERVAL = timedelta(hours=1)
+RECOVERY_CLAIM_TTL = timedelta(minutes=1)
+# The Seer recovery endpoint accepts at most 100 UUIDs per request.
+RECOVERY_BATCH_SIZE = 100
 
 
 def public_workflow_launch(notebook: Notebook) -> dict[str, str] | None:
@@ -413,31 +416,34 @@ def public_snapshot(run: WorkflowRun, *, activity: bool) -> dict[str, Any]:
     }
 
 
-def reserve_due_nodes(*, run: WorkflowRun | None = None) -> dict[int, list[str]]:
+@dataclass(frozen=True)
+class WorkflowRecoveryClaim:
+    node_ids: list[UUID]
+    retry_at: datetime
+
+    def acknowledge(self) -> None:
+        # A late response must not postpone a newer claim or an explicit wake-up.
+        WorkflowNodeRun.objects.filter(
+            uuid__in=self.node_ids,
+            next_check_at=self.retry_at,
+            checkpoint__status="awaiting_input",
+            checkpoint__next_check_at=None,
+        ).update(next_check_at=timezone.now() + PAUSED_RECOVERY_INTERVAL)
+
+
+def claim_due_nodes(
+    organization_id: int, *, run: WorkflowRun | None = None
+) -> WorkflowRecoveryClaim:
     now = timezone.now()
-    batches: dict[int, list[str]] = {}
+    retry_at = now + RECOVERY_CLAIM_TTL
     with transaction.atomic(using=router.db_for_write(WorkflowNodeRun)):
         due = WorkflowNodeRun.objects.select_for_update(skip_locked=True, of=("self",)).filter(
-            next_check_at__lte=now
+            run__organization_id=organization_id, next_check_at__lte=now
         )
         if run is not None:
             due = due.filter(run=run)
-        rows = list(
-            due.order_by("next_check_at", "id").values_list("id", "run__organization_id", "uuid")[
-                :100
-            ]
+        node_ids = list(
+            due.order_by("next_check_at", "id").values_list("uuid", flat=True)[:RECOVERY_BATCH_SIZE]
         )
-        WorkflowNodeRun.objects.filter(pk__in=[pk for pk, _, _ in rows]).update(
-            next_check_at=Case(
-                When(
-                    checkpoint__status="awaiting_input",
-                    checkpoint__next_check_at=None,
-                    then=Value(now + PAUSED_RECOVERY_INTERVAL),
-                ),
-                default=Value(now + timedelta(minutes=1)),
-                output_field=DateTimeField(),
-            )
-        )
-        for _, org, node in rows:
-            batches.setdefault(org, []).append(str(node))
-    return batches
+        WorkflowNodeRun.objects.filter(uuid__in=node_ids).update(next_check_at=retry_at)
+    return WorkflowRecoveryClaim(node_ids, retry_at)
