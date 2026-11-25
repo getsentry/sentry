@@ -1,4 +1,5 @@
 from datetime import timedelta
+from math import log1p
 
 from django.utils import timezone
 
@@ -12,6 +13,7 @@ from sentry.timeseries_annotations.models import (
     Severity,
     TimeseriesAnnotation,
 )
+from sentry.utils.cache import cache
 
 
 @with_feature("organizations:timeseries-annotations")
@@ -219,6 +221,68 @@ class OrganizationTimeseriesAnnotationEndpointTest(APITestCase):
             str(live_range.id),
             str(open_fresh.id),
         }
+
+    def test_attaches_rarity_without_changing_severity(self) -> None:
+        cache.delete(f"ta:rarity-counts:v1:{self.organization.id}")
+        rare = self._annotation(
+            annotation_type=AnnotationType.CUSTOM,
+            severity=Severity.LOW,
+            start_timestamp=before_now(days=1),
+        )
+        for days_ago in (2, 3, 4, 5, 6):
+            self._annotation(
+                annotation_type=AnnotationType.INBOUND_FILTER_CHANGE,
+                severity=Severity.HIGH,
+                start_timestamp=before_now(days=days_ago),
+            )
+        common = self._annotation(
+            annotation_type=AnnotationType.INBOUND_FILTER_CHANGE,
+            severity=Severity.HIGH,
+            start_timestamp=before_now(hours=12),
+        )
+
+        with self.options({"system.event-retention-days": 90}):
+            response = self.get_success_response(self.organization.slug, statsPeriod="14d")
+
+        by_id = {row["id"]: row for row in response.data}
+        rare_row = by_id[str(rare.id)]
+        common_row = by_id[str(common.id)]
+
+        assert rare_row["severity"] == "low"
+        assert common_row["severity"] == "high"
+        assert rare_row["rarityWindowDays"] == 90
+        assert common_row["rarityWindowDays"] == 90
+        assert rare_row["rarityScore"] == 1.0 / (1.0 + log1p(1))
+        assert common_row["rarityScore"] == 1.0 / (1.0 + log1p(6))
+        assert rare_row["rarityScore"] > common_row["rarityScore"]
+
+    def test_rarity_uses_90d_baseline_not_chart_window(self) -> None:
+        cache.delete(f"ta:rarity-counts:v1:{self.organization.id}")
+        # One custom in the 14d chart window; five more custom outside 14d but inside 90d.
+        in_chart = self._annotation(
+            annotation_type=AnnotationType.CUSTOM,
+            start_timestamp=before_now(days=1),
+        )
+        for days_ago in (20, 30, 40, 50, 60):
+            self._annotation(
+                annotation_type=AnnotationType.CUSTOM,
+                start_timestamp=before_now(days=days_ago),
+            )
+
+        with self.options({"system.event-retention-days": 90}):
+            response = self.get_success_response(self.organization.slug, statsPeriod="14d")
+
+        assert [row["id"] for row in response.data] == [str(in_chart.id)]
+        # Chart has one row, but rarity denominator counted all six in 90d.
+        assert response.data[0]["rarityScore"] == 1.0 / (1.0 + log1p(6))
+        assert response.data[0]["rarityWindowDays"] == 90
+
+    def test_rarity_window_clamped_to_retention(self) -> None:
+        cache.delete(f"ta:rarity-counts:v1:{self.organization.id}")
+        self._annotation()
+        with self.options({"system.event-retention-days": 30}):
+            response = self.get_success_response(self.organization.slug, statsPeriod="14d")
+        assert response.data[0]["rarityWindowDays"] == 30
 
 
 @with_feature("organizations:timeseries-annotations")

@@ -14,6 +14,7 @@ from sentry.timeseries_annotations.models import (
     Severity,
     TimeseriesAnnotation,
 )
+from sentry.timeseries_annotations.rarity import rarity_score
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.viewer_context import ActorType
@@ -47,7 +48,7 @@ class TimeseriesAnnotationSerializer(Serializer):
         else:
             created_by = None
 
-        return {
+        result: dict[str, Any] = {
             "id": str(obj.id),
             "organizationId": str(obj.organization_id),
             "projectId": str(obj.project_id) if obj.project_id is not None else None,
@@ -65,6 +66,14 @@ class TimeseriesAnnotationSerializer(Serializer):
             "dateAdded": obj.date_added,
             "dateUpdated": obj.date_updated,
         }
+
+        # Read-time rarity on GET list. Missing types score as count 0.
+        rarity_counts = kwargs.get("rarity_counts")
+        if rarity_counts is not None:
+            result["rarityScore"] = rarity_score(rarity_counts.get(obj.annotation_type, 0))
+            result["rarityWindowDays"] = kwargs["rarity_window_days"]
+
+        return result
 
 
 class TimeseriesAnnotationPostSerializer(serializers.Serializer):
