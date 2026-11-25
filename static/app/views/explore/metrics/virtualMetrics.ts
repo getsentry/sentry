@@ -33,14 +33,6 @@ export interface VirtualTraceMetric {
   unit: string;
 }
 
-const WEB_VITAL_UNITS: Record<WebVitals, DataUnit> = {
-  lcp: DurationUnit.MILLISECOND,
-  fcp: DurationUnit.MILLISECOND,
-  inp: DurationUnit.MILLISECOND,
-  ttfb: DurationUnit.MILLISECOND,
-  cls: null,
-};
-
 /**
  * The stored metric for a web vital, e.g. `browser.web_vital.lcp`.
  */
@@ -48,7 +40,7 @@ export function webVitalMetric(vital: WebVitals): StoredTraceMetric {
   return {
     name: `browser.web_vital.${vital}`,
     type: 'distribution',
-    unit: WEB_VITAL_UNITS[vital],
+    unit: vital === 'cls' ? null : DurationUnit.MILLISECOND,
   };
 }
 
@@ -66,13 +58,25 @@ export function webVitalScoreMetric(vital: WebVitals): VirtualTraceMetric {
   };
 }
 
-export const WEB_VITAL_SCORE_METRICS: VirtualTraceMetric[] =
-  ORDER.map(webVitalScoreMetric);
+let webVitalScoreMetrics: VirtualTraceMetric[] | undefined;
+
+/**
+ * The score metric of every web vital. Built on first use rather than at
+ * load: `sentry/utils/discover/fields` imports this module to label
+ * aggregates, so the unit enums it defines are not initialized yet while
+ * this module loads.
+ */
+export function getWebVitalScoreMetrics(): VirtualTraceMetric[] {
+  webVitalScoreMetrics ??= ORDER.map(webVitalScoreMetric);
+  return webVitalScoreMetrics;
+}
 
 /**
  * Every virtual metric the metric selectors know about.
  */
-const VIRTUAL_TRACE_METRICS: VirtualTraceMetric[] = [...WEB_VITAL_SCORE_METRICS];
+function getVirtualTraceMetrics(): VirtualTraceMetric[] {
+  return getWebVitalScoreMetrics();
+}
 
 /**
  * The virtual metric a selected metric stands for, if any. The unit is not
@@ -81,7 +85,7 @@ const VIRTUAL_TRACE_METRICS: VirtualTraceMetric[] = [...WEB_VITAL_SCORE_METRICS]
 export function findVirtualTraceMetric(
   metric: TraceMetric
 ): VirtualTraceMetric | undefined {
-  return VIRTUAL_TRACE_METRICS.find(
+  return getVirtualTraceMetrics().find(
     virtual => virtual.name === metric.name && virtual.type === metric.type
   );
 }
@@ -94,7 +98,7 @@ export function findVirtualTraceMetricByAttribute(
   attribute: string,
   source: TraceMetric
 ): VirtualTraceMetric | undefined {
-  return VIRTUAL_TRACE_METRICS.find(
+  return getVirtualTraceMetrics().find(
     virtual =>
       virtual.attribute === attribute &&
       virtual.source.name === source.name &&

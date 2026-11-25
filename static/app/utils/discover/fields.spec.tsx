@@ -516,4 +516,18 @@ describe('prettifyParsedFunction', () => {
       })
     ).toBe('avg_if(`Limit:>5`,Limit)');
   });
+
+  it('prettifies a virtual trace metric aggregate by the virtual metric name', () => {
+    expect(
+      prettifyParsedFunction({
+        name: 'avg',
+        arguments: [
+          'tags[score.ratio.lcp,number]',
+          'browser.web_vital.lcp',
+          'distribution',
+          'millisecond',
+        ],
+      })
+    ).toBe('avg(browser.web_vital.lcp.score)');
+  });
 });

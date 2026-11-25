@@ -25,6 +25,7 @@ import {
   SESSIONS_FIELDS,
   SESSIONS_OPERATIONS,
 } from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
+import {findVirtualTraceMetricByAttribute} from 'sentry/views/explore/metrics/virtualMetrics';
 import {STARFISH_FIELDS} from 'sentry/views/insights/common/utils/constants';
 import {STARFISH_AGGREGATION_FIELDS} from 'sentry/views/insights/constants';
 import {SpanFields} from 'sentry/views/insights/types';
@@ -1758,9 +1759,21 @@ export function prettifyParsedFunction(func: ParsedFunction) {
 
   // special case for trace metrics format: function(value,metricName,metricType,unit)
   // display as function(metricName)
-  if (func.arguments.length === 4 && func.arguments[0] === 'value') {
-    const metricName = func.arguments[1];
-    return `${func.name}(${prettifyTagKey(metricName ?? '')})`;
+  if (func.arguments.length === 4) {
+    const [attribute = '', metricName = '', metricType = ''] = func.arguments;
+    if (attribute === 'value') {
+      return `${func.name}(${prettifyTagKey(metricName)})`;
+    }
+    // aggregates that read a virtual metric's attribute, e.g.
+    // avg(tags[score.ratio.lcp,number],browser.web_vital.lcp,distribution,millisecond),
+    // display as function(virtualMetricName)
+    const virtualMetric = findVirtualTraceMetricByAttribute(attribute, {
+      name: metricName,
+      type: metricType,
+    });
+    if (virtualMetric) {
+      return `${func.name}(${virtualMetric.name})`;
+    }
   }
 
   const args = func.arguments.map(prettifyFunctionArgument);
