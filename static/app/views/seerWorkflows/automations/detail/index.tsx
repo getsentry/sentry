@@ -27,6 +27,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {useUser} from 'sentry/utils/useUser';
 import {useUserFromId} from 'sentry/utils/useUserFromId';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
@@ -39,6 +40,7 @@ import {
   useDeleteConfig,
   useFetchConfigs,
   useIsUpdatingConfig,
+  useManualRunConfig,
   useUpdateConfig,
 } from 'sentry/views/seerWorkflows/automations/hooks/configs';
 import {STRATEGY_META} from 'sentry/views/seerWorkflows/strategies';
@@ -79,6 +81,8 @@ export default function AutomationDetail() {
   const updateConfig = useUpdateConfig({configId: automationId});
   const deleteConfig = useDeleteConfig({configId: automationId});
   const isUpdatingConfig = useIsUpdatingConfig({configId: automationId});
+  const manualRun = useManualRunConfig({configId: automationId});
+  const user = useUser();
   const [isConfiguring, setIsConfiguring] = useState(false);
   const [draftName, setDraftName] = useState('');
   const [formHasChanges, setFormHasChanges] = useState(false);
@@ -257,6 +261,21 @@ export default function AutomationDetail() {
           )
         }
       />
+      <Button
+        size="sm"
+        busy={manualRun.isPending}
+        onClick={() =>
+          manualRun.mutate(
+            {userId: user.id},
+            {
+              onSuccess: () => toast.success(t('Automation run started.')),
+              onError: () => toast.error(t('Unable to run automation.')),
+            }
+          )
+        }
+      >
+        {t('Run now')}
+      </Button>
       <Button
         size="sm"
         variant="primary"

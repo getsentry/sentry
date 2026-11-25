@@ -11,6 +11,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import {ConfigStore} from 'sentry/stores/configStore';
 import AutomationDetail from 'sentry/views/seerWorkflows/automations/detail';
 import type {SeerWorkflowConfigResponse} from 'sentry/views/seerWorkflows/types';
 
@@ -245,6 +246,29 @@ describe('AutomationDetail', () => {
       expect.objectContaining({method: 'PUT', data: {enabled: true}})
     );
     expect(await screen.findByRole('button', {name: 'Disable'})).toBeInTheDocument();
+  });
+
+  it('runs the automation now on behalf of the current user', async () => {
+    ConfigStore.set('user', UserFixture({id: '7'}));
+    mockConfig(SeerWorkflowConfigFixture({id: '42'}));
+    const manualRunUrl = `/organizations/${organization.slug}/seer/workflows/manual-run/`;
+    const manualRunRequest = MockApiClient.addMockResponse({
+      url: manualRunUrl,
+      method: 'POST',
+      body: {},
+    });
+    renderDetail();
+    await findLoadedPage();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Run now'}));
+
+    await waitFor(() =>
+      expect(manualRunRequest).toHaveBeenCalledWith(
+        manualRunUrl,
+        expect.objectContaining({method: 'POST', data: {config_id: '42', user_id: '7'}})
+      )
+    );
+    expect(manualRunRequest).toHaveBeenCalledTimes(1);
   });
 
   it('deletes the automation after confirming and returns to the list', async () => {
