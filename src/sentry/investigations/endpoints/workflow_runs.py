@@ -40,11 +40,16 @@ class StartWorkflowRequest(serializers.Serializer):
 
 
 class WorkflowCommandRequest(serializers.Serializer):
-    requestId = serializers.UUIDField(required=False)
-    nodeId = serializers.UUIDField(required=False)
-    inputId = serializers.CharField(required=False)
+    requestId = serializers.UUIDField(
+        required=False, help_text="Stable ID for retrying this command."
+    )
+    nodeId = serializers.UUIDField(required=False, help_text="ID of the node awaiting input.")
+    inputId = serializers.CharField(required=False, help_text="ID of the pending input request.")
     answers = serializers.ListField(
-        child=serializers.CharField(max_length=4000), max_length=4, required=False
+        child=serializers.CharField(max_length=4000),
+        max_length=4,
+        required=False,
+        help_text="Answers in question order.",
     )
     note = serializers.CharField(max_length=2000, required=False)
     command = serializers.ChoiceField(

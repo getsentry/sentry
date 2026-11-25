@@ -49,9 +49,17 @@ class OrganizationNotebookBlockExecutionDetailsEndpoint(OrganizationNotebookBloc
 
     def _execution(self, block: NotebookBlock, execution_id: str) -> NotebookBlockExecution:
         try:
-            return NotebookBlockExecution.objects.select_related("seer_run").get(
+            execution = NotebookBlockExecution.objects.select_related("seer_run").get(
                 id=execution_id, block=block
             )
+            # A produced embed shares the notebook writer. It has no independently
+            # controllable Explorer session or transcript.
+            if (
+                "workflowRunId" in execution.input_snapshot
+                and "producerRevision" in execution.input_snapshot
+            ):
+                raise ResourceDoesNotExist
+            return execution
         except (NotebookBlockExecution.DoesNotExist, ValueError):
             raise ResourceDoesNotExist
 

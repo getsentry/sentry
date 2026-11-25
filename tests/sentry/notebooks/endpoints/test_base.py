@@ -87,12 +87,16 @@ class NotebookWriterTest(APITestCase):
         other = self.create_project(organization=self.organization)
         restricted, _ = self.service_account_client([self.project.id])
         url = self.url("sentry-api-0-organization-notebook-workflow", workflow_run_id=uuid4())
-        data = {"title": "Restricted report", "projectIds": [self.project.id, other.id]}
+        project_ids = [self.project.id, other.id]
+        data = {"title": "Restricted report", "projectIds": project_ids}
         assert (
-            restricted.get(url, {"preflight": 1, "projectId": [self.project.id]}).status_code == 200
+            restricted.get(url, {"preflight": "1", "projectId": [str(self.project.id)]}).status_code
+            == 200
         )
         assert (
-            restricted.get(url, {"preflight": 1, "projectId": data["projectIds"]}).status_code
+            restricted.get(
+                url, {"preflight": "1", "projectId": [str(i) for i in project_ids]}
+            ).status_code
             == 403
         )
         assert restricted.get(url, {"preflight": 1}).status_code == 403

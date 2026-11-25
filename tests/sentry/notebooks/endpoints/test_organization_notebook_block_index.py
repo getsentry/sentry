@@ -408,6 +408,13 @@ class NotebookProducerBlockTest(APITestCase):
         edited = self.client.post(self.url, {**changed, "blockVersion": saved["version"]})
         assert edited.status_code == 200
         assert edited.data["embedSummary"] is None
+        first, second = NotebookBlockExecution.objects.filter(block_id=saved["id"]).order_by("id")
+        assert first.input_snapshot["embedSource"] == block_body["embedSource"]
+        assert second.input_snapshot["embedSource"] == changed["embedSource"]
+        assert first.result == {"embed": block_body["embed"], "summary": caption.data["summary"]}
+        assert second.result == {"embed": block_body["embed"]}
+        assert first.seer_run and first.seer_run.seer_run_state_id == 91
+        assert list(first.data_projects.values_list("id", flat=True)) == [self.project.id]
         assert self.client.patch(url, summary).status_code == 409
         self.notebook.blocks.filter(pk=saved["id"]).update(deleted_at=timezone.now())
         latest = edited.data["version"]

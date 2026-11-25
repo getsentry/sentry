@@ -65,7 +65,7 @@ def regexp_to_routes(regexp_string: str) -> list[str]:
         'api/v1/:org_slug/'
     """
     # Strip ^ and $ from start and end
-    pattern = regexp_string.strip("^$")
+    pattern = regexp_string.removesuffix(r"\Z").strip("^$")
 
     # Check for alternates (non-capturing groups with |) that are NOT inside named groups
     alternate_pattern = r"\((?:\?\:([^)]+))\)"
