@@ -55,6 +55,12 @@ class Environment(Model):
         app_label = "sentry"
         db_table = "sentry_environment"
         unique_together = (("organization_id", "name"),)
+        indexes = (
+            # Lookups by id that skip the "No Environment" row, which has an empty name.
+            models.Index(
+                fields=("id",), condition=~models.Q(name=""), name="sentry_envi_id_f02960_idx"
+            ),
+        )
 
     __repr__ = sane_repr("organization_id", "name")
 

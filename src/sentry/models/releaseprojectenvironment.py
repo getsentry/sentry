@@ -55,6 +55,12 @@ class ReleaseProjectEnvironment(Model):
         indexes = (
             models.Index(fields=("project", "adopted", "environment")),
             models.Index(fields=("project", "unadopted", "environment")),
+            # Latest deploys per project, for the project summary serializer.
+            models.Index(
+                fields=("project",),
+                condition=models.Q(last_deploy_id__isnull=False),
+                name="sentry_rele_project_c9d4c6_idx",
+            ),
         )
         unique_together = (("project", "release", "environment"),)
 

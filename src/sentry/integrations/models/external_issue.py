@@ -63,9 +63,12 @@ class ExternalIssue(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
     # The foreign key here is an `int`, not `bigint`.
-    organization = FlexibleForeignKey("sentry.Organization", db_constraint=False)
+    # Lookups by organization use the unique index, which starts with `organization`.
+    organization = FlexibleForeignKey("sentry.Organization", db_constraint=False, db_index=False)
 
-    integration_id = HybridCloudForeignKey("sentry.Integration", on_delete="CASCADE")
+    integration_id = HybridCloudForeignKey(
+        "sentry.Integration", on_delete="CASCADE", db_index=False
+    )
 
     key = models.CharField(max_length=256)  # example APP-123 in jira
     date_added = models.DateTimeField(default=timezone.now)
@@ -88,6 +91,8 @@ class ExternalIssue(Model):
         app_label = "sentry"
         db_table = "sentry_externalissue"
         unique_together = (("organization", "integration_id", "key"),)
+        # Inbound sync from an integration looks up issues by key, without the organization.
+        indexes = [models.Index(fields=["integration_id", "key"])]
 
     __repr__ = sane_repr("organization_id", "integration_id", "key")
 
