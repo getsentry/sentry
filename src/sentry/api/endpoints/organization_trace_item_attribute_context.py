@@ -14,7 +14,6 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationEventPermission
 from sentry.api.endpoints.organization_trace_item_attributes import (
-    POSSIBLE_ATTRIBUTE_TYPES,
     SUPPORTED_DATASETS,
     OrganizationTraceItemAttributesEndpointBase,
     full_retention_window,
@@ -63,7 +62,7 @@ class OrganizationTraceItemAttributeContextPutSerializer(serializers.Serializer[
         SUPPORTED_DATASETS, help_text="The trace item dataset the attribute belongs to."
     )
     attributeType = serializers.ChoiceField(
-        POSSIBLE_ATTRIBUTE_TYPES,
+        TraceItemAttributeTypes.TYPE_NAMES,
         source="attribute_type",
         help_text="The stored type of the attribute.",
     )
