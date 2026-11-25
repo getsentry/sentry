@@ -598,6 +598,43 @@ class CreditsQueryClient extends QueryClient {
   };
 }
 
+const STOPPED_SINGLE_RUN: ExplorerAutofixState = {
+  ...creditsRun([
+    {
+      id: 'single-run',
+      timestamp: '2026-10-07T12:00:00Z',
+      loading: false,
+      message: {
+        role: 'assistant',
+        content: 'Seer stopped before changing code.',
+        metadata: {step: 'single_run'},
+      },
+      artifacts: [
+        {
+          key: 'single_run_root_cause',
+          reason: 'found',
+          data: {
+            headline: 'The payments provider returned an empty body',
+            cause:
+              '`parseCharge()` reads `response.json()` on a 502 with no body, which throws `TypeError`.',
+          },
+        },
+        {
+          key: 'stop',
+          reason: 'stop',
+          data: {
+            reason:
+              'The `TypeError` comes from the payments provider returning an empty body during its outage window. Retries already succeed, and the checkout code handles the error correctly, so a code change would not prevent it.',
+            suggestion:
+              'Resolve the issue in Sentry and set an alert on the payments provider status instead.',
+          },
+        },
+      ],
+    },
+  ]),
+  feature_id: 'autofix_single_run',
+};
+
 /**
  * Autofix embeds ship collapsed. Open them so the state is visible without a
  * click.
@@ -758,6 +795,19 @@ export default Storybook.story('Autofix', story => {
       <User>Fix {ISSUE.shortId} all the way.</User>
       <Seer
         raw={`I started on the code changes:\n\n${autofixRefTag(ISSUE, 'code_changes', CREDITS_RUN_ID)}`}
+      />
+    </CreditsChat>
+  ));
+
+  story('Single run stopped early', () => (
+    <CreditsChat
+      description="A single run wrote a root cause, then stopped before changing code. The root cause block stays collapsed, and why the run stopped sits in its own notice beside it, with the next step under the reason. Click the notice for the full reason."
+      run={STOPPED_SINGLE_RUN}
+      hasEnoughCredits
+    >
+      <User>Fix {ISSUE.shortId}.</User>
+      <Seer
+        raw={`I looked into it and stopped before changing code:\n\n${autofixRefTag(ISSUE, 'root_cause', CREDITS_RUN_ID)}`}
       />
     </CreditsChat>
   ));

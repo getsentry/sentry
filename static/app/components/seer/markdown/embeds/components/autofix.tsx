@@ -23,11 +23,13 @@ import {
   getAutofixArtifactFromSection,
   getOrderedAutofixSections,
   getOutOfCreditsStep,
+  getSingleRunStop,
   isCodeChangesArtifact,
   isPullRequestsArtifact,
   isPullRequestsSection,
   isCodeChangesSection,
   isRootCauseArtifact,
+  isRootCauseSection,
   isSingleRunAutofix,
   isSolutionArtifact,
   useExplorerAutofix,
@@ -37,6 +39,7 @@ import {
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {useRefreshAutofixProgressQueries} from 'sentry/components/events/autofix/useRefreshAutofixProgressQueries';
 import {ArtifactDetails} from 'sentry/components/events/autofix/v3/artifactDetails';
+import {SingleRunStopNotice} from 'sentry/components/events/autofix/v3/singleRunStopNotice';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {
   useAutofixChat,
@@ -356,7 +359,10 @@ function AutofixRefContent({id, shortId, step}: AutofixRefContentProps) {
     !!codeChangesSection &&
     getOutOfCreditsStep(codeChangesSection) === 'pr_iteration';
 
-  return (
+  // A single run keeps why it stopped on its root cause section.
+  const stop = section && isRootCauseSection(section) ? getSingleRunStop(section) : null;
+
+  const block = (
     <AutofixBlock id={id} shortId={shortId} step={step}>
       <Stack gap="lg">
         <AutofixRefBody
@@ -418,6 +424,18 @@ function AutofixRefContent({id, shortId, step}: AutofixRefContentProps) {
         )}
       </Stack>
     </AutofixBlock>
+  );
+
+  if (!stop || !section) {
+    return block;
+  }
+
+  // Beside the collapsed block rather than inside it, so the reason stays in view.
+  return (
+    <Stack gap="md">
+      {defined(getAutofixArtifactFromSection(section)) && block}
+      <SingleRunStopNotice stop={stop} />
+    </Stack>
   );
 }
 
