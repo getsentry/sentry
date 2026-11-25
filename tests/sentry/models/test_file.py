@@ -1,7 +1,7 @@
 import os
 from datetime import timedelta
+from hashlib import sha1
 from io import BytesIO
-from typing import IO
 from unittest.mock import MagicMock, Mock, patch
 from uuid import uuid4
 
@@ -44,6 +44,7 @@ class FileBlobTest(TestCase):
 
         pending = FileBlobPending.objects.get()
         assert pending.path == storage.save.call_args.args[0]
+        assert pending.checksum == sha1(b"foo bar").hexdigest()
         assert not FileBlob.objects.filter(path=pending.path).exists()
 
     def test_from_file_forgets_path_once_blob_exists(self) -> None:
@@ -74,22 +75,20 @@ class FileBlobTest(TestCase):
         first = ContentFile(b"first chunk")
         second = ContentFile(b"second chunk")
         storage = Mock()
+        storage.save.side_effect = ["aa/aaaa/first", OSError("disk full")]
 
-        def save(path: str, fileobj: IO[bytes]) -> str:
-            if storage.save.call_count == 2:
-                raise OSError("disk full")
-            return path
-
-        storage.save.side_effect = save
-
-        with patch("sentry.models.files.abstractfileblob.get_storage", return_value=storage):
+        with (
+            patch("sentry.models.files.abstractfileblob.get_storage", return_value=storage),
+            patch.object(
+                FileBlob, "generate_unique_path", side_effect=["aa/aaaa/first", "bb/bbbb/second"]
+            ),
+        ):
             with pytest.raises(OSError):
                 FileBlob.from_files([first, second])
 
-        first_path, second_path = (call.args[0] for call in storage.save.call_args_list)
-        assert FileBlob.objects.filter(path=first_path).exists()
-        assert not FileBlob.objects.filter(path=second_path).exists()
-        assert list(FileBlobPending.objects.values_list("path", flat=True)) == [second_path]
+        assert FileBlob.objects.filter(path="aa/aaaa/first").exists()
+        assert not FileBlob.objects.filter(path="bb/bbbb/second").exists()
+        assert list(FileBlobPending.objects.values_list("path", flat=True)) == ["bb/bbbb/second"]
 
     def test_generate_unique_path(self) -> None:
         path = FileBlob.generate_unique_path()

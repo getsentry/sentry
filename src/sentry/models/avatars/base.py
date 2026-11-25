@@ -155,16 +155,18 @@ class AvatarBase(Model):
             # access where new files should be stored.
             dummy = cls()
             file_class = dummy.file_class()
-            with atomic_transaction(using=router.db_for_write(file_class)):
-                photo = file_class.objects.create(name=filename, type=cls.FILE_TYPE)
-                # XXX: Avatar may come in as a string instance in python2
-                # if it's not wrapped in BytesIO.
-                if isinstance(avatar, str):
-                    avatar = BytesIO(force_bytes(avatar))
+            # The file is written with no transaction open. The blob model records
+            # each path it hands to storage, and a rollback would take that record
+            # with it and leave the bytes behind for good.
+            photo = file_class.objects.create(name=filename, type=cls.FILE_TYPE)
+            # XXX: Avatar may come in as a string instance in python2
+            # if it's not wrapped in BytesIO.
+            if isinstance(avatar, str):
+                avatar = BytesIO(force_bytes(avatar))
 
-                # XXX: Avatar processing may adjust file position; reset before saving.
-                avatar.seek(0)
-                photo.putfile(avatar)
+            # XXX: Avatar processing may adjust file position; reset before saving.
+            avatar.seek(0)
+            photo.putfile(avatar)
         else:
             photo = None
 

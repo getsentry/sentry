@@ -1,5 +1,6 @@
 import base64
 import logging
+import os
 import tempfile
 from hashlib import sha1
 from io import BufferedRandom
@@ -57,10 +58,6 @@ class AssembleChunkResult(NamedTuple):
     rows: list[dict[str, Any]]
     new_bytes_written: int
     bytes_written_after_chunk: int
-
-
-class ExportDataFileTooBig(Exception):
-    pass
 
 
 def _export_metric_tags(data_export: ExportedData) -> dict[str, str]:
@@ -694,36 +691,37 @@ def store_export_chunk_as_blob(
     fileobj: BufferedRandom,
     blob_size: int = DEFAULT_BLOB_SIZE,
 ) -> int:
-    try:
-        with atomic_transaction(
-            using=(
-                router.db_for_write(FileBlob),
-                router.db_for_write(ExportedDataBlob),
-            )
-        ):
-            # adapted from `putfile` in  `src/sentry/models/file.py`
-            bytes_offset = 0
-            while True:
-                contents = fileobj.read(blob_size)
-                if not contents:
-                    return bytes_offset
-
-                blob_fileobj = ContentFile(contents)
-                blob = FileBlob.from_file(blob_fileobj, logger=logger)
-                ExportedDataBlob.objects.get_or_create(
-                    data_export=data_export, blob_id=blob.id, offset=bytes_written + bytes_offset
-                )
-
-                assert blob.size is not None
-                bytes_offset += blob.size
-
-                # there is a maximum file size allowed, so we need to make sure we don't exceed it
-                # NOTE: there seems to be issues with downloading files larger than 1 GB on slower
-                # networks, limit the export to 1 GB for now to improve reliability
-                if bytes_written + bytes_offset >= min(MAX_FILE_SIZE, 2**30):
-                    raise ExportDataFileTooBig()
-    except ExportDataFileTooBig:
+    # there is a maximum file size allowed, so we need to make sure we don't exceed it
+    # NOTE: there seems to be issues with downloading files larger than 1 GB on slower
+    # networks, limit the export to 1 GB for now to improve reliability
+    # A chunk that crosses the limit is dropped before anything is uploaded, so it
+    # leaves no files in storage.
+    position = fileobj.tell()
+    chunk_size = fileobj.seek(0, os.SEEK_END) - position
+    fileobj.seek(position)
+    if bytes_written + chunk_size >= min(MAX_FILE_SIZE, 2**30):
         return 0
+
+    # adapted from `putfile` in  `src/sentry/models/file.py`
+    # The blobs are written outside of the transaction below. `FileBlob.from_file`
+    # records each path it hands to storage, and a rollback would take that record
+    # with it and leave the files behind for good.
+    blobs = []
+    while True:
+        contents = fileobj.read(blob_size)
+        if not contents:
+            break
+        blobs.append(FileBlob.from_file(ContentFile(contents), logger=logger))
+
+    bytes_offset = 0
+    with atomic_transaction(using=router.db_for_write(ExportedDataBlob)):
+        for blob in blobs:
+            ExportedDataBlob.objects.get_or_create(
+                data_export=data_export, blob_id=blob.id, offset=bytes_written + bytes_offset
+            )
+            assert blob.size is not None
+            bytes_offset += blob.size
+    return bytes_offset
 
 
 @instrumented_task(

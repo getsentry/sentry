@@ -121,6 +121,7 @@ from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.environment import Environment
 from sentry.models.files.control_file import ControlFile
 from sentry.models.files.file import File
+from sentry.models.files.fileblobpending import FileBlobPending
 from sentry.models.group import Group
 from sentry.models.grouphistory import GroupHistory
 from sentry.models.grouplink import GroupLink
@@ -1674,6 +1675,17 @@ class Factories:
     @assume_test_silo_mode(SiloMode.CELL)
     def create_file(**kwargs: Any) -> File:
         return File.objects.create(**kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_file_blob_pending(
+        path: str | None = None, checksum: str | None = None, **kwargs: Any
+    ) -> FileBlobPending:
+        if path is None:
+            path = uuid4().hex
+        if checksum is None:
+            checksum = sha1(uuid4().hex.encode("utf-8")).hexdigest()
+        return FileBlobPending.objects.create(path=path, checksum=checksum, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)

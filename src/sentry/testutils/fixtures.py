@@ -132,6 +132,7 @@ if TYPE_CHECKING:
     from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetQuery
     from sentry.models.debugfile import ProjectDebugFile
     from sentry.models.files.file import File
+    from sentry.models.files.fileblobpending import FileBlobPending
     from sentry.models.grouphistory import GroupHistory
     from sentry.models.grouplink import GroupLink
     from sentry.models.groupowner import GroupOwner
@@ -662,6 +663,9 @@ class Fixtures:
 
     def create_file(self, **kwargs: Any) -> File:
         return Factories.create_file(**kwargs)
+
+    def create_file_blob_pending(self, *args: Any, **kwargs: Any) -> FileBlobPending:
+        return Factories.create_file_blob_pending(*args, **kwargs)
 
     def create_data_forwarder(
         self, organization: Organization | None = None, *args: Any, **kwargs: Any

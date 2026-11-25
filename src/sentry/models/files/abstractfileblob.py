@@ -108,7 +108,7 @@ class AbstractFileBlob(Model, _Parent[BlobOwnerType]):
                 extra={"checksum": checksum, "size": size},
             )
             blob = cls(size=size, checksum=checksum)
-            blob.path = cls._save_to_storage(cls.generate_unique_path(), fileobj)
+            blob.path = cls._save_to_storage(cls.generate_unique_path(), fileobj, checksum)
             blobs_to_save.append(blob)
             metrics.distribution(
                 "filestore.blob-size", size, tags={"function": "from_files"}, unit="byte"
@@ -222,7 +222,7 @@ class AbstractFileBlob(Model, _Parent[BlobOwnerType]):
             return existing
 
         blob = cls(size=size, checksum=checksum)
-        saved_path = cls._save_to_storage(cls.generate_unique_path(), fileobj)
+        saved_path = cls._save_to_storage(cls.generate_unique_path(), fileobj, checksum)
         blob.path = saved_path
         try:
             with transaction.atomic(using=router.db_for_write(cls)):
@@ -241,7 +241,7 @@ class AbstractFileBlob(Model, _Parent[BlobOwnerType]):
         return blob
 
     @classmethod
-    def _save_to_storage(cls, path: str, fileobj: IO[bytes]) -> str:
+    def _save_to_storage(cls, path: str, fileobj: IO[bytes], checksum: str) -> str:
         """
         Write `fileobj` to `path` and return the path the storage used.
 
@@ -253,7 +253,7 @@ class AbstractFileBlob(Model, _Parent[BlobOwnerType]):
         record is only as durable as that transaction.
         """
         pending_model = cls._pending_model()
-        pending = pending_model.objects.create(path=path)
+        pending = pending_model.objects.create(path=path, checksum=checksum)
         storage = get_storage(cls._storage_config())
         saved_path = storage.save(path, fileobj)
         if saved_path != path:
