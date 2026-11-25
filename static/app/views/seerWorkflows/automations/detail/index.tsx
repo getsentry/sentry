@@ -270,7 +270,7 @@ export default function AutomationDetail() {
             manualRun.mutate(
               {userId: user.id},
               {
-                onSuccess: () => toast.success(t('Automation run started.')),
+                onSuccess: () => toast.success(t('Run started.')),
                 onError: error =>
                   toast.error(t('Unable to run. %s', getRequestErrorUserMessage(error))),
               }
