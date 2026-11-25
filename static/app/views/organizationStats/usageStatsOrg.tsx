@@ -639,6 +639,8 @@ export function UsageStatsOrganization({
       dataCategory: countDataCategory,
       droppedData: {
         dataset: clientDiscardCountCategory.dataset,
+        // Client discards are often a tiny share of all items, so show any of them
+        minHighlightRatio: Number.MIN_VALUE,
         ...getClientDiscardRows(
           clientDiscardCountCategory.countCategory.name,
           countStatsResponse.data

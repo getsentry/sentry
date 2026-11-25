@@ -77,8 +77,11 @@ export function groupIntoBuckets(
   return Array.from(drafts.values()).map(toBucket);
 }
 
-export function isHighlighted(bucket: DroppedDataBucket): boolean {
-  return bucket.ratio >= MIN_HIGHLIGHT_RATIO;
+export function isHighlighted(
+  bucket: DroppedDataBucket,
+  minRatio = MIN_HIGHLIGHT_RATIO
+): boolean {
+  return bucket.ratio >= minRatio;
 }
 
 export function hasDroppedData(
@@ -87,6 +90,6 @@ export function hasDroppedData(
 ): boolean {
   return (
     defined(droppedEvents) &&
-    groupIntoBuckets(droppedEvents, acceptedEvents).some(isHighlighted)
+    groupIntoBuckets(droppedEvents, acceptedEvents).some(bucket => isHighlighted(bucket))
   );
 }

@@ -41,6 +41,7 @@ interface DroppedDataBandParams {
   buckets: DroppedDataBucket[];
   dataset: DiscoverDatasets;
   theme: Theme;
+  minHighlightRatio?: number;
   onClick?: () => void;
 }
 
@@ -105,9 +106,10 @@ function bandGradient(
 function droppedDataRenderItem(
   data: DroppedDataItem[],
   bandOffset: number,
-  theme: Theme
+  theme: Theme,
+  minHighlightRatio?: number
 ): CustomSeriesRenderItem {
-  const highlighted = data.filter(isHighlighted);
+  const highlighted = data.filter(bucket => isHighlighted(bucket, minHighlightRatio));
 
   return function renderDroppedDataItem(params, api) {
     const bucket = data[params.dataIndex];
@@ -147,6 +149,7 @@ function droppedDataRenderItem(
 function createDroppedDataBand({
   buckets,
   dataset,
+  minHighlightRatio,
   onClick,
   theme,
 }: DroppedDataBandParams): ChartBand {
@@ -170,7 +173,7 @@ function createDroppedDataBand({
     },
     series: bandOffset => ({
       type: 'custom',
-      renderItem: droppedDataRenderItem(data, bandOffset, theme),
+      renderItem: droppedDataRenderItem(data, bandOffset, theme, minHighlightRatio),
       name: DROPPED_DATA_SERIES_ID,
       data,
       color: theme.tokens.dataviz.semantic.bad,
@@ -188,7 +191,8 @@ export function useDroppedDataBand({
   droppedData,
 }: UseDroppedDataBandParams): ChartBand | null {
   const theme = useTheme();
-  const {acceptedEvents, dataset, droppedEvents, onClick} = droppedData ?? {};
+  const {acceptedEvents, dataset, droppedEvents, minHighlightRatio, onClick} =
+    droppedData ?? {};
 
   const buckets = useMemo(
     () =>
@@ -197,13 +201,13 @@ export function useDroppedDataBand({
       ),
     [acceptedEvents, droppedEvents]
   );
-  const isVisible = buckets.some(isHighlighted);
+  const isVisible = buckets.some(bucket => isHighlighted(bucket, minHighlightRatio));
 
   return useMemo(
     () =>
       isVisible && defined(dataset)
-        ? createDroppedDataBand({buckets, dataset, onClick, theme})
+        ? createDroppedDataBand({buckets, dataset, minHighlightRatio, onClick, theme})
         : null,
-    [buckets, dataset, isVisible, onClick, theme]
+    [buckets, dataset, isVisible, minHighlightRatio, onClick, theme]
   );
 }

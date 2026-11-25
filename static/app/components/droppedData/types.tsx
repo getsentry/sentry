@@ -17,6 +17,10 @@ export interface DroppedDataProps {
   dataset: DiscoverDatasets;
   acceptedEvents?: OutcomeRow[];
   droppedEvents?: OutcomeRow[];
+  /**
+   * Smallest dropped share that highlights a bucket. Defaults to 0.1%.
+   */
+  minHighlightRatio?: number;
   onClick?: () => void;
 }
 
