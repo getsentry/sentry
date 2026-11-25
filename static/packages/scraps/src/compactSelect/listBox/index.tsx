@@ -285,6 +285,7 @@ export function ListBox<T extends ListItemBase>({
         )}
         <Container
           ref={refs}
+          data-test-id="compact-select-scroll-container"
           height="100%"
           overflowY="auto"
           className={className}
