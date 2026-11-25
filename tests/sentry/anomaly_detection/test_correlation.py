@@ -83,7 +83,7 @@ ARRIVAL_ORDERS = [
             SeriesKey(1, "production", Signal.ERROR_RATE, Metric.ERRORS_PER_REQUEST),
             SeriesKey(1, "production", Signal.FAILED_RATE, Metric.FAILED_PER_REQUEST),
         ),
-        (CHECKOUT, replace(CHECKOUT, metric=Metric.FAILURE_RATE)),
+        (CHECKOUT, CHECKOUT._replace(metric=Metric.FAILURE_RATE)),
     ],
 )
 def test_signal_aliases_are_one_piece_of_evidence(primary: SeriesKey, alias: SeriesKey) -> None:
@@ -101,7 +101,7 @@ def test_signal_aliases_are_one_piece_of_evidence(primary: SeriesKey, alias: Ser
 def test_same_slice_alias_requires_nearby_onsets() -> None:
     latency = _episode(CHECKOUT)
     failures = _episode(
-        replace(CHECKOUT, metric=Metric.FAILURE_RATE), START + timedelta(hours=6), ChangeType.SPIKE
+        CHECKOUT._replace(metric=Metric.FAILURE_RATE), START + timedelta(hours=6), ChangeType.SPIKE
     )
     correlator = Correlator()
     (opened,) = correlator.step(latency.start, [("open", latency)])
@@ -162,7 +162,7 @@ def test_service_total_without_footprint_links_its_slice_by_timing(
     footprint: FootprintResult,
 ) -> None:
     total = SeriesKey(1, "production", Signal.FAILED_RATE, Metric.FAILED_PER_REQUEST)
-    part = _episode(replace(CHECKOUT, metric=Metric.FAILURE_RATE), change_type=ChangeType.SPIKE)
+    part = _episode(CHECKOUT._replace(metric=Metric.FAILURE_RATE), change_type=ChangeType.SPIKE)
     total_event = _episode(total, START + MINUTE, ChangeType.SPIKE)
     correlator = Correlator(_Traces({total: footprint}))
     opened = correlator.step(part.start, [("open", part)])[0]
@@ -201,7 +201,7 @@ def test_routine_downstream_change_supports_source_promoted_on_escalation(
     correlator = Correlator(_Traces({CHECKOUT: _checkout_footprint()}))
     escalated_at = START + 40 * MINUTE
     checkout, orders = _episode(CHECKOUT), _episode(ORDERS, escalated_at)
-    checkout.novelty = {"unusual_since": escalated_at, "opened_on_escalation": True}
+    checkout.unusual_since = escalated_at
     arrivals: list[ChangeAction] = [("latent", orders), ("open", checkout)]
     correlator.step(escalated_at, [arrivals[order[0]]])
     actions = correlator.step(escalated_at + MINUTE, [arrivals[order[1]]])
@@ -244,7 +244,7 @@ def test_latent_escalation_sets_urgency_when_opening_without_a_group() -> None:
     event = _episode(rate, change_type=ChangeType.SPIKE)
     correlator = Correlator()
     assert not correlator.step(START, [("latent", event)])
-    event.novelty = {"opened_on_escalation": True}
+    event.unusual_since = START + MINUTE
 
     actions = correlator.step(START + MINUTE, [("open", event)])
 
@@ -275,7 +275,7 @@ def test_common_cause_merges_groups_and_remaps_members() -> None:
 
 
 def test_merge_carries_sustained_urgency_after_recovery() -> None:
-    dependency_key = replace(ORDERS, project_id=CHECKOUT.project_id)
+    dependency_key = ORDERS._replace(project_id=CHECKOUT.project_id)
     correlator = Correlator(_Traces({CHECKOUT: _checkout_footprint(dependency_key)}))
     checkout = _episode(CHECKOUT)
     (opened,) = correlator.step(START, [("open", checkout)])
@@ -303,14 +303,13 @@ def test_merge_carries_sustained_urgency_after_recovery() -> None:
     ("second_issue_id", "expected_action", "group_count"),
     [(123, "join", 1), (456, "open", 2)],
 )
-def test_same_issue_matches_structured_identity_not_display_evidence(
+def test_same_issue_matches_structured_issue_ids(
     second_issue_id: int, expected_action: str, group_count: int
 ) -> None:
     first = _episode(CHECKOUT)
-    second = _episode(replace(CHECKOUT, env="staging"), START + MINUTE)
+    second = _episode(CHECKOUT._replace(env="staging"), START + MINUTE)
     first.issue_ids = (123,)
     second.issue_ids = (second_issue_id,)
-    first.evidence = second.evidence = ["issues:999"]
     correlator = Correlator()
     (opened,) = correlator.step(first.start, [("open", first)])
 
@@ -393,8 +392,8 @@ class _SharedLatent:
     project's database has the same name. ORDERS and the namesake are already open."""
 
     def __init__(self) -> None:
-        replica = replace(ORDERS, project_id=3)
-        support_key = replace(ORDERS, project_id=4)
+        replica = ORDERS._replace(project_id=3)
+        support_key = ORDERS._replace(project_id=4)
         support_slice = DependencySlice(
             service_of(support_key), support_key.signal, support_key.dim_value
         )
@@ -408,7 +407,7 @@ class _SharedLatent:
         self.correlator = Correlator()
         self.first, self.second = _episode(ORDERS), _episode(replica)
         self.support = _episode(support_key)
-        namesake = _episode(replace(ORDERS, project_id=5))
+        namesake = _episode(ORDERS._replace(project_id=5))
         self.correlator.step(START, [("open", namesake), ("open", self.first)])
 
     def assert_bridged(self, actions: list[GroupAction]) -> None:

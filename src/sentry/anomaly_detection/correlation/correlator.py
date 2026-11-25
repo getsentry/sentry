@@ -6,7 +6,7 @@ import hashlib
 from collections import Counter, defaultdict
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from typing import Literal, Protocol
 
 from sentry.anomaly_detection.contracts import (
@@ -185,11 +185,7 @@ class Correlator:
             elif action == "open" and owner is None:
                 self.state.latent.pop(key, None)
                 opened.append(
-                    MemberState(
-                        event,
-                        event.open_ratio,
-                        escalated=bool((event.novelty or {}).get("opened_on_escalation")),
-                    )
+                    MemberState(event, event.open_ratio, escalated=event.unusual_since is not None)
                 )
             elif owner is not None and action in ("open", "escalate") and owner.closed_at is None:
                 member = owner.members[key]
@@ -204,7 +200,7 @@ class Correlator:
                     member.escalated = True
                 else:
                     member.ratio = event.open_ratio
-                    member.escalated = bool((event.novelty or {}).get("opened_on_escalation"))
+                    member.escalated = event.unusual_since is not None
                 owner.last_activity = t
                 emit(owner, "update", event)
                 self._update_group(t, owner, emit)
@@ -803,7 +799,6 @@ def urgency(
 
 def _group_id(event: ChangeEvent) -> AnomalyGroupKey:
     key = event.key
-    start = event.start.astimezone(UTC) if event.start.tzinfo else event.start.replace(tzinfo=UTC)
     # Hash the project as a string: group keys predate integer project IDs, and
     # detector state of active groups must survive checkpoint format changes.
     identity = (
@@ -813,7 +808,7 @@ def _group_id(event: ChangeEvent) -> AnomalyGroupKey:
         key.metric,
         key.dim_value,
         event.change_type,
-        start.isoformat(),
+        event.start.isoformat(),
     )
     return AnomalyGroupKey(hashlib.sha256(json.dumps(identity).encode()).hexdigest()[:32])
 

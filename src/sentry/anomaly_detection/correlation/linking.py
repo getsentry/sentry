@@ -361,8 +361,7 @@ def _error_path(source: SeriesKey, target: SeriesKey, footprint: Footprint) -> b
 
 
 def onset(event: ChangeEvent) -> datetime:
-    unusual_since = (event.novelty or {}).get("unusual_since")
-    return unusual_since if isinstance(unusual_since, datetime) else event.start
+    return event.unusual_since or event.start
 
 
 def worse_near(
