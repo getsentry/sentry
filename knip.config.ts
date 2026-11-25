@@ -87,7 +87,6 @@ const config: KnipConfig = {
       entry: [
         ...productionEntryPoints.map(entry => `${entry}!`),
         ...frontendWorkspace.entry,
-        'views/dashboards/widgetBuilder/components/visualize/traceMetrics/rowModel.ts!',
         '**/__mocks__/**/*.{js,ts,tsx}',
         '**/*.snapshots.tsx',
         '**/*.stories.{js,ts,tsx}',

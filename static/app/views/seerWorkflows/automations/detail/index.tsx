@@ -23,10 +23,12 @@ import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct, tn} from 'sentry/locale';
+import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {useUser} from 'sentry/utils/useUser';
 import {useUserFromId} from 'sentry/utils/useUserFromId';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
@@ -39,6 +41,7 @@ import {
   useDeleteConfig,
   useFetchConfigs,
   useIsUpdatingConfig,
+  useManualRun,
   useUpdateConfig,
 } from 'sentry/views/seerWorkflows/automations/hooks/configs';
 import {STRATEGY_META} from 'sentry/views/seerWorkflows/strategies';
@@ -79,6 +82,8 @@ export default function AutomationDetail() {
   const updateConfig = useUpdateConfig({configId: automationId});
   const deleteConfig = useDeleteConfig({configId: automationId});
   const isUpdatingConfig = useIsUpdatingConfig({configId: automationId});
+  const manualRun = useManualRun({configId: automationId});
+  const user = useUser();
   const [isConfiguring, setIsConfiguring] = useState(false);
   const [draftName, setDraftName] = useState('');
   const [formHasChanges, setFormHasChanges] = useState(false);
@@ -257,6 +262,24 @@ export default function AutomationDetail() {
           )
         }
       />
+      {config.strategy === 'scheduled_investigation' && (
+        <Button
+          size="sm"
+          busy={manualRun.isPending}
+          onClick={() =>
+            manualRun.mutate(
+              {userId: user.id},
+              {
+                onSuccess: () => toast.success(t('Run started.')),
+                onError: error =>
+                  toast.error(t('Unable to run. %s', getRequestErrorUserMessage(error))),
+              }
+            )
+          }
+        >
+          {t('Run now')}
+        </Button>
+      )}
       <Button
         size="sm"
         variant="primary"

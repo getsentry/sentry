@@ -3,9 +3,11 @@ import uuid
 from rest_framework import status
 from rest_framework.response import Response
 
+from sentry.auth.access import from_user
 from sentry.seer.endpoints.utils import ResolvedSeerRun, resolve_seer_run
-from sentry.seer.models.run import SeerRunMirrorStatus
+from sentry.seer.models.run import SeerAgentRun, SeerRunMirrorStatus
 from sentry.testutils.cases import TestCase
+from sentry.users.models.user import User
 
 
 class ResolveSeerRunTest(TestCase):
@@ -167,3 +169,130 @@ class ResolveSeerRunTest(TestCase):
 
         assert isinstance(result, Response)
         assert result.status_code == status.HTTP_400_BAD_REQUEST
+
+
+class AuthorizeSeerRunTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.owner = self.create_user()
+        self.teammate = self.create_user()
+        self.create_member(organization=self.organization, user=self.owner, teams=[self.team])
+        self.create_member(organization=self.organization, user=self.teammate, teams=[self.team])
+        self.group = self.create_group(project=self.project)
+
+    def _issue_run(self, user_id: int | None) -> None:
+        run = self.create_seer_run(seer_run_state_id=555, user_id=user_id)
+        self.create_seer_agent_run(run=run, source="autofix", group=self.group)
+
+    def _authorize(
+        self,
+        user: User,
+        *,
+        scopes: set[str] | None = None,
+        publish: bool = False,
+        run_id: str = "555",
+    ) -> ResolvedSeerRun | Response:
+        return resolve_seer_run(
+            run_id,
+            self.organization,
+            for_continue=True,
+            user_id=user.id,
+            access=from_user(user, self.organization, scopes=scopes),
+            publish=publish,
+        )
+
+    def _assert_forbidden(self, result: ResolvedSeerRun | Response) -> None:
+        assert isinstance(result, Response)
+        assert result.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_issue_run_teammate_with_run_scope_allowed(self) -> None:
+        self._issue_run(self.owner.id)
+
+        assert isinstance(self._authorize(self.teammate), ResolvedSeerRun)
+
+    def test_issue_run_ownerless_teammate_allowed(self) -> None:
+        self._issue_run(None)
+
+        assert isinstance(self._authorize(self.teammate), ResolvedSeerRun)
+
+    def test_issue_run_member_without_run_scope_forbidden(self) -> None:
+        self._issue_run(self.owner.id)
+
+        self._assert_forbidden(
+            self._authorize(self.teammate, scopes={"org:read", "project:read", "event:read"})
+        )
+
+    def test_issue_run_owner_without_run_scope_allowed(self) -> None:
+        self._issue_run(self.owner.id)
+
+        result = self._authorize(self.owner, scopes={"org:read", "event:read"})
+
+        assert isinstance(result, ResolvedSeerRun)
+
+    def test_issue_run_no_project_access_forbidden(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        outsider = self.create_user()
+        self.create_member(organization=self.organization, user=outsider, teams=[])
+        self._issue_run(self.owner.id)
+
+        self._assert_forbidden(self._authorize(outsider))
+
+    def test_ownerless_run_with_deleted_group_forbidden(self) -> None:
+        self._issue_run(None)
+        SeerAgentRun.objects.filter(run__seer_run_state_id=555).update(group_id=10**12)
+
+        self._assert_forbidden(self._authorize(self.teammate))
+
+    def test_publishing_on_issue_run_needs_owner_or_publish_scope(self) -> None:
+        self._issue_run(self.owner.id)
+        seer_only = {"org:read", "project:read", "seer:write"}
+
+        assert isinstance(self._authorize(self.teammate, scopes=seer_only), ResolvedSeerRun)
+        self._assert_forbidden(self._authorize(self.teammate, scopes=seer_only, publish=True))
+        assert isinstance(self._authorize(self.teammate, publish=True), ResolvedSeerRun)
+        assert isinstance(
+            self._authorize(self.owner, scopes=seer_only, publish=True), ResolvedSeerRun
+        )
+
+    def test_personal_chat_owner_only(self) -> None:
+        self.create_seer_run(seer_run_state_id=555, user_id=self.owner.id)
+
+        assert isinstance(self._authorize(self.owner), ResolvedSeerRun)
+        self._assert_forbidden(self._authorize(self.teammate))
+
+    def test_owned_project_chat_stays_owner_only(self) -> None:
+        run = self.create_seer_run(seer_run_state_id=555, user_id=self.owner.id)
+        self.create_seer_agent_run(run=run, source="chat", project=self.project)
+
+        self._assert_forbidden(self._authorize(self.teammate))
+
+    def test_ownerless_automated_run_needs_run_scope(self) -> None:
+        self.create_seer_run(seer_run_state_id=555, user_id=None)
+
+        assert isinstance(self._authorize(self.teammate), ResolvedSeerRun)
+        self._assert_forbidden(
+            self._authorize(self.teammate, scopes={"org:read", "project:read", "event:read"})
+        )
+
+    def test_ownerless_project_run_needs_project_access(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        outsider = self.create_user()
+        self.create_member(organization=self.organization, user=outsider, teams=[])
+        run = self.create_seer_run(seer_run_state_id=555, user_id=None)
+        self.create_seer_agent_run(run=run, source="investigation", project=self.project)
+
+        assert isinstance(self._authorize(self.teammate), ResolvedSeerRun)
+        self._assert_forbidden(self._authorize(outsider))
+
+    def test_legacy_numeric_id_without_row_forbidden(self) -> None:
+        self._assert_forbidden(self._authorize(self.owner))
+
+    def test_pending_personal_chat_forbidden_before_status(self) -> None:
+        run = self.create_seer_run(user_id=self.owner.id, seer_run_state_id=None)
+
+        self._assert_forbidden(self._authorize(self.teammate, run_id=str(run.uuid)))
+        result = self._authorize(self.owner, run_id=str(run.uuid))
+        assert isinstance(result, Response)
+        assert result.status_code == status.HTTP_409_CONFLICT

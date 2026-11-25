@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 from sentry.issues.grouptype import GroupCategory, GroupType
 from sentry.workflow_engine.registry import detector_settings_registry
-from sentry.workflow_engine.types import DetectorAPIOperation, DetectorSettings, DetectorType
+from sentry.workflow_engine.types import DetectorSettings, DetectorType, WorkflowEngineAPIOperation
 
 
 # hidden group type, used for issue stream detector
@@ -25,7 +25,7 @@ class IssueStreamGroupType(GroupType):
 class IssueStreamDetectorSettings(DetectorSettings):
     api_availability = {
         **DetectorSettings.DEFAULT_API_AVAILABILITY,
-        DetectorAPIOperation.DISCOVER: False,
+        WorkflowEngineAPIOperation.DISCOVER: False,
     }
     config_schema = {
         "$schema": "https://json-schema.org/draft/2020-12/schema",

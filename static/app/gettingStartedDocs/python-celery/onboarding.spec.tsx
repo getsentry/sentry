@@ -74,7 +74,7 @@ describe('celery onboarding docs', () => {
     renderWithOnboardingLayout(docs, {selectedProducts: [ProductSolution.LOGS]});
 
     const logMatches = screen.getAllByText(
-      textWithMarkupMatcher(/LoggingIntegration\(capture_sentry_logs=True\)/)
+      textWithMarkupMatcher(/LoggingIntegration\(\),/)
     );
     expect(logMatches.length).toBeGreaterThan(0);
     logMatches.forEach(match => expect(match).toBeInTheDocument());
@@ -84,9 +84,7 @@ describe('celery onboarding docs', () => {
     renderWithOnboardingLayout(docs, {selectedProducts: []});
 
     expect(
-      screen.queryByText(
-        textWithMarkupMatcher(/LoggingIntegration\(capture_sentry_logs=True\)/)
-      )
+      screen.queryByText(textWithMarkupMatcher(/LoggingIntegration\(\),/))
     ).not.toBeInTheDocument();
   });
 

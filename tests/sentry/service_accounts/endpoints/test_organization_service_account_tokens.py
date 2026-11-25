@@ -466,6 +466,42 @@ class OrganizationServiceAccountTokenIndexTest(ServiceAccountTokenTestCase):
                 self.organization.slug, self.service_account.id, status_code=404
             )
 
+    def test_create_after_concurrent_delete_returns_404(self) -> None:
+        convert_args = OrganizationServiceAccountTokenIndexEndpoint.convert_args
+        service_account_id = self.service_account.id
+
+        def convert_args_then_delete(
+            endpoint: OrganizationServiceAccountTokenIndexEndpoint,
+            request: Request,
+            *args: Any,
+            **kwargs: Any,
+        ) -> tuple[tuple[Any, ...], dict[str, Any]]:
+            args, kwargs = convert_args(endpoint, request, *args, **kwargs)
+            ServiceAccount.objects.get(id=service_account_id).deactivate()
+            return args, kwargs
+
+        with (
+            mock.patch.object(
+                OrganizationServiceAccountTokenIndexEndpoint,
+                "convert_args",
+                autospec=True,
+                side_effect=convert_args_then_delete,
+            ),
+            self.feature(FEATURE_FLAG),
+        ):
+            self.get_error_response(
+                self.organization.slug,
+                service_account_id,
+                method="post",
+                name="deploys",
+                scopes=["org:read"],
+                status_code=404,
+            )
+
+        assert not ServiceAccountToken.objects.filter(
+            service_account_id=service_account_id
+        ).exists()
+
 
 @control_silo_test
 class OrganizationServiceAccountTokenDetailsTest(ServiceAccountTokenTestCase):

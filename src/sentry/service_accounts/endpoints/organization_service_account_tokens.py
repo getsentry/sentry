@@ -49,6 +49,7 @@ from sentry.organizations.services.organization import (
     RpcUserOrganizationContext,
 )
 from sentry.seer.agent_token import is_agent_auth
+from sentry.service_accounts.audit import token_audit_log_data
 from sentry.service_accounts.endpoints.organization_service_accounts import (
     SERVICE_ACCOUNT_ID,
     ServiceAccountPermission,
@@ -148,16 +149,6 @@ class ServiceAccountTokenCreateSerializer(serializers.Serializer):
 class DisallowAgentTokenWrites(BasePermission):
     def has_permission(self, request: Request, view: object) -> bool:
         return request.method in SAFE_METHODS or not is_agent_auth(request.auth)
-
-
-def _audit_log_data(service_account: ServiceAccount, token: ServiceAccountToken) -> dict[str, Any]:
-    # Never the token or its hash.
-    return {
-        "name": token.name,
-        "scopes": sorted(token.scope_list),
-        "service_account_id": service_account.id,
-        "service_account_name": service_account.name,
-    }
 
 
 class ServiceAccountTokenEndpointBase(ServiceAccountScopedEndpointBase):
@@ -267,6 +258,15 @@ class OrganizationServiceAccountTokenIndexEndpoint(ServiceAccountTokenEndpointBa
         try:
             # Binds `token` before the flush runs, so it's set when only replication fails.
             with outbox_context(transaction.atomic(using=router.db_for_write(ServiceAccountToken))):
+                # Locks out a concurrent delete, which deactivates the account's tokens under
+                # the same lock, so it can't miss this one.
+                if (
+                    ServiceAccount.objects.select_for_update().get_or_none(
+                        id=service_account.id, is_active=True
+                    )
+                    is None
+                ):
+                    raise ResourceDoesNotExist
                 token = ServiceAccountToken.objects.create(
                     service_account=service_account,
                     organization_id=organization.id,
@@ -293,7 +293,7 @@ class OrganizationServiceAccountTokenIndexEndpoint(ServiceAccountTokenEndpointBa
             organization=organization,
             target_object=token.id,
             event=audit_log.get_event_id("SERVICE_ACCOUNT_TOKEN_ADD"),
-            data=_audit_log_data(service_account, token),
+            data=token_audit_log_data(service_account, token),
         )
         response: ServiceAccountTokenResponse = serialize(
             token, request.user, serializer=ServiceAccountTokenSerializer()
@@ -359,6 +359,6 @@ class OrganizationServiceAccountTokenDetailsEndpoint(ServiceAccountTokenEndpoint
             organization=organization,
             target_object=token.id,
             event=audit_log.get_event_id("SERVICE_ACCOUNT_TOKEN_REMOVE"),
-            data=_audit_log_data(service_account, token),
+            data=token_audit_log_data(service_account, token),
         )
         return Response(status=204)

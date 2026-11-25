@@ -747,6 +747,15 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
       'Choose which steps Seer should run automatically on issues. Depending on how actionable the issue is, Seer may stop at an earlier step.'
     ),
   },
+  'autofix-agent.openPrs': {
+    name: 'openPrs',
+    formId: 'autofix-agent',
+    route: '/settings/:orgId/projects/:projectId/seer',
+    label: t('Open PRs'),
+    hintText: t(
+      'When Seer finds a fix, it opens a PR. You can still ask Seer to open a PR when this is off.'
+    ),
+  },
   'autofix-agent.prIteration': {
     name: 'prIteration',
     formId: 'autofix-agent',

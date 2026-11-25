@@ -44,6 +44,16 @@ class SocketTest(TestCase):
         is_ipaddress_allowed.cache_clear()
         assert is_ipaddress_allowed("::ffff:10.0.0.1") is True
 
+    def test_is_ipaddress_blocked_default(self) -> None:
+        is_ipaddress_allowed.cache_clear()
+        assert is_ipaddress_allowed("::") is False
+        assert is_ipaddress_allowed("::1") is False
+        assert is_ipaddress_allowed("::127.0.0.1") is False
+        assert is_ipaddress_allowed("::ffff:10.0.0.1") is False
+        assert is_ipaddress_allowed("::ffff:0:10.0.0.1") is False
+        assert is_ipaddress_allowed("fec0::1") is False
+        assert is_ipaddress_allowed("2606:4700:4700::1111") is True
+
     @override_blocklist("10.0.0.0/8", "127.0.0.1")
     @patch("socket.getaddrinfo")
     def test_is_safe_hostname(self, mock_getaddrinfo: MagicMock) -> None:
