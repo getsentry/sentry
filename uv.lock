@@ -2271,7 +2271,6 @@ dependencies = [
     { name = "structlog" },
     { name = "symbolic" },
     { name = "taskbroker-client" },
-    { name = "tiktoken" },
     { name = "tldextract" },
     { name = "tokenizers" },
     { name = "toronado" },
@@ -2444,7 +2443,6 @@ requires-dist = [
     { name = "structlog", specifier = ">=22.1.0" },
     { name = "symbolic", specifier = ">=14.0.0a4" },
     { name = "taskbroker-client", specifier = ">=0.20.38" },
-    { name = "tiktoken", specifier = ">=0.8.0" },
     { name = "tldextract", specifier = ">=5.1.2" },
     { name = "tokenizers", specifier = ">=0.22.0" },
     { name = "toronado", specifier = ">=0.1.0" },
@@ -2868,21 +2866,6 @@ dependencies = [
 ]
 wheels = [
     { url = "https://pypi.devinfra.sentry.io/wheels/textual-0.89.1-py3-none-any.whl", hash = "sha256:0a5d214df6e951b4a2c421e13d0b608482882471c1e34ea74a3631adede8054f" },
-]
-
-[[package]]
-name = "tiktoken"
-version = "0.8.0"
-source = { registry = "https://pypi.devinfra.sentry.io/simple" }
-dependencies = [
-    { name = "regex" },
-    { name = "requests" },
-]
-wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/tiktoken-0.8.0-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:02be1666096aff7da6cbd7cdaa8e7917bfed3467cd64b38b1f112e96d3b06a24" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/tiktoken-0.8.0-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:c94ff53c5c74b535b2cbf431d907fc13c678bbd009ee633a2aca269a04389f9a" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/tiktoken-0.8.0-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:6b231f5e8982c245ee3065cd84a4712d64692348bc609d84467c57b4b72dcbc5" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/tiktoken-0.8.0-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:4177faa809bd55f699e88c96d9bb4635d22e3f59d635ba6fd9ffedf7150b9953" },
 ]
 
 [[package]]
