@@ -14,6 +14,7 @@ from sentry_sdk import traces
 from snuba_sdk import Request
 from taskbroker_client.retry import Retry
 
+from sentry import deletions
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.search.events.types import ParamsType
 from sentry.snuba.dataset import Dataset, EntityKey
@@ -204,14 +205,14 @@ def delete_subscription_from_snuba(query_subscription_id: int, **kwargs: Any) ->
         metrics.incr("snuba.subscriptions.delete.incorrect_status")
         return
 
+    remove_remote_subscription(subscription)
     if subscription.status == QuerySubscription.Status.DELETING.value:
-        delete_query_subscription(subscription)
+        deletions.exec_sync(subscription)
     else:
-        _remove_remote_subscription(subscription)
         subscription.update(subscription_id=None)
 
 
-def _remove_remote_subscription(subscription: QuerySubscription) -> None:
+def remove_remote_subscription(subscription: QuerySubscription) -> None:
     if subscription.subscription_id is None:
         return
     dataset = Dataset(subscription.snuba_query.dataset)
@@ -222,23 +223,6 @@ def _remove_remote_subscription(subscription: QuerySubscription) -> None:
     entity_key = _get_entity_key_for_delete(subscription, "delete")
     if entity_key is not None:
         _delete_from_snuba(dataset, subscription.subscription_id, entity_key)
-
-
-def delete_query_subscription(subscription: QuerySubscription) -> None:
-    from sentry.incidents.models.alert_rule import AlertRule
-
-    _remove_remote_subscription(subscription)
-    with transaction.atomic(using=router.db_for_write(SnubaQuery)):
-        # Serialize the last-subscription check when several subscriptions share a query.
-        query = SnubaQuery.objects.select_for_update().get_or_none(id=subscription.snuba_query_id)
-        if query is None:
-            return
-        subscription.delete()
-        if (
-            not query.subscriptions.exists()
-            and not AlertRule.objects_with_snapshots.filter(snuba_query_id=query.id).exists()
-        ):
-            query.delete()
 
 
 def _record_unresolved_entity_key(action: str) -> None:
