@@ -751,7 +751,20 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
         """IDs of other conversations with spans in the conversation's traces.
 
         Best-effort: a failed lookup must not break listing the conversation spans.
+
+        Records the lookup's inputs and outcome on its span, so its duration can be
+        broken down by how many traces it scanned and over what time window.
         """
+        span = traces.get_current_span()
+        if span:
+            span.set_attributes(
+                {
+                    "ai_conversations.related.trace_count": len(trace_ids),
+                    "ai_conversations.related.traces_capped": len(trace_ids) >= MAX_RELATED_TRACES,
+                    "ai_conversations.related.window_days": snuba_params.date_range.total_seconds()
+                    / 86400,
+                }
+            )
         metrics.distribution(
             "ai_monitoring.conversation_details.related_traces_scanned", len(trace_ids)
         )
@@ -762,8 +775,18 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
             if trace_ids
             else []
         )
+        if span:
+            span.set_attribute("ai_conversations.related.lookup_failed", related_ids is None)
         if related_ids is None:
             return []
+        if span:
+            span.set_attributes(
+                {
+                    "ai_conversations.related.conversation_count": len(related_ids),
+                    "ai_conversations.related.conversations_capped": len(related_ids)
+                    >= MAX_RELATED_CONVERSATIONS,
+                }
+            )
         metrics.distribution(
             "ai_monitoring.conversation_details.related_conversations_returned",
             len(related_ids),
