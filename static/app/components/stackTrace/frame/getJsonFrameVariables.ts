@@ -58,7 +58,8 @@ function toNativeVariable(
       ...pointer,
       meta: isRecord(collectionMeta) ? (collectionMeta as Partial<Meta>) : base.meta,
       kind: 'object',
-      // Keep the order of the payload, Symbolicator lists members in declaration order.
+      // Keep the order of the payload. Symbolicator lists members in declaration order,
+      // but Relay sorts the keys of a stored event, so they arrive in alphabetical order.
       children: Object.entries(value.members).map(([memberName, member]) =>
         toNativeMember(memberName, member, membersMeta?.[memberName])
       ),

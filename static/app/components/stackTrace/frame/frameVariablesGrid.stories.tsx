@@ -44,10 +44,13 @@ const extractedNativeVariables = {
     kind: 'parameter',
     type: 'Player*',
     pointer_address: ['0x000000016b29a450'],
+    // Members are in alphabetical order, as Relay stores them.
     members: {
+      health: {type: 'float', value: -5.5},
       id: {type: 'int', value: 1},
+      inventory: {type: 'int*', pointer_address: ['0x000000016b29a540'], value: 42},
+      inventory_count: {type: 'size_t', value: 5},
       name: {type: ''},
-      status: {type: 'RequestStatus'},
       position: {
         type: 'Vec3',
         members: {
@@ -56,9 +59,7 @@ const extractedNativeVariables = {
           z: {type: 'double', value: 50},
         },
       },
-      health: {type: 'float', value: -5.5},
-      inventory: {type: 'int*', pointer_address: ['0x000000016b29a540'], value: 42},
-      inventory_count: {type: 'size_t', value: 5},
+      status: {type: 'RequestStatus'},
     },
   },
   health_ptr: {

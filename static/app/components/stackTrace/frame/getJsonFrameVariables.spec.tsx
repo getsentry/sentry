@@ -243,7 +243,8 @@ describe('native variables extracted by Symbolicator', () => {
       type: 'Player*',
       kind: 'object',
       pointerAddresses: ['0x000000016b29a450'],
-      // Members keep the order of the payload.
+      // Members are not sorted again, they keep the order of the payload. On a stored
+      // event that order is alphabetical, because Relay sorts the keys.
       children: [
         {name: 'id', type: 'int', kind: 'number', value: '1'},
         {name: 'health', type: 'float', kind: 'number', value: '-5.5'},
