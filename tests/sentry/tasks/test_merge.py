@@ -16,7 +16,6 @@ from sentry.tasks.merge import merge_groups, start_merge_groups
 from sentry.tasks.post_process import fetch_buffered_group_stats
 from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
 from sentry.testutils.cases import SnubaTestCase, TestCase
-from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.redis import mock_redis_buffer
 from sentry.utils import redis
@@ -42,7 +41,7 @@ class MergeGroupTest(TestCase, SnubaTestCase):
     def test_sampling_failure_still_sends_end_message(self) -> None:
         source = self.create_group()
         survivor = self.create_group()
-        operation = Factories.create_issue_merge_operation(self.project, [source.id], survivor.id)
+        operation = self.create_issue_merge_operation([source.id], survivor.id)
         state = {"previous_group_ids": [source.id]}
         cutoff = before_now(seconds=1)
         with (
@@ -65,7 +64,7 @@ class MergeGroupTest(TestCase, SnubaTestCase):
     def test_merge_without_an_end_message_needs_attention(self) -> None:
         source = self.create_group()
         survivor = self.create_group()
-        operation = Factories.create_issue_merge_operation(self.project, [source.id], survivor.id)
+        operation = self.create_issue_merge_operation([source.id], survivor.id)
         with self.tasks(), patch.object(eventstream.backend, "end_merge") as send:
             merge_groups([source.id], survivor.id, operation_id=operation.id)
         send.assert_not_called()

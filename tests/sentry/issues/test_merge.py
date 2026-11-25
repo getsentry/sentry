@@ -9,6 +9,7 @@ from django.utils import timezone
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.issues.merge import handle_merge
 from sentry.issues.models.issuemergeoperation import (
+    IssueMergeOperation,
     IssueUnmergeOperation,
     OperationStatus,
     OperationStep,
