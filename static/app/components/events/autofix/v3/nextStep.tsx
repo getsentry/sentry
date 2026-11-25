@@ -579,16 +579,14 @@ function NextStepTemplate({
         )}
         <ButtonBar>
           {yesButton}
-          {onCodingAgentHandoff ? (
-            // Held in place, disabled, until the agents load and the credit check
-            // answers, so it neither pops in late nor enables before the buttons.
+          {codingAgentIntegrations === undefined || !onCodingAgentHandoff ? null : (
             <CodingAgentDropdown
-              integrations={codingAgentIntegrations ?? []}
-              disabledReason={codingAgentIntegrations && codingAgentDisabledReason}
-              isProcessing={isProcessing || creditsDisabled || !codingAgentIntegrations}
+              integrations={codingAgentIntegrations}
+              disabledReason={codingAgentDisabledReason}
+              isProcessing={isProcessing || creditsDisabled}
               onHandoff={onCodingAgentHandoff}
             />
-          ) : null}
+          )}
         </ButtonBar>
       </Flex>
     </Stack>

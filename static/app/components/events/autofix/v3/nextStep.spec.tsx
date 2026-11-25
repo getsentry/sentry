@@ -1377,10 +1377,9 @@ describe('SeerDrawerNextStep', () => {
 
       expect(screen.getByRole('button', {name: 'Yes, make a plan'})).toBeDisabled();
       expect(screen.getByRole('button', {name: 'No'})).toBeDisabled();
-      // Nothing else on screen waits on the check.
       expect(
         await screen.findByRole('button', {name: 'More code fix options'})
-      ).toBeEnabled();
+      ).toBeDisabled();
     });
 
     it('disables the coding agent hand-off when the step is unaffordable', async () => {
