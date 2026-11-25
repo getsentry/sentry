@@ -63,6 +63,10 @@ interface SyncArgs {
 
 const NEW_API_FINDINGS_MARKER = '<!-- NEW_API_FINDINGS -->';
 
+// keeps the comment well under githubs character limit since a renamed file's
+// findings all show as new
+const MAX_LISTED = 50;
+
 /**
  * The findings the check wrote. The check doesn't write the file when it had
  * nothing to scan, which means there's nothing to report.
@@ -84,16 +88,22 @@ function findingsBody(
   findings: Finding[],
   owner: string,
   repo: string,
-  sha: string
+  sha: string,
+  runUrl: string
 ): string {
-  const lines = findings.map(
-    finding =>
-      `- [${finding.path}:${finding.line}](https://github.com/${owner}/${repo}/blob/${sha}/${finding.path}#L${finding.line}) ${finding.rule} ${finding.summary}`
-  );
+  const lines = findings
+    .slice(0, MAX_LISTED)
+    .map(
+      finding =>
+        `- [${finding.path}:${finding.line}](https://github.com/${owner}/${repo}/blob/${sha}/${finding.path}#L${finding.line}) ${finding.rule} ${finding.summary}`
+    );
   const count =
     findings.length === 1
       ? "1 API finding in this PR's changed files isn't"
       : `${findings.length} API findings in this PR's changed files aren't`;
+  if (findings.length > MAX_LISTED) {
+    lines.push(`- and ${findings.length - MAX_LISTED} more, see [the run](${runUrl})`);
+  }
   return [
     NEW_API_FINDINGS_MARKER,
     '## New API findings',
@@ -125,15 +135,15 @@ export async function syncNewApiFindingsComment({
   const {owner, repo} = context.repo;
   const pr = context.payload.pull_request;
 
+  const runUrl = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
+
   let body: string | null = null;
   if (checkFailed) {
-    body = failedBody(
-      `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`
-    );
+    body = failedBody(runUrl);
   } else {
     const findings = readFindings(findingsPath);
     if (findings.length > 0) {
-      body = findingsBody(findings, owner, repo, pr.head.sha);
+      body = findingsBody(findings, owner, repo, pr.head.sha, runUrl);
     }
   }
 
