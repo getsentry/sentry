@@ -17,6 +17,14 @@ export function isValidCrontab(crontab: string) {
   );
 }
 
+/**
+ * Whether two or more crontabs are the same expression, ignoring spacing
+ */
+export function hasDuplicateCrontabs(crontabs: string[]) {
+  const unique = new Set(crontabs.map(crontab => crontab.trim().split(/\s+/).join(' ')));
+  return unique.size < crontabs.length;
+}
+
 interface ScheduleFieldProps {
   onChange: (crontab: string) => void;
   /**

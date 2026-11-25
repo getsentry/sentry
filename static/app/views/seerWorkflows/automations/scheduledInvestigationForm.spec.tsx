@@ -290,6 +290,31 @@ describe('ScheduledInvestigationForm', () => {
       expect(screen.getByRole('button', {name: 'Remove schedule'})).toBeDisabled();
     });
 
+    it('blocks saving duplicate crontabs', async () => {
+      const create = MockApiClient.addMockResponse({
+        url: configsUrl,
+        method: 'POST',
+        body: config,
+      });
+      render(<ScheduledInvestigationForm mode="create" />, {organization});
+
+      await userEvent.click(screen.getByRole('button', {name: 'Add schedule'}));
+      const crontabs = screen.getAllByRole('textbox', {name: 'Crontab Schedule'});
+      await userEvent.clear(crontabs[0]!);
+      await userEvent.type(crontabs[0]!, '30 9 * * 1-5');
+      // Same schedule with different spacing
+      await userEvent.clear(crontabs[1]!);
+      await userEvent.type(crontabs[1]!, '30  9 * *  1-5');
+      await userEvent.click(screen.getByRole('button', {name: 'Create automation'}));
+
+      expect(
+        await screen.findByText(
+          'Each crontab must be different. Remove the duplicates to save.'
+        )
+      ).toBeInTheDocument();
+      expect(create).not.toHaveBeenCalled();
+    });
+
     it('stops adding crontabs at the maximum', async () => {
       render(<ScheduledInvestigationForm mode="create" />, {organization});
 

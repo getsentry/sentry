@@ -40,7 +40,7 @@ import {
   type CreateAutomationFormProps,
   type EditAutomationFormProps,
 } from './baseForm';
-import {isValidCrontab, ScheduleField} from './scheduleField';
+import {hasDuplicateCrontabs, isValidCrontab, ScheduleField} from './scheduleField';
 import {
   DEFAULT_SERVICE_ACCOUNT_SCOPES,
   getServiceAccountProjectIds,
@@ -202,6 +202,10 @@ export function ScheduledInvestigationForm(
     },
     validators: {onDynamic: schema},
     onSubmit: async ({value, formApi}) => {
+      if (hasDuplicateCrontabs(value.crontabs)) {
+        toast.error(t('Each crontab must be different. Remove the duplicates to save.'));
+        return;
+      }
       try {
         const config = await saveConfig(schema.parse(value));
         if (props.mode === 'edit') {
