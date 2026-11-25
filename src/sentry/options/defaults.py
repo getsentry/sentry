@@ -687,6 +687,21 @@ register(
     default=4096,
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Fraction of LLM-classified feedbacks that are also scored by the shadow spam classifier in Seer.
+register(
+    "feedback.spam-shadow.sample-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Organizations whose feedback message text may be logged by Seer on a shadow classifier mismatch.
+# Messages can contain PII, so this should only ever include internal (Sentry) organizations.
+register(
+    "feedback.spam-shadow.message-log-org-ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Dev Toolbar Options
 register(
@@ -4626,6 +4641,14 @@ register(
     "autofix.pr-iteration.check-suite-local-prefilter.enabled",
     type=Bool,
     default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Kill switch for the PR comment that says PR iteration stopped for Seer credits.
+register(
+    "autofix.pr-iteration.out-of-credits-comment.enabled",
+    type=Bool,
+    default=True,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 

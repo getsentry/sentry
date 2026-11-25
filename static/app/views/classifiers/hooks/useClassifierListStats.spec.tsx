@@ -25,6 +25,7 @@ describe('useClassifierListStats', () => {
     projectId: '1',
     name: 'Tool failure',
     resultAttribute: 'tool_failure',
+    outputType: 'binary',
     binaryThreshold: 0.5,
   });
 
@@ -144,7 +145,10 @@ describe('useClassifierListStats', () => {
         ],
       },
     });
-    const classifier = TelemetryClassifierFixture({binaryThreshold: null});
+    const classifier = TelemetryClassifierFixture({
+      outputType: 'score',
+      binaryThreshold: null,
+    });
 
     const {result} = renderStats([classifier]);
 

@@ -79,9 +79,7 @@ describe('python onboarding docs', () => {
 
     // Should render logs config option
     expect(
-      screen.getByText(
-        textWithMarkupMatcher(/LoggingIntegration\(capture_sentry_logs=True\)/)
-      )
+      screen.getByText(textWithMarkupMatcher(/LoggingIntegration\(\),/))
     ).toBeInTheDocument();
 
     // Should render logs verification steps
@@ -96,9 +94,7 @@ describe('python onboarding docs', () => {
 
     // Should not render logs config option
     expect(
-      screen.queryByText(
-        textWithMarkupMatcher(/LoggingIntegration\(capture_sentry_logs=True\)/)
-      )
+      screen.queryByText(textWithMarkupMatcher(/LoggingIntegration\(\),/))
     ).not.toBeInTheDocument();
   });
 

@@ -21,6 +21,7 @@ OCCURRENCE_ATTRIBUTE_DEFINITIONS = {
                 validator=is_event_id_or_list,
                 normalizer=normalize_event_id_strict,
                 canonical_case=True,
+                wildcard_allowed=False,
             ),
             ResolvedAttribute(
                 public_alias=constants.TRACE_ALIAS,
@@ -29,6 +30,7 @@ OCCURRENCE_ATTRIBUTE_DEFINITIONS = {
                 validator=is_event_id_or_list,
                 normalizer=normalize_event_id_strict,
                 canonical_case=True,
+                wildcard_allowed=False,
             ),
             ResolvedAttribute(
                 public_alias="span_id",

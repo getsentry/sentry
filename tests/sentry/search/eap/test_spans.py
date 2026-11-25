@@ -46,8 +46,10 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
 
 from sentry.exceptions import InvalidFunctionArgumentQuery, InvalidSearchQuery
 from sentry.search.eap import utils as eap_utils
-from sentry.search.eap.columns import ResolvedAttribute
+from sentry.search.eap.columns import ColumnDefinitions, ResolvedAttribute
 from sentry.search.eap.occurrences.definitions import OCCURRENCE_DEFINITIONS
+from sentry.search.eap.ourlogs.definitions import OURLOG_DEFINITIONS
+from sentry.search.eap.profile_functions.definitions import PROFILE_FUNCTIONS_DEFINITIONS
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.attributes import (
     SPAN_ATTRIBUTE_DEFINITIONS,
@@ -1709,3 +1711,37 @@ def test_loaded_replacement_with_different_type_than_deprecated_attribute(
     # Number attributes returned by the attribute names RPC map to the public alias
     # instead of `tags[<name>,number]`.
     assert SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS["number"][replacement] == replacement
+
+
+@pytest.mark.parametrize(
+    ("definitions", "column"),
+    [
+        (SPAN_DEFINITIONS, "id"),
+        (SPAN_DEFINITIONS, "span_id"),
+        (SPAN_DEFINITIONS, "parent_span"),
+        (SPAN_DEFINITIONS, "trace"),
+        (SPAN_DEFINITIONS, "sentry.item_id"),
+        (SPAN_DEFINITIONS, "sentry.parent_span_id"),
+        (SPAN_DEFINITIONS, "sentry.trace_id"),
+        (OCCURRENCE_DEFINITIONS, "id"),
+        (OCCURRENCE_DEFINITIONS, "trace"),
+        (OURLOG_DEFINITIONS, "id"),
+        (OURLOG_DEFINITIONS, "trace"),
+        (PROFILE_FUNCTIONS_DEFINITIONS, "id"),
+        (PROFILE_FUNCTIONS_DEFINITIONS, "trace"),
+        (TRACE_METRICS_DEFINITIONS, "id"),
+        (TRACE_METRICS_DEFINITIONS, "trace"),
+    ],
+)
+@pytest.mark.parametrize("query", ["{}:*", "{}:abc*", "!{}:*", "{}:[abc*,def]"])
+def test_wildcard_on_id_column_rejected(
+    definitions: ColumnDefinitions, column: str, query: str
+) -> None:
+    resolver = SearchResolver(
+        params=SnubaParams(), config=SearchResolverConfig(), definitions=definitions
+    )
+
+    with pytest.raises(
+        InvalidSearchQuery, match=f"^Wildcard conditions are not permitted on `{column}` field$"
+    ):
+        resolver.resolve_query(query.format(column))

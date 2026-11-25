@@ -121,6 +121,14 @@ ALWAYS_RUN_TESTS: set[str] = {
     # parses each __init__ with inspect.getsource + ast, so an exception edited in any
     # module never runs under this test's coverage context.
     "tests/sentry/apidocs/test_error_codes.py",
+    # Walks every SentryPermission subclass via __subclasses__() and reads its
+    # scope_map, a class attribute set at import time, so a scope_map edit in any
+    # endpoint module never runs under this test's coverage context.
+    "tests/sentry/api/bases/test_organization.py",
+    # Walks action_handler_registry and reads each handler's config_schema and
+    # data_schema, class attributes set at import time, so a schema edit in any
+    # handler module never runs under this test's coverage context.
+    "tests/sentry/workflow_engine/endpoints/serializers/test_response_schemas.py",
 }
 
 # Seer public-API matrix discovers published mutations at collection time, so

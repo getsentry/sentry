@@ -2,7 +2,7 @@ import type {ECharts} from 'echarts';
 
 import type {EChartClickHandler} from 'sentry/types/echarts';
 
-import {BAND_Y_AXIS, BAND_Z} from './bandShapes';
+import {BAND_STACK_PADDING_BOTTOM, BAND_Y_AXIS, BAND_Z} from './bandShapes';
 import {mergeChartBands, type ChartBand} from './mergeChartBands';
 
 type ClickEvent = Parameters<EChartClickHandler>[0];
@@ -61,7 +61,7 @@ describe('mergeChartBands', () => {
     ]);
   });
 
-  it('adds the stack height to the grid bottom and x-axis offset', () => {
+  it('adds the stack height and its bottom padding to the grid bottom and x-axis offset', () => {
     const merged = mergeChartBands(
       {
         grid: {left: 2, bottom: 20},
@@ -72,10 +72,10 @@ describe('mergeChartBands', () => {
       {offset: 18}
     );
 
-    expect(merged.grid).toEqual({left: 2, bottom: 40});
+    expect(merged.grid).toEqual({left: 2, bottom: 40 + BAND_STACK_PADDING_BOTTOM});
     expect(merged.xAxis).toEqual({
       type: 'value',
-      offset: 38,
+      offset: 38 + BAND_STACK_PADDING_BOTTOM,
       axisLine: {onZero: false, show: true},
     });
   });
@@ -83,7 +83,10 @@ describe('mergeChartBands', () => {
   it('moves the x-axis below the bands without a base x-axis', () => {
     const merged = mergeChartBands({grid: {bottom: 0}, yAxes: []}, [band('first', 12)]);
 
-    expect(merged.xAxis).toEqual({offset: 12, axisLine: {onZero: false}});
+    expect(merged.xAxis).toEqual({
+      offset: 12 + BAND_STACK_PADDING_BOTTOM,
+      axisLine: {onZero: false},
+    });
   });
 
   it('sends band clicks to their band and other clicks to the chart', () => {

@@ -92,7 +92,7 @@ export function useBandTooltips(
 
   function renderTooltip(bucket: BandBucket): string {
     const sections = visibleBands
-      .map(band => band.tooltipSection?.(bucket.start))
+      .map(band => band.tooltipSection?.(bucket))
       .filter(defined);
     if (sections.length === 0) {
       return '';
