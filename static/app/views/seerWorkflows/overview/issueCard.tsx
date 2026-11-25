@@ -68,7 +68,7 @@ interface RunErrorMeta {
 // so that section needs the error state as well as code_changes_ready.
 const RUN_ERROR_META: Partial<Record<AutofixStateKey, RunErrorMeta>> = {
   needs_investigation: {
-    label: t('Plan'),
+    label: t('Error'),
     message: t(
       'Seer ran into an error after finding the root cause. Open Seer to retry.'
     ),

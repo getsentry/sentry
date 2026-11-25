@@ -49,7 +49,7 @@ describe('OverviewCard', () => {
   it.each([
     {
       sectionKey: 'needs_investigation',
-      label: 'Plan',
+      label: 'Error',
       message: 'Seer ran into an error after finding the root cause. Open Seer to retry.',
       nextAction: 'Create Plan',
     },
