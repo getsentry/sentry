@@ -37,6 +37,7 @@ import type {
   RowWithScoreAndOpportunity,
   WebVitals,
 } from 'sentry/views/insights/browser/webVitals/types';
+import {getBrowserTypesFromDashboardFilters} from 'sentry/views/insights/browser/webVitals/utils/getBrowserTypesFromDashboardFilters';
 import {decode as decodeBrowserTypes} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {
   SampleDrawerBody,
@@ -78,7 +79,13 @@ export function WebVitalsDetailPanel({
     SpanFields.USER_GEO_SUBREGION,
     parseAsStringArray
   );
-  const browserTypes = decodeBrowserTypes(browserNames);
+  const browserTypesFromDashboard = useMemo(
+    () => getBrowserTypesFromDashboardFilters(dashboardFilters),
+    [dashboardFilters]
+  );
+  const browserTypes = browserTypesFromDashboard.length
+    ? browserTypesFromDashboard
+    : decodeBrowserTypes(browserNames);
   const subregions = subregionCodes as SubregionCode[];
 
   const {dashboard: linkedWebVitalsSummaryDashboard} = useGetPrebuiltDashboard(

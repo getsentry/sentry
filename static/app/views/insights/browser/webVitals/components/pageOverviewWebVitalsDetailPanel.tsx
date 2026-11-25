@@ -44,6 +44,7 @@ import type {
   WebVitals,
 } from 'sentry/views/insights/browser/webVitals/types';
 import {WEB_VITAL_TO_FIELD} from 'sentry/views/insights/browser/webVitals/types';
+import {getBrowserTypesFromDashboardFilters} from 'sentry/views/insights/browser/webVitals/utils/getBrowserTypesFromDashboardFilters';
 import {decode as decodeBrowserTypes} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {useProfileExists} from 'sentry/views/insights/browser/webVitals/utils/useProfileExists';
 import {
@@ -135,7 +136,14 @@ export function PageOverviewWebVitalsDetailPanel({
   );
   const [projectId] = useQueryState('project', parseAsSingleScalar);
   const [transactionParam] = useQueryState('transaction', parseAsScalar);
-  const browserTypes = decodeBrowserTypes(browserNames);
+  // On dashboards the browser comes from the global filter, not the URL
+  const browserTypesFromDashboard = useMemo(
+    () => getBrowserTypesFromDashboardFilters(dashboardFilters),
+    [dashboardFilters]
+  );
+  const browserTypes = browserTypesFromDashboard.length
+    ? browserTypesFromDashboard
+    : decodeBrowserTypes(browserNames);
   const subregions = subregionCodes as SubregionCode[];
   const isSpansWebVital = defined(webVital) && ['inp', 'cls', 'lcp'].includes(webVital);
 
