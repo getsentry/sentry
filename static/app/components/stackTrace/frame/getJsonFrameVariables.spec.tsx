@@ -403,6 +403,18 @@ describe('native variables extracted by Symbolicator', () => {
         },
       ],
     });
+    // A value cut inside `pointee` loses the same keys, and its pointee loses `type`.
+    expect(
+      convert(
+        {kind: 'local', pointee: {members: {id: {type: 'int', value: 1}}}},
+        {'': {len: 4}, pointee: {'': {len: 2}, members: {'': {len: 7}}}}
+      )
+    ).toEqual({
+      name: 'variable',
+      kind: 'object',
+      meta: {len: 7},
+      children: [{name: 'id', type: 'int', kind: 'number', value: '1'}],
+    });
   });
 
   it('leaves variables of other platforms and legacy native strings untouched', () => {
