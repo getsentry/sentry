@@ -36,6 +36,23 @@ def test_negative_binomial_sf(n: float, mean: float, size: float, expected: floa
     assert negative_binomial_sf(n, mean, size) == pytest.approx(expected, rel=1e-9)
 
 
+@pytest.mark.parametrize(
+    ("n", "mean", "size", "expected"),
+    [
+        (150_000, 1e5, 100.0, 5.9778700191146068e-06),
+        (15_000_000, 1e7, 100.0, 5.925071726965981e-06),
+        (10_000_000, 1e7, 100.0, 0.4867014010246761),
+        (9_000_000, 1e7, 100.0, 0.84177784477875495),
+    ],
+)
+def test_negative_binomial_sf_large_mean(
+    n: float, mean: float, size: float, expected: float
+) -> None:
+    # Tails far from a large mean must neither crawl term by term nor lose accuracy. The
+    # lgamma differences cancel about eight digits at n = 1.5e7, hence the looser tolerance.
+    assert negative_binomial_sf(n, mean, size) == pytest.approx(expected, rel=1e-6)
+
+
 def test_negative_binomial_sf_caps_size_near_poisson() -> None:
     # Reference uses the capped size 1e9. lgamma(x + size) - lgamma(size) cancels about
     # ten digits at that size, so only a looser tolerance is meaningful.
@@ -89,6 +106,11 @@ def test_beta_binomial_sf_edges(successes: float, trials: float, expected: float
         (50, 80.0, 0.00013078397659141034),
         (10, 40.0, 3.925932226286188e-09),
         (1, 25.0, 1.3887943864964021e-11),
+        # Large shapes need far more than a few hundred series or continued-fraction terms.
+        (20_000, 20_000.0, 0.49905968376625068),
+        (20_000, 20_500.0, 0.00022502803564234128),
+        (1e5, 1e5, 0.49957947788963482),
+        (1e5, 1.02e5, 1.6506061359362834e-10),
     ],
 )
 def test_gamma_sf(a: float, x: float, expected: float) -> None:
@@ -132,6 +154,8 @@ def test_gamma_sf_matches_integer_shape_closed_form(a: int, x: float) -> None:
         (20, 3.0, 8.3144235881917e-11),
         # 1 - P(X < k) would round to zero here.
         (7, 0.01, 1.96684280255335e-18),
+        (100_000, 1e5, 0.50042052211036518),  # Large shape.
+        (101_000, 1e5, 0.00079980104155454103),
     ],
 )
 def test_poisson_sf(k: int, mean: float, expected: float) -> None:

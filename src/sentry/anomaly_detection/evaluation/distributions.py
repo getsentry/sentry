@@ -1,13 +1,17 @@
 """Probability tails and robust-statistics constants, without scipy."""
 
-import itertools
 import math
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Iterator
 
 # Scales a median absolute deviation to a normal standard deviation: 1 / Phi^-1(3/4).
 MAD_TO_SIGMA = 1.4826
 # Asymptotic standard error of a normal sample's median relative to its mean's.
 MEDIAN_SE_FACTOR = math.sqrt(math.pi / 2)
+
+# Relative change below which a series or continued fraction has converged.
+_CONVERGENCE_TOLERANCE = 1e-14
+# Smallest magnitude a Lentz denominator may take before it is nudged off zero.
+_LENTZ_TINY = 1e-300
 
 
 def negative_binomial_sf(n: float, mean: float, size: float) -> float:
@@ -15,6 +19,8 @@ def negative_binomial_sf(n: float, mean: float, size: float) -> float:
 
     pmf(x) = Gamma(x + size) / (Gamma(size) x!) * (1 - q)^size * q^x, q = mean / (size + mean).
     A non-integer n is rounded up; size is capped at 1e9, where the law is Poisson(mean).
+    Computed as the regularized incomplete beta I_q(n, size), whose cost grows with
+    sqrt(n + size) rather than with how far n sits from the mean.
     """
     k = math.ceil(n - 1e-9)
     if k <= 0:
@@ -22,25 +28,7 @@ def negative_binomial_sf(n: float, mean: float, size: float) -> float:
     if mean <= 0:
         return 0.0
     size = min(size, 1e9)
-    q = mean / (size + mean)
-
-    def log_pmf(x: int) -> float:
-        return (
-            math.lgamma(x + size)
-            - math.lgamma(size)
-            - math.lgamma(x + 1)
-            + size * math.log1p(-q)
-            + x * math.log(q)
-        )
-
-    # Sum away from the mean, so the terms shrink until they stop mattering.
-    if k > mean:
-        return min(
-            1.0,
-            _sum_terms(log_pmf(k), itertools.count(k), lambda x: (x + size) / (x + 1) * q),
-        )
-    lower = _sum_terms(log_pmf(k - 1), range(k - 1, 0, -1), lambda x: x / ((x - 1 + size) * q))
-    return max(0.0, 1.0 - lower)
+    return _regularized_beta(k, size, mean / (size + mean))
 
 
 def beta_binomial_sf(successes: float, trials: float, a: float, b: float) -> float:
@@ -112,35 +100,84 @@ def _regularized_gamma(a: float, x: float, *, upper: bool) -> float:
     if x <= 0:
         return 1.0 if upper else 0.0
     lead = math.exp(-x + a * math.log(x) - math.lgamma(a))
+    max_terms = _max_terms(a)
     if x < a + 1:  # Series for P(a, x).
         ap, term = a, 1 / a
         total = term
-        for _ in range(500):
+        for _ in range(max_terms):
             ap += 1
             term *= x / ap
             total += term
-            if abs(term) < abs(total) * 1e-12:
+            if abs(term) < abs(total) * _CONVERGENCE_TOLERANCE:
                 break
+        else:
+            raise ArithmeticError(f"Gamma series did not converge for a={a}, x={x}")
         lower = total * lead
         return max(0.0, 1 - lower) if upper else min(1.0, lower)
 
-    tiny = 1e-300  # Continued fraction for Q(a, x), using the modified Lentz method.
-    b = x + 1 - a
-    c, d = 1 / tiny, 1 / b
-    h = d
-    for i in range(1, 500):
-        an = -i * (i - a)
-        b += 2
-        d = an * d + b
-        d = tiny if abs(d) < tiny else d
-        c = b + an / c
-        c = tiny if abs(c) < tiny else c
-        d = 1 / d
-        h *= d * c
-        if abs(d * c - 1) < 1e-12:
-            break
-    upper_tail = lead * h
+    # Q(a, x) = lead / (x + 1 - a - 1(1 - a) / (x + 3 - a - 2(2 - a) / (x + 5 - a - ...))).
+    fraction_terms = ((-i * (i - a) if i else 1.0, x + 1 - a + 2 * i) for i in range(max_terms))
+    upper_tail = lead * _continued_fraction(fraction_terms)
     return upper_tail if upper else max(0.0, 1 - upper_tail)
+
+
+def _regularized_beta(a: float, b: float, x: float) -> float:
+    """I_x(a, b), the regularized incomplete beta, for a, b > 0 and 0 <= x <= 1.
+
+    The continued fraction converges quickly for x < (a + 1) / (a + b + 2); past that, the
+    symmetry I_x(a, b) = 1 - I_{1-x}(b, a) keeps it there, so only the larger side is taken
+    as a complement.
+    """
+    if x <= 0:
+        return 0.0
+    if x >= 1:
+        return 1.0
+    lead = math.exp(
+        math.lgamma(a + b) - math.lgamma(a) - math.lgamma(b) + a * math.log(x) + b * math.log1p(-x)
+    )
+    if x < (a + 1) / (a + b + 2):
+        return min(1.0, lead * _continued_fraction(_beta_fraction_terms(a, b, x)) / a)
+    return max(0.0, 1 - lead * _continued_fraction(_beta_fraction_terms(b, a, 1 - x)) / b)
+
+
+def _beta_fraction_terms(a: float, b: float, x: float) -> Iterator[tuple[float, float]]:
+    """Partial numerators and denominators of I_x(a, b) * a / lead = 1 / (1 + d1 / (1 + ...)).
+
+    d(2m) = m(b - m)x / ((a + 2m - 1)(a + 2m)) and
+    d(2m + 1) = -(a + m)(a + b + m)x / ((a + 2m)(a + 2m + 1)).
+    """
+    yield 1.0, 1.0
+    for m in range(_max_terms(max(a, b))):
+        if m:
+            yield m * (b - m) * x / ((a + 2 * m - 1) * (a + 2 * m)), 1.0
+        yield -(a + m) * (a + b + m) * x / ((a + 2 * m) * (a + 2 * m + 1)), 1.0
+
+
+def _continued_fraction(terms: Iterable[tuple[float, float]]) -> float:
+    """a1 / (b1 + a2 / (b2 + ...)) for (a_i, b_i) in terms, by the modified Lentz method.
+
+    Raises ArithmeticError if the terms run out before the value converges.
+    """
+    value = c = _LENTZ_TINY
+    d = 0.0
+    for numerator, denominator in terms:
+        d = denominator + numerator * d
+        d = 1 / (d if abs(d) >= _LENTZ_TINY else _LENTZ_TINY)
+        c = denominator + numerator / c
+        c = c if abs(c) >= _LENTZ_TINY else _LENTZ_TINY
+        delta = c * d
+        value *= delta
+        if abs(delta - 1) < _CONVERGENCE_TOLERANCE:
+            return value
+    raise ArithmeticError("Continued fraction did not converge")
+
+
+def _max_terms(shape: float) -> int:
+    """Iterations to allow a series or continued fraction whose largest shape is `shape`.
+
+    Both need on the order of sqrt(shape) terms near the mode; this leaves a wide margin.
+    """
+    return 100 + int(20 * math.sqrt(shape))
 
 
 def _sum_terms(log_first: float, steps: Iterable[int], ratio: Callable[[int], float]) -> float:
