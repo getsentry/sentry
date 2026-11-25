@@ -122,7 +122,7 @@ function SettingsProjectSelector() {
       {containerProps => (
         <CompactSelect
           {...containerProps}
-          size="sm"
+          size="md"
           position="bottom-start"
           // Same max width as the environment page filter menu
           menuWidth="24em"
