@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
@@ -474,10 +475,10 @@ describe('MultiQueryModeContent', () => {
     function Component() {
       const [query] = useReadQueriesFromLocation();
       return (
-        <>
+        <Fragment>
           <output>{query?.groupBys.join(',')}</output>
           <MultiQueryModeContent />
-        </>
+        </Fragment>
       );
     }
 
