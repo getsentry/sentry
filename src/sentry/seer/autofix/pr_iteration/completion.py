@@ -49,7 +49,6 @@ from sentry.seer.autofix.pr_iteration.pr_state import (
     record_pr_closed,
 )
 from sentry.seer.autofix.pr_iteration.queue import count_queued_autofix_feedback
-from sentry.seer.autofix.pr_iteration.run_markers import record_run_extras
 from sentry.seer.autofix.pr_iteration.tracing import set_pr_iteration_attributes
 from sentry.seer.autofix.pr_ready_for_review import format_pull_requests_payload
 from sentry.seer.autofix.single_run import is_single_run
@@ -60,7 +59,6 @@ from sentry.utils import metrics
 
 if TYPE_CHECKING:
     from sentry.seer.agent.client_models import SeerRunState
-    from sentry.seer.models.run import SeerRun
 
 logger = logging.getLogger(__name__)
 
@@ -72,8 +70,6 @@ BRANCH_MOVED_RETRY_PROMPT = (
 # Retries one iteration gets when its push is refused because the branch moved. A busy branch
 # can outrun every retry, so this is what ends the loop.
 MAX_BRANCH_MOVED_RETRIES = 2
-
-SINGLE_RUN_DRAINED_STATE_KEY = "single_run_drained_state"
 
 
 class Retrying(Enum):
@@ -384,22 +380,12 @@ def continue_pr_iteration(
 
 
 def drain_single_run_feedback_queue(
-    organization: Organization,
-    group: Group,
-    run_id: int,
-    state: SeerRunState,
-    seer_run: SeerRun | None,
+    organization: Organization, group: Group, run_id: int, state: SeerRunState
 ) -> None:
-    if not count_queued_autofix_feedback(run_id):
-        return
-    if seer_run is not None:
-        # The mid-run root cause hook can land after turn end and fetch the same state again.
-        with record_run_extras(seer_run) as extras:
-            already_drained = extras.get(SINGLE_RUN_DRAINED_STATE_KEY) == state.updated_at
-            extras[SINGLE_RUN_DRAINED_STATE_KEY] = state.updated_at
-        if already_drained:
-            return
-    consume_queued_feedback(iteration_log_context(organization, group, state), organization, run_id)
+    if count_queued_autofix_feedback(run_id):
+        consume_queued_feedback(
+            iteration_log_context(organization, group, state), organization, run_id
+        )
 
 
 def _single_run_unpushed_outcome(state: SeerRunState) -> PrIterationOutcome | None:
