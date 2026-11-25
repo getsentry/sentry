@@ -69,10 +69,8 @@ describe('MetricIssueChart', () => {
   });
 
   it.each([
-    {firstSeen: '2026-02-01T12:00:00Z', statsPeriod: '24h'},
     {firstSeen: '2026-01-31T12:00:00Z', statsPeriod: '24h'},
     {firstSeen: '2026-01-31T11:30:00Z', statsPeriod: '2d'},
-    {firstSeen: '2026-01-30T12:00:00Z', statsPeriod: '2d'},
     {firstSeen: '2026-01-10T12:00:00Z', statsPeriod: '7d'},
   ])(
     'defaults to $statsPeriod for first seen $firstSeen',

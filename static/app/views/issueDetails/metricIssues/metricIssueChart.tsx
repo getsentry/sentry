@@ -12,6 +12,7 @@ import type {Group, GroupOpenPeriod} from 'sentry/types/group';
 import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils/defined';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -61,8 +62,10 @@ export function MetricIssueChart({group, event}: MetricIssueChartProps) {
   const isOverview = !routeEventId;
   const location = useLocation();
   const defaultStatsPeriod = useGroupDefaultStatsPeriod(group, group.project);
-  const {statsPeriod, start, end} = location.query;
-  const hasUrlRange = !!(statsPeriod || start || end);
+  const urlStatsPeriod = decodeScalar(location.query.statsPeriod);
+  const urlStart = decodeScalar(location.query.start);
+  const urlEnd = decodeScalar(location.query.end);
+  const hasUrlRange = !!(urlStatsPeriod || urlStart || urlEnd);
   // On event routes, wait for the event so the chart can highlight and zoom to its open period
   const isWaitingForEvent = !isOverview && !event;
   const {data: openPeriod, isLoading: isOpenPeriodLoading} = useEventOpenPeriod({
@@ -81,13 +84,15 @@ export function MetricIssueChart({group, event}: MetricIssueChartProps) {
   });
   // Read the zoom range like a URL range, so the request params match once the URL updates
   const zoomQuery = zoomRange ? buildDetectorZoomQuery({}, zoomRange) : null;
-  const urlRange = zoomQuery ?? (hasUrlRange ? {start, end, statsPeriod} : null);
+  const urlRange =
+    zoomQuery ??
+    (hasUrlRange ? {start: urlStart, end: urlEnd, statsPeriod: urlStatsPeriod} : null);
   const period = normalizeDateTimeParams(
     urlRange
       ? getPeriod({
-          start: urlRange.start as string,
-          end: urlRange.end as string,
-          period: urlRange.statsPeriod as string,
+          start: urlRange.start,
+          end: urlRange.end,
+          period: urlRange.statsPeriod,
         })
       : defaultStatsPeriod
   );
