@@ -111,6 +111,8 @@ class PostProcessJob(TypedDict, total=False):
     # True when an issue transitions to the ESCALATING substatus for any reason.
     has_escalated: bool
     halt_post_process: bool
+    # True when every step in `EVENT_LINK_PROBE_STEPS` runs for this job.
+    event_link_steps_enabled: bool
     # Set by `_get_event_link_probe`. None means the event was not probed, and each
     # pipeline step queries its own table instead.
     event_link_probe: EventLinkProbe | None
@@ -552,6 +554,11 @@ def _get_event_link_probe(job: PostProcessJob) -> EventLinkProbe | None:
 
     Returns None when the event was not probed. The caller then queries its own table.
 
+    One statement reads the tables of both steps, so the event is only probed when both
+    steps run for the job. A step that is switched off, or that is not in the event's
+    pipeline, must leave its tables alone, and that has to hold while the other step
+    runs.
+
     The result is stored on the job so that the steps share it. That includes a probe
     that failed: one statement reads three tables, so a problem with any one of them
     fails it. Counting the event as not probed lets each step still do the work whose
@@ -566,13 +573,16 @@ def _get_event_link_probe(job: PostProcessJob) -> EventLinkProbe | None:
 
     probe = None
     # A reprocessed event is linked unconditionally, so there is nothing to ask.
-    if not job["is_reprocessed"] and in_random_rollout(
-        "post_process.consolidated-link-probe.rollout-rate"
+    if (
+        not job["is_reprocessed"]
+        and job.get("event_link_steps_enabled", False)
+        and in_random_rollout("post_process.consolidated-link-probe.rollout-rate")
     ):
         try:
             probe = _probe_event_links(job["event"])
         except Exception:
-            metrics.incr("sentry.tasks.post_process.event_link_probe.failed")
+            # Unsampled, because a single failure matters while the probe rolls out.
+            metrics.incr("tasks.post_process.event_link_probe.failed", sample_rate=1.0)
             logger.exception("post_process.event_link_probe.failed")
 
     job["event_link_probe"] = probe
@@ -875,13 +885,23 @@ def run_post_process_job(job: PostProcessJob) -> None:
         else None
     )
 
-    for pipeline_step in pipeline:
-        if killswitch_context is not None and value_matches(
+    def is_disabled(step_name: str) -> bool:
+        if killswitch_context is None:
+            return False
+        return value_matches(
             "post_process.disable-pipeline-steps",
             disabled_steps,
-            {"pipeline_step": pipeline_step.__name__, **killswitch_context},
+            {"pipeline_step": step_name, **killswitch_context},
             emit_metrics=False,
-        ):
+        )
+
+    step_names = {step.__name__ for step in pipeline}
+    job["event_link_steps_enabled"] = all(
+        name in step_names and not is_disabled(name) for name in EVENT_LINK_PROBE_STEPS
+    )
+
+    for pipeline_step in pipeline:
+        if is_disabled(pipeline_step.__name__):
             metrics.incr(
                 "sentry.tasks.post_process.post_process_group.killswitched",
                 tags={
@@ -1843,6 +1863,11 @@ def set_siem_security_log_hook(hook: Callable[[PostProcessJob], None]) -> None:
 def process_siem_security_logging(job: PostProcessJob) -> None:
     _siem_security_log_hook(job)
 
+
+# The steps that share `_get_event_link_probe`.
+EVENT_LINK_PROBE_STEPS = frozenset(
+    {update_existing_attachments.__name__, link_event_to_user_report.__name__}
+)
 
 GROUP_CATEGORY_POST_PROCESS_PIPELINE: dict[
     GroupCategory, list[Callable[[PostProcessJob], None]]
