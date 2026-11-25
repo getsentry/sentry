@@ -33,6 +33,7 @@ import type {Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDisabledGamingPlatform} from 'sentry/utils/platform';
+import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {slugify} from 'sentry/utils/slugify';
@@ -41,7 +42,6 @@ import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useProjects} from 'sentry/utils/useProjects';
 import {useTeams} from 'sentry/utils/useTeams';
 import {parseAsScalar} from 'sentry/views/explore/queryParams/parsers';
 import {TopBar} from 'sentry/views/navigation/topBar';
@@ -185,10 +185,13 @@ export function CreateProject() {
     return referrer === 'getting-started' && projectId === createdProject?.id;
   }, [referrer, projectId, createdProject?.id]);
 
-  const {projects} = useProjects();
-  const returnedProject = autoFill
-    ? projects.find(p => p.id === createdProject?.id)
-    : undefined;
+  // Fetched directly rather than read from the projects store: the query can
+  // fail or 404 (deleted on Back), so waiting on it never leaves Create stuck.
+  const returnedProjectQuery = useDetailedProject(
+    {orgSlug: organization.slug, projectSlug: createdProject?.id ?? ''},
+    {enabled: autoFill, staleTime: 0}
+  );
+  const returnedProject = autoFill ? returnedProjectQuery.data : undefined;
 
   const notificationActionParam = useMemo(() => {
     return autoFill && createdProject?.notificationRule?.actions
@@ -198,7 +201,9 @@ export function CreateProject() {
 
   const {getIntegrationAction, isSelectionSettled, notificationProps} =
     useCreateNotificationAction(notificationActionParam);
-  const isNotificationRestorePending = !!notificationActionParam && !isSelectionSettled;
+  const isReturnCheckPending =
+    (autoFill && returnedProjectQuery.isPending) ||
+    (!!notificationActionParam && !isSelectionSettled);
 
   const validateChannel = useQuery({
     ...validateChannelQueryOptions({
@@ -707,13 +712,13 @@ export function CreateProject() {
                     !(
                       canUserCreateProject &&
                       formErrorCount === 0 &&
-                      !isNotificationRestorePending &&
+                      !isReturnCheckPending &&
                       !(isNotifyingViaIntegration && validateChannel.isFetching)
                     )
                   }
                   busy={
                     createProjectAndRules.isPending ||
-                    isNotificationRestorePending ||
+                    isReturnCheckPending ||
                     (isNotifyingViaIntegration && validateChannel.isFetching)
                   }
                   onClick={() => debounceHandleProjectCreation(formData)}

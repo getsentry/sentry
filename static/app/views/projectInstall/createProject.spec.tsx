@@ -19,7 +19,6 @@ import {selectEvent} from 'sentry-test/selectEvent';
 import {toast} from '@sentry/scraps/toast';
 
 import {OrganizationStore} from 'sentry/stores/organizationStore';
-import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import type {Organization} from 'sentry/types/organization';
 import * as analytics from 'sentry/utils/analytics';
@@ -87,7 +86,6 @@ describe('CreateProject', () => {
     jest.spyOn(toast, 'success').mockClear();
     TeamStore.reset();
     TeamStore.loadUserTeams([teamNoAccess]);
-    ProjectsStore.reset();
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/integrations/',
@@ -98,6 +96,12 @@ describe('CreateProject', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/integrations/${integration.id}/channels/`,
       body: {results: []},
+    });
+
+    // Autofill returns look up the stored project by id.
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/12345/',
+      body: ProjectFixture({id: '12345'}),
     });
   });
 
@@ -548,7 +552,32 @@ describe('CreateProject', () => {
       platform: 'javascript-angular',
     });
 
-    function setUpReturnFromGettingStarted(createdProjectOverrides = {}) {
+    const savedSlackDestination = {
+      notificationRule: {
+        id: '1',
+        actions: [
+          {
+            id: 'sentry.integrations.slack.notify_action.SlackNotifyServiceAction',
+            workspace: integration.id,
+            channel: '#eng',
+          },
+        ],
+      },
+      notificationSelection: {
+        provider: 'slack',
+        integrationId: integration.id,
+        channel: '#eng',
+      },
+    };
+
+    const returnQuery = {referrer: 'getting-started', project: returnedProject.id};
+
+    function setUpReturnFromGettingStarted(
+      createdProjectOverrides = {},
+      returnedProjectResponse: {body?: unknown; statusCode?: number} = {
+        body: returnedProject,
+      }
+    ) {
       const {organization} = initializeOrg({
         organization: {
           access: ['project:read'],
@@ -557,7 +586,10 @@ describe('CreateProject', () => {
         },
       });
       TeamStore.loadUserTeams([teamWithAccess]);
-      ProjectsStore.loadInitialData([returnedProject]);
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${returnedProject.id}/`,
+        ...returnedProjectResponse,
+      });
       window.localStorage.setItem(
         'created-project-context',
         JSON.stringify({
@@ -582,6 +614,20 @@ describe('CreateProject', () => {
       return {organization, projectCreationMockRequest};
     }
 
+    async function waitForCreateEnabled() {
+      const createButton = screen.getByRole('button', {name: 'Create Project'});
+      await waitFor(() => expect(createButton).toBeEnabled());
+      return createButton;
+    }
+
+    function expectReturnedToExistingProject(router: {location: {pathname: string}}) {
+      return waitFor(() =>
+        expect(router.location.pathname).toContain(
+          `/projects/${returnedProject.slug}/getting-started/`
+        )
+      );
+    }
+
     afterEach(() => {
       window.localStorage.removeItem('created-project-context');
     });
@@ -592,21 +638,13 @@ describe('CreateProject', () => {
 
       const {router} = render(<CreateProject />, {
         organization,
-        initialRouterConfig: {
-          location: {
-            pathname: '/projects/new/',
-            query: {referrer: 'getting-started', project: returnedProject.id},
-          },
-        },
+        initialRouterConfig: {location: {pathname: '/projects/new/', query: returnQuery}},
       });
 
-      await userEvent.click(await screen.findByRole('button', {name: 'Create Project'}));
+      expect(screen.getByRole('button', {name: 'Create Project'})).toBeDisabled();
+      await userEvent.click(await waitForCreateEnabled());
 
-      await waitFor(() =>
-        expect(router.location.pathname).toContain(
-          `/projects/${returnedProject.slug}/getting-started/`
-        )
-      );
+      await expectReturnedToExistingProject(router);
       expect(router.location.query.projectCreationVariant).toBe('legacy');
       expect(projectCreationMockRequest).not.toHaveBeenCalled();
       expect(toast.success).not.toHaveBeenCalled();
@@ -621,65 +659,60 @@ describe('CreateProject', () => {
     });
 
     it('waits for the saved messaging destination before reusing the project', async () => {
-      const {organization, projectCreationMockRequest} = setUpReturnFromGettingStarted({
-        notificationRule: {
-          id: '1',
-          actions: [
-            {
-              id: 'sentry.integrations.slack.notify_action.SlackNotifyServiceAction',
-              workspace: integration.id,
-              channel: '#eng',
-            },
-          ],
-        },
-        notificationSelection: {
-          provider: 'slack',
-          integrationId: integration.id,
-          channel: '#eng',
-        },
+      const {organization, projectCreationMockRequest} =
+        setUpReturnFromGettingStarted(savedSlackDestination);
+
+      const {router} = render(<CreateProject />, {
+        organization,
+        initialRouterConfig: {location: {pathname: '/projects/new/', query: returnQuery}},
+      });
+
+      expect(screen.getByRole('button', {name: 'Create Project'})).toBeDisabled();
+      await userEvent.click(await waitForCreateEnabled());
+
+      await expectReturnedToExistingProject(router);
+      expect(projectCreationMockRequest).not.toHaveBeenCalled();
+    });
+
+    it('restores the saved messaging destination when the return params arrive after mount', async () => {
+      const {organization, projectCreationMockRequest} =
+        setUpReturnFromGettingStarted(savedSlackDestination);
+
+      const integrationsRequest = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/integrations/`,
+        body: [integration],
+        match: [MockApiClient.matchQuery({integrationType: 'messaging'})],
       });
 
       const {router} = render(<CreateProject />, {
         organization,
-        initialRouterConfig: {
-          location: {
-            pathname: '/projects/new/',
-            query: {referrer: 'getting-started', project: returnedProject.id},
-          },
-        },
+        initialRouterConfig: {location: {pathname: '/projects/new/'}},
       });
+      // Let the picker seed itself before the return params arrive.
+      await waitFor(() => expect(integrationsRequest).toHaveBeenCalled());
+      await act(() => Promise.resolve());
 
-      const createButton = screen.getByRole('button', {name: 'Create Project'});
-      expect(createButton).toBeDisabled();
-
-      await waitFor(() => expect(createButton).toBeEnabled());
-      await userEvent.click(createButton);
-
-      await waitFor(() =>
-        expect(router.location.pathname).toContain(
-          `/projects/${returnedProject.slug}/getting-started/`
-        )
+      router.navigate(
+        `/projects/new/?referrer=getting-started&project=${returnedProject.id}`
       );
+      await userEvent.click(await waitForCreateEnabled());
+
+      await expectReturnedToExistingProject(router);
       expect(projectCreationMockRequest).not.toHaveBeenCalled();
     });
 
-    it('still creates a project when the projects list has not loaded', async () => {
-      const {organization, projectCreationMockRequest} = setUpReturnFromGettingStarted();
-      ProjectsStore.reset();
+    it('creates a new project when the returned project cannot be found', async () => {
+      const {organization, projectCreationMockRequest} = setUpReturnFromGettingStarted(
+        {},
+        {statusCode: 404, body: {detail: 'The requested resource does not exist'}}
+      );
 
       render(<CreateProject />, {
         organization,
-        initialRouterConfig: {
-          location: {
-            pathname: '/projects/new/',
-            query: {referrer: 'getting-started', project: returnedProject.id},
-          },
-        },
+        initialRouterConfig: {location: {pathname: '/projects/new/', query: returnQuery}},
       });
 
-      const createButton = await screen.findByRole('button', {name: 'Create Project'});
-      expect(createButton).toBeEnabled();
-      await userEvent.click(createButton);
+      await userEvent.click(await waitForCreateEnabled());
 
       expect(projectCreationMockRequest).toHaveBeenCalledTimes(1);
     });
@@ -689,16 +722,11 @@ describe('CreateProject', () => {
 
       render(<CreateProject />, {
         organization,
-        initialRouterConfig: {
-          location: {
-            pathname: '/projects/new/',
-            query: {referrer: 'getting-started', project: returnedProject.id},
-          },
-        },
+        initialRouterConfig: {location: {pathname: '/projects/new/', query: returnQuery}},
       });
 
       await userEvent.click(await screen.findByTestId('platform-apple-ios'));
-      await userEvent.click(screen.getByRole('button', {name: 'Create Project'}));
+      await userEvent.click(await waitForCreateEnabled());
 
       expect(projectCreationMockRequest).toHaveBeenCalledTimes(1);
     });

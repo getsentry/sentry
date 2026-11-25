@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {useQuery} from '@tanstack/react-query';
 
 import {Stack} from '@sentry/scraps/layout';
@@ -94,20 +94,21 @@ function useNotificationPicker(resolveRestore: RestoreResolver) {
   );
   const [channel, setChannel] = useState<IntegrationChannel | undefined>(undefined);
   const [shouldRenderSetupButton, setShouldRenderSetupButton] = useState(false);
-  const [hasSeededSelection, setHasSeededSelection] = useState(false);
+  const [seed, setSeed] = useState<'pending' | 'auto' | 'restored' | 'waiting'>(
+    'pending'
+  );
 
-  const hasInitializedSelection = useRef(false);
-
-  // Seeds the notification picker once, after the integrations query resolves:
+  // Seeds the notification picker after the integrations query resolves:
   // restores the selection via `resolveRestore` when it can, otherwise
-  // auto-selects the first available integration. Guarded by a ref so it runs
-  // a single time and never overwrites later user edits.
+  // auto-selects the first available integration. A restore is never
+  // overwritten, and an auto-pick never repeats, so later user edits stick. A
+  // restore source that only appears after an auto-pick (e.g. return params
+  // added after mount) still gets applied.
   useEffect(() => {
-    if (!messagingIntegrationsQuery.isSuccess || hasInitializedSelection.current) {
+    if (!messagingIntegrationsQuery.isSuccess || seed === 'restored') {
       return;
     }
 
-    setHasSeededSelection(true);
     const outcome = resolveRestore(providersToIntegrations);
 
     if (outcome.kind === 'wait') {
@@ -117,6 +118,7 @@ function useNotificationPicker(resolveRestore: RestoreResolver) {
       // can't look submittable with an unresolved integration.
       // oxlint-disable-next-line react/set-state-in-effect
       setShouldRenderSetupButton(true);
+      setSeed('waiting');
       return;
     }
 
@@ -133,7 +135,11 @@ function useNotificationPicker(resolveRestore: RestoreResolver) {
         // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
         setChannel(outcome.channel);
       }
-      hasInitializedSelection.current = true;
+      setSeed('restored');
+      return;
+    }
+
+    if (seed === 'auto') {
       return;
     }
 
@@ -146,13 +152,18 @@ function useNotificationPicker(resolveRestore: RestoreResolver) {
       setShouldRenderSetupButton(true);
       return;
     }
-    hasInitializedSelection.current = true;
     const firstIntegration = providersToIntegrations[firstProvider]?.[0];
     setProvider(firstProvider);
     setIntegration(firstIntegration);
     setChannel(undefined);
     setShouldRenderSetupButton(false);
-  }, [messagingIntegrationsQuery.isSuccess, providersToIntegrations, resolveRestore]);
+    setSeed('auto');
+  }, [
+    messagingIntegrationsQuery.isSuccess,
+    providersToIntegrations,
+    resolveRestore,
+    seed,
+  ]);
 
   const getIntegrationAction = useCallback(
     ({shouldCreateRule}: Partial<RequestDataFragment>) => {
@@ -180,9 +191,13 @@ function useNotificationPicker(resolveRestore: RestoreResolver) {
 
   return {
     getIntegrationAction,
-    // Lets a page wait for a saved selection to restore before comparing it;
-    // never resets, so later edits don't re-block.
-    isSelectionSettled: messagingIntegrationsQuery.isError || hasSeededSelection,
+    // True once any saved selection has been applied, or confirmed missing from
+    // fresh data, or the query failed. Lets a page wait before comparing it.
+    isSelectionSettled:
+      messagingIntegrationsQuery.isError ||
+      seed === 'restored' ||
+      seed === 'auto' ||
+      (seed === 'waiting' && !messagingIntegrationsQuery.isFetching),
     notificationProps: {
       actions,
       provider,
