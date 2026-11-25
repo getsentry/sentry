@@ -135,7 +135,7 @@ export const SERVICE_ACCOUNT_SENTRY_APP_PERMISSION: PermissionObj = {
 export const USER_PREFERENCE_SENTRY_APP_PERMISSION: PermissionObj = {
   resource: 'UserPreference',
   label: 'User Preferences',
-  help: 'Your starred dashboards, saved queries, issue views, and transactions, and your recent searches',
+  help: 'Your recent searches and starred dashboards, saved queries, issue views, and transactions',
   choices: {
     'no-access': {label: 'No Access', scopes: []},
     read: {label: 'Read', scopes: ['user_preference:read']},
@@ -329,7 +329,7 @@ export const GRANULAR_SENTRY_APP_PERMISSIONS: GranularPermissionObj[] = [
     resource: 'user_preference',
     label: t('User Preferences'),
     help: t(
-      'Your starred dashboards, saved queries, issue views, and transactions, and your recent searches'
+      'Your recent searches and starred dashboards, saved queries, issue views, and transactions'
     ),
     levels: [GranularPermissionLevel.READ, GranularPermissionLevel.WRITE],
   },
