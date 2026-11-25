@@ -169,7 +169,7 @@ export function EntityHeader({
       // silently is not.
       aria-busy={isAnyLoading}
     >
-      <Grid columns={columns} areas={areas} gap="md" align="start">
+      <Grid columns={columns} areas={areas} gap="sm" align="start">
         <Container area="title" minWidth={0}>
           <EntityHeaderTitle {...title} isLoading={isLoading} />
         </Container>

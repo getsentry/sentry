@@ -82,7 +82,7 @@ function toWrappedDiscoverQueryProps<T>({
 
 type WrappedDiscoverQueryProps<T> = {
   eventView: EventView;
-  additionalQueryKey?: string[];
+  additionalQueryKey?: readonly unknown[];
   allowAggregateConditions?: boolean;
   caseInsensitive?: CaseInsensitive;
   cursor?: string;
@@ -170,13 +170,13 @@ function useWrappedDiscoverQueryBase<T>({
     referrer,
     cursor,
     limit,
+    additionalQueryKey,
     options: {
       enabled: enabled && pageFiltersReady, // TODO this has a bug: if enabled is undefined, this short-circuits to undefined, which becomes true, regardless of pageFiltersReady
       refetchOnWindowFocus: false,
       retry: shouldRetryHandler,
       retryDelay: getRetryDelay,
       staleTime: staleTime ?? getStaleTimeForEventView(eventView),
-      additionalQueryKey,
       refetchInterval,
       placeholderData: keepPreviousData ? keepPreviousDataFn : undefined,
     },

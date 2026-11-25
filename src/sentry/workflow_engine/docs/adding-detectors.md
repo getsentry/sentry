@@ -459,10 +459,10 @@ The group type describes the issue. The detector components live in a
 ```python
 from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import (
-    DetectorAPIOperation,
     DetectorSettings,
     DetectorType,
     FeatureGate,
+    WorkflowEngineAPIOperation,
 )
 
 
@@ -501,7 +501,7 @@ type must still belong to the enum and have registered settings. A settings regi
 can omit a handler or validator; it does not move execution into Workflow Engine or
 make the detector available for API creation.
 
-Types are advertised by default. Set `api_availability[DetectorAPIOperation.DISCOVER]`
+Types are advertised by default. Set `api_availability[WorkflowEngineAPIOperation.DISCOVER]`
 to `False` for internal types, or use a registered `FeatureGate` for a rollout. The
 discovery endpoint also requires a handler and `GET` availability. Validation error
 suggestions use the `DISCOVER` gate and require a validator. `DISCOVER` does not restrict
@@ -526,7 +526,7 @@ To advertise a type behind a feature flag while allowing access to its rows:
 ```python
 api_availability = {
     **DetectorSettings.DEFAULT_API_AVAILABILITY,
-    DetectorAPIOperation.DISCOVER: FeatureGate("organizations:example-detector-visible"),
+    WorkflowEngineAPIOperation.DISCOVER: FeatureGate("organizations:example-detector-visible"),
 }
 ```
 
@@ -535,7 +535,7 @@ To hide a type from the list and its counts without disabling other operations:
 ```python
 api_availability = {
     **DetectorSettings.DEFAULT_API_AVAILABILITY,
-    DetectorAPIOperation.LIST: False,
+    WorkflowEngineAPIOperation.LIST: False,
 }
 ```
 
@@ -545,7 +545,7 @@ operations:
 ```python
 api_availability = {
     operation: FeatureGate("organizations:example-detector-api")
-    for operation in DetectorAPIOperation
+    for operation in WorkflowEngineAPIOperation
 }
 ```
 

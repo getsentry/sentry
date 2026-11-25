@@ -16,6 +16,7 @@ from sentry.integrations.source_code_management.repository import RepositoryClie
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.atlassian_connect import get_query_hash
 from sentry.models.repository import Repository
+from sentry.shared_integrations.exceptions import ApiPaginationTruncated
 from sentry.shared_integrations.response import MappingApiResponse
 from sentry.utils import jwt
 from sentry.utils.patch_set import FileChange, patch_to_file_changes
@@ -60,7 +61,7 @@ class BitbucketApiClient(ApiClient, RepositoryClient):
 
     # Bitbucket Cloud defaults to pagelen=10 and caps at 100.
     page_size = 100
-    page_number_limit = 50
+    page_number_limit = 200
 
     def __init__(self, integration: RpcIntegration | Integration) -> None:
         self.shared_secret = integration.metadata["shared_secret"]
@@ -135,6 +136,7 @@ class BitbucketApiClient(ApiClient, RepositoryClient):
         path: str,
         params: dict[str, Any] | None = None,
         page_number_limit: int | None = None,
+        raise_on_page_limit: bool = False,
     ) -> list[dict[str, Any]]:
         """
         Aggregate all pages from a Bitbucket Cloud paginated endpoint.
@@ -159,14 +161,23 @@ class BitbucketApiClient(ApiClient, RepositoryClient):
             output.extend(resp.get("values", []))
             page_number += 1
 
+        if raise_on_page_limit and "next" in resp:
+            raise ApiPaginationTruncated(output)
+
         return output
 
     def get_repos(
-        self, username: str, page_number_limit: int | None = None
+        self,
+        username: str,
+        page_number_limit: int | None = None,
+        raise_on_page_limit: bool = False,
     ) -> list[dict[str, Any]]:
+        # Full repo objects make each page take seconds; these fields take well under one.
         return self._get_all_from_paginated(
             BitbucketAPIPath.repositories.format(username=username),
+            params={"fields": "next,values.uuid,values.full_name"},
             page_number_limit=page_number_limit,
+            raise_on_page_limit=raise_on_page_limit,
         )
 
     def search_repositories(self, username: str, query: str) -> MappingApiResponse:
