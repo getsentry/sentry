@@ -342,7 +342,8 @@ class UnleashItemSerializer(serializers.Serializer):
     project = serializers.CharField(required=False, allow_null=True)
     environment = serializers.CharField(required=False, allow_null=True)
     # Official Unleash events put purpose text on data.description; top-level is rare.
-    data = serializers.DictField(required=False, allow_null=True)
+    # `data` shadows Serializer.data — same ignore as GenericRequestSerializer.
+    data = serializers.DictField(required=False, allow_null=True)  # type: ignore[assignment]
     description = serializers.CharField(allow_blank=True, required=False, allow_null=True)
 
 
