@@ -26,7 +26,6 @@ import type {Group} from 'sentry/types/group';
 import type {EventsStats} from 'sentry/types/organization';
 import type {ReleaseMetaBasic} from 'sentry/types/release';
 import type {EventView} from 'sentry/utils/discover/eventView';
-import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -299,15 +298,12 @@ export function EventGraph({
   // always show flag lines regardless of release line/bubble display
   const flagSeries = useFlagSeries({event, flags});
 
-  // Do some manipulation to make sure the release buckets match up to `eventSeries`
-  const lastEventSeries = eventSeries.at(-1);
-  const penultEventSeries = eventSeries.at(-2);
-  const lastEventSeriesTimestamp = lastEventSeries?.name;
-  const penultEventSeriesTimestamp = penultEventSeries?.name;
-  const eventSeriesInterval =
-    lastEventSeriesTimestamp &&
-    penultEventSeriesTimestamp &&
-    lastEventSeriesTimestamp - penultEventSeriesTimestamp;
+  // Read the bucket size off the bars on screen, which are still the previous
+  // interval's while a resize refetches. Release buckets and tooltips both
+  // line up to it.
+  const [firstBar, secondBar] = eventSeries;
+  const lastBar = eventSeries.at(-1);
+  const bucketSize = firstBar && secondBar ? secondBar.name - firstBar.name : undefined;
 
   const {
     connectReleaseBubbleChartRef,
@@ -321,11 +317,8 @@ export function EventGraph({
     alignInMiddle: true,
     legendSelected: legendSelected.Releases,
     desiredBuckets: eventSeries.length,
-    minTime: eventSeries.length && eventSeries.at(0)?.name,
-    maxTime:
-      lastEventSeriesTimestamp && eventSeriesInterval
-        ? lastEventSeriesTimestamp + eventSeriesInterval
-        : undefined,
+    minTime: firstBar?.name,
+    maxTime: lastBar && bucketSize ? lastBar.name + bucketSize : undefined,
     releases: shouldShowBubbles ? releases : [],
     flags: shouldShowBubbles ? flags : [],
     projects: eventView.project,
@@ -425,14 +418,6 @@ export function EventGraph({
     unfilteredUserSeries,
     currentTab,
   ]);
-
-  // Read the bucket size off the bars on screen. While a resize refetches, they
-  // are still the previous interval's, and the response doesn't say which.
-  const [firstBar, secondBar] = eventSeries;
-  const bucketSize =
-    firstBar && secondBar
-      ? secondBar.name - firstBar.name
-      : intervalToMilliseconds(interval);
 
   const legendConfig = legend({
     theme,
