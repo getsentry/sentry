@@ -44,7 +44,6 @@ const StyledTabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})<{
     p.overflowing &&
     css`
       visibility: hidden;
-      pointer-events: none;
     `}
 `;
 
@@ -252,6 +251,10 @@ export function Tab({
       aria-disabled={isDisabled || undefined}
       selected={isSelected}
       overflowing={overflowing}
+      // Descendants can override `visibility: hidden`, so also remove an
+      // overflowing tab from the accessibility tree and from interaction.
+      aria-hidden={overflowing || undefined}
+      inert={overflowing}
       ref={element => {
         wrapperRef.current = element;
         if (!isLink) {
@@ -300,9 +303,13 @@ export function Tab({
   );
 
   // An overflowing tab keeps its place in the layout, so its tooltip would still
-  // open when hovering the empty space it leaves.
+  // open when hovering the empty space it leaves. Disabling the tooltip would
+  // drop its wrapper and remount the tab, so keep it closed instead.
   return tooltipProps ? (
-    <Tooltip {...tooltipProps} disabled={tooltipProps.disabled || overflowing}>
+    <Tooltip
+      {...tooltipProps}
+      forceVisible={overflowing ? false : tooltipProps.forceVisible}
+    >
       {tab}
     </Tooltip>
   ) : (
