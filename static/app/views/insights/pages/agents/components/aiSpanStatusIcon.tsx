@@ -67,6 +67,13 @@ function operationTypeIcon(node: AITraceSpanNode) {
 
 interface AiSpanStatusIconProps {
   node: AITraceSpanNode;
+  /**
+   * `badge` colors the icon by operation type and marks errors with a fire
+   * badge. `inline` is for rows that color their text to show an error: the icon
+   * keeps the operation color and turns red on error, without a badge. `plain`
+   * does the same with the primary text color instead of the operation color.
+   */
+  variant?: 'badge' | 'inline' | 'plain';
 }
 
 /**
@@ -75,16 +82,19 @@ interface AiSpanStatusIconProps {
  * Used across the timeline, transcript, and span detail so the errored icon
  * looks the same everywhere.
  */
-export function AiSpanStatusIcon({node}: AiSpanStatusIconProps) {
+export function AiSpanStatusIcon({node, variant = 'badge'}: AiSpanStatusIconProps) {
   const theme = useTheme();
   const isCodeMode = isCodeModeNode(node);
   const hasErrors = hasError(node);
-  const iconColor = getSpanColor(node, getTimelineColorByOpType(theme));
+  const iconColor =
+    variant === 'plain' && !hasErrors
+      ? theme.tokens.content.primary
+      : getSpanColor(node, getTimelineColorByOpType(theme));
 
   return (
     <Flex align="center" position="relative" style={{color: iconColor}} flexShrink={0}>
       {isCodeMode ? <IconCode size="md" /> : operationTypeIcon(node)}
-      {hasErrors && (
+      {hasErrors && variant === 'badge' && (
         <Tooltip title={t('This span encountered an error')} skipWrapper>
           <Container
             position="absolute"
