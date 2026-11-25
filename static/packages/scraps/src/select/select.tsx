@@ -756,6 +756,7 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
     </div>
   );
   const first = selected[0];
+  const activeChip = focusedChip === null ? undefined : selected[focusedChip];
 
   return (
     <div
@@ -935,6 +936,18 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
           (trailingItems != null && typeof trailingItems !== 'boolean')) &&
           indicators}
       </div>
+      {multiple && (
+        <VisuallyHidden role="status" aria-atomic="true">
+          {!query && focusedChip !== null && activeChip
+            ? t(
+                '%s, %s of %s. Press Backspace to remove.',
+                optionText(activeChip),
+                focusedChip + 1,
+                selected.length
+              )
+            : null}
+        </VisuallyHidden>
+      )}
       {name &&
         !disabled &&
         (selected.length ? selected : [null]).map((option, index) => (

@@ -468,6 +468,39 @@ it('removes the last selected item with Backspace when the search is empty', asy
   expect(onChange).toHaveBeenCalledWith([options[0]], expect.anything());
 });
 
+it('announces the focused chip and removes it with Backspace', async () => {
+  const onChange = jest.fn();
+  render(
+    <Select
+      multiple
+      aria-label="Fruit"
+      options={options}
+      value={['apple', 'cherry']}
+      onChange={onChange}
+      isOpen={false}
+    />,
+    {wrapper: ThemeWrapper}
+  );
+
+  await userEvent.tab();
+  expect(screen.getByRole('status')).toBeEmptyDOMElement();
+
+  await userEvent.keyboard('{ArrowLeft}');
+  expect(screen.getByRole('status')).toHaveTextContent(
+    'Cherry, 2 of 2. Press Backspace to remove.'
+  );
+
+  await userEvent.keyboard('{ArrowLeft}');
+  expect(screen.getByRole('status')).toHaveTextContent(
+    'Apple, 1 of 2. Press Backspace to remove.'
+  );
+  expect(screen.getByRole('combobox', {name: 'Fruit'})).toHaveFocus();
+
+  await userEvent.keyboard('{Backspace}');
+  expect(onChange).toHaveBeenCalledWith([options[1]], expect.anything());
+  expect(screen.getByRole('status')).toBeEmptyDOMElement();
+});
+
 it('keeps the last selected item on Backspace when clearable is false', async () => {
   const onChange = jest.fn();
   render(
