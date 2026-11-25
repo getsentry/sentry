@@ -1,25 +1,17 @@
-import type {Key} from 'react';
-import {useMemo, useRef, useState, useDeferredValue} from 'react';
+import {useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import {type AriaComboBoxProps} from '@react-aria/combobox';
-import {VisuallyHidden} from '@react-aria/visually-hidden';
-import {Item, Section} from '@react-stately/collections';
-import {useComboBoxState} from '@react-stately/combobox';
-import type {CollectionChildren} from '@react-types/shared';
 import {IconSearch} from '@sentry/icons/search';
 
-import {HighlightText, ListBox} from '@sentry/scraps/compactSelect';
+import {HighlightText} from '@sentry/scraps/compactSelect';
 import {useHotkeys, Hotkey} from '@sentry/scraps/hotkey';
-import {InputGroup} from '@sentry/scraps/input';
-import {Flex} from '@sentry/scraps/layout';
-import {Overlay} from '@sentry/scraps/overlay';
+import {Select} from '@sentry/scraps/select';
 import {Text} from '@sentry/scraps/text';
 
-import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
 import {t} from 'sentry/locale';
 import {storyFrontmatterIndex, storyHeadingIndex} from 'sentry/stories/storyManifest';
 import {fzf} from 'sentry/utils/search/fzf';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -57,35 +49,39 @@ function matchScore(item: SearchItem, term: string) {
   );
 }
 
-function searchItems(nodes: StoryTreeNode[], query: string): SearchItem[] {
-  const items = nodes.flatMap(node => {
+function getStoryItems(nodes: StoryTreeNode[], orgSlug: string): SearchItem[] {
+  return nodes.flatMap(node => {
+    const pathname = normalizeUrl(
+      `/organizations/${orgSlug}/scraps/${node.category}/${node.slug}/`
+    );
     const page: SearchItem = {
-      key: node.filesystemPath,
+      key: pathname,
       label: node.label,
       title: node.label,
       node,
       keywords: storyFrontmatterIndex[node.filesystemPath]?.keywords,
     };
-    // Keep the empty-query menu compact. Sections are discovery results, not
-    // additional pages in the navigation tree.
-    if (!query.trim()) {
-      return [page];
-    }
     return [
       page,
-      ...(storyHeadingIndex[node.filesystemPath] ?? []).map((heading): SearchItem => ({
-        key: `${node.filesystemPath}#${heading.id}`,
-        label: [node.label, ...heading.parents, heading.title].join(' › '),
-        title: heading.title,
-        node,
-        hash: `#${encodeURIComponent(heading.id)}`,
-        parents: heading.parents,
-      })),
+      ...(storyHeadingIndex[node.filesystemPath] ?? []).map((heading): SearchItem => {
+        const hash = `#${encodeURIComponent(heading.id)}`;
+        return {
+          key: pathname + hash,
+          label: [node.label, ...heading.parents, heading.title].join(' › '),
+          title: heading.title,
+          node,
+          hash,
+          parents: heading.parents,
+        };
+      }),
     ];
   });
+}
+
+function searchItems(items: SearchItem[], query: string): SearchItem[] {
   const term = query.trim().toLowerCase();
   if (!term) {
-    return items;
+    return items.filter(item => !item.hash);
   }
   return items
     .map(item => {
@@ -171,256 +167,124 @@ function SearchResultLabel({item, query}: {item: SearchItem; query: string}) {
   );
 }
 
-function isSearchSection(item: SearchItem | SearchSection): item is SearchSection {
-  return 'options' in item;
-}
-
 export function StorySearch() {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const hierarchy = useStoryHierarchy();
+  const {pathname, hash} = useLocation();
+  const navigate = useNavigate();
+  const {slug: orgSlug} = useOrganization();
   const [inputValue, setInputValue] = useState('');
   useHotkeys([{hotkey: '/', callback: () => inputRef.current?.focus()}]);
 
-  const deferredInputValue = useDeferredValue(inputValue);
-
-  const sectionedItems = useMemo(() => {
-    const sections: SearchSection[] = [];
-
+  const sections = useMemo(() => {
+    const result: SearchSection[] = [];
     for (const section of SECTION_ORDER) {
       const data = hierarchy.get(section);
-      if (!data) {
+      if (!data?.stories.length) {
         continue;
       }
 
-      // For components section, consolidate all subcategories into a single section
-      if (section === 'core') {
-        const allCoreNodes = data.stories.flatMap(subcategoryFolder =>
-          subcategoryFolder.flat()
-        );
-
-        if (allCoreNodes.length > 0) {
-          sections.push({
-            key: section,
-            label: SECTION_CONFIG[section].label,
-            options: searchItems(allCoreNodes, deferredInputValue),
-          });
-        }
-      } else if (isTreeSection(section) && data.stories.length > 0) {
-        const flattenedStories = data.stories.flatMap(tree => tree.flat());
-        sections.push({
-          key: section,
-          label: SECTION_CONFIG[section].label,
-          options: searchItems(flattenedStories, deferredInputValue),
-        });
-      } else if (data.stories.length > 0) {
-        // Other sections (principles, patterns) don't need flattening
-        sections.push({
-          key: section,
-          label: SECTION_CONFIG[section].label,
-          options: searchItems(data.stories, deferredInputValue),
-        });
-      }
+      const nodes =
+        section === 'core'
+          ? data.stories.flatMap(folder => folder.flat())
+          : isTreeSection(section)
+            ? data.stories.flatMap(tree => tree.flat())
+            : data.stories;
+      result.push({
+        key: section,
+        label: SECTION_CONFIG[section].label,
+        options: getStoryItems(nodes, orgSlug),
+      });
     }
+    return result;
+  }, [hierarchy, orgSlug]);
 
-    // A page's results always share a section, so look-alike results can only
-    // collide within one.
-    const results = sections
-      .filter(section => section.options.length > 0)
-      .map(section => ({...section, options: collapseBreadcrumbs(section.options)}));
-    // Section headings make weak matches common in the sections
-    // listed first, so lead with the section that holds the best match.
-    return deferredInputValue.trim()
-      ? results.sort(({options: [a]}, {options: [b]}) =>
-          a && b ? compareMatches(a, b) : 0
-        )
-      : results;
-  }, [hierarchy, deferredInputValue]);
-
-  return (
-    <SearchComboBox
-      label={t('Search stories')}
-      menuTrigger="focus"
-      inputRef={inputRef}
-      items={sectionedItems}
-      inputValue={inputValue}
-      onInputChange={setInputValue}
-    >
-      {item => {
-        if (isSearchSection(item)) {
-          return (
-            <Section
-              key={item.key}
-              title={
-                <Text size="xs" uppercase>
-                  {item.label}
-                </Text>
-              }
-            >
-              {item.options.map(storyItem => {
-                const meta = storyFrontmatterIndex[storyItem.node.filesystemPath];
-                const subcategoryKey = item.key === 'core' ? meta?.category : undefined;
-                const subcategoryLabel = subcategoryKey
-                  ? (
-                      COMPONENT_SUBCATEGORY_CONFIG as Record<
-                        string,
-                        {label: string} | undefined
-                      >
-                    )[subcategoryKey]?.label
-                  : undefined;
-
-                return (
-                  <Item
-                    key={storyItem.key}
-                    textValue={storyItem.label}
-                    {...({
-                      label: <SearchResultLabel item={storyItem} query={inputValue} />,
-                      trailingItems: subcategoryLabel ? (
-                        <Text size="xs" variant="muted" ellipsis>
-                          {subcategoryLabel}
-                        </Text>
-                      ) : undefined,
-                      hideCheck: true,
-                    } as any)}
-                  />
-                );
-              })}
-            </Section>
-          );
-        }
-
-        return (
-          <Item
-            key={item.key}
-            textValue={item.label}
-            {...({label: item.label, hideCheck: true} as any)}
-          />
-        );
-      }}
-    </SearchComboBox>
-  );
-}
-
-function SearchInput(
-  props: React.HTMLProps<HTMLInputElement> & React.RefAttributes<HTMLInputElement>
-) {
-  const {className: _0, style: _1, size: nativeSize, ...nativeProps} = props;
-
-  return (
-    <InputGroup>
-      <InputGroup.LeadingItems disablePointerEvents>
-        <IconSearch />
-      </InputGroup.LeadingItems>
-      {/* oxlint-disable-next-line react/refs */}
-      <InputGroup.Input ref={props.ref} nativeSize={nativeSize} {...nativeProps} />
-      <InputGroup.TrailingItems>
-        <Hotkey value="/" />
-      </InputGroup.TrailingItems>
-    </InputGroup>
-  );
-}
-
-type SearchComboBoxItem = SearchItem | SearchSection;
-
-interface SearchComboBoxProps extends Omit<
-  AriaComboBoxProps<SearchComboBoxItem>,
-  'children'
-> {
-  children: CollectionChildren<SearchComboBoxItem>;
-  inputRef: React.RefObject<HTMLInputElement | null>;
-  inputValue: string;
-  items: SearchSection[];
-  description?: string | null;
-  label?: string;
-}
-
-function SearchComboBox(props: SearchComboBoxProps) {
-  const {inputRef, inputValue} = props;
-  const listBoxRef = useRef<HTMLUListElement | null>(null);
-  const popoverRef = useRef<HTMLDivElement | null>(null);
-  const navigate = useNavigate();
-
-  const organization = useOrganization();
-  const handleValueChange = (key: Key | null) => {
-    if (!key) {
-      return;
-    }
-    const item = props.items
-      .flatMap(section => section.options)
-      .find(option => option.key === key);
-    if (!item) {
-      return;
-    }
-    navigate({
-      pathname: normalizeUrl(
-        `/organizations/${organization.slug}/scraps/${item.node.category}/${item.node.slug}/`
-      ),
-      hash: item.hash ?? '',
-    });
-  };
-
-  const state = useComboBoxState({
-    ...props,
-    shouldCloseOnBlur: true,
-    allowsEmptyCollection: true,
-    onChange: handleValueChange,
-  });
-
-  const {inputProps, listBoxProps, labelProps} =
-    useSearchTokenCombobox<SearchComboBoxItem>(
-      {...props, inputRef, listBoxRef, popoverRef},
-      state
+  const current = useMemo(() => {
+    const items = sections.flatMap(section => section.options);
+    const page = pathname.replace(/\/?$/, '/');
+    return (
+      items.find(item => item.key === page + hash) ??
+      items.find(item => item.key === page)
     );
+  }, [sections, pathname, hash]);
+
+  const results = sections
+    .map(section => ({...section, options: searchItems(section.options, inputValue)}))
+    .filter(section => section.options.length > 0);
+  if (inputValue.trim()) {
+    // Put the section with the best match first.
+    results.sort(({options: [a]}, {options: [b]}) => (a && b ? compareMatches(a, b) : 0));
+  }
+
+  const groups = results.map(section => ({
+    label: (
+      <Text size="xs" uppercase>
+        {section.label}
+      </Text>
+    ),
+    options: collapseBreadcrumbs(section.options).map(item => {
+      const category =
+        section.key === 'core'
+          ? storyFrontmatterIndex[item.node.filesystemPath]?.category
+          : undefined;
+      const subcategory = category
+        ? (COMPONENT_SUBCATEGORY_CONFIG as Record<string, {label: string} | undefined>)[
+            category
+          ]?.label
+        : undefined;
+      return {
+        value: item.key,
+        label: <SearchResultLabel item={item} query={inputValue} />,
+        textValue: item.label,
+        trailingItems: subcategory ? (
+          <Text size="xs" variant="muted" ellipsis>
+            {subcategory}
+          </Text>
+        ) : undefined,
+      };
+    }),
+  }));
+
+  // Select needs the current option for its label even when it is outside the results.
+  const hiddenCurrent =
+    current &&
+    !groups.some(group => group.options.some(option => option.value === current.key))
+      ? {
+          value: current.key,
+          label: <Text as="span">{current.label}</Text>,
+          textValue: current.label,
+          trailingItems: undefined,
+        }
+      : undefined;
 
   return (
     <StorySearchContainer>
-      <VisuallyHidden elementType="label" {...labelProps}>
-        {props.label}
-      </VisuallyHidden>
-      <SearchInput ref={inputRef} placeholder={props.label} {...inputProps} />
-      {state.isOpen && (
-        <StyledOverlay placement="bottom-start" ref={popoverRef}>
-          {state.collection.size === 0 ? (
-            inputValue.length === 0 ? (
-              <SearchEmpty />
-            ) : (
-              <SearchNotFound inputValue={inputValue} />
-            )
-          ) : (
-            <ListBox
-              size="sm"
-              virtualized
-              listState={state}
-              hasSearch={!!state.inputValue}
-              overlayIsOpen={state.isOpen}
-              {...listBoxProps}
-              className="story-search-results"
-            >
-              {props.children}
-            </ListBox>
-          )}
-        </StyledOverlay>
-      )}
+      <Select
+        aria-label={t('Search stories')}
+        placeholder={t('Search stories')}
+        size="sm"
+        inputRef={inputRef}
+        inputValue={inputValue}
+        onInputChange={setInputValue}
+        options={hiddenCurrent ? [...groups, hiddenCurrent] : groups}
+        filterOption={
+          hiddenCurrent ? option => option.value !== hiddenCurrent.value : null
+        }
+        value={current?.key ?? null}
+        onChange={option => navigate(option.value)}
+        noOptionsMessage={({inputValue: query}) =>
+          query ? t('No stories match "%s"', query) : t('Type to search stories...')
+        }
+        openMenuOnFocus
+        dropdownIndicator={null}
+        leadingItems={<IconSearch size="sm" aria-hidden />}
+        trailingItems={<Hotkey value="/" />}
+        virtualized
+        maxMenuHeight={320}
+        minMenuHeight={groups.length > 0 ? 64 : undefined}
+        styles={{menu: base => ({...base, width: 320})}}
+      />
     </StorySearchContainer>
-  );
-}
-
-function SearchEmpty() {
-  return (
-    <Flex align="center" justify="start" padding="lg">
-      <Text variant="muted" size="sm">
-        {t('Type to search stories...')}
-      </Text>
-    </Flex>
-  );
-}
-
-function SearchNotFound({inputValue}: {inputValue: string}) {
-  return (
-    <Flex align="center" justify="start" padding="lg">
-      <Text variant="muted" size="sm">
-        {t('No stories match "%s"', inputValue)}
-      </Text>
-    </Flex>
   );
 }
 
@@ -430,22 +294,4 @@ const StorySearchContainer = styled('div')`
   flex-grow: 1;
   z-index: ${p => p.theme.zIndex.header};
   margin-left: -${p => p.theme.space.xl};
-`;
-
-const StyledOverlay = styled(Overlay)`
-  position: absolute;
-  top: 100%;
-  left: 0;
-  width: 320px;
-
-  /* Make section headers darker in this component */
-  p[id][aria-hidden='true'] {
-    color: ${p => p.theme.tokens.content.primary};
-  }
-
-  .story-search-results {
-    max-height: 320px;
-    min-height: 64px;
-    padding-block-end: calc(${p => p.theme.space.md} + 1px);
-  }
 `;
