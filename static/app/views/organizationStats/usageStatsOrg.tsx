@@ -20,7 +20,7 @@ import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {getSeriesApiInterval} from 'sentry/components/charts/utils';
 import {NotAvailable} from 'sentry/components/notAvailable';
 import {ScoreCard} from 'sentry/components/scoreCard';
-import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
+import {DATA_CATEGORY_INFO, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import type {
   DataCategory,
@@ -78,6 +78,42 @@ type ChartData = {
   dataError?: Error;
 };
 
+/**
+ * Not every SDK reports client discards for log and application metric bytes, but
+ * all of them report the number of discarded items. For these byte categories, the
+ * client discard toggle swaps the chart for the item count version.
+ */
+const CLIENT_DISCARD_COUNT_CATEGORIES: Partial<
+  Record<DataCategory, {countCategory: DataCategoryInfo; unit: string}>
+> = {
+  [DATA_CATEGORY_INFO.log_byte.plural]: {
+    countCategory: DATA_CATEGORY_INFO.log_item,
+    unit: t('logs'),
+  },
+  [DATA_CATEGORY_INFO.trace_metric_byte.plural]: {
+    countCategory: DATA_CATEGORY_INFO.trace_metric,
+    unit: t('application metrics'),
+  },
+};
+
+function getClientDiscardCountCategory(
+  organization: Organization,
+  dataCategory: DataCategory
+) {
+  if (!organization.features.includes('explore-dev-features')) {
+    return undefined;
+  }
+  return CLIENT_DISCARD_COUNT_CATEGORIES[dataCategory];
+}
+
+type ClientDiscardCountChart = {
+  chartData: Pick<ChartData, 'cardStats' | 'chartStats' | 'chartSubLabels'>;
+  dataCategory: DataCategory;
+  error: Error | null;
+  loading: boolean;
+  unit: string;
+};
+
 export function getEndpointQueryDatetime(dataDatetime: DateTimeObject) {
   return dataDatetime.start && dataDatetime.end
     ? {start: dataDatetime.start, end: dataDatetime.end, utc: dataDatetime.utc}
@@ -121,6 +157,7 @@ export function getChartProps({
   chartData,
   dataCategory,
   clientDiscard,
+  clientDiscardCountChart,
   handleChangeState,
   error,
   loading,
@@ -158,12 +195,30 @@ export function getChartProps({
   ) => void;
   loading: boolean;
   clientDiscard?: boolean;
+  /**
+   * When set, turning on client discards swaps the chart for this item count version.
+   */
+  clientDiscardCountChart?: ClientDiscardCountChart;
 }): UsageChartProps & {footer: React.ReactNode; title: React.ReactNode} {
-  const errors = error ? {error} : undefined;
+  const countChart = clientDiscard ? clientDiscardCountChart : undefined;
+  const chartLoading = countChart ? countChart.loading : loading;
+  const chartError = countChart ? countChart.error : error;
+  const chartDataCategory = countChart ? countChart.dataCategory : dataCategory;
+  const chartStats = countChart ? countChart.chartData.chartStats : chartData.chartStats;
+  const chartSubLabels = countChart
+    ? countChart.chartData.chartSubLabels
+    : chartData.chartSubLabels;
+  const clientDiscardCount = clientDiscardCountChart?.chartData.cardStats.clientDiscard;
+  const clientDiscardLabel =
+    clientDiscardCountChart && clientDiscardCount
+      ? `${clientDiscardCount} ${clientDiscardCountChart.unit}`
+      : chartData.cardStats.clientDiscard;
+
+  const errors = chartError ? {error: chartError} : undefined;
 
   return {
-    isLoading: loading,
-    isError: Boolean(error),
+    isLoading: chartLoading,
+    isError: Boolean(chartError),
     errors,
     title: (
       <Fragment>
@@ -190,7 +245,7 @@ export function getChartProps({
           <FooterDate>
             <SectionHeading>{t('Date Range:')}</SectionHeading>
             <span>
-              {loading || error ? (
+              {chartLoading || chartError ? (
                 <NotAvailable />
               ) : (
                 tct('[start] — [end] ([timezone] UTC, [interval] interval)', {
@@ -207,9 +262,9 @@ export function getChartProps({
           {(chartData.chartStats.clientDiscard ?? []).length > 0 && (
             <Flex align="center" gap="md">
               <strong>
-                {chartData.cardStats.clientDiscard
+                {clientDiscardLabel
                   ? tct('Show client-discarded data ([count]):', {
-                      count: chartData.cardStats.clientDiscard,
+                      count: clientDiscardLabel,
                     })
                   : t('Show client-discarded data:')}
               </strong>
@@ -234,18 +289,18 @@ export function getChartProps({
         </InlineContainer>
       </Footer>
     ),
-    dataCategory,
+    dataCategory: chartDataCategory,
     dataTransform: chartData.chartTransform,
     usageDateStart: chartData.chartDateStart,
     usageDateEnd: chartData.chartDateEnd,
     usageDateShowUtc: chartData.chartDateUtc,
     usageDateInterval: chartData.chartDateInterval,
-    usageStats: chartData.chartStats,
+    usageStats: chartStats,
     chartTooltip: {
-      subLabels: chartData.chartSubLabels,
+      subLabels: chartSubLabels,
       skipZeroValuedSubLabels: true,
       trigger: 'axis',
-      valueFormatter: getTooltipFormatter(dataCategory),
+      valueFormatter: getTooltipFormatter(chartDataCategory),
     },
     legendSelected: {[SeriesTypes.CLIENT_DISCARD]: !!clientDiscard},
     onLegendSelectChanged: ({name, selected}) => {
@@ -358,6 +413,33 @@ export function UsageStatsOrganization({
       }
     ),
     retry: false,
+  });
+
+  const clientDiscardCountCategory = getClientDiscardCountCategory(
+    organization,
+    dataCategory
+  );
+  const countStatsQuery = useMemo(
+    () =>
+      clientDiscardCountCategory
+        ? {...orgStatsQuery, category: [clientDiscardCountCategory.countCategory.name]}
+        : orgStatsQuery,
+    [clientDiscardCountCategory, orgStatsQuery]
+  );
+
+  // Fetched up front so the client discard toggle can show the discarded item
+  // count and swap the chart without waiting on another request
+  const countStatsResponse = useQuery({
+    ...apiOptions.as<UsageSeries | undefined>()(
+      '/organizations/$organizationIdOrSlug/stats_v2/',
+      {
+        path: {organizationIdOrSlug: organization.slug},
+        query: countStatsQuery,
+        staleTime: Infinity,
+      }
+    ),
+    retry: false,
+    enabled: Boolean(clientDiscardCountCategory),
   });
 
   const handleOnDocsClick = useCallback(
@@ -476,6 +558,34 @@ export function UsageStatsOrganization({
     chartDataTransform,
   ]);
 
+  const clientDiscardCountChart = useMemo((): ClientDiscardCountChart | undefined => {
+    if (!clientDiscardCountCategory) {
+      return undefined;
+    }
+
+    const countDataCategory = clientDiscardCountCategory.countCategory.plural;
+    return {
+      chartData: mapSeriesToChart({
+        orgStats: countStatsResponse.data,
+        chartDateInterval: chartDateRange.chartDateInterval,
+        chartDateUtc: chartDateRange.chartDateUtc,
+        dataCategory: countDataCategory,
+        endpointQuery: countStatsQuery,
+      }),
+      dataCategory: countDataCategory,
+      error: countStatsResponse.error,
+      loading: countStatsResponse.isPending,
+      unit: clientDiscardCountCategory.unit,
+    };
+  }, [
+    clientDiscardCountCategory,
+    countStatsResponse.data,
+    countStatsResponse.error,
+    countStatsResponse.isPending,
+    countStatsQuery,
+    chartDateRange,
+  ]);
+
   const cardMetadata: CardMetadata = useMemo(() => {
     const {total, accepted, accepted_stored, invalid, rateLimited, filtered} =
       chartData.cardStats;
@@ -579,6 +689,7 @@ export function UsageStatsOrganization({
     return getChartProps({
       chartData,
       clientDiscard,
+      clientDiscardCountChart,
       dataCategory,
       error: orgStatsReponse.error,
       loading: orgStatsReponse.isPending,
@@ -589,6 +700,7 @@ export function UsageStatsOrganization({
     handleOnDocsClick,
     chartData,
     clientDiscard,
+    clientDiscardCountChart,
     dataCategory,
     orgStatsReponse.error,
     orgStatsReponse.isPending,
