@@ -60,10 +60,7 @@ describe('Quick Context Commit Row', () => {
           id: '14',
           name: 'example',
           url: '',
-          provider: {
-            id: 'unknown',
-            name: 'Unknown Provider',
-          },
+          provider: {id: 'unknown', name: 'Unknown Provider'},
           status: RepositoryStatus.ACTIVE,
           dateCreated: '2022-10-07T19:35:27.370422Z',
           integrationId: '14',

@@ -36,10 +36,7 @@ export default function BuildComparison() {
       '/organizations/$organizationIdOrSlug/preprodartifacts/$headArtifactId/build-details/',
       {
         path: headArtifactId
-          ? {
-              organizationIdOrSlug: organization.slug,
-              headArtifactId,
-            }
+          ? {organizationIdOrSlug: organization.slug, headArtifactId}
           : skipToken,
         staleTime: 0,
       }
@@ -48,11 +45,7 @@ export default function BuildComparison() {
 
   const compareOptions = sizeComparisonApiOptions(
     headArtifactId && baseArtifactId
-      ? {
-          organizationSlug: organization.slug,
-          headArtifactId,
-          baseArtifactId,
-        }
+      ? {organizationSlug: organization.slug, headArtifactId, baseArtifactId}
       : skipToken
   );
 
@@ -64,10 +57,7 @@ export default function BuildComparison() {
   >({
     mutationFn: artifacts => {
       return fetchMutation({
-        url: getCompareApiUrl({
-          organizationSlug: organization.slug,
-          ...artifacts,
-        }),
+        url: getCompareApiUrl({organizationSlug: organization.slug, ...artifacts}),
         method: 'POST',
         options: {query: {rerun: 'true'}},
       });

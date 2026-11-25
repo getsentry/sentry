@@ -61,9 +61,7 @@ export function useOAuthSession(returnTo: string) {
   const requireAuthentication = useCallback(() => setNeedsAuthentication(true), []);
 
   const switchAccount = useMutation({
-    onMutate: () => ({
-      previousUser: user === undefined ? ConfigStore.get('user') : user,
-    }),
+    onMutate: () => ({previousUser: user === undefined ? ConfigStore.get('user') : user}),
     mutationFn: async () => {
       // redirect: false keeps ordinary logout inline, but SSO single logout may
       // still navigate to the provider. Continue only when logout stayed on this page.

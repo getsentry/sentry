@@ -60,7 +60,7 @@ describe('AutomationDetail', () => {
     await findLoadedPage();
 
     // Breadcrumb title and page header
-    expect(screen.getAllByRole('heading', {name: 'Agentic triage'})).toHaveLength(2);
+    expect(screen.getAllByRole('heading', {name: 'Agentic Triage'})).toHaveLength(2);
     expect(
       screen.getByText('Automatically triage and fix the most fixable Issues.')
     ).toBeInTheDocument();
@@ -84,11 +84,7 @@ describe('AutomationDetail', () => {
 
   it('shows the next run for daily schedules', async () => {
     mockConfig(
-      SeerWorkflowConfigFixture({
-        id: '42',
-        strategy: 'daily_strategy',
-        schedule: 'daily',
-      })
+      SeerWorkflowConfigFixture({id: '42', strategy: 'daily_strategy', schedule: 'daily'})
     );
     renderDetail();
     expect(await screen.findByText(/Next run/)).toBeInTheDocument();

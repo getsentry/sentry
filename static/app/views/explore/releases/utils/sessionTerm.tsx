@@ -94,10 +94,7 @@ function getTermDescriptions(platform: PlatformKey | null) {
   switch (technology) {
     case 'dotnet':
     case 'java':
-      return {
-        ...commonTermsDescription,
-        ...mobileTermsDescription,
-      };
+      return {...commonTermsDescription, ...mobileTermsDescription};
     case 'java-spring':
     case 'dotnet-aspnetcore':
       return {
@@ -119,10 +116,10 @@ function getTermDescriptions(platform: PlatformKey | null) {
           'An unhandled exception that resulted in the application crashing'
         ),
         [SessionTerm.ANR_RATE]: t(
-          'Percentage of unique users that experienced an App Not Responding (ANR) error'
+          'Percentage of unique users that experienced a fatal App Not Responding (ANR) error'
         ),
         [SessionTerm.FOREGROUND_ANR_RATE]: t(
-          'Percentage of unique users that experienced an App Not Responding (ANR) error when the app was running in the foreground'
+          'Percentage of unique users that experienced a fatal App Not Responding (ANR) error when the app was running in the foreground'
         ),
       };
     case 'apple': {
@@ -155,10 +152,7 @@ function getTermDescriptions(platform: PlatformKey | null) {
     case 'nintendo-switch':
     case 'playstation':
     case 'xbox':
-      return {
-        ...commonTermsDescription,
-        ...desktopTermDescriptions,
-      };
+      return {...commonTermsDescription, ...desktopTermDescriptions};
     case 'rust':
       return {
         ...commonTermsDescription,
@@ -187,6 +181,8 @@ export function getSessionTermDescription(
   term: SessionTerm,
   platform: PlatformKey | null
 ) {
-  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-  return getTermDescriptions(platform)[term];
+  return (
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    getTermDescriptions(platform)[term] ?? getTermDescriptions(null)[term]
+  );
 }

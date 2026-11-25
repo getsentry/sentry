@@ -146,7 +146,25 @@ def _sync_proguard_artifact_releases(
 
 
 def _sync_artifact_bundle(source_artifact_bundle: ArtifactBundle, target_org: Organization) -> None:
+    target_artifact_bundle = ArtifactBundle(
+        organization_id=target_org.id,
+        bundle_id=source_artifact_bundle.bundle_id,
+        artifact_count=source_artifact_bundle.artifact_count,
+        date_last_modified=source_artifact_bundle.date_last_modified,
+        date_uploaded=source_artifact_bundle.date_uploaded,
+        indexing_state=source_artifact_bundle.indexing_state,
+    )
     try:
+        if source_artifact_bundle.storage_path is not None:
+            target_artifact_bundle.checksum = source_artifact_bundle.get_checksum()
+            target_artifact_bundle.file_size = source_artifact_bundle.get_file_size()
+            with source_artifact_bundle.get_file() as contents:
+                target_artifact_bundle.storage_path = (
+                    target_artifact_bundle.get_objectstore_session().put(
+                        contents, content_type="application/octet-stream"
+                    )
+                )
+
         with atomic_transaction(
             using=(
                 router.db_for_write(ArtifactBundle),
@@ -155,26 +173,20 @@ def _sync_artifact_bundle(source_artifact_bundle: ArtifactBundle, target_org: Or
                 router.db_for_write(ReleaseArtifactBundle),
             )
         ):
-            blobs = source_artifact_bundle.file.blobs.all()
-            for blob in blobs:
-                FileBlobOwner.objects.get_or_create(
-                    organization_id=target_org.id,
-                    blob_id=blob.id,
-                )
+            if target_artifact_bundle.storage_path is None:
+                file = source_artifact_bundle.file
+                assert file is not None
+                for blob in file.blobs.all():
+                    FileBlobOwner.objects.get_or_create(
+                        organization_id=target_org.id, blob_id=blob.id
+                    )
+                target_artifact_bundle.file = file
 
-            target_artifact_bundle = ArtifactBundle.objects.create(
-                organization_id=target_org.id,
-                bundle_id=source_artifact_bundle.bundle_id,
-                artifact_count=source_artifact_bundle.artifact_count,
-                date_last_modified=source_artifact_bundle.date_last_modified,
-                date_uploaded=source_artifact_bundle.date_uploaded,
-                file=source_artifact_bundle.file,
-                indexing_state=source_artifact_bundle.indexing_state,
-            )
-
+            target_artifact_bundle.save()
             _sync_project_artifact_bundle(source_artifact_bundle, target_artifact_bundle)
             _sync_release_artifact_bundle(source_artifact_bundle, target_artifact_bundle)
-    except IntegrityError as e:
+    except Exception as e:
+        target_artifact_bundle.delete_objectstore_file_on_commit()
         sentry_sdk.capture_exception(e)
 
 

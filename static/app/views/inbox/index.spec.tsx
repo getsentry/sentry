@@ -4,16 +4,25 @@ import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
 import {InboxItemFixture} from 'sentry-fixture/inboxItem';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import {PRELOAD_HANDLE} from 'sentry/router/preload';
 import {buildRoutes} from 'sentry/router/routes';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {GroupActivityType, type GroupActivity} from 'sentry/types/group';
 import Inbox from 'sentry/views/inbox';
 import {InvestigationDetailFixture} from 'sentry/views/investigations/fixtures';
 
-import type {InboxSubject} from './types';
+import type {InboxSubjectRef} from './types';
 
 const inboxPath = '/organizations/org-slug/inbox/';
 const inboxRoute = matchRoutes(buildRoutes(), inboxPath)?.at(-2)?.route;
@@ -38,10 +47,7 @@ function mockIssuePreviewRequests(groupId: string, activity: GroupActivity[] = [
     url: `/organizations/org-slug/issues/${groupId}/events/recommended/`,
     body: EventFixture({id: 'event-id'}),
   });
-  MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/users/',
-    body: [],
-  });
+  MockApiClient.addMockResponse({url: '/organizations/org-slug/users/', body: []});
   MockApiClient.addMockResponse({
     url: '/projects/org-slug/project-slug/events/event-id/owners/',
     body: {owners: [], rules: []},
@@ -70,6 +76,10 @@ function mockIssuePreviewRequests(groupId: string, activity: GroupActivity[] = [
     url: `/organizations/org-slug/issues/${groupId}/pull-requests/`,
     body: {pullRequests: []},
   });
+  MockApiClient.addMockResponse({
+    url: `/organizations/org-slug/issues/${groupId}/related/`,
+    body: {data: [], investigations: [], meta: {types: []}},
+  });
 }
 
 describe('Inbox', () => {
@@ -77,14 +87,22 @@ describe('Inbox', () => {
 
   const issueItem = InboxItemFixture({
     id: '1',
-    subjectId: '7656018581',
-    title: "TypeError: Cannot read properties of undefined (reading 'id')",
+    subject: {
+      type: 'issue',
+      id: '7656018581',
+      title: "TypeError: Cannot read properties of undefined (reading 'id')",
+      metadata: {shortId: 'PROJECT-42', project: {id: '1', slug: 'project'}},
+    },
   });
   const notebookItem = InboxItemFixture({
     id: '2',
-    subjectType: 'notebook',
-    subjectId: '1000210',
-    title: 'OperationalError: could not connect to server',
+    subject: {
+      type: 'notebook',
+      id: '1000210',
+      title: 'OperationalError: could not connect to server',
+      metadata: {},
+    },
+    eventTypes: ['notebook.user_mentioned'],
     latestEvent: {
       id: '2',
       type: 'notebook.user_mentioned',
@@ -94,25 +112,40 @@ describe('Inbox', () => {
       isUnread: true,
       dateAdded: '2020-01-01T00:00:00.000Z',
     },
+    subtitle: 'Mentioned you in a comment',
   });
   const readNotebookItem = InboxItemFixture({
     id: '3',
-    subjectType: 'notebook',
-    subjectId: '1000209',
-    title: 'Checkout latency regression',
+    subject: {
+      type: 'notebook',
+      id: '1000209',
+      title: 'Checkout latency regression',
+      metadata: {},
+    },
+    eventTypes: ['notebook.completed'],
+    latestEvent: {
+      id: '3',
+      type: 'notebook.completed',
+      actor: {type: 'system', id: null, name: 'Sentry', avatar: null},
+      data: {seerRunId: '1'},
+      summary: 'Investigation completed',
+      isUnread: false,
+      dateAdded: '2020-01-01T00:00:00.000Z',
+    },
+    subtitle: 'Investigation completed',
     isUnread: false,
     unreadEventCount: 0,
   });
 
   let markReadRequest: jest.Mock;
 
-  async function expectMarkedRead(subject: InboxSubject) {
+  async function expectMarkedRead(subject: InboxSubjectRef) {
     await waitFor(() => expect(markReadRequest).toHaveBeenCalledTimes(1));
     expect(markReadRequest).toHaveBeenCalledWith(
       '/organizations/org-slug/inbox/',
       expect.objectContaining({
         method: 'PUT',
-        query: {subject_type: [subject.subjectType], subject_id: subject.subjectId},
+        query: {subject_type: [subject.type], subject_id: subject.id},
         data: {isRead: true},
       })
     );
@@ -128,6 +161,7 @@ describe('Inbox', () => {
   });
 
   beforeEach(() => {
+    ProjectsStore.reset();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/inbox/',
       body: [issueItem, notebookItem, readNotebookItem],
@@ -139,28 +173,27 @@ describe('Inbox', () => {
     });
   });
 
-  it('shows the title and latest event summary of each item', async () => {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/inbox/',
-      body: [notebookItem, InboxItemFixture({id: '4', title: null})],
-    });
-
+  it('shows subject titles and event summaries with short IDs and project icons for issues', async () => {
     render(<Inbox />, {organization, initialRouterConfig: INBOX_ROUTER_CONFIG});
 
     expect(
-      await screen.findByRole('link', {
-        name: /OperationalError: could not connect to server/,
-      })
+      await screen.findByRole('link', {name: issueItem.subject.title})
+    ).toHaveAttribute('href', '/organizations/org-slug/inbox/issue/7656018581/');
+    expect(screen.getByText('PROJECT-42')).toBeInTheDocument();
+    expect(screen.getByTestId('platform-icon-default')).toBeInTheDocument();
+    act(() => {
+      ProjectsStore.loadInitialData([ProjectFixture({id: '1', platform: 'python'})]);
+    });
+    expect(screen.getByTestId('platform-icon-python')).toBeInTheDocument();
+    expect(screen.getByText('Assigned to you')).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', {name: notebookItem.subject.title})
     ).toBeInTheDocument();
     expect(screen.getByText('Mentioned you in a comment')).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: /Unavailable/})).toBeInTheDocument();
   });
 
   it('shows an empty state when there are no items', async () => {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/inbox/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/inbox/', body: []});
 
     render(<Inbox />, {organization, initialRouterConfig: INBOX_ROUTER_CONFIG});
 
@@ -170,16 +203,79 @@ describe('Inbox', () => {
   it('links to the Inbox notification settings', async () => {
     render(<Inbox />, {organization, initialRouterConfig: INBOX_ROUTER_CONFIG});
 
-    const settingsButton = await screen.findByRole('button', {
-      name: 'Inbox notification settings',
-    });
-    expect(settingsButton).toHaveAttribute(
-      'href',
-      '/settings/account/notifications/inbox/'
-    );
+    await userEvent.click(screen.getByRole('button', {name: 'Inbox actions'}));
+    expect(
+      await screen.findByRole('menuitemradio', {name: 'Notification settings'})
+    ).toHaveAttribute('href', '/settings/account/notifications/inbox/');
+  });
 
-    await userEvent.hover(settingsButton);
-    expect(await screen.findByText('Go to Inbox settings')).toBeInTheDocument();
+  it.each(['Mark all as read', 'Remove all read'])('can cancel %s', async action => {
+    const removeRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/inbox/',
+      method: 'DELETE',
+    });
+    render(<Inbox />, {organization, initialRouterConfig: INBOX_ROUTER_CONFIG});
+    renderGlobalModal();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Inbox actions'}));
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: action}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Cancel'}));
+
+    expect(markReadRequest).not.toHaveBeenCalled();
+    expect(removeRequest).not.toHaveBeenCalled();
+    expect(screen.getAllByTestId('unread-inbox-item-indicator')).toHaveLength(2);
+    expect(
+      screen.getByRole('link', {name: readNotebookItem.subject.title})
+    ).toBeInTheDocument();
+  });
+
+  it('marks the entire inbox as read after confirmation', async () => {
+    render(<Inbox />, {organization, initialRouterConfig: INBOX_ROUTER_CONFIG});
+    renderGlobalModal();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Inbox actions'}));
+    await userEvent.click(
+      await screen.findByRole('menuitemradio', {name: 'Mark all as read'})
+    );
+    expect(markReadRequest).not.toHaveBeenCalled();
+    await userEvent.click(await screen.findByRole('button', {name: 'Mark all as read'}));
+
+    expect(markReadRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/inbox/',
+      expect.objectContaining({method: 'PUT', query: {}, data: {isRead: true}})
+    );
+    expect(screen.queryByTestId('unread-inbox-item-indicator')).not.toBeInTheDocument();
+  });
+
+  it('removes only read items across the inbox after confirmation', async () => {
+    const removeRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/inbox/',
+      method: 'DELETE',
+      statusCode: 204,
+    });
+    render(<Inbox />, {organization, initialRouterConfig: INBOX_ROUTER_CONFIG});
+    renderGlobalModal();
+
+    await screen.findByRole('link', {name: readNotebookItem.subject.title});
+    await userEvent.click(screen.getByRole('button', {name: 'Inbox actions'}));
+    await userEvent.click(
+      await screen.findByRole('menuitemradio', {name: 'Remove all read'})
+    );
+    expect(removeRequest).not.toHaveBeenCalled();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/inbox/',
+      body: [issueItem, notebookItem],
+    });
+    await userEvent.click(await screen.findByRole('button', {name: 'Remove all read'}));
+
+    expect(removeRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/inbox/',
+      expect.objectContaining({method: 'DELETE', query: {is_read: 'true'}})
+    );
+    expect(
+      screen.queryByRole('link', {name: readNotebookItem.subject.title})
+    ).not.toBeInTheDocument();
+    expect(screen.getAllByTestId('unread-inbox-item-indicator')).toHaveLength(2);
   });
 
   it('shows an error state when items fail to load', async () => {
@@ -238,7 +334,7 @@ describe('Inbox', () => {
       '/organizations/org-slug/inbox/notebook/1000210/'
     );
     expect(item).toHaveAttribute('aria-current', 'true');
-    await expectMarkedRead(notebookItem);
+    await expectMarkedRead(notebookItem.subject);
   });
 
   it('opens the notebook preview and returns to the index', async () => {
@@ -268,12 +364,10 @@ describe('Inbox', () => {
 
     expect(screen.getByText('No item selected')).toBeInTheDocument();
 
-    const issueCheckbox = {name: `Select ${issueItem.title}`};
+    const issueCheckbox = {name: `Select ${issueItem.subject.title}`};
     await userEvent.click(await screen.findByRole('checkbox', issueCheckbox));
     await userEvent.click(
-      screen.getByRole('link', {
-        name: /OperationalError: could not connect to server/,
-      })
+      screen.getByRole('link', {name: /OperationalError: could not connect to server/})
     );
 
     expect(await screen.findByRole('textbox', {name: 'Investigation title'})).toHaveValue(
@@ -306,8 +400,19 @@ describe('Inbox', () => {
     ).toHaveAttribute('href', '/organizations/org-slug/inbox/notebook/1000210/');
   });
 
-  it('selects the item for the issue in the url', async () => {
+  it('selects and marks read only the issue when a notebook has the same subject ID', async () => {
     mockIssuePreviewRequests('7656018581');
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/inbox/',
+      body: [
+        {
+          ...notebookItem,
+          subject: {...notebookItem.subject, id: issueItem.subject.id},
+          url: `https://sentry.example.com/organizations/org-slug/inbox/notebook/${issueItem.subject.id}/`,
+        },
+        issueItem,
+      ],
+    });
 
     render(<Inbox />, {
       organization,
@@ -321,7 +426,11 @@ describe('Inbox', () => {
     expect(
       screen.getByRole('link', {name: /TypeError: Cannot read properties/})
     ).toHaveAttribute('aria-current', 'true');
-    await expectMarkedRead(issueItem);
+    expect(
+      screen.getByRole('link', {name: notebookItem.subject.title})
+    ).not.toHaveAttribute('aria-current');
+    await expectMarkedRead(issueItem.subject);
+    expect(screen.getAllByTestId('unread-inbox-item-indicator')).toHaveLength(1);
   });
 
   it('previews the issue in the url when it is not in the loaded items', async () => {
@@ -339,17 +448,17 @@ describe('Inbox', () => {
     expect(
       screen.getByRole('link', {name: /TypeError: Cannot read properties/})
     ).not.toHaveAttribute('aria-current');
-    await expectMarkedRead({subjectType: 'issue', subjectId: '9999'});
+    await expectMarkedRead({type: 'issue', id: '9999'});
   });
 
   it('highlights and scrolls to the activity selected by the URL fragment', async () => {
     const scrollIntoView = jest.fn();
     Element.prototype.scrollIntoView = scrollIntoView;
-    mockIssuePreviewRequests(issueItem.subjectId, [
+    mockIssuePreviewRequests(issueItem.subject.id, [
       ActivityFeedFixture({id: '123', data: {text: 'First comment'}}),
       ActivityFeedFixture({id: '456', data: {text: 'Second comment'}}),
     ]);
-    const issuePath = `/organizations/${organization.slug}/inbox/issue/${issueItem.subjectId}`;
+    const issuePath = `/organizations/${organization.slug}/inbox/issue/${issueItem.subject.id}`;
     const currentActivity = '[aria-current="location"]';
     const {router} = render(<Inbox />, {
       organization,
@@ -387,7 +496,7 @@ describe('Inbox', () => {
   it('reveals the linked activity inside a collapsed status rollup', async () => {
     const scrollIntoView = jest.fn();
     Element.prototype.scrollIntoView = scrollIntoView;
-    mockIssuePreviewRequests(issueItem.subjectId, [
+    mockIssuePreviewRequests(issueItem.subject.id, [
       {
         id: '4',
         type: GroupActivityType.SET_REGRESSION,
@@ -419,7 +528,7 @@ describe('Inbox', () => {
       initialRouterConfig: {
         ...INBOX_ROUTER_CONFIG,
         location: {
-          pathname: `/organizations/${organization.slug}/inbox/issue/${issueItem.subjectId}#activity-1`,
+          pathname: `/organizations/${organization.slug}/inbox/issue/${issueItem.subject.id}#activity-1`,
         },
       },
     });
@@ -433,7 +542,7 @@ describe('Inbox', () => {
   });
 
   it('marks an item outside the loaded page and filters as read', async () => {
-    mockIssuePreviewRequests(issueItem.subjectId);
+    mockIssuePreviewRequests(issueItem.subject.id);
     const listRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/inbox/',
       body: [notebookItem],
@@ -452,14 +561,14 @@ describe('Inbox', () => {
       initialRouterConfig: {
         ...INBOX_ROUTER_CONFIG,
         location: {
-          pathname: `/organizations/org-slug/inbox/issue/${issueItem.subjectId}/`,
+          pathname: `/organizations/org-slug/inbox/issue/${issueItem.subject.id}/`,
           query: {subjectType: 'notebook'},
         },
       },
     });
 
     expect(await screen.findByRole('heading', {name: 'TypeError'})).toBeInTheDocument();
-    await expectMarkedRead(issueItem);
+    await expectMarkedRead(issueItem.subject);
     expect(listRequest).toHaveBeenCalledTimes(1);
     expect(nextPageRequest).not.toHaveBeenCalled();
     expect(screen.getByRole('button', {name: 'Show more'})).toBeInTheDocument();
@@ -489,10 +598,7 @@ describe('Inbox', () => {
   });
 
   it('does not mark items as read without viewing them', async () => {
-    render(<Inbox />, {
-      organization,
-      initialRouterConfig: INBOX_ROUTER_CONFIG,
-    });
+    render(<Inbox />, {organization, initialRouterConfig: INBOX_ROUTER_CONFIG});
 
     expect(await screen.findByText('No item selected')).toBeInTheDocument();
     expect(markReadRequest).not.toHaveBeenCalled();
@@ -530,11 +636,11 @@ describe('Inbox', () => {
       });
 
       const selectedCheckbox = await screen.findByRole('checkbox', {
-        name: `Select ${notebookItem.title}`,
+        name: `Select ${notebookItem.subject.title}`,
       });
       await userEvent.click(selectedCheckbox);
       const actions = screen.getByRole('button', {
-        name: `Actions for ${issueItem.title}`,
+        name: `Actions for ${issueItem.subject.title}`,
       });
       await userEvent.hover(actions);
       await userEvent.click(actions);
@@ -569,11 +675,11 @@ describe('Inbox', () => {
       });
 
       const selectedCheckbox = await screen.findByRole('checkbox', {
-        name: `Select ${notebookItem.title}`,
+        name: `Select ${notebookItem.subject.title}`,
       });
       await userEvent.click(selectedCheckbox);
       const actions = screen.getByRole('button', {
-        name: `Actions for ${readNotebookItem.title}`,
+        name: `Actions for ${readNotebookItem.subject.title}`,
       });
       await userEvent.hover(actions);
       await userEvent.click(actions);
@@ -616,7 +722,7 @@ describe('Inbox', () => {
 
       await userEvent.click(
         await screen.findByRole('button', {
-          name: `Actions for ${readNotebookItem.title}`,
+          name: `Actions for ${readNotebookItem.subject.title}`,
         })
       );
       await userEvent.click(
@@ -635,7 +741,7 @@ describe('Inbox', () => {
     });
 
     it('waits for auto-mark-read before sending an explicit mark-unread update', async () => {
-      mockIssuePreviewRequests(issueItem.subjectId);
+      mockIssuePreviewRequests(issueItem.subject.id);
       const readResponse = Promise.withResolvers<void>();
       const autoReadRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/inbox/',
@@ -649,14 +755,14 @@ describe('Inbox', () => {
         initialRouterConfig: {
           ...INBOX_ROUTER_CONFIG,
           location: {
-            pathname: `/organizations/org-slug/inbox/issue/${issueItem.subjectId}/`,
+            pathname: `/organizations/org-slug/inbox/issue/${issueItem.subject.id}/`,
           },
         },
       });
 
       await waitFor(() => expect(autoReadRequest).toHaveBeenCalledTimes(1));
       const actions = screen.getByRole('button', {
-        name: `Actions for ${issueItem.title}`,
+        name: `Actions for ${issueItem.subject.title}`,
       });
       await userEvent.click(actions);
       await userEvent.click(
@@ -684,7 +790,7 @@ describe('Inbox', () => {
     });
 
     it('marks an explicitly unread item read when reopened after viewing another item', async () => {
-      mockIssuePreviewRequests(issueItem.subjectId);
+      mockIssuePreviewRequests(issueItem.subject.id);
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/notebooks/1000209/',
         body: InvestigationDetailFixture({id: '1000209'}),
@@ -699,7 +805,7 @@ describe('Inbox', () => {
 
       await userEvent.click(
         await screen.findByRole('button', {
-          name: `Actions for ${readNotebookItem.title}`,
+          name: `Actions for ${readNotebookItem.subject.title}`,
         })
       );
       await userEvent.click(
@@ -708,15 +814,17 @@ describe('Inbox', () => {
       await waitFor(() => expect(markReadRequest).toHaveBeenCalledTimes(1));
       expect(screen.getAllByTestId('unread-inbox-item-indicator')).toHaveLength(3);
 
-      await userEvent.click(screen.getByRole('link', {name: issueItem.title!}));
+      await userEvent.click(screen.getByRole('link', {name: issueItem.subject.title}));
       await waitFor(() => expect(markReadRequest).toHaveBeenCalledTimes(2));
-      await userEvent.click(screen.getByRole('link', {name: readNotebookItem.title!}));
+      await userEvent.click(
+        screen.getByRole('link', {name: readNotebookItem.subject.title})
+      );
 
       await waitFor(() => expect(markReadRequest).toHaveBeenCalledTimes(3));
       expect(markReadRequest).toHaveBeenLastCalledWith(
         '/organizations/org-slug/inbox/',
         expect.objectContaining({
-          query: {subject_type: ['notebook'], subject_id: readNotebookItem.subjectId},
+          query: {subject_type: ['notebook'], subject_id: readNotebookItem.subject.id},
           data: {isRead: true},
         })
       );
@@ -732,13 +840,13 @@ describe('Inbox', () => {
       render(<Inbox />, {organization, initialRouterConfig: INBOX_ROUTER_CONFIG});
 
       const actions = await screen.findByRole('button', {
-        name: `Actions for ${notebookItem.title}`,
+        name: `Actions for ${notebookItem.subject.title}`,
       });
       await userEvent.click(
-        screen.getByRole('checkbox', {name: `Select ${notebookItem.title}`})
+        screen.getByRole('checkbox', {name: `Select ${notebookItem.subject.title}`})
       );
       await userEvent.click(
-        screen.getByRole('checkbox', {name: `Select ${issueItem.title}`})
+        screen.getByRole('checkbox', {name: `Select ${issueItem.subject.title}`})
       );
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/inbox/',
@@ -754,12 +862,14 @@ describe('Inbox', () => {
         )
       );
       expect(
-        screen.queryByRole('link', {name: notebookItem.title!})
+        screen.queryByRole('link', {name: notebookItem.subject.title})
       ).not.toBeInTheDocument();
-      expect(screen.getByRole('link', {name: issueItem.title!})).toBeInTheDocument();
+      expect(
+        screen.getByRole('link', {name: issueItem.subject.title})
+      ).toBeInTheDocument();
       expect(screen.getByText('1 selected')).toBeInTheDocument();
       expect(
-        screen.getByRole('checkbox', {name: `Select ${issueItem.title}`})
+        screen.getByRole('checkbox', {name: `Select ${issueItem.subject.title}`})
       ).toBeChecked();
       expect(await screen.findByText('Removed 1 item')).toBeInTheDocument();
 
@@ -778,7 +888,7 @@ describe('Inbox', () => {
         })
       );
       expect(
-        await screen.findByRole('link', {name: notebookItem.title!})
+        await screen.findByRole('link', {name: notebookItem.subject.title})
       ).toBeInTheDocument();
     });
 
@@ -791,13 +901,15 @@ describe('Inbox', () => {
       render(<Inbox />, {organization, initialRouterConfig: INBOX_ROUTER_CONFIG});
 
       await userEvent.click(
-        await screen.findByRole('button', {name: `Actions for ${notebookItem.title}`})
+        await screen.findByRole('button', {
+          name: `Actions for ${notebookItem.subject.title}`,
+        })
       );
       await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Remove'}));
 
       expect(await screen.findByText('Unable to remove item')).toBeInTheDocument();
       expect(
-        await screen.findByRole('link', {name: notebookItem.title!})
+        await screen.findByRole('link', {name: notebookItem.subject.title})
       ).toBeInTheDocument();
     });
   });
@@ -932,7 +1044,7 @@ describe('Inbox', () => {
       await userEvent.keyboard('{Escape}');
 
       expect(
-        await screen.findByRole('link', {name: notebookItem.title!})
+        await screen.findByRole('link', {name: notebookItem.subject.title})
       ).toBeInTheDocument();
       expect(filteredRequest).toHaveBeenCalled();
       expect(router.location.query).toEqual({recipient: 'team'});
@@ -1068,10 +1180,7 @@ describe('Inbox', () => {
         body: [notebookItem, readNotebookItem],
       });
 
-      render(<Inbox />, {
-        organization,
-        initialRouterConfig: INBOX_ROUTER_CONFIG,
-      });
+      render(<Inbox />, {organization, initialRouterConfig: INBOX_ROUTER_CONFIG});
 
       expect(
         await screen.findByRole('link', {name: /TypeError: Cannot read properties/})
@@ -1092,7 +1201,7 @@ describe('Inbox', () => {
       await userEvent.click(
         screen.getByRole('link', {name: /OperationalError: could not connect to server/})
       );
-      await expectMarkedRead(notebookItem);
+      await expectMarkedRead(notebookItem.subject);
 
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/inbox/',
@@ -1142,12 +1251,7 @@ describe('Inbox', () => {
         match: [
           MockApiClient.matchQuery({subject_type: ['notebook'], recipient: ['team']}),
         ],
-        body: [
-          {
-            ...notebookItem,
-            url: `${notebookItem.url}?comment=1#comment-1`,
-          },
-        ],
+        body: [{...notebookItem, url: `${notebookItem.url}?comment=1#comment-1`}],
       });
 
       const {router} = render(<Inbox />, {
@@ -1177,7 +1281,7 @@ describe('Inbox', () => {
         recipient: 'team',
         subjectType: 'notebook',
       });
-      await expectMarkedRead(notebookItem);
+      await expectMarkedRead(notebookItem.subject);
     });
 
     it('ignores unknown filter values in the url', async () => {

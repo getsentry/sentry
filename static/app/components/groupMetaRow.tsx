@@ -20,10 +20,7 @@ import ProjectBadge from './idBadge/projectBadge';
 import {extractSelectionParameters} from './pageFilters/parse';
 import {Placeholder} from './placeholder';
 
-type Props = {
-  data: Group;
-  showLifetime?: boolean;
-};
+type Props = {data: Group; showLifetime?: boolean};
 
 function Lifetime({
   firstSeen,
@@ -95,10 +92,7 @@ export function GroupMetaRow({data, showLifetime = true}: Props) {
       {subtitle ? <Location>{subtitle}</Location> : null}
       {numComments > 0 ? (
         <CommentsLink
-          to={{
-            pathname: `${issuesPath}${id}/activity/`,
-            query: {filter: 'comments'},
-          }}
+          to={{pathname: `${issuesPath}${id}/activity/`, query: {filter: 'comments'}}}
         >
           <IconChat
             size="xs"

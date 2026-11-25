@@ -1,15 +1,16 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Iterator, Sequence
+from collections.abc import Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Annotated, Any, Literal, NewType, Protocol
+from typing import Annotated, Any, ClassVar, Literal, NewType, Protocol
 
 from django.db import router, transaction
 from django.db.models import QuerySet
 from django.utils import timezone
+from jsonschema import ValidationError as JSONSchemaValidationError
 from pydantic import BaseModel, Field, ValidationError
 
 from sentry.constants import ObjectStatus
@@ -20,6 +21,7 @@ from sentry.seer.models.workflow import (
     SeerWorkflowFilters,
     SeerWorkflowRun,
     SeerWorkflowRunExtras,
+    SeerWorkflowRunSource,
     SeerWorkflowStrategy,
     WorkflowRunError,
     WorkflowRunSnapshot,
@@ -34,9 +36,15 @@ from sentry.service_accounts.models import (
 )
 from sentry.service_accounts.outbox import service_account_grant_update_outbox
 from sentry.utils import json
-from sentry.workflow_engine.models import Workflow
+from sentry.workflow_engine.models import Action, Workflow
+from sentry.workflow_engine.types import ActionInvocation
 
 logger = logging.getLogger(__name__)
+
+# How an action reaches its workflow: workflow -> action filter group -> action.
+ACTION_WORKFLOW_ID = (
+    "dataconditiongroupaction__condition_group__workflowdataconditiongroup__workflow_id"
+)
 
 
 class WorkflowUpdateError(ValueError):
@@ -152,12 +160,45 @@ class AdmittedRun:
     rejection: RejectionReason | None = None
 
 
+@dataclass(frozen=True)
+class AcceptedRun:
+    run: SeerWorkflowRun
+    created: bool
+
+
+@dataclass(frozen=True)
+class RejectedRun:
+    run: SeerWorkflowRun
+    reason: RejectionReason
+    created: bool
+
+
+@dataclass(frozen=True)
+class IgnoredRun:
+    reason: Literal[
+        "unsupported_trigger",
+        "invalid_source",
+        "feature_disabled",
+        "config_disabled",
+        "configuration_unavailable",
+        "out_of_scope",
+    ]
+
+
+type ActionAdmission = AcceptedRun | RejectedRun | IgnoredRun
+
+
 class AutomationDefinition[Inputs: BaseModel](Protocol):
     """An automation: how its runs start, and which projects those runs cover."""
 
+    strategy: SeerWorkflowStrategy
     # What a firing hands to the automation's action; recorded in the run's snapshot.
     inputs_type: type[Inputs]
     settings_type: type[BaseModel]
+    # Whether the automation's investigation action takes a prompt or a skill, which is then
+    # required. Seeded defaults start with ``seeded_action_settings``.
+    takes_action_settings: ClassVar[bool] = False
+    seeded_action_settings: ClassVar[Mapping[str, Any] | None] = None
     scoped_by: Literal["projects", "monitors"]
 
     def projects(self, config: SeerWorkflowConfig) -> QuerySet[Project]:
@@ -167,6 +208,10 @@ class AutomationDefinition[Inputs: BaseModel](Protocol):
     def setup(self, update: ConfigUpdate, workflow: Workflow) -> None:
         """Attach anything the trigger needs to a new automation's backing workflow."""
         return None
+
+    def admit_action(self, invocation: ActionInvocation, *, config_id: int) -> ActionAdmission:
+        """Decide whether the automation's backing workflow firing this action starts a run."""
+        return IgnoredRun("unsupported_trigger")
 
     def set_scope(self, update: ConfigUpdate, selection: ScopeSelection) -> None:
         """Replace the config's scope, marking ``update`` only when something changed."""
@@ -186,10 +231,8 @@ class AutomationDefinition[Inputs: BaseModel](Protocol):
     @staticmethod
     def is_enabled(config: SeerWorkflowConfig) -> bool:
         workflow = config.backing_workflow
-        if workflow is None:
-            # TODO(telkins): Cascade a deleted backing workflow to its automation.
-            raise ValueError(f"Automation {config.id} has no backing workflow")
-        return workflow.enabled and workflow.status == ObjectStatus.ACTIVE
+        # TODO(telkins): Cascade a deleted backing workflow to its automation.
+        return workflow is not None and workflow.enabled and workflow.status == ObjectStatus.ACTIVE
 
     def covers(self, config: SeerWorkflowConfig, project_id: int, environment: str | None) -> bool:
         filters = SeerWorkflowFilters.parse_obj(config.filters)
@@ -219,7 +262,14 @@ class AutomationDefinition[Inputs: BaseModel](Protocol):
         # TODO(telkins): Enforce automation quota before accepting a new run.
         return True
 
-    def admit_run(self, config: LockedConfig, *, trigger_key: str, inputs: Inputs) -> AdmittedRun:
+    def admit_run(
+        self,
+        config: LockedConfig,
+        *,
+        trigger_key: str,
+        source: SeerWorkflowRunSource,
+        inputs: Inputs,
+    ) -> AdmittedRun:
         """Record one admission decision per trigger key, leaving an accepted run queued.
 
         Retries return the original run with its configuration, inputs and decision.
@@ -264,7 +314,9 @@ class AutomationDefinition[Inputs: BaseModel](Protocol):
             ),
             admission=admission,
         )
-        lifecycle = SeerWorkflowRunLifecycle.create(config, trigger_key=trigger_key, extras=extras)
+        lifecycle = SeerWorkflowRunLifecycle.create(
+            config, trigger_key=trigger_key, source=source, extras=extras
+        )
         # TODO(telkins): Decide whether an automation that stays over quota should keep
         # recording a rejected run for every trigger.
         if admission.status == "rejected":
@@ -334,11 +386,29 @@ class ConfigUpdate:
             workflow.name = name
             self.mark_workflow("name")
 
-    def _backing_workflow(self) -> Workflow:
-        workflow = self.config.backing_workflow
-        if workflow is None:
-            raise WorkflowUpdateError("The automation has no backing workflow")
-        return workflow
+    def set_environments(self, environments: Sequence[str]) -> None:
+        """Replace the environments the automation covers. An empty list means all."""
+        filters = SeerWorkflowFilters.parse_obj(self.config.filters)
+        if filters.environments != list(environments):
+            filters.environments = list(environments)
+            self.config.filters = filters.dict()
+            self.mark("filters")
+
+    def set_action_settings(self, action_settings: Mapping[str, Any]) -> None:
+        """Replace the investigation action's prompt or skill, which the action's schema checks."""
+        if not self.definition.takes_action_settings:
+            raise WorkflowUpdateError(f"{self.definition.strategy} automations take no settings")
+        if not action_settings:
+            raise WorkflowUpdateError("Set a prompt or a skill")
+        action = self._investigation_action()
+        data = dict(action_settings)
+        if action.data != data:
+            action.data = data
+            try:
+                action.save(update_fields=["data", "date_updated"])
+            except JSONSchemaValidationError as e:
+                raise WorkflowUpdateError(e.message) from e
+            self.mark_related_changed()
 
     def set_extras(self, extras: SeerWorkflowConfigExtras) -> None:
         self.definition.validate_settings(extras)
@@ -384,6 +454,20 @@ class ConfigUpdate:
         self.mark_related_changed()
         return True
 
+    def set_scope(self, selection: ScopeSelection) -> None:
+        """Replace which projects the automation covers, in the form its trigger takes.
+
+        Callers must authorize the change; this only checks that the selection belongs to
+        the workflow's organization.
+        """
+        self.definition.set_scope(self, selection)
+
+    def _backing_workflow(self) -> Workflow:
+        workflow = self.config.backing_workflow
+        if workflow is None:
+            raise WorkflowUpdateError("The automation has no backing workflow")
+        return workflow
+
     def _service_account_replica(self) -> ServiceAccountReplica:
         if self.config.service_account_id is None:
             raise WorkflowUpdateError("The automation doesn't have a service account")
@@ -404,10 +488,11 @@ class ConfigUpdate:
             raise WorkflowUpdateError("The automation's service account can't be found")
         return replica
 
-    def set_scope(self, selection: ScopeSelection) -> None:
-        """Replace which projects the automation covers, in the form its trigger takes.
-
-        Callers must authorize the change; this only checks that the selection belongs to
-        the workflow's organization.
-        """
-        self.definition.set_scope(self, selection)
+    def _investigation_action(self) -> Action:
+        try:
+            return Action.objects.get(
+                type=Action.Type.SEER_INVESTIGATION,
+                **{ACTION_WORKFLOW_ID: self._backing_workflow().id},
+            )
+        except Action.DoesNotExist as e:
+            raise WorkflowUpdateError("The automation has no investigation action") from e

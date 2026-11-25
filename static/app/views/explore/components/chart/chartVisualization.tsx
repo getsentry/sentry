@@ -37,11 +37,13 @@ interface ChartVisualizationProps {
   chartXRangeSelection?: Partial<ChartXRangeSelectionProps>;
   droppedData?: DroppedDataProps;
   isDroppedDataLoading?: boolean;
+  onAnnotationClick?: (items: AnnotationItem[]) => void;
   /**
    * Overrides the plottables derived from `chartInfo`, e.g. when several
    * aggregates are plotted on the same chart.
    */
   plottables?: Plottable[];
+  showConfidence?: boolean;
   /**
    * Maximum number of series listed in the tooltip, see
    * `TimeSeriesWidgetVisualization`.
@@ -109,7 +111,9 @@ export function ChartVisualization({
   chartRef,
   droppedData,
   isDroppedDataLoading = false,
+  onAnnotationClick,
   plottables: plottablesOverride,
+  showConfidence,
   tooltipLimit,
 }: ChartVisualizationProps) {
   const defaultPlottables = useChartVisualizationPlottables(chartInfo);
@@ -168,7 +172,9 @@ export function ChartVisualization({
         chartXRangeSelection={chartXRangeSelection}
         droppedData={activeDroppedData}
         annotations={annotations}
+        onAnnotationClick={onAnnotationClick}
         renderTooltipSeriesDetails={renderTooltipSeriesDetails}
+        showConfidence={showConfidence}
         tooltipLimit={tooltipLimit}
       />
     </StyledTransparentLoadingMask>

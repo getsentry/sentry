@@ -18,8 +18,8 @@ import {toast} from '@sentry/scraps/toast';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import type {ResponseMeta} from 'sentry/types/api';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
@@ -40,10 +40,7 @@ describe('addValidatedFieldTypesToMeta', () => {
   it('preserves table meta field types over validated field types', () => {
     const meta = addValidatedFieldTypesToMeta({
       meta: {
-        fields: {
-          'custom.duration': FieldValueType.STRING,
-          id: FieldValueType.STRING,
-        },
+        fields: {'custom.duration': FieldValueType.STRING, id: FieldValueType.STRING},
       },
       validatedFieldTypes: {
         'custom.duration': FieldValueType.NUMBER,
@@ -155,9 +152,7 @@ describe('SpansTable', () => {
     organization,
     additionalWrapper: Wrapper,
     initialRouterConfig: {
-      location: {
-        pathname: `/organizations/${organization.slug}/explore/traces/`,
-      },
+      location: {pathname: `/organizations/${organization.slug}/explore/traces/`},
     },
   });
 
@@ -192,13 +187,7 @@ describe('SpansTable', () => {
           timestamp: new Date(row.timestamp).getTime() / 1000,
         }),
       ],
-      body: {
-        attributes,
-        itemId: row.id,
-        links: null,
-        meta: {},
-        timestamp: row.timestamp,
-      },
+      body: {attributes, itemId: row.id, links: null, meta: {}, timestamp: row.timestamp},
     });
   }
 
@@ -210,9 +199,7 @@ describe('SpansTable', () => {
     expect(attributeRow).not.toBeNull();
     await userEvent.hover(attributeRow!);
     await userEvent.click(
-      within(attributeRow!).getByRole('button', {
-        name: 'Attribute Actions Menu',
-      }),
+      within(attributeRow!).getByRole('button', {name: 'Attribute Actions Menu'}),
       {pointerEventsCheck: 0}
     );
   }
@@ -233,9 +220,7 @@ describe('SpansTable', () => {
       renderOptions()
     );
 
-    const showButtons = screen.getAllByRole('button', {
-      name: 'Show span details',
-    });
+    const showButtons = screen.getAllByRole('button', {name: 'Show span details'});
     expect(firstDetailsMock).not.toHaveBeenCalled();
     expect(secondDetailsMock).not.toHaveBeenCalled();
 
@@ -265,12 +250,7 @@ describe('SpansTable', () => {
     async useRawAttributeNames => {
       mockSpanDetails(firstRow, [
         {name: 'span.op', rawName: 'sentry.op', type: 'str', value: 'operation value'},
-        {
-          name: 'span.duration',
-          rawName: 'sentry.duration_ms',
-          type: 'int',
-          value: 42,
-        },
+        {name: 'span.duration', rawName: 'sentry.duration_ms', type: 'int', value: 42},
         {name: 'middle', type: 'str', value: 'fallback value'},
         {
           name: 'tags[aaa.custom,string]',
@@ -400,10 +380,7 @@ describe('SpansTable', () => {
     });
 
     const pendingResult = makeQueryResult([], 'unrelated-hint');
-    Object.assign(pendingResult, {
-      isFetching: true,
-      isPlaceholderData: true,
-    });
+    Object.assign(pendingResult, {isFetching: true, isPlaceholderData: true});
     rerender(<ExampleSpansTable requestIdentityKey="page-two" result={pendingResult} />);
 
     expect(screen.getByText('custom value')).toBeInTheDocument();
@@ -564,19 +541,17 @@ function makeQueryResult(
 ): SpansTableResult['result'] {
   const queryClient = makeTestQueryClient();
   const queryKey = ['spans-table-test'];
-  queryClient.setQueryData(queryKey, [{data: []}, undefined, undefined]);
+  queryClient.setQueryData(queryKey, {json: {data: []}, headers: {}});
 
-  const base = new QueryObserver<
-    [TableData, string | undefined, ResponseMeta<TableData> | undefined],
-    QueryError
-  >(queryClient, {queryKey, enabled: false}).getCurrentResult();
+  const base = new QueryObserver<ApiResponse<TableData>>(queryClient, {
+    queryKey,
+    enabled: false,
+  }).getCurrentResult();
 
   return {
     ...base,
     data,
     error: null,
-    statusCode: undefined,
-    response: undefined,
     meta: {
       routingHint,
       fields: {

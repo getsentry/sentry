@@ -37,7 +37,7 @@ from sentry.models.repository import Repository
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.types import PipelineStepResult
 from sentry.pipeline.views.base import ApiPipelineSteps
-from sentry.shared_integrations.exceptions import ApiError
+from sentry.shared_integrations.exceptions import ApiError, ApiPaginationTruncated
 from sentry.utils.http import absolute_uri
 
 from .client import BitbucketApiClient
@@ -145,15 +145,26 @@ class BitbucketIntegration(RepositoryIntegration[BitbucketApiClient], BitbucketI
     ) -> list[RepositoryInfo]:
         username = self.model.metadata.get("uuid", self.username)
         if not query:
-            all_repos = self.get_client().get_repos(username, page_number_limit=page_number_limit)
-            return [
-                {
-                    "identifier": repo["full_name"],
-                    "name": repo["full_name"],
-                    "external_id": self.get_repo_external_id(repo),
-                }
-                for repo in all_repos
-            ]
+
+            def to_repo_info(repos: list[dict[str, Any]]) -> list[RepositoryInfo]:
+                return [
+                    {
+                        "identifier": repo["full_name"],
+                        "name": repo["full_name"],
+                        "external_id": self.get_repo_external_id(repo),
+                    }
+                    for repo in repos
+                ]
+
+            try:
+                all_repos = self.get_client().get_repos(
+                    username,
+                    page_number_limit=page_number_limit,
+                    raise_on_page_limit=raise_on_page_limit,
+                )
+            except ApiPaginationTruncated as e:
+                raise ApiPaginationTruncated(to_repo_info(e.partial_data)) from e
+            return to_repo_info(all_repos)
 
         client = self.get_client()
         exact_query = f'name="{query}"'
@@ -164,8 +175,8 @@ class BitbucketIntegration(RepositoryIntegration[BitbucketApiClient], BitbucketI
         seen: OrderedSet[str] = OrderedSet()
         repos: list[RepositoryInfo] = []
         for repo in chain(
-            cast(BitbucketSearchResponse, exact_search_resp).get("values", []),
-            cast(BitbucketSearchResponse, fuzzy_search_resp).get("values", []),
+            exact_search_resp.get("values", []),
+            fuzzy_search_resp.get("values", []),
         ):
             if repo["full_name"] not in seen:
                 seen.add(repo["full_name"])

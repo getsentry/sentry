@@ -4,6 +4,7 @@ import {stripAnnotations} from '@sentry/scraps/markdown/annotation';
 import {
   EMPTY_TEXT_CONTENT,
   extractAssistantOutput,
+  getMessageRoles,
   normalizeToMessages,
 } from 'sentry/views/insights/pages/agents/utils/aiMessageNormalizer';
 import {
@@ -39,6 +40,7 @@ import {
 import {getRawToolOutput} from 'sentry/views/insights/pages/agents/utils/toolOutput';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
+import {getAIInputMessages} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiInput';
 
 const FILTERED = '[Filtered]';
 
@@ -89,8 +91,6 @@ export interface ToolCall {
 export interface SubAgentCall {
   hasError: boolean;
   kind: 'subagent';
-  /** The sub-agent's own LLM calls, not counting those of its sub-agents. */
-  llmCallCount: number;
   messages: ConversationMessage[];
   name: string;
   nodeId: string;
@@ -214,10 +214,7 @@ function cloneNodeWithAttrs(
   node: AITraceSpanNode,
   overrides: Record<string, string>
 ): AITraceSpanNode {
-  return {
-    ...node,
-    attributes: {...node.attributes, ...overrides},
-  } as AITraceSpanNode;
+  return {...node, attributes: {...node.attributes, ...overrides}} as AITraceSpanNode;
 }
 
 // The agent output interleaves assistant messages with `tool` result messages;
@@ -798,10 +795,7 @@ function buildAgentHierarchyMessages(nodes: AITraceSpanNode[]): ConversationMess
       toSubAgentCall(
         agent,
         placements.get(agent.id)?.viaTool ?? null,
-        buildScope(agent.id),
-        (nodesByScope.get(agent.id) ?? []).filter(
-          node => getSpanKind(node) === 'generation'
-        ).length
+        buildScope(agent.id)
       )
     );
     return attachSubAgentCalls(
@@ -839,8 +833,7 @@ function getToolResult(tool: AITraceSpanNode): string | null {
 function toSubAgentCall(
   agent: AITraceSpanNode,
   viaTool: AITraceSpanNode | null,
-  messages: ConversationMessage[],
-  llmCallCount: number
+  messages: ConversationMessage[]
 ): SubAgentCall {
   const name = resolveAgentName(agent.attributes ?? {}) || agent.description || 'agent';
   const result = viaTool ? getToolResult(viaTool) : null;
@@ -848,7 +841,6 @@ function toSubAgentCall(
     kind: 'subagent',
     nodeId: agent.id,
     name,
-    llmCallCount,
     hasError: hasError(agent),
     duration: getNodeDuration(agent),
     preview:
@@ -1114,6 +1106,64 @@ export function parseUserContent(node: AITraceSpanNode): string | null {
   return userMessage.content;
 }
 
+/**
+ * Returns the system prompt of an LLM call: `gen_ai.system_instructions`, or
+ * the system message of its input when the SDK sends it there instead.
+ */
+export function parseSystemPrompt(node: AITraceSpanNode): string | null {
+  const {messages} = getAIInputMessages(node);
+  const systemMessage = messages?.find(m => m.role === 'system');
+  return typeof systemMessage?.content === 'string' ? systemMessage.content : null;
+}
+
+/**
+ * The system prompt of the conversation's first LLM call or agent span that
+ * has one. Later calls (follow-up turns, sub-agents) usually repeat it or set
+ * up a different agent, so only the first is shown, at the top of the
+ * transcript. Returns the span it came from too, so the row can select it.
+ */
+export function getConversationSystemPrompt(
+  nodes: AITraceSpanNode[]
+): {node: AITraceSpanNode; prompt: string} | null {
+  let first: {node: AITraceSpanNode; prompt: string} | null = null;
+  let firstStart = Infinity;
+  // Agent spans count too: some SDKs send the prompt, as messages or as
+  // `gen_ai.system_instructions`, only on the agent span.
+  const candidates = [
+    ...partitionSpansByType(nodes).generationSpans,
+    ...nodes.filter(isAgentNode),
+  ];
+  for (const node of candidates) {
+    const start = getNodeStartTimestamp(node);
+    if (start >= firstStart) {
+      continue;
+    }
+    const prompt = blankToNull(parseSystemPrompt(node));
+    if (prompt) {
+      first = {node, prompt};
+      firstStart = start;
+    }
+  }
+  return first;
+}
+
+/**
+ * Whether the SDK captured any message content, as opposed to a transcript of
+ * `NOT_REPORTED` placeholders or no transcript at all. Only user and
+ * assistant turns count: a conversation of embeddings, evaluations,
+ * extractions or memory operations has no exchange to read, so the timeline
+ * shows it better.
+ */
+export function hasCapturedMessageContent(messages: ConversationMessage[]): boolean {
+  const isCaptured = (text: string | undefined) => Boolean(text) && text !== NOT_REPORTED;
+  return someMessageDeep(
+    messages,
+    message =>
+      (message.role === 'user' || message.role === 'assistant') &&
+      (isCaptured(message.content) || isCaptured(message.reasoning))
+  );
+}
+
 interface InputMessageStats {
   totalMessageCount: number;
   userMessageCount: number;
@@ -1133,17 +1183,19 @@ export function getInputMessageStats(node: AITraceSpanNode): InputMessageStats {
     return {totalMessageCount: 0, userMessageCount: 0};
   }
 
-  const {messages} = normalizeToMessages(raw, {defaultRole: 'user'});
-  if (!messages) {
-    return {totalMessageCount: 0, userMessageCount: 0};
-  }
   // System prompts are not conversation history; exclude them so a
   // non-cumulative SDK that always prepends a system message is still
-  // recognised as single-message (non-cumulative) input.
-  const nonSystem = messages.filter(m => m.role !== 'system');
+  // recognised as single-message (non-cumulative) input. Messages without
+  // text, like an assistant's tool requests, still count as history.
+  const historyRoles = getMessageRoles(raw, {defaultRole: 'user'}).filter(
+    role => role !== 'system'
+  );
+  // Only user messages with text count as user turns, so tool results sent
+  // back in user messages don't pass for a new question.
+  const {messages} = normalizeToMessages(raw, {defaultRole: 'user'});
   return {
-    totalMessageCount: nonSystem.length,
-    userMessageCount: nonSystem.filter(m => m.role === 'user').length,
+    totalMessageCount: historyRoles.length,
+    userMessageCount: messages?.filter(m => m.role === 'user').length ?? 0,
   };
 }
 
@@ -1162,14 +1214,9 @@ export function parseAssistantContent(node: AITraceSpanNode): {
     if (isFiltered(outputMessages)) {
       return {content: outputMessages, reasoning: null};
     }
-    const extracted = extractAssistantOutput(outputMessages, {
-      defaultRole: 'assistant',
-    });
+    const extracted = extractAssistantOutput(outputMessages, {defaultRole: 'assistant'});
     if (extracted.responseText) {
-      return {
-        content: extracted.responseText,
-        reasoning: extracted.reasoningText,
-      };
+      return {content: extracted.responseText, reasoning: extracted.reasoningText};
     }
     // If tool calls or reasoning were found but no text, don't fall through to
     // response attributes — tool calls are rendered separately as badges and

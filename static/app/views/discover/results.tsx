@@ -70,7 +70,6 @@ import {
 import {getDiscoverQueriesUrl} from 'sentry/utils/discover/urls';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {MarkedText} from 'sentry/utils/marked/markedText';
-import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {generateQueryWithTag, decodeList} from 'sentry/utils/queryString';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
@@ -90,7 +89,6 @@ import {parseAsScalar} from 'sentry/views/explore/queryParams/parsers';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {getSaveAsAlertMenuItem} from 'sentry/views/explore/utils/saveAsAlertMenuItem';
-import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 import {addRoutePerformanceContext} from 'sentry/views/performance/utils';
 import {makeTracesPathname} from 'sentry/views/traces/pathnames';
 
@@ -519,9 +517,7 @@ class ResultsContent extends Component<Props, State> {
 
   handleChangeShowTags = () => {
     const {organization} = this.props;
-    trackAnalytics('discover_v2.results.toggle_tag_facets', {
-      organization,
-    });
+    trackAnalytics('discover_v2.results.toggle_tag_facets', {organization});
     this.setState(state => {
       const newValue = !state.showTags;
       localStorageWrapper.setItem(SHOW_TAGS_STORAGE_KEY, newValue ? '1' : '0');
@@ -710,23 +706,18 @@ class ResultsContent extends Component<Props, State> {
                 handleSearch={this.handleSearch}
               />
               {!transactionsUnsupported && (
-                <MetricsCardinalityProvider
+                <ResultsChartContainer
                   organization={organization}
+                  eventView={eventView}
                   location={location}
-                >
-                  <ResultsChartContainer
-                    organization={organization}
-                    eventView={eventView}
-                    location={location}
-                    onAxisChange={this.handleYAxisChange}
-                    onDisplayChange={this.handleDisplayChange}
-                    onTopEventsChange={this.handleTopEventsChange}
-                    onIntervalChange={this.handleIntervalChange}
-                    total={totalValues}
-                    confirmedQuery={confirmedQuery}
-                    yAxis={yAxisArray}
-                  />
-                </MetricsCardinalityProvider>
+                  onAxisChange={this.handleYAxisChange}
+                  onDisplayChange={this.handleDisplayChange}
+                  onTopEventsChange={this.handleTopEventsChange}
+                  onIntervalChange={this.handleIntervalChange}
+                  total={totalValues}
+                  confirmedQuery={confirmedQuery}
+                  yAxis={yAxisArray}
+                />
               )}
             </Top>
             <Layout.Main
@@ -799,10 +790,7 @@ class ResultsContent extends Component<Props, State> {
                       [dayLimit:over more than 30 days] for [projectLimit:more than 10 projects].
                       A lot has happened during that time, so this might take awhile.
                       Are you sure you want to do this?`,
-                    {
-                      dayLimit: <strong />,
-                      projectLimit: <strong />,
-                    }
+                    {dayLimit: <strong />, projectLimit: <strong />}
                   )}
                 </p>
               }
@@ -923,9 +911,7 @@ function TransactionsDatasetDeprecationBanner({
         <Alert variant="warning">
           {tct(
             'This query has been migrated to Explore, the fancy new UI that will soon replace Discover. Try it out in [explore:Explore] instead.',
-            {
-              explore: <Link to={exploreUrl} />,
-            }
+            {explore: <Link to={exploreUrl} />}
           )}
         </Alert>
       </Alert.Container>
@@ -1042,10 +1028,7 @@ function TagsTable({
         isHomepage,
         hasDatasetSelector(organization) ? savedQueryDataset : undefined
       );
-      url.query = generateQueryWithTag(url.query, {
-        key: formatTagKey(key),
-        value,
-      });
+      url.query = generateQueryWithTag(url.query, {key: formatTagKey(key), value});
       return url;
     },
     [eventView, organization, isHomepage, savedQueryDataset]
@@ -1244,9 +1227,7 @@ function SaveQueryButton({
     location,
     savedQuery?.queryDataset
   );
-  const deprecatingTransactionsDataset =
-    currentDataset === DiscoverDatasets.TRANSACTIONS &&
-    organization.features.includes('discover-saved-queries-deprecation');
+  const deprecatingTransactionsDataset = currentDataset === DiscoverDatasets.TRANSACTIONS;
   const tracesUrl = getExploreUrl({organization, query: 'is_transaction:true'});
 
   const handleCreate = async ({name, starred}: {name: string; starred?: boolean}) => {
@@ -1263,10 +1244,7 @@ function SaveQueryButton({
     if (starred) {
       try {
         await starQuery(
-          {
-            queryId: Number(createdSavedQuery.id),
-            queryType: SavedQueryType.DISCOVER,
-          },
+          {queryId: Number(createdSavedQuery.id), queryType: SavedQueryType.DISCOVER},
           true
         );
       } catch (err) {
@@ -1332,32 +1310,18 @@ function SaveQueryButton({
     },
   });
 
-  const shouldHideCreateAlert =
-    currentDataset === DiscoverDatasets.TRANSACTIONS &&
-    (deprecateTransactionAlerts(organization) ||
-      organization.features.includes('discover-saved-queries-deprecation'));
-
-  if (!shouldHideCreateAlert) {
-    let alertType: MetricAlertType | undefined;
-    let alertEventView = eventView;
-    if (hasDatasetSelector(organization)) {
-      if (currentDataset === DiscoverDatasets.ERRORS) {
-        alertType = 'num_errors';
-      } else if (currentDataset === DiscoverDatasets.TRANSACTIONS) {
-        alertType = 'throughput';
-        alertEventView = eventView.clone();
-        alertEventView.query = eventView.query
-          ? `(${eventView.query}) AND (event.type:transaction)`
-          : 'event.type:transaction';
-      }
-    }
+  if (!deprecatingTransactionsDataset) {
+    const alertType: MetricAlertType | undefined =
+      hasDatasetSelector(organization) && currentDataset === DiscoverDatasets.ERRORS
+        ? 'num_errors'
+        : undefined;
 
     const canCreateAlert = canCreateAlerts(organization, projects);
     items.push({
       ...getSaveAsAlertMenuItem({
         to: getCreateAlertFromViewUrl({
           projects,
-          eventView: alertEventView,
+          eventView,
           organization,
           referrer: 'discover',
           alertType,
@@ -1442,9 +1406,7 @@ function DiscoverPageFilters({
   isHomepage?: boolean;
 }) {
   // use the same data category as spans so the time period options across discover and traces are the same
-  const maxPickableDays = useMaxPickableDays({
-    dataCategories: [DataCategory.ERRORS],
-  });
+  const maxPickableDays = useMaxPickableDays({dataCategories: [DataCategory.ERRORS]});
   const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
 
   return (
@@ -1505,13 +1467,7 @@ function SavedQueryAPI(
     () =>
       apiOptions.as<SavedQuery>()(
         '/organizations/$organizationIdOrSlug/discover/saved/$queryId/',
-        {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            queryId: id!,
-          },
-          staleTime: 0,
-        }
+        {path: {organizationIdOrSlug: organization.slug, queryId: id!}, staleTime: 0}
       ),
     [organization, id]
   );
@@ -1562,9 +1518,7 @@ export default function ResultsContainer() {
   const navigate = useNavigate();
   const {addAlert} = useGlobalAlerts();
   const [id] = useQueryState('id', parseAsScalar);
-  const maxPickableDays = useMaxPickableDays({
-    dataCategories: [DataCategory.ERRORS],
-  });
+  const maxPickableDays = useMaxPickableDays({dataCategories: [DataCategory.ERRORS]});
 
   /**
    * Block `<Results>` from mounting until GSH is ready since there are API

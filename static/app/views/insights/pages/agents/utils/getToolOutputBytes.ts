@@ -14,7 +14,7 @@ export function getToolOutputBytes(node: AITraceSpanNode): number {
 
 /**
  * Same as `getToolOutputBytes`, for callers that only have raw span attributes
- * (e.g. the trace drawer) rather than a trace node.
+ * (e.g. span details) rather than a trace node.
  */
 export function getToolOutputBytesFromAttributes(
   getAttribute: (key: string) => string | number | boolean | null | undefined

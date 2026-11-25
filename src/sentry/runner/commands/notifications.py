@@ -2,6 +2,7 @@
 from typing import Any
 
 import click
+from django.conf import settings
 
 
 @click.group()
@@ -44,7 +45,12 @@ def send_email(source: str, email: str) -> None:
         NotificationTargetResourceType,
     )
 
-    if options.get("mail.backend") in {"dummy", "console"} or any(
+    if settings.EMAIL_BACKEND in {
+        "dummy",
+        "console",
+        "django.core.mail.backends.dummy.EmailBackend",
+        "django.core.mail.backends.console.EmailBackend",
+    } or any(
         options.get(key) is None
         for key in ["mail.host", "mail.port", "mail.username", "mail.password"]
     ):

@@ -33,10 +33,7 @@ export function useGroupFlagDrawerData({
     isError: isFlagsError,
     isPending: isFlagsPending,
     refetch: refetchFlags,
-  } = useGroupFeatureFlags({
-    groupId: group.id,
-    environment: environments,
-  });
+  } = useGroupFeatureFlags({groupId: group.id, environment: environments});
 
   const filteredFlags = useMemo(() => {
     const searchLower = search.toLowerCase();

@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from typing import Any, TypeVar, cast
+from typing import Any, TypeVar
 from unittest import mock
 from unittest.mock import MagicMock
 
@@ -135,6 +135,7 @@ class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
         assert runs[0]["rootCause"]["oneLineDescription"] == "the boom"
         assert runs[0]["rootCause"]["headline"] is None
         assert runs[0]["proposedFix"] is None
+        assert runs[0]["isSingleRun"] is False
 
     def test_single_run_grouped_under_root_cause_milestone(self) -> None:
         group = self.create_group()
@@ -142,6 +143,7 @@ class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
         resp = self.get_success_response(self.organization.slug)
         runs = resp.data["runsByMilestone"][SeerRunMilestoneType.ROOT_CAUSE]
         assert [run["shortId"] for run in runs] == [group.qualified_short_id]
+        assert runs[0]["isSingleRun"] is True
 
     def test_root_cause_exposes_headline(self) -> None:
         group = self.create_group()
@@ -573,21 +575,15 @@ class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
     def _issue_project(
         self, resp: Response, milestone: SeerRunMilestoneType = SeerRunMilestoneType.ROOT_CAUSE
     ) -> dict[str, object]:
-        return cast(
-            "dict[str, object]",
-            resp.data["runsByMilestone"][milestone][0]["issue"]["project"],
-        )
+        return resp.data["runsByMilestone"][milestone][0]["issue"]["project"]
 
     def _projects_by_id(
         self, resp: Response, milestone: SeerRunMilestoneType = SeerRunMilestoneType.ROOT_CAUSE
     ) -> dict[str, dict[str, object]]:
-        return cast(
-            "dict[str, dict[str, object]]",
-            {
-                r["issue"]["project"]["id"]: r["issue"]["project"]
-                for r in resp.data["runsByMilestone"][milestone]
-            },
-        )
+        return {
+            r["issue"]["project"]["id"]: r["issue"]["project"]
+            for r in resp.data["runsByMilestone"][milestone]
+        }
 
     def test_scm_info_marks_project_with_github_repo_eligible(self) -> None:
         group = self.create_group()
@@ -1306,10 +1302,7 @@ class OrganizationSeerAutofixOverviewStatusExpandTest(APITestCase, SnubaTestCase
         return run
 
     def _root_cause_runs(self, resp: Response) -> list[dict[str, object]]:
-        return cast(
-            "list[dict[str, object]]",
-            resp.data["runsByMilestone"][SeerRunMilestoneType.ROOT_CAUSE],
-        )
+        return resp.data["runsByMilestone"][SeerRunMilestoneType.ROOT_CAUSE]
 
     def test_status_absent_without_expand(self) -> None:
         group = self.create_group()

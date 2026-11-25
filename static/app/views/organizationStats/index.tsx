@@ -39,7 +39,6 @@ import {
 } from 'sentry/views/explore/queryParams/parsers';
 import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
-import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 import {StatsHeader as HeaderTabs} from './header';
 import type {OrganizationStatsProps} from './types';
@@ -135,7 +134,7 @@ function getDataCategoryInfo(dataCategoryPlural: string | null): DataCategoryInf
   return info ?? DATA_CATEGORY_INFO.error;
 }
 
-function getDataDatetime(
+export function getDataDatetime(
   params: OrganizationStatsProps['selection']['datetime']
 ): DateTimeObject {
   const {
@@ -161,11 +160,7 @@ function getDataDatetime(
   const utc = utcString === 'true';
   if (start && end) {
     // Treat start/end URL params as UTC (consistent with DatePageFilter)
-    return {
-      start: moment.utc(start).format(),
-      end: moment.utc(end).format(),
-      utc,
-    };
+    return {start: moment.utc(start).format(), end: moment.utc(end).format(), utc};
   }
 
   return {period: DEFAULT_STATS_PERIOD};
@@ -286,10 +281,7 @@ export function OrganizationStatsInner({
     (project: Project): Record<string, LocationDescriptorObject> => {
       const nextLocation: LocationDescriptorObject = {
         ...location,
-        query: {
-          ...location.query,
-          project: project.id,
-        },
+        query: {...location.query, project: project.id},
       };
 
       // Do not leak out page-specific keys
@@ -302,18 +294,13 @@ export function OrganizationStatsInner({
         },
         projectDetail: {
           ...nextLocation,
-          pathname: makeProjectsPathname({
-            path: `/${project.slug}/`,
-            organization,
-          }),
+          pathname: makeProjectsPathname({path: `/${project.slug}/`, organization}),
         },
         issueList: {
           ...nextLocation,
           pathname: `/organizations/${organization.slug}/issues/`,
         },
-        settings: {
-          pathname: `/settings/${organization.slug}/projects/${project.slug}/`,
-        },
+        settings: {pathname: `/settings/${organization.slug}/projects/${project.slug}/`},
       };
     },
     [location, organization]
@@ -326,13 +313,7 @@ export function OrganizationStatsInner({
     (nextState, options = {willUpdateRouter: true}) => {
       const nextQueryParams = pick(nextState, PAGE_QUERY_PARAMS);
 
-      const nextLocation = {
-        ...location,
-        query: {
-          ...location?.query,
-          ...nextQueryParams,
-        },
-      };
+      const nextLocation = {...location, query: {...location?.query, ...nextQueryParams}};
 
       if (options.willUpdateRouter) {
         navigate(nextLocation);
@@ -355,23 +336,13 @@ export function OrganizationStatsInner({
     handleChangeState: setStateOnUrl,
   };
 
-  const hasTeamInsights = organization.features.includes('team-insights');
   const showProfilingBanner = dataCategory === 'profiles';
 
   return (
     <SentryDocumentTitle title={t('Usage Stats')} orgSlug={organization.slug}>
       <NoProjectMessage organization={organization}>
         <PageFiltersContainer>
-          {hasTeamInsights ? (
-            <HeaderTabs organization={organization} activeTab="stats" />
-          ) : (
-            <SettingsPageHeader
-              title={t('Stats & Usage')}
-              subtitle={t(
-                'A view of the usage data that Sentry has received across your entire organization.'
-              )}
-            />
-          )}
+          <HeaderTabs organization={organization} activeTab="stats" />
           <div>
             <Layout.Main width="full">
               <OverrideStatsBanner organization={organization} />

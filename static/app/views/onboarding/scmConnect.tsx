@@ -46,18 +46,12 @@ const SCM_INFO_SECTIONS: Array<{
     title: t('How we use repository access:'),
     icon: <IconCheckmark size="xs" variant="success" aria-hidden />,
     items: [
-      {
-        label: t('Source code context'),
-        tooltip: t('Show code around errors'),
-      },
+      {label: t('Source code context'), tooltip: t('Show code around errors')},
       {
         label: t('Commit attribution'),
         tooltip: t('Identify which commit introduced an issue'),
       },
-      {
-        label: t('Issue auto assignment'),
-        tooltip: t('Route issues by code ownership'),
-      },
+      {label: t('Issue auto assignment'), tooltip: t('Route issues by code ownership')},
       {
         label: t('AI debugging with Seer'),
         tooltip: t('Connect code to telemetry to debug and fix issues'),
@@ -200,9 +194,7 @@ export function ScmConnect({
               <Button
                 analyticsEventKey="onboarding.scm_connect_skip_clicked"
                 analyticsEventName="Onboarding: SCM Connect Skip Clicked"
-                analyticsParams={{
-                  has_integration: !!effectiveIntegration,
-                }}
+                analyticsParams={{has_integration: !!effectiveIntegration}}
                 onClick={() => onComplete()}
                 variant="transparent"
                 style={{minWidth: 0}}

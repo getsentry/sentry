@@ -18,10 +18,7 @@ function UpgradeLink({children}: {children?: React.ReactNode}) {
     <Button
       variant="link"
       onClick={() => {
-        openUpsellModal({
-          organization,
-          source: 'metric-alert-quota',
-        });
+        openUpsellModal({organization, source: 'metric-alert-quota'});
       }}
     >
       {children}
@@ -37,7 +34,7 @@ export function MetricAlertQuotaIcon() {
     return (
       <Tooltip
         title={tct(
-          "You have reached your plan's limit on metric monitors. [removeLink:Remove existing monitors] or [upgradeLink:upgrade your plan].",
+          "You have reached your plan's limit on metric monitors. [removeLink:Disable or remove existing monitors] or [upgradeLink:upgrade your plan].",
           {
             removeLink: <Link to={makeMonitorBasePathname(organization.slug)} />,
             upgradeLink: <UpgradeLink />,
@@ -58,7 +55,7 @@ export function MetricAlertQuotaMessage() {
 
   if (metricAlertQuota?.hasReachedLimit) {
     return tct(
-      "You have reached your plan's limit on metric monitors ([limit]). [removeLink:Remove existing monitors] or [upgradeLink:upgrade your plan].",
+      "You have reached your plan's limit on metric monitors ([limit]). [removeLink:Disable or remove existing monitors] or [upgradeLink:upgrade your plan].",
       {
         limit: metricAlertQuota.detectorLimit.toLocaleString(),
         removeLink: <Link to={makeMonitorBasePathname(organization.slug)} />,

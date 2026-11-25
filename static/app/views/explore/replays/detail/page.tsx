@@ -9,9 +9,7 @@ import type {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplay
 import {ReplayLayout} from './layout/replayLayout';
 import {ReplayDetailsError} from './replayDetailsError';
 
-type Props = {
-  readerResult: ReturnType<typeof useLoadReplayReader>;
-};
+type Props = {readerResult: ReturnType<typeof useLoadReplayReader>};
 
 export function ReplayDetailsPage({readerResult}: Props) {
   return (

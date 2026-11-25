@@ -6,14 +6,8 @@ import {SubscriptionContext} from 'getsentry/views/subscriptionContext';
 
 export const settingsRoutes = (): SentryRouteObject => ({
   children: [
-    {
-      path: 'billing/history/',
-      redirectTo: '/settings/:orgId/billing/usage/',
-    },
-    {
-      path: 'subscription/cancel/',
-      redirectTo: '/settings/:orgId/billing/cancel/',
-    },
+    {path: 'billing/history/', redirectTo: '/settings/:orgId/billing/usage/'},
+    {path: 'subscription/cancel/', redirectTo: '/settings/:orgId/billing/cancel/'},
     {
       handle: {
         settingsBreadcrumb: {
@@ -25,14 +19,8 @@ export const settingsRoutes = (): SentryRouteObject => ({
       name: 'Subscription',
       path: 'billing/',
       children: [
-        {
-          index: true,
-          redirectTo: 'overview/',
-        },
-        {
-          path: 'checkout/',
-          redirectTo: '/checkout/:orgId/',
-        },
+        {index: true, redirectTo: 'overview/'},
+        {path: 'checkout/', redirectTo: '/checkout/:orgId/'},
         {
           path: 'cancel/',
           name: 'Cancel',

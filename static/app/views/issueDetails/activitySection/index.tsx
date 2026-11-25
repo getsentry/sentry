@@ -125,25 +125,15 @@ export function ActivitySection({
   const isStandalone = variant === 'standalone';
   const activityLink = {
     pathname: `${baseUrl}${TabPaths[Tab.ACTIVITY]}`,
-    query: {
-      ...location.query,
-      cursor: undefined,
-    },
+    query: {...location.query, cursor: undefined},
   };
   const commentsLink = {
     pathname: activityLink.pathname,
-    query: {
-      ...activityLink.query,
-      filter: 'comments',
-    },
+    query: {...activityLink.query, filter: 'comments'},
   };
 
   const displayedActivities =
-    items ??
-    buildActivityFeedItems({
-      activities,
-      filterComments,
-    });
+    items ?? buildActivityFeedItems({activities, filterComments});
   const inputVariant = isStandalone ? 'full' : 'compact';
   const timestampUnitStyle = isStandalone ? undefined : 'short';
 
@@ -207,9 +197,7 @@ export function ActivitySection({
             preventScrollReset
             analyticsEventKey="issue_details.activity_expanded"
             analyticsEventName="Issue Details: Activity Expanded"
-            analyticsParams={{
-              num_activities_hidden: hiddenActivityCount,
-            }}
+            analyticsParams={{num_activities_hidden: hiddenActivityCount}}
           >
             {hiddenActivityCount > 0
               ? t('View %s more', hiddenActivityCount)

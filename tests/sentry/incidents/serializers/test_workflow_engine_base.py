@@ -1,5 +1,4 @@
-from collections.abc import Mapping
-from typing import Any, cast
+from typing import Any
 
 from django.utils import timezone
 
@@ -60,7 +59,7 @@ class MetricSerializerTestCase(BaseWorkflowTest):
         condition = self.create_data_condition(
             condition_group=detector.workflow_condition_group,
             type=Condition.GREATER,
-            comparison=cast("str | int | Mapping[str, object]", threshold),
+            comparison=threshold,
             condition_result=priority,
         )
         action_group = self.create_data_condition_group(organization=self.organization)

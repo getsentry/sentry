@@ -41,10 +41,7 @@ function useModalStore() {
       triggerElement: state.triggerElement,
     }))
   );
-  return {
-    ...store,
-    visible: selectIsModalOpen(store),
-  };
+  return {...store, visible: selectIsModalOpen(store)};
 }
 
 // Call the renderer below the boundary so errors in the callback are caught too.

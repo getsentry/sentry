@@ -3,6 +3,7 @@ import {EventStacktraceExceptionFixture} from 'sentry-fixture/eventStacktraceExc
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {ReleaseFixture} from 'sentry-fixture/release';
 import {TeamFixture} from 'sentry-fixture/team';
 import {UserFixture} from 'sentry-fixture/user';
 
@@ -41,11 +42,7 @@ const project = ProjectFixture({
   teams: [TeamFixture({id: '3', slug: 'frontend', name: 'Frontend'})],
 });
 
-const group = GroupFixture({
-  id: '1337',
-  issueCategory: IssueCategory.ERROR,
-  project,
-});
+const group = GroupFixture({id: '1337', issueCategory: IssueCategory.ERROR, project});
 
 const issuePlatformGroup = GroupFixture({
   id: '1338',
@@ -53,10 +50,7 @@ const issuePlatformGroup = GroupFixture({
   project,
 });
 
-const organization = OrganizationFixture({
-  id: '4660',
-  slug: 'org',
-});
+const organization = OrganizationFixture({id: '4660', slug: 'org'});
 
 jest.mock('sentry/views/issueDetails/issueDetailsTour', () => ({
   ...jest.requireActual('sentry/views/issueDetails/issueDetailsTour'),
@@ -158,9 +152,7 @@ describe('GroupActions', () => {
 
       expect(issuesApi).toHaveBeenCalledWith(
         expect.anything(),
-        expect.objectContaining({
-          data: {isSubscribed: true},
-        })
+        expect.objectContaining({data: {isSubscribed: true}})
       );
     });
   });
@@ -188,9 +180,7 @@ describe('GroupActions', () => {
 
       expect(issuesApi).toHaveBeenCalledWith(
         expect.anything(),
-        expect.objectContaining({
-          data: {isBookmarked: true},
-        })
+        expect.objectContaining({data: {isBookmarked: true}})
       );
     });
   });
@@ -227,8 +217,9 @@ describe('GroupActions', () => {
       expect(screen.getByLabelText('alpha')).toBeInTheDocument();
       await userEvent.click(screen.getByRole('menuitemradio', {name: /Assess impact/}));
 
+      expect(await screen.findByText('Starting impact assessment…')).toBeInTheDocument();
       await waitFor(() => expect(request).toHaveBeenCalled());
-      expect(await screen.findByText('Impact assessment started')).toBeInTheDocument();
+      expect(screen.queryByText('Impact assessment started')).not.toBeInTheDocument();
     });
 
     it('shows an error when the impact assessment cannot be started', async () => {
@@ -253,9 +244,7 @@ describe('GroupActions', () => {
 
   describe('reprocessing', () => {
     it('renders ReprocessAction component if org has native exception event', async () => {
-      const event = EventStacktraceExceptionFixture({
-        platform: 'native',
-      });
+      const event = EventStacktraceExceptionFixture({platform: 'native'});
 
       render(<GroupActions group={group} project={project} event={event} />, {
         organization,
@@ -268,9 +257,7 @@ describe('GroupActions', () => {
     });
 
     it('open dialog by clicking on the ReprocessAction component', async () => {
-      const event = EventStacktraceExceptionFixture({
-        platform: 'native',
-      });
+      const event = EventStacktraceExceptionFixture({platform: 'native'});
 
       render(<GroupActions group={group} project={project} event={event} />, {
         organization,
@@ -284,6 +271,149 @@ describe('GroupActions', () => {
       expect(reprocessActionButton).toBeInTheDocument();
       await userEvent.click(reprocessActionButton);
       await waitFor(() => expect(onReprocessEventFunc).toHaveBeenCalled());
+    });
+  });
+
+  describe('add inbound filter', () => {
+    const filterOrg = OrganizationFixture({
+      ...organization,
+      features: [
+        'inbound-filters-v2',
+        'inbound-filters-v2-ui',
+        'inbound-filters-in-product-flows',
+      ],
+      access: [...organization.access, 'project:write'],
+    });
+    const filterProject = ProjectFixture({
+      ...project,
+      features: ['custom-inbound-filters'],
+    });
+    const event = EventStacktraceExceptionFixture({
+      title: 'Error: an error occurred',
+      release: ReleaseFixture({version: '2.41.0'}),
+      user: {ip_address: '203.0.113.7', geo: {country_code: 'US'}},
+    });
+    const createUrl = `/projects/${filterOrg.slug}/${project.slug}/custom-inbound-filters/`;
+
+    beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/releases/`,
+        body: [],
+      });
+    });
+
+    it('opens the filter modal with conditions from the event and saves the rest', async () => {
+      const createMock = MockApiClient.addMockResponse({
+        url: createUrl,
+        method: 'POST',
+        body: {},
+      });
+      MockApiClient.addMockResponse({url: createUrl, body: []});
+
+      render(
+        <Fragment>
+          <GlobalModal />
+          <GroupActions
+            group={group}
+            project={filterProject}
+
+            event={event}
+          />
+        </Fragment>,
+        {organization: filterOrg}
+      );
+
+      await userEvent.click(screen.getByLabelText('More Actions'));
+      await userEvent.click(
+        await screen.findByRole('menuitemradio', {name: 'Add Inbound Filter'})
+      );
+
+      const modal = await screen.findByRole('dialog');
+      expect(within(modal).getByText('Create Custom Filter')).toBeInTheDocument();
+      expect(within(modal).getByRole('textbox', {name: 'Name'})).toHaveValue(
+        'Error: an error occurred'
+      );
+      expect(
+        within(modal).getByRole('row', {name: 'error_type:Error'})
+      ).toBeInTheDocument();
+      expect(
+        within(modal).getByRole('row', {name: 'error_message:"an error occurred"'})
+      ).toBeInTheDocument();
+      expect(
+        within(modal).getByRole('row', {name: 'geo_country_code:US'})
+      ).toBeInTheDocument();
+      expect(
+        within(modal).getByRole('row', {name: 'release:2.41.0'})
+      ).toBeInTheDocument();
+      expect(
+        within(modal).getByRole('row', {name: 'ip_address:203.0.113.7'})
+      ).toBeInTheDocument();
+
+      await userEvent.click(
+        within(modal).getByRole('button', {name: 'Remove filter: ip_address'})
+      );
+      await userEvent.click(within(modal).getByRole('button', {name: 'Create Filter'}));
+
+      await waitFor(() => expect(createMock).toHaveBeenCalledTimes(1));
+      expect(createMock.mock.calls[0][1].data).toEqual({
+        name: 'Error: an error occurred',
+        dataType: 'error',
+        conditions: [
+          {type: 'error_type', operator: 'equals', value: ['Error']},
+          {type: 'error_message', operator: 'equals', value: ['an error occurred']},
+          {type: 'geo_country_code', operator: 'equals', value: ['US']},
+          {type: 'release', operator: 'equals', value: ['2.41.0']},
+        ],
+      });
+      expect(analyticsSpy).toHaveBeenCalledWith(
+        'issue_details.action_clicked',
+        expect.objectContaining({action_type: 'add_inbound_filter'})
+      );
+    });
+
+    it('disables the action when the plan lacks custom inbound filters', async () => {
+      render(<GroupActions group={group} project={project} event={event} />, {
+        organization: filterOrg,
+      });
+
+      await userEvent.click(screen.getByLabelText('More Actions'));
+      expect(
+        await screen.findByRole('menuitemradio', {name: 'Add Inbound Filter'})
+      ).toHaveAttribute('aria-disabled', 'true');
+      expect(
+        screen.getByText('Your plan does not include custom inbound filters')
+      ).toBeInTheDocument();
+    });
+
+    it('hides the action without the in-product flows flag', async () => {
+      render(<GroupActions group={group} project={project} event={event} />, {
+        organization: OrganizationFixture({
+          ...filterOrg,
+          features: ['inbound-filters-v2', 'inbound-filters-v2-ui'],
+        }),
+      });
+
+      await userEvent.click(screen.getByLabelText('More Actions'));
+      expect(
+        await screen.findByRole('menuitemradio', {name: 'Delete'})
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Add Inbound Filter'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('hides the action while no event is shown', async () => {
+      render(<GroupActions group={group} project={project} event={null} />, {
+        organization: filterOrg,
+      });
+
+      await userEvent.click(screen.getByLabelText('More Actions'));
+      expect(
+        await screen.findByRole('menuitemradio', {name: 'Delete'})
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Add Inbound Filter'})
+      ).not.toBeInTheDocument();
     });
   });
 
@@ -304,9 +434,7 @@ describe('GroupActions', () => {
         body: {},
       });
       const initialRouterConfig = {
-        location: {
-          pathname: `/organizations/${org.slug}/issues/${group.id}/`,
-        },
+        location: {pathname: `/organizations/${org.slug}/issues/${group.id}/`},
         route: '/organizations/:orgId/issues/:groupId/',
       };
       const {router} = render(
@@ -314,10 +442,7 @@ describe('GroupActions', () => {
           <GlobalModal />
           <GroupActions group={group} project={project} event={null} />
         </Fragment>,
-        {
-          organization: org,
-          initialRouterConfig,
-        }
+        {organization: org, initialRouterConfig}
       );
 
       await userEvent.click(screen.getByLabelText('More Actions'));
@@ -408,10 +533,7 @@ describe('GroupActions', () => {
             event={null}
           />
         </Fragment>,
-        {
-          organization: org,
-          initialRouterConfig,
-        }
+        {organization: org, initialRouterConfig}
       );
 
       await userEvent.click(screen.getByLabelText('More Actions'));
@@ -456,9 +578,7 @@ describe('GroupActions', () => {
     );
     expect(analyticsSpy).toHaveBeenCalledWith(
       'issue_details.action_clicked',
-      expect.objectContaining({
-        action_type: 'resolved',
-      })
+      expect.objectContaining({action_type: 'resolved'})
     );
 
     rerender(
@@ -576,9 +696,7 @@ describe('GroupActions', () => {
       body: {...group, status: 'resolved'},
     });
 
-    render(<GroupActions group={group} project={project} event={null} />, {
-      organization,
-    });
+    render(<GroupActions group={group} project={project} event={null} />, {organization});
 
     await userEvent.click(await screen.findByRole('button', {name: 'Archive'}));
 
@@ -663,9 +781,7 @@ describe('GroupActions', () => {
     });
 
     function renderWithCommandPalette(commandGroup: Group) {
-      const treeRef: {
-        current: Array<CollectionTreeNode<CMDKActionData>>;
-      } = {current: []};
+      const treeRef: {current: Array<CollectionTreeNode<CMDKActionData>>} = {current: []};
       render(
         <CommandPaletteProvider>
           <GroupActions

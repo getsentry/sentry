@@ -350,6 +350,8 @@ class DataConditionHandler(Generic[T]):
     comparison_json_schema: ClassVar[dict[str, Any]]
     condition_result_schema: ClassVar[dict[str, Any]] = {}
     label_template = ""
+    # Internal conditions can be provisioned by code, but not configured through APIs.
+    is_internal: ClassVar[bool] = False
 
     @staticmethod
     def evaluate_value(value: T, comparison: Any) -> DataConditionResult:
@@ -378,11 +380,14 @@ class DataConditionHandler(Generic[T]):
 
 class WorkflowTriggerDataConditionHandler(DataConditionHandler[WorkflowEventData]):
     group = DataConditionHandler.Group.WORKFLOW_TRIGGER
+    # DataCondition.get_condition_result() only evaluates booleans for workflow conditions.
+    condition_result_schema = {"type": "boolean"}
     preview_behavior: ClassVar[WorkflowTriggerPreviewBehavior | UnsupportedPreviewBehavior]
 
 
 class ActionFilterDataConditionHandler(DataConditionHandler[T]):
     group = DataConditionHandler.Group.ACTION_FILTER
+    condition_result_schema = {"type": "boolean"}
     preview_behavior: ClassVar[ActionFilterPreviewBehavior | UnsupportedPreviewBehavior]
 
 
@@ -407,7 +412,7 @@ class SnubaQueryDataSourceType(TypedDict, total=False):
     event_types: list[SnubaQueryEventType.EventType]
 
 
-class DetectorAPIOperation(StrEnum):
+class WorkflowEngineAPIOperation(StrEnum):
     LIST = "list"
     DISCOVER = "discover"
     GET = "GET"
@@ -424,12 +429,26 @@ class FeatureGate:
 APIGate: TypeAlias = bool | FeatureGate
 
 
-class DetectorSettings:
-    DEFAULT_API_AVAILABILITY: ClassVar[Mapping[DetectorAPIOperation, APIGate]] = MappingProxyType(
-        {operation: True for operation in DetectorAPIOperation}
+ALL_API_OPERATIONS_AVAILABLE: Mapping[WorkflowEngineAPIOperation, APIGate] = MappingProxyType(
+    {operation: True for operation in WorkflowEngineAPIOperation}
+)
+
+NO_API_OPERATIONS_AVAILABLE: Mapping[WorkflowEngineAPIOperation, APIGate] = MappingProxyType(
+    {operation: False for operation in WorkflowEngineAPIOperation}
+)
+
+
+class BaseWorkflowEngineSettings:
+    DEFAULT_API_AVAILABILITY: ClassVar[Mapping[WorkflowEngineAPIOperation, APIGate]] = (
+        ALL_API_OPERATIONS_AVAILABLE
     )
 
-    api_availability: ClassVar[Mapping[DetectorAPIOperation, APIGate]] = DEFAULT_API_AVAILABILITY
+    api_availability: ClassVar[Mapping[WorkflowEngineAPIOperation, APIGate]] = (
+        DEFAULT_API_AVAILABILITY
+    )
+
+
+class DetectorSettings(BaseWorkflowEngineSettings):
     handler: ClassVar[type[BaseDetectorHandler[Any, Any]] | None] = None
     validator: ClassVar[type[BaseDetectorTypeValidator] | None] = None
     # None preserves legacy detectors whose configuration is validated outside this model.

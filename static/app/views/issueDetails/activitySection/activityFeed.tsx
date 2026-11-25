@@ -1,6 +1,7 @@
 import type {TimeSince} from 'sentry/components/timeSince';
 import type {NoteType} from 'sentry/types/alerts';
 import type {Group, GroupActivityNote} from 'sentry/types/group';
+import {useHasImpactAssessment} from 'sentry/views/issueDetails/groupImpact';
 
 import {
   getActorActivity,
@@ -14,6 +15,10 @@ import {
   isInvestigationLinkedActivity,
 } from './activityLineItem/investigationLinked';
 import {ActivityLineNote, isActivityNote} from './activityLineItem/note';
+import {
+  ActivityLinePullRequestReference,
+  isPullRequestReferenceActivity,
+} from './activityLineItem/pullRequestReference';
 import {ActivityLine} from './activityLineItem';
 import {Timeline} from './timeline';
 
@@ -38,6 +43,8 @@ export function ActivityFeed({
   onCommentUpdate,
   timestampUnitStyle,
 }: ActivityFeedProps) {
+  const hasImpactAssessment = useHasImpactAssessment();
+
   function isHighlighted(item: ActivityFeedItem) {
     return (
       highlightedActivityId !== undefined &&
@@ -78,6 +85,9 @@ export function ActivityFeed({
         />
       );
     } else if (isImpactActivity(activity)) {
+      if (!hasImpactAssessment) {
+        return null;
+      }
       line = (
         <ActivityLineImpact
           activity={activity}
@@ -90,6 +100,16 @@ export function ActivityFeed({
         <ActivityLineInvestigationLinked
           activity={activity}
           variant={inputVariant}
+          timestampUnitStyle={timestampUnitStyle}
+        />
+      );
+    } else if (inputVariant === 'full' && isPullRequestReferenceActivity(activity)) {
+      // The compact sidebar feed leaves out the linked pull request.
+      line = (
+        <ActivityLinePullRequestReference
+          activity={activity}
+          group={group}
+          item={item}
           timestampUnitStyle={timestampUnitStyle}
         />
       );

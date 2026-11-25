@@ -8,13 +8,14 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ProgressBar} from 'sentry/components/progressBar';
 import type {SeerCreditUsageMeterProps} from 'sentry/components/seer/outOfCredits/seerCreditUsageMeter';
-import {t, tct} from 'sentry/locale';
+import {t, tct, tn} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {
   SEER_AUTO_RELOAD_MODAL_HASH,
   seerWalletAutoTopUpOptions,
   seerWalletBalanceOptions,
+  type SeerWalletBalance,
 } from 'getsentry/views/subscriptionPage/seerWallet/seerWalletOptions';
 
 /**
@@ -52,16 +53,40 @@ export function SeerCreditUsageMeter({hasEnoughCredits}: SeerCreditUsageMeterPro
     return null;
   }
 
+  const autoReloadEnabled = autoTopUp?.enabled ?? null;
   return (
     <SeerCreditUsageMeterView
-      percentUsed={wallet.percentUsed}
-      remaining={wallet.balance}
-      total={wallet.included.total + wallet.purchased.total}
-      autoReloadEnabled={autoTopUp?.enabled ?? null}
+      {...getUsage(wallet, autoReloadEnabled)}
+      autoReloadEnabled={autoReloadEnabled}
       hasEnoughCredits={hasEnoughCredits}
       configureAutoReloadTo={`/settings/${organization.slug}/billing/overview/${SEER_AUTO_RELOAD_MODAL_HASH}`}
     />
   );
+}
+
+/**
+ * Counts down whichever runs out first: the wallet or today's daily usage
+ * limit. With auto-reload on, reloads refill the wallet until the daily limit
+ * stops them, so only the limit runs out.
+ */
+function getUsage(
+  wallet: SeerWalletBalance,
+  autoReloadEnabled: boolean | null
+): Pick<SeerCreditUsageMeterViewProps, 'countsDailyLimit' | 'percentUsed' | 'remaining'> {
+  const {dailyLimit} = wallet;
+  if (dailyLimit && (autoReloadEnabled || dailyLimit.remaining <= wallet.balance)) {
+    return {
+      countsDailyLimit: true,
+      // A $0 limit blocks all usage, so it's fully used.
+      percentUsed: dailyLimit.total > 0 ? 1 - dailyLimit.remaining / dailyLimit.total : 1,
+      remaining: dailyLimit.remaining,
+    };
+  }
+  return {
+    countsDailyLimit: false,
+    percentUsed: wallet.percentUsed,
+    remaining: wallet.balance,
+  };
 }
 
 interface SeerCreditUsageMeterViewProps {
@@ -75,16 +100,25 @@ interface SeerCreditUsageMeterViewProps {
    */
   configureAutoReloadTo: LinkProps['to'];
   /**
+   * Whether the meter counts today's daily usage limit rather than the
+   * wallet's included plus purchased credits.
+   */
+  countsDailyLimit: boolean;
+  /**
    * Whether the organization can afford the operation next to the meter.
    * With auto-reload on, it can't only once the auto-reloads have run out.
    */
   hasEnoughCredits: boolean;
   /**
-   * Share of included plus purchased credits used, from 0 to 1.
+   * Share used, from 0 to 1, of whatever `countsDailyLimit` says the meter
+   * counts.
    */
   percentUsed: number;
+  /**
+   * Credits left of whatever `countsDailyLimit` says the meter counts. Can go
+   * negative.
+   */
   remaining: number;
-  total: number;
   /**
    * Keeps the tooltip open, for stories and screenshots.
    */
@@ -98,15 +132,16 @@ interface SeerCreditUsageMeterViewProps {
 export function SeerCreditUsageMeterView({
   autoReloadEnabled,
   configureAutoReloadTo,
+  countsDailyLimit,
   hasEnoughCredits,
   percentUsed,
   remaining,
-  total,
   forceTooltipVisible,
 }: SeerCreditUsageMeterViewProps) {
   // The balance can go negative, which would put the share used past 100%.
   const percent = Math.round(Math.min(Math.max(percentUsed, 0), 1) * 100);
   const isWarning = percent >= WARNING_PERCENT || !hasEnoughCredits;
+  const shownRemaining = Math.max(remaining, 0);
 
   return (
     <Tooltip
@@ -116,20 +151,29 @@ export function SeerCreditUsageMeterView({
       title={
         <Stack gap="lg">
           <Text>
-            {autoReloadEnabled === false
-              ? tct(
-                  'Your organization has used [percent] of your available monthly credits.',
-                  {percent: `${percent}%`}
-                )
-              : tct('Your organization has used [percent] of your available credits.', {
+            {countsDailyLimit
+              ? tct('Your organization has used [percent] of its daily usage limit.', {
                   percent: `${percent}%`,
-                })}
+                })
+              : autoReloadEnabled === false
+                ? tct(
+                    'Your organization has used [percent] of your available monthly credits.',
+                    {percent: `${percent}%`}
+                  )
+                : tct('Your organization has used [percent] of your available credits.', {
+                    percent: `${percent}%`,
+                  })}
           </Text>
           <Text>
-            {tct('[remaining]/[total] credits remaining.', {
-              remaining: Math.max(remaining, 0).toLocaleString(),
-              total: total.toLocaleString(),
-            })}
+            {/* No total: the wallet only knows what's left of the purchased credits,
+                so a total would shrink as they're used, down to the included credits. */}
+            {countsDailyLimit
+              ? tn(
+                  '%s credit remaining today.',
+                  '%s credits remaining today.',
+                  shownRemaining
+                )
+              : tn('%s credit remaining.', '%s credits remaining.', shownRemaining)}
           </Text>
           <AutoReloadStatus
             autoReloadEnabled={autoReloadEnabled}
@@ -177,9 +221,9 @@ function AutoReloadStatus({
   return <Text>{t('Credits will reload automatically.')}</Text>;
 }
 
-const UsageBar = styled(ProgressBar, {
-  shouldForwardProp: prop => prop !== 'isWarning',
-})<{isWarning: boolean}>`
+const UsageBar = styled(ProgressBar, {shouldForwardProp: prop => prop !== 'isWarning'})<{
+  isWarning: boolean;
+}>`
   width: 50px;
   height: 10px;
   flex-shrink: 0;

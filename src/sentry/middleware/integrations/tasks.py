@@ -2,7 +2,7 @@ import logging
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Any, cast
+from typing import Any
 
 import orjson
 import requests
@@ -85,7 +85,7 @@ class _AsyncCellDispatcher(ABC):
             json=False,
             raw_response=True,
         )
-        return _AsyncResult(cell, cast(Response, response))
+        return _AsyncResult(cell, response)
 
     def _forward_response(self, result: _AsyncResult) -> Response | None:
         if not result.was_successful():

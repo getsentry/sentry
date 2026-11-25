@@ -34,10 +34,7 @@ ruleTester.run('no-global-react', noGlobalReact, {
       code: 'export function example(React: {value: string}) { return React.value; }',
       filename: 'component.tsx',
     },
-    {
-      code: 'export type Props = {React: string};',
-      filename: 'component.tsx',
-    },
+    {code: 'export type Props = {React: string};', filename: 'component.tsx'},
     {
       code: "import * as React from 'react'; export type Module = typeof React;",
       filename: 'component.tsx',
@@ -50,6 +47,11 @@ ruleTester.run('no-global-react', noGlobalReact, {
       code: "import type * as React from 'react'; export type Node = React.ReactNode;",
       filename: 'component.tsx',
       languageOptions: {globals: {React: 'readonly'}},
+    },
+    {
+      code: "var React = require('react'); React.createElement('div');",
+      filename: 'component.js',
+      languageOptions: {sourceType: 'script'},
     },
   ],
   invalid: [

@@ -34,13 +34,24 @@ class OrganizationTelemetryClassifierDetailsGetTest(APITestCase):
             "dataset": "conversation",
             "filterQuery": "gen_ai.agent.name:support",
             "status": "enabled",
-            "prebuiltClassifierKey": None,
-            "naturalLanguagePrompt": "Is the user frustrated?",
+            "prebuiltClassifierKey": "conversation_user_frustration",
+            "naturalLanguagePrompt": None,
             "outputType": "binary",
             "binaryThreshold": 0.8,
             "dateAdded": self.classifier.date_added,
             "dateUpdated": self.classifier.date_updated,
         }
+
+    def test_hides_and_reports_classifier_with_invalid_definition(self) -> None:
+        invalid = self.create_telemetry_classifier(prebuilt_classifier_key="removed_classifier")
+
+        with (
+            self.feature(self.features),
+            self.assertLogs("sentry.telemetry_classifiers.definitions", "ERROR") as logs,
+        ):
+            self.get_error_response(self.organization.slug, invalid.id, status_code=404)
+
+        assert logs.records[0].__dict__["classifier_id"] == invalid.id
 
     def test_unknown_or_invalid_id(self) -> None:
         with self.feature(self.features):
@@ -88,10 +99,6 @@ class OrganizationTelemetryClassifierDetailsPutTest(APITestCase):
         self.classifier = self.create_telemetry_classifier(
             name="Refusals",
             result_attribute="refusal",
-            prebuilt_classifier_key="refusal",
-            natural_language_prompt=None,
-            compiled_prompt=None,
-            output_type=None,
             created_by_id=self.user.id,
         )
 
@@ -124,10 +131,10 @@ class OrganizationTelemetryClassifierDetailsPutTest(APITestCase):
                 "dataset": "conversation",
                 "filterQuery": "",
                 "status": "disabled",
-                "prebuiltClassifierKey": "refusal",
+                "prebuiltClassifierKey": "conversation_user_frustration",
                 "naturalLanguagePrompt": None,
-                "outputType": None,
-                "binaryThreshold": None,
+                "outputType": "binary",
+                "binaryThreshold": 0.8,
                 "dateAdded": self.classifier.date_added,
                 "dateUpdated": self.classifier.date_updated,
             }
@@ -139,6 +146,17 @@ class OrganizationTelemetryClassifierDetailsPutTest(APITestCase):
         assert response.data["status"] == "enabled"
         self.classifier.refresh_from_db()
         assert self.classifier.status == "enabled"
+
+    def test_hides_classifier_with_invalid_definition(self) -> None:
+        invalid = self.create_telemetry_classifier(prebuilt_classifier_key="removed_classifier")
+
+        with self.feature(self.features):
+            self.get_error_response(
+                self.organization.slug, invalid.id, status="disabled", status_code=404
+            )
+
+        invalid.refresh_from_db()
+        assert invalid.status == "enabled"
 
     def test_requires_valid_status(self) -> None:
         with self.feature(self.features):

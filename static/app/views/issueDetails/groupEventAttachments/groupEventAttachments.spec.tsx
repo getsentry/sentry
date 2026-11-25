@@ -83,12 +83,7 @@ describe('GroupEventAttachments', () => {
     await userEvent.click(screen.getByRole('radio', {name: 'Screenshots'}));
     expect(getAttachmentsMock).toHaveBeenCalledWith(
       '/organizations/org-slug/issues/group-id/attachments/',
-      expect.objectContaining({
-        query: {
-          screenshot: '1',
-          environment: [],
-        },
-      })
+      expect.objectContaining({query: {screenshot: '1', environment: []}})
     );
   });
 
@@ -102,11 +97,7 @@ describe('GroupEventAttachments', () => {
   ])(
     'restarts pagination when switching to $label',
     async ({label, filter, filterQuery}) => {
-      const query = {
-        environment: 'production',
-        statsPeriod: '7d',
-        query: 'release:1.0',
-      };
+      const query = {environment: 'production', statsPeriod: '7d', query: 'release:1.0'};
       const {router} = render(<GroupEventAttachments project={project} group={group} />, {
         organization,
         initialRouterConfig: {

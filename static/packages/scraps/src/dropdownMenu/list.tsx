@@ -30,6 +30,7 @@ import {useOverlay} from '@sentry/scraps/useOverlay';
 import {
   DEFAULT_VIRTUALIZE_THRESHOLD,
   flattenSections,
+  getWidestMenuItemKey,
   VirtualRows,
   type VirtualRowProps,
 } from '@sentry/scraps/useVirtualCollection';
@@ -128,10 +129,7 @@ export interface DropdownMenuListProps
  * reads the root menu state from context.
  */
 type DropdownMenuLevel =
-  | {
-      state: RootMenuTriggerState;
-      type: 'root';
-    }
+  | {state: RootMenuTriggerState; type: 'root'}
   | {
       /** Closes this submenu and returns focus to its trigger. */
       close: () => void;
@@ -380,14 +378,7 @@ function DropdownMenuList({
   // The menu sizes its width to its rows. Keep the item with the longest label
   // mounted, so a virtualized menu does not widen while scrolling.
   const widestKey = useMemo(
-    () =>
-      virtualized
-        ? items.reduce<Node<MenuItemProps> | undefined>(
-            (widest, node) =>
-              !widest || node.textValue.length > widest.textValue.length ? node : widest,
-            undefined
-          )?.key
-        : undefined,
+    () => (virtualized ? getWidestMenuItemKey(items) : undefined),
     [items, virtualized]
   );
   // The width a virtualized menu keeps until it closes, see `DropdownMenuRows`.
@@ -561,10 +552,7 @@ function DropdownMenuList({
 export type DropdownMenuContentProps = Omit<
   DropdownMenuListProps,
   'searchState' | 'isVirtualized'
-> & {
-  items: MenuItemProps[];
-  search?: DropdownMenuSearchOptions;
-};
+> & {items: MenuItemProps[]; search?: DropdownMenuSearchOptions};
 
 export function DropdownMenuContent({
   items,
@@ -702,10 +690,7 @@ function DropdownSubmenu({
       !portalContainer?.parentElement?.contains(target),
     position: options.position ?? 'right-start',
     offset: -4,
-    preventOverflowOptions: {
-      boundary: document.body,
-      crossAxis: true,
-    },
+    preventOverflowOptions: {boundary: document.body, crossAxis: true},
   });
   const {submenuTriggerProps, submenuProps} = useSubmenuTrigger<MenuItemProps>(
     {parentMenuRef, submenuRef, isDisabled, type: 'menu'},
@@ -762,9 +747,7 @@ function DropdownSubmenu({
   );
 }
 
-const DropdownMenuListWrap = styled(Stack)<{
-  disableTextSelection?: boolean;
-}>`
+const DropdownMenuListWrap = styled(Stack)<{disableTextSelection?: boolean}>`
   /* Keep both insets visible while the menu items scroll. */
   margin: ${p => p.theme.space.xs} 0;
   padding: 0;

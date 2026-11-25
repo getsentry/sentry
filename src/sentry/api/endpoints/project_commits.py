@@ -41,13 +41,22 @@ class ProjectCommitsEndpoint(ProjectEndpoint):
             releasecommit__release__releaseproject__project_id=project.id,
         )
 
+        # A commit in several of the project's releases joins once per release.
+        # DISTINCT ON over the sort keys drops the repeats and keeps Postgres
+        # on the (organization_id, date_added) index walk; an id__in subquery
+        # hashes every ReleaseCommit row of the project first, which is slow
+        # for projects with long release history.
         if query:
-            queryset = queryset.filter(key__istartswith=query)
+            queryset = queryset.filter(key__istartswith=query).distinct("key", "date_added", "id")
+            order_by = ["key", "-date_added", "-id"]
+        else:
+            queryset = queryset.distinct("date_added", "id")
+            order_by = ["-date_added", "-id"]
 
         return self.paginate(
             request=request,
             queryset=queryset,
-            order_by=("key", "-date_added") if query else "-date_added",
+            order_by=order_by,
             on_results=lambda x: serialize(x, request.user),
             paginator_cls=OffsetPaginator,
         )

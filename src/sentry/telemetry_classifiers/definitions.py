@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+import logging
+
 from sentry.telemetry_classifiers.models import TelemetryClassifier
 from sentry.telemetry_classifiers.prebuilt import PREBUILT_CLASSIFIERS
 from sentry.telemetry_classifiers.types import ResolvedDefinition
+
+logger = logging.getLogger(__name__)
 
 
 class InvalidClassifierDefinition(Exception):
@@ -20,6 +24,7 @@ def resolve_prebuilt_definition(key: str, dataset: str) -> ResolvedDefinition:
         key=prebuilt.key,
         dataset=prebuilt.dataset,
         output_type=prebuilt.output_type,
+        binary_threshold=prebuilt.binary_threshold,
     )
 
 
@@ -34,3 +39,16 @@ def resolve_classifier_definition(classifier: TelemetryClassifier) -> ResolvedDe
         raise InvalidClassifierDefinition("Custom classifiers aren't supported yet.")
 
     return resolve_prebuilt_definition(classifier.prebuilt_classifier_key, classifier.dataset)
+
+
+def has_valid_definition(classifier: TelemetryClassifier) -> bool:
+    """Whether the classifier's definition resolves. Invalid ones are reported and hidden."""
+    try:
+        resolve_classifier_definition(classifier)
+    except InvalidClassifierDefinition:
+        logger.exception(
+            "telemetry_classifiers.invalid_definition",
+            extra={"classifier_id": classifier.id, "project_id": classifier.project_id},
+        )
+        return False
+    return True

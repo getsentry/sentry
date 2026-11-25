@@ -274,10 +274,7 @@ export function ProjectCharts({
       chart_index: chartIndex,
     });
 
-    navigate({
-      pathname: location.pathname,
-      query: {...location.query, [chartId]: value},
-    });
+    navigate({pathname: location.pathname, query: {...location.query, [chartId]: value}});
   };
 
   // Keep this handler referentially stable. It is passed as `onTotalValuesChange`
@@ -444,7 +441,10 @@ export function ProjectCharts({
               displayMode === DisplayModes.FOREGROUND_ANR_RATE && (
                 <ProjectBaseSessionsChart
                   title={t('Foreground ANR Rate')}
-                  help={getSessionTermDescription(SessionTerm.FOREGROUND_ANR_RATE, null)}
+                  help={getSessionTermDescription(
+                    SessionTerm.FOREGROUND_ANR_RATE,
+                    project?.platform || null
+                  )}
                   api={api}
                   organization={organization}
                   onTotalValuesChange={handleTotalValuesChange}

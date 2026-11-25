@@ -5,10 +5,10 @@ from rest_framework import status
 
 from sentry.relay import projectconfig_cache
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import no_silo_test
+from sentry.testutils.silo import cell_silo_test
 
 
-@no_silo_test
+@cell_silo_test
 class AdminRelayProjectConfigsEndpointTest(APITestCase):
     endpoint = "sentry-api-0-internal-project-config"
 

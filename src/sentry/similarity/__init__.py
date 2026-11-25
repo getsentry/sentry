@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable, Mapping
+from collections.abc import Callable
 from typing import TYPE_CHECKING, cast
 
 from django.conf import settings
@@ -96,8 +96,7 @@ features = FeatureSet(
         namespace="sim:1",
     ),
     Encoder({Frame: get_frame_attributes}),
-    cast(
-        "Mapping[str, str]",
+    (
         BidirectionalMapping(
             {
                 "exception:message:character-shingles": "a",
@@ -105,7 +104,7 @@ features = FeatureSet(
                 "exception:stacktrace:pairs": "c",
                 "message:message:character-shingles": "d",
             }
-        ),
+        )
     ),
     {
         "exception:message:character-shingles": ExceptionFeature(

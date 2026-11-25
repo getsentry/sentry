@@ -122,9 +122,10 @@ function getDisabledProducts({
   return disabledProducts;
 }
 
-type Props = {
-  subscription: Subscription;
-} & Omit<ProductSelectionProps, 'disabledProducts'>;
+type Props = {subscription: Subscription} & Omit<
+  ProductSelectionProps,
+  'disabledProducts'
+>;
 
 function ProductSelectionAvailabilityContainer({
   organization,

@@ -6,7 +6,7 @@ from django.db.models import Q
 
 from sentry import features
 from sentry.workflow_engine.registry import detector_settings_registry
-from sentry.workflow_engine.types import DetectorAPIOperation, DetectorSettings
+from sentry.workflow_engine.types import DetectorSettings, WorkflowEngineAPIOperation
 
 if TYPE_CHECKING:
     from sentry.auth.principal import RequestPrincipal
@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
 def is_detector_api_operation_available(
     settings: type[DetectorSettings],
-    operation: DetectorAPIOperation,
+    operation: WorkflowEngineAPIOperation,
     organization: Organization,
     *,
     actor: RequestPrincipal | None = None,
@@ -26,7 +26,7 @@ def is_detector_api_operation_available(
     if isinstance(gate, bool):
         return gate
     # Type discovery uses organization visibility; row operations also use the actor.
-    if operation == DetectorAPIOperation.DISCOVER:
+    if operation == WorkflowEngineAPIOperation.DISCOVER:
         actor = None
     return features.has(gate.name, organization, actor=actor)
 
@@ -37,7 +37,7 @@ def get_visible_detector_types(organization: Organization) -> list[str]:
         detector_type
         for detector_type, settings in detector_settings_registry.registrations.items()
         if is_detector_api_operation_available(
-            settings, DetectorAPIOperation.DISCOVER, organization
+            settings, WorkflowEngineAPIOperation.DISCOVER, organization
         )
     ]
 

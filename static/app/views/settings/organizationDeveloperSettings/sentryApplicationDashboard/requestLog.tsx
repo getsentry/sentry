@@ -14,7 +14,7 @@ import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {sentryAppWebhookRequestsApiOptions} from 'sentry/actionCreators/sentryApps';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import {InteractionStateLayer} from 'sentry/components/interactionStateLayer';
 import {LoadingError} from 'sentry/components/loadingError';
 import {PerformanceDuration} from 'sentry/components/performanceDuration';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
@@ -158,10 +158,7 @@ export function RequestLog({app}: RequestLogProps) {
               <OverlayTrigger.Button {...triggerProps}>{eventType}</OverlayTrigger.Button>
             )}
             value={eventType}
-            options={getEventTypes(app).map(type => ({
-              value: type,
-              label: type,
-            }))}
+            options={getEventTypes(app).map(type => ({value: type, label: type}))}
             onChange={opt => handleChangeEventType(opt?.value)}
           />
 

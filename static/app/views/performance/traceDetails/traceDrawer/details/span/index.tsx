@@ -400,7 +400,7 @@ function EAPSpanNodeDetailsContent({
         {issues.length > 0 ? (
           <IssueList organization={organization} issues={issues} node={node} />
         ) : null}
-        {node.hasHttpError && issues.length === 0 ? <HttpErrorCard node={node} /> : null}
+        {issues.length === 0 ? <HttpErrorCard node={node} /> : null}
         <EAPSpanDescription
           node={node}
           project={project}

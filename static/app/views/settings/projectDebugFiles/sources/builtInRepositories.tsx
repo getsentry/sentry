@@ -16,9 +16,7 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 
 const SECTION_TITLE = t('Built-in Repositories');
 
-const schema = z.object({
-  builtinSymbolSources: z.array(z.string()),
-});
+const schema = z.object({builtinSymbolSources: z.array(z.string())});
 
 type Props = {
   builtinSymbolSourceOptions: BuiltinSymbolSource[];
@@ -49,9 +47,7 @@ export function BuiltInRepositories({
 
   function getRequestMessages(builtinSymbolSourcesQuantity: number) {
     if (builtinSymbolSourcesQuantity === 0) {
-      return {
-        errorMessage: t('This field requires at least one built-in repository'),
-      };
+      return {errorMessage: t('This field requires at least one built-in repository')};
     }
 
     if (builtinSymbolSourcesQuantity > validBuiltInSymbolSources.length) {
@@ -69,10 +65,7 @@ export function BuiltInRepositories({
 
   const options = builtinSymbolSourceOptions
     .filter(source => !source.hidden)
-    .map(source => ({
-      value: source.sentry_key,
-      label: source.name,
-    }));
+    .map(source => ({value: source.sentry_key, label: source.name}));
 
   return (
     <FieldGroup title={SECTION_TITLE}>

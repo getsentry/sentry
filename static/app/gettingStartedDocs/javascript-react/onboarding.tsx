@@ -11,7 +11,12 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {t, tct} from 'sentry/locale';
 
-import {getSdkSetupSnippet, installSnippetBlock} from './utils';
+import {
+  entryPointSnippet,
+  errorBoundarySnippet,
+  getSdkSetupSnippet,
+  installSnippetBlock,
+} from './utils';
 
 const getVerifySnippet = (params: DocsParams) => {
   const logsCode = params.isLogsSelected
@@ -48,9 +53,7 @@ export const onboarding: OnboardingConfig = {
   introduction: () =>
     tct(
       "In this quick guide you'll use [strong:npm], [strong:yarn], or [strong:pnpm] to set up:",
-      {
-        strong: <strong />,
-      }
+      {strong: <strong />}
     ),
   install: () => [
     {
@@ -73,8 +76,9 @@ export const onboarding: OnboardingConfig = {
       content: [
         {
           type: 'text',
-          text: t(
-            "Initialize Sentry as early as possible in your application's lifecycle."
+          text: tct(
+            'Create an [code:instrument.js] file next to your entry point, and initialize Sentry in it:',
+            {code: <code />}
           ),
         },
         {
@@ -83,7 +87,44 @@ export const onboarding: OnboardingConfig = {
             {
               label: 'JavaScript',
               language: 'javascript',
+              filename: 'instrument.js',
               code: getSdkSetupSnippet(params),
+            },
+          ],
+        },
+        {
+          type: 'text',
+          text: tct(
+            'Import [code:instrument.js] as the first import of your entry point, so Sentry starts before the rest of your app. On React 19 and later, pass [code:Sentry.reactErrorHandler()] to [code:createRoot] to capture the errors that React handles:',
+            {code: <code />}
+          ),
+        },
+        {
+          type: 'code',
+          tabs: [
+            {
+              label: 'JavaScript',
+              language: 'javascript',
+              filename: 'main.jsx',
+              code: entryPointSnippet,
+            },
+          ],
+        },
+        {
+          type: 'text',
+          text: tct(
+            'On React 18 and earlier, wrap your app in [code:Sentry.ErrorBoundary] to capture rendering errors and show a fallback UI:',
+            {code: <code />}
+          ),
+        },
+        {
+          type: 'code',
+          tabs: [
+            {
+              label: 'JavaScript',
+              language: 'javascript',
+              filename: 'App.jsx',
+              code: errorBoundarySnippet,
             },
           ],
         },
@@ -117,11 +158,7 @@ export const onboarding: OnboardingConfig = {
         {
           type: 'code',
           tabs: [
-            {
-              label: 'React',
-              language: 'javascript',
-              code: getVerifySnippet(params),
-            },
+            {label: 'React', language: 'javascript', code: getVerifySnippet(params)},
           ],
         },
       ],

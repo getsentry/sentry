@@ -183,10 +183,9 @@ describe('selection types', () => {
 
   it('requires onChange unless disabled is always true', () => {
     type Option = (typeof options)[number];
-    expectTypeOf<{
-      options: typeof options;
-      value: string;
-    }>().not.toMatchTypeOf<ControlProps<string, Option>>();
+    expectTypeOf<{options: typeof options; value: string}>().not.toMatchTypeOf<
+      ControlProps<string, Option>
+    >();
     expectTypeOf<{
       disabled: false;
       options: typeof options;
@@ -197,10 +196,9 @@ describe('selection types', () => {
       options: typeof options;
       value: string;
     }>().not.toMatchTypeOf<ControlProps<string, Option>>();
-    expectTypeOf<{
-      disabled: true;
-      options: typeof options;
-    }>().not.toMatchTypeOf<ControlProps<string, Option>>();
+    expectTypeOf<{disabled: true; options: typeof options}>().not.toMatchTypeOf<
+      ControlProps<string, Option>
+    >();
     expectTypeOf<{
       disabled: true;
       multiple: true;
