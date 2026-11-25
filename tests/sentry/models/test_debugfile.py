@@ -193,6 +193,30 @@ class DebugFileTest(TestCase):
         # Verify that file_extension returns .json
         assert dif.file_extension == ".json"
 
+    def test_file_extension_wasmsourcemap(self) -> None:
+        """Test that wasmsourcemap files return .wasm.map file extension."""
+        # Create a file with wasmsourcemap content type
+        file = File.objects.create(
+            name="wasmsourcemap",
+            type="project.dif",
+            headers={"Content-Type": "application/x-wasm-sourcemap+json"},
+        )
+
+        # Create a ProjectDebugFile
+        dif = ProjectDebugFile.objects.create(
+            file=file,
+            checksum="test-checksum",
+            object_name="main.dart.wasm.map",
+            cpu_name="any",
+            project_id=self.project.id,
+            debug_id="bda18fd8-5d4a-4eb8-9302-2d6bfad846b1",
+            data={},
+        )
+
+        # Verify that file_extension returns .wasm.map and that the format returns wasmsourcemap
+        assert dif.file_extension == ".wasm.map"
+        assert dif.file_format == "wasmsourcemap"
+
     def test_file_extension_macho_dbg(self) -> None:
         """Test that macho files return empty file extension."""
         file = File.objects.create(

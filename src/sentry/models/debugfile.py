@@ -95,6 +95,8 @@ def _dif_file_extension(file_format: str, file_type: str | None) -> str:
         return ".json"
     if file_format == "dartsymbolmap":
         return ".json"
+    if file_format == "wasmsourcemap":
+        return ".wasm.map"
 
     return ""
 
@@ -500,6 +502,7 @@ def _get_dif_object_name(meta: DifMeta) -> str:
         "uuidmap",
         "il2cpp",
         "dartsymbolmap",
+        "wasmsourcemap",
     ):
         return meta.name
     if meta.file_format == "breakpad":
