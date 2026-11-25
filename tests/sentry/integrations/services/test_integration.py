@@ -462,6 +462,59 @@ class OrganizationIntegrationServiceTest(BaseIntegrationServiceTest):
             mock_record=mock_record, outcome=EventLifecycleOutcome.FAILURE, outcome_count=1
         )
 
+    def _set_sync_stamps(self, old: str) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.org_integration1.update(
+                config={"keep": "me", "last_sync": old, "last_repos_change": old}
+            )
+
+    def _config(self) -> dict[str, Any]:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.org_integration1.refresh_from_db()
+        return self.org_integration1.config
+
+    def test_record_repo_sync_with_repo_changes(self) -> None:
+        old = "2020-01-01T00:00:00+00:00"
+        self._set_sync_stamps(old)
+
+        integration_service.record_repo_sync(
+            organization_id=self.organization.id,
+            organization_integration_id=self.org_integration1.id,
+            repos_changed=True,
+        )
+
+        config = self._config()
+        assert config["last_sync"] > old
+        assert config["last_repos_change"] == config["last_sync"]
+        assert config["keep"] == "me"
+
+    def test_record_repo_sync_without_repo_changes(self) -> None:
+        old = "2020-01-01T00:00:00+00:00"
+        self._set_sync_stamps(old)
+
+        integration_service.record_repo_sync(
+            organization_id=self.organization.id,
+            organization_integration_id=self.org_integration1.id,
+        )
+
+        config = self._config()
+        assert config["last_sync"] > old
+        assert config["last_repos_change"] == old
+
+    def test_record_repo_sync_ignores_other_organizations(self) -> None:
+        old = "2020-01-01T00:00:00+00:00"
+        self._set_sync_stamps(old)
+
+        integration_service.record_repo_sync(
+            organization_id=self.organization.id + 1000,
+            organization_integration_id=self.org_integration1.id,
+            repos_changed=True,
+        )
+
+        config = self._config()
+        assert config["last_sync"] == old
+        assert config["last_repos_change"] == old
+
 
 @all_silo_test
 class StartGracePeriodForProviderTest(TestCase):

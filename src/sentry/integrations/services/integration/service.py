@@ -262,6 +262,17 @@ class IntegrationService(RpcService):
 
     @rpc_method
     @abstractmethod
+    def record_repo_sync(
+        self, *, organization_id: int, organization_integration_id: int, repos_changed: bool = False
+    ) -> None:
+        """
+        Stamps ``config["last_sync"]`` on the organization integration, and
+        ``config["last_repos_change"]`` too when the sync changed its repos. Does nothing if
+        the organization integration doesn't belong to ``organization_id``.
+        """
+
+    @rpc_method
+    @abstractmethod
     def send_incident_alert_notification(
         self,
         *,

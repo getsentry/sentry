@@ -435,6 +435,20 @@ class DatabaseBackedIntegrationService(IntegrationService):
         )
         return ois[0] if len(ois) > 0 else None
 
+    def record_repo_sync(
+        self, *, organization_id: int, organization_integration_id: int, repos_changed: bool = False
+    ) -> None:
+        oi = OrganizationIntegration.objects.get_or_none(
+            id=organization_integration_id, organization_id=organization_id
+        )
+        if oi is None:
+            return
+        now = timezone.now().isoformat()
+        oi.config["last_sync"] = now
+        if repos_changed:
+            oi.config["last_repos_change"] = now
+        oi.save(update_fields=["config"])
+
     def start_grace_period_for_provider(
         self,
         *,

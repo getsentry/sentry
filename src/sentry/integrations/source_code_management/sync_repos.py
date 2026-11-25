@@ -14,7 +14,6 @@ import logging
 from datetime import timedelta
 from typing import Any
 
-from django.utils import timezone
 from taskbroker_client.retry import Retry
 
 from sentry import features
@@ -86,22 +85,14 @@ DISABLE_ACTIVITY_CUTOFF_DAYS = 30
 
 
 def bump_org_integration_last_sync(
-    organization_integration_id: int, *, repos_changed: bool = False
+    organization_id: int, organization_integration_id: int, *, repos_changed: bool = False
 ) -> None:
-    """
-    Record the time we most recently synced repositories from the provider for
-    a given OrganizationIntegration by stamping `config["last_sync"]`. When
-    `repos_changed` is True, also stamp `config["last_repos_change"]` to record
-    the last time the repo set actually changed.
-    """
-    oi = OrganizationIntegration.objects.get_or_none(id=organization_integration_id)
-    if oi is None:
-        return
-    now = timezone.now().isoformat()
-    oi.config["last_sync"] = now
-    if repos_changed:
-        oi.config["last_repos_change"] = now
-    oi.save(update_fields=["config"])
+    """See ``integration_service.record_repo_sync``."""
+    integration_service.record_repo_sync(
+        organization_id=organization_id,
+        organization_integration_id=organization_integration_id,
+        repos_changed=repos_changed,
+    )
 
 
 def _halt_broken_integration(
@@ -354,6 +345,7 @@ def _sync_repos_for_org(organization_integration_id: int) -> None:
 
         safe_to_disable = [eid for eid in removed_id_list if eid not in active_skipped]
         bump_org_integration_last_sync(
+            rpc_org.id,
             organization_integration_id,
             repos_changed=bool(new_ids or restored_ids or safe_to_disable),
         )

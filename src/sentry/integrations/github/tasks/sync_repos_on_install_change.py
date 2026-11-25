@@ -97,7 +97,7 @@ def sync_repos_on_install_change(
                 repos_added=repos_added,
                 repos_removed=repos_removed,
             )
-            bump_org_integration_last_sync(oi.id, repos_changed=repos_changed)
+            bump_org_integration_last_sync(organization_id, oi.id, repos_changed=repos_changed)
 
 
 def _sync_repos_for_org(
