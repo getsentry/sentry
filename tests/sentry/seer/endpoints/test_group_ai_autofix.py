@@ -6,6 +6,7 @@ from unittest.mock import ANY, MagicMock, Mock, call, patch
 
 from django.test import override_settings
 from django.utils import timezone
+from rest_framework.response import Response
 from sentry_protos.billing.v1.common.v1.seer_billing_feature_pb2 import (
     SEER_BILLING_FEATURE_AUTOFIX_AGENTIC_TRIAGE,
     SEER_BILLING_FEATURE_AUTOFIX_HEADLESS,
@@ -2210,6 +2211,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         mock_handoff.assert_called_once()
         assert mock_handoff.call_args.kwargs["referrer"] == AutofixReferrer.GROUP_AUTOFIX_ENDPOINT
 
+    @patch.object(Response, "__class_getitem__", None, create=True)
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_coding_agent_handoff")
     def test_post_coding_agent_handoff_auto_creates_pr_by_default(
         self, mock_handoff: MagicMock
@@ -2229,6 +2231,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         )
 
         assert response.status_code == 202, response.data
+        assert response.data == mock_handoff.return_value
         mock_handoff.assert_called_once_with(
             group=group,
             run_id=123,

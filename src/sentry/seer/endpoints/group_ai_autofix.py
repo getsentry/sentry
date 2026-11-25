@@ -511,9 +511,10 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
 
                     raise PermissionDenied(SEER_PERMISSION_DENIED)
 
-                return Response[AutofixPostResponse | AutofixHandoffResponse](
+                handoff_response: Response[AutofixPostResponse | AutofixHandoffResponse] = Response(
                     handoff_result, status=status.HTTP_202_ACCEPTED
                 )
+                return handoff_response
             case "open_pr":
                 if resolved_run_id is None:
                     return Response(
