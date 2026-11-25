@@ -2,7 +2,7 @@ import {Component} from 'react';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 import moment from 'moment-timezone';
-import {parseAsString, useQueryStates, type Values} from 'nuqs';
+import {useQueryStates, type Values} from 'nuqs';
 
 import {toast} from '@sentry/scraps/toast';
 
@@ -23,20 +23,11 @@ import {HealthStatsPeriodOption} from 'sentry/types/release';
 import {percent} from 'sentry/utils';
 import {defined} from 'sentry/utils/defined';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
+import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
 import {withApi} from 'sentry/utils/withApi';
 import {getCrashFreePercent} from 'sentry/views/explore/releases/utils';
 
 import {ReleasesDisplayOption} from './releasesDisplayOptions';
-
-const pageFilterQueryParsers = {
-  end: parseAsString,
-  environment: parseAsStringArray,
-  project: parseAsStringArray,
-  start: parseAsString,
-  statsPeriod: parseAsString,
-  utc: parseAsString,
-};
 
 function omitIgnoredProps(props: Props) {
   return omit(props, ['api', 'organization', 'children', 'selection.datetime.utc']);
@@ -92,7 +83,7 @@ type Props = {
   children: (renderProps: ReleasesRequestRenderProps) => React.ReactNode;
   display: ReleasesDisplayOption[];
   organization: Organization;
-  pageFilterQuery: Values<typeof pageFilterQueryParsers>;
+  pageFilterQuery: Values<typeof pageFilterParsers>;
   releases: string[];
   selection: PageFilters;
   healthStatsPeriod?: HealthStatsPeriodOption;
@@ -522,7 +513,7 @@ class ReleasesRequest extends Component<Props, State> {
 }
 
 function ReleasesRequestWithPageFilterQuery(props: Omit<Props, 'pageFilterQuery'>) {
-  const [pageFilterQuery] = useQueryStates(pageFilterQueryParsers);
+  const [pageFilterQuery] = useQueryStates(pageFilterParsers);
   return <ReleasesRequest {...props} pageFilterQuery={pageFilterQuery} />;
 }
 
