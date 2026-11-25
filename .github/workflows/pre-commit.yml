@@ -126,23 +126,12 @@ jobs:
         # a fork PR's token is read-only, so it can't comment
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && !cancelled() && steps.check-new.outcome != 'skipped'
         continue-on-error: true
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
+          GITHUB_TOKEN: ${{ github.token }}
           NEW_API_FINDINGS_PATH: .artifacts/new-api-findings.json
           # outcome, since continue-on-error makes a failed step's conclusion success
           CHECK_OUTCOME: ${{ steps.check-new.outcome }}
-        with:
-          script: |
-            const {syncNewApiFindingsComment} = await import(
-              `${process.env.GITHUB_WORKSPACE}/.github/workflows/scripts/new-api-findings-comment.ts`
-            );
-            await syncNewApiFindingsComment({
-              github,
-              context,
-              core,
-              findingsPath: process.env.NEW_API_FINDINGS_PATH,
-              checkFailed: process.env.CHECK_OUTCOME === 'failure',
-            });
+        run: node .github/workflows/scripts/new-api-findings-comment.ts
 
       - name: Prune suppression budgets
         if: github.event_name == 'pull_request' && !cancelled() && (steps.prek.outcome == 'success' || steps.prek.outcome == 'failure') && steps.changes.outputs.frontend == 'true'

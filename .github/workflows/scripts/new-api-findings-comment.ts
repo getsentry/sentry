@@ -3,10 +3,12 @@
  * `tools.api_guidelines.check_new` wrote to its findings file, or saying the
  * check couldn't run.
  *
- * Invoked from the lint job in `.github/workflows/pre-commit.yml` via
- * actions/github-script, after the step that writes the file.
+ * Run with `node` from the lint job in `.github/workflows/pre-commit.yml`,
+ * after the step that writes the file.
  */
 import {readFileSync} from 'node:fs';
+
+import {context as actionsContext, getOctokit} from '@actions/github';
 
 interface Finding {
   path: string;
@@ -15,48 +17,9 @@ interface Finding {
   summary: string;
 }
 
-interface IssueComment {
-  id: number;
-  body?: string;
-}
-
-/**
- * The subset of the actions/github-script context we use, typed locally
- * because @actions/github isn't a repo dependency.
- */
 interface SyncArgs {
-  github: {
-    rest: {
-      issues: {
-        listComments: unknown;
-        createComment: (params: {
-          owner: string;
-          repo: string;
-          issue_number: number;
-          body: string;
-        }) => Promise<unknown>;
-        updateComment: (params: {
-          owner: string;
-          repo: string;
-          comment_id: number;
-          body: string;
-        }) => Promise<unknown>;
-        deleteComment: (params: {
-          owner: string;
-          repo: string;
-          comment_id: number;
-        }) => Promise<unknown>;
-      };
-    };
-    paginate: <T>(route: unknown, params: Record<string, unknown>) => Promise<T[]>;
-  };
-  context: {
-    repo: {owner: string; repo: string};
-    serverUrl: string;
-    runId: number;
-    payload: {pull_request: {number: number; head: {sha: string}}};
-  };
-  core: {info: (message: string) => void};
+  github: ReturnType<typeof getOctokit>;
+  context: typeof actionsContext;
   findingsPath: string;
   checkFailed: boolean;
 }
@@ -128,12 +91,11 @@ function failedBody(runUrl: string): string {
 export async function syncNewApiFindingsComment({
   github,
   context,
-  core,
   findingsPath,
   checkFailed,
 }: SyncArgs): Promise<void> {
   const {owner, repo} = context.repo;
-  const pr = context.payload.pull_request;
+  const pr = context.payload.pull_request!;
 
   const runUrl = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
 
@@ -147,7 +109,7 @@ export async function syncNewApiFindingsComment({
     }
   }
 
-  const comments = await github.paginate<IssueComment>(github.rest.issues.listComments, {
+  const comments = await github.paginate(github.rest.issues.listComments, {
     owner,
     repo,
     issue_number: pr.number,
@@ -159,18 +121,28 @@ export async function syncNewApiFindingsComment({
   if (body === null) {
     if (existing) {
       await github.rest.issues.deleteComment({owner, repo, comment_id: existing.id});
-      core.info(`Deleted the new API findings comment on #${pr.number}.`);
+      console.log(`Deleted the new API findings comment on #${pr.number}.`);
     } else {
-      core.info('No new API findings.');
+      console.log('No new API findings.');
     }
     return;
   }
 
   if (existing) {
     await github.rest.issues.updateComment({owner, repo, comment_id: existing.id, body});
-    core.info(`Updated the new API findings comment on #${pr.number}.`);
+    console.log(`Updated the new API findings comment on #${pr.number}.`);
   } else {
     await github.rest.issues.createComment({owner, repo, issue_number: pr.number, body});
-    core.info(`Posted the new API findings comment on #${pr.number}.`);
+    console.log(`Posted the new API findings comment on #${pr.number}.`);
   }
+}
+
+// only when run with `node`, so the tests can import the function without posting anything
+if (import.meta.main) {
+  await syncNewApiFindingsComment({
+    github: getOctokit(process.env.GITHUB_TOKEN!),
+    context: actionsContext,
+    findingsPath: process.env.NEW_API_FINDINGS_PATH!,
+    checkFailed: process.env.CHECK_OUTCOME === 'failure',
+  });
 }
