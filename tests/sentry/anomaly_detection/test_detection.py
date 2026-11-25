@@ -5,6 +5,7 @@ import pytest
 from sentry.anomaly_detection.contracts import Metric, SeriesKey, Signal
 from sentry.anomaly_detection.evaluation.baseline import Baseline
 from sentry.anomaly_detection.evaluation.series import Series
+from sentry.anomaly_detection.inputs.shapes import compute, day_of
 
 START = datetime(2024, 1, 8, 12, tzinfo=UTC)
 REQUESTS = SeriesKey(1, "prod", Signal.REQUESTS, Metric.COUNT)
@@ -20,12 +21,16 @@ def points(start: int, end: int, value: float | None) -> Series:
     return dict.fromkeys((minute(i) for i in range(start, end)), value)
 
 
+def shaped(key: SeriesKey, hourly: Series, at: datetime = START) -> Baseline:
+    return Baseline(compute({key: hourly}, day_of(at), [key.project_id]).series)
+
+
 def test_history_scales_level_by_hour_and_prefers_same_day_type() -> None:
     hourly: Series = {START - timedelta(days=i, hours=1): 100.0 for i in range(1, 15)}
     # Three weekdays and four weekend days, so ignoring day type would pick the weekend value.
     hourly |= {START - timedelta(days=i): 20_000.0 for i in (1, 2, 8, 9)}
     hourly |= {START - timedelta(days=i): 200.0 for i in (3, 4, 5)}
-    baseline = Baseline({REQUESTS: hourly})
+    baseline = shaped(REQUESTS, hourly)
     ev = baseline.expected(REQUESTS, points(-60, 0, 10.0), START, set())
     assert ev is not None
     assert ev.expected == 20.0
@@ -35,7 +40,7 @@ def test_history_scales_level_by_hour_and_prefers_same_day_type() -> None:
 
 def test_missing_history_for_target_hour_uses_recent_signal_units() -> None:
     hourly: Series = {START - timedelta(days=i, hours=1): 200.0 for i in range(1, 15)}
-    ev = Baseline({REQUESTS: hourly}).expected(REQUESTS, points(-60, 0, 10.0), START, set())
+    ev = shaped(REQUESTS, hourly).expected(REQUESTS, points(-60, 0, 10.0), START, set())
     assert ev is not None
     assert ev.expected == 10.0
 
@@ -46,7 +51,10 @@ def test_weekend_shape_uses_two_weekends_when_available() -> None:
     for i in range(1, 15):
         day = saturday - timedelta(days=i)
         hourly[day] = 20.0 if day.weekday() >= 5 else 100.0
-    assert Baseline({REQUESTS: hourly}).raw_shape(REQUESTS, saturday) == 20.0
+    # Weekend factors are stored to within half a 4.4% step.
+    assert shaped(REQUESTS, hourly, saturday).shape(REQUESTS, saturday) == pytest.approx(
+        20.0, rel=0.022
+    )
 
 
 def test_warmup_requires_observations_and_widens_band() -> None:

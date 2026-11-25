@@ -9,6 +9,7 @@ from statistics import median
 from sentry.anomaly_detection.contracts import ExpectedValue, SeriesKey
 from sentry.anomaly_detection.evaluation.distributions import MAD_TO_SIGMA
 from sentry.anomaly_detection.evaluation.series import Series, is_share, rate_parts, samples_key
+from sentry.anomaly_detection.inputs.shapes import SeriesShape
 
 MINUTE = timedelta(minutes=1)
 
@@ -30,7 +31,6 @@ class BaselineConfig:
     window_min: int = 60
     min_points: int = 10
     full_points: int = 30
-    history_days: int = 14
     sigma_floor: float = 0.1
     k: float = 4.0
     reach_back_min: int = 25 * 60
@@ -40,54 +40,24 @@ def _hour(t: datetime) -> datetime:
     return t.replace(minute=0, second=0, microsecond=0)
 
 
-def _day(t: datetime) -> datetime:
-    return t.replace(hour=0, minute=0, second=0, microsecond=0)
-
-
 class Baseline:
-    def __init__(self, hourly: Mapping[SeriesKey, Series], cfg: BaselineConfig | None = None):
-        self.hourly = hourly
+    def __init__(
+        self, shapes: Mapping[SeriesKey, SeriesShape], cfg: BaselineConfig | None = None
+    ) -> None:
+        self.shapes = shapes  # Daily hour-of-day shapes, see inputs.shapes.
         self.cfg = cfg or BaselineConfig()
-        self._shape_cache: dict[tuple[SeriesKey, datetime], float | None] = {}
-        self._fallback_cache: dict[tuple[SeriesKey, datetime], float] = {}
-
-    def checkpoint_hourly_bounds(self, cursor: datetime) -> tuple[datetime, datetime]:
-        """Keep enough history for both same-hour shapes and the daily fallback."""
-        # A bucket starting in the cursor's hour is not fully observed yet.
-        return _day(cursor) - timedelta(days=self.cfg.history_days), _hour(cursor)
 
     def shape(self, key: SeriesKey, t: datetime) -> float:
-        shape = self.raw_shape(key, t)
-        if shape is not None:
-            return shape
-        # A missing hour still needs the same units as fitted seasonal observations.
-        day = _day(t)
-        cache_key = (key, day)
-        if cache_key not in self._fallback_cache:
-            cutoff = day - timedelta(days=self.cfg.history_days)
-            values = [
-                value
-                for hour, value in self.hourly.get(key, {}).items()
-                if cutoff <= hour < day and value is not None and value > 0
-            ]
-            self._fallback_cache[cache_key] = median(values) if values else 1.0
-        return self._fallback_cache[cache_key]
+        """The seasonal shape of t's hour.
 
-    def raw_shape(self, key: SeriesKey, t: datetime) -> float | None:
-        """Prefer history from the same hour and day type (weekday or weekend)."""
-        hour = _hour(t)
-        cache_key = (key, hour)
-        if cache_key not in self._shape_cache:
-            history = self.hourly.get(key, {})
-            days = [hour - timedelta(days=d) for d in range(1, self.cfg.history_days + 1)]
-            values = [(day, value) for day in days if (value := history.get(day)) is not None]
-            same_type = [
-                value for day, value in values if (day.weekday() >= 5) == (hour.weekday() >= 5)
-            ]
-            selected = same_type if len(same_type) >= 3 else [value for _, value in values]
-            shape = median(selected) if len(selected) >= 3 else 0.0
-            self._shape_cache[cache_key] = shape if shape > 0 else None
-        return self._shape_cache[cache_key]
+        An hour without a shape still needs the same units as fitted seasonal observations,
+        so it falls back to the series' scale; a series without history has a flat shape.
+        """
+        stored = self.shapes.get(key)
+        if stored is None:
+            return 1.0
+        shape = stored.at(_hour(t))
+        return stored.scale if shape is None else shape
 
     def expected(
         self,
