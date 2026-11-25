@@ -15,7 +15,8 @@ from sentry.db.models import (
 class ReleaseCommit(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
-    organization_id = BoundedBigIntegerField(db_index=True)
+    # The (organization_id, release) index covers lookups by organization.
+    organization_id = BoundedBigIntegerField()
     # DEPRECATED
     project_id = BoundedBigIntegerField(null=True)
     release = FlexibleForeignKey("sentry.Release")

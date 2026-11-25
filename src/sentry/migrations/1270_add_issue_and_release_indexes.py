@@ -130,6 +130,8 @@ REDUNDANT_INDEXES = [
     ),
     ("sentry_groupenvironment", "sentry_groupenvironment_group_id_bf64a1e7", "group_id"),
     ("sentry_releasefile", "sentry_releasefile_release_id_7b1436d6", "release_id"),
+    ("sentry_projectdsymfile", "sentry_projectdsymfile_project_id_fb5945c4", "project_id"),
+    ("sentry_releasecommit", "sentry_releasecommit_organization_id_729218d2", "organization_id"),
 ]
 
 # South-era names of the single-column Group indexes, which databases created before Django
@@ -329,6 +331,16 @@ class Migration(CheckedMigration):
                 migrations.AlterField(
                     model_name="releasefile",
                     name="release_id",
+                    field=sentry.db.models.fields.bounded.BoundedBigIntegerField(),
+                ),
+                migrations.AlterField(
+                    model_name="projectdebugfile",
+                    name="project_id",
+                    field=sentry.db.models.fields.bounded.BoundedBigIntegerField(null=True),
+                ),
+                migrations.AlterField(
+                    model_name="releasecommit",
+                    name="organization_id",
                     field=sentry.db.models.fields.bounded.BoundedBigIntegerField(),
                 ),
                 migrations.AddIndex(
