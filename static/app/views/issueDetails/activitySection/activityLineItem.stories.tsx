@@ -292,6 +292,13 @@ const sourceActivities = [
     ...activity(GroupActivityType.SET_RESOLVED_IN_RELEASE, {version: 'frontend@1.0.0'}),
     source: 'sentry-cli',
   },
+  {...activity(GroupActivityType.SET_RESOLVED), source: 'slack'},
+  {
+    ...activity(GroupActivityType.ASSIGNED, {assignee: user.id, assigneeType: 'user'}),
+    source: 'slack',
+  },
+  {...activity(GroupActivityType.SET_IGNORED), source: 'slack_staging'},
+  {...activity(GroupActivityType.TRIGGER_AUTOFIX, {referrer: 'slack'}), source: 'slack'},
 ];
 
 const seerPullRequest = {
