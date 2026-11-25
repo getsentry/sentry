@@ -21,7 +21,7 @@ from sentry.api.endpoints.organization_trace_item_attributes import (
     OrganizationTraceItemAttributesEndpointBase,
     full_retention_window,
     get_column_definitions,
-    is_known_attribute,
+    is_sentry_defined_attribute,
     resolve_attribute_referrer,
 )
 from sentry.api.serializers import serialize
@@ -154,10 +154,7 @@ def resolve_custom_attribute(
     internal_name = resolved_attribute.internal_name
     public_alias = resolved_attribute.public_alias
 
-    # Check both resolved forms, since conventions may key on either.
-    if is_known_attribute(public_alias, column_definitions) or is_known_attribute(
-        internal_name, column_definitions
-    ):
+    if is_sentry_defined_attribute(resolved_attribute, column_definitions):
         raise ParseError(f"`{public_alias}` is a reserved sentry attribute in {dataset}.")
 
     attr_type = constants.ATTRIBUTES_QUERY_PARAM_TO_ATTRIBUTE_TYPE_MAP.get(

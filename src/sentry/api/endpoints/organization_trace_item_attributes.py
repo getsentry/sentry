@@ -522,6 +522,8 @@ def build_custom_attribute_context(
         context["examples"] = list(row.examples)
     if context:
         context["isCustom"] = True
+        if row.project_id is not None:
+            context["isProjectScoped"] = True
     return context
 
 
@@ -589,6 +591,15 @@ def is_known_attribute(name: str, definitions: ColumnDefinitions) -> bool:
     if name in {column.internal_name for column in definitions.columns.values()}:
         return True
     return ATTRIBUTE_METADATA.get(name) is not None
+
+
+def is_sentry_defined_attribute(
+    attribute: ResolvedAttribute, definitions: ColumnDefinitions
+) -> bool:
+    # Check both resolved forms, since conventions may key on either.
+    return is_known_attribute(attribute.public_alias, definitions) or is_known_attribute(
+        attribute.internal_name, definitions
+    )
 
 
 def resolve_attribute_unit(

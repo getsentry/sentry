@@ -113,6 +113,14 @@ def sort_merged_attributes(
     ]
 
 
+def _context_precedence(context: TraceItemAttributeContext | None) -> int:
+    if not context:
+        return 0
+    if not context.get("isCustom"):
+        return 3
+    return 2 if context.get("isProjectScoped") else 1
+
+
 def merge_attributes_across_datasets(
     attributes_by_dataset: dict[str, list[TraceItemAttributeKey]],
 ) -> list[MergedTraceItemAttribute]:
@@ -136,8 +144,11 @@ def merge_attributes_across_datasets(
 
             if dataset not in existing["datasets"]:
                 existing["datasets"].append(dataset)
-            if attribute.get("context") and not existing.get("context"):
-                existing["context"] = attribute["context"]
+            context = attribute.get("context")
+            if context and _context_precedence(context) > _context_precedence(
+                existing.get("context")
+            ):
+                existing["context"] = context
 
     return list(merged.values())
 

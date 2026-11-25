@@ -18,6 +18,7 @@ from sentry.api.endpoints.organization_trace_item_attributes import (
     build_sentry_convention_context,
     get_column_definitions,
     get_sentry_convention_metadata,
+    is_sentry_defined_attribute,
     resolve_attribute_unit,
 )
 from sentry.api.endpoints.organization_trace_item_attributes_merged import (
@@ -32,6 +33,8 @@ from sentry.api.endpoints.organization_trace_item_attributes_types import (
 )
 from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.response_types import as_validation_errors
+from sentry.exceptions import InvalidSearchQuery
+from sentry.explore.models import TraceItemAttributeTypes
 from sentry.models.organization import Organization
 from sentry.search.eap import constants
 from sentry.search.eap.attribute_stats import (
@@ -40,7 +43,12 @@ from sentry.search.eap.attribute_stats import (
     query_column_last_seen,
     stored_keys,
 )
-from sentry.search.eap.types import AttributeSourceType, SupportedTraceItemType
+from sentry.search.eap.resolver import SearchResolver
+from sentry.search.eap.types import (
+    AttributeSourceType,
+    SearchResolverConfig,
+    SupportedTraceItemType,
+)
 from sentry.search.events.types import SnubaParams
 
 
@@ -91,6 +99,15 @@ class TraceItemAttributeDetails(MergedTraceItemAttribute, TraceItemAttributeConv
     lastSeen: Annotated[
         str | None,
         ApiDescription("When the attribute was last seen in any dataset within the time window"),
+    ]
+    isEditable: Annotated[
+        bool,
+        ApiDescription(
+            "Whether custom context can be saved for the attribute: a custom string, number, "
+            "or boolean attribute, stored under its own name, that Sentry doesn't define in any "
+            "of its datasets. Always false without the `data-browsing-attribute-context` "
+            "feature. Saving also needs write access to events in the project"
+        ),
     ]
 
 
@@ -143,6 +160,27 @@ def _is_initial_changelog(changelog: Sequence[ChangelogEntry]) -> bool:
         and not changelog[0].prs
         and not changelog[0].description
     )
+
+
+def is_editable(attribute: MergedTraceItemAttribute, snuba_params: SnubaParams) -> bool:
+    if attribute["attributeSource"]["source_type"] != AttributeSourceType.USER.value:
+        return False
+    if attribute["attributeType"] not in TraceItemAttributeTypes.TYPE_NAMES:
+        return False
+    for dataset in attribute["datasets"]:
+        definitions = get_column_definitions(SupportedTraceItemType(dataset))
+        resolver = SearchResolver(
+            params=snuba_params, config=SearchResolverConfig(), definitions=definitions
+        )
+        try:
+            resolved_attribute, _ = resolver.resolve_attribute(attribute["name"])
+        except InvalidSearchQuery:
+            return False
+        if resolved_attribute.internal_name != attribute["name"] or is_sentry_defined_attribute(
+            resolved_attribute, definitions
+        ):
+            return False
+    return True
 
 
 def _matching_attributes(
@@ -271,6 +309,10 @@ class OrganizationTraceItemAttributeDetailsEndpoint(OrganizationTraceItemAttribu
             **match,
             "stats": stats,
             "lastSeen": last_seen.isoformat() if last_seen is not None else None,
+            "isEditable": features.has(
+                "organizations:data-browsing-attribute-context", organization, actor=request.user
+            )
+            and is_editable(match, snuba_params),
             **build_convention_details(metadata),
         }
         return Response(details)

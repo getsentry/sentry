@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Literal
 from uuid import uuid4
 
 from django.urls import reverse
@@ -10,6 +10,10 @@ from sentry.api.endpoints.organization_trace_item_attributes_merged import (
     search_merged_attributes,
     sort_merged_attributes,
 )
+from sentry.api.endpoints.organization_trace_item_attributes_types import (
+    TraceItemAttributeContext,
+    TraceItemAttributeKey,
+)
 from sentry.search.eap.types import ColumnType
 from sentry.testutils.cases import (
     APITestCase,
@@ -19,6 +23,26 @@ from sentry.testutils.cases import (
 )
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now
+
+ORGANIZATION_CONTEXT: TraceItemAttributeContext = {"isCustom": True, "brief": "The org's cart"}
+PROJECT_CONTEXT: TraceItemAttributeContext = {
+    "isCustom": True,
+    "isProjectScoped": True,
+    "brief": "This project's cart",
+}
+SENTRY_CONTEXT: TraceItemAttributeContext = {"isConvention": False, "brief": "Sentry's cart"}
+
+
+def _cart_attribute(
+    context: TraceItemAttributeContext, source_type: Literal["sentry", "user"] = "user"
+) -> TraceItemAttributeKey:
+    return {
+        "key": "cart.id",
+        "name": "cart.id",
+        "attributeType": "string",
+        "attributeSource": {"source_type": source_type},
+        "context": context,
+    }
 
 
 class TestMergeAttributesAcrossDatasets:
@@ -55,6 +79,56 @@ class TestMergeAttributesAcrossDatasets:
                 "context": {"isCustom": True, "brief": "The cart"},
             }
         ]
+
+    def test_prefers_later_project_context_over_earlier_organization_context(self) -> None:
+        merged = merge_attributes_across_datasets(
+            {
+                "spans": [_cart_attribute(ORGANIZATION_CONTEXT)],
+                "logs": [_cart_attribute(PROJECT_CONTEXT)],
+            }
+        )
+
+        assert merged[0]["context"] == PROJECT_CONTEXT
+
+    def test_keeps_earlier_project_context_over_later_organization_context(self) -> None:
+        merged = merge_attributes_across_datasets(
+            {
+                "spans": [_cart_attribute(PROJECT_CONTEXT)],
+                "logs": [_cart_attribute(ORGANIZATION_CONTEXT)],
+            }
+        )
+
+        assert merged[0]["context"] == PROJECT_CONTEXT
+
+    def test_keeps_the_first_context_when_both_are_project_context(self) -> None:
+        merged = merge_attributes_across_datasets(
+            {
+                "spans": [_cart_attribute(PROJECT_CONTEXT)],
+                "logs": [_cart_attribute({**PROJECT_CONTEXT, "brief": "Logs' cart"})],
+            }
+        )
+
+        assert merged[0]["context"] == PROJECT_CONTEXT
+
+    def test_keeps_earlier_sentry_context_over_later_project_context(self) -> None:
+        merged = merge_attributes_across_datasets(
+            {
+                "spans": [_cart_attribute(SENTRY_CONTEXT, "sentry")],
+                "logs": [_cart_attribute(PROJECT_CONTEXT, "sentry")],
+            }
+        )
+
+        assert merged[0]["context"] == SENTRY_CONTEXT
+
+    def test_prefers_later_sentry_context_over_earlier_project_context(self) -> None:
+        merged = merge_attributes_across_datasets(
+            {
+                "spans": [_cart_attribute(PROJECT_CONTEXT, "sentry")],
+                "logs": [_cart_attribute(SENTRY_CONTEXT, "sentry")],
+            }
+        )
+
+        assert merged[0]["context"] == SENTRY_CONTEXT
 
     def test_keeps_separate_rows_when_types_or_sources_differ(self) -> None:
         merged = merge_attributes_across_datasets(
