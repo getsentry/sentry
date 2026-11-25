@@ -24,6 +24,7 @@ export const CheckWrap = styled('div')<{isMultiple: boolean; isSelected: boolean
             css`
               background: ${p.theme.tokens.background.accent.vibrant};
               border-color: ${p.theme.tokens.border.accent};
+              color: ${p.theme.tokens.content.onVibrant.light};
             `
           }
         `
