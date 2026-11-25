@@ -951,6 +951,51 @@ class ProjectTraceItemDetailsEndpointTest(
         assert response.status_code == 429
         assert b"Rate limit exceeded" in response.content
 
+    @mock.patch("sentry.api.endpoints.project_trace_item_details.trace_item_details_rpc")
+    def test_referrer_kept_when_client_supplies_valid_referrer(
+        self, mock_trace_item_details_rpc: MagicMock
+    ) -> None:
+        mock_trace_item_details_rpc.side_effect = SnubaRPCRateLimitExceeded("too much traffic")
+
+        response = self.do_request(
+            "logs", uuid.uuid4().hex, extra_data={"referrer": "api.explore.log-item-details"}
+        )
+
+        assert response.status_code == 429, response.content
+        assert mock_trace_item_details_rpc.call_args.args[0].meta.referrer == (
+            "api.explore.log-item-details"
+        )
+
+    @mock.patch("sentry.api.endpoints.project_trace_item_details.trace_item_details_rpc")
+    def test_referrer_defaulted_when_client_supplies_server_only_referrer(
+        self, mock_trace_item_details_rpc: MagicMock
+    ) -> None:
+        mock_trace_item_details_rpc.side_effect = SnubaRPCRateLimitExceeded("too much traffic")
+
+        response = self.do_request(
+            "logs", uuid.uuid4().hex, extra_data={"referrer": "subscriptions_executor"}
+        )
+
+        assert response.status_code == 429, response.content
+        assert mock_trace_item_details_rpc.call_args.args[0].meta.referrer == (
+            "api.organization-trace-item-details"
+        )
+
+    @mock.patch("sentry.api.endpoints.project_trace_item_details.trace_item_details_rpc")
+    def test_referrer_defaulted_when_client_supplies_unknown_referrer(
+        self, mock_trace_item_details_rpc: MagicMock
+    ) -> None:
+        mock_trace_item_details_rpc.side_effect = SnubaRPCRateLimitExceeded("too much traffic")
+
+        response = self.do_request(
+            "logs", uuid.uuid4().hex, extra_data={"referrer": "not-a-referrer"}
+        )
+
+        assert response.status_code == 429, response.content
+        assert mock_trace_item_details_rpc.call_args.args[0].meta.referrer == (
+            "api.organization-trace-item-details"
+        )
+
     def test_trace_metric_segment_name_mapped_to_transaction(self) -> None:
         trace_metric = self.create_trace_metric(
             metric_name="request_duration",

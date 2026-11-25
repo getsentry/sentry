@@ -9,12 +9,19 @@ import {
 import {hasMultipleMetricsSelected} from 'sentry/views/dashboards/widgetBuilder/utils/hasMultipleMetricsSelected';
 import type {TraceItemAttributeConfig} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
-import {createTraceMetricFilter} from 'sentry/views/explore/metrics/utils';
+import {useTraceMetricFilter} from 'sentry/views/explore/metrics/hooks/useTraceMetricFilter';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 export function useWidgetBuilderTraceItemConfig(): TraceItemAttributeConfig {
   const {state} = useWidgetBuilderContext();
   const organization = useOrganization();
+  const traceMetrics =
+    state.dataset === WidgetType.TRACEMETRICS
+      ? (getTraceMetricAggregates(state.displayType, state.yAxis, state.fields)
+          ?.map(extractTraceMetricFromColumn)
+          .filter(defined) ?? [])
+      : [];
+  const traceMetricFilter = useTraceMetricFilter(traceMetrics[0]);
 
   if (state.dataset === WidgetType.SPANS) {
     return {
@@ -28,22 +35,12 @@ export function useWidgetBuilderTraceItemConfig(): TraceItemAttributeConfig {
   }
 
   if (state.dataset === WidgetType.TRACEMETRICS) {
-    const aggregateSource = getTraceMetricAggregates(
-      state.displayType,
-      state.yAxis,
-      state.fields
-    );
-    const traceMetrics =
-      aggregateSource?.map(extractTraceMetricFromColumn).filter(defined) ?? [];
     const hasMultipleMetrics = hasMultipleMetricsSelected(traceMetrics);
 
     return {
       traceItemType: TraceItemDataset.TRACEMETRICS,
       enabled: traceMetrics.length > 0 && defined(traceMetrics?.[0]?.name),
-      query:
-        !hasMultipleMetrics && traceMetrics[0]
-          ? createTraceMetricFilter(traceMetrics[0])
-          : undefined,
+      query: hasMultipleMetrics ? undefined : traceMetricFilter,
     };
   }
 

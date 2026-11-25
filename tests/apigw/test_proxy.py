@@ -1,4 +1,5 @@
 from typing import Any, Callable, cast
+from unittest import mock
 
 import punkreq
 import pytest
@@ -11,7 +12,10 @@ from apigw.proxy import (
     build_proxied_cell_headers,
     build_proxied_headers,
     build_proxied_url,
+    get_cell_address,
 )
+from apigw.web import app as apigw_app
+from sentry.types.cell import Cell
 
 
 class FakeScope:
@@ -95,6 +99,22 @@ def test_proxied_cell_headers_gateway_marker() -> None:
     headers = build_proxied_cell_headers(request, "http://cell-1.internal:9000")
 
     assert ("x-apigateway", "true") in headers
+
+
+def test_cell_address_selection() -> None:
+    cell = Cell(
+        "eu",
+        2,
+        "http://eu",
+        api_gateway_address="http://eu-gw",
+        api_gateway_h2_address="http://eu-h2",
+    )
+    endpoints = apigw_app.config.endpoints
+    with mock.patch.object(endpoints, "use_cell_gw", True):
+        with mock.patch.object(endpoints, "protos", {}):
+            assert get_cell_address(cell) == "http://eu-gw"
+        with mock.patch.object(endpoints, "protos", {"eu": "h2"}):
+            assert get_cell_address(cell) == "http://eu-h2"
 
 
 def test_adapt_response_headers_and_cookies() -> None:
