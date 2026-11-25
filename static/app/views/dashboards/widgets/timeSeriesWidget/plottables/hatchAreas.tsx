@@ -1,6 +1,10 @@
 import type {CustomSeriesOption, CustomSeriesRenderItem} from 'echarts';
 
-import {BAND_Z, type CartesianCoordSys} from 'sentry/components/charts/bands/bandShapes';
+import {
+  BAND_Z,
+  HATCH_Z2,
+  type CartesianCoordSys,
+} from 'sentry/components/charts/bands/bandShapes';
 import {defined} from 'sentry/utils/defined';
 import type {TimeRange} from 'sentry/utils/timeSeries/mergeTimeRanges';
 
@@ -111,9 +115,9 @@ export class HatchAreas implements Plottable {
         // Mapping only `x` keeps the timestamps out of the Y axis extent
         encode: {x: [0, 1]},
         renderItem: this.renderItem,
-        // Over line and area series, which default to 3, and under annotation
-        // markers, bands, and mark lines
-        z: BAND_Z - 0.75,
+        // Line and area series default to 3, and each element sets a `z2`
+        // that puts the hatch over them
+        z: BAND_Z - 1,
         clip: true,
         silent: true,
         animation: false,
@@ -144,12 +148,14 @@ export class HatchAreas implements Plottable {
         {
           type: 'rect',
           silent: true,
+          z2: HATCH_Z2,
           shape,
           style: {fill: this.config.fadeColor, opacity: WASH_OPACITY},
         },
         {
           type: 'rect',
           silent: true,
+          z2: HATCH_Z2,
           shape,
           style: {
             // A decal only draws over a fill

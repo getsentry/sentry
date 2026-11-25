@@ -1,6 +1,6 @@
 import type {CustomSeriesRenderItemAPI, CustomSeriesRenderItemParams} from 'echarts';
 
-import {BAND_Z} from 'sentry/components/charts/bands/bandShapes';
+import {BAND_Z, HATCH_Z2} from 'sentry/components/charts/bands/bandShapes';
 
 import {HatchAreas} from './hatchAreas';
 
@@ -43,7 +43,7 @@ describe('HatchAreas', () => {
         encode: {x: [0, 1]},
         silent: true,
         tooltip: {show: false},
-        z: BAND_Z - 0.75,
+        z: BAND_Z - 1,
       })
     );
 
@@ -65,11 +65,13 @@ describe('HatchAreas', () => {
       children: [
         expect.objectContaining({
           type: 'rect',
+          z2: HATCH_Z2,
           shape,
           style: {fill: '#ffffff', opacity: 0.5},
         }),
         expect.objectContaining({
           type: 'rect',
+          z2: HATCH_Z2,
           shape,
           style: expect.objectContaining({
             opacity: 0.6,

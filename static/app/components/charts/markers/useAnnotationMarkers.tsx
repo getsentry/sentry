@@ -9,6 +9,7 @@ import {useRenderToString} from '@sentry/scraps/renderToString';
 import {isSevere} from 'sentry/components/charts/annotations/severity';
 import type {AnnotationItem} from 'sentry/components/charts/annotations/types';
 import {
+  ANNOTATION_MARKER_Z2,
   BAND_Z,
   type BandBucket,
   type BandElement,
@@ -159,7 +160,10 @@ function annotationMarkerRenderItem(
       );
     }
 
-    return {type: 'group', children};
+    return {
+      type: 'group',
+      children: children.map(child => ({...child, z2: ANNOTATION_MARKER_Z2})),
+    };
   };
 }
 
@@ -221,9 +225,7 @@ export function useAnnotationMarkers({
       name: ANNOTATION_MARKERS_SERIES_ID,
       data,
       color: theme.tokens.dataviz.semantic.bad,
-      // Under bands, so a bucket highlight covers the markers, and over the low
-      // confidence hatch, so the hatch doesn't fade them
-      z: BAND_Z - 0.5,
+      z: BAND_Z - 1,
       clip: false,
       tooltip: itemTooltipBelowAnchor(
         chartRef,
