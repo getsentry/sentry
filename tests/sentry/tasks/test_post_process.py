@@ -69,7 +69,6 @@ from sentry.tasks.post_process import (
     GROUP_CATEGORY_POST_PROCESS_PIPELINE,
     HIGHER_ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT,
     ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT,
-    EventLinkProbe,
     PostProcessJob,
     _get_event_link_probe,
     _probe_event_links,
@@ -251,165 +250,20 @@ class EventLinkProbeTest(TestCase):
         super().setUp()
         event = self.store_event(data={"message": "testing"}, project_id=self.project.id)
         self.group_event = event.for_group(require_group(event))
-        self.other_event_id = "b" * 32
-
-    def job(self, is_reprocessed: bool = False) -> PostProcessJob:
-        return {"event": self.group_event, "is_reprocessed": is_reprocessed}
-
-    def create_attachment(self, event_id: str, group_id: int | None) -> EventAttachment:
-        return EventAttachment.objects.create(
-            project_id=self.project.id,
-            event_id=event_id,
-            group_id=group_id,
-            type="event.attachment",
-            name="hello.txt",
-            content_type="text/plain",
-            size=5,
-            blob_path=":hello",
-        )
-
-    def create_user_report(self, event_id: str, group_id: int | None) -> UserReport:
-        return UserReport.objects.create(
-            project_id=self.project.id,
-            event_id=event_id,
-            group_id=group_id,
-            name="foo",
-            email="bar@example.com",
-            comments="It Broke!!!",
-        )
-
-    @override_options(CONSOLIDATED_LINK_PROBE)
-    def test_finds_nothing_for_an_event_without_links(self) -> None:
-        assert _get_event_link_probe(self.job()) == EventLinkProbe(
-            has_pending_attachments=False,
-            has_attachments_to_relink=False,
-            has_user_reports_to_link=False,
-        )
-
-    @override_options(CONSOLIDATED_LINK_PROBE)
-    def test_finds_pending_attachment(self) -> None:
-        create_pending_attachment(self.project.id, self.group_event.event_id)
-
-        assert _get_event_link_probe(self.job()) == EventLinkProbe(
-            has_pending_attachments=True,
-            has_attachments_to_relink=False,
-            has_user_reports_to_link=False,
-        )
-
-    @override_options(CONSOLIDATED_LINK_PROBE)
-    def test_finds_attachment_without_group(self) -> None:
-        self.create_attachment(self.group_event.event_id, group_id=None)
-
-        assert _get_event_link_probe(self.job()) == EventLinkProbe(
-            has_pending_attachments=False,
-            has_attachments_to_relink=True,
-            has_user_reports_to_link=False,
-        )
-
-    @override_options(CONSOLIDATED_LINK_PROBE)
-    def test_finds_attachment_in_a_different_group(self) -> None:
-        other_group = self.create_group(project=self.project)
-        self.create_attachment(self.group_event.event_id, group_id=other_group.id)
-
-        assert _get_event_link_probe(self.job()) == EventLinkProbe(
-            has_pending_attachments=False,
-            has_attachments_to_relink=True,
-            has_user_reports_to_link=False,
-        )
-
-    @override_options(CONSOLIDATED_LINK_PROBE)
-    def test_finds_user_report_without_group(self) -> None:
-        self.create_user_report(self.group_event.event_id, group_id=None)
-
-        assert _get_event_link_probe(self.job()) == EventLinkProbe(
-            has_pending_attachments=False,
-            has_attachments_to_relink=False,
-            has_user_reports_to_link=True,
-        )
-
-    @override_options(CONSOLIDATED_LINK_PROBE)
-    def test_ignores_rows_that_are_already_linked(self) -> None:
-        self.create_attachment(self.group_event.event_id, group_id=self.group_event.group_id)
-        self.create_user_report(self.group_event.event_id, group_id=self.group_event.group_id)
-
-        assert _get_event_link_probe(self.job()) == EventLinkProbe(
-            has_pending_attachments=False,
-            has_attachments_to_relink=False,
-            has_user_reports_to_link=False,
-        )
-
-    @override_options(CONSOLIDATED_LINK_PROBE)
-    def test_ignores_rows_of_other_events(self) -> None:
-        create_pending_attachment(self.project.id, self.other_event_id)
-        self.create_attachment(self.other_event_id, group_id=None)
-        self.create_user_report(self.other_event_id, group_id=None)
-
-        assert _get_event_link_probe(self.job()) == EventLinkProbe(
-            has_pending_attachments=False,
-            has_attachments_to_relink=False,
-            has_user_reports_to_link=False,
-        )
-
-    @override_options(CONSOLIDATED_LINK_PROBE)
-    def test_reads_all_three_tables_in_one_statement(self) -> None:
-        with CaptureQueriesContext(connections[router.db_for_read(EventAttachment)]) as queries:
-            _get_event_link_probe(self.job())
-
-        (statement,) = link_probe_table_statements(queries)
-        assert all(table in statement for table in LINK_PROBE_TABLES)
-
-    @override_options(CONSOLIDATED_LINK_PROBE)
-    def test_result_is_shared_through_the_job(self) -> None:
-        job = self.job()
-        first = _get_event_link_probe(job)
-
-        with CaptureQueriesContext(connections[router.db_for_read(EventAttachment)]) as queries:
-            second = _get_event_link_probe(job)
-
-        assert first is not None
-        assert second is first
-        assert link_probe_table_statements(queries) == []
-
-    @override_options(CONSOLIDATED_LINK_PROBE)
-    def test_failed_probe_is_not_stored(self) -> None:
-        job = self.job()
-        found = EventLinkProbe(
-            has_pending_attachments=False,
-            has_attachments_to_relink=False,
-            has_user_reports_to_link=True,
-        )
-
-        with patch(
-            "sentry.tasks.post_process._probe_event_links",
-            side_effect=[OperationalError("nope"), found],
-        ):
-            with pytest.raises(OperationalError):
-                _get_event_link_probe(job)
-            assert "event_link_probe" not in job
-
-            assert _get_event_link_probe(job) is found
 
     def test_event_is_not_probed_while_the_rollout_is_off(self) -> None:
-        job = self.job()
+        job: PostProcessJob = {"event": self.group_event, "is_reprocessed": False}
 
-        with CaptureQueriesContext(connections[router.db_for_read(EventAttachment)]) as queries:
+        with CaptureQueriesContext(connections[router.db_for_write(EventAttachment)]) as queries:
             assert _get_event_link_probe(job) is None
-
-        assert job["event_link_probe"] is None
-        assert link_probe_table_statements(queries) == []
-
-    @override_options(CONSOLIDATED_LINK_PROBE)
-    def test_reprocessed_event_is_not_probed(self) -> None:
-        with CaptureQueriesContext(connections[router.db_for_read(EventAttachment)]) as queries:
-            assert _get_event_link_probe(self.job(is_reprocessed=True)) is None
 
         assert link_probe_table_statements(queries) == []
 
     def test_tables_in_different_databases_are_not_probed(self) -> None:
         with (
-            CaptureQueriesContext(connections[router.db_for_read(EventAttachment)]) as queries,
+            CaptureQueriesContext(connections[router.db_for_write(EventAttachment)]) as queries,
             patch(
-                "sentry.tasks.post_process.router.db_for_read",
+                "sentry.tasks.post_process.router.db_for_write",
                 side_effect=lambda model, **hints: model._meta.db_table,
             ),
         ):
@@ -2777,16 +2631,8 @@ class UserReportEventLinkTestMixin(BasePostProcessGroupMixin):
         assert len(mock_produce_occurrence_to_kafka.mock_calls) == 0
 
     @override_options(CONSOLIDATED_LINK_PROBE)
-    def test_user_report_gets_environment_with_link_probe(self) -> None:
-        self.test_user_report_gets_environment()
-
-    @override_options(CONSOLIDATED_LINK_PROBE)
     def test_user_report_shims_to_feedback_with_link_probe(self) -> None:
         self.test_user_report_shims_to_feedback()
-
-    @override_options(CONSOLIDATED_LINK_PROBE)
-    def test_user_reports_no_shim_if_group_exists_on_report_with_link_probe(self) -> None:
-        self.test_user_reports_no_shim_if_group_exists_on_report()
 
     @override_options(
         {
@@ -2885,14 +2731,6 @@ class UpdateExistingAttachmentsTestMixin(BasePostProcessGroupMixin):
         self.test_links_attachment_ingested_before_event()
 
     @override_options(CONSOLIDATED_LINK_PROBE)
-    def test_relinks_attachment_from_a_different_group_with_link_probe(self) -> None:
-        self.test_relinks_attachment_from_a_different_group()
-
-    @override_options(CONSOLIDATED_LINK_PROBE)
-    def test_leaves_other_events_attachments_alone_with_link_probe(self) -> None:
-        self.test_leaves_other_events_attachments_alone()
-
-    @override_options(CONSOLIDATED_LINK_PROBE)
     def test_promotes_pending_attachment_with_link_probe(self) -> None:
         event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
         # Parked after the event was saved, so only post-processing can promote it.
@@ -2909,21 +2747,58 @@ class UpdateExistingAttachmentsTestMixin(BasePostProcessGroupMixin):
         assert not PendingEventAttachment.objects.filter(id=pending.id).exists()
 
     @override_options(CONSOLIDATED_LINK_PROBE)
-    def test_skips_promotion_without_pending_attachment_with_link_probe(self) -> None:
+    def test_attempts_promotion_after_relink_with_link_probe(self) -> None:
+        """
+        The probe looks for pending attachments before the relink runs. An attachment
+        parked while the relink runs would be missed, so promotion is attempted again
+        after a relink even though the probe found nothing pending.
+        """
         event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+        self.create_attachment(event.event_id, group_id=None)
 
         with patch("sentry.event_manager.save_pending_attachments") as promote:
             self.call_post_process_group(
                 is_new=True, is_regression=False, is_new_group_environment=True, event=event
             )
 
-        promote.assert_not_called()
+        promote.assert_called_once_with(
+            project=event.project,
+            event_id=event.event_id,
+            group_id=event.group_id,
+            source="post_process",
+        )
+
+    @override_options(CONSOLIDATED_LINK_PROBE)
+    def test_links_attachment_when_user_reports_cannot_be_read_with_link_probe(self) -> None:
+        """
+        The probe reads the user report table too. A failure there must not stop an
+        attachment from being linked.
+        """
+        event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+        attachment = self.create_attachment(event.event_id, group_id=None)
+
+        def fail_user_report_statements(
+            execute: Any, sql: str, params: Any, many: bool, context: Any
+        ) -> Any:
+            if "sentry_userreport" in sql:
+                raise OperationalError("canceling statement due to lock timeout")
+            return execute(sql, params, many, context)
+
+        with connections[router.db_for_write(EventAttachment)].execute_wrapper(
+            fail_user_report_statements
+        ):
+            self.call_post_process_group(
+                is_new=True, is_regression=False, is_new_group_environment=True, event=event
+            )
+
+        attachment.refresh_from_db()
+        assert attachment.group_id == event.group_id
 
     @override_options(CONSOLIDATED_LINK_PROBE)
     def test_event_without_links_costs_one_statement_with_link_probe(self) -> None:
         event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
 
-        with CaptureQueriesContext(connections[router.db_for_read(EventAttachment)]) as queries:
+        with CaptureQueriesContext(connections[router.db_for_write(EventAttachment)]) as queries:
             self.call_post_process_group(
                 is_new=True, is_regression=False, is_new_group_environment=True, event=event
             )
