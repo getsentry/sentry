@@ -177,6 +177,9 @@ class LaunchDarklyProvider:
         previous = result.get("previousVersion") or {}
         if flag_description := current.get("description") or previous.get("description"):
             tags["flag_description"] = flag_description
+        # Opaque validated blob for the producer (kind / targeting / etc.).
+        if current:
+            tags["current_version"] = current
         if comment := (result.get("comment") or "").strip():
             tags["comment"] = comment
 
@@ -334,7 +337,8 @@ class UnleashItemSerializer(serializers.Serializer):
     )
     project = serializers.CharField(required=False, allow_null=True)
     environment = serializers.CharField(required=False, allow_null=True)
-    # Present on some Unleash feature payloads; optional so older webhooks still validate.
+    # Official Unleash events put purpose text on data.description; top-level is rare.
+    data = serializers.DictField(required=False, allow_null=True)
     description = serializers.CharField(allow_blank=True, required=False, allow_null=True)
 
 
@@ -382,8 +386,9 @@ class UnleashProvider:
         if result.get("environment"):
             tags["environment"] = result.get("environment")
 
-        # Optional purpose text when present on the webhook payload.
-        flag_description = (result.get("description") or "").strip()
+        # Purpose text: prefer top-level description, else Unleash data.description.
+        data = result.get("data") if isinstance(result.get("data"), dict) else {}
+        flag_description = (result.get("description") or data.get("description") or "").strip()
         if flag_description:
             tags["flag_description"] = flag_description
 
