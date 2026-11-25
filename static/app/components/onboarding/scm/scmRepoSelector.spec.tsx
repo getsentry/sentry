@@ -378,7 +378,7 @@ describe('ScmRepoSelector', () => {
     );
   });
 
-  it('clears the selected repo', async () => {
+  it('clears the selected repo using the keyboard', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/${mockIntegration.id}/repos/`,
       body: {repos: []},
@@ -403,7 +403,10 @@ describe('ScmRepoSelector', () => {
 
     expect(screen.getByText('getsentry/old-repo')).toBeInTheDocument();
 
-    (await screen.findByRole('button', {name: 'Clear choices'})).focus();
+    await userEvent.tab();
+    expect(screen.getByRole('combobox', {name: 'Search repositories'})).toHaveFocus();
+    await userEvent.tab();
+    expect(screen.getByRole('button', {name: 'Clear choices'})).toHaveFocus();
     await userEvent.keyboard('{Enter}');
 
     await waitFor(() => expect(onRepositoryChange).toHaveBeenCalledWith(undefined));

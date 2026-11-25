@@ -640,7 +640,6 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
             variant="transparent"
             aria-label={t('Clear choices')}
             icon={<IconClose css={selectStyles.clearIcon} />}
-            tabIndex={-1}
             onMouseDown={event => event.preventDefault()}
             onClick={clear}
           />
