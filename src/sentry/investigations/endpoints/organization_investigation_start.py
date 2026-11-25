@@ -10,11 +10,9 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
-from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.apidocs import constants
 from sentry.apidocs.parameters import GlobalParams
@@ -82,10 +80,6 @@ class OrganizationInvestigationStartEndpoint(OrganizationNotebooksBaseEndpoint):
         """
         require_authenticated_user(request)
         use_workflow = request.query_params.get("version") == "2"
-        if use_workflow and not features.has(
-            "organizations:investigations-v2", organization, actor=request.user
-        ):
-            raise ResourceDoesNotExist
         validator = InvestigationStartValidator(data=request.data)
         if not validator.is_valid():
             return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)

@@ -1,4 +1,3 @@
-from typing import Any
 from uuid import UUID
 
 from django.db import router, transaction
@@ -8,7 +7,6 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -65,16 +63,6 @@ class WorkflowCommandRequest(serializers.Serializer):
 @extend_schema(tags=["Investigations"], parameters=[GlobalParams.ORG_ID_OR_SLUG])
 class WorkflowEndpoint(OrganizationNotebooksBaseEndpoint):
     requires_user = True
-
-    def convert_args(
-        self, request: Request, *args: Any, **kwargs: Any
-    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
-        args, kwargs = super().convert_args(request, *args, **kwargs)
-        if not features.has(
-            "organizations:investigations-v2", kwargs["organization"], actor=request.user
-        ):
-            raise ResourceDoesNotExist
-        return args, kwargs
 
 
 @cell_silo_endpoint
