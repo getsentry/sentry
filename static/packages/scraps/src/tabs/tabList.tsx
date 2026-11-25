@@ -80,19 +80,46 @@ const RESERVED_OVERFLOW_TRIGGER_WIDTH = 48;
  */
 const SUBPIXEL_TOLERANCE = 0.5;
 
-interface TabOverflow {
-  /**
-   * Keys of the tabs that don't fit, as a contiguous suffix.
-   */
-  keys: Array<string | number>;
+interface TabFit {
   /**
    * Distance (px) from the start of the list to where the overflow trigger
    * goes: right after the last visible tab.
    */
   triggerOffset: number;
+  /**
+   * Number of leading tabs that fit. The rest overflow.
+   */
+  visibleCount: number;
 }
 
-const NO_OVERFLOW: TabOverflow = {keys: [], triggerOffset: 0};
+/**
+ * Fits tabs of the given widths into the available space, reserving room for
+ * the overflow trigger only when some tabs don't fit. The first tab is always
+ * kept so the tab bar never collapses to only the overflow trigger.
+ */
+function fitTabs(widths: number[], gap: number, available: number): TabFit {
+  const fullWidth =
+    widths.reduce((sum, width) => sum + width, 0) + gap * (widths.length - 1);
+  if (fullWidth <= available + SUBPIXEL_TOLERANCE) {
+    return {visibleCount: widths.length, triggerOffset: 0};
+  }
+
+  const [firstWidth = 0, ...restWidths] = widths;
+  const budget = available - RESERVED_OVERFLOW_TRIGGER_WIDTH;
+  let used = firstWidth;
+  let visibleCount = 1;
+  for (const width of restWidths) {
+    if (used + gap + width > budget) {
+      break;
+    }
+    used += gap + width;
+    visibleCount++;
+  }
+
+  // The first tab can exceed the budget on its own. Never place the trigger
+  // past the right edge of the available space.
+  return {visibleCount, triggerOffset: Math.max(0, Math.min(used + gap, budget))};
+}
 
 /**
  * Measures the tab list against the space available in its container and
@@ -127,12 +154,18 @@ function useOverflowTabs({
   tabItemsRef: RefObject<Record<string | number, HTMLLIElement | null>>;
   tabListRef: RefObject<HTMLUListElement | null>;
 }) {
-  const [overflow, setOverflow] = useState<TabOverflow>(NO_OVERFLOW);
+  const [fit, setFit] = useState<TabFit | null>(null);
 
-  // Measures the list against the available space and updates the overflow set.
+  // Tabs that participate in the layout, in render (visual) order. Tabs with
+  // the `hidden` prop render with `display: none` and take up no space.
+  const layoutKeys: Array<string | number> = tabItems
+    .filter(item => !item.hidden)
+    .map(item => item.key);
+
+  // Measures the list against the available space and updates the fit.
   const recompute = useEffectEvent(() => {
     if (disabled) {
-      setOverflow(prev => (prev.keys.length === 0 ? prev : NO_OVERFLOW));
+      setFit(null);
       return;
     }
 
@@ -142,68 +175,24 @@ function useOverflowTabs({
       return;
     }
 
-    const elements = tabItemsRef.current ?? {};
-    const gap = parseFloat(getComputedStyle(tabList).columnGap) || 0;
-
-    // Tabs that participate in the layout, in render (visual) order. Tabs with
-    // the `hidden` prop render with `display: none` and take up no space.
-    const keys = tabItems.filter(item => !item.hidden).map(item => item.key);
-
     // Overflowing tabs are only visually hidden (see `Tab`), so every tab still
     // measures its full width.
-    const tabWidths = new Map(
-      keys.map(key => [key, elements[key]?.getBoundingClientRect().width ?? 0])
+    const widths = layoutKeys.map(
+      key => tabItemsRef.current[key]?.getBoundingClientRect().width ?? 0
     );
-
-    const available = outerWrap.getBoundingClientRect().width;
-
-    // Width required to render every tab, without reserving the trigger.
-    const fullWidth = keys.reduce(
-      (sum: number, key, index) =>
-        sum + (tabWidths.get(key) ?? 0) + (index === 0 ? 0 : gap),
-      0
+    const next = fitTabs(
+      widths,
+      parseFloat(getComputedStyle(tabList).columnGap) || 0,
+      outerWrap.getBoundingClientRect().width
     );
-
-    let nextOverflow: TabOverflow;
-    if (fullWidth <= available + SUBPIXEL_TOLERANCE) {
-      nextOverflow = NO_OVERFLOW;
-    } else {
-      // Overflow is needed, so leave room for the trigger button.
-      const budget = available - RESERVED_OVERFLOW_TRIGGER_WIDTH;
-      const overflowKeys: Array<string | number> = [];
-      let used = 0;
-      let isOverflowing = false;
-      keys.forEach((key, index) => {
-        if (isOverflowing) {
-          overflowKeys.push(key);
-          return;
-        }
-        const nextUsed = used + (tabWidths.get(key) ?? 0) + (index === 0 ? 0 : gap);
-        // Always keep the first tab visible so the tab bar never collapses to
-        // only the overflow trigger.
-        if (index === 0 || nextUsed <= budget) {
-          used = nextUsed;
-        } else {
-          isOverflowing = true;
-          overflowKeys.push(key);
-        }
-      });
-      // The first tab is always kept, so it can exceed the budget on its own.
-      // Never place the trigger past the right edge of the available space.
-      nextOverflow = {
-        keys: overflowKeys,
-        triggerOffset: Math.max(0, Math.min(used + gap, budget)),
-      };
-    }
 
     // Bail out when the result is unchanged to avoid re-render churn (and any
     // observer feedback from hiding/showing tabs).
-    setOverflow(prev =>
-      prev.triggerOffset === nextOverflow.triggerOffset &&
-      prev.keys.length === nextOverflow.keys.length &&
-      prev.keys.every((key, index) => key === nextOverflow.keys[index])
+    setFit(prev =>
+      prev?.visibleCount === next.visibleCount &&
+      prev.triggerOffset === next.triggerOffset
         ? prev
-        : nextOverflow
+        : next
     );
   });
 
@@ -253,14 +242,9 @@ function useOverflowTabs({
     };
   }, [disabled, outerWrapRef, tabListRef]);
 
-  // Tabs with the `hidden` prop render with display: none; never surface them
-  // in the overflow menu.
-  const hiddenKeys = new Set<string | number>(
-    tabItems.filter(item => item.hidden).map(item => item.key)
-  );
   return {
-    overflowTabs: overflow.keys.filter(key => !hiddenKeys.has(key)),
-    triggerOffset: overflow.triggerOffset,
+    overflowTabs: fit ? layoutKeys.slice(fit.visibleCount) : [],
+    triggerOffset: fit?.triggerOffset ?? 0,
   };
 }
 
