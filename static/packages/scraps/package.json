@@ -1,16 +1,21 @@
 {
   "name": "@sentry/scraps",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/getsentry/sentry.git",
     "directory": "static/packages/scraps"
   },
   "files": [
-    "dist"
+    "dist",
+    "fonts.css",
+    "fonts/*.woff2",
+    "fonts/OFL.txt"
   ],
   "type": "module",
   "exports": {
+    "./fonts.css": "./fonts.css",
+    "./fonts/*.woff2": "./fonts/*.woff2",
     "./code/inlineCode": {
       "types": "./dist/code/inlineCode.d.ts",
       "import": "./dist/code/inlineCode.js"
@@ -403,7 +408,7 @@
     "@jest/environment": "30.5.1",
     "@jest/environment-jsdom-abstract": "30.5.1",
     "@rsbuild/plugin-react": "2.1.1",
-    "@rslib/core": "1.0.6",
+    "@rslib/core": "1.0.7",
     "@swc/core": "1.16.22",
     "@swc/jest": "0.2.39",
     "@tanstack/react-form": "1.28.6",

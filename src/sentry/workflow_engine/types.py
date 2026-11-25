@@ -412,7 +412,7 @@ class SnubaQueryDataSourceType(TypedDict, total=False):
     event_types: list[SnubaQueryEventType.EventType]
 
 
-class DetectorAPIOperation(StrEnum):
+class WorkflowEngineAPIOperation(StrEnum):
     LIST = "list"
     DISCOVER = "discover"
     GET = "GET"
@@ -429,12 +429,26 @@ class FeatureGate:
 APIGate: TypeAlias = bool | FeatureGate
 
 
-class DetectorSettings:
-    DEFAULT_API_AVAILABILITY: ClassVar[Mapping[DetectorAPIOperation, APIGate]] = MappingProxyType(
-        {operation: True for operation in DetectorAPIOperation}
+ALL_API_OPERATIONS_AVAILABLE: Mapping[WorkflowEngineAPIOperation, APIGate] = MappingProxyType(
+    {operation: True for operation in WorkflowEngineAPIOperation}
+)
+
+NO_API_OPERATIONS_AVAILABLE: Mapping[WorkflowEngineAPIOperation, APIGate] = MappingProxyType(
+    {operation: False for operation in WorkflowEngineAPIOperation}
+)
+
+
+class BaseWorkflowEngineSettings:
+    DEFAULT_API_AVAILABILITY: ClassVar[Mapping[WorkflowEngineAPIOperation, APIGate]] = (
+        ALL_API_OPERATIONS_AVAILABLE
     )
 
-    api_availability: ClassVar[Mapping[DetectorAPIOperation, APIGate]] = DEFAULT_API_AVAILABILITY
+    api_availability: ClassVar[Mapping[WorkflowEngineAPIOperation, APIGate]] = (
+        DEFAULT_API_AVAILABILITY
+    )
+
+
+class DetectorSettings(BaseWorkflowEngineSettings):
     handler: ClassVar[type[BaseDetectorHandler[Any, Any]] | None] = None
     validator: ClassVar[type[BaseDetectorTypeValidator] | None] = None
     # None preserves legacy detectors whose configuration is validated outside this model.

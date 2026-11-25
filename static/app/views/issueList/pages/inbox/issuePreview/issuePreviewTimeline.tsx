@@ -33,17 +33,15 @@ export function IssuePreviewTimeline({
     runState?.run_id,
     sections
   );
-  const pullRequestMatches = pullRequests.map(pullRequest => ({
-    pullRequest,
-    activity: group.activity.find(
-      activity =>
-        activity.type === GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST &&
-        activity.data.pullRequest?.externalUrl === pullRequest.externalUrl
-    ),
-  }));
-  const unmatchedPullRequests = pullRequestMatches
-    .filter(match => !match.activity)
-    .map(match => match.pullRequest);
+  // Pull requests referenced in the activity are shown in their timeline rows.
+  const unmatchedPullRequests = pullRequests.filter(
+    pullRequest =>
+      !group.activity.some(
+        activity =>
+          activity.type === GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST &&
+          activity.data.pullRequest?.externalUrl === pullRequest.externalUrl
+      )
+  );
   const timelineSteps = timelineItems.reduce((steps, {section}) => {
     if (section) {
       steps.add(section.step);
@@ -52,36 +50,21 @@ export function IssuePreviewTimeline({
   }, new Set<string>());
   const items = timelineItems.map((item): DisplayedActivityFeedItem => {
     const {section} = item;
-    const pullRequest = pullRequestMatches.find(
-      match => match.activity?.id === item.activity.id
-    )?.pullRequest;
-    if (item.type === 'collapsed_status_activities' || (!section && !pullRequest)) {
+    if (item.type === 'collapsed_status_activities' || !section) {
       return item;
     }
     return {
       ...item,
-      variant: section ? 'card' : undefined,
+      variant: 'card',
       body: (
-        <Stack paddingTop={section ? '0' : 'md'} gap="xl">
-          {section && (
-            <ErrorBoundary mini>
-              <IssuePreviewAutofixSection
-                autofix={autofix}
-                groupId={group.id}
-                section={section}
-                readOnly={state === 'configure'}
-              />
-            </ErrorBoundary>
-          )}
-          {pullRequest && (
-            <PullRequestList
-              ariaLabel={t('Linked pull requests')}
-              group={group}
-              pullRequests={[pullRequest]}
-              variant="default"
-            />
-          )}
-        </Stack>
+        <ErrorBoundary mini>
+          <IssuePreviewAutofixSection
+            autofix={autofix}
+            groupId={group.id}
+            section={section}
+            readOnly={state === 'configure'}
+          />
+        </ErrorBoundary>
       ),
     };
   });

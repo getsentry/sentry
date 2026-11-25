@@ -108,13 +108,20 @@ const sentryDjangoAppPath = path.join(import.meta.dirname, 'src/sentry/static/se
 const distPath = path.join(sentryDjangoAppPath, 'dist');
 const staticPrefix = path.join(import.meta.dirname, 'static');
 const legacyCssPath = path.join(staticPrefix, 'css');
+const legacyCssLayer = 'legacy-css';
+const scrapsSourceAlias = {
+  '@sentry/scraps': [
+    path.join(staticPrefix, 'packages', 'scraps', 'src'),
+    path.join(staticPrefix, 'app', 'components', 'core'),
+  ],
+};
 
 // sentry.css is emitted to entrypoints/ (entrypoints-hashed/ in SaaS), so the
 // fonts and images it references must step up to reach assets/. The layer
 // keeps these separate from the same files imported from JS, which need the
 // runtime public path.
 const legacyCssAssetRule: RuleSetRule = {
-  issuer: {and: [legacyCssPath, /\.css$/]},
+  issuerLayer: legacyCssLayer,
   layer: 'legacy-css-assets',
   generator: {publicPath: '../'},
 };
@@ -379,15 +386,20 @@ const appConfig: Configuration = {
           {loader: path.resolve(import.meta.dirname, './build-utils/peggy-loader.ts')},
         ],
       },
-      {test: /\.css$/, include: [legacyCssPath], type: 'css/auto'},
       {
         test: /\.css$/,
-        exclude: [legacyCssPath],
         type: 'css/auto',
-        // Inject a <style> tag, like style-loader did
-        parser: {exportType: 'style'},
-        // Resolve asset URLs against `import.meta.rspackPublicPath` (set in setupStatics)
-        generator: {runtimePublicPath: true},
+        oneOf: [
+          {include: legacyCssPath, layer: legacyCssLayer},
+          // Keep package stylesheets imported from sentry.css in the CSS entrypoint.
+          {issuerLayer: legacyCssLayer},
+          {
+            // Inject a <style> tag, like style-loader did
+            parser: {exportType: 'style'},
+            // Resolve asset URLs against `import.meta.rspackPublicPath` (set in setupStatics)
+            generator: {runtimePublicPath: true},
+          },
+        ],
       },
       {
         // Always emit fonts as files. Inlining them as data URLs puts every
@@ -478,13 +490,6 @@ const appConfig: Configuration = {
     alias: {
       'sentry-images': path.join(staticPrefix, 'images'),
       'sentry-logos': path.join(sentryDjangoAppPath, 'images', 'logos'),
-      'sentry-fonts': path.join(staticPrefix, 'fonts'),
-
-      '@sentry/scraps': [
-        path.join(staticPrefix, 'packages', 'scraps', 'src'),
-        path.join(staticPrefix, 'app', 'components', 'core'),
-      ],
-
       'getsentry-images': path.join(staticPrefix, 'images'),
       'getsentry-test': path.join(import.meta.dirname, 'tests', 'js', 'getsentry-test'),
 
@@ -499,6 +504,7 @@ const appConfig: Configuration = {
       ),
     },
 
+    byDependency: {esm: {alias: scrapsSourceAlias}, commonjs: {alias: scrapsSourceAlias}},
     fallback: {
       vm: false,
       stream: false,

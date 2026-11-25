@@ -4,6 +4,7 @@ import {stripAnnotations} from '@sentry/scraps/markdown/annotation';
 import {
   EMPTY_TEXT_CONTENT,
   extractAssistantOutput,
+  getMessageRoles,
   normalizeToMessages,
 } from 'sentry/views/insights/pages/agents/utils/aiMessageNormalizer';
 import {
@@ -1119,10 +1120,12 @@ export function parseSystemPrompt(node: AITraceSpanNode): string | null {
  * The system prompt of the conversation's first LLM call or agent span that
  * has one. Later calls (follow-up turns, sub-agents) usually repeat it or set
  * up a different agent, so only the first is shown, at the top of the
- * transcript.
+ * transcript. Returns the span it came from too, so the row can select it.
  */
-export function getConversationSystemPrompt(nodes: AITraceSpanNode[]): string | null {
-  let firstPrompt: string | null = null;
+export function getConversationSystemPrompt(
+  nodes: AITraceSpanNode[]
+): {node: AITraceSpanNode; prompt: string} | null {
+  let first: {node: AITraceSpanNode; prompt: string} | null = null;
   let firstStart = Infinity;
   // Agent spans count too: some SDKs send the prompt, as messages or as
   // `gen_ai.system_instructions`, only on the agent span.
@@ -1137,11 +1140,11 @@ export function getConversationSystemPrompt(nodes: AITraceSpanNode[]): string | 
     }
     const prompt = blankToNull(parseSystemPrompt(node));
     if (prompt) {
-      firstPrompt = prompt;
+      first = {node, prompt};
       firstStart = start;
     }
   }
-  return firstPrompt;
+  return first;
 }
 
 /**
@@ -1180,17 +1183,19 @@ export function getInputMessageStats(node: AITraceSpanNode): InputMessageStats {
     return {totalMessageCount: 0, userMessageCount: 0};
   }
 
-  const {messages} = normalizeToMessages(raw, {defaultRole: 'user'});
-  if (!messages) {
-    return {totalMessageCount: 0, userMessageCount: 0};
-  }
   // System prompts are not conversation history; exclude them so a
   // non-cumulative SDK that always prepends a system message is still
-  // recognised as single-message (non-cumulative) input.
-  const nonSystem = messages.filter(m => m.role !== 'system');
+  // recognised as single-message (non-cumulative) input. Messages without
+  // text, like an assistant's tool requests, still count as history.
+  const historyRoles = getMessageRoles(raw, {defaultRole: 'user'}).filter(
+    role => role !== 'system'
+  );
+  // Only user messages with text count as user turns, so tool results sent
+  // back in user messages don't pass for a new question.
+  const {messages} = normalizeToMessages(raw, {defaultRole: 'user'});
   return {
-    totalMessageCount: nonSystem.length,
-    userMessageCount: nonSystem.filter(m => m.role === 'user').length,
+    totalMessageCount: historyRoles.length,
+    userMessageCount: messages?.filter(m => m.role === 'user').length ?? 0,
   };
 }
 

@@ -87,6 +87,7 @@ class RunPayload(TypedDict):
     codeChanges: list[CodeChangeFilePayload]
     issue: IssuePayload
     status: str | None
+    isSingleRun: bool
 
 
 class OverviewResponse(TypedDict):
