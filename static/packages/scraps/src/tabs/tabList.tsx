@@ -188,7 +188,12 @@ function useOverflowTabs({
           overflowKeys.push(key);
         }
       });
-      nextOverflow = {keys: overflowKeys, triggerOffset: used + gap};
+      // The first tab is always kept, so it can exceed the budget on its own.
+      // Never place the trigger past the right edge of the available space.
+      nextOverflow = {
+        keys: overflowKeys,
+        triggerOffset: Math.max(0, Math.min(used + gap, budget)),
+      };
     }
 
     // Bail out when the result is unchanged to avoid re-render churn (and any
