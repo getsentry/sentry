@@ -1,9 +1,13 @@
-"""Shared data for aggregate series and change episodes."""
+"""Shared data for aggregate series and change episodes.
+
+Timestamps are timezone-aware UTC. Series keys and change events are persisted in every
+organization's evaluator checkpoint, so keep them small.
+"""
 
 from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
-from typing import Any, Literal, NamedTuple, NewType, TypedDict
+from typing import Any, Literal, NamedTuple, NewType
 
 
 class Signal(StrEnum):
@@ -27,24 +31,26 @@ class Signal(StrEnum):
 
 
 class Metric(StrEnum):
-    """The aggregate of a series. Collected values are also the Snuba aggregate names."""
+    """The aggregate of a series. Values are short persisted identifiers; collectors map
+    them to query aggregates."""
 
-    COUNT = "count()"
-    COUNT_SAMPLE = "count_sample()"  # Sampled spans behind an extrapolated aggregate.
-    COUNT_UNIQUE_USER = "count_unique(user)"
-    P95_DURATION = "p95(span.duration)"
-    FAILURE_RATE = "failure_rate()"  # A share of the slice's sampled spans.
+    COUNT = "count"
+    COUNT_SAMPLE = "count_sample"  # Sampled spans behind an extrapolated aggregate.
+    COUNT_UNIQUE_USER = "users"
+    P95_DURATION = "p95"
+    FAILURE_RATE = "failure_rate"  # A share of the slice's sampled spans.
     # Derived rates (see evaluation.series).
-    ERRORS_PER_REQUEST = "errors/requests"
-    FAILED_PER_REQUEST = "failed_requests/requests"
+    ERRORS_PER_REQUEST = "errors/req"
+    FAILED_PER_REQUEST = "failed/req"
 
     @property
     def is_count(self) -> bool:
         return self in (Metric.COUNT, Metric.COUNT_SAMPLE, Metric.COUNT_UNIQUE_USER)
 
 
-@dataclass(frozen=True, order=True)
-class SeriesKey:
+class SeriesKey(NamedTuple):
+    """Identity of one series. A tuple, so checkpoints store it as a compact array."""
+
     project_id: int  # Scoped to the current organization.
     env: str  # Empty means no environment.
     signal: Signal
@@ -60,7 +66,7 @@ class SeriesKey:
 class SeriesRow(NamedTuple):
     """One collected bucket of a series."""
 
-    ts: datetime  # Bucket start (minute or hour), naive UTC.
+    ts: datetime  # Bucket start (minute or hour), UTC.
     signal: Signal
     metric: Metric
     project_id: int
@@ -116,25 +122,6 @@ class EpisodeKey(NamedTuple):
     start: datetime
 
 
-class NoveltyEvidence(TypedDict, total=False):
-    """How an episode was judged against its history, and why it was later promoted."""
-
-    unusual: bool
-    size: float
-    return_days: float
-    similar: int
-    history_days: float
-    pooled_rate: float
-    kind: str
-    p_normal: float
-    lasting_min: int
-    harm: bool
-    vouched: bool
-    opened_on_escalation: bool
-    opened_on_duration: bool
-    unusual_since: datetime
-
-
 class ChangeEvent:
     """One change episode on one series.
 
@@ -142,6 +129,9 @@ class ChangeEvent:
     detectors, correlator, novelty model and admission policy hold and update the same
     instance, and the checkpoint stores each instance once and restores shared references
     to it. Use `is` for identity; `==` compares values, like the dataclass it replaced.
+
+    Checkpoints store every field positionally, so any change to the fields must bump
+    the checkpoint version. Add a field only when a consumer reads it.
     """
 
     __slots__ = (
@@ -151,12 +141,11 @@ class ChangeEvent:
         "actual",
         "expected",
         "confidence",
-        "evidence",
         "detected_at",
         "ended_at",
         "peak_ratio",
         "open_ratio",
-        "novelty",
+        "unusual_since",
         "escalations",
         "recent_ratio",
         "sustained_at",
@@ -171,12 +160,12 @@ class ChangeEvent:
         actual: float,
         expected: float,
         confidence: float,
-        evidence: list[str] | None = None,
         detected_at: datetime | None = None,
         ended_at: datetime | None = None,
         peak_ratio: float = 1.0,
         open_ratio: float = 1.0,
-        novelty: NoveltyEvidence | None = None,
+        # When a routine episode became unusual by escalating; it opened then.
+        unusual_since: datetime | None = None,
         escalations: list[tuple[datetime, float]] | None = None,
         recent_ratio: float | None = None,
         sustained_at: datetime | None = None,
@@ -188,12 +177,11 @@ class ChangeEvent:
         self.actual = actual
         self.expected = expected
         self.confidence = confidence
-        self.evidence = evidence if evidence is not None else []
         self.detected_at = detected_at
         self.ended_at = ended_at
         self.peak_ratio = peak_ratio
         self.open_ratio = open_ratio
-        self.novelty = novelty
+        self.unusual_since = unusual_since
         self.escalations = escalations if escalations is not None else []
         self.recent_ratio = recent_ratio
         self.sustained_at = sustained_at

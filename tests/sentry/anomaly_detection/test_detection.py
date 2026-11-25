@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 from sentry.anomaly_detection.contracts import (
     Metric,
@@ -8,7 +8,7 @@ from sentry.anomaly_detection.contracts import (
 )
 from sentry.anomaly_detection.evaluation.series import build
 
-START = datetime(2024, 1, 8, 12)
+START = datetime(2024, 1, 8, 12, tzinfo=UTC)
 LATENCY = SeriesKey(1, "prod", Signal.OUTBOUND_DB, Metric.P95_DURATION, "catalog-db")
 
 
