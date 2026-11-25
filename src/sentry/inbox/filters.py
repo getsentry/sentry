@@ -5,6 +5,7 @@ from rest_framework import serializers
 
 from sentry.constants import ObjectStatus
 from sentry.inbox.registry import inbox_item_event_type_registry, inbox_item_type_registry
+from sentry.inbox.types import with_bigint_subject_pk
 from sentry.models.organization import Organization
 from sentry.notifications.models.inboxitem import InboxItem
 from sentry.notifications.models.inboxitemevent import InboxItemEvent
@@ -64,19 +65,20 @@ class InboxFilterSerializer(serializers.Serializer[InboxFilters]):
 
 
 def active_inbox_items(organization: Organization, user_id: int) -> QuerySet[InboxItem]:
-    return with_inbox_subjects(
+    return with_existing_subjects(
         InboxItem.objects.filter(
             organization=organization, user_id=user_id, status=ObjectStatus.ACTIVE
         )
     )
 
 
-def with_inbox_subjects(items: QuerySet[InboxItem]) -> QuerySet[InboxItem]:
-    existing_subject = Q(pk__in=[])
+def with_existing_subjects(items: QuerySet[InboxItem]) -> QuerySet[InboxItem]:
+    """Drop items whose subject type is unregistered or whose subject is missing from the
+    item's organization, so pages and counts only include items that can be serialized."""
+    has_subject = Q(pk__in=[])
     for item_type in inbox_item_type_registry.registrations.values():
-        items = item_type.join_subject(items)
-        existing_subject |= Q(**{f"{item_type.subject_match_alias}__isnull": False})
-    return items.filter(existing_subject).select_related("organization")
+        has_subject |= Q(item_type.subject_exists(), subject_type=item_type.subject_type)
+    return with_bigint_subject_pk(items).filter(has_subject)
 
 
 def filter_inbox_items(items: QuerySet[InboxItem], filters: InboxFilters) -> QuerySet[InboxItem]:

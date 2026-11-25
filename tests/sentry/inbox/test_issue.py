@@ -39,7 +39,7 @@ class IssueItemTypeTest(TestCase):
         assert ISSUE.get_subject_id(group) == str(group.id)
         assert ISSUE.get_organization_id(group) == self.organization.id
 
-    def test_join_subject(self) -> None:
+    def test_subjects(self) -> None:
         project = self.create_project(slug="test-project")
         first = self.create_group(project=project, short_id=1, data={"title": "First issue"})
         other = self.create_group(
@@ -50,22 +50,35 @@ class IssueItemTypeTest(TestCase):
         deleted_id = str(deleted.id)
         deleted.delete()
 
-        for subject_id in (str(first.id), str(other.id), deleted_id, "invalid"):
-            self.create_inbox_item(subject_id=subject_id)
-        items = active_inbox_items(self.organization, self.user.id)
-        sql, _ = items.query.sql_with_params()
-        assert sql.count('JOIN "sentry_groupedmessage"') == 1
-        assert 'FROM "sentry_groupedmessage"' not in sql
-        assert sql.count('JOIN "sentry_project"') == 1
         with self.assertNumQueries(1):
-            (item,) = items
-            assert ISSUE.build_subject(item) == IssueSubject(
+            subjects = ISSUE.get_subjects(
+                organization=self.organization,
+                subject_ids=[str(first.id), str(other.id), deleted_id, "invalid"],
+            )
+
+        assert subjects == {
+            str(first.id): IssueSubject(
                 id=first.id,
                 title="First issue",
                 short_id="TEST-PROJECT-1",
                 project_id=project.id,
                 project_slug="test-project",
-            )
+            ),
+        }
+
+    def test_subject_exists(self) -> None:
+        group = self.create_group(project=self.project)
+        other = self.create_group(
+            project=self.create_project(organization=self.create_organization())
+        )
+        deleted = self.create_group(project=self.project)
+        deleted_id = str(deleted.id)
+        deleted.delete()
+        item = self.create_inbox_item(subject_id=str(group.id))
+        for subject_id in (str(other.id), deleted_id, "invalid", f"0{group.id}"):
+            self.create_inbox_item(subject_id=subject_id)
+
+        assert list(active_inbox_items(self.organization, self.user.id)) == [item]
 
     def test_subject_serialize(self) -> None:
         subject = IssueSubject(

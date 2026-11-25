@@ -1,28 +1,11 @@
 from __future__ import annotations
 
-from typing import Any
-
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, cell_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-
-
-class _IssueJoinTarget(models.ForeignObject[Any, Any]):
-    """Query-only path to Group. The filtered join supplies the typed subject ID comparison."""
-
-    def contribute_to_class(
-        self, cls: type[models.Model], name: str, private_only: bool = False, **kwargs: Any
-    ) -> None:
-        super().contribute_to_class(cls, name, private_only=True, **kwargs)
-        # Only the scoped join should expose a Group on an inbox item.
-        setattr(cls, name, None)
-
-    def get_joining_fields(self, reverse_join: bool = False) -> tuple[()]:
-        # The default comparison would cast the group's indexed bigint PK to text.
-        return ()
 
 
 @cell_silo_model
@@ -43,17 +26,6 @@ class InboxItem(DefaultFieldsModel):
     # The type of the subject (e.g. "issue", "investigation") and its ID.
     subject_type = models.CharField(max_length=32)
     subject_id = models.CharField(max_length=64)
-    _issue_join = _IssueJoinTarget(
-        "sentry.Group",
-        models.DO_NOTHING,
-        from_fields=["subject_id"],
-        to_fields=["id"],
-        related_name="+",
-        null=True,
-        blank=True,
-        editable=False,
-        serialize=False,
-    )
 
     # Timestamp of the latest inbox item event.
     last_activity_at = models.DateTimeField()

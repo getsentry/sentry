@@ -110,7 +110,7 @@ class OrganizationInboxIndexEndpoint(OrganizationInboxEndpoint):
             raise ParseError({"detail": filters.errors})
         user = request.user
         items = active_inbox_items(organization, user.id)
-        items = filter_inbox_items(items, filters.validated_data)
+        items = filter_inbox_items(items, filters.validated_data).select_related("organization")
         return self.paginate(
             request,
             queryset=items,
@@ -119,7 +119,11 @@ class OrganizationInboxIndexEndpoint(OrganizationInboxEndpoint):
             cursor_cls=StringCursor,
             default_per_page=25,
             max_per_page=100,
-            on_results=lambda page: serialize(page, user, InboxItemSerializer()),
+            # The query drops items with missing subjects. A subject deleted between the
+            # query and serialization still serializes to None, so drop it here too.
+            on_results=lambda page: [
+                item for item in serialize(page, user, InboxItemSerializer()) if item is not None
+            ],
         )
 
     @extend_schema(

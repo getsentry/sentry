@@ -1,3 +1,4 @@
+from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from typing import Any
 
@@ -6,7 +7,6 @@ from django.db.models import Count, F, Q, prefetch_related_objects
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.inbox.event_data import InboxEventData
-from sentry.inbox.filters import with_inbox_subjects
 from sentry.inbox.registry import inbox_item_event_type_registry, inbox_item_type_registry
 from sentry.inbox.response_types import (
     InboxActorResponse,
@@ -14,6 +14,7 @@ from sentry.inbox.response_types import (
     InboxItemResponse,
 )
 from sentry.inbox.types import InboxSubject
+from sentry.models.organization import Organization
 from sentry.notifications.models.inboxitem import InboxItem
 from sentry.notifications.models.inboxitemevent import InboxActorType, InboxItemEvent
 from sentry.users.services.user.serial import serialize_generic_user
@@ -72,27 +73,23 @@ class InboxItemSerializer(Serializer[InboxItemResponse | None]):
     def get_attrs(
         self, item_list: Sequence[InboxItem], user: Any, **kwargs: Any
     ) -> dict[InboxItem, dict[str, Any]]:
-        joined_items = []
-        unjoined_items = []
+        grouped_items: dict[tuple[int, str], list[InboxItem]] = defaultdict(list)
         for item in item_list:
-            item_type = inbox_item_type_registry.registrations.get(item.subject_type)
+            grouped_items[item.organization_id, item.subject_type].append(item)
+        resolved: dict[InboxItem, tuple[Organization, InboxSubject]] = {}
+        for (_, subject_type), items in grouped_items.items():
+            item_type = inbox_item_type_registry.registrations.get(subject_type)
             if item_type is None:
                 continue
-            if getattr(item, item_type.subject_match_alias, None) is None:
-                unjoined_items.append(item)
-            else:
-                joined_items.append(item)
-        if unjoined_items:
-            joined_items.extend(
-                with_inbox_subjects(
-                    InboxItem.objects.filter(
-                        organization_id__in={item.organization_id for item in unjoined_items},
-                        id__in=[item.id for item in unjoined_items],
-                    )
-                )
+            organization = items[0].organization
+            subjects = item_type.get_subjects(
+                organization=organization, subject_ids=[item.subject_id for item in items]
             )
+            for item in items:
+                if (subject := subjects.get(item.subject_id)) is not None:
+                    resolved[item] = (organization, subject)
 
-        events = InboxItemEvent.objects.filter(inbox_item_id__in=[item.id for item in joined_items])
+        events = InboxItemEvent.objects.filter(inbox_item_id__in=[item.id for item in resolved])
         stats = {
             row["inbox_item_id"]: row
             for row in events.values("inbox_item_id").annotate(
@@ -118,13 +115,12 @@ class InboxItemSerializer(Serializer[InboxItemResponse | None]):
         }
         latest_by_item = {event.inbox_item_id: event for event in latest_events}
         attrs: dict[InboxItem, dict[str, Any]] = {}
-        for item in joined_items:
-            item_type = inbox_item_type_registry.get(item.subject_type)
+        for item, (organization, subject) in resolved.items():
             event = latest_by_item[item.id]
             attrs[item] = {
-                "subject": item_type.build_subject(item),
+                "subject": subject,
                 "url": inbox_item_event_type_registry.get(event.type).get_event_url(
-                    organization=item.organization, event=event
+                    organization=organization, event=event
                 ),
                 "latest_event": latest[item.id],
                 **stats[item.id],

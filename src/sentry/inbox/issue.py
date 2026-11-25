@@ -2,7 +2,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from urllib.parse import urlsplit
 
-from django.db.models import F, FilteredRelation, Q, QuerySet
+from django.db.models import Exists, OuterRef
 
 from sentry.inbox.event_data import (
     InboxEventData,
@@ -12,17 +12,10 @@ from sentry.inbox.event_data import (
 )
 from sentry.inbox.registry import inbox_item_event_type_registry, inbox_item_type_registry
 from sentry.inbox.response_types import InboxIssueSubjectResponse
-from sentry.inbox.types import (
-    InboxEventSummary,
-    InboxEventType,
-    InboxItemType,
-    InboxSubject,
-    with_bigint_subject_pk,
-)
+from sentry.inbox.types import InboxEventSummary, InboxEventType, InboxItemType, InboxSubject
 from sentry.models.activity import ActivityIntegration
 from sentry.models.group import Group
 from sentry.models.organization import Organization
-from sentry.notifications.models.inboxitem import InboxItem
 from sentry.notifications.types import NotificationSettingEnum
 
 
@@ -46,7 +39,6 @@ class IssueSubject(InboxSubject):
 
 class IssueItemType(InboxItemType[Group]):
     subject_type = "issue"
-    subject_match_alias = "issue_project"
 
     def get_subject_id(self, subject: Group) -> str:
         return str(subject.id)
@@ -54,37 +46,31 @@ class IssueItemType(InboxItemType[Group]):
     def get_organization_id(self, subject: Group) -> int:
         return subject.project.organization_id
 
-    def join_subject(self, items: QuerySet[InboxItem]) -> QuerySet[InboxItem]:
-        return (
-            with_bigint_subject_pk(items)
-            .alias(
-                issue=FilteredRelation(
-                    "_issue_join",
-                    condition=Q(
-                        subject_type=self.subject_type, _issue_join__id=F("bigint_subject_pk")
-                    ),
-                ),
+    def subject_exists(self) -> Exists:
+        return Exists(
+            Group.objects.filter(
+                id=OuterRef("bigint_subject_pk"),
+                project__organization_id=OuterRef("organization_id"),
             )
-            .alias(
-                issue_project=FilteredRelation(
-                    "issue__project",
-                    condition=Q(issue__project__organization_id=F("organization_id")),
-                ),
-            )
-            .select_related(self.subject_type, self.subject_match_alias)
         )
 
-    def build_subject(self, item: InboxItem) -> IssueSubject:
-        subject: Group = getattr(item, self.subject_type)
-        # qualified_short_id reads group.project. Reuse the project selected by the scoped join.
-        subject.project = getattr(item, self.subject_match_alias)
-        return IssueSubject(
-            id=subject.id,
-            title=subject.title,
-            short_id=subject.qualified_short_id or "",
-            project_id=subject.project_id,
-            project_slug=subject.project.slug,
-        )
+    def get_subjects(
+        self, *, organization: Organization, subject_ids: Sequence[str]
+    ) -> dict[str, IssueSubject]:
+        ids = [int(subject_id) for subject_id in subject_ids if subject_id.isdecimal()]
+        groups = Group.objects.filter(
+            project__organization_id=organization.id, id__in=ids
+        ).select_related("project")
+        return {
+            str(group.id): IssueSubject(
+                id=group.id,
+                title=group.title,
+                short_id=group.qualified_short_id or "",
+                project_id=group.project_id,
+                project_slug=group.project.slug,
+            )
+            for group in groups
+        }
 
     def get_url(self, *, organization: Organization, subject_id: str) -> str:
         return organization.absolute_url(

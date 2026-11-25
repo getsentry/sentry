@@ -26,6 +26,7 @@ from sentry.inbox.notebook import (
     NotebookCompletedData,
     NotebookMentionedData,
     NotebookParticipantAddedData,
+    NotebookSubject,
 )
 from sentry.inbox.registry import inbox_item_event_type_registry, inbox_item_type_registry
 from sentry.inbox.response_types import InboxItemEventResponse
@@ -94,47 +95,6 @@ def test_latest_event_url(
 
 
 class InboxItemSerializerTest(TestCase):
-    def test_serialize_subjects_joined_by_the_list_query(self) -> None:
-        group = self.create_group(project=self.project, data={"title": "Original issue"})
-        notebook = self.create_notebook(organization=self.organization, title="Original notebook")
-        issue_item = self.create_inbox_item(subject_id=str(group.id))
-        notebook_item = self.create_inbox_item(subject_type="notebook", subject_id=str(notebook.id))
-        self.create_inbox_item_event(
-            inbox_item=issue_item, type="issue.user_mentioned", data={"comment_id": 1}
-        )
-        self.create_inbox_item_event(inbox_item=notebook_item, type="notebook.participant_added")
-        expected_short_id = group.qualified_short_id
-
-        with self.assertNumQueries(3):
-            from_plain_items = serialize(
-                [issue_item, notebook_item], self.user, InboxItemSerializer()
-            )
-        with self.assertNumQueries(1):
-            page = list(active_inbox_items(self.organization, self.user.id).order_by("id"))
-        group.delete()
-        notebook.delete()
-
-        # Only the event aggregates and latest events are fetched at serialization time.
-        with self.assertNumQueries(2):
-            issue, investigation = serialize(page, self.user, InboxItemSerializer())
-        assert [issue, investigation] == from_plain_items
-        assert issue is not None and investigation is not None
-        assert issue["subject"] == {
-            "id": issue_item.subject_id,
-            "type": "issue",
-            "title": "Original issue",
-            "metadata": {
-                "shortId": expected_short_id,
-                "project": {"id": str(self.project.id), "slug": self.project.slug},
-            },
-        }
-        assert investigation["subject"] == {
-            "id": notebook_item.subject_id,
-            "type": "notebook",
-            "title": "Original notebook",
-            "metadata": {},
-        }
-
     def test_notebook_subjects(self) -> None:
         first = self.create_notebook(organization=self.organization, title="First notebook")
         archived = self.create_notebook(
@@ -152,20 +112,32 @@ class InboxItemSerializerTest(TestCase):
         assert inbox_item_type_registry.get("notebook") is NOTEBOOK
         assert NOTEBOOK.get_subject_id(first) == str(first.id)
         assert NOTEBOOK.get_organization_id(first) == self.organization.id
+        with self.assertNumQueries(1):
+            subjects = NOTEBOOK.get_subjects(
+                organization=self.organization,
+                subject_ids=[
+                    str(first.id),
+                    str(archived.id),
+                    str(other_org.id),
+                    deleted_id,
+                    "invalid",
+                ],
+            )
+        assert subjects == {
+            str(first.id): NotebookSubject(id=first.id, title="First notebook"),
+            str(archived.id): NotebookSubject(id=archived.id, title="Archived notebook"),
+        }
+
         items = [
             self.create_inbox_item(subject_type="notebook", subject_id=subject_id)
-            for subject_id in [
-                str(first.id),
-                str(archived.id),
-                str(other_org.id),
-                deleted_id,
-                "invalid",
-            ]
+            for subject_id in [str(first.id), str(archived.id), str(other_org.id), deleted_id]
         ]
         for item in items:
             self.create_inbox_item_event(
                 inbox_item=item, type="notebook.participant_added", data={}
             )
+        page = active_inbox_items(self.organization, self.user.id).order_by("id")
+        assert list(page) == items[:2]
 
         with self.assertNumQueries(3):
             results = serialize(items, self.user, InboxItemSerializer())
@@ -179,7 +151,7 @@ class InboxItemSerializerTest(TestCase):
                 "metadata": {},
             },
         ]
-        assert results[2:] == [None, None, None]
+        assert results[2:] == [None, None]
 
     def test_notebook_url_without_inbox_item(self) -> None:
         notebook = self.create_notebook(organization=self.organization, title="Notebook")
