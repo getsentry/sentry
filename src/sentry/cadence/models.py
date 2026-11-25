@@ -12,6 +12,8 @@ from sentry.db.models.base import DefaultFieldsModel
 class ScheduledTriggerType(models.TextChoices):
     # target_id is a SeerWorkflowConfig id.
     SEER_WORKFLOW = "seer_workflow"
+    # target_id is a workflow_engine Workflow id. See sentry.workflow_engine.schedules.
+    WORKFLOW = "workflow"
     # Only logs each firing, to validate scheduling without touching user data. target_id is
     # any id the caller chooses to tell schedules apart.
     LOG = "log"

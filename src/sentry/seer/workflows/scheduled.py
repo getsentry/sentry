@@ -1,5 +1,6 @@
 """
-The scheduled automation: its trigger and action, and the sentry.cadence task that runs it.
+The scheduled automation: its trigger and action, and the task that runs each firing of its
+backing workflow's schedule.
 
 Each firing records one run per scheduled time. Until the investigation platform runs
 custom prompts, a run's single execution succeeds immediately. No run history is created
@@ -8,42 +9,26 @@ while the execution flag is off.
 
 from __future__ import annotations
 
-import functools
 import logging
-from collections.abc import Collection, Mapping, Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from typing import Any, ClassVar, Literal, assert_never
 
 from django.db.models import QuerySet
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, ValidationError
 
 from sentry import features
-from sentry.cadence.api import (
-    CronSchedule,
-    Schedule,
-    ScheduledTriggerType,
-    TriggerFiring,
-    TriggerHandler,
-    TriggerTarget,
-    clear_schedule,
-    cron,
-    missing_targets,
-    register_trigger_type,
-    set_schedule,
-)
 from sentry.constants import ObjectStatus
 from sentry.models.project import Project
 from sentry.seer.models.workflow import (
     SeerSkill,
     SeerWorkflowConfig,
-    SeerWorkflowConfigExtras,
     SeerWorkflowConfigProject,
     SeerWorkflowExecutionExtras,
     SeerWorkflowFilters,
     SeerWorkflowRun,
     SeerWorkflowRunSource,
-    SeerWorkflowSchedule,
     SeerWorkflowStrategy,
 )
 from sentry.seer.workflows.base import (
@@ -51,6 +36,7 @@ from sentry.seer.workflows.base import (
     AutomationDefinition,
     ConfigUpdate,
     LockedConfig,
+    NoSettings,
     ScopeSelection,
     SelectedMonitors,
     SelectedProjects,
@@ -70,24 +56,29 @@ from sentry.workflow_engine.models import (
     Workflow,
     WorkflowDataConditionGroup,
 )
+from sentry.workflow_engine.schedules import (
+    InvalidWorkflowSchedule,
+    WorkflowFiring,
+    clear_workflow_schedule,
+    scheduled_workflow_handler_registry,
+    set_workflow_schedule,
+)
 
 logger = logging.getLogger(__name__)
 
 SCHEDULED_EXECUTION_FEATURE = "organizations:seer-scheduled-automations"
 
 
+# Matches the legacy night shift's morning run. Firings are spread over the following hour.
+DEFAULT_CRON = "0 10 * * *"
+
+
 class ScheduleSettings(BaseModel):
-    # Cron expression in UTC. Unset runs on the config's ``schedule``.
-    cron: str | None = None
+    cron: str
+    timezone: str = "UTC"
 
     class Config:
         extra = "forbid"
-
-    @validator("cron")
-    def cron_is_valid(cls, value: str | None) -> str | None:
-        if value is not None:
-            cron(value)
-        return value
 
 
 class ScheduledRunInputs(BaseModel):
@@ -97,56 +88,12 @@ class ScheduledRunInputs(BaseModel):
     scheduled_for: datetime
 
 
-@functools.cache
-def _daily() -> CronSchedule:
-    # Matches the legacy night shift's morning run. Firings are spread over the following
-    # hour by the trigger type's spread window.
-    return cron("0 10 * * *")
-
-
-def schedule_for(config: SeerWorkflowConfig) -> Schedule | None:
-    """The schedule a scheduled `config` should run on, or None while it is disabled."""
-    if not AutomationDefinition.is_enabled(config):
-        return None
-    extras = SeerWorkflowConfigExtras.parse_obj(config.extras)
-    settings = ScheduleSettings.parse_obj(extras.trigger_settings or {})
-    if settings.cron is not None:
-        return cron(settings.cron)
-    schedule = SeerWorkflowSchedule(config.schedule)
-    match schedule:
-        case SeerWorkflowSchedule.DAILY:
-            return _daily()
-        case _:
-            assert_never(schedule)
-
-
-def sync_schedule(config: SeerWorkflowConfig) -> None:
-    """
-    Make a scheduled config's cadence schedule match `schedule_for`. Safe to call
-    repeatedly, so call it after any change to a config's `enabled` or `schedule`.
-    """
-    schedule = schedule_for(config)
-    if schedule is None:
-        clear_schedule(
-            organization_id=config.organization_id,
-            trigger_type=ScheduledTriggerType.SEER_WORKFLOW,
-            target_id=config.id,
-        )
-    else:
-        set_schedule(
-            organization_id=config.organization_id,
-            trigger_type=ScheduledTriggerType.SEER_WORKFLOW,
-            target_id=config.id,
-            schedule=schedule,
-        )
-
-
 class ScheduleDefinition(AutomationDefinition[ScheduledRunInputs]):
     """Runs on the config's schedule, over the projects the config selects."""
 
     strategy = SeerWorkflowStrategy.SCHEDULED_INVESTIGATION
     inputs_type = ScheduledRunInputs
-    settings_type = ScheduleSettings
+    settings_type = NoSettings
     takes_action_settings = True
     seeded_action_settings: ClassVar[Mapping[str, Any]] = {"skill": SeerSkill.AGENTIC_TRIAGE.value}
     scoped_by: Literal["projects", "monitors"] = "projects"
@@ -158,6 +105,20 @@ class ScheduleDefinition(AutomationDefinition[ScheduledRunInputs]):
         )
         WorkflowDataConditionGroup.objects.create(workflow=workflow, condition_group=action_group)
         DataConditionGroupAction.objects.create(condition_group=action_group, action=action)
+        set_workflow_schedule(workflow, cron=DEFAULT_CRON)
+
+    def set_trigger_settings(
+        self, update: ConfigUpdate, workflow: Workflow, trigger_settings: Mapping[str, Any]
+    ) -> None:
+        try:
+            settings = ScheduleSettings.parse_obj(trigger_settings)
+            changed = set_workflow_schedule(
+                workflow, cron=settings.cron, timezone=settings.timezone
+            )
+        except (ValidationError, InvalidWorkflowSchedule) as e:
+            raise WorkflowUpdateError(str(e)) from e
+        if changed:
+            update.mark_related_changed()
 
     def projects(self, config: SeerWorkflowConfig) -> QuerySet[Project]:
         projects = Project.objects.filter(
@@ -207,15 +168,9 @@ class ScheduleDefinition(AutomationDefinition[ScheduledRunInputs]):
             config.filters = config.filters | filters.dict()
             update.mark("filters")
 
-    def sync(self, config: SeerWorkflowConfig) -> None:
-        sync_schedule(config)
-
     def teardown(self, config: SeerWorkflowConfig) -> None:
-        clear_schedule(
-            organization_id=config.organization_id,
-            trigger_type=ScheduledTriggerType.SEER_WORKFLOW,
-            target_id=config.id,
-        )
+        if config.backing_workflow is not None:
+            clear_workflow_schedule(config.backing_workflow)
 
     def admit_firing(self, config: LockedConfig, scheduled_for: datetime) -> ScheduledRunOutcome:
         """Record one run per scheduled time, and dispatch it when it is new."""
@@ -249,26 +204,6 @@ class ScheduleDefinition(AutomationDefinition[ScheduledRunInputs]):
 def trigger_key_for(scheduled_for: datetime) -> str:
     """Identifies a scheduled run, so the same run delivered twice is only created once."""
     return f"cron:{scheduled_for.astimezone(UTC):%Y-%m-%dT%H:%M}"
-
-
-@register_trigger_type(ScheduledTriggerType.SEER_WORKFLOW)
-class SeerWorkflowTriggerHandler(TriggerHandler):
-    # Matches the legacy night shift's spread of org runs over the hour after its scheduled time.
-    spread_window = timedelta(hours=1)
-
-    def dispatch(self, firings: Sequence[TriggerFiring]) -> None:
-        for firing in firings:
-            record_scheduled_automation_run.apply_async(
-                kwargs={
-                    "organization_id": firing.organization_id,
-                    "config_id": firing.target_id,
-                    "scheduled_for": firing.scheduled_for.isoformat(),
-                },
-                headers={"sentry-propagate-traces": False},
-            )
-
-    def find_missing(self, targets: Sequence[TriggerTarget]) -> Collection[TriggerTarget]:
-        return missing_targets(SeerWorkflowConfig, targets)
 
 
 @dataclass(frozen=True)
@@ -312,20 +247,13 @@ def _run(organization_id: int, config_id: int, scheduled_for: datetime) -> Sched
     if (
         config is None
         or config.strategy != ScheduleDefinition.strategy
-        or schedule_for(config) is None
+        or not AutomationDefinition.is_enabled(config)
     ):
-        # The config was deleted, disabled, or no longer runs on a schedule, but its
-        # schedule wasn't cleared. Clear it now so it stops firing.
-        clear_schedule(
-            organization_id=organization_id,
-            trigger_type=ScheduledTriggerType.SEER_WORKFLOW,
-            target_id=config_id,
-        )
         return ScheduledRunOutcome("ignored", reason="unscheduled")
     # Entitlement can come back, so keep the schedule and do nothing this time.
     if not features.has("organizations:seer-automations", config.organization):
         return ScheduledRunOutcome("ignored", reason="feature_disabled")
-    # Scheduling and stale-registration cleanup stay active while execution is disabled.
+    # Scheduling stays active while execution is disabled.
     # Firings consumed during this stage are not replayed when execution is enabled later.
     if not features.has(SCHEDULED_EXECUTION_FEATURE, config.organization):
         return ScheduledRunOutcome("ignored", reason="execution_disabled")
@@ -334,3 +262,25 @@ def _run(organization_id: int, config_id: int, scheduled_for: datetime) -> Sched
             return ScheduleDefinition().admit_firing(locked, scheduled_for)
     except SeerWorkflowConfig.DoesNotExist:
         return ScheduledRunOutcome("ignored", reason="unscheduled")
+
+
+@scheduled_workflow_handler_registry.register(Workflow.Type.SEER_INVESTIGATION)
+def dispatch_scheduled_automations(firings: Sequence[WorkflowFiring]) -> None:
+    config_ids = dict(
+        SeerWorkflowConfig.objects.filter(
+            backing_workflow_id__in={firing.workflow_id for firing in firings},
+            strategy=ScheduleDefinition.strategy,
+        ).values_list("backing_workflow_id", "id")
+    )
+    for firing in firings:
+        config_id = config_ids.get(firing.workflow_id)
+        if config_id is None:
+            continue
+        record_scheduled_automation_run.apply_async(
+            kwargs={
+                "organization_id": firing.organization_id,
+                "config_id": config_id,
+                "scheduled_for": firing.scheduled_for.isoformat(),
+            },
+            headers={"sentry-propagate-traces": False},
+        )

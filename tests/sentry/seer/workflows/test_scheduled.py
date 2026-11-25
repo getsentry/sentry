@@ -1,15 +1,9 @@
 from datetime import UTC, datetime, timedelta
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock, patch
 from zoneinfo import ZoneInfo
 
-from sentry.cadence.api import (
-    ScheduledTriggerType,
-    TriggerFiring,
-    TriggerTarget,
-    cron,
-    get_schedules,
-)
-from sentry.cadence.registry import trigger_type_registry
+import pytest
+
 from sentry.cadence.tasks import cadence_tick
 from sentry.seer.models.workflow import (
     SeerWorkflowConfig,
@@ -20,12 +14,12 @@ from sentry.seer.models.workflow import (
     SeerWorkflowRunStatus,
     SeerWorkflowStrategy,
 )
+from sentry.seer.workflows.base import WorkflowUpdateError
 from sentry.seer.workflows.scheduled import (
+    DEFAULT_CRON,
     SCHEDULED_EXECUTION_FEATURE,
-    SeerWorkflowTriggerHandler,
+    dispatch_scheduled_automations,
     record_scheduled_automation_run,
-    schedule_for,
-    sync_schedule,
     trigger_key_for,
 )
 from sentry.seer.workflows.workflow import SeerWorkflow
@@ -35,6 +29,12 @@ from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.workflow_engine.models import Workflow
+from sentry.workflow_engine.schedules import (
+    WorkflowFiring,
+    WorkflowSchedule,
+    get_workflow_schedules,
+    scheduled_workflow_handler_registry,
+)
 
 SCHEDULED_FOR = datetime(2024, 3, 10, 10, 0, tzinfo=UTC)
 
@@ -46,6 +46,12 @@ def enable(config: SeerWorkflowConfig) -> None:
         update.set_enabled(True)
 
 
+def schedule_of(config: SeerWorkflowConfig) -> WorkflowSchedule | None:
+    config.refresh_from_db()
+    assert config.backing_workflow is not None
+    return get_workflow_schedules([config.backing_workflow]).get(config.backing_workflow.id)
+
+
 def test_trigger_key_is_the_scheduled_minute_in_utc() -> None:
     assert trigger_key_for(SCHEDULED_FOR) == "cron:2024-03-10T10:00"
     assert (
@@ -54,48 +60,43 @@ def test_trigger_key_is_the_scheduled_minute_in_utc() -> None:
     )
 
 
-class SeerWorkflowTriggerHandlerTest(TestCase):
+class DispatchScheduledAutomationsTest(TestCase):
     def test_is_registered(self) -> None:
-        assert isinstance(
-            trigger_type_registry.get(ScheduledTriggerType.SEER_WORKFLOW),
-            SeerWorkflowTriggerHandler,
+        assert (
+            scheduled_workflow_handler_registry.get(Workflow.Type.SEER_INVESTIGATION)
+            is dispatch_scheduled_automations
         )
-
-    def test_find_missing_reports_deleted_configs(self) -> None:
-        config = Factories.create_seer_workflow_config(
-            self.organization, strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
-        )
-        existing = TriggerTarget(organization_id=self.organization.id, target_id=config.id)
-        deleted = TriggerTarget(organization_id=self.organization.id, target_id=config.id + 1)
-
-        assert SeerWorkflowTriggerHandler().find_missing([existing, deleted]) == [deleted]
 
     @patch("sentry.seer.workflows.scheduled.record_scheduled_automation_run.apply_async")
-    def test_enqueues_a_task_per_firing(self, mock_apply_async: MagicMock) -> None:
-        firings = [
-            TriggerFiring(
-                organization_id=self.organization.id,
-                trigger_type=ScheduledTriggerType.SEER_WORKFLOW,
-                target_id=config_id,
-                scheduled_for=SCHEDULED_FOR,
-                next_scheduled_for=SCHEDULED_FOR + timedelta(days=1),
-            )
-            for config_id in (11, 12)
-        ]
+    def test_enqueues_a_task_per_scheduled_automation(self, mock_apply_async: MagicMock) -> None:
+        scheduled = Factories.create_seer_workflow_config(
+            self.organization, strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION
+        )
+        metric = Factories.create_seer_workflow_config(
+            self.organization, strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
+        )
+        assert scheduled.backing_workflow_id is not None
+        assert metric.backing_workflow_id is not None
 
-        SeerWorkflowTriggerHandler().dispatch(firings)
+        dispatch_scheduled_automations(
+            [
+                WorkflowFiring(
+                    organization_id=self.organization.id,
+                    workflow_id=workflow_id,
+                    scheduled_for=SCHEDULED_FOR,
+                )
+                for workflow_id in (scheduled.backing_workflow_id, metric.backing_workflow_id)
+            ]
+        )
 
-        assert mock_apply_async.call_args_list == [
-            call(
-                kwargs={
-                    "organization_id": self.organization.id,
-                    "config_id": config_id,
-                    "scheduled_for": SCHEDULED_FOR.isoformat(),
-                },
-                headers={"sentry-propagate-traces": False},
-            )
-            for config_id in (11, 12)
-        ]
+        mock_apply_async.assert_called_once_with(
+            kwargs={
+                "organization_id": self.organization.id,
+                "config_id": scheduled.id,
+                "scheduled_for": SCHEDULED_FOR.isoformat(),
+            },
+            headers={"sentry-propagate-traces": False},
+        )
 
 
 @with_feature(["organizations:seer-automations", SCHEDULED_EXECUTION_FEATURE])
@@ -117,13 +118,8 @@ class RecordScheduledAutomationRunTest(TestCase):
     def runs(self) -> list[SeerWorkflowRun]:
         return list(SeerWorkflowRun.objects.filter(workflow_config_id=self.config.id))
 
-    def is_scheduled(self, config_id: int | None = None) -> bool:
-        config_id = config_id or self.config.id
-        return config_id in get_schedules(
-            organization_id=self.organization.id,
-            trigger_type=ScheduledTriggerType.SEER_WORKFLOW,
-            target_ids=[config_id],
-        )
+    def is_scheduled(self) -> bool:
+        return schedule_of(self.config) is not None
 
     def test_records_a_cron_run_that_completes(self) -> None:
         self.run_task()
@@ -157,23 +153,21 @@ class RecordScheduledAutomationRunTest(TestCase):
         assert self.runs() == []
         assert self.is_scheduled()
 
-    def test_disabled_config_clears_its_stale_schedule(self) -> None:
-        # Disabled without going through update_config, so the schedule was left behind.
-        assert self.config.backing_workflow is not None
+    def test_disabled_config_records_nothing_and_keeps_its_schedule(self) -> None:
         Workflow.objects.filter(id=self.config.backing_workflow_id).update(enabled=False)
 
         self.run_task()
 
         assert self.runs() == []
-        assert not self.is_scheduled()
+        assert self.is_scheduled()
 
-    def test_deleted_config_clears_its_stale_schedule(self) -> None:
+    def test_deleted_config_records_nothing(self) -> None:
         config_id = self.config.id
         self.config.delete()
 
         self.run_task(config_id)
 
-        assert not self.is_scheduled(config_id)
+        assert not SeerWorkflowRun.objects.filter(workflow_config_id=config_id).exists()
 
     def test_config_from_another_organization_is_ignored(self) -> None:
         other = Factories.create_seer_workflow_config(
@@ -184,11 +178,7 @@ class RecordScheduledAutomationRunTest(TestCase):
         self.run_task(other.id)
 
         assert not SeerWorkflowRun.objects.filter(workflow_config_id=other.id).exists()
-        assert get_schedules(
-            organization_id=other.organization_id,
-            trigger_type=ScheduledTriggerType.SEER_WORKFLOW,
-            target_ids=[other.id],
-        )
+        assert schedule_of(other) is not None
 
 
 @with_feature("organizations:seer-automations")
@@ -202,16 +192,13 @@ class ScheduledAutomationEndToEndTest(TestCase):
                 self.organization, strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION
             )
             enable(config)
-        (scheduled,) = get_schedules(
-            organization_id=self.organization.id,
-            trigger_type=ScheduledTriggerType.SEER_WORKFLOW,
-            target_ids=[config.id],
-        ).values()
-        assert scheduled.next_scheduled_for == SCHEDULED_FOR
-        assert scheduled.next_fire_at is not None
+        scheduled = schedule_of(config)
+        assert scheduled is not None
+        assert scheduled.next_run_at is not None
+        assert SCHEDULED_FOR <= scheduled.next_run_at < SCHEDULED_FOR + timedelta(hours=1)
 
         with (
-            freeze_time(scheduled.next_fire_at),
+            freeze_time(scheduled.next_run_at),
             override_options({"cadence.tick.enabled": True}),
             self.tasks(),
         ):
@@ -232,56 +219,70 @@ class ScheduledAutomationEndToEndTest(TestCase):
                 "run_id": None,
             },
         )
-        (info,) = get_schedules(
-            organization_id=self.organization.id,
-            trigger_type=ScheduledTriggerType.SEER_WORKFLOW,
-            target_ids=[config.id],
-        ).values()
-        assert info.next_scheduled_for == SCHEDULED_FOR + timedelta(days=1)
+        rescheduled = schedule_of(config)
+        assert rescheduled is not None
+        assert rescheduled.next_run_at == scheduled.next_run_at + timedelta(days=1)
 
 
-class ScheduleForTest(TestCase):
-    def test_enabled_daily_config_runs_daily(self) -> None:
-        config = Factories.create_seer_workflow_config(
-            self.organization, strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION, enabled=True
+class ScheduleDefinitionTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.config = Factories.create_seer_workflow_config(
+            self.organization, strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION
         )
-        assert schedule_for(config) == cron("0 10 * * *")
+        self.workflow = SeerWorkflow(config_id=self.config.id, organization_id=self.organization.id)
 
-    def test_config_cron_overrides_the_daily_schedule(self) -> None:
-        config = Factories.create_seer_workflow_config(
-            self.organization,
-            strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION,
-            enabled=True,
-            extras={"trigger_settings": {"cron": "0 9 * * 1"}},
-        )
-        assert schedule_for(config) == cron("0 9 * * 1")
-
-    def test_disabled_config_is_unscheduled(self) -> None:
-        config = Factories.create_seer_workflow_config(
-            self.organization, strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION, enabled=False
-        )
-        assert schedule_for(config) is None
-
-
-class SyncScheduleTest(TestCase):
-    def next_run(self, config: SeerWorkflowConfig) -> datetime | None:
-        info = get_schedules(
-            organization_id=config.organization_id,
-            trigger_type=ScheduledTriggerType.SEER_WORKFLOW,
-            target_ids=[config.id],
-        ).get(config.id)
-        return info.next_scheduled_for if info else None
-
-    @freeze_time("2024-03-09 12:00:00")
-    def test_sets_and_clears(self) -> None:
-        config = Factories.create_seer_workflow_config(
-            self.organization, strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION, enabled=True
+    def test_new_automation_runs_daily(self) -> None:
+        assert schedule_of(self.config) == WorkflowSchedule(
+            cron=DEFAULT_CRON, timezone="UTC", next_run_at=None
         )
 
-        sync_schedule(config)
-        assert self.next_run(config) == datetime(2024, 3, 10, 10, 0, tzinfo=UTC)
+    def test_trigger_settings_replace_the_schedule(self) -> None:
+        with self.workflow.update_config() as update:
+            update.set_trigger_settings({"cron": "0 9 * * 1", "timezone": "America/New_York"})
 
-        assert config.backing_workflow is not None
-        config.backing_workflow.enabled = False
-        sync_schedule(config)
-        assert self.next_run(config) is None
+        schedule = schedule_of(self.config)
+        assert schedule is not None
+        assert (schedule.cron, schedule.timezone) == ("0 9 * * 1", "America/New_York")
+        assert self.config.version == 2
+
+    def test_unchanged_trigger_settings_do_not_bump_the_version(self) -> None:
+        with self.workflow.update_config() as update:
+            update.set_trigger_settings({"cron": DEFAULT_CRON})
+
+        self.config.refresh_from_db()
+        assert self.config.version == 1
+
+    def test_rejects_an_invalid_cron(self) -> None:
+        with pytest.raises(WorkflowUpdateError), self.workflow.update_config() as update:
+            update.set_trigger_settings({"cron": "not a cron"})
+
+        assert schedule_of(self.config) == WorkflowSchedule(
+            cron=DEFAULT_CRON, timezone="UTC", next_run_at=None
+        )
+
+    def test_enabling_gives_the_schedule_a_next_run(self) -> None:
+        enable(self.config)
+
+        schedule = schedule_of(self.config)
+        assert schedule is not None
+        assert schedule.next_run_at is not None
+
+    def test_delete_clears_the_schedule(self) -> None:
+        assert self.config.backing_workflow is not None
+        backing_workflow = self.config.backing_workflow
+
+        self.workflow.delete()
+
+        assert get_workflow_schedules([backing_workflow]) == {}
+
+    def test_metric_automation_takes_no_trigger_settings(self) -> None:
+        metric = Factories.create_seer_workflow_config(
+            self.organization, strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
+        )
+        workflow = SeerWorkflow(config_id=metric.id, organization_id=self.organization.id)
+
+        with pytest.raises(WorkflowUpdateError), workflow.update_config() as update:
+            update.set_trigger_settings({"cron": "0 9 * * 1"})
+
+        assert schedule_of(metric) is None

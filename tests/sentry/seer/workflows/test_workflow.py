@@ -1,10 +1,9 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
 
 import pytest
 from django.db import router, transaction
 
-from sentry.cadence.api import ScheduledTriggerType, get_schedules
 from sentry.constants import ObjectStatus
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.hybridcloud.models.outbox import CellOutbox, OutboxDatabaseError, outbox_context
@@ -45,6 +44,8 @@ from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, cell_silo_test
+from sentry.workflow_engine.models import Workflow
+from sentry.workflow_engine.schedules import get_workflow_schedules
 
 GRANT = SeerServiceAccountGrant(scopes=["event:read"])
 PROMPT = {"prompt": "Check checkout latency"}
@@ -220,7 +221,6 @@ class SeerWorkflowCreateTest(TestCase):
                 organization_id=self.organization.id,
                 strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION,
                 scope=AllProjects(),
-                extras=SeerWorkflowConfigExtras(trigger_settings={"cron": "0 9 * * 1"}),
                 action_settings=action_settings,
                 service_account_grant=GRANT,
             )
@@ -944,13 +944,10 @@ class SeerWorkflowServiceAccountTest(TestCase):
 
 
 class SeerWorkflowScheduleSyncTest(TestCase):
-    def next_scheduled_for(self, config: SeerWorkflowConfig) -> datetime | None:
-        info = get_schedules(
-            organization_id=config.organization_id,
-            trigger_type=ScheduledTriggerType.SEER_WORKFLOW,
-            target_ids=[config.id],
-        ).get(config.id)
-        return info.next_scheduled_for if info else None
+    def next_run_at(self, config: SeerWorkflowConfig) -> datetime | None:
+        workflow = Workflow.objects_for_deletion.get(id=config.backing_workflow_id)
+        schedule = get_workflow_schedules([workflow]).get(workflow.id)
+        return schedule.next_run_at if schedule else None
 
     def set_enabled(self, config: SeerWorkflowConfig, enabled: bool) -> SeerWorkflowConfig:
         workflow = SeerWorkflow(config_id=config.id, organization_id=config.organization_id)
@@ -968,9 +965,13 @@ class SeerWorkflowScheduleSyncTest(TestCase):
 
         assert AutomationDefinition.is_enabled(updated)
         assert updated.version == 2
-        assert self.next_scheduled_for(config) == datetime(2024, 3, 10, 10, 0, tzinfo=UTC)
+        # Spread over the hour after the scheduled 10:00 run.
+        scheduled_for = datetime(2024, 3, 10, 10, 0, tzinfo=UTC)
+        next_run_at = self.next_run_at(config)
+        assert next_run_at is not None
+        assert scheduled_for <= next_run_at < scheduled_for + timedelta(hours=1)
 
-    def test_disabling_unschedules(self) -> None:
+    def test_disabling_stops_runs(self) -> None:
         config = Factories.create_seer_workflow_config(
             self.organization, strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION
         )
@@ -980,9 +981,9 @@ class SeerWorkflowScheduleSyncTest(TestCase):
 
         assert not AutomationDefinition.is_enabled(updated)
         assert updated.version == 3
-        assert self.next_scheduled_for(config) is None
+        assert self.next_run_at(config) is None
 
-    def test_unchanged_does_not_bump_version_but_repairs_schedule(self) -> None:
+    def test_unchanged_does_not_bump_version(self) -> None:
         config = Factories.create_seer_workflow_config(
             self.organization, strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION, enabled=True
         )
@@ -990,7 +991,7 @@ class SeerWorkflowScheduleSyncTest(TestCase):
         updated = self.set_enabled(config, True)
 
         assert updated.version == 1
-        assert self.next_scheduled_for(config) is not None
+        assert self.next_run_at(config) is not None
 
     def test_unscheduled_strategy_is_not_scheduled(self) -> None:
         config = Factories.create_seer_workflow_config(
@@ -999,7 +1000,7 @@ class SeerWorkflowScheduleSyncTest(TestCase):
 
         self.set_enabled(config, True)
 
-        assert self.next_scheduled_for(config) is None
+        assert self.next_run_at(config) is None
 
     def test_delete_unschedules(self) -> None:
         config = Factories.create_seer_workflow_config(
@@ -1009,4 +1010,4 @@ class SeerWorkflowScheduleSyncTest(TestCase):
 
         SeerWorkflow(config_id=config.id, organization_id=config.organization_id).delete()
 
-        assert self.next_scheduled_for(config) is None
+        assert self.next_run_at(config) is None

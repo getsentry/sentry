@@ -25,7 +25,6 @@ from sentry.apidocs.constants import RESPONSE_BAD_REQUEST
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.principal import acting_user_id
-from sentry.cadence.api import ScheduledTriggerType, get_schedules
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS, ObjectStatus
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -64,6 +63,7 @@ from sentry.service_accounts.models import (
 from sentry.service_accounts.services.service_account import RpcServiceAccount
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.workflow_engine.generated_schema_types import SeerInvestigationActionData
+from sentry.workflow_engine.schedules import WorkflowSchedule, get_workflow_schedules
 
 logger = logging.getLogger(__name__)
 
@@ -77,6 +77,11 @@ class SeerServiceAccountResponse(TypedDict):
     scopes: list[str]
     projectIds: list[int]
     allProjects: bool
+
+
+class SeerWorkflowTriggerSettings(TypedDict):
+    cron: str
+    timezone: str
 
 
 class SeerWorkflowConfigResponse(TypedDict):
@@ -93,7 +98,10 @@ class SeerWorkflowConfigResponse(TypedDict):
     outputPolicy: dict[str, Any]
     seededDefault: str | None
     actionSettings: SeerInvestigationActionData
-    # When the automation next runs on its schedule, or None if it doesn't run on one.
+    # The schedule the automation runs on, or None if it doesn't run on one.
+    triggerSettings: SeerWorkflowTriggerSettings | None
+    # When the automation next runs on its schedule, or None if it doesn't run on one or is
+    # disabled.
     nextRunAt: datetime | None
     dateAdded: datetime
     dateUpdated: datetime
@@ -156,6 +164,11 @@ class ActionSettingsSerializer(serializers.Serializer):
         return data
 
 
+class TriggerSettingsSerializer(serializers.Serializer):
+    cron = serializers.CharField(max_length=255)
+    timezone = serializers.CharField(default="UTC", max_length=64)
+
+
 class WorkflowConfigCreateSerializer(serializers.Serializer):
     strategy = serializers.ChoiceField(
         choices=sorted(s.value for s in SEER_CONFIGURABLE_WORKFLOW_STRATEGIES)
@@ -212,6 +225,7 @@ class WorkflowConfigUpdateSerializer(serializers.Serializer):
     serviceAccount = ServiceAccountGrantSerializer(required=False)
     name = serializers.CharField(required=False, max_length=64)
     actionSettings = ActionSettingsSerializer(required=False)
+    triggerSettings = TriggerSettingsSerializer(required=False)
     # [] selects all environments; omitted leaves them unchanged.
     environments = serializers.ListField(
         child=serializers.CharField(max_length=64), required=False, allow_empty=True
@@ -380,8 +394,10 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
         ``name`` is the user-supplied name, omitted if unset.
         ``createdBy`` is the ID of the user who created the config, omitted if unset.
         ``updatedBy`` is the ID of the user who last changed it, omitted if unset.
+        ``triggerSettings`` is the ``cron`` and ``timezone`` the automation runs on, or
+        null if it doesn't run on a schedule.
         ``nextRunAt`` is when the automation next runs on its schedule, or null if it
-        isn't scheduled to run.
+        isn't scheduled to run or is disabled.
         ``dateLastRun`` is the latest visible run's creation time and ``lastRunStatus``
         is its status (null for older runs that predate status tracking). Both are
         omitted if no runs are visible under the runs endpoint's project-scope rules.
@@ -616,6 +632,9 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
         - ``actionSettings`` replaces the settings the strategy's action takes, such as a
           scheduled investigation's ``prompt`` or ``skill``. Like enabling, it requires
           access to every project the config covers.
+        - ``triggerSettings`` replaces the schedule a scheduled investigation runs on: a
+          five-field ``cron`` expression and the ``timezone`` it is evaluated in, UTC if
+          omitted. It requires the same access as ``actionSettings``.
 
         An update the caller isn't allowed to make returns a 403. One the automation
         rejects returns a 400 with a generic detail. Returns the updated config in the
@@ -645,6 +664,7 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
         # None means not sent; an empty list selects all environments.
         environments: list[str] | None = serializer.validated_data.get("environments")
         action_settings: dict[str, Any] | None = serializer.validated_data.get("actionSettings")
+        trigger_settings: dict[str, Any] | None = serializer.validated_data.get("triggerSettings")
 
         # Checks that depend only on the request run before taking the lock.
         if monitor_ids is not None and get_definition(config.strategy).scoped_by != "monitors":
@@ -683,7 +703,12 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
                     environments is not None and environments != config_filters.environments
                 )
 
-                if enabled is not None or environments_changed or action_settings is not None:
+                if (
+                    enabled is not None
+                    or environments_changed
+                    or action_settings is not None
+                    or trigger_settings is not None
+                ):
                     denied = _check_project_access(
                         (
                             [ALL_ACCESS_PROJECT_ID]
@@ -768,6 +793,9 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
 
                 if action_settings is not None:
                     update.set_action_settings(action_settings)
+
+                if trigger_settings is not None:
+                    update.set_trigger_settings(trigger_settings)
 
                 if update.changed:
                     user_id = acting_user_id(request.user)
@@ -872,7 +900,7 @@ def serialize_workflow_configs(
         has_global_access=has_global_access,
     )
     last_runs_by_config_id = {run.config_id: run for run in last_runs}
-    next_run_times = get_next_run_times(configs)
+    schedules = get_config_schedules(configs)
     action_settings = SeerWorkflow.action_settings_bulk(configs)
     return {
         "configs": [
@@ -886,7 +914,7 @@ def serialize_workflow_configs(
                     if config.service_account_id
                     else None
                 ),
-                next_run_at=next_run_times.get(config.id),
+                schedule=schedules.get(config.id),
                 action_settings=action_settings.get(config.id, SeerInvestigationActionData()),
             )
             for config in configs
@@ -934,19 +962,17 @@ def get_config_last_runs(
     ]
 
 
-def get_next_run_times(configs: Sequence[SeerWorkflowConfig]) -> dict[int, datetime | None]:
-    """When each config next runs on its schedule, keyed by config id."""
-    by_organization: defaultdict[int, list[int]] = defaultdict(list)
-    for config in configs:
-        by_organization[config.organization_id].append(config.id)
+def get_config_schedules(configs: Sequence[SeerWorkflowConfig]) -> dict[int, WorkflowSchedule]:
+    """The schedule of each config that runs on one, keyed by config id."""
+    config_ids = {
+        config.backing_workflow.id: config.id
+        for config in configs
+        if config.backing_workflow is not None
+    }
+    workflows = [config.backing_workflow for config in configs if config.backing_workflow]
     return {
-        config_id: info.next_fire_at
-        for organization_id, config_ids in by_organization.items()
-        for config_id, info in get_schedules(
-            organization_id=organization_id,
-            trigger_type=ScheduledTriggerType.SEER_WORKFLOW,
-            target_ids=config_ids,
-        ).items()
+        config_ids[workflow_id]: schedule
+        for workflow_id, schedule in get_workflow_schedules(workflows).items()
     }
 
 
@@ -957,7 +983,7 @@ def serialize_workflow_config(
     connected_monitors: list[ConnectedMonitor],
     last_run: WorkflowConfigLastRun | None,
     service_account: SeerServiceAccountResponse | None,
-    next_run_at: datetime | None,
+    schedule: WorkflowSchedule | None,
     action_settings: SeerInvestigationActionData,
 ) -> SeerWorkflowConfigResponse:
     filters = SeerWorkflowFilters.parse_obj(config.filters)
@@ -990,7 +1016,10 @@ def serialize_workflow_config(
         "outputPolicy": config.output_policy,
         "seededDefault": SeerWorkflowConfigExtras.parse_obj(config.extras).seeded_default,
         "actionSettings": action_settings,
-        "nextRunAt": next_run_at,
+        "triggerSettings": (
+            {"cron": schedule.cron, "timezone": schedule.timezone} if schedule else None
+        ),
+        "nextRunAt": schedule.next_run_at if schedule else None,
         "dateAdded": config.date_added,
         "dateUpdated": config.date_updated,
     }

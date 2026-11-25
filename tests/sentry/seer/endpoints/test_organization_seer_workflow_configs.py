@@ -126,6 +126,7 @@ class OrganizationSeerWorkflowConfigsTest(APITestCase):
             "outputPolicy": {"review_mode": "manual"},
             "seededDefault": "scheduled_investigation",
             "actionSettings": {},
+            "triggerSettings": {"cron": "0 10 * * *", "timezone": "UTC"},
             "nextRunAt": None,
             "dateAdded": config.date_added,
             "dateUpdated": config.date_updated,
@@ -527,6 +528,48 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
             config.id,
             method="put",
             actionSettings={"prompt": "Check checkout latency", "skill": "agentic_triage"},
+            status_code=400,
+        )
+
+    def test_put_replaces_schedule(self) -> None:
+        config = self.create_config()
+        Factories.create_seer_workflow_config_project(config, self.project)
+
+        response = self.get_success_response(
+            self.organization.slug,
+            config.id,
+            method="put",
+            triggerSettings={"cron": "0 9 * * 1-5", "timezone": "America/New_York"},
+        )
+
+        assert response.data["triggerSettings"] == {
+            "cron": "0 9 * * 1-5",
+            "timezone": "America/New_York",
+        }
+        response = self.get_success_response(self.organization.slug, config.id)
+        assert response.data["triggerSettings"] == {
+            "cron": "0 9 * * 1-5",
+            "timezone": "America/New_York",
+        }
+
+        self.get_error_response(
+            self.organization.slug,
+            config.id,
+            method="put",
+            triggerSettings={"cron": "not a cron"},
+            status_code=400,
+        )
+
+    def test_put_rejects_schedule_for_metric_automation(self) -> None:
+        config = Factories.create_seer_workflow_config(
+            self.organization, strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
+        )
+
+        self.get_error_response(
+            self.organization.slug,
+            config.id,
+            method="put",
+            triggerSettings={"cron": "0 9 * * 1"},
             status_code=400,
         )
 
@@ -1365,6 +1408,7 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
             "outputPolicy": {},
             "seededDefault": None,
             "actionSettings": PROMPT,
+            "triggerSettings": {"cron": "0 10 * * *", "timezone": "UTC"},
             "nextRunAt": None,
             "dateAdded": config.date_added,
             "dateUpdated": config.date_updated,
