@@ -114,29 +114,21 @@ function getClientDiscardCountCategory(
   return CLIENT_DISCARD_COUNT_CATEGORIES[dataCategory];
 }
 
-type OutcomeRole = 'dropped' | 'kept' | 'ignored';
-
 /**
- * Dropped and kept rows for the dropped data band, one per group and interval.
- * Rows use interval indices for `start` and `end`, since the usage chart has a
- * category x-axis.
+ * Client discards against every item, one row per group and interval. Rows use
+ * interval indices for `start` and `end`, since the usage chart has a category
+ * x-axis.
  */
-function getDroppedDataRows(
+function getClientDiscardRows(
   category: string,
-  orgStats: UsageSeries | undefined,
-  outcomeRole: (outcome: string) => OutcomeRole
+  orgStats?: UsageSeries
 ): Pick<DroppedDataProps, 'acceptedEvents' | 'droppedEvents'> {
   const acceptedEvents: OutcomeRow[] = [];
   const droppedEvents: OutcomeRow[] = [];
 
   orgStats?.groups.forEach(group => {
     const outcome = String(group.by.outcome ?? '');
-    const role = outcomeRole(outcome);
-    if (role === 'ignored') {
-      return;
-    }
-
-    const rows = role === 'dropped' ? droppedEvents : acceptedEvents;
+    const rows = outcome === Outcome.CLIENT_DISCARD ? droppedEvents : acceptedEvents;
     group.series['sum(quantity)']?.forEach((count, i) => {
       rows.push({
         start: i,
@@ -154,34 +146,13 @@ function getDroppedDataRows(
   return {acceptedEvents, droppedEvents};
 }
 
-/**
- * Client discards against every item.
- */
-function clientDiscardRole(outcome: string): OutcomeRole {
-  return outcome === Outcome.CLIENT_DISCARD ? 'dropped' : 'kept';
-}
-
-/**
- * Server-side drops against everything that reached Sentry.
- */
-function serverDropRole(outcome: string): OutcomeRole {
-  if (outcome === Outcome.CLIENT_DISCARD) {
-    return 'ignored';
-  }
-  return outcome === Outcome.ACCEPTED ? 'kept' : 'dropped';
-}
-
 type ClientDiscardCountChart = {
   chartData: Pick<ChartData, 'cardStats' | 'chartStats' | 'chartSubLabels'>;
-  /**
-   * Server-side drops in bytes, banded under the count chart.
-   */
-  byteDroppedData: DroppedDataProps;
+  dataCategory: DataCategory;
   /**
    * Client discards in item counts, banded under the bytes chart.
    */
-  countDroppedData: DroppedDataProps;
-  dataCategory: DataCategory;
+  droppedData: DroppedDataProps;
   error: Error | null;
   loading: boolean;
   unit: string;
@@ -363,15 +334,14 @@ export function getChartProps({
       </Footer>
     ),
     dataCategory: chartDataCategory,
-    // Clicking either band swaps to the other chart
-    droppedData: clientDiscardCountChart
-      ? {
-          ...(countChart
-            ? clientDiscardCountChart.byteDroppedData
-            : clientDiscardCountChart.countDroppedData),
-          onClick: () => handleChangeState({clientDiscard: !clientDiscard}),
-        }
-      : undefined,
+    // Clicking the band swaps to the count chart
+    droppedData:
+      clientDiscardCountChart && !countChart
+        ? {
+            ...clientDiscardCountChart.droppedData,
+            onClick: () => handleChangeState({clientDiscard: true}),
+          }
+        : undefined,
     dataTransform: chartData.chartTransform,
     usageDateStart: chartData.chartDateStart,
     usageDateEnd: chartData.chartDateEnd,
@@ -671,35 +641,24 @@ export function UsageStatsOrganization({
           subLabel => subLabel.parentLabel === SeriesTypes.CLIENT_DISCARD
         ),
       },
-      byteDroppedData: {
-        dataset: clientDiscardCountCategory.dataset,
-        label: t('%s Dropped (Bytes)', dataCategoryName),
-        formatValue: getTooltipFormatter(dataCategory),
-        minHighlightRatio: Number.MIN_VALUE,
-        ...getDroppedDataRows(dataCategoryApiName, orgStatsReponse.data, serverDropRole),
-      },
-      countDroppedData: {
+      dataCategory: countDataCategory,
+      droppedData: {
         dataset: clientDiscardCountCategory.dataset,
         label: t('%s Discarded (Count)', dataCategoryName),
         // Client discards are often a tiny share of all items, so show any of them
         minHighlightRatio: Number.MIN_VALUE,
-        ...getDroppedDataRows(
+        ...getClientDiscardRows(
           clientDiscardCountCategory.countCategory.name,
-          countStatsResponse.data,
-          clientDiscardRole
+          countStatsResponse.data
         ),
       },
-      dataCategory: countDataCategory,
       error: countStatsResponse.error,
       loading: countStatsResponse.isPending,
       unit: clientDiscardCountCategory.unit,
     };
   }, [
     clientDiscardCountCategory,
-    dataCategory,
-    dataCategoryApiName,
     dataCategoryName,
-    orgStatsReponse.data,
     countStatsResponse.data,
     countStatsResponse.error,
     countStatsResponse.isPending,

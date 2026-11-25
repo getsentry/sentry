@@ -18,10 +18,6 @@ export interface DroppedDataProps {
   acceptedEvents?: OutcomeRow[];
   droppedEvents?: OutcomeRow[];
   /**
-   * Formats the volumes in the tooltip. Defaults to an abbreviated count.
-   */
-  formatValue?: (value: number) => string;
-  /**
    * Tooltip heading. Defaults to the dataset's dropped data label.
    */
   label?: string;

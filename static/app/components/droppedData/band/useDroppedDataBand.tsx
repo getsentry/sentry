@@ -41,7 +41,6 @@ interface DroppedDataBandParams {
   buckets: DroppedDataBucket[];
   dataset: DiscoverDatasets;
   theme: Theme;
-  formatValue?: (value: number) => string;
   label?: string;
   minHighlightRatio?: number;
   onClick?: () => void;
@@ -151,7 +150,6 @@ function droppedDataRenderItem(
 function createDroppedDataBand({
   buckets,
   dataset,
-  formatValue,
   label,
   minHighlightRatio,
   onClick,
@@ -175,7 +173,6 @@ function createDroppedDataBand({
         <DroppedDataTooltipSection
           bucket={bucket}
           dataset={dataset}
-          formatValue={formatValue}
           label={label}
         />
       ) : null;
@@ -204,7 +201,6 @@ export function useDroppedDataBand({
     acceptedEvents,
     dataset,
     droppedEvents,
-    formatValue,
     label,
     minHighlightRatio,
     onClick,
@@ -225,13 +221,12 @@ export function useDroppedDataBand({
         ? createDroppedDataBand({
             buckets,
             dataset,
-            formatValue,
             label,
             minHighlightRatio,
             onClick,
             theme,
           })
         : null,
-    [buckets, dataset, formatValue, isVisible, label, minHighlightRatio, onClick, theme]
+    [buckets, dataset, isVisible, label, minHighlightRatio, onClick, theme]
   );
 }
