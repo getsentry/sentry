@@ -28,6 +28,7 @@ import {addGiftBudgetAction} from 'admin/components/addGiftBudgetAction';
 import {AddGiftEventsAction} from 'admin/components/addGiftEventsAction';
 import {triggerAddToStartupProgramModal} from 'admin/components/addToStartupProgramAction';
 import {CancelSubscriptionAction} from 'admin/components/cancelSubscriptionAction';
+import {openChangeAgenticTriageCohortModal} from 'admin/components/changeAgenticTriageCohortModal';
 import {triggerChangeBalanceModal} from 'admin/components/changeBalanceAction';
 import {openChangeDashboardsParallelLimitModal} from 'admin/components/changeDashboardsParallelLimitModal';
 import {triggerChangeDatesModal} from 'admin/components/changeDatesAction';
@@ -968,6 +969,15 @@ export function CustomerDetails() {
                 organization,
                 onSuccess: reloadData,
               });
+            },
+          },
+          {
+            key: 'changeAgenticTriageCohort',
+            name: 'Change Agentic Triage Cohort',
+            help: 'Force the agentic triage (night shift) cohort used to gate and bill Seer agentic triage for this organization.',
+            skipConfirmModal: true,
+            onAction: () => {
+              openChangeAgenticTriageCohortModal({organization, onSuccess: reloadData});
             },
           },
           {
