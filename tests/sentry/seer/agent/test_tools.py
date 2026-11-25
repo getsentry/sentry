@@ -3171,7 +3171,8 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
     def test_failure_when_no_integrations(self) -> None:
         no_integration = RepositoryDefinitionFailure(failure_reason="no_scm_integration")
         assert self._lookup(self.organization, "acme-labs/app") == no_integration
-        assert self._lookup(self.organization, "invalid-format") == no_integration
+        # A name with no owner gets no reason, so it doesn't ask anyone to connect source control.
+        assert self._lookup(self.organization, "invalid-format") is None
 
         # A provider Seer can't read code from doesn't count.
         self._connect(self.organization, "bitbucket")

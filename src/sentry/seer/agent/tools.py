@@ -1072,13 +1072,14 @@ def _repository_lookup_failure(
     organization_id: int, repo_full_name: str, supported_providers: list[str]
 ) -> RepositoryDefinitionFailure | None:
     """Why a lookup found nothing, when it's known."""
+    # A name with no owner can't name a repository, so there's nothing to fix: the caller has to
+    # say whose it is.
+    if len(_loose_segments(repo_full_name)) < 2:
+        return None
     integrations = get_seer_scm_integrations(organization_id, supported_providers)
     if not integrations:
         return RepositoryDefinitionFailure(failure_reason=NO_SCM_INTEGRATION)
 
-    # A name with no owner can't be under any account, so there's nothing to say about it.
-    if len(_loose_segments(repo_full_name)) < 2:
-        return None
     under_connected_account = any(
         _is_under_account(repo_full_name, integration) for integration in integrations
     )
