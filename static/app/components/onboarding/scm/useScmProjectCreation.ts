@@ -14,6 +14,7 @@ import {
   type CreatedProjectWorkflow,
   type ProjectWorkflowVariables,
 } from 'sentry/components/onboarding/useCreateProjectWorkflow';
+import {recentCreatedProjectApiOptions} from 'sentry/components/onboarding/useRecentCreatedProject';
 import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Repository} from 'sentry/types/integrations';
@@ -339,6 +340,7 @@ export function useScmProjectCreation({
  */
 function useUpdateProjectPlatform() {
   const organization = useOrganization();
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({
@@ -376,7 +378,18 @@ function useUpdateProjectPlatform() {
         fetchMutation<Project>({url, method: 'PUT', data: {platform: platformKey}})
       );
     },
-    onSuccess: project => ProjectsStore.onUpdateSuccess(project),
+    onSuccess: (updated, {project}) => {
+      ProjectsStore.onUpdateSuccess(updated);
+      // Setup docs read the platform from this cached overview first, so a
+      // kept slug would show the old platform's docs until the refetch.
+      // Without the cache they fall back to the store, updated above.
+      queryClient.removeQueries({
+        queryKey: recentCreatedProjectApiOptions({
+          orgSlug: organization.slug,
+          projectSlug: project.slug,
+        }).queryKey,
+      });
+    },
   });
 }
 

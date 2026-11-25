@@ -30,6 +30,23 @@ function isProjectActive(project: Project) {
   );
 }
 
+/**
+ * The project overview the onboarding setup docs read. Exported so a
+ * platform edit can drop the cached response for the edited project.
+ */
+export function recentCreatedProjectApiOptions({
+  orgSlug,
+  projectSlug,
+}: {
+  orgSlug: Organization['slug'];
+  projectSlug: Project['slug'];
+}) {
+  return apiOptions.as<Project>()(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/overview/',
+    {path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug}, staleTime: 0}
+  );
+}
+
 // This hook will fetch the project details endpoint until a firstEvent (issue) is received
 // It uses useProjects() to leverage already loaded data while also fetching for updates
 export function useRecentCreatedProject({
@@ -48,10 +65,7 @@ export function useRecentCreatedProject({
       : undefined;
 
   const {isPending: isProjectLoading, data: freshProject} = useQuery({
-    ...apiOptions.as<Project>()(
-      '/projects/$organizationIdOrSlug/$projectIdOrSlug/overview/',
-      {path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug!}, staleTime: 0}
-    ),
+    ...recentCreatedProjectApiOptions({orgSlug, projectSlug: projectSlug!}),
     enabled: !!projectSlug,
     refetchInterval: query => {
       if (!query.state.data) {

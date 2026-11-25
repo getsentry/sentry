@@ -1,3 +1,4 @@
+import {QueryClientProvider} from '@tanstack/react-query';
 import {AutomationFixture} from 'sentry-fixture/automations';
 import {IssueStreamDetectorFixture} from 'sentry-fixture/detectors';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -5,8 +6,10 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {RepositoryFixture} from 'sentry-fixture/repository';
 import {TeamFixture} from 'sentry-fixture/team';
 
+import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
+import {recentCreatedProjectApiOptions} from 'sentry/components/onboarding/useRecentCreatedProject';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
@@ -248,6 +251,41 @@ describe('useScmProjectCreation', () => {
       expect(onSuccess).toHaveBeenCalledWith(
         expect.objectContaining({outcome: 'updated'})
       );
+    });
+
+    it('drops the cached setup docs overview so it cannot show the old platform', async () => {
+      const repoProject = {...oldProject, name: 'my-repo'};
+      ProjectsStore.loadInitialData([repoProject]);
+      mockUpdateProject({name: 'my-repo'});
+      const queryClient = makeTestQueryClient();
+      const overviewKey = recentCreatedProjectApiOptions({
+        orgSlug: organization.slug,
+        projectSlug: oldProject.slug,
+      }).queryKey;
+      queryClient.setQueryData(overviewKey, {headers: {}, json: repoProject});
+      const {result} = renderHookWithProviders(
+        () =>
+          useScmProjectCreation({
+            createdProject: existing,
+            onCreatedProjectChange: jest.fn(),
+            selectedRepository: RepositoryFixture({name: 'getsentry/my-repo'}),
+          }),
+        {
+          organization,
+          additionalWrapper: ({children}) => (
+            <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+          ),
+        }
+      );
+
+      await act(() =>
+        result.current.createOrReuseProject({
+          platform: pythonPlatform,
+          onSuccess: jest.fn(),
+        })
+      );
+
+      expect(queryClient.getQueryData(overviewKey)).toBeUndefined();
     });
 
     it('does not complete when the project cannot be updated', async () => {
