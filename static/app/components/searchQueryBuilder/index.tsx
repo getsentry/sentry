@@ -1,7 +1,6 @@
-import {useCallback, useEffectEvent, useLayoutEffect, useMemo, useRef} from 'react';
+import {useCallback, useEffectEvent, useLayoutEffect, useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {mergeRefs} from '@react-aria/utils';
 import {IconCase} from '@sentry/icons/case';
 import {IconClose} from '@sentry/icons/close';
 import {IconSearch} from '@sentry/icons/search';
@@ -18,7 +17,6 @@ import {t} from 'sentry/locale';
 import type {SavedSearchType, Tag, TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
 import type {FieldKind} from 'sentry/utils/fields';
-import {useDimensions} from 'sentry/utils/useDimensions';
 import {usePrevious} from 'sentry/utils/usePrevious';
 
 import {useOnChange} from './hooks/useOnChange';
@@ -345,8 +343,8 @@ function SearchQueryBuilderUI({
   const {committedQuery, parsedQuery, query, dispatch} = useSearchQueryBuilderState();
   const {
     wrapperRef,
-    measureWrapperRef,
     actionBarRef,
+    actionBarWidth,
     size,
     menuPresentation,
     panelRef,
@@ -360,19 +358,12 @@ function SearchQueryBuilderUI({
 
   const setWrapperRef = useCallback(
     (element: HTMLDivElement | null) => {
-      if (!element) {
-        return;
-      }
-
       wrapperRef.current = element;
-      skipNextSearchQueryBuilderAutoFocusRef.current = false;
-      const stopMeasuring = measureWrapperRef(element);
-      return () => {
-        stopMeasuring?.();
-        wrapperRef.current = null;
-      };
+      if (element) {
+        skipNextSearchQueryBuilderAutoFocusRef.current = false;
+      }
     },
-    [measureWrapperRef, skipNextSearchQueryBuilderAutoFocusRef, wrapperRef]
+    [skipNextSearchQueryBuilderAutoFocusRef, wrapperRef]
   );
 
   useOnChange({onChange});
@@ -390,12 +381,6 @@ function SearchQueryBuilderUI({
   useLayoutEffect(() => {
     syncInitialQuery(initialQuery);
   }, [initialQuery]);
-
-  const {ref: measureActionBarRef, width: actionBarWidth} = useDimensions();
-  const mergedActionBarRef = useMemo(
-    () => mergeRefs<HTMLDivElement>(actionBarRef, measureActionBarRef),
-    [actionBarRef, measureActionBarRef]
-  );
 
   const searchBar = (
     <Wrapper
@@ -425,7 +410,7 @@ function SearchQueryBuilderUI({
           />
         )}
         {size !== 'small' && (
-          <ActionButtons ref={mergedActionBarRef} trailingItems={trailingItems} />
+          <ActionButtons ref={actionBarRef} trailingItems={trailingItems} />
         )}
       </PanelProvider>
     </Wrapper>

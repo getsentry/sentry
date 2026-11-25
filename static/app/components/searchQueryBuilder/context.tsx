@@ -8,6 +8,7 @@ import {
   useState,
   type Dispatch,
 } from 'react';
+import {useObjectRef} from '@react-aria/utils';
 import * as Sentry from '@sentry/react';
 import {useQuery, type QueryKey} from '@tanstack/react-query';
 
@@ -85,14 +86,10 @@ interface SearchQueryBuilderConfigContextData {
 
 interface SearchQueryBuilderLayoutContextData {
   actionBarRef: React.RefObject<HTMLDivElement | null>;
+  actionBarWidth: number;
   currentInputValueRef: React.RefObject<string>;
   disableFullWidthFilterKeyMenu: boolean;
   filterKeyMenuWidth: number;
-  /**
-   * Attach to the wrapper element alongside `wrapperRef` so the builder can
-   * size itself to it.
-   */
-  measureWrapperRef: (element: HTMLDivElement | null) => (() => void) | undefined;
   menuPresentation: 'floating' | 'panel';
   panelRef: React.RefObject<HTMLDivElement | null>;
   portalTarget: HTMLElement | null | undefined;
@@ -220,9 +217,12 @@ export function SearchQueryBuilderProvider({
   showAllFilterValues = false,
   asyncFilterKeyRegistryQueryKey,
 }: SearchQueryBuilderProps & {children: React.ReactNode}) {
-  const wrapperRef = useRef<HTMLDivElement>(null);
+  // Attaching an element to either ref also measures it
+  const {ref: measureWrapperRef, width: searchBarWidth} = useDimensions();
+  const wrapperRef = useObjectRef<HTMLDivElement>(measureWrapperRef);
+  const {ref: measureActionBarRef, width: actionBarWidth} = useDimensions();
+  const actionBarRef = useObjectRef<HTMLDivElement>(measureActionBarRef);
   const panelRef = useRef<HTMLDivElement>(null);
-  const actionBarRef = useRef<HTMLDivElement>(null);
   const [menuContainer, setMenuContainer] = useState<HTMLDivElement | null>(null);
 
   const [autoSubmitFromCurrentQuery, setAutoSubmitFromCurrentQuery] = useState(false);
@@ -400,7 +400,6 @@ export function SearchQueryBuilderProvider({
     setReopenDropdownOnQueryClear(false);
   }, []);
 
-  const {ref: measureWrapperRef, width: searchBarWidth} = useDimensions();
   const size =
     searchBarWidth && searchBarWidth < 600 ? ('small' as const) : ('normal' as const);
 
@@ -488,11 +487,11 @@ export function SearchQueryBuilderProvider({
   const layoutValue = useMemo((): SearchQueryBuilderLayoutContextData => {
     return {
       actionBarRef,
+      actionBarWidth,
       currentInputValueRef,
       disableFullWidthFilterKeyMenu:
         menuPresentation === 'panel' || disableFullWidthFilterKeyMenu,
       filterKeyMenuWidth,
-      measureWrapperRef,
       menuPresentation,
       panelRef,
       portalTarget: menuPresentation === 'panel' ? menuContainer : portalTarget,
@@ -503,10 +502,10 @@ export function SearchQueryBuilderProvider({
     };
   }, [
     actionBarRef,
+    actionBarWidth,
     currentInputValueRef,
     disableFullWidthFilterKeyMenu,
     filterKeyMenuWidth,
-    measureWrapperRef,
     menuPresentation,
     menuContainer,
     panelRef,
