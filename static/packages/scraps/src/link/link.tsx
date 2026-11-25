@@ -92,7 +92,12 @@ const Anchor = styled('a', {
 
 type LinkPropsWithButtonBehavior = LinkProps & {busy?: boolean; variant?: ButtonVariant};
 
-function LinkBase(props: LinkPropsWithButtonBehavior) {
+/**
+ * A router link without styles, for components that style the element
+ * themselves. Rendering a styled component `as` `Link` makes Emotion serialize
+ * both components' styles on every render.
+ */
+export function UnstyledLink(props: LinkPropsWithButtonBehavior) {
   const {Component, behavior} = useLinkBehavior(props);
   // LinkButton reuses this component for router links and passes these
   // button-only props through at runtime. They are consumed by tracking and
@@ -124,7 +129,7 @@ function LinkBase(props: LinkPropsWithButtonBehavior) {
   return <Component {...linkProps} onClick={handleClick} />;
 }
 
-const StyledLink = styled(LinkBase)`
+const StyledLink = styled(UnstyledLink)`
   ${getLinkTextStyles}
   ${getLinkStyles}
 `;

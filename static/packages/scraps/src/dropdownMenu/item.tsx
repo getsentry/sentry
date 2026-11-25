@@ -9,7 +9,7 @@ import type {Node} from '@react-types/shared';
 import {IconCheckmark} from '@sentry/icons/checkmark';
 import {IconChevron} from '@sentry/icons/chevron';
 
-import {ExternalLink, Link, type LinkProps} from '@sentry/scraps/link';
+import {type LinkProps, UnstyledLink} from '@sentry/scraps/link';
 import {
   ListItem,
   type ListItemProps,
@@ -274,11 +274,16 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
 
   const makeInnerWrapProps = () => {
     if (to) {
-      return {as: Link, to};
+      return {as: UnstyledLink, to};
     }
 
     if (externalHref) {
-      return {as: ExternalLink, href: externalHref};
+      return {
+        as: 'a' as const,
+        href: externalHref,
+        target: '_blank',
+        rel: 'noreferrer noopener',
+      };
     }
 
     return {
