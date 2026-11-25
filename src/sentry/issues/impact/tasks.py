@@ -10,7 +10,11 @@ from django.utils import timezone
 
 from sentry import features, options, quotas
 from sentry.constants import HIDE_AI_FEATURES_DEFAULT, DataCategory, ObjectStatus
-from sentry.issues.impact.assessment import assess_impact_for_group
+from sentry.issues.impact.assessment import (
+    ImpactAssessmentDisabled,
+    ImpactAssessmentEventNotFound,
+    assess_impact_for_group,
+)
 from sentry.issues.impact.types import IMPACT_FEATURE_ID
 from sentry.models.group import Group, GroupStatus
 from sentry.models.organization import Organization, OrganizationStatus
@@ -59,8 +63,7 @@ def schedule_impact_assessments(**kwargs: Any) -> None:
 
     flagged = features.batch_has_for_organizations(IMPACT_FEATURE_FLAG, list(projects_by_org))
     for organization, projects in projects_by_org.items():
-        # When the batch check is unavailable, queue anyway; the per-project
-        # task checks the flag again.
+        # Even if the batch check errors out, queue anyway since we check again on the project task
         if flagged is not None and not flagged.get(f"organization:{organization.id}", False):
             record_skip(reason="feature_disabled", count=len(projects))
             continue
@@ -125,6 +128,12 @@ def run_impact_assessments_for_project(project_id: int, **kwargs: Any) -> None:
             return
         try:
             assess_impact_for_group(group=group)
+        except ImpactAssessmentDisabled:
+            record_skip(reason="feature_disabled")
+            return
+        except ImpactAssessmentEventNotFound:
+            record_skip(reason="no_event")
+            continue
         except Exception:
             logger.exception(
                 "issues.impact.scheduled.dispatch_failed",
@@ -167,8 +176,7 @@ def select_impact_candidates(project: Project, limit: int) -> list[Group]:
 
     page_size = limit * CANDIDATE_PAGE_SIZE_FACTOR
     candidates: list[Group] = []
-    # Counts can change between page queries, so an issue can move across a
-    # page boundary and show up twice. Only consider each issue once.
+    # Counts can shift between page queries, so skip issues seen on an earlier page.
     seen_group_ids: set[int] = set()
     for page in range(MAX_CANDIDATE_PAGES):
         ranked_group_ids = get_top_groups_by_occurrence_count(

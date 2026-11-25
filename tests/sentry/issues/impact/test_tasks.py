@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, patch
 
 from sentry.constants import ObjectStatus
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
+from sentry.issues.impact.assessment import ImpactAssessmentEventNotFound
 from sentry.issues.impact.tasks import (
     run_impact_assessments_for_project,
     schedule_impact_assessments,
@@ -275,6 +276,24 @@ class RunImpactAssessmentsForProjectTest(TestCase):
         with override_options(_enabled()):
             run_impact_assessments_for_project(self.project.id)
         assert mock_assess.call_count == 3
+
+    @patch(f"{TASKS}.logger.exception")
+    @patch(f"{TASKS}.record_skip")
+    def test_missing_event_is_skipped_not_logged(
+        self,
+        mock_record_skip: MagicMock,
+        mock_log: MagicMock,
+        mock_select: MagicMock,
+        mock_assess: MagicMock,
+        mock_quota: MagicMock,
+    ) -> None:
+        mock_select.return_value = self.groups
+        mock_assess.side_effect = [ImpactAssessmentEventNotFound("no event"), None, None]
+        with override_options(_enabled()):
+            run_impact_assessments_for_project(self.project.id)
+        assert mock_assess.call_count == 3
+        mock_record_skip.assert_called_once_with(reason="no_event")
+        mock_log.assert_not_called()
 
 
 class SelectImpactCandidatesTest(TestCase, SnubaTestCase, OccurrenceTestCase):
