@@ -33,3 +33,14 @@ class IssueStreamDetectorSettings(DetectorSettings):
         "properties": {"organization_id": {"type": "integer"}},
         "additionalProperties": False,
     }
+
+
+@detector_settings_registry.register(DetectorType.ORGANIZATION_ACTIVITY)
+class OrganizationActivityDetectorSettings(DetectorSettings):
+    api_availability = dict.fromkeys(DetectorAPIOperation, False)
+    config_schema = {
+        "type": "object",
+        "properties": {"organization_id": {"type": "integer", "minimum": 1}},
+        "required": ["organization_id"],
+        "additionalProperties": False,
+    }

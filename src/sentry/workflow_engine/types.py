@@ -72,6 +72,7 @@ class DetectorType(StrEnum):
 
     ERROR = "error"
     ISSUE_STREAM = "issue_stream"
+    ORGANIZATION_ACTIVITY = "organization_activity"
     METRIC_ISSUE = "metric_issue"
     MONITOR_CHECK_IN_FAILURE = "monitor_check_in_failure"
     UPTIME_DOMAIN_FAILURE = "uptime_domain_failure"
