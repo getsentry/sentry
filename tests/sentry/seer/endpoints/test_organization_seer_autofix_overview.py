@@ -135,6 +135,7 @@ class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
         assert runs[0]["rootCause"]["oneLineDescription"] == "the boom"
         assert runs[0]["rootCause"]["headline"] is None
         assert runs[0]["proposedFix"] is None
+        assert runs[0]["isSingleRun"] is False
 
     def test_single_run_grouped_under_root_cause_milestone(self) -> None:
         group = self.create_group()
@@ -142,6 +143,7 @@ class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
         resp = self.get_success_response(self.organization.slug)
         runs = resp.data["runsByMilestone"][SeerRunMilestoneType.ROOT_CAUSE]
         assert [run["shortId"] for run in runs] == [group.qualified_short_id]
+        assert runs[0]["isSingleRun"] is True
 
     def test_root_cause_exposes_headline(self) -> None:
         group = self.create_group()

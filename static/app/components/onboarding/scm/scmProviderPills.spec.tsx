@@ -181,6 +181,39 @@ describe('ScmProviderPills', () => {
     );
   });
 
+  it('opens every install flow through openInstallPipeline when the host passes one', async () => {
+    const openPipelineModalSpy = jest
+      .spyOn(pipelineModal, 'openPipelineModal')
+      .mockImplementation(() => {});
+    const openInstallPipeline = jest.fn();
+
+    const providers = [GitHubIntegrationProviderFixture(), gitHubEnterpriseProvider];
+
+    render(
+      <ScmProviderPills
+        analyticsFlow="project-creation"
+        providers={providers}
+        onInstall={jest.fn()}
+        openInstallPipeline={openInstallPipeline}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Add GitHub'}));
+    await userEvent.click(screen.getByRole('button', {name: 'More providers'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'GitHub Enterprise'}));
+
+    expect(openPipelineModalSpy).not.toHaveBeenCalled();
+    expect(openInstallPipeline).toHaveBeenCalledTimes(2);
+    expect(openInstallPipeline).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({type: 'integration', provider: 'github'})
+    );
+    expect(openInstallPipeline).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({type: 'integration', provider: 'github_enterprise'})
+    );
+  });
+
   it('does not render "More" dropdown when all providers are primary', () => {
     const providers = [GitHubIntegrationProviderFixture()];
 
