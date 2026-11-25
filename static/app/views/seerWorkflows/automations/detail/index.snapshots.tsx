@@ -58,7 +58,7 @@ const CONFIGS: Record<string, SeerWorkflowConfigResponse> = {
   'unknown-strategy-and-user': SeerWorkflowConfigFixture({
     id: '7',
     strategy: 'not_a_known_strategy',
-    schedule: 'hourly',
+    cronSchedules: [],
     createdBy: '424242',
   }),
 };

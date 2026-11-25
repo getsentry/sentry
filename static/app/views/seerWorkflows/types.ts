@@ -143,7 +143,6 @@ export type SeerWorkflowConfigResponse = {
    * [-1] for all projects, [] for none, otherwise selected project IDs
    */
   projects: number[];
-  schedule: string;
   seededDefault: string | null;
   serviceAccount: SeerServiceAccountResponse | null;
   strategy: string;
@@ -152,6 +151,10 @@ export type SeerWorkflowConfigResponse = {
    * ID of the user who created the config. Omitted if unset
    */
   createdBy?: string;
+  /**
+   * When a scheduled automation runs. Not returned by the API yet
+   */
+  cronSchedules?: WorkflowCronSchedule[];
   /**
    * When the latest visible run started. Omitted if there are none
    */
@@ -182,7 +185,7 @@ type SeerServiceAccountRequest = {
 /**
  * When a scheduled automation runs
  */
-type WorkflowCronSchedule = {
+export type WorkflowCronSchedule = {
   /**
    * Five field crontab expression, e.g. `0 0 * * *`
    */
@@ -211,7 +214,6 @@ export type SeerWorkflowConfigCreateRequest = {
    * [-1] for all projects, otherwise selected project IDs. Omitted means none
    */
   projectIds?: number[];
-  schedule?: string;
 };
 
 /**

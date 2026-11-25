@@ -31,10 +31,7 @@ import {useParams} from 'sentry/utils/useParams';
 import {useUserFromId} from 'sentry/utils/useUserFromId';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
-import {
-  getNextUpdate,
-  type AutomationConfig,
-} from 'sentry/views/seerWorkflows/automations';
+import type {AutomationConfig} from 'sentry/views/seerWorkflows/automations';
 import type {AutomationFormHandle} from 'sentry/views/seerWorkflows/automations/baseForm';
 import {
   useDeleteConfig,
@@ -49,6 +46,7 @@ import {
   AUTO_REFRESH_INTERVAL,
   getAutomationDetailPath,
   getAutomationsPath,
+  getNextCronFiringBulk,
   useAutomationsEnabled,
 } from 'sentry/views/seerWorkflows/utils';
 
@@ -110,7 +108,7 @@ export default function AutomationDetail() {
   });
   const nextUpdate =
     config?.enabled && config.strategy !== 'breached_metric_investigation'
-      ? getNextUpdate(config.schedule)
+      ? getNextCronFiringBulk(config.cronSchedules)
       : undefined;
 
   if (!automationsEnabled) {

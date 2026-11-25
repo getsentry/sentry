@@ -82,20 +82,24 @@ describe('AutomationDetail', () => {
     expect(await screen.findByText('All projects')).toBeInTheDocument();
   });
 
-  it('shows the next run for daily schedules', async () => {
+  it('shows the next run for configs with cron schedules', async () => {
     mockConfig(
-      SeerWorkflowConfigFixture({id: '42', strategy: 'daily_strategy', schedule: 'daily'})
+      SeerWorkflowConfigFixture({
+        id: '42',
+        strategy: 'scheduled_strategy',
+        cronSchedules: [{crontab: '0 10 * * *', timezone: 'UTC'}],
+      })
     );
     renderDetail();
     expect(await screen.findByText(/Next run/)).toBeInTheDocument();
   });
 
-  it('hides the next run for non-daily schedules', async () => {
+  it('hides the next run for configs without cron schedules', async () => {
     mockConfig(
       SeerWorkflowConfigFixture({
         id: '42',
-        strategy: 'weekly_strategy',
-        schedule: 'weekly',
+        strategy: 'unscheduled_strategy',
+        cronSchedules: [],
       })
     );
     renderDetail();
