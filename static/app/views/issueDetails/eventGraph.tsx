@@ -426,7 +426,13 @@ export function EventGraph({
     currentTab,
   ]);
 
-  const bucketSize = intervalToMilliseconds(interval);
+  // Read the bucket size off the bars on screen. While a resize refetches, they
+  // are still the previous interval's, and the response doesn't say which.
+  const [firstBar, secondBar] = eventSeries;
+  const bucketSize =
+    firstBar && secondBar
+      ? secondBar.name - firstBar.name
+      : intervalToMilliseconds(interval);
 
   const legendConfig = legend({
     theme,
