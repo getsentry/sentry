@@ -464,8 +464,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:theme-variants", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the timeseries annotations framework
     manager.add("organizations:timeseries-annotations", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Attach rarityScore on timeseries annotation GET list (90d type-frequency heuristic)
-    manager.add("organizations:timeseries-annotations-rarity", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the inbound-filter-change producer for timeseries annotations
     manager.add("organizations:timeseries-annotations-usecase-filter-change", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable the experimental SDK-config-change producer for timeseries annotations

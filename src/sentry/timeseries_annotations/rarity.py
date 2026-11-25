@@ -1,8 +1,6 @@
 """Read-time rarity scoring for timeseries annotations.
-
 Rarity is org-scoped by ``annotation_type`` over a fixed 90-day lookback (clamped to
-org retention when shorter). The chart/query window only filters which rows are
-returned; it is never the rarity denominator.
+org retention when shorter).
 """
 
 from __future__ import annotations
@@ -46,8 +44,7 @@ def annotation_type_counts(organization: Organization) -> tuple[dict[int, int], 
     """
     Return (counts_by_annotation_type, window_days) for the org rarity baseline.
 
-    Counts are cached in Redis. Cache or DB failures fail open: empty counts (every
-    type looks maximally rare) rather than raising into the list endpoint.
+    Counts are cached in Redis. Fail silently.
     """
     window_days = effective_rarity_window_days(organization)
     cache_key = _CACHE_KEY.format(organization_id=organization.id)
@@ -55,7 +52,6 @@ def annotation_type_counts(organization: Organization) -> tuple[dict[int, int], 
     try:
         cached = cache.get(cache_key)
     except Exception:
-        logger.exception("timeseries_annotations.rarity_cache_get_failed")
         cached = None
 
     if isinstance(cached, dict):

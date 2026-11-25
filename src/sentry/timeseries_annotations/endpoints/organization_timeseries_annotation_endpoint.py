@@ -127,16 +127,10 @@ class OrganizationTimeseriesAnnotationEndpoint(OrganizationEndpoint):
         # back to comparing model instances (which aren't orderable).
         annotations.sort(key=lambda a: (a.start_timestamp, a.id))
 
-        # Rarity is independent of the chart window: fixed 90d (or retention) type counts.
-        # Do not overwrite producer/user severity — rarity is a separate continuous field.
+        # Rarity is computed in context of retention period, hardcoded to max 90d.
         rarity_kwargs: dict[str, object] = {}
-        if features.has(
-            "organizations:timeseries-annotations-rarity",
-            organization,
-            actor=request.user,
-        ):
-            counts, window_days = annotation_type_counts(organization)
-            rarity_kwargs = {"rarity_counts": counts, "rarity_window_days": window_days}
+        counts, window_days = annotation_type_counts(organization)
+        rarity_kwargs = {"rarity_counts": counts, "rarity_window_days": window_days}
 
         return self.paginate(
             request=request,
