@@ -30,16 +30,16 @@ def _inbox_calls(event_data: WorkflowEventData) -> list[partial[None]]:
     return calls
 
 
+def _require_issue_activity_with_targets(event_data: WorkflowEventData) -> None:
+    _inbox_calls(event_data)
+
+
 @action_handler_registry.register(Action.Type.ADD_TO_INBOX)
 class AddToInboxActionHandler(ActionHandler):
+    event_validators = (_require_issue_activity_with_targets,)
     group = ActionHandler.Group.OTHER
     config_schema = {"type": "object", "additionalProperties": False}
     data_schema = {"type": "object", "additionalProperties": False}
-
-    @staticmethod
-    @override
-    def validate_event_data(event_data: WorkflowEventData) -> None:
-        _inbox_calls(event_data)
 
     @staticmethod
     @override
