@@ -13,6 +13,7 @@ import unescape from 'lodash/unescape';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 
 import type {AnnotationItem} from 'sentry/components/charts/annotations/types';
+import {useBarsPerAnnotationBucket} from 'sentry/components/charts/bands/annotationBucketSize';
 import {BAND_Y_AXIS, type BandBucket} from 'sentry/components/charts/bands/bandShapes';
 import {useBandTooltips} from 'sentry/components/charts/bands/bandTooltip';
 import {mergeChartBands} from 'sentry/components/charts/bands/mergeChartBands';
@@ -516,8 +517,14 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     () => (hasAnnotations ? getBandBuckets(props.plottables) : []),
     [hasAnnotations, props.plottables]
   );
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+  const barsPerAnnotationBucket = useBarsPerAnnotationBucket(
+    chartContainerRef,
+    bandBuckets.length
+  );
   const annotationBand = useAnnotationBand({
     buckets: bandBuckets,
+    barsPerBucket: barsPerAnnotationBucket,
     items: props.annotations,
     onClick: props.onAnnotationClick,
   });
@@ -875,7 +882,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       ) : (
         legend
       )}
-      <Container flex="1 1 0%" minHeight="0">
+      <Container ref={chartContainerRef} flex="1 1 0%" minHeight="0">
         <BaseChart
           ref={mergedChartRef}
           autoHeightResize
