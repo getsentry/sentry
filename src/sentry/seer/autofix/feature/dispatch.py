@@ -43,7 +43,6 @@ from sentry.seer.autofix.feature.models import (
 from sentry.seer.autofix.open_prs import get_open_prs
 from sentry.seer.autofix.pr_iteration.feedback import (
     Feedback,
-    feedback_text,
     serialize_feedback,
 )
 from sentry.seer.autofix.single_run import CODING_AGENT_HANDOFF_KEY, hands_off_to_coding_agent
@@ -263,6 +262,7 @@ def continue_single_run_from_pr_feedback(
     agent_run: SeerAgentRun,
     group: Group,
     *,
+    reply: str,
     feedback: Sequence[Feedback],
     iteration_index: int,
     iteration_id: int | None,
@@ -280,7 +280,7 @@ def continue_single_run_from_pr_feedback(
     return _continue_single_run(
         agent_run,
         group,
-        reply=feedback_text(feedback),
+        reply=reply,
         user=None,
         enable_coding=enable_coding,
         pr_internal_settings=(
