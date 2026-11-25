@@ -9,12 +9,81 @@ import pytest
 from django.urls import reverse
 from rest_framework.response import Response
 
-from sentry.api.endpoints.timeseries import IncompleteReason
+from sentry.api.endpoints.timeseries import BucketBoundaries, IncompleteReason
 from sentry.ingestion_delay.status import IngestionDelayStatus, IngestionStatus
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
+
+
+@pytest.mark.parametrize(
+    "now,complete_through,query_start,query_end,retention_start,expected",
+    [
+        pytest.param(
+            200, 180, 90, 150, 110, IncompleteReason.OUTSIDE_RETENTION, id="retention-over-range"
+        ),
+        pytest.param(
+            150,
+            140,
+            90,
+            170,
+            110,
+            IncompleteReason.OUTSIDE_RETENTION,
+            id="retention-over-not-elapsed",
+        ),
+        pytest.param(
+            200,
+            140,
+            90,
+            170,
+            110,
+            IncompleteReason.OUTSIDE_RETENTION,
+            id="retention-over-ingestion",
+        ),
+        pytest.param(
+            150,
+            140,
+            90,
+            150,
+            None,
+            IncompleteReason.EXCEEDS_QUERY_RANGE,
+            id="range-over-not-elapsed",
+        ),
+        pytest.param(
+            200, 140, 90, 150, None, IncompleteReason.EXCEEDS_QUERY_RANGE, id="range-over-ingestion"
+        ),
+        pytest.param(
+            200,
+            140,
+            110,
+            170,
+            None,
+            IncompleteReason.EXCEEDS_QUERY_RANGE,
+            id="start-range-over-ingestion",
+        ),
+        pytest.param(
+            150, 140, 90, 170, None, IncompleteReason.NOT_ELAPSED, id="not-elapsed-over-ingestion"
+        ),
+    ],
+)
+def test_incomplete_reason_precedence(
+    now: float,
+    complete_through: float,
+    query_start: float,
+    query_end: float,
+    retention_start: float | None,
+    expected: IncompleteReason,
+) -> None:
+    boundaries = BucketBoundaries(
+        now=now,
+        complete_through=complete_through,
+        query_start=query_start,
+        query_end=query_end,
+        retention_start=retention_start,
+    )
+
+    assert boundaries.incomplete_reason(bucket_start=100, rollup=60) == expected
 
 
 class OrganizationEventsTimeseriesTransformationsTest(APITestCase):
@@ -685,8 +754,16 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
         assert other["meta"]["order"] == 1
         assert other["values"][0]["value"] == 1
 
-    def test_incomplete_bucket(self) -> None:
-        with freeze_time(self.end):
+    def test_incomplete_bucket_ingestion_pending(self) -> None:
+        self._assert_incomplete_bucket(0, IncompleteReason.INGESTION_PENDING)
+
+    def test_incomplete_bucket_not_elapsed(self) -> None:
+        self._assert_incomplete_bucket(30, IncompleteReason.NOT_ELAPSED)
+
+    def _assert_incomplete_bucket(
+        self, minutes_before_end: int, expected_reason: IncompleteReason
+    ) -> None:
+        with freeze_time(self.end - timedelta(minutes=minutes_before_end)):
             response = self.do_request(
                 {
                     "start": self.start,
@@ -713,13 +790,13 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
             },
             {
                 "incomplete": True,
-                "incompleteReason": IncompleteReason.INGESTION_PENDING,
+                "incompleteReason": expected_reason,
                 "timestamp": self.start.timestamp() * 1000 + 3_600_000 * 1,
                 "value": 2,
             },
             {
                 "incomplete": True,
-                "incompleteReason": IncompleteReason.NOT_ELAPSED,
+                "incompleteReason": IncompleteReason.EXCEEDS_QUERY_RANGE,
                 "timestamp": self.start.timestamp() * 1000 + 3_600_000 * 2,
                 "value": 0,
             },

@@ -31,17 +31,17 @@ class BucketBoundaries:
 
     def incomplete_reason(self, bucket_start: float, rollup: int) -> IncompleteReason | None:
         bucket_end = bucket_start + rollup
-        if bucket_end > self.now:
-            return IncompleteReason.NOT_ELAPSED
-
         if self.retention_start is not None and bucket_start < self.retention_start:
             return IncompleteReason.OUTSIDE_RETENTION
 
-        if bucket_end >= self.complete_through:
-            return IncompleteReason.INGESTION_PENDING
-
         if bucket_start < self.query_start or bucket_end > self.query_end:
             return IncompleteReason.EXCEEDS_QUERY_RANGE
+
+        if bucket_end > self.now:
+            return IncompleteReason.NOT_ELAPSED
+
+        if bucket_end >= self.complete_through:
+            return IncompleteReason.INGESTION_PENDING
 
         return None
 
