@@ -25,6 +25,7 @@ from sentry.telemetry_classifiers.prebuilt import PREBUILT_CLASSIFIERS
 from sentry.telemetry_classifiers.types import (
     Dataset,
     PrebuiltClassifier,
+    TelemetryClassifierOutputType,
     TelemetryClassifierStatus,
 )
 from sentry.users.api.serializers.user import UserSerializerResponse
@@ -40,12 +41,12 @@ class TelemetryClassifierResponse(TypedDict):
     projectId: str
     name: str
     resultAttribute: str
-    dataset: str
+    dataset: Dataset
     filterQuery: str
-    status: str
+    status: TelemetryClassifierStatus
     prebuiltClassifierKey: str | None
     naturalLanguagePrompt: str | None
-    outputType: str
+    outputType: TelemetryClassifierOutputType
     binaryThreshold: float | None
     createdBy: UserSerializerResponse | None
     dateAdded: datetime
@@ -90,9 +91,9 @@ class TelemetryClassifierSerializer(Serializer[TelemetryClassifierResponse]):
             "projectId": str(obj.project_id),
             "name": obj.name,
             "resultAttribute": obj.result_attribute,
-            "dataset": obj.dataset,
+            "dataset": Dataset(obj.dataset),
             "filterQuery": obj.filter_query,
-            "status": obj.status,
+            "status": TelemetryClassifierStatus(obj.status),
             "prebuiltClassifierKey": obj.prebuilt_classifier_key,
             "naturalLanguagePrompt": obj.natural_language_prompt,
             "outputType": definition.output_type,
@@ -105,8 +106,8 @@ class TelemetryClassifierSerializer(Serializer[TelemetryClassifierResponse]):
 
 class PrebuiltClassifierResponse(TypedDict):
     key: str
-    dataset: str
-    outputType: str
+    dataset: Dataset
+    outputType: TelemetryClassifierOutputType
     binaryThreshold: float | None
     name: str
     description: str
