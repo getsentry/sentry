@@ -186,8 +186,20 @@ class SerializedNotebookDetails(NotebookSerializerResponse):
 
 
 class NotebookDetailsSerializerResponse(SerializedNotebookDetails):
-    workflowReport: NotRequired[dict[str, JsonValue]]
-    workflowLaunch: NotRequired[dict[str, str]]
+    workflowReport: NotRequired[
+        Annotated[
+            dict[str, JsonValue],
+            ApiDescription(
+                "Progress, hypotheses, and results from the workflow producing this notebook"
+            ),
+        ]
+    ]
+    workflowLaunch: NotRequired[
+        Annotated[
+            dict[str, str],
+            ApiDescription("Dispatch status for the workflow requested for this notebook"),
+        ]
+    ]
 
 
 @register(Notebook)
