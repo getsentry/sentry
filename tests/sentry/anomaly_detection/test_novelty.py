@@ -140,7 +140,7 @@ def test_routine_size_can_become_unusual_by_duration() -> None:
     long = novelty.judge_duration(flare, 60, t + 60 * MINUTE)
     assert long.unusual
     assert long.similar == 0
-    assert long.as_evidence()["lasting_min"] == 60
+    assert long.lasting_min == 60
     assert "lasting 60m+" in long.text()
 
 

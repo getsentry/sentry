@@ -13,20 +13,15 @@ from __future__ import annotations
 import re
 from collections.abc import Callable, Iterable, Iterator
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import NamedTuple
 
-from sentry.anomaly_detection.contracts import (
-    ChangeEvent,
-    Metric,
-    NoveltyEvidence,
-    SeriesKey,
-    Signal,
-)
+from sentry.anomaly_detection.contracts import ChangeEvent, Metric, SeriesKey, Signal
 from sentry.anomaly_detection.evaluation.distributions import gamma_sf
 
 DAY = 86400.0
 _MINUTE = timedelta(minutes=1)
+_NEVER = datetime.min.replace(tzinfo=UTC)
 
 # One bit per minute keeps a full hour of observations in a single JSON-safe integer.
 HourlyCoverage = dict[datetime, int]
@@ -65,21 +60,6 @@ class Verdict:
     kind: NoveltyKind
     p_normal: float = 0.0
     lasting_min: float | None = None
-
-    def as_evidence(self) -> NoveltyEvidence:
-        evidence = NoveltyEvidence(
-            unusual=self.unusual,
-            size=round(self.size, 2),
-            return_days=round(self.return_days, 2),
-            similar=self.similar,
-            history_days=round(self.history_days, 2),
-            pooled_rate=round(self.pooled_rate, 4),
-            kind=str(self.kind),
-            p_normal=round(self.p_normal, 3),
-        )
-        if self.lasting_min is not None:
-            evidence["lasting_min"] = round(self.lasting_min)
-        return evidence
 
     def text(self) -> str:
         basis = (
@@ -174,12 +154,12 @@ class Novelty:
 
     def last_seen(self, key: SeriesKey) -> datetime:
         """The latest observed minute or recorded excursion start of a series."""
-        latest_observation = datetime.min
+        latest_observation = _NEVER
         if hours := self.state.coverage.get(key):
             latest_hour = max(hours)
             latest_observation = latest_hour + (hours[latest_hour].bit_length() - 1) * _MINUTE
         latest_excursion = max(
-            (record.start for record in self.state.history.get(key, ())), default=datetime.min
+            (record.start for record in self.state.history.get(key, ())), default=_NEVER
         )
         return max(latest_observation, latest_excursion)
 
