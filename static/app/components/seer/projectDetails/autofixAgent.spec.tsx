@@ -59,6 +59,7 @@ describe('AutofixAgent', () => {
         autoCreatePr: null,
         automationTuning: 'off',
         scannerAutomation: false,
+        openPrs: false,
         prIteration,
         reposCount: repos.length,
       },
@@ -219,9 +220,9 @@ describe('AutofixAgent', () => {
 
     render(<AutofixAgent canWrite project={project} />, {organization});
 
-    const select = await screen.findByRole('textbox', {name: 'Auto-Iterate on PRs'});
-    await waitFor(() => expect(select).toBeEnabled());
-    expect(screen.getByText('Off')).toBeInTheDocument();
+    const toggle = await screen.findByRole('checkbox', {name: 'Auto-Iterate on PRs'});
+    await waitFor(() => expect(toggle).toBeEnabled());
+    expect(toggle).not.toBeChecked();
   });
 
   it('saves Auto-Iterate on PRs when changed', async () => {
@@ -229,10 +230,9 @@ describe('AutofixAgent', () => {
 
     render(<AutofixAgent canWrite project={project} />, {organization});
 
-    const select = await screen.findByRole('textbox', {name: 'Auto-Iterate on PRs'});
-    await waitFor(() => expect(select).toBeEnabled());
-    await userEvent.click(select);
-    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Off'}));
+    const toggle = await screen.findByRole('checkbox', {name: 'Auto-Iterate on PRs'});
+    await waitFor(() => expect(toggle).toBeEnabled());
+    await userEvent.click(toggle);
 
     await waitFor(() =>
       expect(putMock).toHaveBeenCalledWith(
@@ -248,14 +248,15 @@ describe('AutofixAgent', () => {
     render(<AutofixAgent canWrite={false} project={project} />, {organization});
 
     expect(
-      await screen.findByRole('textbox', {name: 'Auto-Iterate on PRs'})
+      await screen.findByRole('checkbox', {name: 'Auto-Iterate on PRs'})
     ).toBeDisabled();
   });
 
   // The reason is shown via the field's DisabledTip lock icon.
   async function expectPrIterationDisabledWithReason() {
-    const select = await screen.findByRole('textbox', {name: 'Auto-Iterate on PRs'});
-    await waitFor(() => expect(select).toBeDisabled());
+    const toggle = await screen.findByRole('checkbox', {name: 'Auto-Iterate on PRs'});
+    await waitFor(() => expect(toggle).toBeDisabled());
+    expect(toggle).not.toBeChecked();
     await userEvent.hover(await screen.findByRole('img', {name: 'Disabled'}));
     expect(await screen.findByText(NON_GITHUB_PR_ITERATION_WARNING)).toBeInTheDocument();
   }
@@ -267,7 +268,6 @@ describe('AutofixAgent', () => {
 
     await expectPrIterationDisabledWithReason();
     // Shown as off, but the stored value is left alone.
-    expect(screen.getAllByText('Off').length).toBeGreaterThan(0);
     expect(putMock).not.toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({data: expect.objectContaining({prIteration: false})})
@@ -284,8 +284,8 @@ describe('AutofixAgent', () => {
 
     render(<AutofixAgent canWrite project={project} />, {organization});
 
-    const select = await screen.findByRole('textbox', {name: 'Auto-Iterate on PRs'});
-    await waitFor(() => expect(select).toBeEnabled());
+    const toggle = await screen.findByRole('checkbox', {name: 'Auto-Iterate on PRs'});
+    await waitFor(() => expect(toggle).toBeEnabled());
     expect(screen.queryByRole('img', {name: 'Disabled'})).not.toBeInTheDocument();
   });
 
@@ -295,7 +295,7 @@ describe('AutofixAgent', () => {
     render(<AutofixAgent canWrite project={project} />, {organization});
 
     expect(
-      await screen.findByRole('textbox', {name: 'Auto-Iterate on PRs'})
+      await screen.findByRole('checkbox', {name: 'Auto-Iterate on PRs'})
     ).toBeDisabled();
     expect(screen.queryByRole('img', {name: 'Disabled'})).not.toBeInTheDocument();
   });
@@ -311,8 +311,26 @@ describe('AutofixAgent', () => {
 
     render(<AutofixAgent canWrite project={project} />, {organization});
 
-    const select = await screen.findByRole('textbox', {name: 'Auto-Iterate on PRs'});
-    await waitFor(() => expect(select).toBeEnabled());
-    expect(screen.getByText('On')).toBeInTheDocument();
+    const toggle = await screen.findByRole('checkbox', {name: 'Auto-Iterate on PRs'});
+    await waitFor(() => expect(toggle).toBeEnabled());
+    expect(toggle).toBeChecked();
+  });
+
+  it('shows an Open PRs switch next to Automation Steps for single-run orgs', async () => {
+    const putMock = mockEndpoints({repos: [seerRepo({provider: 'github'})]});
+
+    render(<AutofixAgent canWrite project={project} />, {
+      organization: OrganizationFixture({features: ['autofix-single-run']}),
+    });
+
+    await userEvent.click(await screen.findByRole('checkbox', {name: 'Open PRs'}));
+
+    await waitFor(() =>
+      expect(putMock).toHaveBeenCalledWith(
+        `/projects/${organization.slug}/${project.slug}/seer/settings/`,
+        expect.objectContaining({data: {openPrs: true}})
+      )
+    );
+    expect(screen.getByText('Automation Steps')).toBeInTheDocument();
   });
 });

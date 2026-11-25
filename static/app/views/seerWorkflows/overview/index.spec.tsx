@@ -295,7 +295,7 @@ describe('AutofixOverview', () => {
     renderPage();
 
     expect(
-      await screen.findByRole('button', {name: 'Create Plan 1'})
+      await screen.findByRole('button', {name: 'Confirm Root Cause 1'})
     ).toBeInTheDocument();
     expect(
       screen.getByRole('button', {name: 'Generate code changes 1'})
@@ -544,7 +544,7 @@ describe('AutofixOverview', () => {
     renderPage();
 
     expect(
-      await screen.findByRole('button', {name: 'Create Plan 1'})
+      await screen.findByRole('button', {name: 'Confirm Root Cause 1'})
     ).toBeInTheDocument();
     expect(
       screen.getByRole('button', {name: 'Generate code changes 1'})
@@ -552,7 +552,9 @@ describe('AutofixOverview', () => {
 
     await userEvent.click(screen.getByRole('tab', {name: 'In Progress (1)'}));
 
-    expect(screen.getByRole('button', {name: 'Create Plan 1'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {name: 'Confirm Root Cause 1'})
+    ).toBeInTheDocument();
     expect(
       screen.queryByRole('button', {name: 'Generate code changes 1'})
     ).not.toBeInTheDocument();
@@ -627,7 +629,7 @@ describe('AutofixOverview', () => {
     renderPage();
 
     expect(
-      await screen.findByRole('button', {name: 'Create Plan 1'})
+      await screen.findByRole('button', {name: 'Confirm Root Cause 1'})
     ).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('tab', {name: 'In Progress (0)'}));
@@ -635,7 +637,9 @@ describe('AutofixOverview', () => {
     expect(
       screen.getByText('No Autofix runs are currently in progress.')
     ).toBeInTheDocument();
-    expect(screen.queryByRole('button', {name: 'Create Plan 1'})).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Confirm Root Cause 1'})
+    ).not.toBeInTheDocument();
   });
 
   it('persists the selected tab in the URL', async () => {
@@ -666,7 +670,7 @@ describe('AutofixOverview', () => {
     renderPage({view: 'in_progress'});
 
     expect(
-      await screen.findByRole('button', {name: 'Create Plan 1'})
+      await screen.findByRole('button', {name: 'Confirm Root Cause 1'})
     ).toBeInTheDocument();
     expect(
       screen.queryByRole('button', {name: 'Generate code changes 1'})
@@ -2099,7 +2103,7 @@ describe('AutofixOverview', () => {
       await userEvent.click(janeOption);
 
       expect(
-        await screen.findByRole('button', {name: 'Create Plan 1'})
+        await screen.findByRole('button', {name: 'Confirm Root Cause 1'})
       ).toBeInTheDocument();
       expect(
         screen.queryByRole('button', {name: /Generate code changes/})
@@ -2171,7 +2175,7 @@ describe('AutofixOverview', () => {
       });
 
       renderPage();
-      await screen.findByRole('button', {name: 'Create Plan 1'});
+      await screen.findByRole('button', {name: 'Confirm Root Cause 1'});
 
       await userEvent.click(screen.getByRole('button', {name: /Assignee/}));
 
@@ -2269,7 +2273,7 @@ describe('AutofixOverview', () => {
       });
 
       const {router} = renderPage({assignee: 'user:7'});
-      await screen.findByRole('button', {name: 'Create Plan 1'});
+      await screen.findByRole('button', {name: 'Confirm Root Cause 1'});
       expect(
         screen.queryByRole('button', {name: /Generate code changes/})
       ).not.toBeInTheDocument();
@@ -2300,7 +2304,7 @@ describe('AutofixOverview', () => {
       });
 
       renderPage();
-      await screen.findByRole('button', {name: 'Create Plan 1'});
+      await screen.findByRole('button', {name: 'Confirm Root Cause 1'});
 
       await userEvent.click(screen.getByRole('button', {name: 'Modify issue assignee'}));
       await userEvent.click(await screen.findByRole('option', {name: /Next Assignee/}));
@@ -2376,7 +2380,7 @@ describe('AutofixOverview', () => {
     });
 
     expect(
-      await screen.findByRole('button', {name: 'Create Plan 1'})
+      await screen.findByRole('button', {name: 'Confirm Root Cause 1'})
     ).toBeInTheDocument();
   });
 
@@ -2529,7 +2533,7 @@ describe('AutofixOverview', () => {
     renderPage();
 
     expect(
-      await screen.findByRole('button', {name: 'Create Plan 1'})
+      await screen.findByRole('button', {name: 'Confirm Root Cause 1'})
     ).toBeInTheDocument();
     expect(screen.queryByLabelText('Seer setup warning')).not.toBeInTheDocument();
     expect(

@@ -3434,6 +3434,16 @@ class TestSingleRunCompletion(TestCase):
         (call,) = mocks["updates"].call_args_list
         assert call.kwargs["kwargs"]["event_type"] == SentryAppEventType.SEER_ERRORED
 
+    def test_errored_run_with_a_root_cause_records_the_root_cause_milestone(self) -> None:
+        self._execute(self._state(single_run_memory_block(_ROOT_CAUSE), status="error"))
+
+        milestone = SeerRunMilestone.objects.get(
+            seer_run=self.seer_run, milestone=SeerRunMilestoneType.ROOT_CAUSE
+        )
+        assert milestone.extras == {
+            "root_cause_artifact": {"one_line_description": "C", "headline": "H"}
+        }
+
     def _set_up_handoff(self, *, flagged: bool = True) -> None:
         self.project.update_option("sentry:seer_automation_handoff_point", "root_cause")
         self.project.update_option(

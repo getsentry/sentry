@@ -32,6 +32,7 @@ function makeResponseFixture(
     autoCreatePr: null,
     automationTuning: 'medium',
     integrationId: null,
+    openPrs: false,
     prIteration: true,
     projectId: '1',
     projectSlug: 'project-slug',
