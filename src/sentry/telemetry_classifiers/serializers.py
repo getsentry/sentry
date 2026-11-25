@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
-from typing import Any, Literal, TypedDict, cast
+from typing import Any, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 from rest_framework import serializers
@@ -25,6 +25,7 @@ from sentry.telemetry_classifiers.prebuilt import PREBUILT_CLASSIFIERS
 from sentry.telemetry_classifiers.types import (
     Dataset,
     PrebuiltClassifier,
+    TelemetryClassifierOutputType,
     TelemetryClassifierStatus,
 )
 from sentry.users.api.serializers.user import UserSerializerResponse
@@ -34,22 +35,18 @@ from sentry.users.services.user.service import user_service
 
 RESULT_ATTRIBUTE_PATTERN = re.compile(r"\A[a-z0-9_]+(\.[a-z0-9_]+)*\Z")
 
-DatasetValue = Literal["conversation", "trace_spans"]
-StatusValue = Literal["disabled", "enabled"]
-OutputTypeValue = Literal["binary", "choice", "score"]
-
 
 class TelemetryClassifierResponse(TypedDict):
     id: str
     projectId: str
     name: str
     resultAttribute: str
-    dataset: DatasetValue
+    dataset: Dataset
     filterQuery: str
-    status: StatusValue
+    status: TelemetryClassifierStatus
     prebuiltClassifierKey: str | None
     naturalLanguagePrompt: str | None
-    outputType: OutputTypeValue
+    outputType: TelemetryClassifierOutputType
     binaryThreshold: float | None
     createdBy: UserSerializerResponse | None
     dateAdded: datetime
@@ -94,12 +91,12 @@ class TelemetryClassifierSerializer(Serializer[TelemetryClassifierResponse]):
             "projectId": str(obj.project_id),
             "name": obj.name,
             "resultAttribute": obj.result_attribute,
-            "dataset": cast(DatasetValue, obj.dataset),
+            "dataset": Dataset(obj.dataset),
             "filterQuery": obj.filter_query,
-            "status": cast(StatusValue, obj.status),
+            "status": TelemetryClassifierStatus(obj.status),
             "prebuiltClassifierKey": obj.prebuilt_classifier_key,
             "naturalLanguagePrompt": obj.natural_language_prompt,
-            "outputType": cast(OutputTypeValue, definition.output_type),
+            "outputType": definition.output_type,
             "binaryThreshold": definition.binary_threshold,
             "createdBy": attrs["createdBy"],
             "dateAdded": obj.date_added,
@@ -109,8 +106,8 @@ class TelemetryClassifierSerializer(Serializer[TelemetryClassifierResponse]):
 
 class PrebuiltClassifierResponse(TypedDict):
     key: str
-    dataset: DatasetValue
-    outputType: OutputTypeValue
+    dataset: Dataset
+    outputType: TelemetryClassifierOutputType
     binaryThreshold: float | None
     name: str
     description: str
@@ -127,8 +124,8 @@ class PrebuiltClassifierSerializer(Serializer[PrebuiltClassifierResponse]):
     ) -> PrebuiltClassifierResponse:
         return {
             "key": obj.key,
-            "dataset": cast(DatasetValue, obj.dataset),
-            "outputType": cast(OutputTypeValue, obj.output_type),
+            "dataset": obj.dataset,
+            "outputType": obj.output_type,
             "binaryThreshold": obj.binary_threshold,
             "name": obj.name,
             "description": obj.description,
