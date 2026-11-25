@@ -9,7 +9,7 @@ import {useMenu, useSubmenuTrigger} from '@react-aria/menu';
 import {useSeparator} from '@react-aria/separator';
 import {Item, Section} from '@react-stately/collections';
 import type {RootMenuTriggerState} from '@react-stately/menu';
-import type {TreeProps, TreeState} from '@react-stately/tree';
+import type {TreeProps} from '@react-stately/tree';
 import {useTreeState} from '@react-stately/tree';
 import type {Key, Node} from '@react-types/shared';
 
@@ -228,7 +228,6 @@ interface DropdownMenuRowsProps extends DropdownMenuCollectionProps {
   menuRef: React.RefObject<HTMLUListElement | null>;
   /** Called once with the width to keep for a virtualized menu. */
   onLockWidth: (width: number) => void;
-  state: TreeState<MenuItemProps>;
   virtualized: boolean;
   /** A row to keep mounted, so the menu's width fits it. */
   widestKey: Key | undefined;
@@ -249,11 +248,11 @@ function DropdownMenuRows({
   isWidthLocked,
   menuRef,
   onLockWidth,
-  state,
   virtualized,
   widestKey,
   ...itemProps
 }: DropdownMenuRowsProps) {
+  const state = useContext(DropdownMenuTreeStateContext);
   // The virtualizer re-renders the component that calls it on every scroll.
   // Calling it here, rather than in `DropdownMenuList`, keeps those re-renders
   // to the rows: the list's state and handlers keep their identity, so a row
@@ -532,7 +531,6 @@ function DropdownMenuList({
                         onClose={onClose}
                         separatorProps={separatorProps}
                         size={size}
-                        state={state}
                       />
                     </DropdownMenuTreeStateContext>
                   </ReserveLeadingSlot>
