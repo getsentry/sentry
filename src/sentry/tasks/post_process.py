@@ -25,6 +25,7 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.killswitches import (
+    conditions_match,
     get_killswitch_value,
     killswitch_matches_context,
     value_matches,
@@ -880,23 +881,24 @@ def run_post_process_job(job: PostProcessJob) -> None:
         else None
     )
 
-    def is_disabled(step_name: str) -> bool:
-        if killswitch_context is None:
-            return False
-        return value_matches(
-            "post_process.disable-pipeline-steps",
-            disabled_steps,
-            {"pipeline_step": step_name, **killswitch_context},
-            emit_metrics=False,
+    def will_run(step_name: str) -> bool:
+        # Looks ahead of the loop below, which counts a disabled step when it reaches
+        # it. Looking ahead must not count the step as well.
+        return step_name in step_names and not (
+            killswitch_context is not None
+            and conditions_match(disabled_steps, {"pipeline_step": step_name, **killswitch_context})
         )
 
     step_names = {step.__name__ for step in pipeline}
-    job["event_link_steps_enabled"] = all(
-        name in step_names and not is_disabled(name) for name in EVENT_LINK_PROBE_STEPS
-    )
+    job["event_link_steps_enabled"] = all(will_run(name) for name in EVENT_LINK_PROBE_STEPS)
 
     for pipeline_step in pipeline:
-        if is_disabled(pipeline_step.__name__):
+        if killswitch_context is not None and value_matches(
+            "post_process.disable-pipeline-steps",
+            disabled_steps,
+            {"pipeline_step": pipeline_step.__name__, **killswitch_context},
+            emit_metrics=False,
+        ):
             metrics.incr(
                 "sentry.tasks.post_process.post_process_group.killswitched",
                 tags={
