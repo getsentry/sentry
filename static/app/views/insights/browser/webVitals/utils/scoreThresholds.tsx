@@ -1,6 +1,6 @@
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 
-import {BrowserType} from './queryParameterDecoders/browserType';
+import type {DeviceType} from './deviceType';
 
 export const PERFORMANCE_SCORE_WEIGHTS: Record<WebVitals, number> = {
   lcp: 30,
@@ -45,44 +45,17 @@ const MOBILE_PERFORMANCE_SCORE_P90S: Record<WebVitals, number> = {
   inp: 200,
 };
 
-const MOBILE_BROWSER_TYPES = new Set<BrowserType>([
-  BrowserType.CHROME_MOBILE,
-  BrowserType.FIREFOX_MOBILE,
-  BrowserType.SAFARI_MOBILE,
-  BrowserType.EDGE_MOBILE,
-  BrowserType.OPERA_MOBILE,
-]);
-
-/**
- * Returns the values at which a web vital stops being "Good" (`p90`) and
- * becomes "Poor" (`median`) for the selected browsers. Returns `undefined`
- * when the selection mixes desktop and mobile browsers, including when no
- * browser filter is set, because no single scale applies to that data.
- */
 export function getWebVitalScoreThresholds(
   webVital: WebVitals,
-  browserTypes: BrowserType[] = []
-): {median: number; p90: number} | undefined {
-  const selected = browserTypes.filter(browserType => browserType !== BrowserType.ALL);
-  if (selected.length === 0) {
-    return undefined;
-  }
-
-  const mobileCount = selected.filter(browserType =>
-    MOBILE_BROWSER_TYPES.has(browserType)
-  ).length;
-
-  if (mobileCount === selected.length) {
-    return {
-      p90: MOBILE_PERFORMANCE_SCORE_P90S[webVital],
-      median: MOBILE_PERFORMANCE_SCORE_MEDIANS[webVital],
-    };
-  }
-  if (mobileCount === 0) {
-    return {
-      p90: PERFORMANCE_SCORE_P90S[webVital],
-      median: PERFORMANCE_SCORE_MEDIANS[webVital],
-    };
-  }
-  return undefined;
+  deviceType: DeviceType
+): {median: number; p90: number} {
+  return deviceType === 'mobile'
+    ? {
+        p90: MOBILE_PERFORMANCE_SCORE_P90S[webVital],
+        median: MOBILE_PERFORMANCE_SCORE_MEDIANS[webVital],
+      }
+    : {
+        p90: PERFORMANCE_SCORE_P90S[webVital],
+        median: PERFORMANCE_SCORE_MEDIANS[webVital],
+      };
 }
