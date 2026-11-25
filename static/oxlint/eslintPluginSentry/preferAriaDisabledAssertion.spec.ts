@@ -4,8 +4,8 @@ import {preferAriaDisabledAssertion} from './preferAriaDisabledAssertion';
 
 const ruleTester = new RuleTester({languageOptions: {parserOptions: {lang: 'ts'}}});
 
-const ENABLED = ".not.toHaveAttribute('aria-disabled', 'true')";
-const DISABLED = ".toHaveAttribute('aria-disabled', 'true')";
+const IS_ENABLED = ".not.toHaveAttribute('aria-disabled', 'true')";
+const IS_DISABLED = ".toHaveAttribute('aria-disabled', 'true')";
 
 function ariaDisabledError(output: string, replacement: string) {
   return {
@@ -55,8 +55,8 @@ ruleTester.run('prefer-aria-disabled-assertion', preferAriaDisabledAssertion, {
       code: `expect(screen.getByRole('menuitemradio', {name: 'New Query'})).toBeEnabled();`,
       errors: [
         ariaDisabledError(
-          `expect(screen.getByRole('menuitemradio', {name: 'New Query'}))${ENABLED};`,
-          ENABLED
+          `expect(screen.getByRole('menuitemradio', {name: 'New Query'}))${IS_ENABLED};`,
+          IS_ENABLED
         ),
       ],
     },
@@ -65,8 +65,8 @@ ruleTester.run('prefer-aria-disabled-assertion', preferAriaDisabledAssertion, {
       code: `expect(screen.getByRole('option', {name: 'Top 5'})).toBeDisabled();`,
       errors: [
         ariaDisabledError(
-          `expect(screen.getByRole('option', {name: 'Top 5'}))${DISABLED};`,
-          DISABLED
+          `expect(screen.getByRole('option', {name: 'Top 5'}))${IS_DISABLED};`,
+          IS_DISABLED
         ),
       ],
     },
@@ -74,36 +74,43 @@ ruleTester.run('prefer-aria-disabled-assertion', preferAriaDisabledAssertion, {
       name: 'not.toBeEnabled asserts disabled',
       code: `expect(screen.getByRole('menuitem')).not.toBeEnabled();`,
       errors: [
-        ariaDisabledError(`expect(screen.getByRole('menuitem'))${DISABLED};`, DISABLED),
+        ariaDisabledError(
+          `expect(screen.getByRole('menuitem'))${IS_DISABLED};`,
+          IS_DISABLED
+        ),
       ],
     },
     {
       name: 'not.toBeDisabled asserts enabled',
       code: `expect(screen.getByRole('tab')).not.toBeDisabled();`,
-      errors: [ariaDisabledError(`expect(screen.getByRole('tab'))${ENABLED};`, ENABLED)],
+      errors: [
+        ariaDisabledError(`expect(screen.getByRole('tab'))${IS_ENABLED};`, IS_ENABLED),
+      ],
     },
     {
       name: 'awaited findByRole inside within',
       code: `async function f() { expect(await within(menu).findByRole('menuitemcheckbox')).toBeEnabled(); }`,
       errors: [
         ariaDisabledError(
-          `async function f() { expect(await within(menu).findByRole('menuitemcheckbox'))${ENABLED}; }`,
-          ENABLED
+          `async function f() { expect(await within(menu).findByRole('menuitemcheckbox'))${IS_ENABLED}; }`,
+          IS_ENABLED
         ),
       ],
     },
     {
       name: 'destructured queryByRole',
       code: `expect(queryByRole('row')).toBeDisabled();`,
-      errors: [ariaDisabledError(`expect(queryByRole('row'))${DISABLED};`, DISABLED)],
+      errors: [
+        ariaDisabledError(`expect(queryByRole('row'))${IS_DISABLED};`, IS_DISABLED),
+      ],
     },
     {
       name: 'indexed getAllByRole',
       code: `expect(screen.getAllByRole('treeitem')[0]).toBeEnabled();`,
       errors: [
         ariaDisabledError(
-          `expect(screen.getAllByRole('treeitem')[0])${ENABLED};`,
-          ENABLED
+          `expect(screen.getAllByRole('treeitem')[0])${IS_ENABLED};`,
+          IS_ENABLED
         ),
       ],
     },
@@ -112,8 +119,8 @@ ruleTester.run('prefer-aria-disabled-assertion', preferAriaDisabledAssertion, {
       code: `async function f() { expect((await screen.findAllByRole('gridcell')).at(-1)).toBeDisabled(); }`,
       errors: [
         ariaDisabledError(
-          `async function f() { expect((await screen.findAllByRole('gridcell')).at(-1))${DISABLED}; }`,
-          DISABLED
+          `async function f() { expect((await screen.findAllByRole('gridcell')).at(-1))${IS_DISABLED}; }`,
+          IS_DISABLED
         ),
       ],
     },
@@ -122,8 +129,8 @@ ruleTester.run('prefer-aria-disabled-assertion', preferAriaDisabledAssertion, {
       code: `async function f() { const item = await screen.findByRole('menuitemradio', {name: 'Add'}); expect(item).toBeEnabled(); }`,
       errors: [
         ariaDisabledError(
-          `async function f() { const item = await screen.findByRole('menuitemradio', {name: 'Add'}); expect(item)${ENABLED}; }`,
-          ENABLED
+          `async function f() { const item = await screen.findByRole('menuitemradio', {name: 'Add'}); expect(item)${IS_ENABLED}; }`,
+          IS_ENABLED
         ),
       ],
     },
@@ -132,8 +139,8 @@ ruleTester.run('prefer-aria-disabled-assertion', preferAriaDisabledAssertion, {
       code: `const options = screen.getAllByRole('option'); const first = options[0]; expect(first).toBeDisabled();`,
       errors: [
         ariaDisabledError(
-          `const options = screen.getAllByRole('option'); const first = options[0]; expect(first)${DISABLED};`,
-          DISABLED
+          `const options = screen.getAllByRole('option'); const first = options[0]; expect(first)${IS_DISABLED};`,
+          IS_DISABLED
         ),
       ],
     },
@@ -142,8 +149,8 @@ ruleTester.run('prefer-aria-disabled-assertion', preferAriaDisabledAssertion, {
       code: `expect(screen.getAllByRole('option')[0]!).toBeEnabled();`,
       errors: [
         ariaDisabledError(
-          `expect(screen.getAllByRole('option')[0]!)${ENABLED};`,
-          ENABLED
+          `expect(screen.getAllByRole('option')[0]!)${IS_ENABLED};`,
+          IS_ENABLED
         ),
       ],
     },
@@ -152,8 +159,8 @@ ruleTester.run('prefer-aria-disabled-assertion', preferAriaDisabledAssertion, {
       code: `const rows = screen.getAllByRole('row') as HTMLElement[]; const first = rows[0]!; expect(first).toBeDisabled();`,
       errors: [
         ariaDisabledError(
-          `const rows = screen.getAllByRole('row') as HTMLElement[]; const first = rows[0]!; expect(first)${DISABLED};`,
-          DISABLED
+          `const rows = screen.getAllByRole('row') as HTMLElement[]; const first = rows[0]!; expect(first)${IS_DISABLED};`,
+          IS_DISABLED
         ),
       ],
     },

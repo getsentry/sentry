@@ -32,9 +32,7 @@ describe('Discover > ResultsChart', () => {
     });
   });
 
-  it('disables the top display modes and keeps the others enabled with multiple y-axes', async () => {
-    // Top modes need the discover-query feature and a grouped query, otherwise
-    // they're hidden or disabled for reasons unrelated to the y-axis count.
+  it('allows only Total Period, Previous Period, Total Daily and Bar Chart when more than one y-axis is charted', async () => {
     const groupedLocation = LocationFixture({
       pathname: '/',
       query: {query: 'tag:value', field: ['transaction', 'count()', 'failure_count()']},
