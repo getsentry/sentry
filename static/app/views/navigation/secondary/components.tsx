@@ -77,6 +77,10 @@ import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
 const MotionContainer = motion.create(Container);
 const LEADING_SLOT_SIZE = '24px';
+/** With settings-v3, the padding from the panel edge to the link backgrounds, shared by the header and body. */
+const PANEL_PADDING_X = 'xs';
+/** The padding from a link's background to its content, shared by link rows and the header title. */
+const ITEM_PADDING_X = 'md';
 
 interface SecondarySidebarProps {
   children: ReactNode;
@@ -303,6 +307,7 @@ interface SecondaryNavigationHeaderProps {
 
 function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
   const {layout} = usePrimaryNavigation();
+  const settingsV3 = useSettingsV3();
   const isMobile = layout === 'mobile';
 
   return (
@@ -311,7 +316,7 @@ function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
       align="center"
       borderBottom="primary"
       height={`${PRIMARY_HEADER_HEIGHT}px`}
-      padding={isMobile ? 'md lg' : '0 sm 0 sm'}
+      padding={isMobile ? 'md lg' : settingsV3 ? `0 ${PANEL_PADDING_X}` : '0 sm'}
     >
       {props.children}
       <SecondaryNavigationToggle />
@@ -323,16 +328,22 @@ function SecondaryNavigationHeaderTitle({children}: {children: ReactNode}) {
   const {layout} = usePrimaryNavigation();
   const settingsV3 = useSettingsV3();
 
+  // Without settings-v3, mobile links have no body padding, so the title drops
+  // its own to stay aligned with them.
+  const paddingX = settingsV3 ? ITEM_PADDING_X : layout === 'mobile' ? undefined : 'lg';
+
   return (
-    <Container
+    <Flex
+      align="center"
+      height="32px"
       minWidth="0"
-      padding={settingsV3 ? 'md xs' : undefined}
-      paddingLeft={!settingsV3 && layout !== 'mobile' ? 'lg' : undefined}
+      paddingLeft={paddingX}
+      paddingRight={paddingX}
     >
-      <Text size="md" bold>
+      <Text size="md" bold ellipsis>
         {children}
       </Text>
-    </Container>
+    </Flex>
   );
 }
 
@@ -383,7 +394,13 @@ function SecondaryNavigationBody(props: SecondaryNavigationBodyProps) {
     <Container
       overflow="auto"
       overscrollBehavior="contain"
-      padding={settingsV3 ? 'md xs' : layout === 'mobile' ? '0 0 md 0' : undefined}
+      padding={
+        settingsV3
+          ? `md ${PANEL_PADDING_X}`
+          : layout === 'mobile'
+            ? '0 0 md 0'
+            : undefined
+      }
     >
       {props.children}
     </Container>
@@ -403,7 +420,7 @@ function SecondaryNavigationRow(props: ComponentProps<typeof Grid>) {
       align="center"
       position="relative"
       height="32px"
-      padding="0 sm 0 md"
+      padding={`0 ${ITEM_PADDING_X}`}
       radius="md"
       {...props}
       columns={`${LEADING_SLOT_SIZE} minmax(0, 1fr)`}
@@ -1041,7 +1058,7 @@ function GrabHandle() {
     return (
       <Flex
         align="center"
-        padding="0 sm 0 md"
+        padding={`0 ${ITEM_PADDING_X}`}
         position="absolute"
         inset="0"
         pointerEvents="none"

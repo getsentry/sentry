@@ -63,6 +63,14 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def get_latest_thread_per_channel(
+    threads: Sequence[SlackThreadDetails],
+) -> list[SlackThreadDetails]:
+    # Every alert adds a thread, so an often-alerting issue would fan one update out to thousands.
+    # Possible bad UX: older alert threads in the same channel stop getting Autofix updates.
+    return list({thread["channel_id"]: thread for thread in threads}.values())
+
+
 def _render_tracked(
     data: NotificationData,
 ) -> tuple[SlackRenderable, NotificationTrackingContext, set[str]]:
@@ -265,8 +273,11 @@ def schedule_all_thread_updates(
         organization_id=organization_id,
     ).capture() as lifecycle:
         serialized_data = serialize_notification_data(data)
-        lifecycle.add_extra("thread_count", len(threads))
-        for thread in threads:
+        # Bound here too, so an already oversized cache entry can't fan out.
+        latest_threads = get_latest_thread_per_channel(threads)
+        lifecycle.add_extra("thread_count", len(latest_threads))
+        lifecycle.add_extra("dropped_thread_count", len(threads) - len(latest_threads))
+        for thread in latest_threads:
             process_thread_update.apply_async(
                 kwargs={
                     "integration_id": integration_id,

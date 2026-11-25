@@ -19,6 +19,14 @@ from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.repository import repository_service
 from sentry.integrations.services.repository.model import RpcCreateRepository, RpcRepository
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
+from sentry.integrations.source_code_management.repository_reconciliation import (
+    RepositoryConfig,
+    RepositoryReconciliationPolicy,
+    index_repository_configs,
+    index_repository_snapshots,
+    plan_repository_reconciliation,
+    select_adoptable_repositories,
+)
 from sentry.models.repository import REPOSITORY_NAME_LENGTH, REPOSITORY_URL_LENGTH
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.shared_integrations.exceptions import IntegrationError
@@ -28,14 +36,6 @@ from sentry.users.services.user.serial import serialize_rpc_user
 from sentry.utils import metrics
 
 InstT = TypeVar("InstT", bound="RepositoryIntegration[Any]", default=RepositoryIntegration)
-
-
-class RepositoryConfig(TypedDict):
-    name: str
-    external_id: str
-    url: str
-    config: dict[str, Any]
-    integration_id: int
 
 
 class CommitPatchFile(TypedDict):
@@ -156,6 +156,13 @@ class IntegrationRepositoryProvider(Generic[InstT]):
         """
         return [self.id, self.repo_provider, *self.legacy_provider_ids]
 
+    def _repository_reconciliation_policy(self) -> RepositoryReconciliationPolicy:
+        return RepositoryReconciliationPolicy(
+            canonical_provider=self.id,
+            adoptable_providers=frozenset(self.owned_provider_ids),
+            can_transfer=self.can_transfer_repositories,
+        )
+
     def _adoptable_repositories(self, organization_id: int, **filters: Any) -> list[RpcRepository]:
         """Repositories this provider may take over, narrowed by ``filters``.
 
@@ -185,9 +192,11 @@ class IntegrationRepositoryProvider(Generic[InstT]):
                 external_ids=filters.get("external_ids"),
             )
         }
-        return [
-            repo for repo in candidates if repo.provider == self.id or repo.external_id not in taken
-        ]
+        return select_adoptable_repositories(
+            candidates,
+            taken_external_ids=taken,
+            policy=self._repository_reconciliation_policy(),
+        )
 
     def create_repository(
         self,
@@ -316,58 +325,35 @@ class IntegrationRepositoryProvider(Generic[InstT]):
         that weren't created because a repo already existed for them. A repo that was already
         active on its integration has its config refreshed but is not reported as updated.
         """
-        configs_by_external_id: dict[str, RepositoryConfig] = {}
-        for config in configs:
-            result = self.build_repository_config(organization=organization, data=config)
-            configs_by_external_id[result["external_id"]] = result
-
-        existing_repos = self._find_repositories(organization, set(configs_by_external_id))
-
-        configs_to_create: list[RepositoryConfig] = []
-        repos_to_update: list[tuple[RpcRepository, RepositoryConfig]] = []
-        repos_to_transfer: list[tuple[RpcRepository, RepositoryConfig]] = []
-
-        for external_id, repo_config in configs_by_external_id.items():
-            repo = existing_repos.get(external_id)
-            if repo is None:
-                configs_to_create.append(repo_config)
-            elif (
-                repo.integration_id == repo_config["integration_id"] or repo.integration_id is None
-            ):
-                repos_to_update.append((repo, repo_config))
-            else:
-                repos_to_transfer.append((repo, repo_config))
-
-        created_repos, already_created = self._create_missing_repositories(
-            organization, configs_to_create
+        configs_by_external_id = index_repository_configs(
+            [
+                self.build_repository_config(organization=organization, data=config)
+                for config in configs
+            ]
         )
 
-        # callers (link_all_repos) treat the third return value as "configs I asked for that
-        # weren't created". only a repo that was already active on this integration counts —
-        # capture status and integration_id before _update_existing_repositories, which
-        # mutates both in place via _apply_repo_config. unlinked/legacy rows (integration_id
-        # is None) are adopted here and must not be reported as not-created.
-        already_active = [
-            (repo, config)
-            for repo, config in repos_to_update
-            if (
-                repo.status == ObjectStatus.ACTIVE
-                and repo.integration_id == config["integration_id"]
-            )
-        ]
-        already_active_ids = {repo.id for repo, _ in already_active}
+        existing_repos = self._find_repositories(organization, set(configs_by_external_id))
+        plan = plan_repository_reconciliation(
+            configs_by_external_id,
+            existing_repos,
+            policy=self._repository_reconciliation_policy(),
+        )
+
+        created_repos, already_created = self._create_missing_repositories(
+            organization, plan.to_create
+        )
 
         updated_repos = [
             repo
-            for repo in self._update_existing_repositories(organization, repos_to_update)
-            if repo.id not in already_active_ids
+            for repo in self._update_existing_repositories(organization, plan.to_update)
+            if repo.id not in plan.already_active_repository_ids
         ]
 
         transferred_repos, untransferable = self._transfer_repositories(
-            organization, repos_to_transfer
+            organization, [*plan.to_transfer, *plan.conflicts]
         )
 
-        not_created = already_created + [config for _, config in already_active] + untransferable
+        not_created = already_created + list(plan.already_active_configs) + untransferable
 
         return created_repos, updated_repos + transferred_repos, not_created
 
@@ -391,18 +377,10 @@ class IntegrationRepositoryProvider(Generic[InstT]):
             has_integration=False,
         )
 
-        found: dict[str, RpcRepository] = {}
-        for repo in provider_repos + legacy_repos:
-            external_id = repo.external_id
-            if external_id is None or external_id not in external_ids or external_id in found:
-                continue
-            if repo.status in (ObjectStatus.PENDING_DELETION, ObjectStatus.DELETION_IN_PROGRESS):
-                continue
-            found[external_id] = repo
-        return found
+        return index_repository_snapshots(provider_repos + legacy_repos, external_ids)
 
     def _create_missing_repositories(
-        self, organization: RpcOrganization, configs: list[RepositoryConfig]
+        self, organization: RpcOrganization, configs: Sequence[RepositoryConfig]
     ) -> tuple[list[RpcRepository], list[RepositoryConfig]]:
         """
         Inserts each config. Returns (created, lost_race): a config lands in lost_race when
@@ -431,7 +409,7 @@ class IntegrationRepositoryProvider(Generic[InstT]):
     def _update_existing_repositories(
         self,
         organization: RpcOrganization,
-        repos_and_configs: list[tuple[RpcRepository, RepositoryConfig]],
+        repos_and_configs: Sequence[tuple[RpcRepository, RepositoryConfig]],
     ) -> list[RpcRepository]:
         """Applies each config to its repo, which also links and reactivates it, and persists them."""
         repos = [self._apply_repo_config(repo, config) for repo, config in repos_and_configs]
@@ -444,7 +422,7 @@ class IntegrationRepositoryProvider(Generic[InstT]):
     def _transfer_repositories(
         self,
         organization: RpcOrganization,
-        repos_and_configs: list[tuple[RpcRepository, RepositoryConfig]],
+        repos_and_configs: Sequence[tuple[RpcRepository, RepositoryConfig]],
     ) -> tuple[list[RpcRepository], list[RepositoryConfig]]:
         """
         Moves each repo from its current integration onto the config's, if the provider allows

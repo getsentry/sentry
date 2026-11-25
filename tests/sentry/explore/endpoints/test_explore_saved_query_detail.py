@@ -13,8 +13,11 @@ from sentry.explore.models import (
     ExploreSavedQueryStarred,
 )
 from sentry.search.eap.constants import QueryPriorities
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 
@@ -850,6 +853,41 @@ class OrganizationExploreQueryVisitTest(APITestCase, SnubaTestCase):
         assert not ExploreSavedQueryLastVisited.objects.filter(
             explore_saved_query=self.query
         ).exists()
+
+    def _use_token(self, scope_list: list[str]) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.client.logout()
+            token = self.create_user_auth_token(user=self.user, scope_list=scope_list)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
+
+    @with_feature("organizations:granular-permission-scopes")
+    def test_saved_query_read_can_record_visit(self) -> None:
+        self._use_token(["saved_query:read"])
+        with self.feature(self.feature_name):
+            response = self.client.post(self.url(str(self.query.id)))
+        assert response.status_code == 204, response.content
+        assert ExploreSavedQuery.objects.get(id=self.query.id).visits == 2
+        assert ExploreSavedQueryLastVisited.objects.filter(
+            user_id=self.user.id, explore_saved_query=self.query
+        ).exists()
+
+    @with_feature("organizations:granular-permission-scopes")
+    @override_options({"auth.deprecated-scope-translation.enabled": True})
+    def test_org_read_token_is_translated(self) -> None:
+        self._use_token(["org:read"])
+        with self.feature(self.feature_name):
+            response = self.client.post(self.url(str(self.query.id)))
+        assert response.status_code == 204, response.content
+        assert ExploreSavedQuery.objects.get(id=self.query.id).visits == 2
+
+    @with_feature("organizations:granular-permission-scopes")
+    def test_saved_query_write_cannot_record_visit(self) -> None:
+        # Write does not imply read.
+        self._use_token(["saved_query:write", "user_preference:read", "user_preference:write"])
+        with self.feature(self.feature_name):
+            response = self.client.post(self.url(str(self.query.id)))
+        assert response.status_code == 403
+        assert ExploreSavedQuery.objects.get(id=self.query.id).visits == 1
 
     def test_visit_query_no_access(self) -> None:
         last_visited = self.query.last_visited

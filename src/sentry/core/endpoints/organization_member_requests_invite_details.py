@@ -137,22 +137,12 @@ class OrganizationInviteRequestDetailsEndpoint(OrganizationMemberEndpoint):
         result = serializer.validated_data
         team_assignments: tuple[TeamAssignment, ...] | None = result.get("teamRoles")
 
-        if result.get("orgRole"):
-            member.role = result["orgRole"]
-            member.save()
-        elif result.get("role"):
-            member.role = result["role"]
-            member.save()
+        assigned_org_role = result.get("orgRole") or result.get("role")
+        if assigned_org_role:
+            # Check approval against the proposed role before saving it.
+            member.role = assigned_org_role
 
-        # Do not set team-roles when inviting members
-        if "teamRoles" in result or "teams" in result:
-            teams = (
-                [assignment.team for assignment in team_assignments]
-                if team_assignments
-                else result.get("teams")
-            )
-            save_team_assignments(member, teams)
-
+        approve = False
         if "approve" in request.data:
             allowed_roles = get_allowed_org_roles(request, organization)
 
@@ -169,16 +159,28 @@ class OrganizationInviteRequestDetailsEndpoint(OrganizationMemberEndpoint):
             if not approve_serializer.is_valid():
                 return Response(approve_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-            result = approve_serializer.validated_data
+            approve = approve_serializer.validated_data["approve"]
 
-            if result.get("approve") and not member.invite_approved:
-                api_key = get_api_key_for_audit_log(request)
-                member.approve_member_invitation(
-                    request.user,
-                    api_key,
-                    request.META["REMOTE_ADDR"],
-                    request.data.get("referrer"),
-                )
+        if assigned_org_role:
+            member.save()
+
+        # Do not set team-roles when inviting members
+        if "teamRoles" in result or "teams" in result:
+            teams = (
+                [assignment.team for assignment in team_assignments]
+                if team_assignments
+                else result.get("teams")
+            )
+            save_team_assignments(member, teams)
+
+        if approve and not member.invite_approved:
+            api_key = get_api_key_for_audit_log(request)
+            member.approve_member_invitation(
+                request.user,
+                api_key,
+                request.META["REMOTE_ADDR"],
+                request.data.get("referrer"),
+            )
 
         return Response(
             serialize(member, serializer=OrganizationMemberWithTeamsSerializer()),

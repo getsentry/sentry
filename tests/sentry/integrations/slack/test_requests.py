@@ -20,7 +20,9 @@ from sentry.integrations.slack.utils.auth import set_signing_secret
 from sentry.integrations.slack.utils.constants import SlackScope
 from sentry.integrations.slack.webhooks.base import SlackDMEndpoint
 from sentry.models.organization import Organization, OrganizationStatus
+from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
+from sentry.organizations.services.organization.impl import DatabaseBackedOrganizationService
 from sentry.silo.base import SiloMode
 from sentry.taskworker.adapters import ViewerContextHook
 from sentry.testutils.cases import TestCase
@@ -482,6 +484,38 @@ class SlackEventRequestSeerResolutionTest(TestCase):
         result = self.slack_request.resolve_seer_organization()
         assert result.organization_id is None
         assert result.halt_reason == SeerSlackHaltReason.NO_VALID_ORGANIZATION
+
+    def test_skips_workspace_orgs_without_active_membership(self) -> None:
+        non_member_org = self.create_organization(slug="not-my-org", owner=self.create_user())
+        self.create_organization_integration(
+            organization_id=non_member_org.id, integration=self.integration
+        )
+        inactive_org = self._add_second_org(slug="inactive-org")
+        with assume_test_silo_mode_of(OrganizationMapping):
+            OrganizationMapping.objects.filter(organization_id=inactive_org.id).update(
+                status=OrganizationStatus.PENDING_DELETION
+            )
+        with (
+            assume_test_silo_mode(SiloMode.CONTROL, can_be_monolith=False),
+            patch.object(
+                DatabaseBackedOrganizationService,
+                "get_organization_by_id",
+                autospec=True,
+                side_effect=DatabaseBackedOrganizationService.get_organization_by_id,
+            ) as mock_get_org,
+        ):
+            result = self.slack_request.resolve_seer_organization()
+
+        assert result.organization_id == self.organization.id
+        assert result.halt_reason is None
+        mock_get_org.assert_called_once_with(
+            mock.ANY,
+            id=self.organization.id,
+            user_id=self.slack_user.id,
+            slug=None,
+            include_projects=False,
+            include_teams=False,
+        )
 
     def test_user_membership_unapproved(self) -> None:
         OrganizationMember.objects.filter(

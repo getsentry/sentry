@@ -5,7 +5,7 @@ import {useQuery} from '@tanstack/react-query';
 import {Tag} from '@sentry/scraps/badge';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
-import type {TableColumnConfig} from '@sentry/scraps/table';
+import type {SortDirection, TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -172,6 +172,10 @@ type Props = {
   renderAction: (monitor: MetricDetector) => React.ReactNode;
   emptyMessage?: string;
   isError?: boolean;
+  /**
+   * Makes the Last breach header sortable
+   */
+  lastBreachSort?: {direction: SortDirection; onSort: () => void};
   pendingRows?: number;
 };
 
@@ -180,6 +184,7 @@ export function MonitorTable({
   renderAction,
   emptyMessage,
   isError,
+  lastBreachSort,
   pendingRows = 0,
 }: Props) {
   const alertTargets = useMonitorAlertTargets(monitors.map(monitor => monitor.id));
@@ -190,7 +195,12 @@ export function MonitorTable({
       header={
         <SimpleTable.HeaderRow>
           <SimpleTable.HeaderCell>{t('Monitor')}</SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell>{t('Last breach')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell
+            sort={lastBreachSort?.direction}
+            handleSortClick={lastBreachSort?.onSort}
+          >
+            {t('Last breach')}
+          </SimpleTable.HeaderCell>
           <SimpleTable.HeaderCell>{t('Notifies')}</SimpleTable.HeaderCell>
           <SimpleTable.HeaderCell />
         </SimpleTable.HeaderRow>

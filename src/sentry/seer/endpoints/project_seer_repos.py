@@ -52,6 +52,7 @@ from sentry.seer.autofix.utils import (
     update_seer_project_repo,
 )
 from sentry.seer.models.project_repository import SeerProjectRepository
+from sentry.seer.scm_connect import mark_no_scm_integration
 from sentry.seer.seer_setup import get_supported_scm_providers
 
 SORT_FIELDS_MAPPING: dict[str, str] = {
@@ -480,7 +481,7 @@ class ProjectSeerReposEndpoint(ProjectEndpoint):
         if order_by is None:
             return Response({"detail": f"Invalid sortBy: {sort_by}"}, status=400)
 
-        return self.paginate(
+        response = self.paginate(
             request=request,
             queryset=queryset,
             order_by=order_by,
@@ -489,6 +490,7 @@ class ProjectSeerReposEndpoint(ProjectEndpoint):
             ],
             paginator_cls=OffsetPaginator,
         )
+        return mark_no_scm_integration(request, response, project.organization)
 
     @extend_schema(
         operation_id="addProjectSeerRepositories",

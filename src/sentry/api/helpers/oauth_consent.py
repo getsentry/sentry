@@ -192,7 +192,7 @@ _PERMISSION_RESOURCES = (
         "Dashboards",
         ("dashboard:read", "dashboard:write"),
         access_descriptions={
-            "read": "View dashboards.",
+            "read": "View dashboards and record visits to them.",
             "write": "Create, update, and delete dashboards.",
         },
     ),
@@ -201,7 +201,7 @@ _PERMISSION_RESOURCES = (
         "Saved queries",
         ("saved_query:read", "saved_query:write"),
         access_descriptions={
-            "read": "View saved queries in Discover and Explore.",
+            "read": "View saved queries in Discover and Explore and issue views, and record visits to them.",
             "write": "Create, update, and delete saved queries.",
         },
     ),
@@ -229,7 +229,7 @@ _PERMISSION_RESOURCES = (
         ("user_preference:read", "user_preference:write"),
         access_descriptions={
             "read": "View your starred dashboards and issue views, recent searches, and dismissed prompts.",
-            "write": "Star and unstar dashboards, saved queries, issue views, and Insights segments, and reorder your starred items. Save recent searches, record issue view visits, and dismiss prompts.",
+            "write": "Star and unstar dashboards, saved queries, issue views, and Insights segments, and reorder your starred items. Save recent searches and dismiss prompts.",
         },
     ),
     OAuthPermissionResource(

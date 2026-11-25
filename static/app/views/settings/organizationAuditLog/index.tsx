@@ -65,7 +65,7 @@ function OrganizationAuditLog() {
     setQueryParams({cursor: resultsCursor ?? null});
   };
 
-  const handleEventSelect = (value: string) => {
+  const handleEventSelect = (value: string | null) => {
     setQueryParams({event: value, cursor: null});
   };
 

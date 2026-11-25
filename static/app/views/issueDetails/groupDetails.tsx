@@ -82,7 +82,7 @@ import {
 } from './issueDetailsTour';
 import {Tab} from './types';
 import {useEngagedViewTracking} from './useEngagedViewTracking';
-import {groupApiOptions, useGroup} from './useGroup';
+import {groupApiOptions, shouldExpandDerivedData, useGroup} from './useGroup';
 import {useGroupDetailsRoute} from './useGroupDetailsRoute';
 import {RESERVED_EVENT_IDS, useGroupEvent} from './useGroupEvent';
 import {ISSUE_DRAWER_TABS, useIssueDrawerReturnPath} from './useIssueDrawerReturnPath';
@@ -242,7 +242,7 @@ function useSyncGroupStore(groupId: string, incomingEnvs: string[]) {
             groupId: storeGroup.id,
             organizationSlug: organization.slug,
             environments: incomingEnvs,
-            expandDerivedData: organization.features.includes('issue-inbox'),
+            expandDerivedData: shouldExpandDerivedData(organization),
           }).queryKey,
           prev => (prev ? {...prev, json: storeGroup as Group} : prev)
         );

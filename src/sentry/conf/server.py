@@ -1049,6 +1049,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.workflow_engine.tasks.delayed_workflows",
     "sentry.workflow_engine.tasks.health_check",
     "sentry.workflow_engine.tasks.workflows",
+    "sentry.workflow_engine.tasks.seer_investigation",
     "sentry.workflow_engine.tasks.actions",
     "sentry.tasks.seer.explorer_index",
     "sentry.tasks.seer.context_engine_index",
@@ -2108,7 +2109,7 @@ DEPRECATED_SCOPE_TRANSLATIONS: dict[str, frozenset[str]] = {
             "user_preference:write",
         ]
     ),
-    # Starring, starred order and last visited accept member:read today, including writes.
+    # Starring and starred order accept member:read today, including writes.
     "member:read": frozenset(
         [
             # Removed once member:read has a full 1:1 translation to granular scopes.
@@ -3164,6 +3165,17 @@ SENTRY_BUILTIN_SOURCES = {
         "layout": {"type": "symstore"},
         "filters": {"filetypes": ["pe", "pdb"]},
         "url": "https://proton-archive.steamos.cloud/",
+        "is_public": True,
+    },
+    # Valve's debuginfod server for SteamOS and all public Steam Linux Runtime versions.
+    # See: https://gitlab.steamos.cloud/steamrt/steam-runtime-tools/-/blob/main/docs/slr-for-game-developers.md#debuginfod
+    "steamos": {
+        "type": "http",
+        "id": "sentry:steamos",
+        "name": "SteamOS / Steam Runtime",
+        "layout": {"type": "debuginfod"},
+        "url": "https://debuginfod.steamos.cloud/buildid/",
+        "filters": {"filetypes": ["elf_code", "elf_debug"]},
         "is_public": True,
     },
 }
