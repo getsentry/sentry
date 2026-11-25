@@ -34,13 +34,28 @@ export interface VirtualTraceMetric {
 }
 
 /**
+ * Read inside a function rather than at module load: `sentry/utils/discover/fields`
+ * imports this module, so its unit enums do not exist yet while this file loads.
+ */
+function webVitalUnit(vital: WebVitals): DataUnit {
+  const units: Record<WebVitals, DataUnit> = {
+    lcp: DurationUnit.MILLISECOND,
+    fcp: DurationUnit.MILLISECOND,
+    inp: DurationUnit.MILLISECOND,
+    ttfb: DurationUnit.MILLISECOND,
+    cls: null,
+  };
+  return units[vital];
+}
+
+/**
  * The stored metric for a web vital, e.g. `browser.web_vital.lcp`.
  */
 export function webVitalMetric(vital: WebVitals): StoredTraceMetric {
   return {
     name: `browser.web_vital.${vital}`,
     type: 'distribution',
-    unit: vital === 'cls' ? null : DurationUnit.MILLISECOND,
+    unit: webVitalUnit(vital),
   };
 }
 
