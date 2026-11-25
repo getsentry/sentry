@@ -54,17 +54,17 @@ def handle_merge(
         primary_group.project_id, group_ids_to_merge, primary_group.id, primary_group.first_seen
     )
 
-    Group.objects.filter(id__in=group_ids_to_merge).update(
-        status=GroupStatus.PENDING_MERGE, substatus=None
-    )
-
-    transaction_id = uuid4().hex
     operation_id = record_merge_request(
         project_lookup[primary_group.project_id],
         group_ids_to_merge,
         primary_group.id,
         acting_user.id if acting_user else None,
     )
+    Group.objects.filter(id__in=group_ids_to_merge).update(
+        status=GroupStatus.PENDING_MERGE, substatus=None
+    )
+
+    transaction_id = uuid4().hex
     start_merge_groups.delay(
         from_object_ids=group_ids_to_merge,
         to_object_id=primary_group.id,

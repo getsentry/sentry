@@ -40,45 +40,33 @@ def operation_kwargs(operation_id: int | None) -> OperationKwargs:
 def record_merge_request(
     project: Project, source_ids: list[int], destination_id: int, actor_id: int | None
 ) -> int | None:
-    try:
-        if features.has("organizations:issue-merge-operation-tracking", project.organization):
-            with transaction.atomic(using=router.db_for_write(IssueMergeOperation)):
-                hashes = GroupHash.objects.filter(project=project, group_id__in=source_ids)
-                return IssueMergeOperation.objects.create(
-                    project=project,
-                    source_group_ids=source_ids,
-                    destination_group_id=destination_id,
-                    actor_id=actor_id,
-                    source_hashes_at_acceptance=list(hashes.values_list("hash", flat=True)),
-                ).id
-    except Exception:
-        logger.exception(
-            "merge.tracking.create_failed",
-            extra={"project_id": project.id, "destination_id": destination_id},
-        )
-    return None
+    if not features.has("organizations:issue-merge-operation-tracking", project.organization):
+        return None
+
+    hashes = GroupHash.objects.filter(project=project, group_id__in=source_ids)
+    return IssueMergeOperation.objects.create(
+        project=project,
+        source_group_ids=source_ids,
+        destination_group_id=destination_id,
+        actor_id=actor_id,
+        source_hashes_at_acceptance=list(hashes.values_list("hash", flat=True)),
+    ).id
 
 
 def record_unmerge_request(
     source: Group, hashes: Sequence[str], actor_id: int | None
 ) -> int | None:
-    try:
-        if source.issue_category == GroupCategory.ERROR and features.has(
-            "organizations:issue-merge-operation-tracking", source.project.organization
-        ):
-            with transaction.atomic(using=router.db_for_write(IssueUnmergeOperation)):
-                return IssueUnmergeOperation.objects.create(
-                    project_id=source.project_id,
-                    source_group_id=source.id,
-                    group_hashes=list(hashes),
-                    actor_id=actor_id,
-                ).id
-    except Exception:
-        logger.exception(
-            "unmerge.tracking.create_failed",
-            extra={"project_id": source.project_id, "source_id": source.id},
-        )
-    return None
+    if source.issue_category != GroupCategory.ERROR or not features.has(
+        "organizations:issue-merge-operation-tracking", source.project.organization
+    ):
+        return None
+
+    return IssueUnmergeOperation.objects.create(
+        project_id=source.project_id,
+        source_group_id=source.id,
+        group_hashes=list(hashes),
+        actor_id=actor_id,
+    ).id
 
 
 def record_progress(

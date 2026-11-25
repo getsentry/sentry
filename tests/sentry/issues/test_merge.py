@@ -61,18 +61,20 @@ class HandleIssueMergeTest(TestCase):
         assert primary_group.substatus == GroupSubStatus.ONGOING
         assert "operation_id" not in merge_groups.call_args.kwargs
 
-    def test_tracking_write_failure_still_dispatches_merge(self) -> None:
+    def test_create_failure_does_not_leave_groups_pending_merge(self) -> None:
         with (
             self.feature("organizations:issue-merge-operation-tracking"),
             patch.object(
                 IssueMergeOperation.objects, "create", side_effect=RuntimeError("unavailable")
             ),
             patch("sentry.tasks.merge.start_merge_groups.delay") as dispatch,
+            pytest.raises(RuntimeError, match="unavailable"),
         ):
-            result = handle_merge(self.groups, self.project_lookup, self.user)
-        assert len(result["children"]) == 4
-        dispatch.assert_called_once()
-        assert "operation_id" not in dispatch.call_args.kwargs
+            handle_merge(self.groups, self.project_lookup, self.user)
+        dispatch.assert_not_called()
+        assert not Group.objects.filter(
+            project=self.project, status=GroupStatus.PENDING_MERGE
+        ).exists()
 
     def test_handle_merge_performance_issues(self) -> None:
         group = Group.objects.create(
