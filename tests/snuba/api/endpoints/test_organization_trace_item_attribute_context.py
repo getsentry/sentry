@@ -10,7 +10,13 @@ from sentry.explore.models import (
     TraceItemAttributeTypes,
     TraceItemTypes,
 )
-from sentry.testutils.cases import APITestCase, BaseSpansTestCase, OurLogTestCase, SnubaTestCase
+from sentry.testutils.cases import (
+    APITestCase,
+    BaseSpansTestCase,
+    OurLogTestCase,
+    SnubaTestCase,
+    TraceMetricsTestCase,
+)
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils import snuba_rpc
 
@@ -18,7 +24,7 @@ TRUNCATED_ATTRIBUTE_NAME_LIMIT = 5
 
 
 class OrganizationTraceItemAttributeContextEndpointTest(
-    APITestCase, BaseSpansTestCase, SnubaTestCase, OurLogTestCase
+    APITestCase, BaseSpansTestCase, SnubaTestCase, OurLogTestCase, TraceMetricsTestCase
 ):
     viewname = "sentry-api-0-organization-trace-item-attribute-context"
 
@@ -466,6 +472,31 @@ class OrganizationTraceItemAttributeContextEndpointTest(
             "My custom attribute",
         ]
         assert TraceItemAttributeContext.objects.filter(attribute_key="my_custom_attr").count() == 2
+
+    def test_saves_context_for_spans_and_trace_metrics(self) -> None:
+        self.store_attribute(my_custom_attr="value")
+        self.store_eap_items(
+            [
+                self.create_trace_metric(
+                    "my.metric", 1.0, "counter", attributes={"my_custom_attr": "value"}
+                )
+            ]
+        )
+
+        response = self.do_request(
+            "my_custom_attr",
+            {
+                "datasets": ["spans", "tracemetrics"],
+                "attributeType": "string",
+                "brief": "My custom attribute",
+            },
+        )
+
+        assert response.status_code == 201, response.data
+        assert [context["dataset"] for context in response.data["contexts"]] == [
+            "spans",
+            "tracemetrics",
+        ]
 
     def test_returns_200_when_every_dataset_already_has_context(self) -> None:
         self.store_attribute(my_custom_attr="value")
