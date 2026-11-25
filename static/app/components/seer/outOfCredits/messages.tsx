@@ -21,16 +21,16 @@ const STOPPED_STEP_MESSAGE: Record<
 > = {
   not_enough_credits: {
     root_cause: t(
-      'Seer stopped before finishing the root cause because your organization ran out of credits.'
+      'Seer stopped before finishing the root cause because your organization does not have enough credits.'
     ),
     solution: t(
-      'Seer stopped before finishing the plan because your organization ran out of credits.'
+      'Seer stopped before finishing the plan because your organization does not have enough credits.'
     ),
     code_changes: t(
-      'Seer stopped before finishing the code changes because your organization ran out of credits.'
+      'Seer stopped before finishing the code changes because your organization does not have enough credits.'
     ),
     pr_iteration: t(
-      'Seer stopped before updating the pull request because your organization ran out of credits.'
+      'Seer stopped before updating the pull request because your organization does not have enough credits.'
     ),
   },
   daily_cap_exceeded: {
@@ -67,16 +67,16 @@ const REFUSED_STEP_MESSAGE: Record<
 > = {
   not_enough_credits: {
     root_cause: t(
-      "Seer couldn't start on the root cause because your organization is out of credits."
+      "Seer couldn't start on the root cause because your organization does not have enough credits."
     ),
     solution: t(
-      "Seer couldn't start on the plan because your organization is out of credits."
+      "Seer couldn't start on the plan because your organization does not have enough credits."
     ),
     code_changes: t(
-      "Seer couldn't start on the code changes because your organization is out of credits."
+      "Seer couldn't start on the code changes because your organization does not have enough credits."
     ),
     pr_iteration: t(
-      "Seer couldn't start on this feedback because your organization is out of credits. Seer continues the next time it iterates on the pull request."
+      "Seer couldn't start on this feedback because your organization does not have enough credits. Seer continues the next time it iterates on the pull request."
     ),
   },
   daily_cap_exceeded: {
@@ -113,15 +113,15 @@ const STOPPED_PR_ITERATION_MESSAGE: Record<
 > = {
   not_enough_credits: {
     push: t(
-      "Seer couldn't push the latest changes because your organization ran out of credits. Seer continues the next time it iterates on the pull request."
+      "Seer couldn't push the latest changes because your organization does not have enough credits. Seer continues the next time it iterates on the pull request."
     ),
     branch_moved_retry: t(
-      "Seer couldn't redo the latest changes on the pull request's newer commits because your organization ran out of credits. Seer continues the next time it iterates on the pull request."
+      "Seer couldn't redo the latest changes on the pull request's newer commits because your organization does not have enough credits. Seer continues the next time it iterates on the pull request."
     ),
     queued: (count: number) =>
       tn(
-        "Seer couldn't start on %s feedback item because your organization ran out of credits. Seer continues the next time it iterates on the pull request.",
-        "Seer couldn't start on %s feedback items because your organization ran out of credits. Seer continues the next time it iterates on the pull request.",
+        "Seer couldn't start on %s feedback item because your organization does not have enough credits. Seer continues the next time it iterates on the pull request.",
+        "Seer couldn't start on %s feedback items because your organization does not have enough credits. Seer continues the next time it iterates on the pull request.",
         count
       ),
   },
@@ -158,7 +158,7 @@ export function getStoppedPRIterationMessage(
 
 const STOPPED_CHAT_MESSAGE: Record<SeerCreditDenialReason, string> = {
   not_enough_credits: t(
-    'Seer stopped because your organization ran out of available credits.'
+    'Seer stopped because your organization does not have enough credits.'
   ),
   daily_cap_exceeded: t(
     'Seer stopped because your organization hit its daily usage limit.'
@@ -171,7 +171,7 @@ export function getStoppedChatMessage(denialReason: string | null | undefined): 
 
 const STOPPED_FEEDBACK_MESSAGE: Record<SeerCreditDenialReason, string> = {
   not_enough_credits: t(
-    "This feedback couldn't finish because your organization ran out of credits"
+    "This feedback couldn't finish because your organization does not have enough credits"
   ),
   daily_cap_exceeded: t(
     "This feedback couldn't finish because your organization hit its daily usage limit"
@@ -205,17 +205,17 @@ const STOPPED_PR_MESSAGE: Record<
   not_enough_credits: {
     many: (count: number) =>
       t(
-        "Seer couldn't finish %s pull requests because your organization ran out of credits.",
+        "Seer couldn't finish %s pull requests because your organization does not have enough credits.",
         count
       ),
     open: (repo: string) =>
       t(
-        "Seer couldn't open a pull request in %s because your organization ran out of credits.",
+        "Seer couldn't open a pull request in %s because your organization does not have enough credits.",
         repo
       ),
     push: (repo: string, prNumber: number) =>
       t(
-        "Seer couldn't push changes to %s#%s because your organization ran out of credits.",
+        "Seer couldn't push changes to %s#%s because your organization does not have enough credits.",
         repo,
         prNumber
       ),
@@ -263,16 +263,16 @@ const REFUSED_PR_MESSAGE: Record<
 > = {
   not_enough_credits: {
     anyRepo: t(
-      "Seer couldn't open a pull request because your organization is out of credits."
+      "Seer couldn't open a pull request because your organization does not have enough credits."
     ),
     open: (repo: string) =>
       t(
-        "Seer couldn't open a pull request in %s because your organization is out of credits.",
+        "Seer couldn't open a pull request in %s because your organization does not have enough credits.",
         repo
       ),
     push: (repo: string, prNumber: number) =>
       t(
-        "Seer couldn't push changes to %s#%s because your organization is out of credits.",
+        "Seer couldn't push changes to %s#%s because your organization does not have enough credits.",
         repo,
         prNumber
       ),

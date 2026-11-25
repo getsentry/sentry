@@ -2811,7 +2811,7 @@ describe('out of credits', () => {
     expect(screen.getByText('The cache key omits the org slug.')).toBeInTheDocument();
     expect(
       screen.getByText(
-        'Seer stopped before finishing the root cause because your organization ran out of credits.'
+        'Seer stopped before finishing the root cause because your organization does not have enough credits.'
       )
     ).toBeInTheDocument();
     expect(screen.queryByText(/This one is on us/)).not.toBeInTheDocument();
@@ -3036,7 +3036,7 @@ describe('out of credits', () => {
     expect(screen.getByText('Seed the reduction with zero.')).toBeInTheDocument();
     expect(
       screen.getByText(
-        'Seer stopped before finishing the plan because your organization ran out of credits.'
+        'Seer stopped before finishing the plan because your organization does not have enough credits.'
       )
     ).toBeInTheDocument();
 
@@ -3058,7 +3058,7 @@ describe('out of credits', () => {
     expect(screen.getByTestId('file-diff-viewer')).toBeInTheDocument();
     expect(
       screen.getByText(
-        'Seer stopped before finishing the code changes because your organization ran out of credits.'
+        'Seer stopped before finishing the code changes because your organization does not have enough credits.'
       )
     ).toBeInTheDocument();
     expect(
@@ -3180,7 +3180,7 @@ describe('out of credits', () => {
 
       expect(
         screen.getByText(
-          'Seer stopped before updating the pull request because your organization ran out of credits.'
+          'Seer stopped before updating the pull request because your organization does not have enough credits.'
         )
       ).toBeInTheDocument();
       // Only the iteration that stopped is replayed, not the original step.
@@ -3223,7 +3223,7 @@ describe('out of credits', () => {
 
     expect(
       screen.getByText(
-        'Seer stopped before updating the pull request because your organization ran out of credits.'
+        'Seer stopped before updating the pull request because your organization does not have enough credits.'
       )
     ).toBeInTheDocument();
     expect(screen.queryByText(/Seer couldn't start on/)).not.toBeInTheDocument();
@@ -3232,7 +3232,7 @@ describe('out of credits', () => {
   it.each([
     [
       null,
-      "Seer couldn't start on 2 feedback items because your organization ran out of credits. Seer continues the next time it iterates on the pull request.",
+      "Seer couldn't start on 2 feedback items because your organization does not have enough credits. Seer continues the next time it iterates on the pull request.",
     ],
     [
       'daily_cap_exceeded' as const,
@@ -3402,7 +3402,7 @@ describe('out of credits', () => {
       ],
       [
         null,
-        "Seer couldn't finish 2 pull requests because your organization ran out of credits.",
+        "Seer couldn't finish 2 pull requests because your organization does not have enough credits.",
       ],
     ])('says why 2 PRs failed when one was denied for %s', (denialReason, message) => {
       mockCreditCheck('autofix_open_pr', true);
@@ -3465,7 +3465,7 @@ describe('out of credits', () => {
 
       expect(
         screen.getByText(
-          "Seer couldn't open a pull request in org/api because your organization ran out of credits."
+          "Seer couldn't open a pull request in org/api because your organization does not have enough credits."
         )
       ).toBeInTheDocument();
 

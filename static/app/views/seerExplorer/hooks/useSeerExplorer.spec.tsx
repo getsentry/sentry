@@ -1307,7 +1307,7 @@ describe('useSeerExplorer', () => {
       await act(() => jest.advanceTimersByTimeAsync(500));
       await waitFor(() =>
         expect(errorSpy).toHaveBeenCalledWith(
-          "Seer couldn't open a pull request in acme/web because your organization is out of credits."
+          "Seer couldn't open a pull request in acme/web because your organization does not have enough credits."
         )
       );
     });
