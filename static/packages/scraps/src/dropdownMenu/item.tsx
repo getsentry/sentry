@@ -21,7 +21,7 @@ import {
   type VirtualRowProps,
 } from '@sentry/scraps/useVirtualCollection';
 
-import {DropdownMenuContext} from './context';
+import {DropdownMenuContext, DropdownMenuTreeStateContext} from './context';
 
 /**
  * Data attributes `DropdownMenuSection` spaces its items by: every item of a
@@ -140,10 +140,6 @@ interface DropdownMenuItemProps<T extends React.ElementType = 'li'> {
    * Node representation (from @react-aria) of the item
    */
   node: Node<MenuItemProps>;
-  /**
-   * Tree state (from @react-stately) inherited from parent menu
-   */
-  state: TreeState<MenuItemProps>;
   id?: string;
   /**
    * Whether the item is in a virtualized menu. React Aria then sets
@@ -183,7 +179,6 @@ interface DropdownMenuItemProps<T extends React.ElementType = 'li'> {
  */
 export function DropdownMenuItem<T extends React.ElementType = 'li'>({
   node,
-  state,
   closeOnSelect,
   onClose,
   renderAs,
@@ -196,6 +191,10 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
 }: DropdownMenuItemProps<T>) {
   const innerWrapRef = useRef<HTMLElement | null>(null);
   const trailingActionRef = useRef<HTMLButtonElement>(null);
+  const state = useContext(DropdownMenuTreeStateContext);
+  if (!state) {
+    throw new Error('DropdownMenuItem must be rendered inside a DropdownMenu');
+  }
   const isDisabled = state.disabledKeys.has(node.key);
   const isFocused = state.selectionManager.focusedKey === node.key;
   const {

@@ -1,6 +1,9 @@
 import type * as React from 'react';
 import {createContext} from 'react';
 import type {RootMenuTriggerState} from '@react-stately/menu';
+import type {TreeState} from '@react-stately/tree';
+
+import type {MenuItemProps} from './item';
 
 interface DropdownMenuContextValue {
   /**
@@ -39,3 +42,13 @@ interface DropdownMenuContextValue {
 }
 
 export const DropdownMenuContext = createContext<DropdownMenuContextValue>({});
+
+/**
+ * Tree state of the menu that renders the current items. Items read it from
+ * context rather than props: React Aria returns a new state on every render,
+ * and as a prop it would re-render every component between the list and its
+ * items, including a submenu trigger's open submenu. Through context, only the
+ * items that read it re-render.
+ */
+export const DropdownMenuTreeStateContext =
+  createContext<TreeState<MenuItemProps> | null>(null);

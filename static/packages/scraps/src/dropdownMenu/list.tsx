@@ -34,7 +34,7 @@ import {
   type VirtualRowProps,
 } from '@sentry/scraps/useVirtualCollection';
 
-import {DropdownMenuContext} from './context';
+import {DropdownMenuContext, DropdownMenuTreeStateContext} from './context';
 import type {
   DropdownMenuContentSizeOptions,
   DropdownMenuSearchOptions,
@@ -148,7 +148,6 @@ type DropdownMenuCollectionProps = {
   collection: Array<Node<MenuItemProps>>;
   onClose: DropdownMenuListProps['onClose'];
   separatorProps: DropdownMenuSeparatorProps['separatorProps'];
-  state: TreeState<MenuItemProps>;
   disableTextSelection?: boolean;
   size?: MenuItemProps['size'];
 };
@@ -157,6 +156,7 @@ interface DropdownMenuCollectionItemProps extends Omit<
   DropdownMenuCollectionProps,
   'collection' | 'separatorProps'
 > {
+  isDisabled: boolean;
   node: Node<MenuItemProps>;
   /** Whether the menu is virtualized, see `DropdownMenuItem`. */
   isVirtualized?: boolean;
@@ -176,6 +176,7 @@ interface DropdownMenuCollectionItemProps extends Omit<
  */
 const DropdownMenuCollectionItem = memo(function DropdownMenuCollectionItem({
   node,
+  isDisabled,
   isVirtualized,
   rowIndex,
   rowRef,
@@ -183,7 +184,6 @@ const DropdownMenuCollectionItem = memo(function DropdownMenuCollectionItem({
   disableTextSelection,
   onClose,
   size,
-  state,
 }: DropdownMenuCollectionItemProps): React.ReactNode {
   const rowProps: VirtualRowProps | undefined =
     rowIndex === undefined || rowRef === undefined
@@ -199,9 +199,9 @@ const DropdownMenuCollectionItem = memo(function DropdownMenuCollectionItem({
       <DropdownSubmenu
         items={node.value.children}
         node={node}
+        isDisabled={isDisabled}
         isVirtualized={isVirtualized}
         rowProps={rowProps}
-        state={state}
         onClose={onClose}
         closeOnSelect={closeOnSelect}
         disableTextSelection={disableTextSelection}
@@ -215,7 +215,6 @@ const DropdownMenuCollectionItem = memo(function DropdownMenuCollectionItem({
       node={node}
       isVirtualized={isVirtualized}
       rowProps={rowProps}
-      state={state}
       onClose={onClose}
       closeOnSelect={closeOnSelect}
     />
@@ -229,6 +228,7 @@ interface DropdownMenuRowsProps extends DropdownMenuCollectionProps {
   menuRef: React.RefObject<HTMLUListElement | null>;
   /** Called once with the width to keep for a virtualized menu. */
   onLockWidth: (width: number) => void;
+  state: TreeState<MenuItemProps>;
   virtualized: boolean;
   /** A row to keep mounted, so the menu's width fits it. */
   widestKey: Key | undefined;
@@ -249,6 +249,7 @@ function DropdownMenuRows({
   isWidthLocked,
   menuRef,
   onLockWidth,
+  state,
   virtualized,
   widestKey,
   ...itemProps
@@ -259,7 +260,7 @@ function DropdownMenuRows({
   // that did not change is not re-rendered.
   const {itemsAfterSections, virtual} = useDropdownMenuRowLayout({
     collection,
-    focusedKey: itemProps.state.selectionManager.focusedKey,
+    focusedKey: state.selectionManager.focusedKey,
     isWidthLocked,
     menuRef,
     onLockWidth,
@@ -278,6 +279,7 @@ function DropdownMenuRows({
             <SectionList>
               <DropdownMenuCollectionItem
                 node={node}
+                isDisabled={state.disabledKeys.has(node.key)}
                 isVirtualized={virtualized}
                 {...itemProps}
               />
@@ -286,6 +288,7 @@ function DropdownMenuRows({
         ) : (
           <DropdownMenuCollectionItem
             node={node}
+            isDisabled={state.disabledKeys.has(node.key)}
             isVirtualized={virtualized}
             rowIndex={props?.['data-index']}
             rowRef={props?.ref}
@@ -516,20 +519,22 @@ function DropdownMenuList({
                   {...keyboardMenuProps}
                 >
                   <ReserveLeadingSlot reserve={hasLeadingItems}>
-                    <DropdownMenuRows
-                      collection={stateCollection}
-                      isWidthLocked={lockedWidth !== undefined}
-                      menuRef={menuRef}
-                      onLockWidth={setLockedWidth}
-                      virtualized={virtualized}
-                      widestKey={widestKey}
-                      closeOnSelect={closeOnSelect}
-                      disableTextSelection={disableTextSelection}
-                      onClose={onClose}
-                      separatorProps={separatorProps}
-                      size={size}
-                      state={state}
-                    />
+                    <DropdownMenuTreeStateContext value={state}>
+                      <DropdownMenuRows
+                        collection={stateCollection}
+                        isWidthLocked={lockedWidth !== undefined}
+                        menuRef={menuRef}
+                        onLockWidth={setLockedWidth}
+                        virtualized={virtualized}
+                        widestKey={widestKey}
+                        closeOnSelect={closeOnSelect}
+                        disableTextSelection={disableTextSelection}
+                        onClose={onClose}
+                        separatorProps={separatorProps}
+                        size={size}
+                        state={state}
+                      />
+                    </DropdownMenuTreeStateContext>
                   </ReserveLeadingSlot>
                   {showEmptyMessage && (
                     <Stack
@@ -643,19 +648,19 @@ interface DropdownSubmenuProps extends Pick<
   DropdownMenuListProps,
   'closeOnSelect' | 'disableTextSelection' | 'onClose' | 'size'
 > {
+  isDisabled: boolean;
   items: MenuItemProps[];
   node: Node<MenuItemProps>;
-  state: TreeState<MenuItemProps>;
   isVirtualized?: boolean;
   rowProps?: VirtualRowProps;
 }
 
 function DropdownSubmenu({
+  isDisabled,
   items,
   node,
   isVirtualized,
   rowProps,
-  state,
   closeOnSelect,
   disableTextSelection,
   onClose,
@@ -668,7 +673,6 @@ function DropdownSubmenu({
   }
   const submenu = node.value?.submenu;
   const options = typeof submenu === 'object' ? submenu : {};
-  const isDisabled = state.disabledKeys.has(node.key);
   const submenuState = useDropdownSubmenuState({
     level: submenuLevel,
     rootMenuState,
@@ -718,7 +722,6 @@ function DropdownSubmenu({
         node={node}
         isVirtualized={isVirtualized}
         rowProps={rowProps}
-        state={state}
         closeOnSelect={false}
       />
       {isOpen &&
