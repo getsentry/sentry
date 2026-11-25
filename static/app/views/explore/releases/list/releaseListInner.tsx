@@ -25,7 +25,7 @@ import {ReleaseCard} from './releaseCard';
 import {ReleasesAdoptionChart} from './releasesAdoptionChart';
 import {ReleasesDisplayOption} from './releasesDisplayOptions';
 import {ReleasesPromo} from './releasesPromo';
-import ReleasesRequest from './releasesRequest';
+import {ReleasesRequest} from './releasesRequest';
 import {ReleasesStatusOption} from './releasesStatusOptions';
 import {useReleasesSdkVersions} from './useReleasesSdkVersions';
 

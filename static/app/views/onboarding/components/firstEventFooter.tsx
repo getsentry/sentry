@@ -8,6 +8,7 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Grid, type GridProps} from '@sentry/scraps/layout';
 
 import {CreateSampleEventButton} from 'sentry/components/onboarding/createSampleEventButton';
+import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {PeekingBug} from 'sentry/components/peekingBug/peekingBug';
 import {t} from 'sentry/locale';
 import {pulsingIndicatorStyles} from 'sentry/styles/pulsingIndicator';
@@ -34,6 +35,7 @@ export function FirstEventFooter({
   onClickSetupLater,
   leading,
 }: FirstEventFooterProps) {
+  const {discardOnboardingSession} = useOnboardingContext();
   const {data: issues} = useQuery({
     ...apiOptions.as<Group[]>()(
       '/projects/$organizationIdOrSlug/$projectIdOrSlug/issues/',
@@ -89,11 +91,17 @@ export function FirstEventFooter({
         {project.firstEvent ? (
           <PeekingBug>
             <LinkButton
-              onClick={() => {
+              onClick={event => {
                 trackAnalytics('onboarding.scm_take_to_error_clicked', {
                   organization,
                   platform: project.platform,
                 });
+                // A modified click opens the issue in a new tab and leaves this
+                // tab in onboarding, so only a plain click ends the session.
+                if (event.metaKey || event.altKey || event.ctrlKey || event.shiftKey) {
+                  return;
+                }
+                discardOnboardingSession();
               }}
               to={
                 firstIssue

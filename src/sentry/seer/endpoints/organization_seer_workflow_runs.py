@@ -138,6 +138,7 @@ class CronTriggerResponse(TypedDict):
 
 class ManualTriggerResponse(TypedDict):
     type: Literal["manual"]
+    userId: str | None
 
 
 # Discriminated by `type`; add new trigger variants to this union.
@@ -441,7 +442,8 @@ def serialize_trigger(
     `existing_group_ids` holds the preloaded IDs of trigger groups that have not been deleted.
     """
     if run.source == SeerWorkflowRunSource.MANUAL:
-        return {"type": "manual"}
+        user_id = get_path(run.extras, "snapshot", "inputs", "user_id")
+        return {"type": "manual", "userId": str(user_id) if user_id is not None else None}
     if run.source == SeerWorkflowRunSource.CRON:
         return {"type": "cron"}
     if strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION and get_path(
