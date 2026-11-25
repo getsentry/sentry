@@ -67,7 +67,6 @@ class BaseIssueOperation(DefaultFieldsModel):
             .objects.filter(
                 Q(status=OperationStatus.QUEUED)
                 | Q(status=OperationStatus.RUNNING, lease_expires_at__lte=Now()),
-                project_id=self.project_id,
                 id=self.id,
                 step=OperationStep.MOVE,
             )
@@ -95,7 +94,6 @@ class BaseIssueOperation(DefaultFieldsModel):
         cls = type(self)
         with transaction.atomic(using=router.db_for_write(cls)):
             operation = cls.objects.select_for_update().get_or_none(
-                project_id=self.project_id,
                 id=self.id,
                 status=OperationStatus.RUNNING,
                 step=OperationStep.MOVE,
