@@ -221,7 +221,9 @@ export function useAnnotationMarkers({
       name: ANNOTATION_MARKERS_SERIES_ID,
       data,
       color: theme.tokens.dataviz.semantic.bad,
-      z: BAND_Z - 1,
+      // Under bands, so a bucket highlight covers the markers, and over the low
+      // confidence hatch, so the hatch doesn't fade them
+      z: BAND_Z - 0.5,
       clip: false,
       tooltip: itemTooltipBelowAnchor(
         chartRef,

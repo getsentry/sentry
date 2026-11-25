@@ -1,5 +1,7 @@
 import type {CustomSeriesRenderItemAPI, CustomSeriesRenderItemParams} from 'echarts';
 
+import {BAND_Z} from 'sentry/components/charts/bands/bandShapes';
+
 import {HatchAreas} from './hatchAreas';
 
 describe('HatchAreas', () => {
@@ -41,7 +43,7 @@ describe('HatchAreas', () => {
         encode: {x: [0, 1]},
         silent: true,
         tooltip: {show: false},
-        z: 4,
+        z: BAND_Z - 0.75,
       })
     );
 

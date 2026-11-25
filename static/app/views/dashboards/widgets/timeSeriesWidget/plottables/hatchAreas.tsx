@@ -1,6 +1,6 @@
 import type {CustomSeriesOption, CustomSeriesRenderItem} from 'echarts';
 
-import type {CartesianCoordSys} from 'sentry/components/charts/bands/bandShapes';
+import {BAND_Z, type CartesianCoordSys} from 'sentry/components/charts/bands/bandShapes';
 import {defined} from 'sentry/utils/defined';
 import type {TimeRange} from 'sentry/utils/timeSeries/mergeTimeRanges';
 
@@ -111,8 +111,9 @@ export class HatchAreas implements Plottable {
         // Mapping only `x` keeps the timestamps out of the Y axis extent
         encode: {x: [0, 1]},
         renderItem: this.renderItem,
-        // Over line and area series, which default to 3, and under mark lines and points, which default to 5
-        z: 4,
+        // Over line and area series, which default to 3, and under annotation
+        // markers, bands, and mark lines
+        z: BAND_Z - 0.75,
         clip: true,
         silent: true,
         animation: false,
