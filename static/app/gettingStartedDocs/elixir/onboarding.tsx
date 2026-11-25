@@ -9,9 +9,9 @@ const getInstallSnippet = () => `
 defp deps do
   [
     # ...
-    {:sentry, "~> 10.2.0"},
-    {:jason, "~> 1.2"},
-    {:hackney, "~> 1.8"}
+    {:sentry, "~> 14.1"},
+    {:jason, "~> 1.4"},
+    {:finch, "~> 0.21"}
   ]
 end`;
 

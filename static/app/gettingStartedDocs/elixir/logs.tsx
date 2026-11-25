@@ -11,9 +11,9 @@ const getInstallSnippet = () => `
 defp deps do
   [
     # ...
-    {:sentry, "~> 12.0"},
-    {:jason, "~> 1.2"},
-    {:hackney, "~> 1.8"}
+    {:sentry, "~> 14.1"},
+    {:jason, "~> 1.4"},
+    {:finch, "~> 0.21"}
   ]
 end`;
 
@@ -21,7 +21,6 @@ const getConfigureSnippet = (params: DocsParams) => `
 config :sentry,
   dsn: "${params.dsn.public}",
   environment_name: Mix.env(),
-  enable_logs: true,
   logs: [
     level: :info,
     metadata: [:request_id, :user_id]
@@ -42,7 +41,7 @@ export const logs: OnboardingConfig = {
         {
           type: 'text',
           text: tct(
-            'Logs are supported in [code:sentry] version [code:12.0.0] and above. Make sure your [code:mix.exs] specifies at least this version:',
+            'This setup needs [code:sentry] version [code:14.0.0] or later. Make sure your [code:mix.exs] specifies at least this version:',
             {code: <code />}
           ),
         },
@@ -63,7 +62,7 @@ export const logs: OnboardingConfig = {
         {
           type: 'text',
           text: tct(
-            'Enable logs by adding [code:enable_logs: true] to your Sentry configuration in [code:config/config.exs] (or [code:config/prod.exs]). The SDK automatically attaches a [code:Sentry.LoggerHandler] on startup — no manual setup required.',
+            'Enable logs by setting [code:level] in the [code:logs] option of your Sentry configuration in [code:config/config.exs] (or [code:config/prod.exs]). Logs at that level and above are sent to Sentry. When [code:logs] is set, the SDK automatically attaches a [code:Sentry.LoggerHandler] on startup — no manual setup required.',
             {code: <code />}
           ),
         },
