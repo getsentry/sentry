@@ -108,7 +108,7 @@ describe('ScheduledInvestigationForm', () => {
         configsUrl,
         expect.objectContaining({
           data: {
-            cron: {crontab: '0 0 * * *', timezone: 'UTC'},
+            cronSchedule: {crontab: '0 0 * * *', timezone: 'UTC'},
             strategy: 'scheduled_investigation',
             name: 'Scheduled Investigation',
             enabled: false,
@@ -172,11 +172,30 @@ describe('ScheduledInvestigationForm', () => {
           configsUrl,
           expect.objectContaining({
             data: expect.objectContaining({
-              cron: {crontab: '30 9 * * 1-5', timezone: 'America/New_York'},
+              cronSchedule: {crontab: '30 9 * * 1-5', timezone: 'America/New_York'},
             }),
           })
         )
       );
+    });
+
+    it('blocks saving an invalid crontab', async () => {
+      const create = MockApiClient.addMockResponse({
+        url: configsUrl,
+        method: 'POST',
+        body: config,
+      });
+      render(<ScheduledInvestigationForm mode="create" />, {organization});
+
+      const crontab = screen.getByRole('textbox', {name: 'Crontab Schedule'});
+      await userEvent.clear(crontab);
+      await userEvent.type(crontab, 'every day');
+      await userEvent.click(screen.getByRole('button', {name: 'Create automation'}));
+
+      expect(
+        await screen.findByText('Enter a valid crontab schedule, e.g. 0 0 * * *')
+      ).toBeInTheDocument();
+      expect(create).not.toHaveBeenCalled();
     });
 
     it('defaults to the first accessible project without all-project access', () => {
@@ -463,7 +482,7 @@ describe('ScheduledInvestigationForm', () => {
           `${configsUrl}42/`,
           expect.objectContaining({
             data: {
-              cron: {crontab: '0 0 * * *', timezone: 'UTC'},
+              cronSchedule: {crontab: '0 0 * * *', timezone: 'UTC'},
               name: 'Checkout triage',
               projectIds: [1, 2],
               environments: ['production'],
@@ -500,7 +519,7 @@ describe('ScheduledInvestigationForm', () => {
           `${configsUrl}42/`,
           expect.objectContaining({
             data: expect.objectContaining({
-              cron: {crontab: '30 9 * * 1-5', timezone: 'America/New_York'},
+              cronSchedule: {crontab: '30 9 * * 1-5', timezone: 'America/New_York'},
             }),
           })
         )

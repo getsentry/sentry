@@ -6,7 +6,7 @@ import {Text} from '@sentry/scraps/text';
 import {timezoneOptions} from 'sentry/data/timezones';
 import {t} from 'sentry/locale';
 import {crontabAsText} from 'sentry/views/insights/crons/utils/crontabAsText';
-import type {SeerWorkflowCron} from 'sentry/views/seerWorkflows/types';
+import type {WorkflowCronSchedule} from 'sentry/views/seerWorkflows/types';
 
 /**
  * Whether the schedule is a five field crontab expression that can be read
@@ -18,8 +18,8 @@ export function isValidCrontab(crontab: string) {
 }
 
 interface ScheduleFieldProps {
-  onChange: (value: SeerWorkflowCron) => void;
-  value: SeerWorkflowCron;
+  onChange: (value: WorkflowCronSchedule) => void;
+  value: WorkflowCronSchedule;
   disabled?: boolean;
   /**
    * Props for the crontab input, e.g. the field's id and blur handler

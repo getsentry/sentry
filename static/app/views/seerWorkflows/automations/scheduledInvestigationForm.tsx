@@ -52,7 +52,7 @@ import {
 const schema = z.object({
   name: z.string().trim().min(1, t('Give your automation a name.')).max(64),
   enabled: z.boolean(),
-  cron: z
+  cronSchedule: z
     .object({crontab: z.string().trim(), timezone: z.string()})
     .refine(cron => isValidCrontab(cron.crontab), {
       message: t('Enter a valid crontab schedule, e.g. 0 0 * * *'),
@@ -126,7 +126,7 @@ export function ScheduledInvestigationForm(
   const mutationError = props.mode === 'create' ? createConfig.error : updateConfig.error;
   const saveConfig = async (value: z.infer<typeof schema>) => {
     const fields = {
-      cron: value.cron,
+      cronSchedule: value.cronSchedule,
       projectIds: value.projects.allProjects
         ? [ALL_ACCESS_PROJECTS]
         : value.projects.projectIds.map(Number),
@@ -174,7 +174,7 @@ export function ScheduledInvestigationForm(
           ? t('Scheduled Investigation')
           : (props.config.name ?? STRATEGY_META.scheduled_investigation.label),
       // Timezone must be an IANA name.
-      cron: {crontab: DEFAULT_CRONTAB, timezone: 'UTC'},
+      cronSchedule: {crontab: DEFAULT_CRONTAB, timezone: 'UTC'},
       projects: defaultProjects,
       environment: currEnvironment,
       serviceAccountProjects: getServiceAccountProjectSelection(serviceAccount),
@@ -190,7 +190,7 @@ export function ScheduledInvestigationForm(
           formApi.reset({
             name: value.name,
             enabled: config.enabled,
-            cron: value.cron,
+            cronSchedule: value.cronSchedule,
             projects: getProjectSelection(config.projects),
             environment: config.environments[0] ?? '',
             serviceAccountProjects: getServiceAccountProjectSelection(
@@ -258,7 +258,7 @@ export function ScheduledInvestigationForm(
 
           <FormSection title={t('Trigger')}>
             <form.FieldGroup>
-              <form.AppField name="cron">
+              <form.AppField name="cronSchedule">
                 {field => (
                   <field.Layout.Row
                     label={t('Schedule')}

@@ -171,7 +171,7 @@ type SeerServiceAccountRequest = {
 /**
  * When a scheduled automation runs
  */
-export type SeerWorkflowCron = {
+export type WorkflowCronSchedule = {
   /**
    * Five field crontab expression, e.g. `0 0 * * *`
    */
@@ -185,7 +185,7 @@ export type SeerWorkflowCron = {
 export type SeerWorkflowConfigCreateRequest = {
   serviceAccount: SeerServiceAccountRequest;
   strategy: WorkflowStrategy;
-  cron?: SeerWorkflowCron;
+  cronSchedule?: WorkflowCronSchedule;
   enabled?: boolean;
   /**
    * Empty means all environments
@@ -207,7 +207,7 @@ export type SeerWorkflowConfigCreateRequest = {
  * Body of a PUT to a workflow config. Send at most one of projectIds or monitorIds
  */
 export type SeerWorkflowConfigUpdateRequest = {
-  cron?: SeerWorkflowCron;
+  cronSchedule?: WorkflowCronSchedule;
   enabled?: boolean;
   /**
    * Empty means all environments
