@@ -2849,6 +2849,33 @@ describe('out of credits', () => {
     });
   });
 
+  it('does not open the rethink prompt when a re-run is rejected for credits', async () => {
+    mockCreditCheck('autofix_root_cause', true);
+    const startStep = jest.fn().mockRejectedValue(new Error('402'));
+    render(
+      <RootCauseCard
+        autofix={{...mockAutofix, startStep, runState: stoppedRunState}}
+        groupId="1"
+        section={rootCauseSection}
+      />,
+      {organization}
+    );
+
+    await waitFor(() =>
+      expect(screen.getByRole('button', {name: 'Re-run'})).toHaveAttribute(
+        'aria-disabled',
+        'false'
+      )
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Re-run'}));
+
+    expect(startStep).toHaveBeenCalled();
+    expect(await screen.findByRole('button', {name: 'Re-run'})).toBeInTheDocument();
+    expect(
+      screen.queryByText('How can this root cause be improved?')
+    ).not.toBeInTheDocument();
+  });
+
   describe("a stopped step's transcript", () => {
     it("ends the timer at Seer's error block when a PR iteration stopped", () => {
       mockCreditCheck('autofix_pr_iteration', false);
