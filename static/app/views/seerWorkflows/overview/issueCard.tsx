@@ -59,38 +59,20 @@ import type {
 } from './types';
 import {useIsInView} from './useIsInView';
 
-interface RunErrorMeta {
-  label: string;
-  message: string;
-}
+const RUN_ERROR_SECTIONS = new Set<AutofixStateKey>([
+  'needs_investigation',
+  'code_changes_ready',
+]);
 
-// A single run that errors after its root cause stops in needs_investigation,
-// so that section needs the error state as well as code_changes_ready.
-const RUN_ERROR_META: Partial<Record<AutofixStateKey, RunErrorMeta>> = {
-  needs_investigation: {
-    label: t('Error'),
-    message: t(
-      'Seer ran into an error after finding the root cause. Open Seer to retry.'
-    ),
-  },
-  code_changes_ready: {
-    label: t('Code Changes'),
-    message: t('Seer ran into an error on the latest attempt. Open Seer to retry.'),
-  },
-};
-
-function getRunError(
-  sectionKey: AutofixStateKey,
-  run: OverviewRun
-): RunErrorMeta | undefined {
-  return run.status === 'error' ? RUN_ERROR_META[sectionKey] : undefined;
+function hasRunError(sectionKey: AutofixStateKey, run: OverviewRun): boolean {
+  return RUN_ERROR_SECTIONS.has(sectionKey) && run.status === 'error';
 }
 
 function canShowCodeChanges(sectionKey: AutofixStateKey, run: OverviewRun): boolean {
   return (
     sectionKey === 'code_changes_ready' &&
     Boolean(run.codeChanges?.length) &&
-    !getRunError(sectionKey, run)
+    !hasRunError(sectionKey, run)
   );
 }
 
@@ -199,7 +181,7 @@ function OverviewAction({
     );
   }
 
-  if (getRunError(sectionKey, run)) {
+  if (hasRunError(sectionKey, run)) {
     return (
       <ActionButtonBar>
         <OpenSeerButton run={run} section={sectionKey} size="sm" />
@@ -607,7 +589,7 @@ export const OverviewCard = memo(function OverviewCardComponent({
       section: sectionKey,
     });
 
-  const runError = getRunError(sectionKey, run);
+  const showRunError = hasRunError(sectionKey, run);
   const showCodeChanges = canShowCodeChanges(sectionKey, run);
   const showEnrichmentPlaceholder = enrichmentPending && Boolean(reviewPullRequest?.url);
   const showPullRequestFiles =
@@ -616,7 +598,7 @@ export const OverviewCard = memo(function OverviewCardComponent({
     rootCause ||
     proposedFix ||
     showCodeChanges ||
-    runError ||
+    showRunError ||
     showEnrichmentPlaceholder ||
     showPullRequestFiles
   );
@@ -706,12 +688,12 @@ export const OverviewCard = memo(function OverviewCardComponent({
                 {proposedFix}
               </NarrativeBlock>
             )}
-            {runError ? (
+            {showRunError ? (
               <NarrativeBlock
                 icon={<IconWarning size="xs" variant="secondary" aria-hidden />}
-                label={runError.label}
+                label={t('Error')}
               >
-                {runError.message}
+                {t('Seer ran into an error on the latest attempt. Open Seer to retry.')}
               </NarrativeBlock>
             ) : showCodeChanges && run.codeChanges ? (
               <CodeChanges
