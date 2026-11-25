@@ -72,9 +72,7 @@ describe('serverless onboarding docs', () => {
     renderWithOnboardingLayout(docs, {selectedProducts: [ProductSolution.LOGS]});
 
     expect(
-      screen.getByText(
-        textWithMarkupMatcher(/LoggingIntegration\(capture_sentry_logs=True\)/)
-      )
+      screen.getByText(textWithMarkupMatcher(/LoggingIntegration\(\),/))
     ).toBeInTheDocument();
   });
 
@@ -82,9 +80,7 @@ describe('serverless onboarding docs', () => {
     renderWithOnboardingLayout(docs, {selectedProducts: []});
 
     expect(
-      screen.queryByText(
-        textWithMarkupMatcher(/LoggingIntegration\(capture_sentry_logs=True\)/)
-      )
+      screen.queryByText(textWithMarkupMatcher(/LoggingIntegration\(\),/))
     ).not.toBeInTheDocument();
   });
 
