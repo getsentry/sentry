@@ -116,7 +116,7 @@ accessing their settings or saving them raises and logs an error for existing de
 `config_schema=None` skips configuration validation for pipelines that
 validate their own configuration. It does not skip type validation.
 
-`api_availability[DetectorAPIOperation.DISCOVER]` controls type discovery and suggested
+`api_availability[WorkflowEngineAPIOperation.DISCOVER]` controls type discovery and suggested
 validation choices. It defaults to `True`; set it to `False` for internal types or use
 a `FeatureGate` for a rollout. Discovery also requires a handler and `GET` availability;
 suggested choices require a validator. `DISCOVER` does not restrict access to detector

@@ -3,6 +3,7 @@ import {useEffect} from 'react';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {NotFound} from 'sentry/components/errors/notFound';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {NoAccess} from 'sentry/components/noAccess';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {DATE_TIME_KEYS, URL_PARAM} from 'sentry/components/pageFilters/constants';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
@@ -108,14 +109,21 @@ function IssueViewWrapper({children}: Props) {
 
 export function IssueListContainer({children, title = t('Issues')}: Props) {
   const organization = useOrganization();
+  const canReadIssues = organization.access.some(scope =>
+    ['event:read', 'event:write', 'event:admin'].includes(scope)
+  );
 
   return (
     <SentryDocumentTitle title={title} orgSlug={organization.slug}>
-      <AnalyticsArea name="issue_list">
-        <AiQueryProvider strategy="Issues">
-          <IssueViewWrapper>{children}</IssueViewWrapper>
-        </AiQueryProvider>
-      </AnalyticsArea>
+      {canReadIssues ? (
+        <AnalyticsArea name="issue_list">
+          <AiQueryProvider strategy="Issues">
+            <IssueViewWrapper>{children}</IssueViewWrapper>
+          </AiQueryProvider>
+        </AnalyticsArea>
+      ) : (
+        <NoAccess />
+      )}
     </SentryDocumentTitle>
   );
 }

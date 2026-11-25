@@ -27,7 +27,7 @@ def get_creator_reference(request: Request) -> CreatorReference:
         "created_by_service_account_id": None,
         "created_by_org_auth_token_id": None,
     }
-    # Some callers pass a plain Django request, which has no `auth`.
+    # Some callers (e.g. validators built in tests) pass a plain Django request without `.auth`.
     auth = getattr(request, "auth", None)
     if is_service_account_auth(auth):
         reference["created_by_service_account_id"] = auth.entity_id

@@ -422,6 +422,7 @@ class MonitorValidator(CamelSnakeSerializer[Monitor]):
             organization_id=organization.id,
             owner_user_id=owner_user_id,
             owner_team_id=cast("int", owner_team_id),
+            **get_creator_reference(self.context["request"]),
             name=validated_data["name"],
             slug=cast("str", validated_data.get("slug")),
             status=validated_data["status"],
