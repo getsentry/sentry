@@ -9,7 +9,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import cell_silo_endpoint
+from sentry.api.base import internal_cell_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.investigations.endpoints.workflow_runs import WorkflowEndpoint
 from sentry.investigations.services.workflow_client import forward_workflow_request
@@ -22,7 +22,7 @@ from .proof_storage import proof_storage
 
 
 @extend_schema(exclude=True)
-@cell_silo_endpoint
+@internal_cell_silo_endpoint
 class EditorEndpoint(WorkflowEndpoint):
     publish_status = {"GET": ApiPublishStatus.PRIVATE, "POST": ApiPublishStatus.PRIVATE}
 
