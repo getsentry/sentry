@@ -12,6 +12,8 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
+import {toast} from '@sentry/scraps/toast';
+
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 import SentryApplicationDetails from './sentryApplicationDetails';
@@ -1015,6 +1017,22 @@ describe('Sentry Application Details', () => {
           "Requested permission of org:ci exceeds requester's permission. Please contact an administrator to make the requested change."
         )
       ).toBeInTheDocument();
+    });
+
+    it('shows sibling field errors when scope errors cannot be mapped', async () => {
+      const toastError = jest.spyOn(toast, 'error');
+      MockApiClient.addMockResponse({
+        url: `/sentry-apps/${sentryApp.slug}/`,
+        method: 'PUT',
+        statusCode: 400,
+        body: {scopes: ['Invalid scope selection'], name: ['This name is already taken']},
+      });
+
+      renderComponent();
+      await userEvent.click(await screen.findByRole('button', {name: 'Save Changes'}));
+
+      expect(await screen.findByText('This name is already taken')).toBeInTheDocument();
+      expect(toastError).toHaveBeenCalledWith('Invalid scope selection');
     });
 
     it('handles client secret rotation', async () => {

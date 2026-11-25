@@ -359,7 +359,7 @@ function useSaveSentryApp({
       typeof responseJSON.scopes[0] === 'string'
     ) {
       toast.error(responseJSON.scopes[0]);
-      return;
+      return fieldErrors;
     }
 
     if (hadScopeErrors || fieldErrors) {
