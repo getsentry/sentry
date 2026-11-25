@@ -208,6 +208,7 @@ class OrganizationTimeseriesAnnotationEndpoint(OrganizationEndpoint):
                 interval_type=IntervalType.RANGE if end is not None else IntervalType.POINT,
                 scope=data["scope"],
                 severity=data["severity"],
+                pinned=data["pinned"],
                 tags=data.get("tags"),
                 created_by=_creating_actor(request),
             )

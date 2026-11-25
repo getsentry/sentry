@@ -173,9 +173,16 @@ class OrganizationTimeseriesAnnotationEndpointTest(APITestCase):
         assert row["annotationType"] == "inbound_filter_change"
         assert row["scope"] == "spans"
         assert row["severity"] == "high"
+        assert row["pinned"] is False
         assert row["tags"] == {"filter": "legacy-browsers"}
         assert row["createdBy"] is None
         assert row["createdByLabel"] == "statuspage"
+
+    def test_serialized_pinned(self) -> None:
+        annotation = self._annotation(pinned=True)
+        response = self.get_success_response(self.organization.slug, statsPeriod="14d")
+        row = next(r for r in response.data if r["id"] == str(annotation.id))
+        assert row["pinned"] is True
 
     def test_serialized_user_creator(self) -> None:
         annotation = self._annotation(created_by_label=None, created_by_id=self.user.id)
@@ -313,8 +320,18 @@ class CreateOrganizationTimeseriesAnnotationEndpointTest(APITestCase):
         assert annotation.interval_type == IntervalType.POINT
         assert annotation.scope == AnnotationScope.GLOBAL
         assert annotation.severity == Severity.LOW
+        assert annotation.pinned is False
         assert annotation.created_by_id == self.user.id
         assert response.data["createdBy"] == {"type": "user", "id": str(self.user.id)}
+        assert response.data["pinned"] is False
+
+    def test_creates_pinned_annotation(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug, **self._payload(pinned=True), status_code=201
+        )
+        annotation = TimeseriesAnnotation.objects.get(id=response.data["id"])
+        assert annotation.pinned is True
+        assert response.data["pinned"] is True
 
     def test_creates_range_annotation(self) -> None:
         start = before_now(days=2)

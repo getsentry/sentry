@@ -33,6 +33,7 @@ class TimeseriesAnnotationData:
     interval_type: IntervalType = IntervalType.POINT
     scope: AnnotationScope = AnnotationScope.GLOBAL
     severity: Severity = Severity.LOW
+    pinned: bool = False
     tags: Mapping[str, Any] | None = None
 
     created_by: ActorId | None = None
@@ -56,6 +57,7 @@ class TimeseriesAnnotationData:
             interval_type=IntervalType(annotation.interval_type),
             scope=AnnotationScope(annotation.scope),
             severity=Severity(annotation.severity),
+            pinned=annotation.pinned,
             tags=annotation.tags,
             created_by=_actor_from_model(annotation),
             created_by_label=annotation.created_by_label,
@@ -97,6 +99,7 @@ def create_timeseries_annotation(data: TimeseriesAnnotationData) -> TimeseriesAn
         annotation_type=data.annotation_type,
         scope=data.scope,
         severity=data.severity,
+        pinned=data.pinned,
         description=data.description,
         tags=dict(data.tags) if data.tags is not None else None,
         created_by_id=created_by_id,
