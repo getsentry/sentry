@@ -126,6 +126,36 @@ def _resolve_uuid_run(run: SeerRun, *, for_continue: bool) -> ResolvedSeerRun | 
     return ResolvedSeerRun(run.seer_run_state_id, str(run.uuid))
 
 
+def _resolve_run(
+    run_id: str | int,
+    organization: Organization,
+    *,
+    for_continue: bool,
+    allowed: Callable[[SeerRun], bool] | None,
+) -> ResolvedSeerRun | Response:
+    parsed = _parse_run_id(run_id)
+    if isinstance(parsed, Response):
+        return parsed
+
+    lookup = {"seer_run_state_id": parsed} if isinstance(parsed, int) else {"uuid": parsed}
+    run = (
+        SeerRun.objects.filter(organization=organization, **lookup)
+        .select_related("agent__group__project", "agent__project")
+        .first()  # noqa: S035
+    )
+    if run is None:
+        if not isinstance(parsed, int):
+            return Response({"session": None}, status=status.HTTP_404_NOT_FOUND)
+        if allowed is not None:
+            return _no_access_response()
+        return ResolvedSeerRun(parsed, None)
+    if allowed is not None and not allowed(run):
+        return _no_access_response()
+    if isinstance(parsed, int):
+        return ResolvedSeerRun(parsed, str(run.uuid))
+    return _resolve_uuid_run(run, for_continue=for_continue)
+
+
 def resolve_seer_run(
     run_id: str | int,
     organization: Organization,
@@ -141,22 +171,12 @@ def resolve_seer_run(
     ``{"session": {"status": ...}}`` shape; ``for_continue`` instead gets 409
     (still mirroring) or 422 (mirror failed).
     """
-    parsed = _parse_run_id(run_id)
-    if isinstance(parsed, Response):
-        return parsed
-
-    if isinstance(parsed, int):
-        run = get_seer_run(parsed, organization)
-        if user_id is not None and (run is None or run.user_id != user_id):
-            return _no_access_response()
-        return ResolvedSeerRun(parsed, str(run.uuid) if run else None)
-
-    run = SeerRun.objects.get_or_none(uuid=parsed, organization=organization)
-    if run is None:
-        return Response({"session": None}, status=status.HTTP_404_NOT_FOUND)
-    if user_id is not None and run.user_id != user_id:
-        return _no_access_response()
-    return _resolve_uuid_run(run, for_continue=for_continue)
+    return _resolve_run(
+        run_id,
+        organization,
+        for_continue=for_continue,
+        allowed=None if user_id is None else lambda run: run.user_id == user_id,
+    )
 
 
 def _has_run_scope(access: Access, project: Project | None, *, publish: bool) -> bool:
@@ -192,26 +212,12 @@ def authorize_seer_run(
     *,
     publish: bool = False,
 ) -> ResolvedSeerRun | Response:
-    parsed = _parse_run_id(run_id)
-    if isinstance(parsed, Response):
-        return parsed
-
-    lookup = {"seer_run_state_id": parsed} if isinstance(parsed, int) else {"uuid": parsed}
-    run = (
-        SeerRun.objects.filter(organization=organization, **lookup)
-        .select_related("agent__group__project", "agent__project")
-        .first()  # noqa: S035
+    return _resolve_run(
+        run_id,
+        organization,
+        for_continue=True,
+        allowed=lambda run: _can_act_on_run(run, access, user_id, publish=publish),
     )
-    if run is None:
-        if isinstance(parsed, int):
-            return _no_access_response()
-        return Response({"session": None}, status=status.HTTP_404_NOT_FOUND)
-
-    if not _can_act_on_run(run, access, user_id, publish=publish):
-        return _no_access_response()
-    if isinstance(parsed, int):
-        return ResolvedSeerRun(parsed, str(run.uuid))
-    return _resolve_uuid_run(run, for_continue=True)
 
 
 _RpcReturn = TypeVar("_RpcReturn")
