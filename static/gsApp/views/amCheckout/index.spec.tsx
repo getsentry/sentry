@@ -17,7 +17,7 @@ import {
 
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {AddOnCategory, OnDemandBudgetMode} from 'getsentry/types';
-import AMCheckout from 'getsentry/views/amCheckout';
+import {AMCheckout} from 'getsentry/views/amCheckout';
 import {getCheckoutAPIData} from 'getsentry/views/amCheckout/utils';
 import {hasOnDemandBudgetsFeature} from 'getsentry/views/spendLimits/utils';
 

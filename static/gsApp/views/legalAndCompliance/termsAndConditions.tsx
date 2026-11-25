@@ -20,7 +20,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
 import type {Policy, Subscription} from 'getsentry/types';
-import DataConsentForm from 'getsentry/views/legalAndCompliance/dataConsentForm';
+import {DataConsentForm} from 'getsentry/views/legalAndCompliance/dataConsentForm';
 import {PolicyRow, PolicyStatusRow} from 'getsentry/views/legalAndCompliance/policyRow';
 import {StatusIconWithTooltip} from 'getsentry/views/legalAndCompliance/policyStatus';
 import {PanelItemPolicy} from 'getsentry/views/legalAndCompliance/styles';

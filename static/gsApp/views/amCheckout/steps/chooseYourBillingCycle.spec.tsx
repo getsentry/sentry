@@ -11,7 +11,7 @@ import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
-import AMCheckout from 'getsentry/views/amCheckout/';
+import {AMCheckout} from 'getsentry/views/amCheckout/';
 
 describe('ChooseYourBillingCycle', () => {
   const organization = OrganizationFixture();

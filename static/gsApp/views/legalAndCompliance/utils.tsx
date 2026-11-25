@@ -4,10 +4,16 @@ import {PanelItem} from 'sentry/components/panels/panelItem';
 import {tct} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 
-import {withSubscription} from 'getsentry/components/withSubscription';
-import type {Subscription} from 'getsentry/types';
+import {SubscriptionLoadingFallback} from 'getsentry/components/subscriptionLoadingFallback';
+import {useSubscription} from 'getsentry/hooks/useSubscription';
 
-function DataConsentHeader({subscription}: {subscription: Subscription}) {
+export function DataConsentSettingsHeader() {
+  const subscription = useSubscription();
+
+  if (!subscription) {
+    return <SubscriptionLoadingFallback />;
+  }
+
   if (defined(subscription.msaUpdatedForDataConsent)) {
     return null;
   }
@@ -22,5 +28,3 @@ function DataConsentHeader({subscription}: {subscription: Subscription}) {
     </PanelItem>
   );
 }
-
-export const DataConsentSettingsHeader = withSubscription(DataConsentHeader);

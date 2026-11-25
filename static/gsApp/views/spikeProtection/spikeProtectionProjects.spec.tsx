@@ -15,8 +15,9 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
 
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
+import type {Subscription} from 'getsentry/types';
 import {SPIKE_PROTECTION_OPTION_DISABLED} from 'getsentry/views/spikeProtection/constants';
-import SpikeProtectionProjects from 'getsentry/views/spikeProtection/spikeProtectionProjects';
+import {SpikeProtectionProjects} from 'getsentry/views/spikeProtection/spikeProtectionProjects';
 
 describe('project renders and toggles', () => {
   const projects = [
@@ -41,7 +42,8 @@ describe('project renders and toggles', () => {
     mockDelete: any,
     mockDeleteAll: any,
     mockPostAll: any,
-    mockGetProjectNotificationActions: any;
+    mockGetProjectNotificationActions: any,
+    subscription: Subscription;
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -51,7 +53,8 @@ describe('project renders and toggles', () => {
       organization: {openMembership: true, access: ['org:write']},
     });
     organization = newData.organization;
-    SubscriptionStore.set(organization.slug, SubscriptionFixture({organization}));
+    subscription = SubscriptionFixture({organization});
+    SubscriptionStore.set(organization.slug, subscription);
 
     mockGet = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/projects/`,
@@ -136,7 +139,7 @@ describe('project renders and toggles', () => {
       statusCode: 200,
     });
 
-    render(<SpikeProtectionProjects />);
+    render(<SpikeProtectionProjects subscription={subscription} />);
     expect(mockGetNoProjects).toHaveBeenCalled();
     expect(await screen.findByText('There are no items to display')).toBeInTheDocument();
   });
@@ -144,7 +147,7 @@ describe('project renders and toggles', () => {
   it('renders projects accessible to user under closed membership', async () => {
     organization.openMembership = false;
 
-    render(<SpikeProtectionProjects />, {organization});
+    render(<SpikeProtectionProjects subscription={subscription} />, {organization});
 
     expect(await screen.findByText('project1')).toBeInTheDocument();
 
@@ -158,7 +161,7 @@ describe('project renders and toggles', () => {
     // even under closed membership
     organization.access = ['org:superuser'];
 
-    render(<SpikeProtectionProjects />, {organization});
+    render(<SpikeProtectionProjects subscription={subscription} />, {organization});
 
     expect(await screen.findByText('project1')).toBeInTheDocument();
 
@@ -172,7 +175,7 @@ describe('project renders and toggles', () => {
     // even under closed membership
     organization.access = ['org:admin'];
 
-    render(<SpikeProtectionProjects />, {organization});
+    render(<SpikeProtectionProjects subscription={subscription} />, {organization});
 
     expect(await screen.findByText('project1')).toBeInTheDocument();
 
@@ -184,7 +187,7 @@ describe('project renders and toggles', () => {
 
   it('renders toggles', async () => {
     const project = projects[0]!;
-    render(<SpikeProtectionProjects />);
+    render(<SpikeProtectionProjects subscription={subscription} />);
 
     expect(mockGet).toHaveBeenCalled();
     const {toggle} = await validateComponents(project, false);
@@ -199,7 +202,7 @@ describe('project renders and toggles', () => {
     const projectDisabled = projects[0]!;
     const projectEnabled = projects[1]!;
     organization.access = [];
-    render(<SpikeProtectionProjects />, {organization});
+    render(<SpikeProtectionProjects subscription={subscription} />, {organization});
 
     const toggleDisabled = await screen.findByTestId(
       `${projectDisabled.slug}-spike-protection-toggle`
@@ -246,7 +249,7 @@ describe('project renders and toggles', () => {
       statusCode: 200,
     });
 
-    render(<SpikeProtectionProjects />);
+    render(<SpikeProtectionProjects subscription={subscription} />);
     await validateComponents(newProjects[0]!, false);
     await validateComponents(newProjects[1]!, true);
   });
@@ -254,7 +257,7 @@ describe('project renders and toggles', () => {
   it('responds to successful toggles', async () => {
     const project = projects[0]!;
 
-    render(<SpikeProtectionProjects />);
+    render(<SpikeProtectionProjects subscription={subscription} />);
     expect(mockGet).toHaveBeenCalled();
 
     const {toggle} = await validateComponents(project, false);
@@ -279,7 +282,7 @@ describe('project renders and toggles', () => {
     });
     const project = projects[0]!;
 
-    render(<SpikeProtectionProjects />);
+    render(<SpikeProtectionProjects subscription={subscription} />);
     expect(mockGet).toHaveBeenCalled();
 
     const {toggle} = await validateComponents(project, false);
@@ -292,7 +295,7 @@ describe('project renders and toggles', () => {
 
   it('searches successfully', async () => {
     const projectSlug = projects[0]!.slug;
-    render(<SpikeProtectionProjects />, {organization});
+    render(<SpikeProtectionProjects subscription={subscription} />, {organization});
 
     const projectSearch = await screen.findByPlaceholderText('Search projects');
     await userEvent.click(projectSearch);
@@ -307,7 +310,7 @@ describe('project renders and toggles', () => {
 
   it('response to successful toggle for all projects', async () => {
     renderGlobalModal();
-    render(<SpikeProtectionProjects />);
+    render(<SpikeProtectionProjects subscription={subscription} />);
     await validateComponents(projects[0]!, false);
     await validateComponents(projects[1]!, true);
 
@@ -328,7 +331,7 @@ describe('project renders and toggles', () => {
 
   it('response to successful disable toggle for all projects', async () => {
     renderGlobalModal();
-    render(<SpikeProtectionProjects />);
+    render(<SpikeProtectionProjects subscription={subscription} />);
     await validateComponents(projects[0]!, false);
     await validateComponents(projects[1]!, true);
 
@@ -357,7 +360,7 @@ describe('project renders and toggles', () => {
       statusCode: 200,
     });
 
-    render(<SpikeProtectionProjects />, {organization});
+    render(<SpikeProtectionProjects subscription={subscription} />, {organization});
 
     await userEvent.click(
       await screen.findByTestId(`${project.slug}-spike-protection-toggle`)
@@ -372,7 +375,7 @@ describe('project renders and toggles', () => {
     const project = projects[0]!;
     jest.spyOn(ProjectsStore, 'onUpdateSuccess');
 
-    render(<SpikeProtectionProjects />);
+    render(<SpikeProtectionProjects subscription={subscription} />);
     const {toggle} = await validateComponents(project, false);
 
     await userEvent.click(toggle);
@@ -390,7 +393,7 @@ describe('project renders and toggles', () => {
 
   it('closes the accordion upon disable', async () => {
     const project = projects[0]!;
-    render(<SpikeProtectionProjects />, {organization});
+    render(<SpikeProtectionProjects subscription={subscription} />, {organization});
 
     await userEvent.click(
       await screen.findByTestId(`${project.slug}-spike-protection-toggle`)

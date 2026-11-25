@@ -9,27 +9,33 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
-import {withSubscription} from 'getsentry/components/withSubscription';
-import type {Subscription} from 'getsentry/types';
+import {SubscriptionLoadingFallback} from 'getsentry/components/subscriptionLoadingFallback';
+import {useSubscription} from 'getsentry/hooks/useSubscription';
 import {
   SpendVisibilityEvents,
   trackSpendVisibilityAnaltyics,
 } from 'getsentry/utils/trackSpendVisibilityAnalytics';
 import {SPIKE_PROTECTION_DOCS_LINK} from 'getsentry/views/spikeProtection/constants';
-import SpikeProtectionProjects from 'getsentry/views/spikeProtection/spikeProtectionProjects';
+import {SpikeProtectionProjects} from 'getsentry/views/spikeProtection/spikeProtectionProjects';
 import {SubscriptionPageContainer} from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 
-type Props = {subscription: Subscription};
-
-function SpikeProtectionRoot({subscription}: Props) {
+export default function SpikeProtectionRoot() {
   const organization = useOrganization();
+  const subscription = useSubscription();
   useEffect(() => {
+    if (!subscription) {
+      return;
+    }
     trackSpendVisibilityAnaltyics(SpendVisibilityEvents.SP_SETTINGS_VIEWED, {
       organization,
       subscription,
       view: 'spike_protection_settings',
     });
   }, [organization, subscription]);
+
+  if (!subscription) {
+    return <SubscriptionLoadingFallback />;
+  }
 
   const docsLink = (
     <ExternalLink
@@ -64,10 +70,8 @@ function SpikeProtectionRoot({subscription}: Props) {
       <ProjectPermissionAlert />
 
       <NoProjectMessage organization={organization}>
-        <SpikeProtectionProjects />
+        <SpikeProtectionProjects subscription={subscription} />
       </NoProjectMessage>
     </SubscriptionPageContainer>
   );
 }
-
-export default withSubscription(SpikeProtectionRoot);

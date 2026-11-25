@@ -40,7 +40,7 @@ describe('Subscription > Notifications', () => {
   });
 
   it('renders', async () => {
-    render(<Notifications subscription={subscription} />, {organization});
+    render(<Notifications />, {organization});
 
     expect(
       await screen.findByText(
@@ -51,9 +51,7 @@ describe('Subscription > Notifications', () => {
 
   it('redirects without flag', () => {
     organization.features = [];
-    const {router} = render(<Notifications subscription={subscription} />, {
-      organization,
-    });
+    const {router} = render(<Notifications />, {organization});
 
     expect(router.location).toEqual(
       expect.objectContaining({
@@ -65,7 +63,7 @@ describe('Subscription > Notifications', () => {
 
   it('renders an error for non-billing users', async () => {
     organization.access = [];
-    render(<Notifications subscription={subscription} />, {organization});
+    render(<Notifications />, {organization});
     expect(await screen.findByTestId('permission-denied')).toBeInTheDocument();
     expect(
       screen.queryByText(
@@ -78,7 +76,7 @@ describe('Subscription > Notifications', () => {
     subscription.planDetails.allowOnDemand = true;
     SubscriptionStore.set(organization.slug, subscription);
 
-    render(<Notifications subscription={subscription} />, {organization});
+    render(<Notifications />, {organization});
 
     expect(await screen.findByText('Subscription consumption')).toBeInTheDocument();
     expect(screen.getByText('90%')).toBeInTheDocument();
@@ -88,7 +86,7 @@ describe('Subscription > Notifications', () => {
   });
 
   it('reverts to saved thresholds on reset', async () => {
-    render(<Notifications subscription={subscription} />, {organization});
+    render(<Notifications />, {organization});
 
     expect(await screen.findByText('90%')).toBeInTheDocument();
     const textbox = screen.getByRole('textbox', {name: 'Subscription consumption'});
@@ -111,7 +109,7 @@ describe('Subscription > Notifications', () => {
     subscription.planDetails.allowOnDemand = true;
     SubscriptionStore.set(organization.slug, subscription);
 
-    render(<Notifications subscription={subscription} />, {organization});
+    render(<Notifications />, {organization});
 
     expect(await screen.findByText('On-Demand consumption')).toBeInTheDocument();
 
@@ -136,7 +134,7 @@ describe('Subscription > Notifications', () => {
       body: {reservedPercent: [90, 60], perProductOndemandPercent: [80, 50]},
     });
 
-    render(<Notifications subscription={subscription} />, {organization});
+    render(<Notifications />, {organization});
 
     expect(await screen.findByText('90%')).toBeInTheDocument();
     await userEvent.click(

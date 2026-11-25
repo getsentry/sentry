@@ -20,19 +20,21 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {DataCategory} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
 import {showIntercom} from 'sentry/utils/intercom';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-import {withSubscription} from 'getsentry/components/withSubscription';
+import {SubscriptionLoadingFallback} from 'getsentry/components/subscriptionLoadingFallback';
 import {
   ANNUAL,
   BillingConfigTier,
   PAYG_BUSINESS_DEFAULT,
   PAYG_TEAM_DEFAULT,
 } from 'getsentry/constants';
+import {useSubscription} from 'getsentry/hooks/useSubscription';
 import {OnDemandBudgetMode, PlanName} from 'getsentry/types';
 import type {
   BillingConfig,
@@ -85,7 +87,7 @@ export type State = {
   previewData?: PreviewData;
 };
 
-function AMCheckout(props: Props) {
+function AMCheckoutContent(props: Props) {
   const api = useApi();
   const organization = useOrganization();
   const {location, navigate, subscription} = props;
@@ -827,4 +829,14 @@ const CheckoutStepsContainer = styled('div')`
   }
 `;
 
-export default withSubscription(AMCheckout);
+type AMCheckoutProps = Omit<Props, 'subscription'> & {organization?: Organization};
+
+export function AMCheckout({organization, ...props}: AMCheckoutProps) {
+  const subscription = useSubscription({organization});
+
+  if (!subscription) {
+    return <SubscriptionLoadingFallback organization={organization} />;
+  }
+
+  return <AMCheckoutContent {...props} subscription={subscription} />;
+}

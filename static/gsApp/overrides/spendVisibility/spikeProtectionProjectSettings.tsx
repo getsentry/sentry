@@ -5,7 +5,7 @@ import {t, tct} from 'sentry/locale';
 import type {DetailedProject} from 'sentry/types/project';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-import SpikeProtectionProjectToggle from 'getsentry/views/spikeProtection/spikeProtectionProjectToggle';
+import {SpikeProtectionProjectToggle} from 'getsentry/views/spikeProtection/spikeProtectionProjectToggle';
 
 interface SpikeProtectionProjectSettingsProps {
   project: DetailedProject;

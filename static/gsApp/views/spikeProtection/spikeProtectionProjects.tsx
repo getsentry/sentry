@@ -29,7 +29,6 @@ import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ProjectBadge} from 'sentry/views/organizationStats/teamInsights/styles';
 
-import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
 import {
   SpendVisibilityEvents,
@@ -39,8 +38,9 @@ import {
   SPIKE_PROTECTION_ERROR_MESSAGE,
   SPIKE_PROTECTION_OPTION_DISABLED,
 } from 'getsentry/views/spikeProtection/constants';
-import SpikeProtectionProjectToggle, {
+import {
   isSpikeProtectionEnabled,
+  SpikeProtectionProjectToggle,
 } from 'getsentry/views/spikeProtection/spikeProtectionProjectToggle';
 
 import {AccordionRow} from './components/accordionRow';
@@ -102,7 +102,7 @@ function AccordionTitle({project}: {project: ProjectSummaryWithOptions}) {
   );
 }
 
-function SpikeProtectionProjects({subscription}: Props) {
+export function SpikeProtectionProjects({subscription}: Props) {
   const [projects, setProjects] = useState([] as ProjectSummaryWithOptions[]);
   const [pageLinks, setPageLinks] = useState<string | null>();
   const [currentCursor, setCurrentCursor] = useState<string | undefined>('');
@@ -347,8 +347,6 @@ function SpikeProtectionProjects({subscription}: Props) {
     </Fragment>
   );
 }
-
-export default withSubscription(SpikeProtectionProjects);
 
 const StyledSearch = styled(SearchBar)`
   flex: 1;
