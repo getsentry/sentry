@@ -2505,15 +2505,22 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         OrganizationWorkflowCommandsEndpoint.as_view(),
         name="sentry-api-0-organization-investigation-workflow-commands",
     ),
-    path(
-        "<str:organization_id_or_slug>/notebooks/workflow-runs/<uuid:workflow_run_id>/",
-        OrganizationNotebookWorkflowEndpoint.as_view(),
-        name="sentry-api-0-organization-notebook-workflow",
-    ),
-    path(
-        "<str:organization_id_or_slug>/notebooks/workflow-runs/<uuid:workflow_run_id>/writer/",
-        OrganizationNotebookWorkflowWriterEndpoint.as_view(),
-        name="sentry-api-0-organization-notebook-workflow-writer",
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/notebooks/workflow-runs/",
+        include(
+            [
+                path(
+                    "<uuid:workflow_run_id>/",
+                    OrganizationNotebookWorkflowEndpoint.as_view(),
+                    name="sentry-api-0-organization-notebook-workflow",
+                ),
+                path(
+                    "<uuid:workflow_run_id>/writer/",
+                    OrganizationNotebookWorkflowWriterEndpoint.as_view(),
+                    name="sentry-api-0-organization-notebook-workflow-writer",
+                ),
+            ]
+        ),
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/notebooks/$",
