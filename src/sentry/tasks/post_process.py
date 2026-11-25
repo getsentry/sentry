@@ -504,15 +504,20 @@ def _probe_event_links(event: GroupEvent) -> EventLinkProbe | None:
     from sentry.models.eventattachment import EventAttachment, PendingEventAttachment
     from sentry.models.userreport import UserReport
 
-    # A single statement can only read tables that live in the same database.
+    # A single statement can only read tables that live in the same database. A negative
+    # answer skips a write, so ask the database that the write would go to.
     models = (PendingEventAttachment, EventAttachment, UserReport)
-    if len({router.db_for_read(model) for model in models}) > 1:
+    databases = {router.db_for_write(model) for model in models}
+    if len(databases) > 1:
         return None
+    (database,) = databases
 
     def flag(queryset: QuerySet[Any], kind: int) -> QuerySet[Any, int]:
-        return queryset.annotate(kind=Value(kind, output_field=IntegerField())).values_list(
-            "kind", flat=True
-        )[:1]
+        return (
+            queryset.using(database)
+            .annotate(kind=Value(kind, output_field=IntegerField()))
+            .values_list("kind", flat=True)[:1]
+        )
 
     pending_attachments, attachments_to_relink, user_reports_to_link = 1, 2, 3
     found = set(
@@ -546,8 +551,14 @@ def _get_event_link_probe(job: PostProcessJob) -> EventLinkProbe | None:
 
     Returns None when the event was not probed. The caller then queries its own table.
 
-    The result is stored on the job so that the steps share it. A probe that raises is
-    not stored, so a failure in one step leaves the other free to try again.
+    The result is stored on the job so that the steps share it. That includes a probe
+    that failed: one statement reads three tables, so a problem with any one of them
+    fails it. Counting the event as not probed lets each step still do the work whose
+    own table is healthy.
+
+    The probe sees one moment for all three questions. A pending attachment or a user
+    report that is saved after that moment is not picked up by this job. See the
+    callers for what happens to it.
     """
     if "event_link_probe" in job:
         return job["event_link_probe"]
@@ -555,7 +566,11 @@ def _get_event_link_probe(job: PostProcessJob) -> EventLinkProbe | None:
     probe = None
     # A reprocessed event is linked unconditionally, so there is nothing to ask.
     if not job["is_reprocessed"]:
-        probe = _probe_event_links(job["event"])
+        try:
+            probe = _probe_event_links(job["event"])
+        except Exception:
+            metrics.incr("sentry.tasks.post_process.event_link_probe.failed")
+            logger.exception("post_process.event_link_probe.failed")
 
     job["event_link_probe"] = probe
     return probe
@@ -578,7 +593,8 @@ def update_existing_attachments(job: PostProcessJob) -> None:
 
     # Update attachments from reprocessed events or feedback events,
     # which get their group ID after `save_generic_events`.
-    if probe is None or probe.has_attachments_to_relink:
+    ran_update = probe is None or probe.has_attachments_to_relink
+    if ran_update:
         _attachments_to_relink(event).update(group_id=event.group_id)
 
     # `process_individual_attachment` decides whether an attachment is "pending" by asking
@@ -599,11 +615,16 @@ def update_existing_attachments(job: PostProcessJob) -> None:
     # Closing it properly needs a periodic sweep over pending rows that re-checks
     # eventstore once Snuba has certainly caught up.
     #
+    # The probe looked for pending rows before the update above. When that update ran,
+    # look again, so that the check is never earlier than the update. Otherwise the
+    # probe's answer stands, and a row parked after the probe is left to expire as
+    # described above.
+    #
     # NOTE: guarded on `is_reprocessed` to match the call in `save_error_events`.
     if (
         not job["is_reprocessed"]
         and event.group_id is not None
-        and (probe is None or probe.has_pending_attachments)
+        and (ran_update or (probe is not None and probe.has_pending_attachments))
     ):
         safe_execute(
             save_pending_attachments,
@@ -1601,7 +1622,11 @@ def link_event_to_user_report(job: PostProcessJob) -> None:
         event = job["event"]
         project = event.project
         # Almost no events have a user report, so skip the update and environment lookup.
-        # Reports saved after this read are linked later by the update_user_reports task.
+        #
+        # A report saved after this read, or after the probe that stands in for it, is
+        # not linked here. The update_user_reports task runs every 15 minutes and links
+        # it, and creates its feedback where eligible, if it finds the event within its
+        # lookback window.
         probe = _get_event_link_probe(job)
         if probe is not None and not probe.has_user_reports_to_link:
             return
