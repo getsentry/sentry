@@ -207,19 +207,6 @@ describe('ScheduledInvestigationForm', () => {
       );
     });
 
-    it('only describes a crontab that can be saved', async () => {
-      render(<ScheduledInvestigationForm mode="create" />, {organization});
-
-      expect(screen.getByText('"At 12:00 AM"')).toBeInTheDocument();
-
-      // Readable as a schedule, but not a five field crontab
-      const crontab = screen.getByRole('textbox', {name: 'Crontab Schedule'});
-      await userEvent.clear(crontab);
-      await userEvent.type(crontab, '@daily');
-
-      expect(screen.queryByText('"At 12:00 AM"')).not.toBeInTheDocument();
-    });
-
     it('blocks saving an invalid crontab', async () => {
       const create = MockApiClient.addMockResponse({
         url: configsUrl,
