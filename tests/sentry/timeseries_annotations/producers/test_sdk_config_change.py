@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from typing import Any
 
 from sentry.timeseries_annotations.producers.sdk_config_change import (
+    _to_datetime,
     describe,
     diff,
     fingerprint,
@@ -140,3 +142,12 @@ def test_demo() -> None:
     changes = diff(v1, v2)
     assert changes == {"options.tracesSampleRate": (0.2, 0.1)}
     assert describe(changes) == "SDK config changed: tracesSampleRate 0.2 → 0.1"
+
+
+# --- _to_datetime ----------------------------------------------------------
+
+
+def test_to_datetime_accepts_eap_nanoseconds() -> None:
+    # Prod EAP returns ~1.79e18 (nanos). Treating that as seconds raises OSError errno 75.
+    nanos = 1_794_942_503_124_400_000
+    assert _to_datetime(nanos) == datetime(2026, 11, 17, 19, 8, 23, 124400, tzinfo=timezone.utc)
