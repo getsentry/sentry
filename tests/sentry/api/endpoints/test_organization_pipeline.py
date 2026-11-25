@@ -99,6 +99,18 @@ class DummyPipeline(Pipeline[Never, PipelineSessionStore]):
         return PipelineStepResult.complete(data={"thing": self.fetch_state("thing")})
 
 
+class RetryAfterFinishErrorPipeline(DummyPipeline):
+    """A single-step pipeline whose first finalization fails validation."""
+
+    pipeline_name = "test_retry_after_finish_error_pipeline"
+
+    def api_finish_pipeline(self) -> PipelineStepResult:
+        if not self.fetch_state("finish_failed_once"):
+            self.bind_state("finish_failed_once", True)
+            return PipelineStepResult.error("Invalid setup")
+        return super().api_finish_pipeline()
+
+
 class NonApiProvider(PipelineProvider["NonApiPipeline"]):
     key = "non_api"
     name = "Non-API"
@@ -277,6 +289,25 @@ class OrganizationPipelineEndpointTest(APITestCase):
     def test_post_advance_completes_single_step_pipeline(self) -> None:
         self._init_pipeline_in_session(DummyPipeline)
         url = self._get_pipeline_url(DummyPipeline.pipeline_name)
+
+        resp = self.client.post(url, data={"thing": "b"}, format="json")
+        assert resp.status_code == 200
+        assert resp.data["status"] == "complete"
+        assert resp.data["data"] == {"thing": "b"}
+
+    @responses.activate
+    @patch(
+        "sentry.api.endpoints.organization_pipeline.PIPELINE_CLASSES",
+        (RetryAfterFinishErrorPipeline,),
+    )
+    def test_post_retry_after_finish_error(self) -> None:
+        self._init_pipeline_in_session(RetryAfterFinishErrorPipeline)
+        url = self._get_pipeline_url(RetryAfterFinishErrorPipeline.pipeline_name)
+
+        resp = self.client.post(url, data={"thing": "a"}, format="json")
+        assert resp.status_code == 400
+        assert resp.data["status"] == "error"
+        assert resp.data["data"]["detail"] == "Invalid setup"
 
         resp = self.client.post(url, data={"thing": "b"}, format="json")
         assert resp.status_code == 200
