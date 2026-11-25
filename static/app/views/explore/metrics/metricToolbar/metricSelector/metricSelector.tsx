@@ -302,10 +302,7 @@ export function MetricSelector({
     );
     const fallbackOption =
       optionFromTraceMetric && isAwaitingData
-        ? {
-            ...optionFromTraceMetric,
-            trailingItems: () => <AwaitingDataTag />,
-          }
+        ? {...optionFromTraceMetric, trailingItems: () => <AwaitingDataTag />}
         : optionFromTraceMetric;
     const selectedOption = traceMetric.name
       ? (selectedApiOption ?? fallbackOption)
@@ -570,47 +567,40 @@ export function MetricSelector({
         comboBoxState.toggle();
         return;
       }
-      const freeformOption = displayedOptionsMap.get(String(key));
-      if (freeformOption?.kind === 'freeform') {
-        setPendingFreeformName(freeformOption.metricName);
-        setSearchInputValue('');
-        return;
-      }
-      if (
-        String(key).startsWith(FREEFORM_METRIC_TYPE_OPTION_PREFIX) &&
-        pendingFreeformName
-      ) {
-        const metricType = String(key).slice(FREEFORM_METRIC_TYPE_OPTION_PREFIX.length);
-        if (!isTraceMetricTypeValue(metricType)) {
-          return;
-        }
-        setPendingFreeformType(metricType);
-        setSearchInputValue('');
-        return;
-      }
-      if (
-        String(key).startsWith(FREEFORM_METRIC_UNIT_OPTION_PREFIX) &&
-        pendingFreeformName &&
-        pendingFreeformType
-      ) {
-        onChange({
-          name: pendingFreeformName,
-          type: pendingFreeformType,
-          unit: String(key).slice(FREEFORM_METRIC_UNIT_OPTION_PREFIX.length),
-        });
-        comboBoxState.toggle();
-        return;
-      }
       const selectedOption = displayedOptionsMap.get(String(key));
-      if (selectedOption && isMetricSelectorOption(selectedOption)) {
-        onChange({
-          name: selectedOption.metricName,
-          type: selectedOption.metricType,
-          unit: selectedOption.metricUnit,
-        });
-        // close() commits the previous controlled value, which calls
-        // onSelectionChange again with the stale key and reverts the selection.
-        comboBoxState.toggle();
+      switch (selectedOption?.kind) {
+        case 'freeform':
+          setPendingFreeformName(selectedOption.metricName);
+          setSearchInputValue('');
+          return;
+        case 'freeformMetricType':
+          if (pendingFreeformName) {
+            setPendingFreeformType(selectedOption.metricType);
+            setSearchInputValue('');
+          }
+          return;
+        case 'freeformMetricUnit':
+          if (pendingFreeformName && pendingFreeformType) {
+            onChange({
+              name: pendingFreeformName,
+              type: pendingFreeformType,
+              unit: selectedOption.metricUnit,
+            });
+            comboBoxState.toggle();
+          }
+          return;
+        case 'metric':
+          onChange({
+            name: selectedOption.metricName,
+            type: selectedOption.metricType,
+            unit: selectedOption.metricUnit,
+          });
+          // close() commits the previous controlled value, which calls
+          // onSelectionChange again with the stale key and reverts the selection.
+          comboBoxState.toggle();
+          return;
+        default:
+          return;
       }
     },
     onOpenChange: handleOverlayOpenChange,

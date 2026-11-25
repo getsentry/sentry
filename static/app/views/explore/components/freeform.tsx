@@ -10,10 +10,8 @@ import {DurationUnit, FractionUnit, SizeUnit} from 'sentry/utils/discover/fields
 import {NONE_UNIT} from 'sentry/views/explore/metrics/constants';
 import type {TraceMetricTypeValue} from 'sentry/views/explore/metrics/types';
 
-/**
- * Freeform values let users pick a value that hasn't been sent yet, so a widget
- * can be set up before its data arrives.
- */
+// Freeform values let users pick a value that hasn't been sent yet, so a widget
+// can be set up before its data arrives.
 
 export interface FreeformTypeChoice<T extends string> {
   description: string;
