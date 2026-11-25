@@ -1,18 +1,13 @@
 import {Fragment, useMemo} from 'react';
 import {SEARCH_PAGE__SERVER_RENDERING__TYPE} from '@sentry/conventions/attributes/search';
-import {IconClose} from '@sentry/icons/close';
 import * as Sentry from '@sentry/react';
 
-import {Alert} from '@sentry/scraps/alert';
-import {Button} from '@sentry/scraps/button';
 import {Stack, type FlexProps} from '@sentry/scraps/layout';
 
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {useDismissAlert} from 'sentry/utils/useDismissAlert';
-import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useHasProjectAccess} from 'sentry/utils/useHasProjectAccess';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
