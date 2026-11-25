@@ -845,8 +845,8 @@ def test_dartsymbolmap_file_odd_array_fails() -> None:
 
 def test_dartsymbolmap_file_dict_format() -> None:
     """Test that dict format JSON files are detected as Il2Cpp, not dartsymbolmap."""
-    # Note: Files starting with '{' are detected as Il2Cpp files, not dartsymbolmap
-    # This is because determine_dif_kind() checks for '{' before '[' and assigns Il2Cpp
+    # Note: Files starting with '{' are detected as JsonObject files, not dartsymbolmap
+    # This is because determine_dif_kind() checks for '{' before '[' and assigns JsonObject
     with tempfile.NamedTemporaryFile(mode="w", suffix=".json") as f:
         f.write('{"xyz": "ExceptionClass", "abc": "DatabaseError"}')
         f.flush()
