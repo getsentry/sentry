@@ -301,7 +301,14 @@ def test_project_config_custom_inbound_filters_v2(
             {
                 "id": f"{CUSTOM_INBOUND_FILTER_ID_PREFIX}{active_filter.id}",
                 "isEnabled": True,
-                "condition": {"op": "glob", "name": "event.release", "value": ["1.2.3"]},
+                "condition": {
+                    "op": "or",
+                    "inner": [
+                        {"op": "glob", "name": "error.release", "value": ["1.2.3"]},
+                        {"op": "glob", "name": "default.release", "value": ["1.2.3"]},
+                        {"op": "glob", "name": "csp.release", "value": ["1.2.3"]},
+                    ],
+                },
             }
         ]
     else:

@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
+from functools import partial
 from typing import Any, Literal, cast
 
 from django.conf import settings
@@ -321,9 +322,13 @@ _healthcheck_filter = _FilterSpec(
 def _error_message_condition(
     values: Sequence[tuple[str | None, str | None]],
     match_logentry: bool = False,
+    event: str = "event",
 ) -> RuleCondition:
     """
     Condition that expresses error message matching for an inbound filter.
+
+    ``event`` is the path prefix the event's fields are read under, see
+    ``_event_matchers``.
 
     When ``match_logentry`` is set, type-less patterns (``(None, message)``) also match
     the event's ``logentry.formatted`` message, so events captured via ``capture_message``
@@ -354,13 +359,13 @@ def _error_message_condition(
         # it. Glob the formatted message string directly.
         if match_logentry and ty is None and value is not None:
             message_conditions.append(
-                {"op": "glob", "name": "event.logentry.formatted", "value": [value]}
+                {"op": "glob", "name": f"{event}.logentry.formatted", "value": [value]}
             )
     exception_condition = cast(
         RuleCondition,
         {
             "op": "any",
-            "name": "event.exception.values",
+            "name": f"{event}.exception.values",
             "inner": {
                 "op": "or",
                 "inner": conditions,
@@ -558,7 +563,7 @@ def get_generic_filters(
 CUSTOM_INBOUND_FILTER_ID_PREFIX = "custom-inbound-filter:"
 
 
-def _custom_error_message_condition(values: list[str]) -> RuleCondition:
+def _custom_error_message_condition(event: str, values: list[str]) -> RuleCondition:
     """
     Matches events whose exception type, exception value, or log entry message
     matches one of the globs.
@@ -569,10 +574,10 @@ def _custom_error_message_condition(values: list[str]) -> RuleCondition:
     """
     patterns: list[tuple[str | None, str | None]] = [(glob, None) for glob in values]
     patterns += [(None, glob) for glob in values]
-    return _error_message_condition(patterns, match_logentry=True)
+    return _error_message_condition(patterns, match_logentry=True, event=event)
 
 
-def _custom_error_type_condition(values: list[str]) -> RuleCondition:
+def _custom_error_type_condition(event: str, values: list[str]) -> RuleCondition:
     """
     Matches events that carry an exception whose type matches one of the globs.
 
@@ -584,7 +589,7 @@ def _custom_error_type_condition(values: list[str]) -> RuleCondition:
         RuleCondition,
         {
             "op": "any",
-            "name": "event.exception.values",
+            "name": f"{event}.exception.values",
             "inner": {"op": "glob", "name": "ty", "value": values},
         },
     )
@@ -701,60 +706,6 @@ def _negation(
     return {"op": "and", "inner": [matcher.match(ConditionOperator.GLOB, ["*"]), negation]}
 
 
-_CONDITION_MATCHERS: Mapping[
-    ConditionType,
-    _ConditionMatcher | Mapping[DataType, _ConditionMatcher],
-] = {
-    ConditionType.ERROR_TYPE: {
-        DataType.ERROR: _text_matcher(_custom_error_type_condition),
-    },
-    ConditionType.ERROR_MESSAGE: {
-        DataType.ERROR: _text_matcher(_custom_error_message_condition),
-    },
-    ConditionType.LOG_MESSAGE: {
-        DataType.LOG: _field_matcher("log.body"),
-    },
-    ConditionType.METRIC_NAME: {
-        DataType.METRIC: _field_matcher("trace_metric.name"),
-    },
-    ConditionType.RELEASE: {
-        DataType.ERROR: _release_matcher("event.release"),
-        DataType.LOG: _release_matcher("log.attributes.sentry.release.value"),
-        DataType.METRIC: _release_matcher("trace_metric.attributes.sentry.release.value"),
-        DataType.SPAN: _release_matcher("span.attributes.sentry.release.value"),
-    },
-    ConditionType.ENVIRONMENT: {
-        DataType.ERROR: _field_matcher("event.environment"),
-        DataType.LOG: _field_matcher("log.attributes.sentry.environment.value"),
-        DataType.METRIC: _field_matcher("trace_metric.attributes.sentry.environment.value"),
-        DataType.SPAN: _field_matcher("span.attributes.sentry.environment.value"),
-    },
-    ConditionType.IP_ADDRESS: _client_ip_matcher,
-    # Relay fills the geo from the client IP before filtering, unless the SDK sent one.
-    ConditionType.GEO_COUNTRY_CODE: {
-        DataType.ERROR: _field_matcher("event.user.geo.country_code"),
-    },
-    # Relay fills the browser from the user agent before filtering, unless the SDK sent
-    # one. Errors carry it in the browser context, the other data types in the
-    # `browser.name` and `browser.version` convention attributes, which Relay also
-    # backfills from the deprecated `sentry.browser.*` ones.
-    ConditionType.BROWSER_NAME: {
-        DataType.ERROR: _field_matcher("event.contexts.browser.name"),
-        DataType.LOG: _field_matcher("log.attributes.browser.name.value"),
-        DataType.METRIC: _field_matcher("trace_metric.attributes.browser.name.value"),
-        DataType.SPAN: _field_matcher("span.attributes.browser.name.value"),
-    },
-    ConditionType.BROWSER_VERSION: {
-        DataType.ERROR: _release_matcher("event.contexts.browser.version"),
-        DataType.LOG: _release_matcher("log.attributes.browser.version.value"),
-        DataType.METRIC: _release_matcher("trace_metric.attributes.browser.version.value"),
-        DataType.SPAN: _release_matcher("span.attributes.browser.version.value"),
-    },
-}
-
-_SINGLE_DATA_TYPES = frozenset(DataType) - {DataType.ALL}
-
-
 def _any_condition_matcher(matchers: Sequence[_ConditionMatcher]) -> _ConditionMatcher:
     # Relay reads a field the item does not carry as no match, so the OR reduces to the
     # item's own field.
@@ -765,15 +716,98 @@ def _any_condition_matcher(matchers: Sequence[_ConditionMatcher]) -> _ConditionM
     return _ConditionMatcher(operators, match)
 
 
+_ERROR_EVENT_TYPES = ("error", "default", "csp")
+
+
+def _event_matchers(
+    field: Callable[[str], _ConditionMatcher],
+) -> dict[DataType, _ConditionMatcher]:
+    """
+    The matchers of an event field, which ``field`` builds for a path prefix.
+
+    Relay answers the ``event`` prefix on every item that has the field: errors,
+    transactions, replays and sessions. It answers an event type as prefix on events of
+    that type only. An error filter reads the field under the error event types, so that
+    it drops nothing else. A filter on all data types reads it under ``event``.
+    """
+    return {
+        DataType.ERROR: _any_condition_matcher(
+            [field(event_type) for event_type in _ERROR_EVENT_TYPES]
+        ),
+        DataType.ALL: field("event"),
+    }
+
+
+_CONDITION_MATCHERS: Mapping[
+    ConditionType,
+    _ConditionMatcher | Mapping[DataType, _ConditionMatcher],
+] = {
+    ConditionType.ERROR_TYPE: {
+        **_event_matchers(
+            lambda event: _text_matcher(partial(_custom_error_type_condition, event))
+        ),
+    },
+    ConditionType.ERROR_MESSAGE: {
+        **_event_matchers(
+            lambda event: _text_matcher(partial(_custom_error_message_condition, event))
+        ),
+    },
+    ConditionType.LOG_MESSAGE: {
+        DataType.LOG: _field_matcher("log.body"),
+    },
+    ConditionType.METRIC_NAME: {
+        DataType.METRIC: _field_matcher("trace_metric.name"),
+    },
+    ConditionType.RELEASE: {
+        **_event_matchers(lambda event: _release_matcher(f"{event}.release")),
+        DataType.LOG: _release_matcher("log.attributes.sentry.release.value"),
+        DataType.METRIC: _release_matcher("trace_metric.attributes.sentry.release.value"),
+        DataType.SPAN: _release_matcher("span.attributes.sentry.release.value"),
+    },
+    ConditionType.ENVIRONMENT: {
+        **_event_matchers(lambda event: _field_matcher(f"{event}.environment")),
+        DataType.LOG: _field_matcher("log.attributes.sentry.environment.value"),
+        DataType.METRIC: _field_matcher("trace_metric.attributes.sentry.environment.value"),
+        DataType.SPAN: _field_matcher("span.attributes.sentry.environment.value"),
+    },
+    ConditionType.IP_ADDRESS: _client_ip_matcher,
+    # Relay fills the geo from the client IP before filtering, unless the SDK sent one.
+    ConditionType.GEO_COUNTRY_CODE: {
+        **_event_matchers(lambda event: _field_matcher(f"{event}.user.geo.country_code")),
+    },
+    # Relay fills the browser from the user agent before filtering, unless the SDK sent
+    # one. Errors carry it in the browser context, the other data types in the
+    # `browser.name` and `browser.version` convention attributes, which Relay also
+    # backfills from the deprecated `sentry.browser.*` ones.
+    ConditionType.BROWSER_NAME: {
+        **_event_matchers(lambda event: _field_matcher(f"{event}.contexts.browser.name")),
+        DataType.LOG: _field_matcher("log.attributes.browser.name.value"),
+        DataType.METRIC: _field_matcher("trace_metric.attributes.browser.name.value"),
+        DataType.SPAN: _field_matcher("span.attributes.browser.name.value"),
+    },
+    ConditionType.BROWSER_VERSION: {
+        **_event_matchers(lambda event: _release_matcher(f"{event}.contexts.browser.version")),
+        DataType.LOG: _release_matcher("log.attributes.browser.version.value"),
+        DataType.METRIC: _release_matcher("trace_metric.attributes.browser.version.value"),
+        DataType.SPAN: _release_matcher("span.attributes.browser.version.value"),
+    },
+}
+
+_SINGLE_DATA_TYPES = frozenset(DataType) - {DataType.ALL}
+
+
 def _matcher(condition_type: ConditionType, data_type: DataType) -> _ConditionMatcher | None:
     spec = _CONDITION_MATCHERS[condition_type]
     if isinstance(spec, _ConditionMatcher):
         return spec
     if data_type is not DataType.ALL:
         return spec.get(data_type)
-    if set(spec) != _SINGLE_DATA_TYPES:
+    if not _SINGLE_DATA_TYPES <= set(spec):
         return None
-    return _any_condition_matcher(list(spec.values()))
+    # The `event` prefix stands in for the error event types, see `_event_matchers`.
+    return _any_condition_matcher(
+        [matcher for single_type, matcher in spec.items() if single_type is not DataType.ERROR]
+    )
 
 
 _MATCHERS_BY_DATA_TYPE: Mapping[DataType, _ConditionMatchers] = {
