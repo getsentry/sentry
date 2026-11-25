@@ -632,6 +632,17 @@ describe('Release Health Session Term', () => {
     );
   });
 
+  it('javascript-electron falls back to generic ANR terms', () => {
+    expect(getSessionTermDescription(SessionTerm.ANR_RATE, 'javascript-electron')).toBe(
+      'Percentage of unique users that experienced an App Not Responding (ANR) error'
+    );
+    expect(
+      getSessionTermDescription(SessionTerm.FOREGROUND_ANR_RATE, 'javascript-electron')
+    ).toBe(
+      'Percentage of unique users that experienced an App Not Responding (ANR) error when the app was running in the foreground'
+    );
+  });
+
   it('rust terms', () => {
     // Crashes
     const crashesSessionTerm = getSessionTermDescription(SessionTerm.CRASHES, 'rust');
