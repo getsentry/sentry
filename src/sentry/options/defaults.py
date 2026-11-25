@@ -4644,6 +4644,14 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Kill switch for the PR comment that says PR iteration stopped for Seer credits.
+register(
+    "autofix.pr-iteration.out-of-credits-comment.enabled",
+    type=Bool,
+    default=True,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # TODO(telkins): Remove once we no longer need integration_id on SLO metrics
 register(
     "integrations.slo.integration-id-tag-enabled",
