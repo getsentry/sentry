@@ -167,7 +167,7 @@ class RecordScheduledAutomationRunTest(TestCase):
 
         send.side_effect = [
             IntegrationConfigurationError(message="ratelimited", error_code=429),
-            {"ts": "10.1"},
+            {"ts": "10.1", "channel": "C123"},
         ]
         with pytest.raises(RetrySlackAnnouncement):
             announce_workflow_run(organization_id=self.organization.id, run_id=run.id)

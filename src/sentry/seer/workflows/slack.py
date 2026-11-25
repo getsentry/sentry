@@ -6,6 +6,7 @@ from taskbroker_client.retry import Retry
 
 from sentry.integrations.services.integration.service import integration_service
 from sentry.integrations.slack.integration import SlackIntegration
+from sentry.integrations.slack.utils.channel import is_input_a_user_id
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.locks import locks
 from sentry.notifications.models.notificationthread import NotificationThreadObjectType
@@ -16,7 +17,7 @@ from sentry.notifications.platform.templates.seer import (
     SeerAutomationRunStarted,
     SeerAutomationRunStartedTemplate,
 )
-from sentry.notifications.platform.threading import ThreadingLookup, ThreadingService
+from sentry.notifications.platform.threading import ThreadingService
 from sentry.notifications.platform.types import (
     NotificationProviderKey,
     NotificationSource,
@@ -42,13 +43,11 @@ class RetrySlackAnnouncement(Exception):
 
 
 def _post_parent(run: SeerWorkflowRun, destination: WorkflowSlackDestination, name: str) -> bool:
-    lookup = ThreadingLookup(
-        key_type=NotificationSource.SEER_AUTOMATION_RUN_STARTED,
-        key_data={"run_id": run.id, "integration_id": destination.integration_id},
+    if ThreadingService.get_threads_for_object(
+        object_type=NotificationThreadObjectType.SEER_WORKFLOW_RUN,
+        object_id=run.id,
         provider_key=NotificationProviderKey.SLACK,
-        target_id=destination.channel_id,
-    )
-    if ThreadingService.resolve(threading_lookup=lookup):
+    ):
         return True
     active = integration_service.organization_context(
         organization_id=run.organization_id, integration_id=destination.integration_id
@@ -71,7 +70,11 @@ def _post_parent(run: SeerWorkflowRun, destination: WorkflowSlackDestination, na
     )
     target = IntegrationNotificationTarget(
         provider_key=NotificationProviderKey.SLACK,
-        resource_type=NotificationTargetResourceType.CHANNEL,
+        resource_type=(
+            NotificationTargetResourceType.DIRECT_MESSAGE
+            if is_input_a_user_id(destination.channel_id)
+            else NotificationTargetResourceType.CHANNEL
+        ),
         resource_id=destination.channel_id,
         integration_id=destination.integration_id,
         organization_id=organization.id,
@@ -93,12 +96,17 @@ def _post_parent(run: SeerWorkflowRun, destination: WorkflowSlackDestination, na
         logger.exception("seer.workflow.slack.announcement_unconfirmed", extra={"run_id": run.id})
         return False
     ts = response.get("ts")
-    if not ts:
-        logger.warning("seer.workflow.slack.missing_timestamp", extra={"run_id": run.id})
+    # For a DM, Slack accepts the user ID but returns the conversation ID for replies.
+    conversation_id = response.get("channel")
+    if not ts or not conversation_id:
+        logger.warning("seer.workflow.slack.missing_thread", extra={"run_id": run.id})
         return False
     ThreadingService.store_new_thread(
         threading_config={
-            **lookup,
+            "key_type": NotificationSource.SEER_AUTOMATION_RUN_STARTED,
+            "key_data": {"run_id": run.id, "integration_id": destination.integration_id},
+            "provider_key": NotificationProviderKey.SLACK,
+            "target_id": conversation_id,
             "thread_identifier": ts,
             "provider_data": None,
             "object_type": NotificationThreadObjectType.SEER_WORKFLOW_RUN,

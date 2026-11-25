@@ -43,9 +43,9 @@ class TestSlackActionValidator(TestCase):
         assert result is True
         validator.save()
 
-    @mock.patch("sentry.integrations.slack.actions.form.get_slack_entity_name")
-    def test_validate__only_channel_id(self, mock_get_slack_entity_name: mock.MagicMock) -> None:
-        mock_get_slack_entity_name.return_value = "cathy-sentry"
+    @mock.patch("sentry.integrations.slack.actions.form.get_slack_entity_info")
+    def test_validate__only_channel_id(self, mock_get_slack_entity_info: mock.MagicMock) -> None:
+        mock_get_slack_entity_info.return_value = {"channel": {"name": "cathy-sentry"}}
 
         validator = BaseActionValidator(
             data={
@@ -56,7 +56,7 @@ class TestSlackActionValidator(TestCase):
         )
 
         assert validator.is_valid() is True
-        mock_get_slack_entity_name.assert_called_once_with(
+        mock_get_slack_entity_info.assert_called_once_with(
             integration_id=str(self.integration.id), input_id="C1234567890"
         )
         assert validator.validated_data["config"]["target_display"] == "cathy-sentry"

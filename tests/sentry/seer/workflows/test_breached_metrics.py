@@ -629,16 +629,16 @@ class BreachedMetricWorkflowWFEIntegrationTest(BreachedMetricWorkflowTestCase):
             extras={
                 "slack_destination": {
                     "integration_id": install.id,
-                    "channel_id": "C123",
-                    "channel_name": "ops",
+                    "channel_id": "U123",
+                    "channel_name": "alex",
                 }
             }
         )
         with (
             mock.patch(
                 "sentry.integrations.slack.integration.SlackIntegration.send_notification",
-                return_value={"ts": "20.0"},
-            ),
+                return_value={"ts": "20.0", "channel": "D123"},
+            ) as parent,
             mock.patch(
                 "sentry.integrations.slack.integration.SlackIntegration.send_threaded_message",
                 return_value={"ts": "30.0"},
@@ -650,7 +650,10 @@ class BreachedMetricWorkflowWFEIntegrationTest(BreachedMetricWorkflowTestCase):
             self.captureOnCommitCallbacks(execute=True),
         ):
             self.process_breach_workflow(self.breach_event(detector_id=self.detector.id))
+        parent.assert_called_once()
+        assert parent.call_args.args[0].resource_id == "U123"
         reply.assert_called_once()
+        assert reply.call_args.kwargs["channel_id"] == "D123"
         assert reply.call_args.kwargs["thread_ts"] == "20.0"
         assert reply.call_args.kwargs["renderable"]["text"] == "Seer finished the investigation"
 

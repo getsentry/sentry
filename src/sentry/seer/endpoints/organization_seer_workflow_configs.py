@@ -195,7 +195,7 @@ class SlackChannelSerializer(serializers.Serializer):
             raise ValidationError({"slackChannel": "Choose an active Slack workspace."})
         try:
             channel_id, channel_name = resolve_slack_channel_destination(
-                integration_id=integration_id,
+                integration=active[0],
                 channel_id=channel.get("channelId"),
                 channel_name=channel.get("channelName"),
             )
@@ -203,7 +203,7 @@ class SlackChannelSerializer(serializers.Serializer):
             raise ValidationError({"slackChannel": exc.messages}) from exc
         except (IntegrationError, OSError, ValueError) as exc:
             raise ValidationError(
-                {"slackChannel": "Could not validate this Slack channel."}
+                {"slackChannel": "Could not validate this Slack destination."}
             ) from exc
         return WorkflowSlackDestination(
             integration_id=integration_id, channel_id=channel_id, channel_name=channel_name
@@ -433,8 +433,8 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
         ``filters`` contains strategy-specific filters. ``seededDefault`` records
         the seeded strategy even after edits.
         ``outputPolicy`` is the saved, opaque policy document.
-        ``slackChannel`` contains the integration ID, channel ID, and channel name saved
-        from Slack, or is null when no channel is configured.
+        ``slackChannel`` contains the integration ID and the saved ID and name of the
+        Slack channel or user, or is null when no destination is configured.
         ``name`` is the user-supplied name, omitted if unset.
         ``createdBy`` is the ID of the user who created the config, omitted if unset.
         ``updatedBy`` is the ID of the user who last changed it, omitted if unset.
@@ -494,8 +494,10 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
 
         ``serviceAccount`` sets the scopes and projects investigations run with, on a
         service account created for the automation. An optional ``slackChannel``
-        announces each run in that channel. Provide an ``integrationId`` and a ``channelId``
-        or ``channelName``. If both are supplied, the name must match the channel at that ID.
+        announces each run in a channel or a direct message to a user. Provide an
+        ``integrationId`` and a ``channelId`` or ``channelName``. Both fields accept
+        channels and users. Name lookup strips leading ``#`` or ``@`` and checks channels
+        before users, as Slack alerts do. When both ID and name are supplied, they must match.
 
         Scheduled investigations (``scheduled_investigation``) take ``actionSettings``
         (a ``prompt`` or a ``skill``).
@@ -679,7 +681,7 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
           kept, and scopes can't be added while any are.
         - ``slackChannel`` replaces the destination for future runs. Send null to clear it.
           Provide an ``integrationId`` and a ``channelId`` or ``channelName``. When both
-          are supplied, the name must match the channel at that ID.
+          are supplied, the name must match the channel or user at that ID.
           Editing it requires access to every project covered by the automation.
         - ``name`` renames the config. It is trimmed and must be non-empty.
         - ``actionSettings`` replaces the settings the strategy's action takes, such as a

@@ -106,29 +106,34 @@ def validate_slack_entity_id(*, integration_id: int, input_name: str, input_id: 
         )
 
 
-def get_slack_entity_name(*, integration_id: int, input_id: str) -> str:
-    """
-    Resolves the name of the user or channel that corresponds to a Slack ID.
-    Lets API callers provide only the ID, without a name to validate against.
-    """
+def get_slack_entity_info(*, integration_id: int, input_id: str) -> dict[str, Any]:
     if is_input_a_user_id(input_id):
-        user = _get_user_info(integration_id=integration_id, input_user_id=input_id).get("user", {})
-        user_name = (
-            user.get("name")
-            or user.get("profile", {}).get("display_name")
-            or user.get("profile", {}).get("display_name_normalized")
+        return _get_user_info(integration_id=integration_id, input_user_id=input_id)
+    return _get_channel_info(integration_id=integration_id, input_channel_id=input_id)
+
+
+def get_slack_entity_name(info: dict[str, Any], *, input_name: str | None = None) -> str:
+    """Return the canonical name from users.info or conversations.info, verifying any input name."""
+    if "user" in info:
+        user = info["user"]
+        profile = user.get("profile", {})
+        names = (
+            user.get("name"),
+            profile.get("display_name"),
+            profile.get("display_name_normalized"),
         )
+        user_name = next((name for name in names if isinstance(name, str) and name), None)
         if not user_name:
             raise ValidationError("Did not receive user name from API results")
+        if input_name is not None and strip_channel_name(input_name) not in names:
+            raise ValidationError("Slack username from ID does not match input username.")
         return user_name
 
-    channel_name = (
-        _get_channel_info(integration_id=integration_id, input_channel_id=input_id)
-        .get("channel", {})
-        .get("name")
-    )
-    if not channel_name:
+    channel_name = info.get("channel", {}).get("name")
+    if not isinstance(channel_name, str) or not channel_name:
         raise ValidationError("Did not receive channel name from API results")
+    if input_name is not None and strip_channel_name(input_name) != channel_name:
+        raise ValidationError("Slack channel name from ID does not match input channel name.")
     return channel_name
 
 
@@ -176,16 +181,7 @@ def validate_user_id(*, input_name: str, input_user_id: str, integration_id: int
         integration_id=integration_id, input_user_id=input_user_id, input_name=input_name
     )
 
-    stripped_user_name = strip_channel_name(input_name)
-    possible_name_matches = [
-        results.get("user", {}).get("name"),
-        results.get("user", {}).get("profile", {}).get("display_name"),
-        results.get("user", {}).get("profile", {}).get("display_name_normalized"),
-    ]
-    if not any(possible_name_matches):
-        raise ValidationError("Did not receive user name from API results")
-    if stripped_user_name not in possible_name_matches:
-        raise ValidationError("Slack username from ID does not match input username.")
+    get_slack_entity_name(results, input_name=input_name)
 
 
 def _get_channel_info(
@@ -228,36 +224,45 @@ def _get_channel_info(
 
 
 def resolve_slack_channel_destination(
-    *, integration_id: int, channel_id: str | None, channel_name: str | None
+    *, integration: RpcIntegration, channel_id: str | None, channel_name: str | None
 ) -> tuple[str, str]:
-    if channel_name is not None:
-        channel_name = channel_name.removeprefix("#")
-        if not channel_name:
-            raise ValidationError("Provide a Slack channel name.")
+    if channel_name is not None and not strip_channel_name(channel_name):
+        raise ValidationError("Provide a Slack channel or user name.")
 
+    supplied_id = channel_id is not None
     if channel_id is None:
         if channel_name is None:
-            raise ValidationError("Provide a Slack channel ID or name.")
-        client = SlackSdkClient(integration_id=integration_id)
+            raise ValidationError("Provide a Slack channel or user ID or name.")
         try:
-            channel_id = check_for_channel(client, channel_name)
-        except SlackApiError as exc:
-            raise ValidationError("Could not look up the Slack channel by name.") from exc
+            result = get_channel_id(integration, channel_name)
+        except DuplicateDisplayNameError as exc:
+            raise ValidationError(
+                "Multiple Slack users match that name. Provide the user ID."
+            ) from exc
+        except ApiRateLimitedError as exc:
+            raise ValidationError(
+                "Slack rate limited the lookup. Try again or provide the ID."
+            ) from exc
+        if result.timed_out:
+            raise ValidationError("Slack lookup timed out. Provide the channel or user ID.")
+        channel_id = result.channel_id
         if channel_id is None:
-            raise ValidationError("Slack channel not found.")
+            raise ValidationError("Slack channel or user not found.")
 
-    info = _get_channel_info(integration_id=integration_id, input_channel_id=channel_id)
+    info = get_slack_entity_info(integration_id=integration.id, input_id=channel_id)
+    if is_input_a_user_id(channel_id):
+        if info.get("user", {}).get("deleted"):
+            raise ValidationError("Choose an active Slack user.")
+        return channel_id, get_slack_entity_name(
+            info, input_name=channel_name if supplied_id else None
+        )
+
     channel = info.get("channel", {})
     if not (channel.get("is_channel") or channel.get("is_group")) or channel.get("is_mpim"):
         raise ValidationError("Choose a Slack channel.")
     if channel.get("is_archived"):
         raise ValidationError("Choose an active Slack channel.")
-    resolved_name = channel.get("name")
-    if not isinstance(resolved_name, str) or not resolved_name:
-        raise ValidationError("Did not receive channel name from API results")
-    if channel_name is not None and resolved_name != channel_name:
-        raise ValidationError("Slack channel name from ID does not match input channel name.")
-    return channel_id, resolved_name
+    return channel_id, get_slack_entity_name(info, input_name=channel_name)
 
 
 def validate_channel_id(name: str, integration_id: int, input_channel_id: str) -> None:
@@ -269,12 +274,7 @@ def validate_channel_id(name: str, integration_id: int, input_channel_id: str) -
         integration_id=integration_id, input_channel_id=input_channel_id, name=name
     )
 
-    stripped_channel_name = strip_channel_name(name)
-    results_channel_name = results.get("channel", {}).get("name")
-    if not results_channel_name:
-        raise ValidationError("Did not receive channel name from API results")
-    if stripped_channel_name != results_channel_name:
-        raise ValidationError("Slack channel name from ID does not match input channel name.")
+    get_slack_entity_name(results, input_name=name)
 
 
 def get_channel_id_with_timeout(
@@ -389,6 +389,7 @@ def check_user_with_timeout(
             sample_rate=1.0,
             tags={"type": "users_list"},
         )
+        return SlackChannelIdData(prefix="", channel_id=None, timed_out=False)
 
     return SlackChannelIdData(prefix=_prefix, channel_id=_channel_id, timed_out=False)
 
