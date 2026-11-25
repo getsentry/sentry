@@ -610,7 +610,7 @@ class SeerSlackRendererAgentTest(TestCase):
             pr_creation_error_code="out_of_credits",
         )
         assert SeerSlackRenderer._render_agent_pr_state(pr) == (
-            "Couldn't push to `acme/web`: your organization is out of Seer credits"
+            "Couldn't push to `acme/web`: your organization does not have enough Seer credits"
         )
 
     def test_render_agent_response_no_footer_when_url_not_set(self) -> None:

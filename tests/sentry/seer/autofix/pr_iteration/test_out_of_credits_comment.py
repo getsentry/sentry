@@ -44,8 +44,8 @@ class OutOfCreditsCommentBodyTest(TestCase):
         organization = self.create_organization(slug="acme")
 
         assert out_of_credits_comment_body(organization, "not_enough_credits") == (
-            "Seer stopped working on this pull request because your organization ran out of "
-            "credits. Seer continues the next time it iterates on the pull request.\n\n"
+            "Seer stopped working on this pull request because your organization does not have "
+            "enough credits. Seer continues the next time it iterates on the pull request.\n\n"
             "Once credits are added, comment `@sentry <instructions>` to have Seer pick it back "
             "up now. Set up auto-reload in "
             "[billing settings](http://acme.testserver/settings/billing/overview/) "
