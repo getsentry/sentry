@@ -29,17 +29,20 @@ const results = {
 function createReporter({
   dsn = 'https://public@example.com/1',
   watch = false,
-}: {dsn?: string | false; watch?: boolean} = {}) {
+  runStartTime,
+}: {dsn?: string | false; runStartTime?: number; watch?: boolean} = {}) {
   const globalConfig = {rootDir: '/repo', watch, watchAll: false} as Config.GlobalConfig;
   return new TestCountReporter(globalConfig, {
     init: {dsn: dsn || undefined, environment: 'ci:master'},
     tags: {'ci.workflow': 'frontend'},
+    runStartTime,
   });
 }
 
 describe('TestCountReporter', () => {
   beforeEach(() => {
     jest.spyOn(process, 'cwd').mockReturnValue('/repo/tests/js');
+    jest.spyOn(Date, 'now').mockReturnValue(results.startTime + 90_000);
   });
 
   afterEach(() => {
@@ -62,6 +65,7 @@ describe('TestCountReporter', () => {
       attributes: {
         'test.framework': 'jest',
         'test.workspace': 'tests/js',
+        'test.duration_ms': 90_000,
         'test.cases.total': 12,
         'test.cases.passed': 8,
         'test.cases.failed': 1,
@@ -72,7 +76,21 @@ describe('TestCountReporter', () => {
       },
     });
     expect(mockSpanEnd).toHaveBeenCalledTimes(1);
+    expect(mockSpanEnd).toHaveBeenCalledWith(results.startTime);
     expect(Sentry.close).toHaveBeenCalledTimes(1);
+  });
+
+  it('puts the span at the shared run start time when one is given', async () => {
+    const runStartTime = results.startTime - 120_000;
+    await createReporter({runStartTime}).onRunComplete(new Set(), results);
+
+    expect(Sentry.startInactiveSpan).toHaveBeenCalledWith(
+      expect.objectContaining({
+        startTime: runStartTime,
+        attributes: expect.objectContaining({'test.duration_ms': 90_000}),
+      })
+    );
+    expect(mockSpanEnd).toHaveBeenCalledWith(runStartTime);
   });
 
   it('replaces a client that the test environment started in this process', async () => {

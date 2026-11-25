@@ -7,6 +7,11 @@ import * as Sentry from '@sentry/node';
 interface TestCountReporterOptions {
   init: Sentry.NodeOptions;
   tags: Record<string, string | number | undefined>;
+  /**
+   * One time in milliseconds for every shard of a CI run. Shards start minutes
+   * apart, so their own start times can put one run in two time buckets.
+   */
+  runStartTime?: number;
 }
 
 /**
@@ -28,7 +33,7 @@ export default class TestCountReporter {
   }
 
   async onRunComplete(_testContexts: unknown, results: AggregatedResult) {
-    const {init, tags} = this.options;
+    const {init, tags, runStartTime} = this.options;
     if (!init.dsn || this.globalConfig.watch || this.globalConfig.watchAll) {
       return;
     }
@@ -54,14 +59,19 @@ export default class TestCountReporter {
       Sentry.setTags(tags);
       Sentry.getGlobalScope().setAttributes(tags);
 
+      // The span starts and ends at the shared run time, so it stays in one
+      // bucket whichever timestamp a query buckets on. The duration of this
+      // process is kept as an attribute instead.
+      const timestamp = runStartTime ?? results.startTime;
       Sentry.startInactiveSpan({
         op: 'jest run',
         name: workspace,
         forceTransaction: true,
-        startTime: results.startTime,
+        startTime: timestamp,
         attributes: {
           'test.framework': 'jest',
           'test.workspace': workspace,
+          'test.duration_ms': Date.now() - results.startTime,
           'test.cases.total': results.numTotalTests,
           'test.cases.passed': results.numPassedTests,
           'test.cases.failed': results.numFailedTests,
@@ -70,7 +80,7 @@ export default class TestCountReporter {
           'test.suites.total': results.numTotalTestSuites,
           'test.suites.failed': results.numFailedTestSuites,
         },
-      }).end();
+      }).end(timestamp);
 
       await Sentry.close(5_000);
     } catch (error) {

@@ -187,6 +187,7 @@ jobs:
     needs: files-changed
     outputs:
       jest_test_matrix: ${{ steps.jest_test_config.outputs.jest_test_matrix }}
+      jest_run_started_at: ${{ steps.jest_test_config.outputs.jest_run_started_at }}
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         name: Checkout sentry
@@ -282,6 +283,7 @@ jobs:
 
           CI_NODE_TOTAL: ${{ matrix.total }}
           CI_NODE_INDEX: ${{ matrix.index }}
+          JEST_RUN_STARTED_AT: ${{ needs.jest-config.outputs.jest_run_started_at }}
 
           GITHUB_PR_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           GITHUB_PR_REF: ${{ github.event.pull_request.head.ref || github.ref }}

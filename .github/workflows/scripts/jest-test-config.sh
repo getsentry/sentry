@@ -12,6 +12,7 @@ set -euo pipefail
 # Outputs:
 #   jest-test-files.json          - JSON array of test file paths (written to cwd)
 #   jest_test_matrix (via output) - JSON matrix for GitHub Actions strategy
+#   jest_run_started_at (via output) - Unix time in seconds, shared by every shard
 
 # Resolve the merge base and decide whether we can scope to the PR's changed files
 # (scope=scoped) or must run everything (scope=full). We only need the scope here;
@@ -42,3 +43,7 @@ echo "$JEST_TESTS" > jest-test-files.json
 
 INDEX_ARRAY=$(seq 0 $(( RUNNERS - 1 )) | jq -s .)
 echo "jest_test_matrix=$(jq -nc --argjson index "$INDEX_ARRAY" --argjson total "$RUNNERS" '{index: $index, total: [$total]}')" >> "$GITHUB_OUTPUT"
+
+# Every shard reports this as its `jest run` span time, so one run lands in a
+# single time bucket on the dashboard instead of being split across bucket edges.
+echo "jest_run_started_at=$(date +%s)" >> "$GITHUB_OUTPUT"
