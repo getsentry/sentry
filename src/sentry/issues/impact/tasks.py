@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
+from collections.abc import Sequence
 from datetime import timedelta
 from typing import Any
 
+from django.core.cache import cache
 from django.db.models import Exists, OuterRef, Q
 from django.utils import timezone
 
@@ -20,6 +22,7 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.project import Project
 from sentry.ratelimits import backend as ratelimiter
+from sentry.search.eap.occurrences.query_utils import build_group_id_in_filter
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.seer.models.run import SeerAgentRun
@@ -34,12 +37,11 @@ logger = logging.getLogger(__name__)
 
 IMPACT_FEATURE_FLAG = "organizations:seer-impact-assessment"
 CANDIDATE_LOOKBACK = timedelta(hours=24)
-# Each page of ranked candidates fetches this multiple of the per-run limit.
-CANDIDATE_PAGE_SIZE_FACTOR = 5
-# The highest-volume issues stay on top day after day, so once they're assessed
-# the first page can come back empty. Page further down the ranking, up to this
-# many pages, to find unassessed issues.
-MAX_CANDIDATE_PAGES = 5
+# Matches the issue stream's snuba.search.max-pre-snuba-candidates default.
+MAX_PRE_SNUBA_CANDIDATES = 5000
+# Rank more groups than needed so skipping recent no-event groups still fills the limit.
+CANDIDATE_OVERFETCH_FACTOR = 5
+NO_EVENT_RETRY_SECONDS = 60 * 60 * 24
 # Per-project tasks are spread across this window so they don't all fire at
 # once, while still finishing well before the next hourly tick.
 PROJECT_SPREAD_SECONDS = 50 * 60
@@ -132,6 +134,9 @@ def run_impact_assessments_for_project(project_id: int, **kwargs: Any) -> None:
             record_skip(reason="feature_disabled")
             return
         except ImpactAssessmentEventNotFound:
+            # No SeerAgentRun is created, so without this the issue would be
+            # picked again every hour and keep using the org's daily cap.
+            cache.set(no_event_cache_key(group.id), True, NO_EVENT_RETRY_SECONDS)
             record_skip(reason="no_event")
             continue
         except Exception:
@@ -166,51 +171,52 @@ def select_impact_candidates(project: Project, limit: int) -> list[Group]:
     """
     Picks which groups are going to have their impact assessed.
 
-    Currently picks the top groups for a project sorted by occurrence count within the last 24h,
-    skipping any groups we've attempted (success or not) to assess in the past.
+    Picks the top groups for a project sorted by occurrence count within the last 24h,
+    skipping any groups we've assessed in the past or recently failed to find an event for.
 
-    Goes through `MAX_CANDIDATE_PAGES` of the query or until `limit` number of groups are found.
+    Like the issue stream, Postgres filters the eligible groups first, then Snuba ranks
+    only those.
     """
     if limit <= 0:
         return []
 
-    page_size = limit * CANDIDATE_PAGE_SIZE_FACTOR
-    candidates: list[Group] = []
-    # Counts can shift between page queries, so skip issues seen on an earlier page.
-    seen_group_ids: set[int] = set()
-    for page in range(MAX_CANDIDATE_PAGES):
-        ranked_group_ids = get_top_groups_by_occurrence_count(
-            project, offset=page * page_size, limit=page_size
+    eligible_group_ids = list(
+        Group.objects.filter(
+            project_id=project.id,
+            status=GroupStatus.UNRESOLVED,
+            last_seen__gte=timezone.now() - CANDIDATE_LOOKBACK,
         )
-        if not ranked_group_ids:
-            break
-
-        new_group_ids = [gid for gid in ranked_group_ids if gid not in seen_group_ids]
-        seen_group_ids.update(ranked_group_ids)
-
-        assessed = set(
-            SeerAgentRun.objects.filter(
-                group_id__in=new_group_ids, source=IMPACT_FEATURE_ID
-            ).values_list("group_id", flat=True)
+        .exclude(
+            Exists(SeerAgentRun.objects.filter(group_id=OuterRef("id"), source=IMPACT_FEATURE_ID))
         )
-        groups_by_id = {
-            g.id: g
-            for g in Group.objects.filter(
-                id__in=[gid for gid in new_group_ids if gid not in assessed],
-                project_id=project.id,
-                status=GroupStatus.UNRESOLVED,
-            ).select_related("project", "project__organization")
-        }
-        candidates.extend(groups_by_id[gid] for gid in new_group_ids if gid in groups_by_id)
+        # NOTE: Anything past MAX_PRE_SNUBA_CANDAITES is not ranked, so busy groups from a while ago
+        # will be missed if the project has a lot more recent issues.
+        # We could resolve this by ranking without a group_id filter, similar to the fallback
+        # used in the issue stream executor, but skipping it for now.
+        # https://github.com/getsentry/sentry/blob/2d4776b4b00ee3a21a819fb90680cf02d686646e/src/sentry/search/snuba/executors.py#L1898-L1911
+        .order_by("-last_seen")
+        .values_list("id", flat=True)[:MAX_PRE_SNUBA_CANDIDATES]
+    )
+    metrics.distribution(
+        "issues.impact.scheduled.num_candidates", len(eligible_group_ids), sample_rate=1.0
+    )
+    if not eligible_group_ids:
+        return []
 
-        if len(candidates) >= limit or len(ranked_group_ids) < page_size:
-            break
+    ranked_group_ids = get_top_groups_by_occurrence_count(
+        project=project, group_ids=eligible_group_ids, limit=limit * CANDIDATE_OVERFETCH_FACTOR
+    )
+    no_event = cache.get_many([no_event_cache_key(gid) for gid in ranked_group_ids])
+    ranked_group_ids = [gid for gid in ranked_group_ids if no_event_cache_key(gid) not in no_event]
+    groups_by_id = Group.objects.select_related("project", "project__organization").in_bulk(
+        ranked_group_ids[:limit]
+    )
+    return [groups_by_id[gid] for gid in ranked_group_ids[:limit] if gid in groups_by_id]
 
-    metrics.distribution("issues.impact.scheduled.candidate_pages", page + 1, sample_rate=1.0)
-    return candidates[:limit]
 
-
-def get_top_groups_by_occurrence_count(project: Project, *, offset: int, limit: int) -> list[int]:
+def get_top_groups_by_occurrence_count(
+    *, project: Project, group_ids: Sequence[int], limit: int
+) -> list[int]:
     now = timezone.now()
     result = Occurrences.run_table_query(
         params=SnubaParams(
@@ -221,14 +227,19 @@ def get_top_groups_by_occurrence_count(project: Project, *, offset: int, limit: 
         ),
         query_string="",
         selected_columns=["group_id", "count()"],
-        # group_id breaks ties so pages are stable when counts are equal.
+        # group_id breaks ties so the ranking is stable when counts are equal.
         orderby=["-count()", "group_id"],
-        offset=offset,
+        offset=0,
         limit=limit,
         referrer=Referrer.ISSUES_IMPACT_SCHEDULED_CANDIDATES.value,
         config=SearchResolverConfig(),
+        extra_conditions=build_group_id_in_filter(group_ids),
     )
     return [int(row["group_id"]) for row in result["data"] if row.get("group_id")]
+
+
+def no_event_cache_key(group_id: int) -> str:
+    return f"issues.impact.scheduled:no_event:{group_id}"
 
 
 def has_organization_reached_daily_cap(organization: Organization) -> bool:

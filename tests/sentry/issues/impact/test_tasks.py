@@ -4,10 +4,13 @@ from collections.abc import Sequence
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+from django.core.cache import cache
+
 from sentry.constants import ObjectStatus
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.issues.impact.assessment import ImpactAssessmentEventNotFound
 from sentry.issues.impact.tasks import (
+    no_event_cache_key,
     run_impact_assessments_for_project,
     schedule_impact_assessments,
     select_impact_candidates,
@@ -294,6 +297,8 @@ class RunImpactAssessmentsForProjectTest(TestCase):
         assert mock_assess.call_count == 3
         mock_record_skip.assert_called_once_with(reason="no_event")
         mock_log.assert_not_called()
+        assert cache.get(no_event_cache_key(self.groups[0].id))
+        assert not cache.get(no_event_cache_key(self.groups[1].id))
 
 
 class SelectImpactCandidatesTest(TestCase, SnubaTestCase, OccurrenceTestCase):
@@ -357,10 +362,10 @@ class SelectImpactCandidatesTest(TestCase, SnubaTestCase, OccurrenceTestCase):
         mine = self._store(1)
         assert select_impact_candidates(self.project, 10) == [mine]
 
-    def test_pages_past_assessed_issues(self) -> None:
-        # With limit=1 a page holds 5 ranked issues; assess all of the first page.
-        first_page = [self._store(count) for count in range(10, 5, -1)]
-        for group in first_page:
+    def test_skips_many_assessed_top_issues(self) -> None:
+        # More assessed issues than the overfetch (limit * 5) sit above the next best.
+        top = [self._store(count) for count in range(12, 5, -1)]
+        for group in top:
             self._mark_assessed(group)
         next_best = self._store(5)
         self._store(4)
@@ -370,22 +375,17 @@ class SelectImpactCandidatesTest(TestCase, SnubaTestCase, OccurrenceTestCase):
         tied = sorted((self._store(2) for _ in range(3)), key=lambda g: g.id)
         assert select_impact_candidates(self.project, 10) == tied
 
-    @patch(f"{TASKS}.CANDIDATE_PAGE_SIZE_FACTOR", 1)
-    def test_issue_repeated_across_pages_is_considered_once(self) -> None:
-        assessed, repeated, last = (self._store(1) for _ in range(3))
-        self._mark_assessed(assessed)
-        # Counts shifted between page queries, so `repeated` is on both pages.
-        pages = [[assessed.id, repeated.id], [repeated.id, last.id]]
-        with patch(f"{TASKS}.get_top_groups_by_occurrence_count", side_effect=pages):
-            assert select_impact_candidates(self.project, 2) == [repeated, last]
+    @patch(f"{TASKS}.MAX_PRE_SNUBA_CANDIDATES", 1)
+    def test_ranks_only_most_recently_seen_past_candidate_cap(self) -> None:
+        self._store(3, last_seen=before_now(hours=2))
+        recent = self._store(1, last_seen=before_now(minutes=1))
+        assert select_impact_candidates(self.project, 10) == [recent]
 
-    @patch(f"{TASKS}.MAX_CANDIDATE_PAGES", 1)
-    def test_stops_after_max_pages(self) -> None:
-        first_page = [self._store(count) for count in range(10, 5, -1)]
-        for group in first_page:
-            self._mark_assessed(group)
-        self._store(5)
-        assert select_impact_candidates(self.project, 1) == []
+    def test_skips_groups_recently_without_event(self) -> None:
+        low = self._store(1)
+        high = self._store(3)
+        cache.set(no_event_cache_key(high.id), True, 60)
+        assert select_impact_candidates(self.project, 1) == [low]
 
     def test_zero_limit(self) -> None:
         self._store(1)
