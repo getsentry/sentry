@@ -9,7 +9,7 @@ from urllib.parse import quote, urlencode, urlparse
 import orjson
 from django.conf import settings
 from sentry_sdk import traces
-from urllib3 import BaseHTTPResponse, HTTPConnectionPool, Retry
+from urllib3 import BaseHTTPResponse, HTTPConnectionPool, Retry, Timeout
 
 from sentry.net.http import connection_from_url
 from sentry.utils import metrics
@@ -160,7 +160,7 @@ def make_signed_seer_api_request(
     connection_pool: HTTPConnectionPool,
     path: str,
     body: bytes,
-    timeout: int | float | None = None,
+    timeout: int | float | Timeout | None = None,
     retries: int | None | Retry = None,
     metric_tags: dict[str, Any] | None = None,
     method: str = "POST",
