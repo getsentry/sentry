@@ -79,7 +79,9 @@ const innerWrapStyles = ({
   line-height: ${theme.form[size].lineHeight};
   padding: ${paddingPerSize(theme, orientation)[size]};
   border-radius: ${theme.radius.md};
-  transform: translateY(1px);
+  /* The nudge positions the selection indicator, which only flat tabs have.
+     Floating tabs stay centered so they line up with controls next to them. */
+  transform: ${variant === 'flat' ? 'translateY(1px)' : 'none'};
   margin-bottom: ${
     orientation === 'horizontal' && variant === 'flat' ? theme.space.xs : 0
   };
