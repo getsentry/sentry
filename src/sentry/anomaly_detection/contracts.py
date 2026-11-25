@@ -49,6 +49,22 @@ class Metric(StrEnum):
         return self in (Metric.COUNT, Metric.COUNT_SAMPLE, Metric.COUNT_UNIQUE_USER)
 
 
+class SeriesSlice(NamedTuple):
+    """One slice of a project and environment's traffic, across all of its metrics.
+
+    A minute block holds one entry per slice, and its dictionary maps each entry to a slice.
+    """
+
+    project_id: int  # Scoped to the current organization.
+    env: str  # Empty means no environment.
+    signal: Signal
+    # Endpoint, database, domain, release or issue; empty means a project/environment total.
+    dim_value: str = ""
+
+    def series(self, metric: Metric) -> "SeriesKey":
+        return SeriesKey(self.project_id, self.env, self.signal, metric, self.dim_value)
+
+
 class SeriesKey(NamedTuple):
     """Identity of one series. A tuple, so checkpoints store it as a compact array."""
 
@@ -59,13 +75,22 @@ class SeriesKey(NamedTuple):
     # Endpoint, database, domain, release or issue; empty means a project/environment total.
     dim_value: str = ""
 
+    @property
+    def slice(self) -> SeriesSlice:
+        return SeriesSlice(self.project_id, self.env, self.signal, self.dim_value)
+
     def __str__(self) -> str:
         dim = f"[{self.dim_value}]" if self.dim_value else ""
         return f"{self.project_id}/{self.env} {self.signal}{dim} {self.metric}"
 
 
 class SeriesRow(NamedTuple):
-    """One collected bucket of a series. The fields between ts and value are its SeriesKey."""
+    """One collected bucket of a series. The fields between ts and value are its SeriesKey.
+
+    A collected bucket covers every slice, so a slice with no traffic in it counts 0. Only a
+    bucket that was never collected leaves a count absent (None, or no row), which keeps
+    zero traffic distinct from no data. A percentile or share of no sampled spans is None.
+    """
 
     ts: datetime  # Bucket start (minute or hour), UTC.
     project_id: int
@@ -126,13 +151,13 @@ class EpisodeKey(NamedTuple):
 class ChangeEvent:
     """One change episode on one series.
 
-    Deliberately not a dataclass, because msgspec would store dataclasses inline: the
+    Deliberately not a dataclass, because msgspec encodes dataclasses inline: the
     detectors, correlator, novelty model and admission policy hold and update the same
-    instance, and the checkpoint stores each instance once and restores shared references
-    to it. Use `is` for identity; `==` compares values, like the dataclass it replaced.
+    instance, so a checkpoint must store each instance once and restore it as one shared
+    object. Use `is` for identity; `==` compares field values.
 
     Checkpoints store every field positionally, so any change to the fields must bump
-    the checkpoint version. Add a field only when a consumer reads it.
+    the checkpoint version.
     """
 
     __slots__ = (

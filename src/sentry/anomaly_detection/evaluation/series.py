@@ -4,17 +4,16 @@ from collections import defaultdict
 from collections.abc import Iterable, Mapping
 from datetime import datetime
 
-from sentry.anomaly_detection.contracts import Metric, SeriesKey, SeriesRow, Signal
+from sentry.anomaly_detection.contracts import Metric, SeriesKey, SeriesRow, SeriesSlice, Signal
 
 Series = dict[datetime, float | None]
 
-# Service rates derived from each project and environment's unsliced request totals;
-# rate_parts names the series each one divides.
-_RATE_EVENTS = {Signal.ERROR_RATE: Signal.ERRORS, Signal.FAILED_RATE: Signal.FAILED_REQUESTS}
-_DERIVED_RATES = (
-    (Signal.ERROR_RATE, Metric.ERRORS_PER_REQUEST),
-    (Signal.FAILED_RATE, Metric.FAILED_PER_REQUEST),
-)
+# Service rates derived from each project and environment's unsliced request totals: each
+# divides its events by requests (see rate_parts) and is stored under its metric.
+_DERIVED_RATES = {
+    Signal.ERROR_RATE: (Signal.ERRORS, Metric.ERRORS_PER_REQUEST),
+    Signal.FAILED_RATE: (Signal.FAILED_REQUESTS, Metric.FAILED_PER_REQUEST),
+}
 
 
 def build(rows: Iterable[SeriesRow]) -> dict[SeriesKey, Series]:
@@ -42,19 +41,19 @@ def rate_parts(key: SeriesKey) -> tuple[SeriesKey, SeriesKey, SeriesKey] | None:
     Rates divide extrapolated counts, never sampled ones: sampled failures over sampled
     requests misstate the failed share whenever sample rates differ between them.
     """
-    events = _RATE_EVENTS.get(key.signal)
-    if events is None:
+    if key.signal not in _DERIVED_RATES:
         return None
-    p, e = key.project_id, key.env
+    events, _ = _DERIVED_RATES[key.signal]
+    requests = SeriesSlice(key.project_id, key.env, Signal.REQUESTS)
     return (
-        SeriesKey(p, e, events, Metric.COUNT),
-        SeriesKey(p, e, Signal.REQUESTS, Metric.COUNT),
-        SeriesKey(p, e, Signal.REQUESTS, Metric.COUNT_SAMPLE),
+        SeriesSlice(key.project_id, key.env, events).series(Metric.COUNT),
+        requests.series(Metric.COUNT),
+        requests.series(Metric.COUNT_SAMPLE),
     )
 
 
 def samples_key(key: SeriesKey) -> SeriesKey:
-    return SeriesKey(key.project_id, key.env, key.signal, Metric.COUNT_SAMPLE, key.dim_value)
+    return key.slice.series(Metric.COUNT_SAMPLE)
 
 
 def _mask_empty_spans(series: dict[SeriesKey, Series]) -> None:
@@ -63,9 +62,7 @@ def _mask_empty_spans(series: dict[SeriesKey, Series]) -> None:
         if key.metric == Metric.P95_DURATION or is_share(key):
             volumes = series.get(samples_key(key))
             if volumes is None:
-                volumes = series.get(
-                    SeriesKey(key.project_id, key.env, key.signal, Metric.COUNT, key.dim_value), {}
-                )
+                volumes = series.get(key.slice.series(Metric.COUNT), {})
             for ts in values:
                 if not volumes.get(ts):
                     values[ts] = None
@@ -78,7 +75,7 @@ def _derive_rates(series: dict[SeriesKey, Series]) -> None:
         if key.signal == Signal.REQUESTS and not key.dim_value
     }
     for project_id, env in services:
-        for signal, metric in _DERIVED_RATES:
+        for signal, (_, metric) in _DERIVED_RATES.items():
             rate = SeriesKey(project_id, env, signal, metric)
             parts = rate_parts(rate)
             assert parts is not None
