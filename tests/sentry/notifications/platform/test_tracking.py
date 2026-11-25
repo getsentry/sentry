@@ -239,6 +239,10 @@ class RecordEngagementTest(TestCase):
             NotificationLink.SEER_AGENT_RUN,
         ),
         (
+            "https://sentry.io/organizations/org-slug/seer/automations/42/runs/",
+            NotificationLink.SEER_AUTOMATION_RUNS,
+        ),
+        (
             "https://acme.sentry.io/seer/investigations/1/",
             NotificationLink.INVESTIGATION,
         ),

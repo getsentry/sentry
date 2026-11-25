@@ -44,6 +44,7 @@ class NotificationLink(StrEnum):
     SETTINGS = "settings"
     REPOSITORIES = "repositories"
     SEER_AGENT_RUN = "seer_agent_run"
+    SEER_AUTOMATION_RUNS = "seer_automation_runs"
     INVESTIGATION = "investigation"
     OTHER = "other"
 
@@ -223,6 +224,8 @@ def classify_link(url: str) -> NotificationLink:
         return NotificationLink.REPOSITORIES
     if path.startswith("/explore/agents/conversations/"):
         return NotificationLink.SEER_AGENT_RUN
+    if re.fullmatch(r"/seer/automations/\d+/runs/?", path):
+        return NotificationLink.SEER_AUTOMATION_RUNS
     if path.startswith("/seer/investigations/"):
         return NotificationLink.INVESTIGATION
     logger.error("notifications.tracking.unclassified_link", extra={"path": path})
