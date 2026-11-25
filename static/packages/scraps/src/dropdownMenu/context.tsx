@@ -50,5 +50,6 @@ export const DropdownMenuContext = createContext<DropdownMenuContextValue>({});
  * items, including a submenu trigger's open submenu. Through context, only the
  * items that read it re-render.
  */
-export const DropdownMenuTreeStateContext =
-  createContext<TreeState<MenuItemProps> | null>(null);
+export const DropdownMenuTreeStateContext = createContext<TreeState<MenuItemProps>>(
+  null as never
+);

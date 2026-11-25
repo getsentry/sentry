@@ -192,9 +192,6 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
   const innerWrapRef = useRef<HTMLElement | null>(null);
   const trailingActionRef = useRef<HTMLButtonElement>(null);
   const state = useContext(DropdownMenuTreeStateContext);
-  if (!state) {
-    throw new Error('DropdownMenuItem must be rendered inside a DropdownMenu');
-  }
   const isDisabled = state.disabledKeys.has(node.key);
   const isFocused = state.selectionManager.focusedKey === node.key;
   const {
