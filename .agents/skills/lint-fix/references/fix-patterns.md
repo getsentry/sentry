@@ -4,7 +4,7 @@ Load this reference when fixing violations of a specific `@sentry/scraps` rule.
 
 ## no-core-import
 
-**Has autofix**: Yes — use `--fix`.
+**Has autofix**: Yes — use `pnpm run lint:js --fix <paths>`.
 
 **Transformation**: `sentry/components/core/<component>[/subpath]` → `@sentry/scraps/<component>`
 
