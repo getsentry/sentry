@@ -210,8 +210,8 @@ importers:
         specifier: 11.12.0
         version: 11.12.0
       '@sentry/conventions':
-        specifier: ^0.34.0
-        version: 0.34.0
+        specifier: ^0.35.0
+        version: 0.35.0
       '@sentry/sqlish':
         specifier: 1.0.1
         version: 1.0.1(react@19.3.0)
@@ -521,8 +521,8 @@ importers:
         specifier: 11.17.0
         version: 11.17.0
       '@sentry/conventions':
-        specifier: ^0.34.0
-        version: 0.34.0
+        specifier: ^0.35.0
+        version: 0.35.0
       '@sentry/core':
         specifier: 11.17.0
         version: 11.17.0
@@ -4063,10 +4063,6 @@ packages:
 
   '@sentry/conventions@0.32.0':
     resolution: {integrity: sha512-WkSQcDhUUsz1SwxR23LpmyPKba+dgxxiH0DWV4VSM9yaAvhhl87ppW2Ts3g4piIKCVflc31aJeWy+biUbYfsMQ==}
-    engines: {node: '>=14'}
-
-  '@sentry/conventions@0.34.0':
-    resolution: {integrity: sha512-sGYLaq/zyRTOCoadW3Z66q6WHp16stnwezGK45B50mGO6QUTl/ttzsPpy+oxZlj2pKARyOohZ1pX9grdpMxo2Q==}
     engines: {node: '>=14'}
 
   '@sentry/conventions@0.35.0':
@@ -11756,8 +11752,6 @@ snapshots:
       sentry: 0.50.0
 
   '@sentry/conventions@0.32.0': {}
-
-  '@sentry/conventions@0.34.0': {}
 
   '@sentry/conventions@0.35.0': {}
 

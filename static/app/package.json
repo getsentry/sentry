@@ -45,7 +45,7 @@
     "@rspack/core": "2.3.4",
     "@sentry-internal/global-search": "^1.0.0",
     "@sentry/browser": "11.17.0",
-    "@sentry/conventions": "^0.34.0",
+    "@sentry/conventions": "^0.35.0",
     "@sentry/core": "11.17.0",
     "@sentry/icons": "workspace:*",
     "@sentry/react": "11.17.0",
