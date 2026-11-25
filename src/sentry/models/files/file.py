@@ -3,6 +3,7 @@ from typing import Any
 
 from django.core.files.base import ContentFile
 from django.db import models
+from django.utils import timezone
 from taskbroker_client.task import Task
 
 from sentry.db.models import FlexibleForeignKey
@@ -22,6 +23,9 @@ class File(AbstractFile[FileBlobIndex, FileBlob]):
     blob = FlexibleForeignKey("sentry.FileBlob", null=True, related_name="legacy_blob")
     path = models.TextField(null=True)
     # </Legacy fields>
+
+    timestamp = models.DateTimeField(default=timezone.now)
+    checksum = models.CharField(max_length=40, null=True)
 
     class Meta:
         app_label = "sentry"

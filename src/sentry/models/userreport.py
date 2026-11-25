@@ -9,7 +9,7 @@ from sentry.db.models import BoundedBigIntegerField, Model, cell_silo_model, san
 class UserReport(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
-    project_id = BoundedBigIntegerField(db_index=True)
+    project_id = BoundedBigIntegerField()
     group_id = BoundedBigIntegerField(null=True, db_index=True)
     event_id = models.CharField(max_length=32)
     environment_id = BoundedBigIntegerField(null=True, db_index=True)
