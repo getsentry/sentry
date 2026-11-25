@@ -217,9 +217,9 @@ class OrganizationNotebookIndexEndpoint(OrganizationNotebooksBaseEndpoint):
             if can_read_workflow:
                 workflow_names = {"processing": "running", "completed": "succeeded"}
                 notebooks = legacy_matches.filter(
-                    workflow_run_status__isnull=True
+                    Q(workflow_run_status__isnull=True)
                 ) | notebooks.filter(
-                    workflow_run_status__in=[workflow_names.get(s, s) for s in run_statuses]
+                    Q(workflow_run_status__in=[workflow_names.get(s, s) for s in run_statuses])
                 )
             else:
                 notebooks = legacy_matches

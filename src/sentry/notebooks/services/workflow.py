@@ -20,6 +20,10 @@ from sentry.notebooks.contracts import MAX_MARKDOWN_CHARS, ActionRequestItem
 from sentry.notebooks.models import (
     Notebook,
     NotebookBlock,
+    NotebookBlockExecution,
+    NotebookBlockExecutionProject,
+    NotebookBlockExecutionStatus,
+    NotebookBlockExecutor,
     NotebookBlockKind,
     NotebookEvidenceProject,
     NotebookWorkflowRun,
@@ -196,7 +200,7 @@ def write_workflow_block(
     embed_source: str | None = None,
 ) -> tuple[NotebookBlock, bool]:
     with notebook_writes(notebook) as writes:
-        require_workflow_writer(notebook, workflow_run_id, writer_run_id)
+        binding = require_workflow_writer(notebook, workflow_run_id, writer_run_id)
         blocks = notebook.blocks
         stored_key = workflow_block_key(workflow_run_id, key)
         block = blocks.filter(producer_key=stored_key).order_by("-producer_revision").first()
@@ -236,6 +240,37 @@ def write_workflow_block(
         if not created:
             block.version += 1
         block.save()
+        if kind == NotebookBlockKind.EMBED:
+            # Each revision is evidence produced by the writer, even if a later edit replaces it.
+            scope = writes.notebook.workflow_evidence_project_ids()
+            snapshot = {
+                "workflowRunId": str(workflow_run_id),
+                "producerRevision": revision,
+                "embedSource": embed_source,
+                "projectIds": scope,
+            }
+            now = timezone.now()
+            execution = NotebookBlockExecution.objects.create(
+                block=block,
+                block_version=block.version,
+                executor=NotebookBlockExecutor.CODE_MODE,
+                status=NotebookBlockExecutionStatus.COMPLETED,
+                seer_run_id=binding.writer_run_id,
+                triggered_by_id=user_id,
+                input_snapshot=snapshot,
+                input_fingerprint=hashlib.sha256(
+                    json.dumps(snapshot, sort_keys=True).encode()
+                ).hexdigest(),
+                result={"embed": embed},
+                started_at=now,
+                completed_at=now,
+            )
+            NotebookBlockExecutionProject.objects.bulk_create(
+                [
+                    NotebookBlockExecutionProject(execution=execution, project_id=pid)
+                    for pid in scope or []
+                ]
+            )
         writes.mark_changed()
         return block, created
 
@@ -259,6 +294,9 @@ def save_summary(
             return block
         if block.version != version:
             raise ConflictError("The block changed while its summary was being generated.")
+        block.executions.filter(
+            block_version=version, input_snapshot__has_key="producerRevision"
+        ).update(result={"embed": block.embed, "summary": summary})
         block.update(embed_summary=summary, version=block.version + 1)
         writes.mark_changed()
         return block
