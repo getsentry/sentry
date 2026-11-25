@@ -129,6 +129,7 @@ def cache_candidate(
     query_columns: list[str],
     rollup: int,
     top_events: int,
+    comparison_delta: timedelta | None,
 ) -> bool:
     """Check if this query is a good candidate for caching
 
@@ -141,6 +142,7 @@ def cache_candidate(
         and query_columns == ["count(span.duration)"]
         and rollup in [1800, 10_800]
         and top_events == 0
+        and comparison_delta is None
     ):
         return True
     return False
@@ -164,14 +166,18 @@ def update_result_with_cache(
     cached: Any,
     result: Any,
     cached_timestamps: list[int] | None,
-    original_start: datetime | None,
     snuba_params: SnubaParams,
     axis: str,
+    merge_from: int | None = None,
 ) -> None:
     final_result = []
     to_update = {}
     if cached and cached_timestamps:
         for row in result.data["data"]:
+            # The RPC still returns the full metadata window. Buckets before the
+            # cache filter are zerofilled and must not replace stored counts.
+            if merge_from is not None and row["time"] < merge_from:
+                continue
             if row["time"] in cached_timestamps:
                 to_update[row["time"]] = row
             else:
@@ -194,9 +200,8 @@ def update_result_with_cache(
     for index, row in enumerate(cached):
         if row["time"] in to_update:
             cached[index].update(to_update[row["time"]])
-    start = original_start if original_start is not None else snuba_params.start_date
     for row in cached:
-        if start.timestamp() <= row["time"] <= snuba_params.end_date.timestamp():
+        if snuba_params.start_date.timestamp() <= row["time"] <= snuba_params.end_date.timestamp():
             final_result.append(row)
     processed.sample_count = [
         {"time": row["time"], axis: row.get("sampleCount")} for row in final_result
@@ -211,9 +216,6 @@ def update_result_with_cache(
         cached = cached[MAX_CACHE_LENGTH:]
     default_cache.set(cache_key, cached, timeout=INCREMENTAL_CACHE_TTL)
     result.data["data"] = final_result
-    # Retore the original_start
-    if original_start:
-        snuba_params.start = original_start
 
 
 @extend_schema(tags=["Explore"])
@@ -557,12 +559,19 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         # skipCache only applies while incremental caching is enabled.
         skip_cache = incremental_loading and request.GET.get("skipCache") == "1"
         is_cache_candidate = False
+        cache_filter_start = None
+        cache_merge_from = None
         if incremental_loading and not skip_cache:
             with traces.start_span("get_cache") as span:
                 if is_cache_candidate := cache_candidate(
-                    dataset, snuba_params, query, query_columns, rollup, top_events
+                    dataset,
+                    snuba_params,
+                    query,
+                    query_columns,
+                    rollup,
+                    top_events,
+                    comparison_delta,
                 ):
-                    original_start = None
                     cached_timestamps = None
                     cache_key = create_cache_key(
                         dataset, snuba_params, query, query_columns, rollup
@@ -576,12 +585,13 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                             span.set_attribute("query.invalid_cache_reason", "missing_start")
                             span.set_attribute("query.truncated", "None")
                             is_cache_candidate = False
-                        # still query the last 3 timestamps
+                        # Re-read the last 3 buckets through a query filter. Leave the
+                        # metadata range alone so Snuba keeps the same storage tier.
                         elif len(cached_timestamps) > 3:
-                            original_start = snuba_params.start_date
-                            snuba_params.start = datetime.fromtimestamp(
-                                cached_timestamps[-3], tz=timezone.utc
-                            )
+                            cache_merge_from = cached_timestamps[-3]
+                            cache_filter_start = datetime.fromtimestamp(
+                                cache_merge_from, tz=timezone.utc
+                            ).strftime("%Y-%m-%dT%H:%M:%SZ")
                             span.set_attribute("query.truncated", "by_cache")
                         else:
                             span.set_attribute("query.truncated", "None")
@@ -637,9 +647,15 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
             )
 
         if dataset in RPC_DATASETS:
+            timeseries_query = query
+            if cache_filter_start is not None:
+                if query:
+                    timeseries_query = f"{query} timestamp:>={cache_filter_start}"
+                else:
+                    timeseries_query = f"timestamp:>={cache_filter_start}"
             result = dataset.run_timeseries_query(
                 params=snuba_params,
-                query_string=query,
+                query_string=timeseries_query,
                 y_axes=query_columns,
                 referrer=referrer,
                 config=self.get_rpc_config(dataset, request, organization),
@@ -656,9 +672,9 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                         cached,
                         result,
                         cached_timestamps,
-                        original_start,
                         snuba_params,
                         query_columns[0],
+                        merge_from=cache_merge_from,
                     )
             return result
 
