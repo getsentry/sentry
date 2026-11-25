@@ -67,7 +67,6 @@ export function SubAgentRow({
           title={call.name}
           preview={isOpen ? null : call.preview}
           hasError={call.hasError}
-          iconVariant="plain"
           previewGap="md"
         />
       }

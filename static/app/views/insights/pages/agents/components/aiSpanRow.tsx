@@ -30,8 +30,6 @@ import {ScrubbedText} from './scrubbedText';
 interface AiSpanLabelProps {
   hasError: boolean;
   title: string;
-  /** Leading icon variant, see `AiSpanStatusIcon`. */
-  iconVariant?: 'inline' | 'plain';
   /** Leading icon, usually the span's own. Omitted when there's no span. */
   node?: AITraceSpanNode;
   /** One-line summary after the name, e.g. a tool call's arguments. */
@@ -49,12 +47,11 @@ export function AiSpanLabel({
   title,
   preview,
   hasError,
-  iconVariant = 'inline',
   previewGap,
 }: AiSpanLabelProps) {
   return (
     <Flex align="center" gap="sm" flex="1" minWidth={0}>
-      {node ? <AiSpanStatusIcon node={node} variant={iconVariant} /> : null}
+      {node ? <AiSpanStatusIcon node={node} variant="inline" /> : null}
       <InfoText
         title={preview ? `${title} ${stripAnnotations(preview)}` : title}
         mode="overflowOnly"

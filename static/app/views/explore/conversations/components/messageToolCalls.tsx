@@ -125,7 +125,8 @@ export function MessageToolCalls({
       open={isOpen}
       title={
         <Flex align="center" gap="sm" minWidth={0}>
-          <IconFix size="md" />
+          {/* Colored like a tool span's icon in the rows and the Agent Timeline. */}
+          <IconFix size="md" variant="accent" />
           <ToolCallSummary toolCalls={toolCalls} />
         </Flex>
       }
