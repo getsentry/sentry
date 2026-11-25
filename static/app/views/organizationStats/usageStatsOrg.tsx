@@ -18,6 +18,7 @@ import {OptionSelector} from 'sentry/components/charts/optionSelector';
 import {InlineContainer, SectionHeading} from 'sentry/components/charts/styles';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {getSeriesApiInterval} from 'sentry/components/charts/utils';
+import type {DroppedDataProps, OutcomeRow} from 'sentry/components/droppedData/types';
 import {NotAvailable} from 'sentry/components/notAvailable';
 import {ScoreCard} from 'sentry/components/scoreCard';
 import {DATA_CATEGORY_INFO, DEFAULT_STATS_PERIOD} from 'sentry/constants';
@@ -28,10 +29,12 @@ import type {
   DataCategoryInfo,
   IntervalPeriod,
 } from 'sentry/types/core';
+import {Outcome} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getUserTimezone, shouldUse24Hours} from 'sentry/utils/dates';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -84,14 +87,19 @@ type ChartData = {
  * client discard toggle swaps the chart for the item count version.
  */
 const CLIENT_DISCARD_COUNT_CATEGORIES: Partial<
-  Record<DataCategory, {countCategory: DataCategoryInfo; unit: string}>
+  Record<
+    DataCategory,
+    {countCategory: DataCategoryInfo; dataset: DiscoverDatasets; unit: string}
+  >
 > = {
   [DATA_CATEGORY_INFO.log_byte.plural]: {
     countCategory: DATA_CATEGORY_INFO.log_item,
+    dataset: DiscoverDatasets.OURLOGS,
     unit: t('logs'),
   },
   [DATA_CATEGORY_INFO.trace_metric_byte.plural]: {
     countCategory: DATA_CATEGORY_INFO.trace_metric,
+    dataset: DiscoverDatasets.TRACEMETRICS,
     unit: t('application metrics'),
   },
 };
@@ -106,9 +114,47 @@ function getClientDiscardCountCategory(
   return CLIENT_DISCARD_COUNT_CATEGORIES[dataCategory];
 }
 
+/**
+ * Client discards per chart interval, against every item in that interval.
+ * Rows use interval indices for `start` and `end`, since the usage chart has a
+ * category x-axis.
+ */
+function getClientDiscardRows(
+  category: string,
+  orgStats?: UsageSeries
+): Pick<DroppedDataProps, 'acceptedEvents' | 'droppedEvents'> {
+  const intervals = orgStats?.intervals ?? [];
+  const discarded = intervals.map(() => 0);
+  const kept = intervals.map(() => 0);
+
+  orgStats?.groups.forEach(group => {
+    const counts = group.by.outcome === Outcome.CLIENT_DISCARD ? discarded : kept;
+    group.series['sum(quantity)']?.forEach((value, i) => {
+      counts[i]! += value;
+    });
+  });
+
+  const toRow = (count: number, i: number, outcome: string): OutcomeRow => ({
+    start: i,
+    end: i + 1,
+    count,
+    outcome,
+    category,
+    reason: '',
+    type: '',
+    tags: ['unintentional'],
+  });
+
+  return {
+    acceptedEvents: kept.map((count, i) => toRow(count, i, Outcome.ACCEPTED)),
+    droppedEvents: discarded.map((count, i) => toRow(count, i, Outcome.CLIENT_DISCARD)),
+  };
+}
+
 type ClientDiscardCountChart = {
   chartData: Pick<ChartData, 'cardStats' | 'chartStats' | 'chartSubLabels'>;
   dataCategory: DataCategory;
+  droppedData: DroppedDataProps;
   error: Error | null;
   loading: boolean;
   unit: string;
@@ -290,6 +336,7 @@ export function getChartProps({
       </Footer>
     ),
     dataCategory: chartDataCategory,
+    droppedData: countChart ? undefined : clientDiscardCountChart?.droppedData,
     dataTransform: chartData.chartTransform,
     usageDateStart: chartData.chartDateStart,
     usageDateEnd: chartData.chartDateEnd,
@@ -590,6 +637,13 @@ export function UsageStatsOrganization({
         ),
       },
       dataCategory: countDataCategory,
+      droppedData: {
+        dataset: clientDiscardCountCategory.dataset,
+        ...getClientDiscardRows(
+          clientDiscardCountCategory.countCategory.name,
+          countStatsResponse.data
+        ),
+      },
       error: countStatsResponse.error,
       loading: countStatsResponse.isPending,
       unit: clientDiscardCountCategory.unit,

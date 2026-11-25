@@ -1,3 +1,4 @@
+import {useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconWarning} from '@sentry/icons/warning';
@@ -8,16 +9,21 @@ import type {Theme} from '@sentry/scraps/theme';
 
 import type {BaseChartProps} from 'sentry/components/charts/baseChart';
 import {BaseChart} from 'sentry/components/charts/baseChart';
+import {useBandTooltips} from 'sentry/components/charts/bands/bandTooltip';
+import {mergeChartBands} from 'sentry/components/charts/bands/mergeChartBands';
 import {legend as makeLegend} from 'sentry/components/charts/components/legend';
 import {createXAxisOptions} from 'sentry/components/charts/components/xAxis';
 import {createBarSeries} from 'sentry/components/charts/series/barSeries';
 import {ChartContainer, HeaderTitleLegend} from 'sentry/components/charts/styles';
+import {useDroppedDataBand} from 'sentry/components/droppedData/band/useDroppedDataBand';
+import type {DroppedDataProps} from 'sentry/components/droppedData/types';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {Placeholder} from 'sentry/components/placeholder';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {DataCategory, IntervalPeriod} from 'sentry/types/core';
+import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import {formatUsageWithUnits} from 'sentry/views/organizationStats/utils';
@@ -83,6 +89,11 @@ export type UsageChartProps = {
    * Replace default tooltip
    */
   chartTooltip?: BaseChartProps['tooltip'];
+  /**
+   * Dropped data drawn as a band under the chart. Bucket `start` and `end` are
+   * x-axis indices, since the x-axis is a category axis.
+   */
+  droppedData?: DroppedDataProps;
   errors?: Record<string, Error>;
   /**
    * Modify the usageStats using the transformation method selected.
@@ -272,8 +283,12 @@ function UsageChartBody({
   handleDataTransformation = cumulativeTotalDataTransformation,
   legendSelected,
   onLegendSelectChanged,
+  droppedData,
 }: UsageChartProps) {
   const theme = useTheme();
+  const chartRef = useRef<ReactEchartsRef>(null);
+  const droppedDataBand = useDroppedDataBand({droppedData});
+  const bands = useBandTooltips([droppedDataBand], {chartRef, hideTimeRange: true});
 
   if (isLoading) {
     return (
@@ -416,12 +431,19 @@ function UsageChartBody({
     ...(chartSeries || []),
   ];
 
-  return (
-    <BaseChart
-      colors={colors}
-      options={{aria: {decal: {show: true}}}}
-      grid={{bottom: '3px', left: '3px', right: '10px', top: '40px'}}
-      xAxis={createXAxisOptions({
+  const yAxis = {
+    min: 0,
+    minInterval: yAxisMinInterval,
+    axisLabel: {
+      formatter: yAxisLabelFormatter,
+      color: theme.tokens.content.secondary,
+    },
+  };
+
+  const band = mergeChartBands(
+    {
+      grid: {bottom: 3, left: '3px', right: '10px', top: '40px'},
+      xAxis: createXAxisOptions({
         show: true,
         type: 'category',
         name: 'Date',
@@ -434,16 +456,23 @@ function UsageChartBody({
           formatter: (label: string) => label.slice(0, 6), // Limit label to 6 chars
         },
         theme,
-      })}
-      yAxis={{
-        min: 0,
-        minInterval: yAxisMinInterval,
-        axisLabel: {
-          formatter: yAxisLabelFormatter,
-          color: theme.tokens.content.secondary,
-        },
-      }}
-      series={series}
+      }),
+      yAxes: [yAxis],
+      series,
+    },
+    bands
+  );
+
+  return (
+    <BaseChart
+      ref={chartRef}
+      colors={colors}
+      options={{aria: {decal: {show: true}}}}
+      grid={band.grid}
+      xAxis={band.xAxis}
+      yAxis={yAxis}
+      yAxes={band.yAxes.length > 1 ? band.yAxes : undefined}
+      series={band.series}
       tooltip={
         chartTooltip
           ? chartTooltip

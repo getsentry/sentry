@@ -78,12 +78,16 @@ function bandTooltipOption(
 
 interface UseBandTooltipsParams {
   chartRef: React.RefObject<ReactEchartsRef | null>;
+  /**
+   * Hide the bucket time range, for bands whose buckets are not timestamps.
+   */
+  hideTimeRange?: boolean;
   utc?: boolean | null;
 }
 
 export function useBandTooltips(
   bands: Array<ChartBand | null>,
-  {chartRef, utc}: UseBandTooltipsParams
+  {chartRef, hideTimeRange, utc}: UseBandTooltipsParams
 ): ChartBand[] {
   const renderToString = useRenderToString();
   const userTimezone = useTimezone();
@@ -99,7 +103,11 @@ export function useBandTooltips(
     }
 
     return renderToString(
-      <ChartBandTooltip bucket={bucket} sections={sections} timezone={timezone} />
+      <ChartBandTooltip
+        bucket={hideTimeRange ? undefined : bucket}
+        sections={sections}
+        timezone={timezone}
+      />
     );
   }
 
