@@ -68,7 +68,9 @@ class UnmergeReplacement(abc.ABC):
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def stop_snuba_replacement(self, eventstream_state: EventstreamState) -> datetime | None:
+    def stop_snuba_replacement(
+        self, eventstream_state: EventstreamState, *, confirm_delivery: bool = False
+    ) -> datetime | None:
         raise NotImplementedError()
 
     @abc.abstractmethod
@@ -110,8 +112,10 @@ class PrimaryHashUnmergeReplacement(UnmergeReplacement):
             project.id, self.fingerprints, source_id, destination_id
         )
 
-    def stop_snuba_replacement(self, eventstream_state: EventstreamState) -> datetime | None:
-        return eventstream.backend.end_unmerge(eventstream_state)
+    def stop_snuba_replacement(
+        self, eventstream_state: EventstreamState, *, confirm_delivery: bool = False
+    ) -> datetime | None:
+        return eventstream.backend.end_unmerge(eventstream_state, confirm_delivery=confirm_delivery)
 
     def run_postgres_replacement(
         self, project: Project, destination_id: int, locked_primary_hashes: Collection[str]

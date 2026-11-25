@@ -37,7 +37,9 @@ class MergeGroupTest(TestCase, SnubaTestCase):
         with self.tasks():
             merge_groups([group1.id], group2.id, eventstream_state=eventstream_state)
 
-        mock_eventstream.end_merge.assert_called_once_with(eventstream_state)
+        mock_eventstream.end_merge.assert_called_once_with(
+            eventstream_state, confirm_delivery=False
+        )
 
     def test_sampling_failure_still_sends_end_message(self) -> None:
         source = self.create_group()
@@ -56,7 +58,7 @@ class MergeGroupTest(TestCase, SnubaTestCase):
             merge_groups(
                 [source.id], survivor.id, eventstream_state=state, operation_id=operation.id
             )
-        send.assert_called_once_with(state)
+        send.assert_called_once_with(state, confirm_delivery=True)
         operation.refresh_from_db()
         assert operation.step == OperationStep.WAIT_FOR_SNUBA
         assert operation.historical_cutoff == cutoff
@@ -74,7 +76,7 @@ class MergeGroupTest(TestCase, SnubaTestCase):
             merge_groups(
                 [source.id], survivor.id, eventstream_state=state, operation_id=operation.id
             )
-        send.assert_called_once_with(state)
+        send.assert_called_once_with(state, confirm_delivery=True)
         operation.refresh_from_db()
         assert operation.status == OperationStatus.NEEDS_ATTENTION
         assert operation.step == OperationStep.MOVE
