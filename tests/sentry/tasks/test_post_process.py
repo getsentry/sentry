@@ -2620,31 +2620,6 @@ class UserReportEventLinkTestMixin(BasePostProcessGroupMixin):
         assert report1.environment_id == event.get_environment().id
         assert len(mock_produce_occurrence_to_kafka.mock_calls) == 0
 
-    @override_options(
-        {"post_process.disable-pipeline-steps": [{"pipeline_step": "update_existing_attachments"}]}
-    )
-    def test_user_report_is_linked_when_attachment_step_is_disabled(self) -> None:
-        """
-        `update_existing_attachments` normally runs the probe that
-        `link_event_to_user_report` reuses. With that step switched off, the user report
-        step has to run the probe itself.
-        """
-        event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
-        report = UserReport.objects.create(
-            project_id=self.project.id,
-            event_id=event.event_id,
-            name="foo",
-            email="bar@example.com",
-            comments="It Broke!!!",
-        )
-
-        self.call_post_process_group(
-            is_new=True, is_regression=False, is_new_group_environment=True, event=event
-        )
-
-        report.refresh_from_db()
-        assert report.group_id == event.group_id
-
 
 class UpdateExistingAttachmentsTestMixin(BasePostProcessGroupMixin):
     def create_attachment(self, event_id: str, group_id: int | None) -> EventAttachment:
@@ -2704,6 +2679,13 @@ class UpdateExistingAttachmentsTestMixin(BasePostProcessGroupMixin):
 
         unrelated.refresh_from_db()
         assert unrelated.group_id is None
+
+
+class EventLinkProbeTestMixin(UserReportEventLinkTestMixin, UpdateExistingAttachmentsTestMixin):
+    """
+    The consolidated link probe, which only runs for events whose pipeline has both the
+    attachment step and the user report step.
+    """
 
     def test_promotes_pending_attachment(self) -> None:
         event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
@@ -2776,6 +2758,38 @@ class UpdateExistingAttachmentsTestMixin(BasePostProcessGroupMixin):
 
         (statement,) = link_probe_table_statements(queries)
         assert all(table in statement for table in LINK_PROBE_TABLES)
+
+    @override_options(
+        {"post_process.disable-pipeline-steps": [{"pipeline_step": "update_existing_attachments"}]}
+    )
+    def test_disabled_attachment_step_leaves_its_tables_alone(self) -> None:
+        """
+        A step that is switched off must not have its tables read on its behalf. The
+        user report step still does its own work.
+        """
+        event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+        report = UserReport.objects.create(
+            project_id=self.project.id,
+            event_id=event.event_id,
+            name="foo",
+            email="bar@example.com",
+            comments="It Broke!!!",
+        )
+
+        with CaptureQueriesContext(connections[router.db_for_write(EventAttachment)]) as queries:
+            self.call_post_process_group(
+                is_new=True, is_regression=False, is_new_group_environment=True, event=event
+            )
+
+        report.refresh_from_db()
+        assert report.group_id == event.group_id
+        # Linking the report creates a feedback event, which has attachment queries of its
+        # own, so only look at statements about the event that was post-processed.
+        assert not [
+            statement
+            for statement in link_probe_table_statements(queries)
+            if "eventattachment" in statement and event.event_id in statement
+        ]
 
 
 class DetectBaseUrlsForUptimeTestMixin(BasePostProcessGroupMixin):
@@ -3705,6 +3719,7 @@ class PostProcessGroupErrorTest(
     ProcessingErrorsEAPTestMixin,
     ReplayLinkageTestMixin,
     DetectNewEscalationTestMixin,
+    EventLinkProbeTestMixin,
     UserReportEventLinkTestMixin,
     UpdateExistingAttachmentsTestMixin,
     DetectBaseUrlsForUptimeTestMixin,
@@ -4297,6 +4312,19 @@ class PostProcessGroupFeedbackTest(
     SnoozeTestMixin,
     UpdateExistingAttachmentsTestMixin,
 ):
+    def test_does_not_read_user_reports(self) -> None:
+        """The feedback pipeline has no user report step, so nothing may read that table."""
+        event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+
+        with CaptureQueriesContext(connections[router.db_for_write(EventAttachment)]) as queries:
+            self.call_post_process_group(
+                is_new=True, is_regression=False, is_new_group_environment=True, event=event
+            )
+
+        statements = link_probe_table_statements(queries)
+        assert statements
+        assert not [statement for statement in statements if "sentry_userreport" in statement]
+
     def test_promotes_pending_attachments(self) -> None:
         self.assert_promotes_pending_attachments(
             is_spam=False, feedback_type=FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
@@ -4327,8 +4355,6 @@ class PostProcessGroupFeedbackTest(
             feedback_type=feedback_type,
             is_spam=is_spam,
         )
-        # Promotion is only attempted for an event that has a pending attachment.
-        create_pending_attachment(self.project.id, event.event_id)
 
         with patch("sentry.event_manager.save_pending_attachments") as promote:
             self.call_post_process_group(
