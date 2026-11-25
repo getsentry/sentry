@@ -3,7 +3,6 @@ import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
-import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {
   defaultFormOptions,
@@ -13,12 +12,13 @@ import {
   useStore,
 } from '@sentry/scraps/form';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 import {Switch} from '@sentry/scraps/switch';
 import {Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
@@ -37,6 +37,7 @@ import {
   type CreateAutomationFormProps,
   type EditAutomationFormProps,
 } from './baseForm';
+import {isValidCrontab, ScheduleField} from './scheduleField';
 import {
   DEFAULT_SERVICE_ACCOUNT_SCOPES,
   getServiceAccountProjectIds,
@@ -51,6 +52,11 @@ import {
 const schema = z.object({
   name: z.string().trim().min(1, t('Give your automation a name.')).max(64),
   enabled: z.boolean(),
+  cron: z
+    .object({crontab: z.string().trim(), timezone: z.string()})
+    .refine(cron => isValidCrontab(cron.crontab), {
+      message: t('Enter a valid crontab schedule, e.g. 0 0 * * *'),
+    }),
   projects: z
     .object({allProjects: z.boolean(), projectIds: z.array(z.string())})
     .refine(projects => projects.allProjects || projects.projectIds.length > 0, {
@@ -68,6 +74,11 @@ const schema = z.object({
     .array(z.string())
     .min(1, t('Give the service account at least one permission.')),
 });
+
+/**
+ * Every day at midnight
+ */
+const DEFAULT_CRONTAB = '0 0 * * *';
 
 const ENVIRONMENTS = ['production', 'staging', 'development'];
 
@@ -115,6 +126,7 @@ export function ScheduledInvestigationForm(
   const mutationError = props.mode === 'create' ? createConfig.error : updateConfig.error;
   const saveConfig = async (value: z.infer<typeof schema>) => {
     const fields = {
+      cron: value.cron,
       projectIds: value.projects.allProjects
         ? [ALL_ACCESS_PROJECTS]
         : value.projects.projectIds.map(Number),
@@ -161,6 +173,8 @@ export function ScheduledInvestigationForm(
         props.mode === 'create'
           ? t('Scheduled Investigation')
           : (props.config.name ?? STRATEGY_META.scheduled_investigation.label),
+      // Timezone must be an IANA name.
+      cron: {crontab: DEFAULT_CRONTAB, timezone: 'UTC'},
       projects: defaultProjects,
       environment: currEnvironment,
       serviceAccountProjects: getServiceAccountProjectSelection(serviceAccount),
@@ -176,6 +190,7 @@ export function ScheduledInvestigationForm(
           formApi.reset({
             name: value.name,
             enabled: config.enabled,
+            cron: value.cron,
             projects: getProjectSelection(config.projects),
             environment: config.environments[0] ?? '',
             serviceAccountProjects: getServiceAccountProjectSelection(
@@ -243,20 +258,27 @@ export function ScheduledInvestigationForm(
 
           <FormSection title={t('Trigger')}>
             <form.FieldGroup>
-              {/* Not configurable yet, so this shows the fixed schedule */}
-              <DisplayField.Row
-                label={t('Schedule')}
-                hintText={t('(mock) Runs on a schedule.')}
-              >
-                <CompactSelect
-                  value="twice-daily"
-                  onChange={() => {}}
-                  disabled={readOnly}
-                  options={[
-                    {value: 'twice-daily', label: t('Every day at 8 AM and 8 PM')},
-                  ]}
-                />
-              </DisplayField.Row>
+              <form.AppField name="cron">
+                {field => (
+                  <field.Layout.Row
+                    label={t('Schedule')}
+                    hintText={tct('Runs on a schedule. Use [link:the crontab syntax].', {
+                      link: <ExternalLink href="https://en.wikipedia.org/wiki/Cron" />,
+                    })}
+                  >
+                    <field.Base<HTMLInputElement>>
+                      {({disabled: _disabled, ...inputProps}) => (
+                        <ScheduleField
+                          value={field.state.value}
+                          onChange={field.handleChange}
+                          disabled={readOnly}
+                          inputProps={inputProps}
+                        />
+                      )}
+                    </field.Base>
+                  </field.Layout.Row>
+                )}
+              </form.AppField>
             </form.FieldGroup>
           </FormSection>
 
