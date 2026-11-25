@@ -27,8 +27,8 @@ interface BaseSelectProps<Value extends SelectKey> extends Omit<
 > {
   options: Array<SelectOptionOrSection<Value>>;
   /**
-   * Number of options above which virtualization will be enabled.
-   * Note that virtualization is always disabled if there are sections in the options.
+   * Number of options, including those inside sections, above which
+   * virtualization will be enabled. Sections are not virtualized in `grid` mode.
    * @default 150
    */
   virtualizeThreshold?: number;
@@ -102,7 +102,7 @@ export function CompactSelect<Value extends SelectKey>({
   const [measuredMenuWidth, setMeasuredMenuWidth] = useState<number>();
   const [hasMeasured, setHasMeasured] = useState(false);
   const needsMeasuring =
-    !menuWidth && !hasMeasured && shouldVirtualize(options, virtualizeThreshold);
+    !menuWidth && !hasMeasured && shouldVirtualize(options, mode, virtualizeThreshold);
 
   const menuRef = useCallback(
     (element: HTMLDivElement | null) => {
@@ -119,28 +119,10 @@ export function CompactSelect<Value extends SelectKey>({
   const controlDisabled = disabled ?? options?.length === 0;
   const allItemsWithKey = useMemo(() => getItemsWithKeys(options), [options]);
 
-  const longestOptionItemsWithKey = useMemo(() => {
-    if (needsMeasuring) {
-      let longestOption: (typeof options)[number] | undefined;
-      let longestLength = -1;
-      for (const option of options) {
-        const length =
-          'options' in option
-            ? 0
-            : option.textValue
-              ? option.textValue.length
-              : typeof option.label === 'string'
-                ? option.label.length
-                : 0;
-        if (length > longestLength) {
-          longestOption = option;
-          longestLength = length;
-        }
-      }
-      return longestOption ? getItemsWithKeys([longestOption]) : [];
-    }
-    return [];
-  }, [needsMeasuring, options]);
+  const longestOptionItemsWithKey = useMemo(
+    () => (needsMeasuring ? getItemsWithKeys(getLongestOptionItems(options)) : []),
+    [needsMeasuring, options]
+  );
   const itemsWithKey = needsMeasuring ? longestOptionItemsWithKey : allItemsWithKey;
 
   const componentTitle = useMemo(
@@ -209,7 +191,7 @@ export function CompactSelect<Value extends SelectKey>({
         size={size}
         sizeLimit={sizeLimit}
         sizeLimitMessage={sizeLimitMessage}
-        virtualized={shouldVirtualize(itemsWithKey, virtualizeThreshold)}
+        virtualized={shouldVirtualize(itemsWithKey, mode, virtualizeThreshold)}
         aria-labelledby={triggerId}
       >
         {(item: SelectOptionOrSectionWithKey<Value>) => {
@@ -241,12 +223,46 @@ export function CompactSelect<Value extends SelectKey>({
 
 function shouldVirtualize<Value extends SelectKey>(
   items: Array<SelectOptionOrSection<Value>>,
+  mode: 'list' | 'grid' | undefined,
   virtualizeThreshold = 150
 ) {
   const hasSections = items.some(item => 'options' in item);
-  if (hasSections) {
+  if (hasSections && mode === 'grid') {
     return false;
   }
 
-  return items.length > virtualizeThreshold;
+  const optionCount = items.reduce(
+    (count, item) => count + ('options' in item ? item.options.length : 1),
+    0
+  );
+  return optionCount > virtualizeThreshold;
+}
+
+function getLabelLength<Value extends SelectKey>(option: SelectOption<Value>) {
+  if (option.textValue) {
+    return option.textValue.length;
+  }
+  return typeof option.label === 'string' ? option.label.length : 0;
+}
+
+/**
+ * The option with the longest label, to measure the menu's width with. An
+ * option inside a section is returned inside it, so its header is measured too.
+ */
+function getLongestOptionItems<Value extends SelectKey>(
+  items: Array<SelectOptionOrSection<Value>>
+): Array<SelectOptionOrSection<Value>> {
+  let longest: SelectOptionOrSection<Value> | undefined;
+  let longestLength = -1;
+  for (const item of items) {
+    const options = 'options' in item ? item.options : [item];
+    for (const option of options) {
+      const length = getLabelLength(option);
+      if (length > longestLength) {
+        longestLength = length;
+        longest = 'options' in item ? {...item, options: [option]} : option;
+      }
+    }
+  }
+  return longest ? [longest] : [];
 }
