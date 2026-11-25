@@ -21,6 +21,7 @@ from sentry.timeseries_annotations.service import (
     create_timeseries_annotation,
 )
 from sentry.utils import metrics
+from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
 
@@ -104,10 +105,60 @@ def _truncate(text: str) -> str:
     return text[: _MAX_DESCRIPTION_LEN - 3] + "..."
 
 
-def _annotation_tags(flag_log: FlagAuditLogModel, action: str, provider: str) -> dict[str, str]:
-    raw = dict(flag_log.tags or {})
+def _parse_launchdarkly_resource(resource: str) -> tuple[str | None, str | None]:
+    """Parse ``proj/<project>:env/<environment>:flag/<key>`` into project + environment."""
+    project: str | None = None
+    environment: str | None = None
+    for part in resource.split(":"):
+        if part.startswith("proj/"):
+            project = part[len("proj/") :] or None
+        elif part.startswith("env/"):
+            environment = part[len("env/") :] or None
+    return project, environment
+
+
+def _enrich_tags_for_annotation(raw_tags: dict[str, Any] | None) -> dict[str, Any]:
+    """Derive annotation-oriented fields from FlagLog tags (resource, version blobs).
+
+    Providers persist simple additive copies; this is where we parse LD ``resource``
+    and pull targeting/kind signals from an optional ``current_version`` blob.
+    """
+    tags: dict[str, Any] = dict(raw_tags or {})
+
+    if not tags.get("project") or not tags.get("environment"):
+        resource = _as_nonempty_str(tags.get("resource"))
+        if resource:
+            project, environment = _parse_launchdarkly_resource(resource)
+            if project and not tags.get("project"):
+                tags["project"] = project
+            if environment and not tags.get("environment"):
+                tags["environment"] = environment
+
+    current = tags.get("current_version")
+    if isinstance(current, dict):
+        if kind := current.get("kind"):
+            tags.setdefault("kind", kind)
+        if "temporary" in current:
+            tags.setdefault("temporary", str(bool(current["temporary"])).lower())
+        if "deprecated" in current:
+            tags.setdefault("deprecated", str(bool(current["deprecated"])).lower())
+        environment = _as_nonempty_str(tags.get("environment"))
+        if environment and tags.get("on") is None:
+            env_cfg = get_path(current, "environments", environment)
+            if isinstance(env_cfg, dict) and "on" in env_cfg:
+                tags["on"] = str(bool(env_cfg["on"])).lower()
+
+    return tags
+
+
+def _annotation_tags(
+    flag_log: FlagAuditLogModel, action: str, provider: str, enriched: dict[str, Any]
+) -> dict[str, str]:
+    raw = dict(enriched)
     if "description" in raw and "change_description" not in raw:
         raw["change_description"] = raw["description"]
+    # Opaque blobs are for enrichment only — omit from annotation tags.
+    raw.pop("current_version", None)
 
     out: dict[str, str] = {
         "flag": flag_log.flag,
@@ -163,57 +214,53 @@ def _provider_label(provider: int | None) -> str:
 
 def record_feature_flag_change_as_annotation(flag_log: FlagAuditLogModel) -> None:
     """Create a POINT annotation for one FlagAuditLog row. Best-effort; never raises."""
-    organization = Organization.objects.get_or_none(id=flag_log.organization_id)
-    if organization is None:
-        metrics.incr(
-            "timeseries_annotations.producer_skipped_org_missing",
-            tags={"producer": _PRODUCER},
-        )
-        return
-
-    if not features.has(
-        "organizations:timeseries-annotations-usecase-feature-flag-change", organization
-    ):
-        metrics.incr(
-            "timeseries_annotations.producer_skipped_flag_off",
-            tags={"producer": _PRODUCER},
-        )
-        logger.info(
-            "timeseries_annotations.producer_skipped_flag_off",
-            extra={
-                "producer": _PRODUCER,
-                "organization_id": organization.id,
-                "flag_log_id": flag_log.id,
-            },
-        )
-        return
-
-    action = _action_label(flag_log.action)
-    provider = _provider_label(flag_log.provider)
-    tags = _annotation_tags(flag_log, action, provider)
-    description = build_feature_flag_annotation_description(
-        flag=flag_log.flag,
-        action=action,
-        provider=provider,
-        tags=flag_log.tags,
-    )
-
-    # Best-effort: a producer failure must never break the FlagLog write.
     try:
+        organization = Organization.objects.get_or_none(id=flag_log.organization_id)
+        if organization is None:
+            metrics.incr(
+                "timeseries_annotations.producer_skipped_org_missing",
+                tags={"producer": _PRODUCER},
+            )
+            return
+
+        if not features.has(
+            "organizations:timeseries-annotations-usecase-feature-flag-change", organization
+        ):
+            metrics.incr(
+                "timeseries_annotations.producer_skipped_flag_off",
+                tags={"producer": _PRODUCER},
+            )
+            logger.info(
+                "timeseries_annotations.producer_skipped_flag_off",
+                extra={
+                    "producer": _PRODUCER,
+                    "organization_id": organization.id,
+                    "flag_log_id": flag_log.id,
+                },
+            )
+            return
+
+        action = _action_label(flag_log.action)
+        provider = _provider_label(flag_log.provider)
+        enriched = _enrich_tags_for_annotation(flag_log.tags)
+        description = build_feature_flag_annotation_description(
+            flag=flag_log.flag,
+            action=action,
+            provider=provider,
+            tags=enriched,
+        )
         create_timeseries_annotation(
             TimeseriesAnnotationData(
                 organization_id=flag_log.organization_id,
-                project_id=_resolve_project_id(flag_log.organization_id, flag_log.tags or {}),
-                environment_id=_resolve_environment_id(
-                    flag_log.organization_id, flag_log.tags or {}
-                ),
+                project_id=_resolve_project_id(flag_log.organization_id, enriched),
+                environment_id=_resolve_environment_id(flag_log.organization_id, enriched),
                 annotation_type=AnnotationType.FEATURE_FLAG_CHANGE,
                 scope=AnnotationScope.GLOBAL,
                 severity=Severity.LOW,
                 interval_type=IntervalType.POINT,
                 description=description,
                 start_timestamp=flag_log.created_at,
-                tags=tags,
+                tags=_annotation_tags(flag_log, action, provider, enriched),
                 created_by_label="feature-flag-webhook",
             )
         )

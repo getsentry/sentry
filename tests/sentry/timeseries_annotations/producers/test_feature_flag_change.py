@@ -177,6 +177,27 @@ class FeatureFlagChangeProducerTest(TestCase):
         assert ann.project_id == self.project.id
         assert ann.description.startswith("Feature flag 'checkout-redesign' updated via Unleash")
 
+    def test_parses_launchdarkly_resource_for_project_and_env(self) -> None:
+        """Producer (not providers) parses LD resource into project/environment."""
+        env = Environment.get_or_create(project=self.project, name="test")
+        flag_log = self._create_flag_log(
+            tags={
+                "description": "* Turned the flag on",
+                "change_type": "updateOn",
+                "resource": f"proj/{self.project.slug}:env/test:flag/checkout-redesign",
+            },
+        )
+        with self.feature("organizations:timeseries-annotations-usecase-feature-flag-change"):
+            record_feature_flag_change_as_annotation(flag_log)
+
+        ann = TimeseriesAnnotation.objects.get()
+        assert ann.project_id == self.project.id
+        assert ann.environment_id == env.id
+        assert ann.tags is not None
+        assert ann.tags["project"] == self.project.slug
+        assert ann.tags["environment"] == "test"
+        assert ann.tags["resource"] == (f"proj/{self.project.slug}:env/test:flag/checkout-redesign")
+
     def test_write_path_fans_out_after_bulk_create(self) -> None:
         from sentry.flags.providers import write
 
@@ -200,6 +221,7 @@ class FeatureFlagChangeProducerTest(TestCase):
         assert TimeseriesAnnotation.objects.count() == 1
         ann = TimeseriesAnnotation.objects.get()
         assert ann.description == "Hello world gate"
+        assert ann.tags is not None
         assert ann.tags["provider"] == "generic"
         assert ann.tags["flag_log_id"] == str(FlagAuditLogModel.objects.get().id)
 
