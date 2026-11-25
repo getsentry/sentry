@@ -606,6 +606,42 @@ class CreateDebugFileTest(APITestCase):
         assert not created2
         assert dif1 == dif2
 
+    def test_keep_wasm_source_map_with_its_module(self) -> None:
+        # The CLI may upload the map before the module. Both share the debug id.
+        file = self.create_stored_file(b"source map")
+        source_map, created1 = self.create_dif(
+            file=file, file_format="wasmsourcemap", arch="any", data={"features": []}
+        )
+
+        file = self.create_stored_file(b"wasm module")
+        module, created2 = self.create_dif(
+            file=file, file_format="wasm", arch="wasm32", data={"features": ["symtab", "debug"]}
+        )
+
+        assert created1 and created2
+        assert ProjectDebugFile.objects.filter(id=source_map.id).exists()
+        assert ProjectDebugFile.objects.filter(id=module.id).exists()
+
+    def test_remove_older_wasm_source_map(self) -> None:
+        file = self.create_stored_file(b"wasm module")
+        module, _ = self.create_dif(
+            file=file, file_format="wasm", arch="wasm32", data={"features": ["symtab", "debug"]}
+        )
+
+        file = self.create_stored_file(b"first source map")
+        old_map, _ = self.create_dif(
+            file=file, file_format="wasmsourcemap", arch="any", data={"features": []}
+        )
+
+        file = self.create_stored_file(b"second source map")
+        new_map, _ = self.create_dif(
+            file=file, file_format="wasmsourcemap", arch="any", data={"features": []}
+        )
+
+        assert not ProjectDebugFile.objects.filter(id=old_map.id).exists()
+        assert ProjectDebugFile.objects.filter(id=new_map.id).exists()
+        assert ProjectDebugFile.objects.filter(id=module.id).exists()
+
     def test_remove_redundant_dif(self) -> None:
         file = self.create_stored_file(b"first debug symbols")
         dif1, created1 = self.create_dif(file=file, data={"features": ["debug"]})
