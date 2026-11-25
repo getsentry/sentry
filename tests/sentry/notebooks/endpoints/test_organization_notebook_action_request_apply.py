@@ -20,6 +20,7 @@ from sentry.investigations.models import (
     InvestigationOrchestrationCommandStatus,
     InvestigationOrchestrationPhase,
     InvestigationOrchestrationRun,
+    WorkflowNodeRun,
     WorkflowRun,
 )
 from sentry.models.auditlogentry import AuditLogEntry
@@ -210,6 +211,58 @@ class OrganizationNotebookActionRequestApplyTest(APITestCase):
         response = self.apply(action)
         assert response.status_code == 200, response.data
         assert self.snuba_query().time_window == 900
+
+    def test_retry_follow_up_only_wakes_a_workflow_that_can_process_it(self) -> None:
+        self.notebook.update(source={"snapshot": {"monitor": {"id": str(self.detector.id)}}})
+        key = uuid4()
+        followups = {str(key): {"status": "failed", "command": {"type": "rerun"}}}
+        run = WorkflowRun.objects.create(
+            organization=self.organization,
+            user_id=self.user.id,
+            uuid=uuid4(),
+            request_id=uuid4(),
+            checkpoint={"status": "failed", "followups": followups},
+            definition={},
+        )
+        writer = WorkflowNodeRun.objects.create(
+            run=run,
+            uuid=uuid4(),
+            checkpoint={"node_id": "notebook/write"},
+        )
+        binding = NotebookWorkflowRun.objects.create(
+            organization=self.organization, notebook=self.notebook, run_id=run.uuid
+        )
+        action = self.suggest(workflow_run=binding, state="applied", followup_request_id=key)
+        kwargs = {
+            "organization_id_or_slug": self.organization.slug,
+            "notebook_id": self.notebook.id,
+        }
+        detail = reverse("sentry-api-0-organization-notebook-details", kwargs=kwargs)
+        retry = reverse(
+            "sentry-api-0-organization-notebook-action-request-retry-follow-up",
+            kwargs={**kwargs, "action_request_id": action.id},
+        )
+        for status in ("failed", "cancelled", "succeeded"):
+            run.update(checkpoint={"status": status, "followups": followups})
+            retryable = status == "succeeded"
+            response = self.client.get(detail)
+            assert response.status_code == 200, response.data
+            (request,) = response.data["actionRequests"]
+            assert request["followUp"]["retryable"] is retryable
+            response = self.client.post(
+                retry, data={"action": action.action_payload}, format="json"
+            )
+            writer.refresh_from_db()
+            run.refresh_from_db()
+            if retryable:
+                assert response.status_code == 200, response.data
+                assert writer.next_check_at is not None
+                assert run.checkpoint["followups"][str(key)]["status"] == "accepted"
+            else:
+                assert response.status_code == 409, response.data
+                assert response.data["code"] == "not_retryable"
+                assert writer.next_check_at is None
+                assert run.checkpoint["followups"][str(key)]["status"] == "failed"
 
     def test_stopped_workflow_records_stale_settings_without_a_recheck(self) -> None:
         run = WorkflowRun.objects.create(
