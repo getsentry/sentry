@@ -84,7 +84,10 @@ class TelemetryClassifierSerializer(Serializer[TelemetryClassifierResponse]):
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> TelemetryClassifierResponse:
-        definition = resolve_classifier_definition(obj)
+        try:
+            definition = resolve_classifier_definition(obj)
+        except InvalidClassifierDefinition:
+            definition = None
         return {
             "id": str(obj.id),
             "projectId": str(obj.project_id),
@@ -95,8 +98,8 @@ class TelemetryClassifierSerializer(Serializer[TelemetryClassifierResponse]):
             "status": obj.status,
             "prebuiltClassifierKey": obj.prebuilt_classifier_key,
             "naturalLanguagePrompt": obj.natural_language_prompt,
-            "outputType": definition.output_type,
-            "binaryThreshold": definition.binary_threshold,
+            "outputType": definition.output_type if definition else None,
+            "binaryThreshold": definition.binary_threshold if definition else None,
             "createdBy": attrs["createdBy"],
             "dateAdded": obj.date_added,
             "dateUpdated": obj.date_updated,

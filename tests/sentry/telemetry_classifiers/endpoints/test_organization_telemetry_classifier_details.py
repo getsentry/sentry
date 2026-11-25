@@ -42,6 +42,16 @@ class OrganizationTelemetryClassifierDetailsGetTest(APITestCase):
             "dateUpdated": self.classifier.date_updated,
         }
 
+    def test_returns_classifier_with_unknown_prebuilt_key(self) -> None:
+        classifier = self.create_telemetry_classifier(prebuilt_classifier_key="removed_classifier")
+
+        with self.feature(self.features):
+            response = self.get_success_response(self.organization.slug, classifier.id)
+
+        assert response.data["prebuiltClassifierKey"] == "removed_classifier"
+        assert response.data["outputType"] is None
+        assert response.data["binaryThreshold"] is None
+
     def test_unknown_or_invalid_id(self) -> None:
         with self.feature(self.features):
             self.get_error_response(self.organization.slug, self.classifier.id + 1, status_code=404)

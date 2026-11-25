@@ -62,6 +62,18 @@ class OrganizationTelemetryClassifiersTest(APITestCase):
         assert disabled_data["status"] == "disabled"
         assert disabled_data["createdBy"] is None
 
+    def test_lists_classifier_with_unknown_prebuilt_key(self) -> None:
+        known = self.create_telemetry_classifier()
+        unknown = self.create_telemetry_classifier(prebuilt_classifier_key="removed_classifier")
+
+        with self.feature(self.features):
+            response = self.get_success_response(self.organization.slug)
+
+        data = {c["id"]: c for c in response.data}
+        assert data[str(known.id)]["outputType"] == "binary"
+        assert data[str(unknown.id)]["outputType"] is None
+        assert data[str(unknown.id)]["binaryThreshold"] is None
+
     def test_sorts_newest_first_with_disabled_last(self) -> None:
         oldest = self.create_telemetry_classifier()
         disabled = self.create_telemetry_classifier(status=TelemetryClassifierStatus.DISABLED)
