@@ -16,6 +16,7 @@ from sentry.seer.autofix.pr_iteration.pause import PAUSED_EXTRA
 from sentry.seer.models.run import SeerRun
 from sentry.seer.webhooks import sentry_command
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 
 MODULE = "sentry.seer.autofix.pr_iteration.out_of_credits_comment"
 TASK_DELAY = "sentry.tasks.seer.pr_iteration.comment_on_out_of_credits.delay"
@@ -103,6 +104,15 @@ class QueueOutOfCreditsCommentTest(TestCase):
         self._queue(self._state(repo=PR_NUMBER))
 
         mock_delay.assert_called_once()
+
+    @patch(TASK_DELAY)
+    @override_options({"autofix.pr-iteration.out-of-credits-comment.enabled": False})
+    def test_skips_when_turned_off(self, mock_delay: MagicMock) -> None:
+        self.create_seer_run(organization=self.organization, seer_run_state_id=RUN_ID)
+
+        self._queue(self._state(repo=PR_NUMBER))
+
+        mock_delay.assert_not_called()
 
     @patch(TASK_DELAY)
     def test_skips_without_a_pr(self, mock_delay: MagicMock) -> None:

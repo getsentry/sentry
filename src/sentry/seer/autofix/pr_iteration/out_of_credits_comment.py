@@ -25,6 +25,7 @@ from django.utils import timezone
 from scm import actions as scm_actions
 from scm.types import CreatePullRequestCommentProtocol, GetPullRequestProtocol
 
+from sentry import options
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.scm.factory import new as make_scm
@@ -109,6 +110,9 @@ def queue_out_of_credits_comment(
         "organization_id": organization_id,
         "denial_reason": denial_reason,
     }
+    if not options.get("autofix.pr-iteration.out-of-credits-comment.enabled"):
+        _record("skipped", log_fields, reason="disabled")
+        return
     if not pr_numbers_by_repo:
         _record("skipped", log_fields, reason="no_pull_request")
         return
