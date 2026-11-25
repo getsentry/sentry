@@ -374,7 +374,6 @@ class SeriesHistory:
                 minute,
                 expectation,
                 observation,
-                distinct_rate_samples=parts is not None and parts[1] != parts[2],
                 cfg=cfg,
                 shape=self.baseline.shape(key, minute),
                 episode_open=state.open is not None,
@@ -430,13 +429,13 @@ class SeriesHistory:
         """Return whether normal and anomalous readings are sufficiently supported, respectively."""
         cfg = self.cfg
         actual, samples, rate_events, rate_denominator, rate_samples = observation
+        if uses_trials(key):
+            trials = observation.trials
+            valid = trials >= cfg.min_samples
+            return valid, valid and (actual - expected) * trials >= cfg.min_abs_excess
         if rate_events is not None and rate_denominator and rate_samples:
             valid = rate_samples >= cfg.min_samples
             return valid, valid and rate_events - expected * rate_denominator >= cfg.min_abs_excess
-        if is_share(key):
-            share_samples = samples or 0.0
-            valid = share_samples >= cfg.min_samples
-            return valid, valid and (actual - expected) * share_samples >= cfg.min_abs_excess
         if rule.change == ChangeType.SLOWDOWN:
             valid = (samples or 0.0) >= cfg.min_samples
             return valid, valid and actual - expected >= cfg.min_latency_excess_ms

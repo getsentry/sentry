@@ -14,7 +14,11 @@ from sentry.anomaly_detection.evaluation.distributions import (
     beta_binomial_sf,
     negative_binomial_sf,
 )
-from sentry.anomaly_detection.evaluation.series import is_share, uses_trials
+from sentry.anomaly_detection.evaluation.series import (
+    rate_parts,
+    samples_key,
+    uses_trials,
+)
 
 if TYPE_CHECKING:
     from sentry.anomaly_detection.evaluation.series_history import DetectConfig, SeriesState
@@ -61,6 +65,11 @@ class Reading(NamedTuple):
     rate_denominator: float | None
     rate_samples: float | None
 
+    @property
+    def trials(self) -> float:
+        """Sampled spans behind a failure share or failed-request rate."""
+        return (self.rate_samples if self.rate_events is not None else self.samples) or 0.0
+
 
 def record(
     counts: deque[CountTotals],
@@ -68,23 +77,26 @@ def record(
     expectation: ExpectedValue,
     reading: Reading,
     *,
-    distinct_rate_samples: bool,
     cfg: DetectConfig,
     shape: float,
     episode_open: bool,
     closed_at: datetime | None,
 ) -> None:
     actual, samples, rate_events, rate_denominator, rate_samples = reading
-    if rate_events is not None:
+    if uses_trials(expectation.key):
+        # Failures out of sampled trials. A failed-request rate divides extrapolated counts,
+        # which can outnumber its sampled trials, so scale the rate back onto those trials.
+        trials = reading.trials
+        assert trials
+        observed_events = float(round(actual * trials))
+        denominator, extra_noise = trials, 0.0
+        volume = trials / cfg.min_samples
+    elif rate_events is not None:
         assert rate_denominator and rate_samples
         observed_events, denominator = rate_events, rate_denominator
-        extra_noise = rate_samples if distinct_rate_samples else 0.0
+        # Extrapolated requests add the noise of the samples behind them.
+        extra_noise = rate_samples
         volume = rate_samples / cfg.min_samples
-    elif is_share(expectation.key):
-        assert samples
-        observed_events = float(round(actual * samples))
-        denominator, extra_noise = samples, 0.0
-        volume = samples / cfg.min_samples
     else:
         observed_events, denominator, extra_noise = actual, 1.0, 0.0
         expected_events = expectation.expected
@@ -260,8 +272,8 @@ def failure_reference(
     excluded: set[datetime],
     end_minute: datetime,
 ) -> tuple[float, float] | None:
-    trial_key = weight_key(key)
-    assert trial_key is not None
+    parts = rate_parts(key)
+    trial_key = parts[2] if parts else samples_key(key)
     events = trials = 0.0
     for age in range(1, DISPERSION_MIN + 1):
         minute = end_minute - age * MINUTE
