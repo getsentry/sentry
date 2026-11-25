@@ -6,6 +6,7 @@ import {useQueryState} from 'nuqs';
 
 import {DrawerHeader} from '@sentry/scraps/drawer';
 import {getDuration} from '@sentry/scraps/duration';
+import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -57,6 +58,7 @@ import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeade
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
 
 import {WebVitalStatusLineChart} from './charts/webVitalStatusLineChart';
+import {DeviceTypeSelector, useDeviceType} from './deviceTypeSelector';
 import {PerformanceBadge} from './performanceBadge';
 import {WebVitalDetailHeader} from './webVitalDescription';
 
@@ -145,6 +147,7 @@ export function PageOverviewWebVitalsDetailPanel({
     ? browserTypesFromDashboard
     : decodeBrowserTypes(browserNames);
   const subregions = subregionCodes as SubregionCode[];
+  const {deviceType, setDeviceType, canSelectDeviceType} = useDeviceType(browserTypes);
   const isSpansWebVital = defined(webVital) && ['inp', 'cls', 'lcp'].includes(webVital);
 
   const replayLinkGenerator = generateReplayLink(matches);
@@ -175,12 +178,14 @@ export function PageOverviewWebVitalsDetailPanel({
   const {data: projectData} = useProjectRawWebVitalsQuery({
     transaction,
     browserTypes,
+    deviceType,
     subregions,
   });
   const {data: projectScoresData} = useProjectWebVitalsScoresQuery({
     weightWebVital: webVital ?? 'total',
     transaction,
     browserTypes,
+    deviceType,
     subregions,
   });
 
@@ -192,6 +197,7 @@ export function PageOverviewWebVitalsDetailPanel({
       webVital,
       enabled: Boolean(webVital),
       browserTypes,
+      deviceType,
       subregions,
     });
 
@@ -356,6 +362,11 @@ export function PageOverviewWebVitalsDetailPanel({
         <DrawerHeader />
 
         <SampleDrawerBody>
+          {canSelectDeviceType && (
+            <Flex justify="end">
+              <DeviceTypeSelector value={deviceType} onChange={setDeviceType} />
+            </Flex>
+          )}
           {webVital && (
             <WebVitalDetailHeader
               value={
@@ -375,6 +386,7 @@ export function PageOverviewWebVitalsDetailPanel({
                 webVital={webVital}
                 transaction={transaction}
                 browserTypes={browserTypes}
+                deviceType={deviceType}
                 subregions={subregions}
               />
             )}

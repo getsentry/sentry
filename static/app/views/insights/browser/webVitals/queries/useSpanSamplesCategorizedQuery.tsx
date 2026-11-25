@@ -1,5 +1,6 @@
 import {defined} from 'sentry/utils/defined';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
+import type {DeviceType} from 'sentry/views/insights/browser/webVitals/utils/deviceType';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import type {SubregionCode} from 'sentry/views/insights/types';
 
@@ -13,6 +14,7 @@ import {
 
 type Props = {
   browserTypes: BrowserType[];
+  deviceType: DeviceType;
   enabled: boolean;
   subregions: SubregionCode[];
   transaction: string;
@@ -23,6 +25,7 @@ export function useSpanSamplesCategorizedQuery({
   transaction,
   enabled,
   browserTypes,
+  deviceType,
   subregions,
   webVital,
 }: Props) {
@@ -44,6 +47,7 @@ export function useSpanSamplesCategorizedQuery({
     limit: 3,
     filter: ratioField ? `${ratioField}:>=0.9 ${webVitalFilter}` : undefined,
     browserTypes,
+    deviceType,
     subregions,
     webVital: webVital ?? undefined,
   });
@@ -55,6 +59,7 @@ export function useSpanSamplesCategorizedQuery({
       ? `${ratioField}:>=0.5 ${ratioField}:<0.9 ${webVitalFilter}`
       : undefined,
     browserTypes,
+    deviceType,
     subregions,
     webVital: webVital ?? undefined,
   });
@@ -66,6 +71,7 @@ export function useSpanSamplesCategorizedQuery({
       ? `${ratioField}:>0 ${ratioField}:<0.5 ${webVitalFilter}`
       : undefined,
     browserTypes,
+    deviceType,
     subregions,
     webVital: webVital ?? undefined,
   });

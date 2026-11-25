@@ -12,6 +12,10 @@ import {
 } from 'sentry/views/insights/browser/webVitals/settings';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 import {WEB_VITAL_TO_FIELD} from 'sentry/views/insights/browser/webVitals/types';
+import {
+  addBrowserFilter,
+  type DeviceType,
+} from 'sentry/views/insights/browser/webVitals/utils/deviceType';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {getWebVitalScoreThresholds} from 'sentry/views/insights/browser/webVitals/utils/scoreThresholds';
 // eslint-disable-next-line no-restricted-imports
@@ -20,6 +24,7 @@ import type {SubregionCode} from 'sentry/views/insights/types';
 import {SpanFields} from 'sentry/views/insights/types';
 
 interface Props {
+  deviceType: DeviceType;
   webVital: WebVitals | null;
   browserTypes?: BrowserType[];
   subregions?: SubregionCode[];
@@ -30,6 +35,7 @@ export function WebVitalStatusLineChart({
   webVital,
   transaction,
   browserTypes,
+  deviceType,
   subregions,
 }: Props) {
   const search = new MutableSearch(DEFAULT_QUERY_FILTER);
@@ -38,9 +44,7 @@ export function WebVitalStatusLineChart({
   if (transaction) {
     search.addFilterValue('transaction', transaction);
   }
-  if (browserTypes?.length) {
-    search.addFilterValueList(SpanFields.BROWSER_NAME, browserTypes);
-  }
+  addBrowserFilter(search, browserTypes, deviceType);
   if (subregions?.length) {
     search.addFilterValueList(SpanFields.USER_GEO_SUBREGION, subregions);
   }
@@ -63,12 +67,9 @@ export function WebVitalStatusLineChart({
     ? timeSeries.find(ts => ts.yAxis === `p75(${WEB_VITAL_TO_FIELD[webVital]})`)
     : undefined;
 
-  const scoreThresholds = webVital
-    ? getWebVitalScoreThresholds(webVital, browserTypes)
-    : undefined;
-
   const extraPlottables: Plottable[] = [];
-  if (!isTimeseriesLoading && scoreThresholds) {
+  if (!isTimeseriesLoading && webVital) {
+    const scoreThresholds = getWebVitalScoreThresholds(webVital, deviceType);
     const includePoorThreshold = webVitalTimeSeries?.values.some(
       ({value}) => (value || 0) > scoreThresholds.median
     );

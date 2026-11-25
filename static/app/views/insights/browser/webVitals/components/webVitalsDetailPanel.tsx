@@ -5,6 +5,7 @@ import {useQueryState} from 'nuqs';
 
 import {DrawerHeader} from '@sentry/scraps/drawer';
 import {getDuration} from '@sentry/scraps/duration';
+import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 
@@ -47,6 +48,7 @@ import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {ModuleName, SpanFields, type SubregionCode} from 'sentry/views/insights/types';
 
 import {WebVitalStatusLineChart} from './charts/webVitalStatusLineChart';
+import {DeviceTypeSelector, useDeviceType} from './deviceTypeSelector';
 import {PerformanceBadge} from './performanceBadge';
 import {WebVitalDescription} from './webVitalDescription';
 
@@ -87,15 +89,21 @@ export function WebVitalsDetailPanel({
     ? browserTypesFromDashboard
     : decodeBrowserTypes(browserNames);
   const subregions = subregionCodes as SubregionCode[];
+  const {deviceType, setDeviceType, canSelectDeviceType} = useDeviceType(browserTypes);
 
   const {dashboard: linkedWebVitalsSummaryDashboard} = useGetPrebuiltDashboard(
     dashboardFilters === undefined ? undefined : PrebuiltDashboardId.WEB_VITALS_SUMMARY
   );
 
-  const {data: projectData} = useProjectRawWebVitalsQuery({browserTypes, subregions});
+  const {data: projectData} = useProjectRawWebVitalsQuery({
+    browserTypes,
+    deviceType,
+    subregions,
+  });
   const {data: projectScoresData} = useProjectWebVitalsScoresQuery({
     weightWebVital: webVital ?? 'total',
     browserTypes,
+    deviceType,
     subregions,
   });
 
@@ -115,6 +123,7 @@ export function WebVitalsDetailPanel({
     enabled: webVital !== null,
     sortName: 'webVitalsDetailPanelSort',
     browserTypes,
+    deviceType,
     subregions,
   });
 
@@ -277,6 +286,11 @@ export function WebVitalsDetailPanel({
         <DrawerHeader />
 
         <SampleDrawerBody>
+          {canSelectDeviceType && (
+            <Flex justify="end">
+              <DeviceTypeSelector value={deviceType} onChange={setDeviceType} />
+            </Flex>
+          )}
           {webVital && (
             <WebVitalDescription
               value={
@@ -295,6 +309,7 @@ export function WebVitalsDetailPanel({
               <WebVitalStatusLineChart
                 webVital={webVital}
                 browserTypes={browserTypes}
+                deviceType={deviceType}
                 subregions={subregions}
               />
             )}
