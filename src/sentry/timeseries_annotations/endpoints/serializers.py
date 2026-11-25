@@ -67,7 +67,7 @@ class TimeseriesAnnotationSerializer(Serializer):
             "dateUpdated": obj.date_updated,
         }
 
-        # Optional read-time rarity fields (GET list only). Missing types score as count 0.
+        # Read-time rarity on GET list. Missing types score as count 0.
         rarity_counts = kwargs.get("rarity_counts")
         if rarity_counts is not None:
             result["rarityScore"] = rarity_score(rarity_counts.get(obj.annotation_type, 0))

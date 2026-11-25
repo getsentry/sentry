@@ -128,15 +128,16 @@ class OrganizationTimeseriesAnnotationEndpoint(OrganizationEndpoint):
         annotations.sort(key=lambda a: (a.start_timestamp, a.id))
 
         # Rarity is computed in context of retention period, hardcoded to max 90d.
-        rarity_kwargs: dict[str, object] = {}
         counts, window_days = annotation_type_counts(organization)
-        rarity_kwargs = {"rarity_counts": counts, "rarity_window_days": window_days}
-
         return self.paginate(
             request=request,
             paginator=SequencePaginator(list(enumerate(annotations))),
             on_results=lambda rows: serialize(
-                rows, request.user, TimeseriesAnnotationSerializer(), **rarity_kwargs
+                rows,
+                request.user,
+                TimeseriesAnnotationSerializer(),
+                rarity_counts=counts,
+                rarity_window_days=window_days,
             ),
         )
 

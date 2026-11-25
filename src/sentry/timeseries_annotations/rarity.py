@@ -1,4 +1,5 @@
 """Read-time rarity scoring for timeseries annotations.
+
 Rarity is org-scoped by ``annotation_type`` over a fixed 90-day lookback (clamped to
 org retention when shorter).
 """
@@ -44,41 +45,50 @@ def annotation_type_counts(organization: Organization) -> tuple[dict[int, int], 
     """
     Return (counts_by_annotation_type, window_days) for the org rarity baseline.
 
-    Counts are cached in Redis. Fail silently.
+    Counts are cached in Redis. Fail open with empty counts so GET list never 500s.
     """
     window_days = effective_rarity_window_days(organization)
-    cache_key = _CACHE_KEY.format(organization_id=organization.id)
-
     try:
-        cached = cache.get(cache_key)
-    except Exception:
-        cached = None
-
-    if isinstance(cached, dict):
-        return {int(key): int(value) for key, value in cached.items()}, window_days
-
-    try:
-        cutoff = timezone.now() - timedelta(days=window_days)
-        rows = (
-            TimeseriesAnnotation.objects.filter(
-                organization_id=organization.id,
-                start_timestamp__gte=cutoff,
-            )
-            .values("annotation_type")
-            .annotate(c=Count("id"))
-        )
-        counts = {int(row["annotation_type"]): int(row["c"]) for row in rows}
+        return _counts_for_window(organization.id, window_days), window_days
     except Exception:
         logger.exception("timeseries_annotations.rarity_count_failed")
         return {}, window_days
 
-    try:
-        cache.set(
-            cache_key,
-            {str(key): value for key, value in counts.items()},
-            _CACHE_TTL_SECONDS,
-        )
-    except Exception:
-        logger.exception("timeseries_annotations.rarity_cache_set_failed")
 
-    return counts, window_days
+def _counts_for_window(organization_id: int, window_days: int) -> dict[int, int]:
+    cache_key = _CACHE_KEY.format(organization_id=organization_id)
+    cached = _read_cached_counts(cache_key)
+    if cached is not None:
+        return cached
+
+    counts = _query_type_counts(organization_id, window_days)
+    _write_cached_counts(cache_key, counts)
+    return counts
+
+
+def _read_cached_counts(cache_key: str) -> dict[int, int] | None:
+    cached = cache.get(cache_key)
+    if not isinstance(cached, dict):
+        return None
+    return {int(key): int(value) for key, value in cached.items()}
+
+
+def _write_cached_counts(cache_key: str, counts: dict[int, int]) -> None:
+    cache.set(
+        cache_key,
+        {str(key): value for key, value in counts.items()},
+        _CACHE_TTL_SECONDS,
+    )
+
+
+def _query_type_counts(organization_id: int, window_days: int) -> dict[int, int]:
+    cutoff = timezone.now() - timedelta(days=window_days)
+    rows = (
+        TimeseriesAnnotation.objects.filter(
+            organization_id=organization_id,
+            start_timestamp__gte=cutoff,
+        )
+        .values("annotation_type")
+        .annotate(c=Count("id"))
+    )
+    return {int(row["annotation_type"]): int(row["c"]) for row in rows}

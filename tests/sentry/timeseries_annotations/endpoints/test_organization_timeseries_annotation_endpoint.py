@@ -222,39 +222,8 @@ class OrganizationTimeseriesAnnotationEndpointTest(APITestCase):
             str(open_fresh.id),
         }
 
-    def test_rarity_fields_absent_without_flag(self) -> None:
-        self._annotation()
-        response = self.get_success_response(self.organization.slug, statsPeriod="14d")
-        assert "rarityScore" not in response.data[0]
-        assert "rarityWindowDays" not in response.data[0]
-
-
-@with_feature(
-    [
-        "organizations:timeseries-annotations",
-        "organizations:timeseries-annotations-rarity",
-    ]
-)
-class OrganizationTimeseriesAnnotationRarityEndpointTest(APITestCase):
-    endpoint = "sentry-api-0-organization-timeseries-annotations"
-
-    def setUp(self) -> None:
-        super().setUp()
-        self.login_as(self.user)
-        cache.delete(f"ta:rarity-counts:v1:{self.organization.id}")
-
-    def _annotation(self, **kwargs: object) -> TimeseriesAnnotation:
-        values = dict(
-            organization_id=self.organization.id,
-            annotation_type=AnnotationType.INBOUND_FILTER_CHANGE,
-            description="x",
-            start_timestamp=before_now(days=1),
-            created_by_label="system",
-        )
-        values.update(kwargs)
-        return TimeseriesAnnotation.objects.create(**values)
-
     def test_attaches_rarity_without_changing_severity(self) -> None:
+        cache.delete(f"ta:rarity-counts:v1:{self.organization.id}")
         rare = self._annotation(
             annotation_type=AnnotationType.CUSTOM,
             severity=Severity.LOW,
@@ -288,6 +257,7 @@ class OrganizationTimeseriesAnnotationRarityEndpointTest(APITestCase):
         assert rare_row["rarityScore"] > common_row["rarityScore"]
 
     def test_rarity_uses_90d_baseline_not_chart_window(self) -> None:
+        cache.delete(f"ta:rarity-counts:v1:{self.organization.id}")
         # One custom in the 14d chart window; five more custom outside 14d but inside 90d.
         in_chart = self._annotation(
             annotation_type=AnnotationType.CUSTOM,
@@ -308,6 +278,7 @@ class OrganizationTimeseriesAnnotationRarityEndpointTest(APITestCase):
         assert response.data[0]["rarityWindowDays"] == 90
 
     def test_rarity_window_clamped_to_retention(self) -> None:
+        cache.delete(f"ta:rarity-counts:v1:{self.organization.id}")
         self._annotation()
         with self.options({"system.event-retention-days": 30}):
             response = self.get_success_response(self.organization.slug, statsPeriod="14d")
