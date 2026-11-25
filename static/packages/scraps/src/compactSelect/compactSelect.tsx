@@ -28,7 +28,7 @@ interface BaseSelectProps<Value extends SelectKey> extends Omit<
   options: Array<SelectOptionOrSection<Value>>;
   /**
    * Number of options, including those inside sections, above which
-   * virtualization will be enabled. Sections are not virtualized in `grid` mode.
+   * virtualization will be enabled.
    * @default 150
    */
   virtualizeThreshold?: number;
@@ -102,7 +102,7 @@ export function CompactSelect<Value extends SelectKey>({
   const [measuredMenuWidth, setMeasuredMenuWidth] = useState<number>();
   const [hasMeasured, setHasMeasured] = useState(false);
   const needsMeasuring =
-    !menuWidth && !hasMeasured && shouldVirtualize(options, mode, virtualizeThreshold);
+    !menuWidth && !hasMeasured && shouldVirtualize(options, virtualizeThreshold);
 
   const menuRef = useCallback(
     (element: HTMLDivElement | null) => {
@@ -191,7 +191,7 @@ export function CompactSelect<Value extends SelectKey>({
         size={size}
         sizeLimit={sizeLimit}
         sizeLimitMessage={sizeLimitMessage}
-        virtualized={shouldVirtualize(itemsWithKey, mode, virtualizeThreshold)}
+        virtualized={shouldVirtualize(itemsWithKey, virtualizeThreshold)}
         aria-labelledby={triggerId}
       >
         {(item: SelectOptionOrSectionWithKey<Value>) => {
@@ -223,14 +223,8 @@ export function CompactSelect<Value extends SelectKey>({
 
 function shouldVirtualize<Value extends SelectKey>(
   items: Array<SelectOptionOrSection<Value>>,
-  mode: 'list' | 'grid' | undefined,
   virtualizeThreshold = 150
 ) {
-  const hasSections = items.some(item => 'options' in item);
-  if (hasSections && mode === 'grid') {
-    return false;
-  }
-
   const optionCount = items.reduce(
     (count, item) => count + ('options' in item ? item.options.length : 1),
     0

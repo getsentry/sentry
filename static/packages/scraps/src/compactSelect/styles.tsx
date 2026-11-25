@@ -13,10 +13,6 @@ export const ListWrap = styled('ul')`
   margin: 0;
   padding: ${p => p.theme.space.xs} 0;
 
-  > [data-section-separator]:first-of-type {
-    display: none;
-  }
-
   /* Add 1px to top padding if preceded by menu header, to account for the header's
   shadow border */
   [data-menu-has-header='true'] > div > &:first-of-type {
@@ -116,13 +112,9 @@ export const SectionToggleButton = styled(Button)<{visible: boolean}>`
   }
 `;
 
-export function SectionSeparator({
-  as = 'li',
-  ...props
-}: React.HTMLAttributes<HTMLElement> & {as?: 'li' | 'div'}) {
+export function SectionSeparator(props: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <Stack
-      as={as}
       data-section-separator
       justify="center"
       height="8px"

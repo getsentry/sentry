@@ -767,6 +767,35 @@ describe('CompactSelect', () => {
           screen.queryByRole('option', {name: 'B option 199'})
         ).not.toBeInTheDocument();
       });
+
+      it('renders only the rows near the viewport inside their section in grid mode', async () => {
+        render(
+          <CompactSelect
+            mode="grid"
+            multiple
+            options={['A', 'B'].map(section => ({
+              key: section,
+              label: `Section ${section}`,
+              options: Array.from({length: 200}, (_, index) => ({
+                value: `${section}-${index}`,
+                label: `${section} option ${index}`,
+              })),
+            }))}
+            value={[]}
+            onChange={jest.fn()}
+          />,
+          {wrapper: ThemeWrapper}
+        );
+
+        await userEvent.click(screen.getByRole('button'));
+
+        const sectionA = await screen.findByRole('rowgroup', {name: 'Section A'});
+        expect(
+          within(sectionA).getByRole('row', {name: 'A option 0'})
+        ).toBeInTheDocument();
+        expect(screen.getAllByRole('row').length).toBeLessThan(400);
+        expect(screen.queryByRole('row', {name: 'B option 199'})).not.toBeInTheDocument();
+      });
     });
 
     it('does not count disabled options as selectable', async () => {

@@ -52,7 +52,7 @@ export function ListBoxSection<T extends ListItemBase>({
   return (
     <SectionGroup {...itemProps}>
       <div {...rowProps}>
-        {showSectionHeaders && showSeparator && <SectionSeparator as="div" />}
+        {showSectionHeaders && showSeparator && <SectionSeparator />}
         {(item.rendered || showToggleAllButton) && showSectionHeaders && (
           <SectionHeader
             trailingAction={
