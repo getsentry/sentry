@@ -1,6 +1,6 @@
-import {useCallback, useLayoutEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useLayoutEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import {mergeRefs} from '@react-aria/utils';
+import {useObjectRef} from '@react-aria/utils';
 import debounce from 'lodash/debounce';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -36,13 +36,8 @@ export function ExploreParams({
   className,
 }: SingleQueryProps & {className?: string}) {
   const yAxes = visualizes.flatMap(visualize => visualize.yAxes);
-  const containerRef = useRef<HTMLSpanElement>(null);
-
   const {ref: measureContainerRef, width} = useDimensions();
-  const mergedContainerRef = useMemo(
-    () => mergeRefs<HTMLSpanElement>(containerRef, measureContainerRef),
-    [containerRef, measureContainerRef]
-  );
+  const containerRef = useObjectRef<HTMLSpanElement>(measureContainerRef);
   const [childWidths, setChildWidths] = useState<number[]>([]);
   const [containerWidth, setContainerWidth] = useState(0);
 
@@ -196,7 +191,7 @@ export function ExploreParams({
       gap="md"
       width="100%"
       className={className}
-      ref={mergedContainerRef}
+      ref={containerRef}
     >
       {visibleTokens}
     </Flex>

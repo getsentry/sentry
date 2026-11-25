@@ -8,7 +8,7 @@ import {
   useState,
 } from 'react';
 import styled from '@emotion/styled';
-import {mergeRefs} from '@react-aria/utils';
+import {useObjectRef} from '@react-aria/utils';
 import {IconArrow} from '@sentry/icons/arrow';
 import * as Sentry from '@sentry/react';
 import type {Virtualizer} from '@tanstack/react-virtual';
@@ -273,13 +273,9 @@ export function LogsInfiniteTable({
     };
   }, [baseData]);
 
-  const tableRef = useRef<HTMLTableElement>(null);
-  const tableBodyRef = useRef<HTMLTableSectionElement>(null);
   const {ref: measureTableRef, width: tableWidth} = useDimensions();
-  const mergedTableRef = useMemo(
-    () => mergeRefs<HTMLTableElement>(tableRef, measureTableRef),
-    [tableRef, measureTableRef]
-  );
+  const tableRef = useObjectRef<HTMLTableElement>(measureTableRef);
+  const tableBodyRef = useRef<HTMLTableSectionElement>(null);
   const {top: backToTopOffset} = useElementOffset(tableBodyRef, tableRef);
   const [expandedLogRows, setExpandedLogRows] = useState(
     new Set([
@@ -654,7 +650,7 @@ export function LogsInfiniteTable({
   return (
     <Fragment>
       <LogTable
-        ref={mergedTableRef}
+        ref={tableRef}
         columns={fields.map(field => ({
           key: field,
           resizable: true,
