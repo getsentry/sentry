@@ -108,8 +108,7 @@ export function useUpdateConfig({configId}: {configId: string}) {
 }
 
 /**
- * Triggers a manual run of an automation, optionally on behalf of a user, and refetches
- * the organization's runs.
+ * Triggers a manual run of an automation and refetches the organization's runs.
  */
 export function useManualRun({configId}: {configId: string}) {
   const organization = useOrganization();
