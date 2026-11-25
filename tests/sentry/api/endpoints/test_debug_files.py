@@ -1,10 +1,12 @@
 import os
 import zipfile
+from hashlib import sha1
 from io import BytesIO
 from unittest.mock import patch
 from uuid import uuid4
 
 import requests
+from django.core.files.base import ContentFile
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.http import HttpResponse
 from django.urls import reverse
@@ -17,8 +19,10 @@ from sentry.models.debugfile import (
     create_dif_from_file,
 )
 from sentry.models.files.file import File
+from sentry.models.files.fileblob import FileBlob
 from sentry.models.release import Release
 from sentry.models.releasefile import ReleaseFile
+from sentry.tasks.assemble import assemble_dif
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.response import close_streaming_response
 from sentry.testutils.objectstore import debug_files_test_both_backends
@@ -253,6 +257,35 @@ class DebugFilesTest(DebugFilesTestCases):
 
             # The file that we find should have the legacy debug ID.
             assert response.data[0]["debugId"] == "10da03eb-5d63-d750-faab-0fb8e7cc12a1"
+
+    def test_wasm_source_map_listed_with_its_module(self) -> None:
+        self._upload_wasm()
+
+        # The source map shares the debug id of the module it was built with.
+        debug_id = "da03eb5d-63d7-50fa-ab0f-b8e7cc12a1c3"
+        source_map = b'{"version": 3, "sources": ["src/main.c"], "names": [], "mappings": "AAAA"}'
+        blob = FileBlob.from_file_with_organization(ContentFile(source_map), self.organization)
+        assemble_dif(
+            project_id=self.project.id,
+            name="index.wasm.map",
+            checksum=sha1(source_map).hexdigest(),
+            chunks=[blob.checksum],
+            debug_id=debug_id,
+        )
+
+        # This is the query Symbolicator sends to find the files for a module.
+        response = self.client.get(f"{self.url}?debug_id={debug_id}")
+        assert response.status_code == 200, response.content
+        difs_by_type = {dif["symbolType"]: dif for dif in response.data}
+        assert sorted(difs_by_type) == ["wasm", "wasmsourcemap"]
+
+        source_map_dif = difs_by_type["wasmsourcemap"]
+        assert source_map_dif["debugId"] == debug_id
+        assert source_map_dif["objectName"] == "index.wasm.map"
+
+        # Symbolicator then downloads the file by id.
+        response = self.client.get(f"{self.url}?id={source_map_dif['id']}")
+        self._assert_successful_download(response, source_map, filename=f"{debug_id}.wasm.map")
 
     def _do_test_dsyms_by_debugid_and_codeid(
         self, query: tuple[str, ...], files: list[tuple[bool, str, str]]

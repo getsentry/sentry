@@ -244,6 +244,29 @@ class AssembleDifTest(BaseAssembleTest):
         assert dif.get_content_type() == "text/x-breakpad"
         assert dif.debug_id == "67e9247c-814e-392b-a027-dbde6748fcbf-beef"
 
+    def test_assemble_wasm_source_map(self) -> None:
+        source_map = b'{"version": 3, "sources": ["src/main.c"], "names": [], "mappings": "AAAA"}'
+        blob = FileBlob.from_file_with_organization(ContentFile(source_map), self.organization)
+        total_checksum = sha1(source_map).hexdigest()
+
+        assemble_dif(
+            project_id=self.project.id,
+            name="main.wasm.map",
+            checksum=total_checksum,
+            chunks=[blob.checksum],
+            debug_id="DA03EB5D-63D7-50FA-AB0F-B8E7CC12A1C3",
+        )
+
+        status, _ = get_assemble_status(AssembleTask.DIF, self.project.id, total_checksum)
+        assert status == ChunkFileState.OK
+
+        dif = ProjectDebugFile.objects.get(project_id=self.project.id, checksum=total_checksum)
+        assert dif.get_content_type() == "application/x-wasm-sourcemap+json"
+        assert dif.file_format == "wasmsourcemap"
+        # Symbolicator looks files up by the normalized (lowercase) debug id.
+        assert dif.debug_id == "da03eb5d-63d7-50fa-ab0f-b8e7cc12a1c3"
+        assert dif.object_name == "main.wasm.map"
+
 
 @requires_objectstore
 class ArtifactBundleBackendChangeTest(BaseAssembleTest):
