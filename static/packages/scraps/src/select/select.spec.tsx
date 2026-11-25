@@ -898,6 +898,43 @@ it('leaves the current choice unchanged when Tab moves past an open select', asy
   expect(onChange).not.toHaveBeenCalled();
 });
 
+it('opens on the selected option when pressing Down from a closed select', async () => {
+  const intervals = [
+    {value: '5m', label: 'in 5 minutes'},
+    {value: '15m', label: 'in 15 minutes'},
+    {value: '1h', label: 'in one hour'},
+  ];
+  const onChange = jest.fn();
+  render(
+    <Select
+      aria-label="Alert interval"
+      options={intervals}
+      value="15m"
+      onChange={onChange}
+      menuPortalTarget={document.body}
+    />,
+    {wrapper: ThemeWrapper}
+  );
+
+  await userEvent.tab();
+  const input = screen.getByRole('combobox', {name: 'Alert interval'});
+  expect(input).toHaveFocus();
+  expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+
+  await userEvent.keyboard('{ArrowDown}');
+  expect(input).toHaveAttribute(
+    'aria-activedescendant',
+    screen.getByRole('option', {name: 'in 15 minutes'}).id
+  );
+  expect(onChange).not.toHaveBeenCalled();
+
+  await userEvent.keyboard('{ArrowDown}{Enter}');
+  expect(onChange).toHaveBeenCalledWith(
+    {value: '1h', label: 'in one hour'},
+    expect.objectContaining({action: 'select-option'})
+  );
+});
+
 it('runs the caller keyboard handler before opening or choosing options', async () => {
   const onOpenChange = jest.fn();
   render(

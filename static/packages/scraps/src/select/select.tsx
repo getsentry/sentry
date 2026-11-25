@@ -470,6 +470,14 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
   );
 
   const focusedKey = selectionManager.focusedKey;
+  const firstSelectedKey = selectionManager.firstSelectedKey;
+  const selectedOptionKey =
+    !multiple &&
+    firstSelectedKey != null &&
+    state.collection.getItem(firstSelectedKey) &&
+    !selectionManager.isDisabled(firstSelectedKey)
+      ? firstSelectedKey
+      : null;
   useEffect(() => {
     if (!isOpen) {
       if (focusedKey != null) {
@@ -478,17 +486,16 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
       return;
     }
     if (focusedKey == null && state.collection.size > 0) {
-      const firstSelectedKey = selectionManager.firstSelectedKey;
-      selectionManager.setFocusedKey(
-        !multiple &&
-          firstSelectedKey != null &&
-          state.collection.getItem(firstSelectedKey) &&
-          !selectionManager.isDisabled(firstSelectedKey)
-          ? firstSelectedKey
-          : delegate.getFirstKey()
-      );
+      selectionManager.setFocusedKey(selectedOptionKey ?? delegate.getFirstKey());
     }
-  }, [delegate, isOpen, focusedKey, multiple, selectionManager, state.collection]);
+  }, [
+    delegate,
+    isOpen,
+    focusedKey,
+    selectedOptionKey,
+    selectionManager,
+    state.collection,
+  ]);
 
   function onKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
     props.onKeyDown?.(event);
@@ -533,9 +540,9 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
     if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
       event.preventDefault();
       if (!isOpen || focusedKey == null) {
-        selectionManager.setFocusedKey(
-          event.key === 'ArrowDown' ? delegate.getFirstKey() : delegate.getLastKey()
-        );
+        const edgeKey =
+          event.key === 'ArrowDown' ? delegate.getFirstKey() : delegate.getLastKey();
+        selectionManager.setFocusedKey(isOpen ? edgeKey : (selectedOptionKey ?? edgeKey));
         overlayState.open();
         return;
       }
