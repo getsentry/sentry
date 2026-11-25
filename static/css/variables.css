@@ -57,12 +57,15 @@
   --legacy-state-danger-text: #672928; /* darken(#a94442, 18%) */
 
   /* Typography */
-  --legacy-font-family-base: 'Rubik', 'Avenir Next', 'Helvetica Neue', sans-serif;
-  --legacy-font-family-code: 'Roboto Mono', Consolas, 'Courier New', monospace;
+  --legacy-font-family-base:
+    'Rubik', 'scraps-fallback-sans', 'Avenir Next', 'Helvetica Neue', sans-serif;
+  --legacy-font-family-code:
+    'Roboto Mono', 'scraps-fallback-mono', Consolas, 'Courier New', monospace;
 
   /* Bootstrap values used outside of bootstrap/ */
   --legacy-font-family-monospace:
-    'Roboto Mono', Menlo, Monaco, Consolas, 'Courier New', monospace;
+    'Roboto Mono', 'scraps-fallback-mono', Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
   --legacy-font-size-base: 14px;
   --legacy-line-height-base: 1.42857143;
   --legacy-line-height-computed: 20px; /* floor((font-size-base * line-height-base)) */

@@ -370,7 +370,6 @@ export enum IsFieldValues {
   REGRESSED = 'regressed',
   ASSIGNED = 'assigned',
   UNASSIGNED = 'unassigned',
-  FOR_REVIEW = 'for_review',
   LINKED = 'linked',
   UNLINKED = 'unlinked',
 }
@@ -384,12 +383,11 @@ const IsFieldDescriptions: Record<IsFieldValues, string> = {
   ),
   [IsFieldValues.NEW]: t('Issues that first occurred in the last 7 days'),
   [IsFieldValues.ONGOING]: t(
-    'Issues created more than 7 days ago or manually been marked as reviewed'
+    'Unresolved issues that are no longer new, regressed, or escalating'
   ),
   [IsFieldValues.REGRESSED]: t('Issues resolved then occurred again'),
   [IsFieldValues.ASSIGNED]: t('Issues assigned to a team member'),
   [IsFieldValues.UNASSIGNED]: t('Issues not assigned to anyone'),
-  [IsFieldValues.FOR_REVIEW]: t('Issues pending review'),
   [IsFieldValues.LINKED]: t('Issues linked via an integration'),
   [IsFieldValues.UNLINKED]: t('Issues not linked via an integration'),
 };

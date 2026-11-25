@@ -18,6 +18,8 @@ from sentry.deletions.tasks.hybrid_cloud import (
     schedule_hybrid_cloud_foreign_key_jobs,
     schedule_hybrid_cloud_foreign_key_jobs_control,
 )
+from sentry.hybridcloud.models.outbox import CellOutbox
+from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.models.apikey import ApiKey
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.options.organization_option import OrganizationOption
@@ -465,6 +467,31 @@ class Require2fa(TestCase, HybridCloudTestMixin):
         assert bulk_owner_profiles[o2.id].id == u2.id
         assert bulk_owner_profiles[o2.id].name == u2.name
         assert bulk_owner_profiles[o2.id].email == u2.email
+
+
+class OrganizationAsyncReplicationTest(TestCase):
+    OPTION = "hybridcloud.outbox.organization_async_replication.enabled"
+
+    def _pending(self, org: Organization) -> bool:
+        """Whether the org's outbox row is still waiting to drain."""
+        return CellOutbox.objects.filter(
+            shard_scope=OutboxScope.ORGANIZATION_SCOPE,
+            shard_identifier=org.id,
+            category=OutboxCategory.ORGANIZATION_UPDATE,
+            object_identifier=org.id,
+        ).exists()
+
+    def test_option_off_keeps_sync(self) -> None:
+        org = self.create_organization()
+        with self.captureOnCommitCallbacks(execute=True):
+            org.update(name="renamed")
+        assert not self._pending(org)
+
+    def test_updates_are_async(self) -> None:
+        org = self.create_organization()
+        with self.options({self.OPTION: True}), self.captureOnCommitCallbacks(execute=True):
+            org.update(name="renamed")
+        assert self._pending(org)
 
 
 class OrganizationDeletionTest(TestCase):

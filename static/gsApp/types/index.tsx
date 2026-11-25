@@ -676,6 +676,16 @@ export enum InvoiceStatus {
   AWAITING_PAYMENT = 'awaiting payment',
 }
 
+/**
+ * Tags on the billing platform line item behind a category.
+ */
+export enum LineItemTag {
+  /**
+   * The line item bills Seer usage by LLM tokens (Seer credits).
+   */
+  GEN_AI_USAGE = 'gen_ai_usage',
+}
+
 export type BillingMetricHistory = {
   /**
    * Category name (e.g. "errors")
@@ -699,6 +709,10 @@ export type BillingMetricHistory = {
   usageExceeded: boolean;
   isDisabled?: boolean;
   retention?: {downsampled: number | null; standard: number | null};
+  /**
+   * Tags on the billing platform line item. Empty on legacy plans.
+   */
+  tags?: string[];
 };
 
 export type BillingHistory = {

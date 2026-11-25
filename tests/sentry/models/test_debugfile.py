@@ -331,6 +331,18 @@ class DebugFileObjectstoreTest(TestCase):
         assert not ProjectDebugFile.objects.filter(id=dif_id).exists()
         assert self._get_session().get(storage_path) is None
 
+    @requires_objectstore
+    def test_retention_cleanup_leaves_object_to_expire(self) -> None:
+        dif = self._create_objectstore_dif()
+        storage_path = dif.storage_path
+        assert storage_path is not None
+        dif_id = dif.id
+        with patch.dict(os.environ, {"_SENTRY_CLEANUP": "1"}):
+            dif.delete()
+
+        assert not ProjectDebugFile.objects.filter(id=dif_id).exists()
+        assert self._get_session().head(storage_path) is not None
+
 
 class CreateDebugFileTest(APITestCase):
     def _create_meta(self, **kwargs: object) -> DifMeta:

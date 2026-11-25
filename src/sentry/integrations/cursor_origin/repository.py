@@ -16,6 +16,7 @@ from sentry.integrations.cursor_origin.client import (
 from sentry.integrations.cursor_origin.constants import CURSOR_ORIGIN_WEB_BASE_URL
 from sentry.integrations.cursor_origin.integration import CursorOriginIntegration
 from sentry.integrations.services.integration.model import RpcOrganizationIntegration
+from sentry.integrations.source_code_management.repository_reconciliation import RepositoryConfig
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import PullRequest
@@ -25,7 +26,6 @@ from sentry.plugins.providers import IntegrationRepositoryProvider
 from sentry.plugins.providers.integration_repository import (
     CommitData,
     CommitPatchFile,
-    RepositoryConfig,
 )
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 

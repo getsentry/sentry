@@ -44,7 +44,6 @@ export function FeedbackIssueFixture(
     userCount: 1,
     firstSeen: '2024-04-05T20:05:02.938000Z',
     lastSeen: '2024-04-05T20:05:02Z',
-    inbox: null,
     owners: null,
     activity: [],
     seenBy: [],

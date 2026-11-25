@@ -1,4 +1,4 @@
-import {useRef, useState} from 'react';
+import {Fragment, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {ExternalLink} from '@sentry/scraps/link';
@@ -75,7 +75,15 @@ function getTraceErrorMessage(status: number | undefined) {
   }
 }
 
-function TraceEmpty() {
+interface TraceEmptyProps {
+  /**
+   * Explain why traces opened from Logs or Application Metrics can be missing spans.
+   * Only the full trace page needs this.
+   */
+  showCrossEventHelp?: boolean;
+}
+
+function TraceEmpty({showCrossEventHelp = false}: TraceEmptyProps) {
   const traceQueryParams = useTraceQueryParams();
   const timestamp = traceQueryParams.timestamp;
   // Frozen at mount so the message doesn't flip while the user is looking at it.
@@ -87,7 +95,7 @@ function TraceEmpty() {
   const message =
     timestamp && timestamp * 1000 >= now - TEN_MINUTES_IN_MS ? (
       t("We're still processing this trace. Please try refreshing after a minute")
-    ) : (
+    ) : showCrossEventHelp ? (
       <div>
         <Text as="p">
           {t(
@@ -106,6 +114,12 @@ function TraceEmpty() {
           )}
         </Text>
       </div>
+    ) : (
+      <Fragment>
+        {t("We couldn't find any spans for this trace.")}
+        <br />
+        {t('It may not have been sampled.')}
+      </Fragment>
     );
 
   return (

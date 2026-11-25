@@ -790,7 +790,7 @@ describe('useChartContextDrawer', () => {
         },
       });
       MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/annotations/`,
+        url: `/organizations/${organization.slug}/timeseries-annotations/`,
         body: [],
       });
       MockApiClient.addMockResponse({
