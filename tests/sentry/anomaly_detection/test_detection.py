@@ -147,7 +147,7 @@ def test_change_point_recovery_uses_the_same_seasonal_scale_as_open() -> None:
     )
     detector = RateShiftTracker(
         {REQUESTS: points(-180, 240, 10_000.0), ERRORS: errors, ERROR_RATE: dict.fromkeys(errors)},
-        Baseline({ERROR_RATE: hourly}),
+        shaped(ERROR_RATE, hourly),
     )
     [(opened, event)] = [action for i in range(-180, 200) for action in detector.step(minute(i))]
     assert opened == "open"
