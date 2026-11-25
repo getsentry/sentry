@@ -16,7 +16,6 @@ from sentry.api.helpers.group_index.update import get_current_release_version_of
 from sentry.constants import ObjectStatus
 from sentry.integrations.errors import OrganizationIntegrationNotFound
 from sentry.integrations.models.external_issue import ExternalIssue
-from sentry.integrations.models.integration import Integration
 from sentry.integrations.project_management.metrics import (
     InboundStatusSyncFailureReason,
     InboundStatusSyncHaltReason,
@@ -49,6 +48,10 @@ logger = logging.getLogger(__name__)
 
 ResolutionParams = dict[str, Any]
 SYNC_STATUS_INBOUND_RETRY_TIMES = 5
+
+
+class MissingProviderContext(ValueError):
+    """The task payload carries no integration provider, so it has no matching `started`."""
 
 
 def _is_final_attempt() -> bool:
@@ -486,10 +489,10 @@ def _sync_status_inbound(
         times=SYNC_STATUS_INBOUND_RETRY_TIMES,
         delay=60 * 5,
         on=(Exception, ProcessingDeadlineExceeded),
-        ignore=(Integration.DoesNotExist,),
+        # A malformed payload will not fix itself on retry.
+        ignore=(MissingProviderContext,),
     ),
     silo_mode=SiloMode.CELL,
-    silenced_exceptions=(Integration.DoesNotExist,),
 )
 @track_group_async_operation
 def sync_status_inbound(
@@ -502,7 +505,9 @@ def sync_status_inbound(
     if not isinstance(integration_provider, str):
         # Every producer records `started` and attaches the provider before enqueueing.
         # A payload without it has no matching `started`, so it cannot be tracked.
-        raise ValueError("sync_status_inbound payload is missing the integration provider")
+        raise MissingProviderContext(
+            "sync_status_inbound payload is missing the integration provider"
+        )
     provider_data = {key: value for key, value in data.items() if key != INTEGRATION_PROVIDER_KEY}
     event = ProjectManagementEvent(
         action_type=ProjectManagementActionType.INBOUND_STATUS_SYNC,

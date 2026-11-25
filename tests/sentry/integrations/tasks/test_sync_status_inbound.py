@@ -18,6 +18,7 @@ from sentry.integrations.project_management.metrics import (
 )
 from sentry.integrations.tasks.sync_status_inbound import (
     SYNC_STATUS_INBOUND_RETRY_TIMES,
+    MissingProviderContext,
     get_resolutions_and_activity_data_for_groups,
     sync_status_inbound,
 )
@@ -309,7 +310,7 @@ class TestSyncStatusInbound(TestCase):
         mock_get_resolve_sync_action: mock.MagicMock,
         mock_record_outcome: mock.MagicMock,
     ) -> None:
-        with pytest.raises(ValueError, match="missing the integration provider"):
+        with pytest.raises(MissingProviderContext, match="missing the integration provider"):
             sync_status_inbound(
                 integration_id=self.integration.id,
                 organization_id=self.organization.id,
