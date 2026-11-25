@@ -9,3 +9,4 @@ class SeerConfig(AppConfig):
         import sentry.seer.entrypoints.slack.entrypoint  # noqa: F401
         import sentry.seer.workflows.actions  # noqa: F401
         import sentry.seer.workflows.scheduled  # noqa: F401
+        import sentry.seer.workflows.settings  # noqa: F401

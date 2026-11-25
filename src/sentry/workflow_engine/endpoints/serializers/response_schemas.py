@@ -301,6 +301,6 @@ def detector_config_schema() -> dict[str, Any]:
 
 
 def workflow_config_schema() -> dict[str, Any]:
-    from sentry.workflow_engine.models import Workflow
+    from sentry.workflow_engine.types import WorkflowSettings
 
-    return to_response_schema(Workflow.config_schema, camel_case=True)
+    return to_response_schema(WorkflowSettings.config_schema, camel_case=True)

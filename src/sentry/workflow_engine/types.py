@@ -456,4 +456,20 @@ class DetectorSettings(BaseWorkflowEngineSettings):
     filter: ClassVar[Q | None] = None
 
 
+class WorkflowSettings:
+    config_schema: ClassVar[dict[str, Any]] = {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "title": "Workflow Schema",
+        "type": "object",
+        "properties": {
+            "frequency": {
+                "description": "How often the workflow should fire for a Group (minutes)",
+                "type": "integer",
+                "minimum": 0,
+            },
+        },
+        "additionalProperties": False,
+    }
+
+
 WorkflowActivityHandler: TypeAlias = Callable[["Group", "Activity", DetectorId | None], None]
