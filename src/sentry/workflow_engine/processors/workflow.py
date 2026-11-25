@@ -554,6 +554,10 @@ def select_workflows(
     environment: Environment | None,
 ) -> set[Workflow]:
     """Select by source; workflow conditions decide which activity kinds match."""
+    if event_data.group is None:
+        if isinstance(event_data.event, Activity):
+            return get_activity_workflows(event_data, environment)
+        return set()
     if isinstance(event_data.event, GroupEvent):
         return get_workflows_by_detectors(detectors, environment)
     if isinstance(event_data.event, Activity):
@@ -678,7 +682,7 @@ def process_workflows(
         return result
     enqueue_workflows(batch_client, delayed_items)
 
-    actions, action_to_workflow_id, eligible_workflow_ids = filter_recently_fired_workflow_actions(
+    actions, action_to_workflow_id = filter_recently_fired_workflow_actions(
         action_groups, event_data
     )
 
@@ -692,7 +696,6 @@ def process_workflows(
             event_data,
             is_delayed=False,
             start_timestamp=event_start_time,
-            eligible_workflow_ids=eligible_workflow_ids,
         )
 
         # Create mapping: workflow_id -> notification_uuid for propagation

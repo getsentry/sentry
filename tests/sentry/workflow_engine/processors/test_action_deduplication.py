@@ -634,20 +634,6 @@ class TestActionDeduplication(TestCase):
         result_ids = list(result.values_list("id", flat=True))
         assert len(result_ids) == 1
 
-    def test_group_less_dispatch_excludes_unsupported_handlers(self) -> None:
-        source = OrganizationEvent(organization_id=self.organization.id, event_id=uuid4())
-        event_data = WorkflowEventData(event=source, organization=self.organization)
-        with patch(
-            "sentry.workflow_engine.processors.action.trigger_action.apply_async"
-        ) as enqueue:
-            fire_actions(
-                Action.objects.filter(id=self.slack_action.id),
-                event_data,
-                {},
-                {self.slack_action.id: 1},
-            )
-        enqueue.assert_not_called()
-
     def test_group_less_dispatch_deduplicates_supported_actions(self) -> None:
         source = OrganizationEvent(organization_id=self.organization.id, event_id=uuid4())
         event_data = WorkflowEventData(event=source, organization=self.organization)

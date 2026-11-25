@@ -300,7 +300,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
         self, mock_filter: MagicMock, mock_fire_actions: MagicMock
     ) -> None:
         action = self.create_action()
-        mock_filter.return_value = (Action.objects.filter(id=action.id), {action.id: 1}, {1})
+        mock_filter.return_value = (Action.objects.filter(id=action.id), {action.id: 1})
 
         # this should not pass because the environment is not None
         self.error_workflow.update(environment=self.group_event.get_environment())
@@ -438,7 +438,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
             patch("sentry.workflow_engine.processors.workflow.enqueue_workflows") as enqueue,
             patch(
                 "sentry.workflow_engine.processors.action.filter_recently_fired_workflow_actions",
-                return_value=([], {}, set()),
+                return_value=([], {}),
             ) as suppress_actions,
         ):
             result = process_workflows(
@@ -770,6 +770,10 @@ class TestActivityWorkflowSelection(BaseWorkflowTest):
     def test_activity_selection_does_not_require_detector_links(self) -> None:
         with self.feature("organizations:workflow-engine-activity-workflows"):
             assert select_workflows(self.event_data, [], None) == {self.inbox}
+            group_less = WorkflowEventData(
+                event=self.event_data.event, organization=self.organization
+            )
+            assert select_workflows(group_less, {self.detector}, None) == {self.inbox}
 
     def test_lookup_does_not_match_activity_kinds(self) -> None:
         for activity_type in (ActivityType.NOTE, ActivityType.SEER_PR_READY_FOR_REVIEW):
