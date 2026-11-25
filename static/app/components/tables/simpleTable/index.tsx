@@ -1,11 +1,4 @@
-import type {
-  ComponentProps,
-  HTMLAttributes,
-  MouseEvent,
-  ReactNode,
-  Ref,
-  RefObject,
-} from 'react';
+import type {ComponentProps, HTMLAttributes, MouseEvent, ReactNode, Ref} from 'react';
 import {createContext, Fragment, useContext} from 'react';
 import {css} from '@emotion/react';
 import type {Theme} from '@emotion/react';
@@ -67,7 +60,7 @@ type TableProps = Omit<HTMLAttributes<HTMLTableElement>, 'children'> &
     minimumColumnWidth?: number;
     onColumnResize?: (index: number, width: number) => void;
     prependColumnWidths?: string[];
-    ref?: RefObject<HTMLTableElement | null>;
+    ref?: Ref<HTMLTableElement>;
     scrollable?: boolean;
   };
 

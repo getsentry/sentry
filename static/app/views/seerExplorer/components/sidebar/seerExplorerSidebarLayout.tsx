@@ -1,5 +1,6 @@
-import {useCallback} from 'react';
+import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {mergeRefs} from '@react-aria/utils';
 
 import {useDrawer, useDrawerPlacement} from '@sentry/scraps/drawer';
 import {Stack} from '@sentry/scraps/layout';
@@ -78,7 +79,11 @@ function SeerExplorerSidebarLayoutInSidebarMode({
   const organization = useOrganization({allowNull: true});
   const {isOpen, sidebarPosition, sidebarContainerRef} = useSeerExplorerContext();
   const {isAnyDrawerOpen} = useDrawer();
-  const {width, height} = useDimensions({elementRef: sidebarContainerRef});
+  const {ref: measureSidebarContainerRef, width, height} = useDimensions();
+  const mergedSidebarContainerRef = useMemo(
+    () => mergeRefs<HTMLDivElement>(sidebarContainerRef, measureSidebarContainerRef),
+    [sidebarContainerRef, measureSidebarContainerRef]
+  );
   // A phone-width container can't hold the app's minimum width, let alone Seer
   // beside it: a right dock would push Seer out of view. Dock to the bottom and
   // let Seer cover the whole pane; the divider stays, so the app can still be
@@ -162,7 +167,7 @@ function SeerExplorerSidebarLayoutInSidebarMode({
   // a viewport-bounded height.
   return (
     <Stack
-      ref={sidebarContainerRef}
+      ref={mergedSidebarContainerRef}
       flex="1"
       minWidth="0"
       minHeight="0"

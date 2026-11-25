@@ -1,4 +1,4 @@
-import {useMemo, useRef} from 'react';
+import {useMemo} from 'react';
 
 import {getConfigFromTimeRange} from 'sentry/components/checkInTimeline/utils/getConfigFromTimeRange';
 import {useDimensions} from 'sentry/utils/useDimensions';
@@ -21,8 +21,7 @@ export interface UseMonitorsScheduleSamplesOptions {
 export function useMonitorsScheduleSamples({
   ...detectorFields
 }: UseMonitorsScheduleSamplesOptions) {
-  const timeLineWidthTrackerRef = useRef<HTMLDivElement>(null);
-  const {width: timelineWidth} = useDimensions({elementRef: timeLineWidthTrackerRef});
+  const {ref: timeLineWidthTrackerRef, width: timelineWidth} = useDimensions();
 
   const {
     data: sampleWindowData,

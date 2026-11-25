@@ -88,6 +88,11 @@ interface SearchQueryBuilderLayoutContextData {
   currentInputValueRef: React.RefObject<string>;
   disableFullWidthFilterKeyMenu: boolean;
   filterKeyMenuWidth: number;
+  /**
+   * Attach to the wrapper element alongside `wrapperRef` so the builder can
+   * size itself to it.
+   */
+  measureWrapperRef: (element: HTMLDivElement | null) => (() => void) | undefined;
   menuPresentation: 'floating' | 'panel';
   panelRef: React.RefObject<HTMLDivElement | null>;
   portalTarget: HTMLElement | null | undefined;
@@ -395,7 +400,7 @@ export function SearchQueryBuilderProvider({
     setReopenDropdownOnQueryClear(false);
   }, []);
 
-  const {width: searchBarWidth} = useDimensions({elementRef: wrapperRef});
+  const {ref: measureWrapperRef, width: searchBarWidth} = useDimensions();
   const size =
     searchBarWidth && searchBarWidth < 600 ? ('small' as const) : ('normal' as const);
 
@@ -487,6 +492,7 @@ export function SearchQueryBuilderProvider({
       disableFullWidthFilterKeyMenu:
         menuPresentation === 'panel' || disableFullWidthFilterKeyMenu,
       filterKeyMenuWidth,
+      measureWrapperRef,
       menuPresentation,
       panelRef,
       portalTarget: menuPresentation === 'panel' ? menuContainer : portalTarget,
@@ -500,6 +506,7 @@ export function SearchQueryBuilderProvider({
     currentInputValueRef,
     disableFullWidthFilterKeyMenu,
     filterKeyMenuWidth,
+    measureWrapperRef,
     menuPresentation,
     menuContainer,
     panelRef,

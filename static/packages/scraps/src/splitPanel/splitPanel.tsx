@@ -79,8 +79,7 @@ export function SplitPanel({
     useResponsivePropValue(orientationProp) === 'vertical' ? 'vertical' : 'horizontal';
   const hasFill = fill != null;
 
-  const containerRef = useRef<HTMLDivElement>(null);
-  const dims = useDimensions({elementRef: containerRef});
+  const {ref: containerRef, ...dims} = useDimensions();
   const availableSize = orientation === 'horizontal' ? dims.width : dims.height;
 
   const min = minSize;

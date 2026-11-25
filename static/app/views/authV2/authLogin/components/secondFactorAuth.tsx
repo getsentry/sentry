@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useState} from 'react';
+import {useEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import {IconArrow} from '@sentry/icons/arrow';
 import {motion} from 'framer-motion';
@@ -65,9 +65,7 @@ export function SecondFactorAuth({
   onComplete,
 }: SecondFactorAuthProps) {
   const theme = useTheme();
-  const [methodElement, setMethodElement] = useState<HTMLDivElement | null>(null);
-  const methodElementRef = useMemo(() => ({current: methodElement}), [methodElement]);
-  const {height: methodHeight} = useDimensions({elementRef: methodElementRef});
+  const {ref: methodRef, height: methodHeight} = useDimensions();
   const methodsQuery = useSecondFactorMethods(providedMethods === undefined);
   const methods = providedMethods ?? methodsQuery.data?.mfaMethods ?? [];
   const sortedMethods = SECOND_FACTOR_PRIORITY.flatMap(id =>
@@ -139,7 +137,7 @@ export function SecondFactorAuth({
                 key={method.id}
                 mode={isActive ? 'visible' : 'hidden'}
                 layoutMode="pop"
-                elementRef={isActive ? setMethodElement : undefined}
+                elementRef={isActive ? methodRef : undefined}
                 initial={METHOD_INITIAL}
                 animate={METHOD_ANIMATE}
                 exit={METHOD_EXIT}

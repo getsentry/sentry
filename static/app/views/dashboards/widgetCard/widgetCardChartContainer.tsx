@@ -1,4 +1,4 @@
-import {Fragment, useRef} from 'react';
+import {Fragment, useMemo} from 'react';
 import {useDebouncedValue} from '@tanstack/react-pacer';
 import type {LegendComponentOption} from 'echarts';
 
@@ -326,8 +326,9 @@ function HeatmapMeasuredArea({
   }) => React.ReactNode;
   selection: PageFilters;
 }) {
-  const chartAreaRef = useRef<HTMLDivElement>(null);
-  const dimensions = useDimensions({elementRef: chartAreaRef});
+  const {ref: chartAreaRef, width, height} = useDimensions();
+  // Keep the same object between renders so the debounce only sees real changes
+  const dimensions = useMemo(() => ({width, height}), [width, height]);
   // A leading update keeps the first usable measurement fast; mid-resize churn
   // collapses into a single trailing update once the drag settles.
   const [debouncedDimensions] = useDebouncedValue(dimensions, {

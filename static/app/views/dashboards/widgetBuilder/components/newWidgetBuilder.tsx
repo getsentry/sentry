@@ -65,23 +65,26 @@ export function WidgetBuilderV2({
   const [translate, setTranslate] = useState(DEFAULT_WIDGET_DRAG_POSITIONING);
 
   const navigationElementRef = useRef<HTMLDivElement>(null);
+  const {ref: measureNavigation, ...dimensions} = useDimensions();
 
+  // The navigation lives outside this tree, so find it and measure it directly
   useEffect(() => {
-    if (navigationElementRef.current) {
+    const navigationElement = document.querySelector<HTMLDivElement>(
+      '[data-navigation-component="navigation-layout"]'
+    );
+    if (!navigationElement) {
       return;
     }
 
-    const navigationElement = document.querySelector(
-      '[data-navigation-component="navigation-layout"]'
-    );
-    if (navigationElement) {
-      navigationElementRef.current = navigationElement as HTMLDivElement;
-    }
-  }, []);
+    navigationElementRef.current = navigationElement;
+    const stopMeasuring = measureNavigation(navigationElement);
+    return () => {
+      stopMeasuring?.();
+      navigationElementRef.current = null;
+    };
+  }, [measureNavigation]);
 
   const {contentTop} = useTopOffset();
-
-  const dimensions = useDimensions({elementRef: navigationElementRef});
 
   const handleDragEnd = ({over}: any) => {
     setTranslate(snapPreviewToCorners(over));

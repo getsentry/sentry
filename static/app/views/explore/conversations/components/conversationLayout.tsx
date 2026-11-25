@@ -1,5 +1,4 @@
 import type React from 'react';
-import {useRef} from 'react';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {SplitPanel} from '@sentry/scraps/splitPanel';
@@ -31,8 +30,7 @@ export function ConversationSplitLayout({
   right: React.ReactNode;
   sizeStorageKey?: string;
 }) {
-  const measureRef = useRef<HTMLDivElement>(null);
-  const {width} = useDimensions({elementRef: measureRef});
+  const {ref: measureRef, width} = useDimensions();
 
   // Wait for the container to be measured before mounting the SplitPanel.
   // useLocalStorageState captures its default on first mount, so we need

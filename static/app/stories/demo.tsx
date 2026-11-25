@@ -1,6 +1,7 @@
 import {Fragment, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {mergeRefs} from '@react-aria/utils';
 import {IconContract} from '@sentry/icons/contract';
 import {IconExpand} from '@sentry/icons/expand';
 import screenfull from 'screenfull';
@@ -44,7 +45,11 @@ interface DemoSize {
 export function Demo({resizable, standalone, ...props}: DemoProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const fullscreenRef = useRef<HTMLDivElement>(null);
-  const dimensions = useDimensions({elementRef: containerRef});
+  const {ref: measureContainerRef, ...dimensions} = useDimensions();
+  const resizableWindowRef = useMemo(
+    () => mergeRefs<HTMLDivElement>(containerRef, measureContainerRef),
+    [containerRef, measureContainerRef]
+  );
   const breakpoints = useContainerBreakpoints();
   const {toggle: toggleFullscreen} = useFullscreen({elementRef: fullscreenRef});
   const isFullscreen = useIsFullscreen();
@@ -111,7 +116,7 @@ export function Demo({resizable, standalone, ...props}: DemoProps) {
             <Ruler containerRef={containerRef} breakpoints={breakpoints} />
           </Container>
           <Flex align="center" justify="center" flex="1" minHeight="0" padding="xl">
-            <ResizableWindow ref={containerRef}>
+            <ResizableWindow ref={resizableWindowRef}>
               <Flex
                 css={allowOpenOverlayOverflowCss}
                 flex="1"

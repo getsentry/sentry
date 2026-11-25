@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from 'react';
+import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import {IconEllipsis} from '@sentry/icons/ellipsis';
 import {useDebouncedValue} from '@tanstack/react-pacer';
@@ -75,8 +75,7 @@ export function DetailsTimeline({monitor, onStatsLoaded, onEnvironmentUpdated}: 
   const api = useApi();
   const queryClient = useQueryClient();
 
-  const elementRef = useRef<HTMLTableCellElement>(null);
-  const {width: containerWidth} = useDimensions({elementRef});
+  const {ref: elementRef, width: containerWidth} = useDimensions();
   const [timelineWidth] = useDebouncedValue(containerWidth, {wait: 500});
 
   // Use the nextCheckIn timestamp from the earliest scheduled environment as a

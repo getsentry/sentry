@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from 'react';
 import styled from '@emotion/styled';
+import {mergeRefs} from '@react-aria/utils';
 import {IconClose} from '@sentry/icons/close';
 import {IconRefresh} from '@sentry/icons/refresh';
 import {skipToken, useQuery, useQueryClient} from '@tanstack/react-query';
@@ -819,7 +820,11 @@ export function SeerExplorerContent({
   }, [chatPrompt, pendingRestart, revealChatPrompt]);
 
   // Auto-scroll to bottom when blocks are added or the transcript resizes, unless scrolled up
-  const {height: transcriptHeight} = useDimensions({elementRef: scrollContainerRef});
+  const {ref: measureScrollContainerRef, height: transcriptHeight} = useDimensions();
+  const mergedScrollContainerRef = useMemo(
+    () => mergeRefs<HTMLDivElement>(scrollContainerRef, measureScrollContainerRef),
+    [scrollContainerRef, measureScrollContainerRef]
+  );
   useEffect(() => {
     if (!userScrolledUpRef.current && scrollContainerRef.current) {
       scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
@@ -923,7 +928,7 @@ export function SeerExplorerContent({
         {showSlackUpgradeAlert && (
           <UpdateSlackAlert num_configurations={activeSlackIntegrations.length} />
         )}
-        <BlocksContainer ref={scrollContainerRef} onClick={handleBlocksClick}>
+        <BlocksContainer ref={mergedScrollContainerRef} onClick={handleBlocksClick}>
           {showEmptyState ? (
             <EmptyState
               isLoading={isPolling}

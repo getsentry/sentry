@@ -1,4 +1,4 @@
-import {useEffect, useRef} from 'react';
+import {useEffect} from 'react';
 import styled from '@emotion/styled';
 import {useDebouncedValue} from '@tanstack/react-pacer';
 
@@ -37,8 +37,7 @@ interface Props {
 
 export function DetailsTimeline({uptimeDetector, onStatsLoaded}: Props) {
   const {id} = uptimeDetector;
-  const elementRef = useRef<HTMLTableCellElement>(null);
-  const {width: containerWidth} = useDimensions({elementRef});
+  const {ref: elementRef, width: containerWidth} = useDimensions();
   const [timelineWidth] = useDebouncedValue(containerWidth, {wait: 500});
 
   const timeWindowConfig = useTimeWindowConfig({

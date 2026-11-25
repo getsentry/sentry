@@ -145,7 +145,7 @@ export interface TableProps extends Omit<
   minimumColumnWidth?: number;
   onColumnResize?: (index: number, width: number) => void;
   prependColumnWidths?: string[];
-  ref?: RefObject<HTMLTableElement | null>;
+  ref?: Ref<HTMLTableElement>;
 }
 
 export function Table({
@@ -158,8 +158,8 @@ export function Table({
   ref,
   ...props
 }: TableProps) {
-  const internalRef = useRef<HTMLTableElement>(null);
-  const gridRef = ref ?? internalRef;
+  const gridRef = useRef<HTMLTableElement>(null);
+  const getMergedGridRef = useStableMergeRef(gridRef);
 
   const [internalWidths, setInternalWidths] = useState<Record<string, number>>({});
   const isControlled = !!onColumnResize;
@@ -316,7 +316,7 @@ export function Table({
         hiddenColumnIndexes={resolvedColumns.flatMap((column, index) =>
           column.hidden ? [index] : []
         )}
-        ref={gridRef}
+        ref={getMergedGridRef(ref)}
         style={template ? {...props.style, gridTemplateColumns: template} : props.style}
       >
         {children}

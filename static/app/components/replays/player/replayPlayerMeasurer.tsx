@@ -1,5 +1,5 @@
 import type {CSSProperties, ReactNode} from 'react';
-import {useEffect, useRef} from 'react';
+import {useEffect} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -47,8 +47,7 @@ interface Props {
 const MAX_ZOOM = 1.5;
 
 export function ReplayPlayerMeasurer({children, measure = 'both'}: Props) {
-  const elementRef = useRef<HTMLDivElement>(null);
-  const measuredDimensions = useDimensions({elementRef});
+  const {ref: elementRef, ...measuredDimensions} = useDimensions();
   const playerState = useReplayPlayerState();
   const [, setViewSize] = useReplayPlayerSize();
 

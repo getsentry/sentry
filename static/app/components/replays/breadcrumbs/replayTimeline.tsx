@@ -1,4 +1,3 @@
-import {useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {Stacked} from 'sentry/components/container/stacked';
@@ -20,8 +19,7 @@ export function ReplayTimeline() {
   const {currentTime} = useReplayContext();
   const [timelineScale] = useTimelineScale();
 
-  const stackedRef = useRef<HTMLDivElement>(null);
-  const {width} = useDimensions({elementRef: stackedRef});
+  const {ref: stackedRef, width} = useDimensions();
 
   if (!replay) {
     return <Placeholder height="20px" />;

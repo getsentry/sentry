@@ -9,7 +9,7 @@ import {
   ReplaySelectColumn,
   ReplaySessionColumn,
 } from 'sentry/components/replays/table/replayTableColumns';
-import type {useDimensions} from 'sentry/utils/useDimensions';
+import type {Dimensions} from 'sentry/utils/useDimensions';
 
 const MOBILE = [
   ReplaySelectColumn,
@@ -56,7 +56,7 @@ export function useReplayIndexTableColumns({
   tableDimensions,
 }: {
   allMobileProj: boolean;
-  tableDimensions: ReturnType<typeof useDimensions>;
+  tableDimensions: Dimensions;
 }) {
   if (allMobileProj) {
     return MOBILE;

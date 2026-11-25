@@ -1,5 +1,6 @@
 import {useCallback, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {mergeRefs} from '@react-aria/utils';
 import debounce from 'lodash/debounce';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -37,7 +38,11 @@ export function ExploreParams({
   const yAxes = visualizes.flatMap(visualize => visualize.yAxes);
   const containerRef = useRef<HTMLSpanElement>(null);
 
-  const {width} = useDimensions({elementRef: containerRef});
+  const {ref: measureContainerRef, width} = useDimensions();
+  const mergedContainerRef = useMemo(
+    () => mergeRefs<HTMLSpanElement>(containerRef, measureContainerRef),
+    [containerRef, measureContainerRef]
+  );
   const [childWidths, setChildWidths] = useState<number[]>([]);
   const [containerWidth, setContainerWidth] = useState(0);
 
@@ -191,7 +196,7 @@ export function ExploreParams({
       gap="md"
       width="100%"
       className={className}
-      ref={containerRef}
+      ref={mergedContainerRef}
     >
       {visibleTokens}
     </Flex>

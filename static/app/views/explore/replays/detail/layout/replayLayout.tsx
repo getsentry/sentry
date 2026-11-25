@@ -64,8 +64,7 @@ function ReplayLayoutBody({
   const fullscreenRef = useRef(null);
   const {toggle: toggleFullscreen} = useFullscreen({elementRef: fullscreenRef});
 
-  const measureRef = useRef<HTMLDivElement>(null);
-  const {width, height} = useDimensions({elementRef: measureRef});
+  const {ref: measureRef, width, height} = useDimensions();
 
   const video = (
     <VideoSection ref={fullscreenRef}>

@@ -6,7 +6,7 @@ import type {CSS} from '@sentry/scraps/cssTypes';
 import {Container} from '@sentry/scraps/layout';
 
 import {NegativeSpaceContainer} from 'sentry/components/container/negativeSpaceContainer';
-import {useDimensions} from 'sentry/utils/useDimensions';
+import {useDimensions, type Dimensions} from 'sentry/utils/useDimensions';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 
 interface Props {
@@ -33,8 +33,7 @@ interface Props {
  * (e.g. images, replays, etc).
  */
 function Body({onDragHandleMouseDown, after, before, minHeight = '0px'}: Props) {
-  const positionedRef = useRef<HTMLDivElement>(null);
-  const viewDimensions = useDimensions({elementRef: positionedRef});
+  const {ref: positionedRef, ...viewDimensions} = useDimensions();
 
   return (
     <OverflowVisibleContainer>
@@ -63,7 +62,7 @@ function Body({onDragHandleMouseDown, after, before, minHeight = '0px'}: Props) 
 const BORDER_WIDTH = 3;
 
 interface SideProps extends Pick<Props, 'onDragHandleMouseDown' | 'before' | 'after'> {
-  viewDimensions: ReturnType<typeof useDimensions>;
+  viewDimensions: Dimensions;
 }
 
 function Sides({onDragHandleMouseDown, viewDimensions, before, after}: SideProps) {

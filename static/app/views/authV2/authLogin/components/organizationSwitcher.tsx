@@ -1,4 +1,3 @@
-import {useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import {AnimatePresence, motion} from 'framer-motion';
 
@@ -30,11 +29,7 @@ export function OrganizationSwitcher({
   onSelect,
 }: OrganizationSwitcherProps) {
   const theme = useTheme();
-  const [element, setElement] = useState<HTMLDivElement | null>(null);
-  // The callback ref triggers a render when the grid mounts, while this stable
-  // ref-shaped object lets useDimensions attach its observer to that grid.
-  const elementRef = useMemo(() => ({current: element}), [element]);
-  const {height} = useDimensions({elementRef});
+  const {ref, height} = useDimensions();
 
   return (
     <MotionContainer
@@ -42,10 +37,7 @@ export function OrganizationSwitcher({
       animate={height ? {height} : undefined}
       transition={theme.motion.framer.spring.moderate}
     >
-      <MotionGrid
-        ref={gridElement => setElement(gridElement as HTMLDivElement | null)}
-        columns="1fr"
-      >
+      <MotionGrid ref={ref} columns="1fr">
         <AnimatePresence initial={false} mode="popLayout">
           {authOrganization ? (
             <MotionContainer

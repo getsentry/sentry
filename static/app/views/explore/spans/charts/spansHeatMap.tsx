@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useRef} from 'react';
+import {useCallback, useMemo} from 'react';
 import {useQuery} from '@tanstack/react-query';
 import {parseAsString, useQueryStates} from 'nuqs';
 
@@ -119,8 +119,7 @@ export function SpansHeatMap({
     },
     {scroll: false}
   );
-  const containerRef = useRef<HTMLDivElement>(null);
-  const {width, height} = useDimensions({elementRef: containerRef});
+  const {ref: containerRef, width, height} = useDimensions();
 
   const bucketDimensions = calculateHeatMapBucketDimensions(
     selection,

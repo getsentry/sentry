@@ -691,9 +691,8 @@ export function getVisibleToolCount({
 }
 
 function ToolsCell({toolNames}: {toolNames: string[]}) {
-  const containerRef = useRef<HTMLDivElement>(null);
   const measureRef = useRef<HTMLDivElement>(null);
-  const {width} = useDimensions({elementRef: containerRef});
+  const {ref: containerRef, width} = useDimensions();
 
   const [layout, setLayout] = useState<{
     badgeWidth: number;

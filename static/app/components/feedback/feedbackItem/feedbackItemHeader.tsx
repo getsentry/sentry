@@ -1,4 +1,3 @@
-import {useRef} from 'react';
 import styled from '@emotion/styled';
 import {IconArrow} from '@sentry/icons/arrow';
 
@@ -11,7 +10,7 @@ import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
-import {useDimensions} from 'sentry/utils/useDimensions';
+import {useDimensions, type Dimensions} from 'sentry/utils/useDimensions';
 
 import {FeedbackActions} from './feedbackActions';
 import {FeedbackShortId} from './feedbackShortId';
@@ -23,7 +22,6 @@ interface Props {
   onBackToList?: () => void;
 }
 
-type Dimensions = ReturnType<typeof useDimensions>;
 function dimensionsToSize({width}: Dimensions) {
   if (width < 600) {
     return 'small';
@@ -35,8 +33,7 @@ function dimensionsToSize({width}: Dimensions) {
 }
 
 export function FeedbackItemHeader({eventData, feedbackItem, onBackToList}: Props) {
-  const wrapperRef = useRef<HTMLDivElement>(null);
-  const dimensions = useDimensions({elementRef: wrapperRef});
+  const {ref: wrapperRef, ...dimensions} = useDimensions();
 
   return (
     <VerticalSpacing ref={wrapperRef}>

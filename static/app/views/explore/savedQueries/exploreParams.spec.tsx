@@ -7,19 +7,25 @@ import {ExploreParams} from './exploreParams';
 
 describe('ExploreParams', () => {
   it('should render', () => {
-    jest.spyOn(useDimensions, 'useDimensions').mockReturnValue({width: 900, height: 100});
+    jest
+      .spyOn(useDimensions, 'useDimensions')
+      .mockReturnValue({ref: jest.fn(), width: 900, height: 100});
     render(<ExploreParams query="test" visualizes={[]} groupBys={[]} />);
     expect(screen.getByText('test')).toBeInTheDocument();
   });
 
   it('should render overflow indicator when dimensions are small', () => {
-    jest.spyOn(useDimensions, 'useDimensions').mockReturnValue({width: 36, height: 100});
+    jest
+      .spyOn(useDimensions, 'useDimensions')
+      .mockReturnValue({ref: jest.fn(), width: 36, height: 100});
     render(<ExploreParams query="test" visualizes={[]} groupBys={[]} />);
     expect(screen.getByText('+1')).toBeInTheDocument();
   });
 
   it('should render regex filters as matches regex when regex operators are allowed', async () => {
-    jest.spyOn(useDimensions, 'useDimensions').mockReturnValue({width: 900, height: 100});
+    jest
+      .spyOn(useDimensions, 'useDimensions')
+      .mockReturnValue({ref: jest.fn(), width: 900, height: 100});
     render(
       <ExploreParams
         allowRegexOperators
@@ -34,7 +40,9 @@ describe('ExploreParams', () => {
   });
 
   it('should render regex filters as plain values when regex operators are not allowed', () => {
-    jest.spyOn(useDimensions, 'useDimensions').mockReturnValue({width: 900, height: 100});
+    jest
+      .spyOn(useDimensions, 'useDimensions')
+      .mockReturnValue({ref: jest.fn(), width: 900, height: 100});
     render(<ExploreParams query="message://foo//" visualizes={[]} groupBys={[]} />);
     expect(
       screen.getByText(textWithMarkupMatcher('message is //foo//'))
@@ -42,7 +50,9 @@ describe('ExploreParams', () => {
   });
 
   it('should render the errors only filter', () => {
-    jest.spyOn(useDimensions, 'useDimensions').mockReturnValue({width: 900, height: 100});
+    jest
+      .spyOn(useDimensions, 'useDimensions')
+      .mockReturnValue({ref: jest.fn(), width: 900, height: 100});
     render(<ExploreParams query="" visualizes={[]} groupBys={[]} errorsOnly />);
     expect(screen.getByText('Errors only')).toBeInTheDocument();
   });

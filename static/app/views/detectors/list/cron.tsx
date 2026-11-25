@@ -1,4 +1,4 @@
-import {useMemo, useRef} from 'react';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import {IconGlobe} from '@sentry/icons/globe';
 import {IconTerminal} from '@sentry/icons/terminal';
@@ -60,8 +60,7 @@ function VisualizationCell({detector}: {detector: CronDetector}) {
   const cronId = detector.dataSources[0].queryObj.id;
   const cronEnvironments = detector.dataSources[0].queryObj.environments;
 
-  const elementRef = useRef<HTMLDivElement>(null);
-  const {width: containerWidth} = useDimensions({elementRef});
+  const {ref: elementRef, width: containerWidth} = useDimensions();
   const [timelineWidth] = useDebouncedValue(containerWidth, {wait: 1000});
   const timeWindowConfig = useTimeWindowConfig({timelineWidth});
   const {data: monitorStats, isPending} = useMonitorStats({

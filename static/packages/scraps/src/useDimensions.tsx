@@ -1,30 +1,35 @@
-import type {RefObject} from 'react';
-import {useCallback, useLayoutEffect, useState} from 'react';
-import {useResizeObserver} from '@react-aria/utils';
+import {useCallback, useMemo, useState} from 'react';
 
-interface Props {
-  elementRef: RefObject<Element | null>;
+export interface Dimensions {
+  height: number;
+  width: number;
 }
 
 /**
- * Returns a ref to be added to an element and returns the dimensions of that element
+ * Measures an element. Attach the returned `ref` to it: the element is measured
+ * when it mounts, before the browser paints, and again whenever it resizes.
+ * The size is 0 until an element is attached.
  */
-export function useDimensions({elementRef}: Props) {
-  const [dimensions, setDimensions] = useState({height: 0, width: 0});
+export function useDimensions() {
+  const [dimensions, setDimensions] = useState<Dimensions>(() => ({height: 0, width: 0}));
 
-  // oxlint-disable-next-line react/refs
-  const element = elementRef.current;
+  const ref = useCallback((element: Element | null) => {
+    if (!element) {
+      return;
+    }
 
-  // Ensures that dimensions are set before the browser paints on first render
-  useLayoutEffect(() => {
-    setDimensions({height: element?.clientHeight || 0, width: element?.clientWidth || 0});
-  }, [element]);
+    const measure = () => {
+      const {clientHeight: height, clientWidth: width} = element;
+      setDimensions(prev =>
+        prev.height === height && prev.width === width ? prev : {height, width}
+      );
+    };
 
-  const onResize = useCallback(() => {
-    setDimensions({height: element?.clientHeight || 0, width: element?.clientWidth || 0});
-  }, [element]);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
 
-  useResizeObserver({ref: elementRef, onResize});
-
-  return dimensions;
+  return useMemo(() => ({ref, ...dimensions}), [ref, dimensions]);
 }

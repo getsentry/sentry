@@ -191,8 +191,7 @@ export function MetricPanel({
   });
 
   const contentHeightRef = useRef<number | null>(null);
-  const chartContainerRef = useRef<HTMLDivElement>(null);
-  const {width: chartContainerWidth} = useDimensions({elementRef: chartContainerRef});
+  const {ref: chartContainerRef, width: chartContainerWidth} = useDimensions();
 
   const heatMapBucketDimensions = calculateHeatMapBucketDimensions(
     selection,
