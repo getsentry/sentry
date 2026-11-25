@@ -80,7 +80,10 @@ import type {
   InvestigationOrchestration,
   MetricOpenPeriodInvestigationSource,
 } from 'sentry/views/investigations/types';
-import {getInvestigationPath} from 'sentry/views/investigations/utils';
+import {
+  getInvestigationPath,
+  useInvestigationsEnabled,
+} from 'sentry/views/investigations/utils';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {useGroupId} from 'sentry/views/issueDetails/groupIdContext';
 
@@ -734,24 +737,22 @@ function SeerInvestigationSection({
     return null;
   }
 
-  const betaButton =
-    organization.features.includes('investigations-v2') &&
-    (betaId ? (
-      <LinkButton
-        size={statusBlock ? 'sm' : 'md'}
-        to={getInvestigationPath(organization.slug, betaId)}
-      >
-        {t('View investigation with v2 (beta)')}
-      </LinkButton>
-    ) : (
-      <Button
-        size={statusBlock ? 'sm' : 'md'}
-        busy={launchV2Mutation.isPending}
-        onClick={() => launchV2Mutation.mutate(source)}
-      >
-        {t('Investigation with v2 (beta)')}
-      </Button>
-    ));
+  const betaButton = betaId ? (
+    <LinkButton
+      size={statusBlock ? 'sm' : 'md'}
+      to={getInvestigationPath(organization.slug, betaId)}
+    >
+      {t('View investigation with v2 (beta)')}
+    </LinkButton>
+  ) : (
+    <Button
+      size={statusBlock ? 'sm' : 'md'}
+      busy={launchV2Mutation.isPending}
+      onClick={() => launchV2Mutation.mutate(source)}
+    >
+      {t('Investigation with v2 (beta)')}
+    </Button>
+  );
 
   return (
     <FoldSection
@@ -879,8 +880,8 @@ export function MetricIssueSeerInvestigationSection({
   group,
   event,
 }: MetricDetectorTriggeredSectionProps) {
-  const organization = useOrganization();
-  if (!organization.openMembership) {
+  const investigationsEnabled = useInvestigationsEnabled();
+  if (!investigationsEnabled) {
     return null;
   }
 

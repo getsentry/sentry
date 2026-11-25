@@ -561,7 +561,7 @@ describe('MetricDetectorTriggeredSection', () => {
       });
       render(<MetricIssueSeerInvestigationSection {...defaultProps} />, {
         organization: OrganizationFixture({
-          features: ['investigations', 'investigations-v2'],
+          features: ['investigations'],
           openMembership: true,
         }),
       });
@@ -633,7 +633,7 @@ describe('MetricDetectorTriggeredSection', () => {
 
   it('opens the v2 notebook for the same open period as the legacy button', async () => {
     const organization = OrganizationFixture({
-      features: ['investigations', 'investigations-v2'],
+      features: ['investigations'],
       openMembership: true,
     });
     MockApiClient.addMockResponse({
@@ -680,7 +680,7 @@ describe('MetricDetectorTriggeredSection', () => {
       body: {workflowReport: null},
     });
     const organization = OrganizationFixture({
-      features: ['investigations', 'investigations-v2'],
+      features: ['investigations'],
       openMembership: true,
     });
     MockApiClient.addMockResponse({
@@ -699,11 +699,22 @@ describe('MetricDetectorTriggeredSection', () => {
     );
   });
 
-  it('hides the investigation section for a closed-membership organization', () => {
-    const organization = OrganizationFixture({
-      slug: 'org-slug',
+  it.each([
+    {
+      scenario: 'a closed-membership organization',
       features: ['investigations'],
       openMembership: false,
+    },
+    {
+      scenario: 'an organization with investigations disabled',
+      features: [],
+      openMembership: true,
+    },
+  ])('hides the investigation section for $scenario', ({features, openMembership}) => {
+    const organization = OrganizationFixture({
+      slug: 'org-slug',
+      features,
+      openMembership,
     });
     const candidatesMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/investigations/candidates/',
