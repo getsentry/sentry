@@ -1,4 +1,3 @@
-import type * as React from 'react';
 //
 // Styled components used by both ListBox and GridList
 //
