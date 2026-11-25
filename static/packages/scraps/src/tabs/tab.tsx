@@ -251,10 +251,6 @@ export function Tab({
       aria-disabled={isDisabled || undefined}
       selected={isSelected}
       overflowing={overflowing}
-      // Descendants can override `visibility: hidden`, so also remove an
-      // overflowing tab from the accessibility tree and from interaction.
-      aria-hidden={overflowing || undefined}
-      inert={overflowing}
       ref={element => {
         wrapperRef.current = element;
         if (!isLink) {

@@ -243,33 +243,6 @@ describe('Tabs overflow', () => {
     });
   });
 
-  it('keeps the content of an overflowing tab out of the accessibility tree', async () => {
-    containerWidth = 260;
-    render(
-      <Tabs defaultValue="details">
-        {({TabList}) => (
-          <TabList>
-            {TABS.map(tab => (
-              <TabList.Item key={tab.key} textValue={tab.label}>
-                {tab.label}
-                {tab.key === 'attachments' && (
-                  // A descendant can override the tab's `visibility: hidden`.
-                  <a href="#status" style={{visibility: 'visible'}}>
-                    Status
-                  </a>
-                )}
-              </TabList.Item>
-            ))}
-          </TabList>
-        )}
-      </Tabs>,
-      {wrapper: ThemeWrapper}
-    );
-
-    expect(await screen.findByRole('button', {name: 'More tabs'})).toBeInTheDocument();
-    expect(screen.queryByRole('link', {name: 'Status'})).not.toBeInTheDocument();
-  });
-
   it('never overflows tabs in vertical orientation', () => {
     containerWidth = 260;
     render(<OverflowTabs orientation="vertical" />, {wrapper: ThemeWrapper});
