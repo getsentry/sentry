@@ -1,3 +1,4 @@
+from importlib.machinery import ModuleSpec
 from pathlib import Path
 from unittest.mock import patch
 
@@ -19,7 +20,7 @@ urlpatterns = [
 @with_feature("organizations:investigations")
 @override_settings(DEBUG=True, ROOT_URLCONF=__name__)
 class WorkflowLabTest(APITestCase):
-    def test_standalone_shell(self):
+    def test_standalone_shell(self) -> None:
         self.login_as(self.user)
         base = f"/workflow-lab/{self.organization.slug}/"
         response = self.client.get(base)
@@ -47,7 +48,7 @@ class WorkflowLabTest(APITestCase):
         assert "entrypoints/app.js" not in frame.content.decode()
 
     @override_settings(SEER_API_SHARED_SECRET="standalone-editor-test-shared-secret")
-    def test_catalog_and_validation(self):
+    def test_catalog_and_validation(self) -> None:
         self.login_as(self.user)
         base = f"/workflow-lab/{self.organization.slug}/editor/"
         with patch(
@@ -71,25 +72,25 @@ class WorkflowLabTest(APITestCase):
                 "/v1/automation/investigation-workflows/validate",
             )
 
-    def test_anonymous(self):
+    def test_anonymous(self) -> None:
         base = f"/workflow-lab/{self.organization.slug}/"
         assert self.client.get(base).status_code == 302
         assert self.client.get(base + "editor/").status_code in (401, 403)
 
     @override_settings(DEBUG=False)
-    def test_editor_closed_outside_development(self):
+    def test_editor_closed_outside_development(self) -> None:
         self.login_as(self.user)
         base = f"/workflow-lab/{self.organization.slug}/"
         assert self.client.get(base).status_code == 404
         assert self.client.get(base + "editor/").status_code == 404
 
-    def test_sentry_urls_without_optional_package(self):
+    def test_sentry_urls_without_optional_package(self) -> None:
         from importlib.util import find_spec
         from runpy import run_path
 
         from sentry.web import urls
 
-        def without_editor(name):
+        def without_editor(name: str) -> ModuleSpec | None:
             return None if name == "sentry.workflow_lab" else find_spec(name)
 
         with patch("importlib.util.find_spec", without_editor):

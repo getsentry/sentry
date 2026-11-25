@@ -7,14 +7,14 @@ from unittest.mock import patch
 from sentry.workflow_lab.proof_storage import proof_storage
 
 
-def test_child_startup_can_outlast_the_network_socket_timeout():
+def test_child_startup_can_outlast_the_network_socket_timeout() -> None:
     parent, child = socket.socketpair()
     # Sentry sets a process-wide timeout on new sockets.
     for sock in (parent, child):
         sock.settimeout(0.01)
     ready = Event()
 
-    def serve(sock, org, keep):
+    def serve(sock: socket.socket, org: int, keep: bool) -> None:
         with sock:
             ready.set()
             assert sock.recv(1) == b"?"

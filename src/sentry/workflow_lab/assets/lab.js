@@ -1212,7 +1212,7 @@ function helpPage(topic) {
 
   if (topic === 'modes') {
     return (
-      '<h3>Choose a scenario from the Run menu</h3><p>You do not add crash settings to your workflow JSON. Keep the breached-monitor example loaded, choose a failure point from the arrow beside Run, then press Run. Each run isolates the first agent node (broad scan in this example) and starts a fresh case using the current input and simulated artifact.</p><p>To vary a case, edit the instructions or Workflow input; for a recovery test, also edit Simulated output to match your output schema. Creating a new kind of injected failure requires changing the local harness in <code>workflow_lab/recovery.py</code>.</p>' +
+      '<h3>Choose a scenario from the Run menu</h3><p>You do not add crash settings to your workflow JSON. Keep the breached-monitor example loaded, choose a failure point from the arrow beside Run, then press Run. Each run isolates the first agent node (broad scan in this example) and starts a fresh case using the current input and simulated artifact.</p><p>To vary a case, edit the instructions or Workflow input; for a recovery test, also edit Simulated output to match your output schema. Creating a new kind of injected failure requires changing the local harness in <code>workflow_lab/bin/recovery</code>.</p>' +
       Object.entries(cases)
         .map(
           ([id, c]) =>

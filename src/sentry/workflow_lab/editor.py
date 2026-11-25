@@ -126,7 +126,7 @@ def recovery(scenario: str, payload: dict[str, Any], org_id: int, user_id: int) 
         )
     command = [
         str(directory / ".venv/bin/python"),
-        str(root / "recovery.py"),
+        str(root / "bin" / "recovery"),
         "--proof-case",
         scenario,
         "--org-id",
