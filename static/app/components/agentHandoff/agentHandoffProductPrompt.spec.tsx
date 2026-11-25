@@ -63,49 +63,11 @@ describe('AgentHandoffProductPrompt', () => {
     await waitFor(() => expect(onCopySuccess).toHaveBeenCalledWith(handoffId));
     expect(mint).toHaveBeenCalledWith(
       url,
-      expect.objectContaining({
-        data: {context, disableIpPinning: false, flow: 'add_feature'},
-      })
+      expect.objectContaining({data: {context, flow: 'add_feature'}})
     );
     const item = write.mock.calls[0]![0][0] as {data: Record<string, Promise<Blob>>};
     await expect(item.data['text/plain']!.then(blob => blob.text())).resolves.toBe(
       copiedPrompt
-    );
-  });
-
-  it('shows the IP pinning warning and posts disableIpPinning:true after turning it off', async () => {
-    const mint = MockApiClient.addMockResponse({
-      url,
-      method: 'POST',
-      body: {code, handoffId, expiresAt: new Date(Date.now() + 300_000).toISOString()},
-    });
-    render(
-      <AgentHandoffProductPrompt
-        agentSteps={agentSteps}
-        context={context}
-        feedbackSource={feedbackSource}
-      />,
-      {organization}
-    );
-
-    const ipPinning = screen.getByRole('checkbox', {name: 'Only allow this network'});
-    expect(ipPinning).toBeChecked();
-    await userEvent.click(ipPinning);
-    expect(ipPinning).not.toBeChecked();
-
-    expect(
-      screen.getByText(/anyone with this prompt can use its handoff code/)
-    ).toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole('button', {name: 'Copy prompt'}));
-
-    await waitFor(() =>
-      expect(mint).toHaveBeenCalledWith(
-        url,
-        expect.objectContaining({
-          data: {context, disableIpPinning: true, flow: 'add_feature'},
-        })
-      )
     );
   });
 
