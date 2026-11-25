@@ -5,6 +5,7 @@ import {Confirm} from '@sentry/scraps/confirm';
 import {toast} from '@sentry/scraps/toast';
 
 import {t, tct} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -12,9 +13,8 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
 import {sendTrialRequest, sendUpgradeRequest} from 'getsentry/actionCreators/upsell';
-import TrialStarter from 'getsentry/components/trialStarter';
-import {withSubscription} from 'getsentry/components/withSubscription';
-import type {Subscription} from 'getsentry/types';
+import {TrialStarter} from 'getsentry/components/trialStarter';
+import {useSubscription} from 'getsentry/hooks/useSubscription';
 import {getTrialLength, isTrial} from 'getsentry/utils/billing';
 import {
   trackGetsentryAnalytics,
@@ -37,9 +37,9 @@ type ChildRenderProps = {
 type Props = {
   children: (opts: ChildRenderProps) => React.ReactNode;
   source: string;
-  subscription: Subscription;
   extraAnalyticsParams?: Record<string, any>;
   onTrialStarted?: () => void;
+  organization?: Organization;
   /**
    * When this is true, a Confirm modal will be displayed before activating the trial
    */
@@ -72,9 +72,9 @@ function LoadingButton(props: {
   );
 }
 
-function UpsellProvider({
+export function UpsellProvider({
   onTrialStarted,
-  subscription,
+  organization: organizationProp,
   source,
   extraAnalyticsParams,
   triggerMemberRequests,
@@ -83,7 +83,9 @@ function UpsellProvider({
 }: Props) {
   const api = useApi();
   const navigate = useNavigate();
-  const organization = useOrganization({allowNull: true});
+  const contextOrganization = useOrganization({allowNull: true});
+  const organization = organizationProp ?? contextOrganization;
+  const subscription = useSubscription({organization: organizationProp});
   // if the org or subscription isn't loaded yet, don't render anything
   if (!organization || !subscription) {
     return null;
@@ -222,5 +224,3 @@ function UpsellProvider({
     </TrialStarter>
   );
 }
-
-export default withSubscription(UpsellProvider, {noLoader: true});

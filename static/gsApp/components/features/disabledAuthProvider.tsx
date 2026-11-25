@@ -10,7 +10,7 @@ import type {Organization} from 'sentry/types/organization';
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
 import {displayPlanName} from 'getsentry/utils/billing';
 
-import PlanFeature from './planFeature';
+import {PlanFeature} from './planFeature';
 
 type ChildRenderProps = Parameters<ChildrenRenderFn>[0] & {
   renderInstallButton: (props: any) => React.ReactNode;

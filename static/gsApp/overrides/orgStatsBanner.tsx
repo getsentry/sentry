@@ -10,8 +10,7 @@ import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
 import {AddEventsCTA} from 'getsentry/components/addEventsCTA';
-import {withSubscription} from 'getsentry/components/withSubscription';
-import type {Subscription} from 'getsentry/types';
+import {useSubscription} from 'getsentry/hooks/useSubscription';
 import {
   getBestActionToIncreaseEventLimits,
   hasPerformance,
@@ -19,9 +18,15 @@ import {
 import {ButtonWrapper, SubscriptionBody} from 'getsentry/views/subscriptionPage/styles';
 import {TrialBadge} from 'getsentry/views/subscriptionPage/trial/badge';
 
-type Props = {organization: Organization; subscription: Subscription; referrer?: string};
+type Props = {organization: Organization; referrer?: string};
 
-function OrgStatsBanner({organization, subscription, referrer}: Props) {
+export function OrgStatsBanner({organization, referrer}: Props) {
+  const subscription = useSubscription({organization});
+
+  if (!subscription) {
+    return null;
+  }
+
   if (!subscription.canSelfServe || !hasPerformance(subscription.planDetails)) {
     return null;
   }
@@ -120,5 +125,3 @@ const SubText = styled(TextBlock)`
   color: ${p => p.theme.tokens.content.secondary};
   margin: 0;
 `;
-
-export default withSubscription(OrgStatsBanner, {noLoader: true});

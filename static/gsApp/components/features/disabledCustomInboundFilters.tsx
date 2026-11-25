@@ -8,7 +8,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Overrides} from 'sentry/types/overrides';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
-import PlanFeature from 'getsentry/components/features/planFeature';
+import {PlanFeature} from 'getsentry/components/features/planFeature';
 import {displayPlanName} from 'getsentry/utils/billing';
 
 type Props = {features: string[]; organization: Organization};

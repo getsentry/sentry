@@ -11,16 +11,13 @@ import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {t, tct, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
+import {SubscriptionLoadingFallback} from 'getsentry/components/subscriptionLoadingFallback';
 import {UpgradeOrTrialButton} from 'getsentry/components/upgradeOrTrialButton';
-import {withSubscription} from 'getsentry/components/withSubscription';
-import type {Subscription} from 'getsentry/types';
+import {useSubscription} from 'getsentry/hooks/useSubscription';
 import {displayPlanName, getTrialDaysLeft} from 'getsentry/utils/billing';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
-type Props = Pick<ModalRenderProps, 'closeModal'> & {
-  organization: Organization;
-  subscription: Subscription;
-};
+type Props = Pick<ModalRenderProps, 'closeModal'> & {organization: Organization};
 
 function WarningItem(text: string, index: number) {
   return (
@@ -40,7 +37,13 @@ function UpgradeItem(text: string, index: number) {
   );
 }
 
-function TrialEndingModal({organization, subscription, closeModal}: Props) {
+export default function TrialEndingModal({organization, closeModal}: Props) {
+  const subscription = useSubscription({organization});
+
+  if (!subscription) {
+    return <SubscriptionLoadingFallback organization={organization} />;
+  }
+
   const daysLeft = getTrialDaysLeft(subscription);
 
   if (daysLeft < 0) {
@@ -194,5 +197,3 @@ export const modalCss = css`
   width: 100%;
   max-width: 680px;
 `;
-
-export default withSubscription(TrialEndingModal);

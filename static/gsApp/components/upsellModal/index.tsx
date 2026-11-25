@@ -8,8 +8,8 @@ import {HighlightModalContainer} from 'sentry/components/highlightModalContainer
 import {t, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
-import {withSubscription} from 'getsentry/components/withSubscription';
-import type {Subscription} from 'getsentry/types';
+import {SubscriptionLoadingFallback} from 'getsentry/components/subscriptionLoadingFallback';
+import {useSubscription} from 'getsentry/hooks/useSubscription';
 import {
   getTrialDaysLeft,
   getTrialLength,
@@ -19,13 +19,15 @@ import {
 
 import {Details} from './details';
 
-type Props = ModalRenderProps & {
-  organization: Organization;
-  source: string;
-  subscription: Subscription;
-};
+type Props = ModalRenderProps & {organization: Organization; source: string};
 
-function UpsellModal({source, organization, subscription}: Props) {
+export default function UpsellModal({source, organization}: Props) {
+  const subscription = useSubscription({organization});
+
+  if (!subscription) {
+    return <SubscriptionLoadingFallback organization={organization} />;
+  }
+
   const canTrial = subscription.canTrial && !isTrial(subscription);
   const headerMessage = isTrial(subscription) ? (
     <div>
@@ -96,5 +98,3 @@ export const modalCss = css`
     overflow: hidden;
   }
 `;
-
-export default withSubscription(UpsellModal);

@@ -12,7 +12,7 @@ import type {Organization} from 'sentry/types/organization';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-import {withSubscription} from 'getsentry/components/withSubscription';
+import {useSubscription} from 'getsentry/hooks/useSubscription';
 import {usePerformanceUsageStats} from 'getsentry/overrides/performance/usePerformanceUsageStats';
 import type {Subscription} from 'getsentry/types';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
@@ -158,13 +158,19 @@ function useQuotaExceededAlertMessage(
 
 type TraceItemDatasetGS = 'logs' | 'spans';
 
-type Props = {
-  referrer: string;
-  subscription: Subscription;
-  traceItemDataset: TraceItemDatasetGS;
-};
+type Props = {referrer: string; traceItemDataset: TraceItemDatasetGS};
 
 export function QuotaExceededAlert(props: Props) {
+  const subscription = useSubscription();
+
+  if (!subscription) {
+    return null;
+  }
+
+  return <QuotaExceededAlertContent {...props} subscription={subscription} />;
+}
+
+function QuotaExceededAlertContent(props: Props & {subscription: Subscription}) {
   const organization = useOrganization();
 
   const message = useQuotaExceededAlertMessage(
@@ -196,5 +202,3 @@ export function QuotaExceededAlert(props: Props) {
     </Alert.Container>
   );
 }
-
-export default withSubscription(QuotaExceededAlert, {noLoader: true});

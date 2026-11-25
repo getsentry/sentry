@@ -8,19 +8,19 @@ import {t, tct} from 'sentry/locale';
 import type {Member, Organization} from 'sentry/types/organization';
 import {isMemberDisabledFromLimit} from 'sentry/utils/isMemberDisabledFromLimit';
 
-import UpsellProvider from 'getsentry/components/upsellProvider';
-import {withSubscription} from 'getsentry/components/withSubscription';
+import {UpsellProvider} from 'getsentry/components/upsellProvider';
 import {useBillingConfig} from 'getsentry/hooks/useBillingConfig';
-import type {Subscription} from 'getsentry/types';
+import {useSubscription} from 'getsentry/hooks/useSubscription';
 import {displayPlanName, getBestPlanForUnlimitedMembers} from 'getsentry/utils/billing';
 
-type Props = {members: Member[]; organization: Organization; subscription: Subscription};
+type Props = {members: Member[]; organization: Organization};
 
-function MemberListHeader({members, organization, subscription}: Props) {
+export function MemberListHeader({members, organization}: Props) {
+  const subscription = useSubscription({organization});
   const hasDisabledMembers = members.some(isMemberDisabledFromLimit);
   const {data: billingConfig} = useBillingConfig({organization});
 
-  if (!hasDisabledMembers || !billingConfig) {
+  if (!subscription || !hasDisabledMembers || !billingConfig) {
     return null;
   }
 
@@ -54,4 +54,3 @@ function MemberListHeader({members, organization, subscription}: Props) {
     </SimpleTable.Row>
   );
 }
-export default withSubscription(MemberListHeader, {noLoader: true});

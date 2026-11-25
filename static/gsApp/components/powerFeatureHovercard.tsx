@@ -10,7 +10,7 @@ import type {Organization} from 'sentry/types/organization';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
-import PlanFeature from 'getsentry/components/features/planFeature';
+import {PlanFeature} from 'getsentry/components/features/planFeature';
 import {useSubscription} from 'getsentry/hooks/useSubscription';
 import type {Subscription} from 'getsentry/types';
 import {displayPlanName} from 'getsentry/utils/billing';
@@ -87,11 +87,7 @@ function PowerFeatureHovercardContent({
   };
 
   const hoverBody = (
-    <PlanFeature
-      features={features}
-      organization={organization}
-      subscription={subscription}
-    >
+    <PlanFeature features={features} organization={organization}>
       {({plan}) => {
         const planName = displayPlanName(plan);
 

@@ -6,7 +6,7 @@ import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
 import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLookup';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {PlanTier} from 'getsentry-test/planTier';
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ConfigStore} from 'sentry/stores/configStore';
 
@@ -201,6 +201,50 @@ describe('hookIntegrationFeatures', () => {
       expect(screen.getByText('Request Trial')).toBeInTheDocument();
       expect(screen.getByText('Event hooks plan feature')).toBeInTheDocument();
     });
+  });
+
+  it('uses the subscription of the organization picked on the integration link page when it differs from the context organization', async () => {
+    const contextOrganization = OrganizationFixture({
+      slug: 'context-org',
+      access: ['org:billing'],
+    });
+    const pickedOrganization = OrganizationFixture({slug: 'picked-org'});
+    SubscriptionStore.set(
+      pickedOrganization.slug,
+      SubscriptionFixture({organization: pickedOrganization, canTrial: true})
+    );
+    const contextSubscriptionRequest = MockApiClient.addMockResponse({
+      url: `/customers/${contextOrganization.slug}/`,
+      body: SubscriptionFixture({organization: contextOrganization, canTrial: false}),
+    });
+    MockApiClient.addMockResponse({
+      url: `/customers/${pickedOrganization.slug}/billing-config/`,
+      query: {tier: 'upsell'},
+      body: BillingConfigFixture(PlanTier.AM2),
+    });
+    const pickedTrialRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${pickedOrganization.slug}/trial-request/`,
+      method: 'POST',
+    });
+
+    render(
+      <FeatureList
+        provider={{key: 'example'}}
+        organization={pickedOrganization}
+        features={[
+          {
+            description: 'Event hooks plan feature',
+            featureGate: 'integrations-event-hooks',
+          },
+        ]}
+      />,
+      {organization: contextOrganization}
+    );
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Request Trial'}));
+
+    expect(pickedTrialRequest).toHaveBeenCalled();
+    expect(contextSubscriptionRequest).not.toHaveBeenCalled();
   });
 
   describe('Gates features available ONLY on am2 plans', () => {

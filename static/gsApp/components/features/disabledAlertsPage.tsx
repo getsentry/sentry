@@ -7,31 +7,32 @@ import {ListItem} from 'sentry/components/list/listItem';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
-import {withSubscription} from 'getsentry/components/withSubscription';
-import type {Subscription} from 'getsentry/types';
+import {SubscriptionLoadingFallback} from 'getsentry/components/subscriptionLoadingFallback';
+import {useSubscription} from 'getsentry/hooks/useSubscription';
 import {displayPlanName, hasPerformance} from 'getsentry/utils/billing';
 
 import {AlertsBackground} from './illustrations/alertsBackground';
-import PageUpsellOverlay from './pageUpsellOverlay';
-import PlanFeature from './planFeature';
+import {PageUpsellOverlay} from './pageUpsellOverlay';
+import {PlanFeature} from './planFeature';
 
-type Props = React.PropsWithChildren<{
-  features: string[];
-  organization: Organization;
-  subscription: Subscription;
-}>;
+type Props = React.PropsWithChildren<{features: string[]; organization: Organization}>;
 
 const TextWrapper = styled('div')`
   width: 550px;
 `;
 
-function DisabledAlertsPage({
+export default function DisabledAlertsPage({
   organization,
-  subscription,
   features,
   children: _children,
   ...props
 }: Props) {
+  const subscription = useSubscription({organization});
+
+  if (!subscription) {
+    return <SubscriptionLoadingFallback organization={organization} />;
+  }
+
   const requiredPlan = tct("You'll need a [plan] or up to view metric alerts.", {
     plan: (
       <PlanFeature organization={organization} features={features}>
@@ -95,5 +96,3 @@ const FeatureList = styled(List)`
   display: grid;
   grid-template-columns: 1fr 1fr;
 `;
-
-export default withSubscription(DisabledAlertsPage);

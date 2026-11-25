@@ -10,12 +10,12 @@ import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 
-import TrialStarter from 'getsentry/components/trialStarter';
+import {SubscriptionLoadingFallback} from 'getsentry/components/subscriptionLoadingFallback';
+import {TrialStarter} from 'getsentry/components/trialStarter';
 import {UpgradeOrTrialButton} from 'getsentry/components/upgradeOrTrialButton';
+import {useSubscription} from 'getsentry/hooks/useSubscription';
 import type {Subscription} from 'getsentry/types';
 import {getTrialLength, hasJustStartedPlanTrial, isTrial} from 'getsentry/utils/billing';
-
-import {withSubscription} from './withSubscription';
 
 type MemberInviteProps = {
   children: (opts: {
@@ -26,7 +26,6 @@ type MemberInviteProps = {
   }) => React.ReactElement;
   onSendInvites: () => void;
   organization: Organization;
-  subscription: Subscription;
   willInvite: boolean;
 };
 
@@ -145,13 +144,13 @@ function TrialHeaderInfo({
   );
 }
 
-function MemberInviteModalCustomization({
+function MemberInviteModalCustomizationContent({
   organization,
   willInvite,
   onSendInvites,
   children,
   subscription,
-}: MemberInviteProps) {
+}: MemberInviteProps & {subscription: Subscription}) {
   const {totalMembers, canTrial, totalLicenses} = subscription;
   const usedSeats = totalMembers ?? 0;
   const isOverMemberLimit = totalLicenses > 0 && usedSeats >= totalLicenses;
@@ -229,13 +228,16 @@ const TrialInfo = styled('div')<{status?: string}>`
   }
 `;
 
-// wraps the component to add the organization context
-function MemberInviteModalCustomizationWrapper(props: MemberInviteProps) {
+export function MemberInviteModalCustomization(props: MemberInviteProps) {
+  const subscription = useSubscription({organization: props.organization});
+
+  if (!subscription) {
+    return <SubscriptionLoadingFallback organization={props.organization} />;
+  }
+
   return (
     <OrganizationContext value={props.organization}>
-      <MemberInviteModalCustomization {...props} />
+      <MemberInviteModalCustomizationContent {...props} subscription={subscription} />
     </OrganizationContext>
   );
 }
-
-export default withSubscription(MemberInviteModalCustomizationWrapper);

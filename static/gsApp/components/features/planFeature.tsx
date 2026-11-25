@@ -3,9 +3,9 @@ import {Fragment} from 'react';
 import type {Organization} from 'sentry/types/organization';
 import {descopeFeatureName} from 'sentry/utils';
 
-import {withSubscription} from 'getsentry/components/withSubscription';
 import {useBillingConfig} from 'getsentry/hooks/useBillingConfig';
-import type {Plan, Subscription} from 'getsentry/types';
+import {useSubscription} from 'getsentry/hooks/useSubscription';
+import type {Plan} from 'getsentry/types';
 import {
   isBizPlanFamily,
   isDeveloperPlan,
@@ -96,17 +96,17 @@ type Props = {
   children: (opts: RenderProps) => React.ReactNode;
   features: string[];
   organization: Organization;
-  subscription: Subscription;
 };
 
 /**
  * Plan feature determines which plan a user must be on in order to access a
  * particular set of features.
  */
-function PlanFeature({subscription, features, organization, children}: Props) {
+export function PlanFeature({features, organization, children}: Props) {
+  const subscription = useSubscription({organization});
   const {data: billingConfig} = useBillingConfig({organization});
 
-  if (!billingConfig) {
+  if (!subscription || !billingConfig) {
     return null;
   }
 
@@ -159,5 +159,3 @@ function PlanFeature({subscription, features, organization, children}: Props) {
 
   return <Fragment>{children({plan: requiredPlan ?? null})}</Fragment>;
 }
-
-export default withSubscription(PlanFeature, {noLoader: true});

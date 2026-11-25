@@ -2,7 +2,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {OrganizationStatsInner} from 'sentry/views/organizationStats/index';
 import type {OrganizationStatsProps} from 'sentry/views/organizationStats/types';
 
-import EnhancedUsageStatsOrganization from './enhancedUsageStatsOrganization';
+import {EnhancedUsageStatsOrganization} from './enhancedUsageStatsOrganization';
 
 export function EnhancedOrganizationStats(props: OrganizationStatsProps) {
   const {organization, location} = props;

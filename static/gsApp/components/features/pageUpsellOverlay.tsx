@@ -9,12 +9,11 @@ import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
-import UpsellProvider from 'getsentry/components/upsellProvider';
-import {withSubscription} from 'getsentry/components/withSubscription';
-import type {Subscription} from 'getsentry/types';
+import {UpsellProvider} from 'getsentry/components/upsellProvider';
+import {useSubscription} from 'getsentry/hooks/useSubscription';
 import {displayPlanName} from 'getsentry/utils/billing';
 
-import PlanFeature from './planFeature';
+import {PlanFeature} from './planFeature';
 
 type Props = Omit<React.ComponentProps<typeof PageOverlay>, 'text'> & {
   description: React.ReactNode;
@@ -23,7 +22,6 @@ type Props = Omit<React.ComponentProps<typeof PageOverlay>, 'text'> & {
   organization: Organization;
   requiredPlan: React.ReactNode;
   source: string;
-  subscription: Subscription;
   customSecondaryCTA?: React.ReactNode;
 };
 
@@ -33,9 +31,8 @@ type Props = Omit<React.ComponentProps<typeof PageOverlay>, 'text'> & {
  *
  * This uses the PageOverlay component and makes it more "upselly".
  */
-function PageUpsellOverlay({
+export function PageUpsellOverlay({
   organization,
-  subscription,
   features,
   name,
   description,
@@ -44,6 +41,12 @@ function PageUpsellOverlay({
   customSecondaryCTA,
   ...props
 }: Props) {
+  const subscription = useSubscription({organization});
+
+  if (!subscription) {
+    return null;
+  }
+
   const requiredPlanContents =
     requiredPlan ??
     tct("You'll need the [plan] or up to access [name]", {
@@ -70,7 +73,7 @@ function PageUpsellOverlay({
           </Body>
           <Body>
             <StyledButtonBar>
-              {subscription?.canSelfServe && (
+              {subscription.canSelfServe && (
                 <UpsellProvider
                   source={source}
                   organization={organization}
@@ -102,5 +105,3 @@ const StyledButtonBar = styled((props: GridProps) => (
 ))`
   width: fit-content;
 `;
-
-export default withSubscription(PageUpsellOverlay, {noLoader: true});

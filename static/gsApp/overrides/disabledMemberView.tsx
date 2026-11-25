@@ -23,21 +23,13 @@ import {UserDropdown} from 'sentry/views/navigation/primary/userDropdown';
 
 import {sendUpgradeRequest} from 'getsentry/actionCreators/upsell';
 import {DeactivatedMember} from 'getsentry/components/features/illustrations/deactivatedMember';
-import {withSubscription} from 'getsentry/components/withSubscription';
+import {SubscriptionLoadingFallback} from 'getsentry/components/subscriptionLoadingFallback';
+import {useSubscription} from 'getsentry/hooks/useSubscription';
 import type {Subscription} from 'getsentry/types';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
-type Props = {subscription: Subscription};
-
-function DisabledMemberView(props: Props) {
+export function DisabledMemberView() {
   const {orgId} = useParams<{orgId: string}>();
-  const navigate = useNavigate();
-  const api = useApi({persistInFlight: true});
-  const [requested, setRequested] = useState(false);
-
-  const {subscription} = props;
-  const orgSlug = subscription.slug;
-
   const {
     data: organization,
     isPending,
@@ -45,56 +37,11 @@ function DisabledMemberView(props: Props) {
     refetch,
   } = useQuery(
     apiOptions.as<Organization>()('/organizations/$organizationIdOrSlug/', {
-      path: {organizationIdOrSlug: orgSlug},
+      path: {organizationIdOrSlug: orgId},
       query: {detailed: '0', include_feature_flags: '1'},
       staleTime: 0,
     })
   );
-
-  useEffect(() => {
-    if (organization) {
-      trackGetsentryAnalytics('disabled_member_view.loaded', {
-        organization,
-        subscription,
-      });
-    }
-  }, [organization, subscription]);
-
-  const handleUpgradeRequestMutation = useMutation({
-    mutationFn: () =>
-      sendUpgradeRequest({api, organization: organization!, type: 'disabledMember'}),
-    onSuccess: () => {
-      setRequested(true);
-      trackGetsentryAnalytics('disabled_member_view.clicked_upgrade_request', {
-        organization: organization!,
-        subscription,
-      });
-    },
-  });
-
-  const handleLeaveMutation = useMutation({
-    mutationFn: () => {
-      return api.requestPromise(
-        getApiUrl('/organizations/$organizationIdOrSlug/members/$memberId/', {
-          path: {organizationIdOrSlug: String(organization?.slug), memberId: 'me'},
-        }),
-        {method: 'DELETE', data: {}}
-      );
-    },
-    onMutate: () => {
-      toast.loading(t('Requesting\u2026'));
-    },
-    onSuccess: () => {
-      trackGetsentryAnalytics('disabled_member_view.clicked_leave_org', {
-        organization: organization!,
-        subscription,
-      });
-      redirectToRemainingOrganization({navigate, orgId, removeOrg: true});
-    },
-    onError: () => {
-      toast.error(t('Unable to leave organization'));
-    },
-  });
 
   if (isPending) {
     return <LoadingIndicator />;
@@ -104,8 +51,70 @@ function DisabledMemberView(props: Props) {
     return <LoadingError onRetry={refetch} />;
   }
 
+  return <DisabledMemberSubscriptionLoader organization={organization} />;
+}
+
+function DisabledMemberSubscriptionLoader({organization}: {organization: Organization}) {
+  const subscription = useSubscription({organization});
+
+  if (!subscription) {
+    return <SubscriptionLoadingFallback organization={organization} />;
+  }
+
+  return (
+    <DisabledMemberContent organization={organization} subscription={subscription} />
+  );
+}
+
+type ContentProps = {organization: Organization; subscription: Subscription};
+
+function DisabledMemberContent({organization, subscription}: ContentProps) {
+  const {orgId} = useParams<{orgId: string}>();
+  const navigate = useNavigate();
+  const api = useApi({persistInFlight: true});
+  const [requested, setRequested] = useState(false);
+
+  useEffect(() => {
+    trackGetsentryAnalytics('disabled_member_view.loaded', {organization, subscription});
+  }, [organization, subscription]);
+
+  const handleUpgradeRequestMutation = useMutation({
+    mutationFn: () => sendUpgradeRequest({api, organization, type: 'disabledMember'}),
+    onSuccess: () => {
+      setRequested(true);
+      trackGetsentryAnalytics('disabled_member_view.clicked_upgrade_request', {
+        organization,
+        subscription,
+      });
+    },
+  });
+
+  const handleLeaveMutation = useMutation({
+    mutationFn: () => {
+      return api.requestPromise(
+        getApiUrl('/organizations/$organizationIdOrSlug/members/$memberId/', {
+          path: {organizationIdOrSlug: organization.slug, memberId: 'me'},
+        }),
+        {method: 'DELETE', data: {}}
+      );
+    },
+    onMutate: () => {
+      toast.loading(t('Requesting\u2026'));
+    },
+    onSuccess: () => {
+      trackGetsentryAnalytics('disabled_member_view.clicked_leave_org', {
+        organization,
+        subscription,
+      });
+      redirectToRemainingOrganization({navigate, orgId, removeOrg: true});
+    },
+    onError: () => {
+      toast.error(t('Unable to leave organization'));
+    },
+  });
+
   const totalLicenses = subscription.totalLicenses;
-  const orgName = organization?.name;
+  const orgName = organization.name;
   const requestButton = requested ? (
     <strong>{t('Requested!')}</strong>
   ) : (
@@ -190,8 +199,6 @@ function DisabledMemberView(props: Props) {
     </Stack>
   );
 }
-
-export default withSubscription(DisabledMemberView);
 
 const MinimalistSidebar = styled('div')`
   height: 60px;

@@ -5,7 +5,7 @@ import {Stack} from '@sentry/scraps/layout';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
-import PlanFeature from 'getsentry/components/features/planFeature';
+import {PlanFeature} from 'getsentry/components/features/planFeature';
 import type {Subscription} from 'getsentry/types';
 import {displayPlanName, hasPerformance, isTrial} from 'getsentry/utils/billing';
 
@@ -24,10 +24,7 @@ export function HighlightedFeature({feature, organization, subscription}: Props)
         {hasPerformance(subscription.planDetails)
           ? tct("You'll need the [plan] or up to enable this feature.", {
               plan: (
-                <PlanFeature
-                  {...{organization, subscription}}
-                  features={feature.planFeatures}
-                >
+                <PlanFeature organization={organization} features={feature.planFeatures}>
                   {({plan}) => <strong>{t('%s Plan', displayPlanName(plan))}</strong>}
                 </PlanFeature>
               ),

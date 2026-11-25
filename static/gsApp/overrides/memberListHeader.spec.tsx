@@ -8,7 +8,7 @@ import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 
-import MemberListHeader from 'getsentry/overrides/memberListHeader';
+import {MemberListHeader} from 'getsentry/overrides/memberListHeader';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 
 describe('MemberListHeader', () => {

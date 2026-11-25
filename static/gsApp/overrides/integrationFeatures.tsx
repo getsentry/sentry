@@ -10,9 +10,10 @@ import type {Organization} from 'sentry/types/organization';
 import type {Overrides} from 'sentry/types/overrides';
 import {getIntegrationType} from 'sentry/utils/integrationUtil';
 
+import {SubscriptionLoadingFallback} from 'getsentry/components/subscriptionLoadingFallback';
 import {UpsellButton} from 'getsentry/components/upsellButton';
-import {withSubscription} from 'getsentry/components/withSubscription';
 import {useBillingConfig} from 'getsentry/hooks/useBillingConfig';
+import {useSubscription} from 'getsentry/hooks/useSubscription';
 import type {BillingConfig, Plan, Subscription} from 'getsentry/types';
 import {
   displayPlanName,
@@ -210,16 +211,19 @@ type IntegrationFeaturesProps = {
   children: (props: RenderProps) => React.ReactElement;
   features: IntegrationFeature[];
   organization: Organization;
-  subscription: Subscription;
 };
 
-function IntegrationFeaturesBase({
+function IntegrationFeatures({
   features,
   organization,
-  subscription,
   children,
 }: IntegrationFeaturesProps) {
+  const subscription = useSubscription({organization});
   const {data: billingConfig} = useBillingConfig({organization});
+
+  if (!subscription) {
+    return <SubscriptionLoadingFallback organization={organization} />;
+  }
 
   if (!billingConfig) {
     return null;
@@ -230,14 +234,12 @@ function IntegrationFeaturesBase({
   return children(opts);
 }
 
-const IntegrationFeatures = withSubscription(IntegrationFeaturesBase);
-
 type FeatureListProps = Omit<IntegrationFeaturesProps, 'children'> & {
   provider: Pick<IntegrationProvider, 'key'>;
 };
 
-function FeatureListBase(props: FeatureListProps) {
-  const {provider, subscription, organization} = props;
+function FeatureList(props: FeatureListProps) {
+  const {provider, organization} = props;
   return (
     <IntegrationFeatures {...props}>
       {({ungatedFeatures, gatedFeatureGroups}) => (
@@ -256,7 +258,6 @@ function FeatureListBase(props: FeatureListProps) {
               <UpsellButton
                 source="integration-features"
                 size="xs"
-                subscription={subscription}
                 organization={organization}
                 variant="primary"
                 extraAnalyticsParams={{
@@ -289,8 +290,6 @@ function FeatureListBase(props: FeatureListProps) {
     </IntegrationFeatures>
   );
 }
-
-const FeatureList = withSubscription(FeatureListBase);
 
 const HasFeatureIndicator = styled((p: any) => (
   <div {...p}>
