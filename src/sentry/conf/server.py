@@ -3473,9 +3473,6 @@ SEER_FIXABILITY_TIMEOUT = 0.6  # 600 milliseconds
 
 SEER_GROUPING_URL = SEER_DEFAULT_URL  # for local development, these share a URL
 
-# Shadow spam classifier for User Feedback. Runs on its own Seer deployment; unset means no traffic.
-SEER_FEEDBACK_SPAM_URL: str | None = None
-
 SEER_ANOMALY_DETECTION_MODEL_VERSION = "v1"
 SEER_ANOMALY_DETECTION_URL = SEER_DEFAULT_URL  # for local development, these share a URL
 SEER_ANOMALY_DETECTION_TIMEOUT = 5

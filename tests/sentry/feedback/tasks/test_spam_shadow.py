@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 
 import orjson
 import pytest
-from django.test import override_settings
+from urllib3 import Timeout
 
 from sentry.feedback.lib import seer_api
 from sentry.feedback.tasks.spam_shadow import spam_shadow_score
@@ -60,16 +60,7 @@ def mock_metrics() -> Iterator[MagicMock]:
         yield mck
 
 
-@pytest.fixture
-def reset_connection_pool() -> Iterator[None]:
-    seer_api._seer_feedback_spam_connection_pool = None
-    yield
-    seer_api._seer_feedback_spam_connection_pool = None
-
-
 @django_db_all
-@pytest.mark.usefixtures("reset_connection_pool")
-@override_settings(SEER_FEEDBACK_SPAM_URL="http://seer-spam:9091")
 def test_posts_body_to_spam_score_path() -> None:
     with patch(
         "sentry.feedback.lib.seer_api.make_signed_seer_api_request",
@@ -79,31 +70,18 @@ def test_posts_body_to_spam_score_path() -> None:
 
     assert mock_signed.call_count == 1
     pool, path = mock_signed.call_args.args
+    assert pool is seer_api.seer_summarization_connection_pool
     assert path == "/v0/feedback/spam-score"
-    assert pool.host == "seer-spam"
-    assert pool.port == 9091
     assert orjson.loads(mock_signed.call_args.kwargs["body"]) == {
         **TASK_KWARGS,
         "log_mismatch_message": False,
     }
     assert mock_signed.call_args.kwargs["retries"] == 0
-    # The request uses the pool's total timeout, which ends before the task deadline.
-    assert mock_signed.call_args.kwargs["timeout"] is None
-    assert pool.timeout.total == 15
+    # A total timeout, which ends before the task deadline.
+    timeout = mock_signed.call_args.kwargs["timeout"]
+    assert isinstance(timeout, Timeout)
+    assert timeout.total == 15
     assert "viewer_context" not in mock_signed.call_args.kwargs
-
-
-@django_db_all
-@pytest.mark.usefixtures("reset_connection_pool")
-@override_settings(SEER_FEEDBACK_SPAM_URL=None)
-def test_missing_url_is_swallowed(mock_metrics: MagicMock) -> None:
-    with patch("sentry.feedback.lib.seer_api.make_signed_seer_api_request") as mock_signed:
-        spam_shadow_score(**TASK_KWARGS)
-
-    mock_signed.assert_not_called()
-    mock_metrics.incr.assert_called_once_with(
-        "feedback.spam_shadow.error", tags={"reason": "request"}
-    )
 
 
 @django_db_all

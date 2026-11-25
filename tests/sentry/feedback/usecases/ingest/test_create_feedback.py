@@ -8,7 +8,6 @@ from unittest.mock import MagicMock, patch
 
 import jsonschema
 import pytest
-from django.test import override_settings
 
 from sentry.feedback.lib.utils import FeedbackCreationSource
 from sentry.feedback.usecases.ingest.create_feedback import (
@@ -1059,9 +1058,6 @@ def mock_spam_shadow_score() -> Iterator[MagicMock]:
         yield mck
 
 
-SPAM_SHADOW_URL = "http://seer-spam:9091"
-
-
 @django_db_all
 @pytest.mark.parametrize("llm_is_spam", [True, False])
 @patch("sentry.feedback.usecases.ingest.create_feedback.spam_detection_enabled", return_value=True)
@@ -1078,10 +1074,7 @@ def test_create_feedback_enqueues_spam_shadow(
     mock_is_spam_seer.return_value = llm_is_spam
     event = mock_feedback_event(default_project.id, message="Shadow me")
 
-    with (
-        set_sentry_option("feedback.spam-shadow.sample-rate", 1.0),
-        override_settings(SEER_FEEDBACK_SPAM_URL=SPAM_SHADOW_URL),
-    ):
+    with set_sentry_option("feedback.spam-shadow.sample-rate", 1.0):
         create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
     mock_spam_shadow_score.delay.assert_called_once_with(
@@ -1095,12 +1088,11 @@ def test_create_feedback_enqueues_spam_shadow(
 
 @django_db_all
 @pytest.mark.parametrize(
-    ("sample_rate", "url", "spam_enabled", "llm_is_spam"),
+    ("sample_rate", "spam_enabled", "llm_is_spam"),
     [
-        pytest.param(0.0, SPAM_SHADOW_URL, True, False, id="rate_zero"),
-        pytest.param(1.0, None, True, False, id="url_unset"),
-        pytest.param(1.0, SPAM_SHADOW_URL, True, None, id="llm_failed"),
-        pytest.param(1.0, SPAM_SHADOW_URL, False, None, id="spam_detection_disabled"),
+        pytest.param(0.0, True, False, id="rate_zero"),
+        pytest.param(1.0, True, None, id="llm_failed"),
+        pytest.param(1.0, False, None, id="spam_detection_disabled"),
     ],
 )
 @patch("sentry.feedback.usecases.ingest.create_feedback.spam_detection_enabled")
@@ -1113,7 +1105,6 @@ def test_create_feedback_skips_spam_shadow(
     mock_spam_shadow_score: MagicMock,
     set_sentry_option: Callable[[str, object], AbstractContextManager[None]],
     sample_rate: float,
-    url: str | None,
     spam_enabled: bool,
     llm_is_spam: bool | None,
 ) -> None:
@@ -1121,10 +1112,7 @@ def test_create_feedback_skips_spam_shadow(
     mock_is_spam_seer.return_value = llm_is_spam
     event = mock_feedback_event(default_project.id)
 
-    with (
-        set_sentry_option("feedback.spam-shadow.sample-rate", sample_rate),
-        override_settings(SEER_FEEDBACK_SPAM_URL=url),
-    ):
+    with set_sentry_option("feedback.spam-shadow.sample-rate", sample_rate):
         create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
     mock_spam_shadow_score.delay.assert_not_called()
@@ -1145,10 +1133,7 @@ def test_create_feedback_spam_shadow_enqueue_error_does_not_break_ingest(
     mock_spam_shadow_score.delay.side_effect = Exception("taskbroker unavailable")
     event = mock_feedback_event(default_project.id)
 
-    with (
-        set_sentry_option("feedback.spam-shadow.sample-rate", 1.0),
-        override_settings(SEER_FEEDBACK_SPAM_URL=SPAM_SHADOW_URL),
-    ):
+    with set_sentry_option("feedback.spam-shadow.sample-rate", 1.0):
         result = create_feedback_issue(
             event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
         )

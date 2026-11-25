@@ -7,8 +7,6 @@ from datetime import UTC, datetime
 from typing import Any, TypedDict
 from uuid import UUID, uuid4
 
-from django.conf import settings
-
 from sentry import options
 from sentry.constants import DataCategory
 from sentry.feedback.lib.utils import UNREAL_FEEDBACK_UNATTENDED_MESSAGE, FeedbackCreationSource
@@ -440,7 +438,7 @@ def create_feedback_issue(
 
     # Shadow-score a sample of LLM-classified feedbacks with Seer's spam classifier, to compare
     # against the LLM verdict. This is fire-and-forget and must never affect ingestion.
-    if is_message_spam is not None and settings.SEER_FEEDBACK_SPAM_URL:
+    if is_message_spam is not None:
         try:
             if random.random() < options.get("feedback.spam-shadow.sample-rate"):
                 # The taskworker propagates this viewer context to the task's Seer request.
