@@ -50,6 +50,7 @@ from sentry.notebooks.services.notebooks import (
 )
 from sentry.users.services.user.service import user_service
 from sentry.viewer_context import ActorId, ActorType
+from sentry.workflow_engine.types import DetectorId
 
 logger = logging.getLogger(__name__)
 
@@ -72,9 +73,11 @@ __all__ = [
     "AcceptedOrchestrationCommand",
     "accept_orchestration_command",
     "agentic_breached_metric_source_key",
+    "agentic_detector_source_key",
     "archive_investigation_with_orchestration",
     "breached_metric_orchestration_source",
     "create_agentic_breached_metric_investigation",
+    "create_agentic_detector_investigation",
     "create_agentic_manual_investigation",
     "get_orchestration_projection",
     "start_investigation",
@@ -562,6 +565,88 @@ def create_agentic_manual_investigation(
     )
 
 
+def agentic_detector_source_key(detector_id: DetectorId, occurrence_id: str) -> str:
+    return f"{NotebookSourceType.DETECTOR}:{detector_id}:{occurrence_id}"
+
+
+def create_agentic_detector_investigation(
+    *,
+    organization: Organization,
+    creator: ActorId,
+    title: str | None,
+    source: dict[str, Any],
+    detector_id: DetectorId,
+    occurrence_id: str,
+    project_ids: list[int],
+) -> tuple[Notebook, bool]:
+    """The investigation for one detector trigger, created on the first call.
+
+    `occurrence_id` is the UUID the detector minted for the trigger, so each trigger gets
+    its own investigation and repeated calls for it (task retries, redelivery) reuse that
+    one. A reused run that Seer hasn't accepted is dispatched again: the attempt that created
+    it may have committed without queueing its dispatch, or its dispatch may have run out of
+    retries. The bool is True when it was created.
+    """
+    _validate_creation_actor(organization=organization, creator=creator, project_ids=project_ids)
+    source_key = agentic_detector_source_key(detector_id, occurrence_id)
+
+    def create(revision: int) -> Notebook:
+        investigation, _ = _create_agentic_investigation(
+            organization=organization,
+            creator=creator,
+            title=title,
+            source=source,
+            orchestration_source=_manual_orchestration_source(source),
+            project_ids=project_ids,
+            filters={},
+            source_type=NotebookSourceType.DETECTOR,
+            source_key=source_key,
+            source_revision=revision,
+        )
+        return investigation
+
+    investigation, created = get_or_create_source_notebook(
+        organization=organization, source_key=source_key, create=create
+    )
+    if not created:
+        _redispatch_undelivered_run(investigation)
+    return investigation, created
+
+
+def _redispatch_undelivered_run(investigation: Notebook) -> None:
+    """Dispatch the investigation's run again if Seer never accepted it.
+
+    Repeats send Seer the same per-run request id. A run whose dispatch failed is reset first,
+    as a run retry would.
+    """
+    with transaction.atomic(using=router.db_for_write(InvestigationOrchestrationRun)):
+        locked_investigation = (
+            Notebook.objects.select_for_update()
+            .filter(id=investigation.id, status=NotebookStatus.ACTIVE)
+            .get_or_none()
+        )
+        if locked_investigation is None:
+            return
+        run = (
+            InvestigationOrchestrationRun.objects.select_for_update()
+            .filter(investigation=locked_investigation, seer_run_id__isnull=True)
+            .get_or_none()
+        )
+        if run is None:
+            return
+        if (
+            run.status == InvestigationOrchestrationStatus.FAILED
+            and isinstance(run.error, dict)
+            and run.error.get("code") == "seer_dispatch_failed"
+        ):
+            _reset_create_dispatch_failure(run)
+            run.date_updated = timezone.now()
+            run.save(update_fields=["phase", "status", "projection", "error", "date_updated"])
+        elif run.status != InvestigationOrchestrationStatus.PENDING:
+            return
+        _schedule_orchestration_create(run.id)
+
+
 def breached_metric_orchestration_source(source: dict[str, Any]) -> dict[str, Any]:
     """Build internal orchestration context from Sentry's canonical metric snapshot."""
 
@@ -613,7 +698,7 @@ def rebuild_orchestration_source(investigation: Notebook) -> dict[str, Any] | No
     None if Sentry can no longer read the monitor.
     """
 
-    if investigation.source_type == NotebookSourceType.MANUAL:
+    if investigation.source_type in (NotebookSourceType.MANUAL, NotebookSourceType.DETECTOR):
         return _manual_orchestration_source(investigation.source)
     source_ref = (
         int(investigation.source["ref"]["groupId"]),

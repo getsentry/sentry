@@ -862,11 +862,52 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         mock_trigger_explorer.assert_not_called()
 
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
-    def test_post_seer_write_token_single_run_ignores_project_open_pr(
+    def test_post_seer_write_token_single_run_on_open_pr_project_needs_publish_scope(
         self, mock_trigger_explorer: MagicMock
     ) -> None:
         group = self.create_group()
         group.project.update_option("sentry:seer_automated_run_stopping_point", "open_pr")
+        group.project.update_option("sentry:autofix_automation_tuning", "medium")
+
+        with self.feature("organizations:autofix-single-run"):
+            response = self.client.post(
+                self._get_url(group.id),
+                data={},
+                format="json",
+                HTTP_AUTHORIZATION=self._seer_write_bearer(),
+            )
+
+        assert response.status_code == 403, response.data
+        assert (
+            response["WWW-Authenticate"] == 'Bearer error="insufficient_scope", scope="event:write"'
+        )
+        mock_trigger_explorer.assert_not_called()
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
+    def test_post_member_single_run_on_open_pr_project_starts(
+        self, mock_trigger_explorer: MagicMock
+    ) -> None:
+        group = self.create_group()
+        group.project.update_option("sentry:seer_automated_run_stopping_point", "open_pr")
+        group.project.update_option("sentry:autofix_automation_tuning", "medium")
+        mock_trigger_explorer.return_value = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=123
+        )
+
+        self.login_as(user=self.user)
+        with self.feature("organizations:autofix-single-run"):
+            response = self.client.post(self._get_url(group.id), data={}, format="json")
+
+        assert response.status_code == 202, response.data
+        mock_trigger_explorer.assert_called_once()
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
+    def test_post_seer_write_token_single_run_on_open_pr_project_with_automation_off(
+        self, mock_trigger_explorer: MagicMock
+    ) -> None:
+        group = self.create_group()
+        group.project.update_option("sentry:seer_automated_run_stopping_point", "open_pr")
+        group.project.update_option("sentry:autofix_automation_tuning", "off")
         mock_trigger_explorer.return_value = self.create_seer_run(
             organization=self.organization, seer_run_state_id=123
         )
@@ -907,32 +948,6 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 202, response.data
         assert response.data["feature_id"] == AUTOFIX_FEATURE_ID
-
-    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
-    def test_post_seer_write_token_handoff_project_manual_run_needs_no_publish_scope(
-        self, mock_trigger_explorer: MagicMock
-    ) -> None:
-        # Manual runs don't hand off, so the project's open_pr setting doesn't apply.
-        group = self.create_group()
-        group.project.update_option("sentry:seer_automated_run_stopping_point", "open_pr")
-        group.project.update_option("sentry:seer_automation_handoff_point", "root_cause")
-        group.project.update_option(
-            "sentry:seer_automation_handoff_target", "cursor_background_agent"
-        )
-        group.project.update_option("sentry:seer_automation_handoff_integration_id", 456)
-        mock_trigger_explorer.return_value = self.create_seer_run(
-            organization=self.organization, seer_run_state_id=123
-        )
-
-        with self.feature("organizations:autofix-single-run"):
-            response = self.client.post(
-                self._get_url(group.id),
-                data={},
-                format="json",
-                HTTP_AUTHORIZATION=self._seer_write_bearer(),
-            )
-
-        assert response.status_code == 202, response.data
 
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_run_state")
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")

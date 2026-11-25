@@ -245,7 +245,7 @@ def service_method(
                         sample_rate=1.0,
                     )
 
-                    logger.info(
+                    logger.exception(
                         "billing.service.method.error",
                         extra={
                             "duration_ms": duration_ms,
