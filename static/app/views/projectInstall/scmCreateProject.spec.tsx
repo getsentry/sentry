@@ -1356,11 +1356,7 @@ describe('ScmCreateProject', () => {
         expect(handoffRequest).toHaveBeenCalledWith(
           `/organizations/${agentOrganization.slug}/agent-handoff/prompts/`,
           expect.objectContaining({
-            data: {
-              context: {runId: run.runId},
-              disableIpPinning: false,
-              flow: 'create_project',
-            },
+            data: {context: {runId: run.runId}, flow: 'create_project'},
           })
         )
       );

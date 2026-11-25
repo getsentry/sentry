@@ -12,7 +12,7 @@ from sentry.agent_handoff.claims import (
     HandoffClaimFailed,
     claim_handoff_context,
 )
-from sentry.agent_handoff.codes import HANDOFF_LIFETIME, HandoffIPMismatch
+from sentry.agent_handoff.codes import HANDOFF_LIFETIME
 from sentry.agent_handoff.serializers import (
     AgentHandoffClaimResponse,
     AgentHandoffClaimSerializer,
@@ -31,7 +31,6 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.ratelimits import backend as ratelimiter
-from sentry.utils import metrics
 
 _CLAIM_WINDOW = 60
 
@@ -40,16 +39,6 @@ class AgentHandoffCrossOriginError(SentryAPIException):
     status_code = 403
     code = "agent-handoff-cross-origin"
     message = "Cross-origin handoff claims are not allowed."
-    auth_challenge = False
-
-
-class AgentHandoffIPMismatchError(SentryAPIException):
-    status_code = 403
-    code = "agent-handoff-ip-mismatch"
-    message = (
-        "The handoff code is pinned to a different IP address. Ask the user to turn "
-        'off "Use IP pinning" and copy a new handoff prompt.'
-    )
     auth_challenge = False
 
 
@@ -157,6 +146,7 @@ class ClaimAgentHandoffEndpoint(Endpoint):
     ) -> Response[AgentHandoffClaimResponse] | Response[DetailResponse]:
         """Exchange a private handoff code for the context needed to authenticate the CLI.
 
+        When the response omits setupCode, authenticate using the OAuth device flow.
         The response also determines the next steps used to guide the user or agent.
         """
         if request.META.get("HTTP_ORIGIN"):
@@ -177,9 +167,6 @@ class ClaimAgentHandoffEndpoint(Endpoint):
 
         try:
             claim = claim_handoff_context(code, ip_address=request.META.get("REMOTE_ADDR"))
-        except HandoffIPMismatch:
-            metrics.incr("agent_handoff.claim.ip_mismatch", sample_rate=1.0)
-            raise AgentHandoffIPMismatchError
         except HandoffClaimFailed as error:
             raise _CLAIM_FAILURE_ERRORS[error.reason]
 

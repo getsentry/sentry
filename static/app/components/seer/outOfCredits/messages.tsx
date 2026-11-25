@@ -3,26 +3,63 @@ import {t, tn} from 'sentry/locale';
 import type {SeerCreditDenialReason} from 'sentry/utils/seer/useSeerCreditCheck';
 import type {RepoPRState} from 'sentry/views/seerExplorer/types';
 
-// TODO(CW-3133): Add daily_cap_exceeded copies.
+/**
+ * A reason the UI doesn't know, such as one Seer added first, reads as running
+ * out of credits.
+ */
+function normalizeDenialReason(
+  denialReason: string | null | undefined
+): SeerCreditDenialReason {
+  return denialReason === 'daily_cap_exceeded'
+    ? 'daily_cap_exceeded'
+    : 'not_enough_credits';
+}
+
+const STOPPED_STEP_MESSAGE: Record<
+  SeerCreditDenialReason,
+  Record<AutofixExplorerStep, string>
+> = {
+  not_enough_credits: {
+    root_cause: t(
+      'Seer stopped before finishing the root cause because your organization ran out of credits.'
+    ),
+    solution: t(
+      'Seer stopped before finishing the plan because your organization ran out of credits.'
+    ),
+    code_changes: t(
+      'Seer stopped before finishing the code changes because your organization ran out of credits.'
+    ),
+    pr_iteration: t(
+      'Seer stopped before updating the pull request because your organization ran out of credits.'
+    ),
+  },
+  daily_cap_exceeded: {
+    root_cause: t(
+      'Seer stopped before finishing the root cause because your organization hit its daily usage limit.'
+    ),
+    solution: t(
+      'Seer stopped before finishing the plan because your organization hit its daily usage limit.'
+    ),
+    code_changes: t(
+      'Seer stopped before finishing the code changes because your organization hit its daily usage limit.'
+    ),
+    pr_iteration: t(
+      'Seer stopped before updating the pull request because your organization hit its daily usage limit.'
+    ),
+  },
+};
+
 /**
  * Inline status for an autofix step that stopped part way for credits. The
  * out-of-credits CTA is shown by the credit gates, so this only says what
  * happened.
  */
-export const STOPPED_STEP_MESSAGE: Record<AutofixExplorerStep, string> = {
-  root_cause: t(
-    'Seer stopped before finishing the root cause because your organization ran out of credits.'
-  ),
-  solution: t(
-    'Seer stopped before finishing the plan because your organization ran out of credits.'
-  ),
-  code_changes: t(
-    'Seer stopped before finishing the code changes because your organization ran out of credits.'
-  ),
-  pr_iteration: t(
-    'Seer stopped before updating the pull request because your organization ran out of credits.'
-  ),
-};
+export function getStoppedStepMessage(
+  step: AutofixExplorerStep,
+  denialReason: string | null | undefined
+): string {
+  return STOPPED_STEP_MESSAGE[normalizeDenialReason(denialReason)][step];
+}
 
 const REFUSED_STEP_MESSAGE: Record<
   SeerCreditDenialReason,
@@ -66,7 +103,7 @@ export function getRefusedStepMessage(
   step: AutofixExplorerStep,
   denialReason: SeerCreditDenialReason | null
 ): string {
-  return REFUSED_STEP_MESSAGE[denialReason ?? 'not_enough_credits'][step];
+  return REFUSED_STEP_MESSAGE[normalizeDenialReason(denialReason)][step];
 }
 
 // TODO(CW-3102): Point at the Retry button instead of the next iteration.
@@ -112,17 +149,43 @@ export function getStoppedPRIterationMessage(
   queuedCount: number,
   denialReason: SeerCreditDenialReason | null
 ): string | null {
-  const messages = STOPPED_PR_ITERATION_MESSAGE[denialReason ?? 'not_enough_credits'];
+  const messages = STOPPED_PR_ITERATION_MESSAGE[normalizeDenialReason(denialReason)];
   if (waitingAction) {
     return messages[waitingAction];
   }
   return queuedCount ? messages.queued(queuedCount) : null;
 }
 
-// TODO(CW-3133): Add daily_cap_exceeded copy.
-export const STOPPED_CHAT_MESSAGE = t(
-  'Seer stopped because your organization ran out of available credits.'
-);
+const STOPPED_CHAT_MESSAGE: Record<SeerCreditDenialReason, string> = {
+  not_enough_credits: t(
+    'Seer stopped because your organization ran out of available credits.'
+  ),
+  daily_cap_exceeded: t(
+    'Seer stopped because your organization hit its daily usage limit.'
+  ),
+};
+
+export function getStoppedChatMessage(denialReason: string | null | undefined): string {
+  return STOPPED_CHAT_MESSAGE[normalizeDenialReason(denialReason)];
+}
+
+const STOPPED_FEEDBACK_MESSAGE: Record<SeerCreditDenialReason, string> = {
+  not_enough_credits: t(
+    "This feedback couldn't finish because your organization ran out of credits"
+  ),
+  daily_cap_exceeded: t(
+    "This feedback couldn't finish because your organization hit its daily usage limit"
+  ),
+};
+
+/**
+ * Tooltip for PR feedback whose iteration or push stopped for credits.
+ */
+export function getStoppedFeedbackMessage(
+  denialReason: string | null | undefined
+): string {
+  return STOPPED_FEEDBACK_MESSAGE[normalizeDenialReason(denialReason)];
+}
 
 /**
  * Tooltip for a retry that stays disabled until the organization can afford it.
@@ -131,24 +194,63 @@ export const OUT_OF_CREDITS_RETRY_TOOLTIP = t(
   'Your organization does not have enough Seer credits for this.'
 );
 
-// TODO(CW-3133): Add daily_cap_exceeded copies.
+const STOPPED_PR_MESSAGE: Record<
+  SeerCreditDenialReason,
+  {
+    many: (count: number) => string;
+    open: (repo: string) => string;
+    push: (repo: string, prNumber: number) => string;
+  }
+> = {
+  not_enough_credits: {
+    many: (count: number) =>
+      t(
+        "Seer couldn't finish %s pull requests because your organization ran out of credits.",
+        count
+      ),
+    open: (repo: string) =>
+      t(
+        "Seer couldn't open a pull request in %s because your organization ran out of credits.",
+        repo
+      ),
+    push: (repo: string, prNumber: number) =>
+      t(
+        "Seer couldn't push changes to %s#%s because your organization ran out of credits.",
+        repo,
+        prNumber
+      ),
+  },
+  daily_cap_exceeded: {
+    many: (count: number) =>
+      t(
+        "Seer couldn't finish %s pull requests because your organization hit its daily usage limit.",
+        count
+      ),
+    open: (repo: string) =>
+      t(
+        "Seer couldn't open a pull request in %s because your organization hit its daily usage limit.",
+        repo
+      ),
+    push: (repo: string, prNumber: number) =>
+      t(
+        "Seer couldn't push changes to %s#%s because your organization hit its daily usage limit.",
+        repo,
+        prNumber
+      ),
+  },
+};
+
 /**
  * Stands in for the backend's `pr_creation_error` on a PR that failed for
  * credits. A PR number means the PR already exists, so the push failed.
  */
 export function getStoppedPRMessage(
-  state: Pick<RepoPRState, 'pr_number' | 'repo_name'>
+  state: Pick<RepoPRState, 'credit_denial_reason' | 'pr_number' | 'repo_name'>
 ): string {
+  const messages = STOPPED_PR_MESSAGE[normalizeDenialReason(state.credit_denial_reason)];
   return state.pr_number
-    ? t(
-        "Seer couldn't push changes to %s#%s because your organization ran out of credits.",
-        state.repo_name,
-        state.pr_number
-      )
-    : t(
-        "Seer couldn't open a pull request in %s because your organization ran out of credits.",
-        state.repo_name
-      );
+    ? messages.push(state.repo_name, state.pr_number)
+    : messages.open(state.repo_name);
 }
 
 const REFUSED_PR_MESSAGE: Record<
@@ -200,9 +302,9 @@ const REFUSED_PR_MESSAGE: Record<
  */
 export function getRefusedPRMessage(
   state: Pick<RepoPRState, 'pr_number' | 'repo_name'> | undefined,
-  denialReason: SeerCreditDenialReason | null
+  denialReason: string | null | undefined
 ): string {
-  const messages = REFUSED_PR_MESSAGE[denialReason ?? 'not_enough_credits'];
+  const messages = REFUSED_PR_MESSAGE[normalizeDenialReason(denialReason)];
   if (!state) {
     return messages.anyRepo;
   }
@@ -211,7 +313,6 @@ export function getRefusedPRMessage(
     : messages.open(state.repo_name);
 }
 
-// TODO(CW-3133): Add daily_cap_exceeded copies.
 /**
  * One status for every PR in a run that failed for credits, however many repos
  * the run touched.
@@ -220,8 +321,8 @@ export function getStoppedPRsMessage(states: RepoPRState[]): string {
   if (states.length === 1) {
     return getStoppedPRMessage(states[0]!);
   }
-  return t(
-    "Seer couldn't finish %s pull requests because your organization ran out of credits.",
-    states.length
-  );
+  const denialReason = states.find(
+    state => state.credit_denial_reason
+  )?.credit_denial_reason;
+  return STOPPED_PR_MESSAGE[normalizeDenialReason(denialReason)].many(states.length);
 }

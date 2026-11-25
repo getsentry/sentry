@@ -5,10 +5,10 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {TagsFixture} from 'sentry-fixture/tags';
 import {TeamFixture} from 'sentry-fixture/team';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {mockTour} from 'sentry/components/tours/testUtils';
-import {IssueCategory} from 'sentry/types/group';
+import {IssueCategory, ProgressState} from 'sentry/types/group';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
 import {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
@@ -92,6 +92,68 @@ describe('GroupHeader', () => {
       expect(screen.getByText('Leander')).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Resolve'})).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Archive'})).toBeInTheDocument();
+    });
+
+    const impactGroup = GroupFixture({
+      ...group,
+      derivedData: {
+        hasOpenFixPr: false,
+        hasRootCause: false,
+        isAssigned: true,
+        lastProgressedAt: null,
+        progress: ProgressState.IDENTIFIED,
+        status: 'open',
+        viewCount: 0,
+        impact: {
+          level: 'low',
+          score: 20,
+          description: 'Few users are affected.',
+          citations: [],
+          sourceEventId: 'event-id',
+        },
+      },
+    });
+
+    it('shows the impact assessment between priority and assignee', async () => {
+      render(
+        <GroupDataContextProvider group={impactGroup} project={impactGroup.project}>
+          <GroupHeader
+            {...defaultProps}
+            group={impactGroup}
+            project={project}
+            event={null}
+          />
+        </GroupDataContextProvider>,
+        {organization: OrganizationFixture({features: ['seer-impact-assessment']})}
+      );
+
+      expect(await screen.findByText('Low (20)')).toBeInTheDocument();
+      await userEvent.hover(screen.getByText('Low (20)'));
+      expect(await screen.findByText('Few users are affected.')).toBeInTheDocument();
+      expect(screen.getByText(/This issue has a/)).toHaveTextContent(
+        'This issue has a Low impact on users'
+      );
+      expect(screen.getAllByRole('banner').at(-1)).toHaveTextContent(
+        /Priority.*Impact\s*Low \(20\).*Assignee/
+      );
+    });
+
+    it('hides the impact assessment without the impact assessment feature', async () => {
+      render(
+        <GroupDataContextProvider group={impactGroup} project={impactGroup.project}>
+          <GroupHeader
+            {...defaultProps}
+            group={impactGroup}
+            project={project}
+            event={null}
+          />
+        </GroupDataContextProvider>,
+        {organization}
+      );
+
+      expect(await screen.findByText('Assignee')).toBeInTheDocument();
+      expect(screen.queryByText('Impact')).not.toBeInTheDocument();
+      expect(screen.queryByText('Low (20)')).not.toBeInTheDocument();
     });
 
     it('renders the short-id crumb with an always-visible copy button', async () => {

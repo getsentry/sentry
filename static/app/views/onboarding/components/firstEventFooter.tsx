@@ -5,9 +5,10 @@ import type {Variants} from 'framer-motion';
 import {motion} from 'framer-motion';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Flex, Grid, type GridProps} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, type GridProps} from '@sentry/scraps/layout';
 
 import {CreateSampleEventButton} from 'sentry/components/onboarding/createSampleEventButton';
+import {PeekingBug} from 'sentry/components/peekingBug/peekingBug';
 import {t} from 'sentry/locale';
 import {pulsingIndicatorStyles} from 'sentry/styles/pulsingIndicator';
 import type {Group} from 'sentry/types/group';
@@ -21,7 +22,6 @@ import {ONBOARDING_ENTER, ONBOARDING_STAGGER} from 'sentry/views/onboarding/anim
 import {GridFooter} from './genericFooter';
 
 interface FirstEventFooterProps {
-  isLast: boolean;
   onClickSetupLater: () => void;
   organization: Organization;
   project: Project;
@@ -32,7 +32,6 @@ export function FirstEventFooter({
   organization,
   project,
   onClickSetupLater,
-  isLast,
   leading,
 }: FirstEventFooterProps) {
   const {data: issues} = useQuery({
@@ -77,37 +76,46 @@ export function FirstEventFooter({
         )}
       </Flex>
       <OnboardingButtonBar>
-        {/* if hasn't sent first event, allow skipping. if last, no secondary cta */}
-        {!project.firstEvent && !isLast ? (
-          <Button onClick={onClickSetupLater}>{t('Next Platform')}</Button>
-        ) : null}
+        {/* if hasn't sent first event, allow leaving without giving up on setup */}
+        {project.firstEvent ? null : (
+          // Phones lack the width for two actions; the header Skip covers them.
+          <Container display={{zero: 'none', xs: 'block'}}>
+            <Button variant="transparent" onClick={onClickSetupLater}>
+              {t('Set up later')}
+            </Button>
+          </Container>
+        )}
         {/* if hasn't sent first event, allow creation of sample error */}
         {project.firstEvent ? (
-          <LinkButton
-            onClick={() => {
-              trackAnalytics('onboarding.scm_take_to_error_clicked', {
-                organization,
-                platform: project.platform,
-              });
-            }}
-            to={
-              firstIssue
-                ? `/organizations/${organization.slug}/issues/${firstIssue.id}/?referrer=onboarding-first-event-footer`
-                : `/organizations/${organization.slug}/issues/?project=${project.id}&referrer=onboarding-first-event-footer`
-            }
-            variant="primary"
-          >
-            {t('Take me to my error')}
-          </LinkButton>
+          <PeekingBug>
+            <LinkButton
+              onClick={() => {
+                trackAnalytics('onboarding.scm_take_to_error_clicked', {
+                  organization,
+                  platform: project.platform,
+                });
+              }}
+              to={
+                firstIssue
+                  ? `/organizations/${organization.slug}/issues/${firstIssue.id}/?referrer=onboarding-first-event-footer`
+                  : `/organizations/${organization.slug}/issues/?project=${project.id}&referrer=onboarding-first-event-footer`
+              }
+              variant="primary"
+            >
+              {t('Take me to my error')}
+            </LinkButton>
+          </PeekingBug>
         ) : (
-          <CreateSampleEventButton
-            project={project}
-            source="targeted-onboarding"
-            variant="primary"
-            hasScmOnboarding
-          >
-            {t('View Sample Error')}
-          </CreateSampleEventButton>
+          <PeekingBug>
+            <CreateSampleEventButton
+              project={project}
+              source="targeted-onboarding"
+              variant="primary"
+              hasScmOnboarding
+            >
+              {t('View Sample Error')}
+            </CreateSampleEventButton>
+          </PeekingBug>
         )}
       </OnboardingButtonBar>
     </GridFooter>

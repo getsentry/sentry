@@ -18,7 +18,7 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.workflow_engine.endpoints.utils.filters import get_excluded_detector_types
 from sentry.workflow_engine.registry import detector_settings_registry
-from sentry.workflow_engine.types import DetectorAPIOperation
+from sentry.workflow_engine.types import WorkflowEngineAPIOperation
 
 
 @cell_silo_endpoint
@@ -46,7 +46,7 @@ class OrganizationDetectorTypeIndexEndpoint(OrganizationEndpoint):
         Returns a list of detector types for a given org
         """
         excluded_types = get_excluded_detector_types(
-            DetectorAPIOperation.DISCOVER, organization, actor=request.user
+            WorkflowEngineAPIOperation.DISCOVER, organization, actor=request.user
         )
         type_slugs = [
             detector_type

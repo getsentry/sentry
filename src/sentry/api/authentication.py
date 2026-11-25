@@ -813,7 +813,6 @@ class ServiceAccountTokenAuthentication(StandardAuthentication):
                 )
             except ServiceAccountToken.DoesNotExist:
                 raise AuthenticationFailed("Invalid service account token")
-            token_id = token.id
             service_account_id = token.service_account_id
         else:
             try:
@@ -822,7 +821,6 @@ class ServiceAccountTokenAuthentication(StandardAuthentication):
                 )
             except ServiceAccountTokenReplica.DoesNotExist:
                 raise AuthenticationFailed("Invalid service account token")
-            token_id = token.token_id
             service_account_id = token.service_account.service_account_id
 
         if token.date_expires is not None and token.date_expires <= timezone.now():
@@ -836,12 +834,6 @@ class ServiceAccountTokenAuthentication(StandardAuthentication):
         # Access already denies other orgs, but failing here gives a clear 401 and covers
         # endpoints that never build access.
         self._check_organization_url(request, token.organization_id)
-
-        scope = sentry_sdk.get_isolation_scope()
-        scope.set_tag("api_token_type", self.token_name)
-        scope.set_attribute("api_token_type", self.token_name.decode())
-        scope.set_tag("service_account_token_id", token_id)
-        scope.set_attribute("service_account_token_id", token_id)
 
         # Token scopes are fixed at creation, so narrowing the account narrows the token,
         # but widening the account doesn't widen it.
