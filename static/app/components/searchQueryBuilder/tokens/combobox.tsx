@@ -30,6 +30,7 @@ import {focusMenuItemDetails} from '@sentry/scraps/menu';
 import {Overlay} from '@sentry/scraps/overlay';
 import {flipOverlay, shiftOverlay} from '@sentry/scraps/overlayPositioning';
 import {useOverlay} from '@sentry/scraps/useOverlay';
+import {useStableMergeRef} from '@sentry/scraps/useStableMergeRef';
 
 import {COMMAND_PALETTE_HOTKEYS} from 'sentry/components/commandPalette/constants';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -618,17 +619,20 @@ export function SearchQueryBuilderCombobox<
   // schedule another synchronous render, which can cascade into
   // "Maximum update depth exceeded" while typing.
   const triggerRef = triggerProps.ref as React.Ref<HTMLInputElement>;
-  const mergedInputRef = useMemo(
-    () => mergeRefs(ref, inputRef, autosizeInput, triggerRef, setDescriptionReference),
-    [ref, autosizeInput, triggerRef, setDescriptionReference]
+  const internalInputRef = useMemo(
+    // mergeRefs only stores the refs, it does not read them during render
+    // oxlint-disable-next-line react/refs
+    () => mergeRefs(inputRef, autosizeInput, triggerRef, setDescriptionReference),
+    [autosizeInput, triggerRef, setDescriptionReference]
   );
+  const mergeInputRef = useStableMergeRef(internalInputRef);
 
   const InputComponent = renderInputValue ? HighlightedInput : UnstyledInput;
   const input = (
     <InputComponent
       {...inputProps}
       size="md"
-      ref={mergedInputRef}
+      ref={mergeInputRef(ref)}
       type="text"
       placeholder={placeholder}
       onClick={handleInputClick}
