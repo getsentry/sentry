@@ -196,9 +196,9 @@ export function CreateProject() {
       : undefined;
   }, [autoFill, createdProject]);
 
-  const {getIntegrationAction, notificationProps} = useCreateNotificationAction(
-    notificationActionParam
-  );
+  const {getIntegrationAction, isSelectionSettled, notificationProps} =
+    useCreateNotificationAction(notificationActionParam);
+  const isNotificationRestorePending = !!notificationActionParam && !isSelectionSettled;
 
   const validateChannel = useQuery({
     ...validateChannelQueryOptions({
@@ -707,11 +707,13 @@ export function CreateProject() {
                     !(
                       canUserCreateProject &&
                       formErrorCount === 0 &&
+                      !isNotificationRestorePending &&
                       !(isNotifyingViaIntegration && validateChannel.isFetching)
                     )
                   }
                   busy={
                     createProjectAndRules.isPending ||
+                    isNotificationRestorePending ||
                     (isNotifyingViaIntegration && validateChannel.isFetching)
                   }
                   onClick={() => debounceHandleProjectCreation(formData)}

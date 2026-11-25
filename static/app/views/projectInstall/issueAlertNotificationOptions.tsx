@@ -94,6 +94,7 @@ function useNotificationPicker(resolveRestore: RestoreResolver) {
   );
   const [channel, setChannel] = useState<IntegrationChannel | undefined>(undefined);
   const [shouldRenderSetupButton, setShouldRenderSetupButton] = useState(false);
+  const [hasSeededSelection, setHasSeededSelection] = useState(false);
 
   const hasInitializedSelection = useRef(false);
 
@@ -106,6 +107,7 @@ function useNotificationPicker(resolveRestore: RestoreResolver) {
       return;
     }
 
+    setHasSeededSelection(true);
     const outcome = resolveRestore(providersToIntegrations);
 
     if (outcome.kind === 'wait') {
@@ -178,6 +180,9 @@ function useNotificationPicker(resolveRestore: RestoreResolver) {
 
   return {
     getIntegrationAction,
+    // Lets a page wait for a saved selection to restore before comparing it;
+    // never resets, so later edits don't re-block.
+    isSelectionSettled: messagingIntegrationsQuery.isError || hasSeededSelection,
     notificationProps: {
       actions,
       provider,

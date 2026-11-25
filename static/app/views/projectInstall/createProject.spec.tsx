@@ -548,7 +548,7 @@ describe('CreateProject', () => {
       platform: 'javascript-angular',
     });
 
-    function setUpReturnFromGettingStarted() {
+    function setUpReturnFromGettingStarted(createdProjectOverrides = {}) {
       const {organization} = initializeOrg({
         organization: {
           access: ['project:read'],
@@ -572,6 +572,7 @@ describe('CreateProject', () => {
             category: 'popular',
           },
           wasNameManuallyModified: true,
+          ...createdProjectOverrides,
         })
       );
       const {projectCreationMockRequest} = renderFrameworkModalMockRequests({
@@ -617,6 +618,49 @@ describe('CreateProject', () => {
       const eventNames = trackAnalyticsSpy.mock.calls.map(([eventName]) => eventName);
       expect(eventNames).not.toContain('project_creation_page.created');
       expect(eventNames).not.toContain('project_creation.project_details_create_clicked');
+    });
+
+    it('waits for the saved messaging destination before reusing the project', async () => {
+      const {organization, projectCreationMockRequest} = setUpReturnFromGettingStarted({
+        notificationRule: {
+          id: '1',
+          actions: [
+            {
+              id: 'sentry.integrations.slack.notify_action.SlackNotifyServiceAction',
+              workspace: integration.id,
+              channel: '#eng',
+            },
+          ],
+        },
+        notificationSelection: {
+          provider: 'slack',
+          integrationId: integration.id,
+          channel: '#eng',
+        },
+      });
+
+      const {router} = render(<CreateProject />, {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/projects/new/',
+            query: {referrer: 'getting-started', project: returnedProject.id},
+          },
+        },
+      });
+
+      const createButton = screen.getByRole('button', {name: 'Create Project'});
+      expect(createButton).toBeDisabled();
+
+      await waitFor(() => expect(createButton).toBeEnabled());
+      await userEvent.click(createButton);
+
+      await waitFor(() =>
+        expect(router.location.pathname).toContain(
+          `/projects/${returnedProject.slug}/getting-started/`
+        )
+      );
+      expect(projectCreationMockRequest).not.toHaveBeenCalled();
     });
 
     it('still creates a project when the projects list has not loaded', async () => {
