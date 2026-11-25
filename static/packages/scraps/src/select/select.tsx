@@ -412,6 +412,7 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
     disabled,
     focused,
     hasChips: multiple && selected.length > 0,
+    hasQuery: query !== '',
     searchable,
   });
   const baseMenuStyle: CSSObject = {...selectStyles.menu, maxWidth: props.maxMenuWidth};

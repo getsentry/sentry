@@ -46,15 +46,23 @@ export function getSelectStyles(
     disabled,
     focused,
     hasChips,
+    hasQuery,
     searchable,
-  }: {focused: boolean; hasChips: boolean; searchable: boolean; disabled?: boolean}
+  }: {
+    focused: boolean;
+    hasChips: boolean;
+    hasQuery: boolean;
+    searchable: boolean;
+    disabled?: boolean;
+  }
 ) {
   const border = theme.tokens.border.primary;
   const background = theme.tokens.interactive.chonky.debossed.neutral;
   const color = disabled ? theme.tokens.content.disabled : theme.tokens.content.primary;
   const insetShadow = `0 1px 0 0 ${background.chonk} inset`;
   const form = theme.form[size];
-  const controlInset = theme.space.lg;
+  // An empty input only needs room for the caret beside the last chip.
+  const inputWidth = hasQuery ? '1em' : 2;
   return {
     container: {position: 'relative'},
     control: {
@@ -72,7 +80,7 @@ export function getSelectStyles(
       cursor: disabled ? 'not-allowed' : 'pointer',
       opacity: disabled ? 0.6 : undefined,
     },
-    leadingItems: {paddingInlineStart: controlInset},
+    leadingItems: {paddingInlineStart: form.paddingLeft},
     values: {
       display: hasChips ? 'flex' : 'grid',
       flex: 1,
@@ -86,9 +94,9 @@ export function getSelectStyles(
     },
     input: {
       gridArea: hasChips ? undefined : '1 / 1',
-      flex: hasChips ? '1 1 1em' : undefined,
+      flex: hasChips ? '1 1 auto' : undefined,
       minWidth: 0,
-      width: hasChips ? '1em' : '100%',
+      width: hasChips ? inputWidth : '100%',
       border: 0,
       padding: 0,
       margin: 0,
@@ -112,7 +120,7 @@ export function getSelectStyles(
       gridArea: '1 / 1',
       color: disabled ? color : theme.tokens.content.secondary,
     },
-    indicators: {marginInlineStart: theme.space.sm, marginInlineEnd: controlInset},
+    indicators: {marginInlineStart: theme.space.sm, marginInlineEnd: form.paddingRight},
     clearIcon: {width: 10, height: 10},
     chip: {
       display: 'flex',

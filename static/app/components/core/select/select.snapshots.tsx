@@ -91,6 +91,22 @@ describe('Select', () => {
   );
 
   it.snapshot.each(['xs', 'sm', 'md'] as const)(
+    'control insets without a leading icon at size %s',
+    size => (
+      <Stack padding="md" width="300px">
+        <Select
+          aria-label="Environment"
+          options={options}
+          value="production"
+          size={size}
+          onChange={() => {}}
+        />
+      </Stack>
+    ),
+    size => ({tags: {area: 'core', size, state: 'no-leading-icon'}})
+  );
+
+  it.snapshot.each(['xs', 'sm', 'md'] as const)(
     'leading icon alignment at size %s',
     size => (
       <Stack padding="md" width="300px">
