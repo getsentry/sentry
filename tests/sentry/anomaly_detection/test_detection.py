@@ -129,7 +129,6 @@ def test_frozen_baseline_survives_missing_support_and_closes_on_recovery_only() 
     series[samples_key(LATENCY)].update(points(125, 127, 100.0))
     assert step(det, 125, 127) == [("close", event)]
     assert event.ended_at == minute(126)
-    assert event.evidence == ["recovered"]
 
 
 def test_excluded_latency_can_recover_but_cannot_reopen_between_quality_checks() -> None:
@@ -208,13 +207,13 @@ def test_sparse_failures_accumulate_evidence_and_recover() -> None:
         FAILURES: points(0, 150, 0.0) | points(150, 190, 1.0) | points(190, 340, 0.0),
         samples_key(FAILURES): points(0, 340, 1.0),
     }
-    opened, closed = step(MeasurementStream(series, Baseline({})), 0, 340)
-    assert (opened[0], closed[0]) == ("open", "close")
-    event = opened[1]
-    assert event is closed[1]
+    stream = MeasurementStream(series, Baseline({}))
+    [(action, event)] = step(stream, 0, 190)
+    assert action == "open"
     assert event.start == minute(150)
     assert event.detected_at is not None and event.detected_at <= minute(170)
-    assert event.evidence[0].startswith("1h of counts")
+    assert stream.history.state.series_states[FAILURES].window == 60
+    assert step(stream, 190, 340) == [("close", event)]
     assert event.ended_at is not None and event.ended_at >= minute(190)
 
 
@@ -313,11 +312,12 @@ def test_routine_failure_bursts_are_not_spikes_but_a_sustained_increase_is() -> 
 def test_sparse_error_count_window_opens_below_per_minute_excess() -> None:
     # Two errors per minute cannot pass the five-event gate; their sum can.
     series = {ERRORS: points(0, 300, 0.0) | points(300, 330, 2.0)}
-    [(action, event)] = step(MeasurementStream(series, Baseline({})), 0, 330)
+    stream = MeasurementStream(series, Baseline({}))
+    [(action, event)] = step(stream, 0, 330)
     assert (action, event.change_type) == ("open", ChangeType.SPIKE)
     assert event.start == minute(300)
     assert event.detected_at is not None and event.detected_at < minute(330)
-    assert event.evidence[0].startswith("1h of counts")
+    assert stream.history.state.series_states[ERRORS].window == 60
 
 
 def test_history_scales_level_by_hour_and_prefers_same_day_type() -> None:

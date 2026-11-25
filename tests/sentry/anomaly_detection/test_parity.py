@@ -1,11 +1,11 @@
 from collections.abc import Sequence
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 from sentry.anomaly_detection.contracts import Metric, SeriesRow, Signal, Urgency
 from sentry.anomaly_detection.evaluation import organization as pipeline
 from tests.sentry.anomaly_detection.test_helpers import NoFootprints
 
-START = datetime(2024, 1, 8, 12)  # Collector timestamps are naive UTC.
+START = datetime(2024, 1, 8, 12, tzinfo=UTC)
 MINUTES = 200
 PROJECT = 42
 ENV = "production"

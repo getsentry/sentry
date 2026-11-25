@@ -1,5 +1,7 @@
+from collections.abc import Iterator
+from contextlib import contextmanager
 from dataclasses import replace
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
 
 import pytest
@@ -15,6 +17,7 @@ from sentry.anomaly_detection.contracts import (
     Urgency,
 )
 from sentry.anomaly_detection.correlation.correlator import AnomalyGroup, GroupAction
+from sentry.anomaly_detection.evaluation.novelty import Novelty, Verdict
 from sentry.anomaly_detection.evaluation.organization import (
     EvaluatorConfig,
     OrgEvaluator,
@@ -22,7 +25,7 @@ from sentry.anomaly_detection.evaluation.organization import (
 )
 from tests.sentry.anomaly_detection.test_helpers import NoFootprints
 
-T0 = datetime(2020, 11, 2, 12)
+T0 = datetime(2020, 11, 2, 12, tzinfo=UTC)
 MINUTE = timedelta(minutes=1)
 PROJECT = 42
 
@@ -175,6 +178,20 @@ def _key_latency_rows(key: SeriesKey, p95s: list[float], samples: float) -> list
     return rows
 
 
+@contextmanager
+def _recorded_verdicts(novelty: Novelty, method: str) -> Iterator[dict[SeriesKey, Verdict]]:
+    """Record the verdict each call to `novelty.<method>` returns, by series."""
+    verdicts: dict[SeriesKey, Verdict] = {}
+    judge = getattr(novelty, method)
+
+    def record(event: ChangeEvent, amount: float, minute: datetime) -> Verdict:
+        verdicts[event.key] = verdict = judge(event, amount, minute)
+        return verdict
+
+    with patch.object(novelty, method, record):
+        yield verdicts
+
+
 def test_duration_judgment_does_not_see_backdated_peer_opened_on_same_tick() -> None:
     start = T0 + 480 * MINUTE
     duration_look = start + 60 * MINUTE
@@ -190,12 +207,16 @@ def test_duration_judgment_does_not_see_backdated_peer_opened_on_same_tick() -> 
     prior = evaluator.novelty.judge_duration(latent, 60, duration_look)
     assert prior.unusual
 
-    evaluator.advance(rows=rows, hourly_rows=[], start=duration_look, end=duration_look + MINUTE)
+    with _recorded_verdicts(evaluator.novelty, "judge_duration") as verdicts:
+        evaluator.advance(
+            rows=rows, hourly_rows=[], start=duration_look, end=duration_look + MINUTE
+        )
 
     (peer,) = evaluator.novelty.state.history[peer_key]
     assert peer.detected_at == duration_look
     assert evaluator.novelty.observed_duration(peer, duration_look) == 4
-    assert latent.novelty == prior.as_evidence() | {"opened_on_duration": True}
+    assert latent.detected_at == duration_look
+    assert verdicts[latent.key] == prior
     assert (
         evaluator.novelty.judge_duration(latent, 60, duration_look).pooled_rate > prior.pooled_rate
     )
@@ -212,7 +233,6 @@ def test_new_failure_mode_opens_only_after_crossing_the_standalone_threshold() -
         expected=60.0,
         confidence=0.9,
         detected_at=detected_at,
-        evidence=["private failure payload", "issues:PRIVATE-42"],
     )
     weak = issue.replace(actual=10.0, confidence=0.5, detected_at=weak_at)
     evaluator = OrgEvaluator(NoFootprints(), projects=(PROJECT,))
@@ -231,7 +251,6 @@ def test_new_failure_mode_opens_only_after_crossing_the_standalone_threshold() -
     assert opened.timestamp == detected_at
     assert not opened.is_resolved
     assert "PRIVATE-42" not in repr(opened)
-    assert "private failure payload" not in repr(opened)
     assert issue.ended_at is None
 
 
@@ -251,7 +270,6 @@ def test_first_qualification_pins_the_owner_through_reroot_and_merge() -> None:
         actual=50.0,
         expected=1.0,
         confidence=0.9,
-        evidence=["private cross-project details"],
     )
     group = AnomalyGroup(
         AnomalyGroupKey("stable-group"), T0, root=selected, last_activity=T0, localization=""
@@ -331,7 +349,7 @@ def test_cold_start_does_not_publish_a_group_that_closes_on_the_boundary() -> No
 
 def test_simultaneous_excursions_do_not_change_each_others_prior() -> None:
     left_key = SeriesKey(PROJECT, "prod", Signal.ENDPOINTS, Metric.P95_DURATION, "/left")
-    right_key = replace(left_key, dim_value="/right")
+    right_key = left_key._replace(dim_value="/right")
     candidate_minute = T0 + timedelta(hours=12)
     candidate = ChangeEvent(left_key, ChangeType.SLOWDOWN, candidate_minute, 40.0, 20.0, 0.9)
     peer = candidate.replace(key=right_key)
@@ -345,14 +363,17 @@ def test_simultaneous_excursions_do_not_change_each_others_prior() -> None:
     prior = evaluator.novelty.judge(candidate, 1.0, candidate_minute)
 
     # Drive the production minute step with both endpoints opening in the same minute.
-    with patch.object(
-        evaluator,
-        "_evaluate_measurements",
-        lambda minute, rows: [("open", peer), ("open", candidate)],
+    with (
+        patch.object(
+            evaluator,
+            "_evaluate_measurements",
+            lambda minute, rows: [("open", peer), ("open", candidate)],
+        ),
+        _recorded_verdicts(evaluator.novelty, "judge") as verdicts,
     ):
         evaluator._step(candidate_minute, [])
 
-    assert candidate.novelty == prior.as_evidence()
+    assert verdicts[left_key] == prior
     # Both opens are recorded, but only after judging.
     assert evaluator.novelty.state.history[left_key] == [earlier, candidate]
     assert evaluator.novelty.state.history[right_key] == [peer]
@@ -439,9 +460,9 @@ def test_novelty_admission_config_gates_absorbing_routine_excursions(
 def test_shared_dependency_config_gates_midnight_learning(
     config: EvaluatorConfig, learned: bool
 ) -> None:
-    midnight = datetime(2020, 11, 5)
+    midnight = datetime(2020, 11, 5, tzinfo=UTC)
     primary = SeriesKey(PROJECT, "prod", Signal.OUTBOUND_DB, Metric.P95_DURATION, "orders")
-    replica = replace(primary, project_id=PROJECT + 1)
+    replica = primary._replace(project_id=PROJECT + 1)
     evaluator = OrgEvaluator(NoFootprints(), projects=(PROJECT, replica.project_id), config=config)
     minute = midnight - timedelta(days=3)
     while minute < midnight:

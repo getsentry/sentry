@@ -15,7 +15,6 @@ from sentry.anomaly_detection.contracts import (
     ChangeType,
     EpisodeKey,
     Metric,
-    NoveltyEvidence,
     SeriesKey,
     SeriesRow,
     Service,
@@ -56,7 +55,7 @@ class AnomalyEvidence(TypedDict):
 
     signal: str  # The root's Signal, or "other" for signals without a public description.
     change_type: ChangeType
-    started_at: str  # ISO 8601, naive UTC.
+    started_at: str  # ISO 8601, UTC.
     actual: NotRequired[float]
     expected: NotRequired[float]
     confidence: NotRequired[float]
@@ -139,7 +138,7 @@ def evaluate_org(
     projects: Iterable[int],
     new_issues: Sequence[ChangeEvent] = (),
 ) -> Sequence[AnomalyDecision]:
-    """Evaluate [start, end), using earlier minute rows to warm the model (naive UTC)."""
+    """Evaluate [start, end), using earlier minute rows to warm the model (UTC)."""
     return OrgEvaluator(footprints, projects=projects).advance(
         rows=rows, hourly_rows=hourly_rows, start=start, end=end, new_issues=new_issues
     )
@@ -172,14 +171,10 @@ class Admission:
             episode = episode_key(event)
             if action_kind == "open":
                 verdict = self.novelty.judge(event, size_of(event.open_ratio), minute)
-                event.novelty = verdict.as_evidence()
-                if not verdict.unusual:
-                    service_harm = state.harm.get(service_of(event.key), ())
-                    if _harm_for(event, minute, service_harm):
-                        event.novelty["harm"] = True
-                    else:
-                        state.absorbed[episode] = event
-                        action_kind = "latent"
+                service_harm = state.harm.get(service_of(event.key), ())
+                if not verdict.unusual and not _harm_for(event, minute, service_harm):
+                    state.absorbed[episode] = event
+                    action_kind = "latent"
             elif action_kind in ("close", "expire"):
                 self.forget([episode])
             elif episode in state.absorbed:
@@ -188,10 +183,8 @@ class Admission:
                     verdict = self.novelty.judge(event, size_of(escalated_ratio), minute)
                     if verdict.unusual:
                         event.open_ratio = escalated_ratio
-                        evidence = verdict.as_evidence()
-                        evidence["opened_on_escalation"] = True
-                        evidence["unusual_since"] = escalated_at
-                        actions.append(self._promote(event, minute, evidence))
+                        event.unusual_since = escalated_at
+                        actions.append(self._promote(event, minute))
                 continue
             actions.append((action_kind, event))
         return actions
@@ -218,12 +211,8 @@ class Admission:
         for event in list(self.state.absorbed.values()):
             if event.ended_at is not None:
                 continue
-            if _harm_for(event, minute, new_harm):
-                actions.append(self._promote(event, minute, (event.novelty or {}) | {"harm": True}))
-                continue
-            duration_verdict = self._check_duration(event, minute)
-            if duration_verdict is not None:
-                actions.append(self._promote(event, minute, duration_verdict))
+            if _harm_for(event, minute, new_harm) or self._lasted_unusually(event, minute):
+                actions.append(self._promote(event, minute))
                 continue
             if (
                 event.key.signal in _VOUCH_SIGNALS
@@ -233,9 +222,7 @@ class Admission:
                     for issue in vouches.get(service_of(event.key), ())
                 )
             ):
-                actions.append(
-                    self._promote(event, minute, (event.novelty or {}) | {"vouched": True})
-                )
+                actions.append(self._promote(event, minute))
         return actions
 
     def prune(self, context_start: datetime) -> None:
@@ -268,15 +255,12 @@ class Admission:
         for service in [service for service in state.harm if service.project_id not in keep]:
             del state.harm[service]
 
-    def _promote(
-        self, event: ChangeEvent, minute: datetime, novelty: NoveltyEvidence
-    ) -> ChangeAction:
+    def _promote(self, event: ChangeEvent, minute: datetime) -> ChangeAction:
         self.forget([episode_key(event)])
-        event.novelty = novelty
         event.detected_at = minute
         return "open", event
 
-    def _check_duration(self, event: ChangeEvent, minute: datetime) -> NoveltyEvidence | None:
+    def _lasted_unusually(self, event: ChangeEvent, minute: datetime) -> bool:
         episode = episode_key(event)
         next_duration_check = self.state.next_look.get(episode, _FIRST_DURATION_LOOK)
         if (
@@ -284,18 +268,13 @@ class Admission:
             or minute - event.start < next_duration_check * _MINUTE
             or not self.series_history.has_anomalous_observation(event, minute)
         ):
-            return None
+            return False
         observed_minutes = self.novelty.observed_duration(event, minute)
         if observed_minutes < next_duration_check:
-            return None
+            return False
         # Rejudge after 60, 120, 240, ... observed minutes, not wall-clock gaps.
         self.state.next_look[episode] = 2 * observed_minutes
-        verdict = self.novelty.judge_duration(event, observed_minutes, minute)
-        if not verdict.unusual:
-            return None
-        evidence = verdict.as_evidence()
-        evidence["opened_on_duration"] = True
-        return evidence
+        return self.novelty.judge_duration(event, observed_minutes, minute).unusual
 
 
 class DecisionLog:
@@ -405,8 +384,8 @@ class OrgEvaluator:
         end: datetime,
         new_issues: Sequence[ChangeEvent] = (),
     ) -> Sequence[AnomalyDecision]:
-        if start.tzinfo is not None or end.tzinfo is not None:
-            raise ValueError("Evaluation bounds must be naive UTC datetimes")
+        if start.utcoffset() != timedelta(0) or end.utcoffset() != timedelta(0):
+            raise ValueError("Evaluation bounds must be UTC datetimes")
         if start >= end:
             return []
 
@@ -533,9 +512,7 @@ class OrgEvaluator:
             if state.next_minute and _available_at(event) < state.next_minute - CONTEXT_HORIZON:
                 continue
             seen.add(key)
-            state.pending_issues.append(
-                event.replace(evidence=list(event.evidence), ended_at=None, escalations=[])
-            )
+            state.pending_issues.append(event.replace(ended_at=None, escalations=[]))
         state.pending_issues.sort(key=lambda event: (_available_at(event), episode_key(event)))
 
     def _step(self, minute: datetime, rows: Sequence[SeriesRow]) -> list[AnomalyDecision]:
@@ -625,11 +602,10 @@ class OrgEvaluator:
         return changes
 
     def _disable_rate_shifts(self, minute: datetime) -> list[ChangeAction]:
-        reason = "expired: rate shift detection disabled"
         expired: list[ChangeAction] = [
             ("expire", event)
             for key in sorted(self.rate_shifts.open_keys())
-            if (event := self.rate_shifts.expire(key, minute, reason)) is not None
+            if (event := self.rate_shifts.expire(key, minute)) is not None
         ]
         self.rate_shifts.forget(list(self.rate_shifts.state))
         return expired
