@@ -16,6 +16,7 @@ from sentry.seer.autofix.pr_iteration.pause import PAUSED_EXTRA
 from sentry.seer.models.run import SeerRun
 from sentry.seer.webhooks import sentry_command
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 
 MODULE = "sentry.seer.autofix.pr_iteration.out_of_credits_comment"
@@ -37,19 +38,36 @@ class _ScmStub:
 
 
 class OutOfCreditsCommentBodyTest(TestCase):
+    # The exact markdown posted on the PR, with SaaS (customer domain) links.
+    @with_feature("system:multi-region")
     def test_out_of_credits(self) -> None:
-        body = out_of_credits_comment_body(self.organization, "not_enough_credits")
+        organization = self.create_organization(slug="acme")
 
-        assert "ran out of credits" in body
-        assert "`@sentry <instructions>`" in body
-        assert f"/settings/{self.organization.slug}/billing/overview/" in body
+        assert out_of_credits_comment_body(organization, "not_enough_credits") == (
+            "Seer stopped working on this pull request because your organization ran out of "
+            "credits. Seer continues the next time it iterates on the pull request.\n\n"
+            "Once credits are added, comment `@sentry <instructions>` to have Seer pick it back "
+            "up now. Set up auto-reload in "
+            "[billing settings](http://acme.testserver/settings/billing/overview/) "
+            "to keep Seer running."
+        )
 
+    @with_feature("system:multi-region")
     def test_daily_limit(self) -> None:
+        organization = self.create_organization(slug="acme")
+
+        assert out_of_credits_comment_body(organization, "daily_cap_exceeded") == (
+            "Seer stopped working on this pull request because your organization hit its daily "
+            "usage limit. Seer continues the next time it iterates on the pull request.\n\n"
+            "Once the limit resets or is raised, comment `@sentry <instructions>` to have Seer "
+            "pick it back up now. You can change the limit in "
+            "[billing settings](http://acme.testserver/settings/billing/overview/)."
+        )
+
+    def test_links_to_billing_without_customer_domains(self) -> None:
         body = out_of_credits_comment_body(self.organization, "daily_cap_exceeded")
 
-        assert "hit its daily usage limit" in body
-        assert "`@sentry <instructions>`" in body
-        assert f"/settings/{self.organization.slug}/billing/overview/" in body
+        assert f"(http://testserver/settings/{self.organization.slug}/billing/overview/)" in body
 
     def test_an_unknown_reason_reads_as_out_of_credits(self) -> None:
         assert out_of_credits_comment_body(self.organization, None) == (
