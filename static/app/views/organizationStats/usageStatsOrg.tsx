@@ -114,47 +114,67 @@ function getClientDiscardCountCategory(
   return CLIENT_DISCARD_COUNT_CATEGORIES[dataCategory];
 }
 
+type OutcomeRole = 'dropped' | 'kept' | 'ignored';
+
 /**
- * Client discards per chart interval, against every item in that interval.
+ * Dropped and kept rows for the dropped data band, one per group and interval.
  * Rows use interval indices for `start` and `end`, since the usage chart has a
  * category x-axis.
  */
-function getClientDiscardRows(
+function getDroppedDataRows(
   category: string,
-  orgStats?: UsageSeries
+  orgStats: UsageSeries | undefined,
+  outcomeRole: (outcome: string) => OutcomeRole
 ): Pick<DroppedDataProps, 'acceptedEvents' | 'droppedEvents'> {
-  const intervals = orgStats?.intervals ?? [];
-  const discarded = intervals.map(() => 0);
-  const kept = intervals.map(() => 0);
+  const acceptedEvents: OutcomeRow[] = [];
+  const droppedEvents: OutcomeRow[] = [];
 
   orgStats?.groups.forEach(group => {
-    const counts = group.by.outcome === Outcome.CLIENT_DISCARD ? discarded : kept;
-    group.series['sum(quantity)']?.forEach((value, i) => {
-      counts[i]! += value;
+    const outcome = String(group.by.outcome ?? '');
+    const role = outcomeRole(outcome);
+    if (role === 'ignored') {
+      return;
+    }
+
+    const rows = role === 'dropped' ? droppedEvents : acceptedEvents;
+    group.series['sum(quantity)']?.forEach((count, i) => {
+      rows.push({
+        start: i,
+        end: i + 1,
+        count,
+        outcome,
+        category,
+        reason: '',
+        type: '',
+        tags: ['unintentional'],
+      });
     });
   });
 
-  const toRow = (count: number, i: number, outcome: string): OutcomeRow => ({
-    start: i,
-    end: i + 1,
-    count,
-    outcome,
-    category,
-    reason: '',
-    type: '',
-    tags: ['unintentional'],
-  });
+  return {acceptedEvents, droppedEvents};
+}
 
-  return {
-    acceptedEvents: kept.map((count, i) => toRow(count, i, Outcome.ACCEPTED)),
-    droppedEvents: discarded.map((count, i) => toRow(count, i, Outcome.CLIENT_DISCARD)),
-  };
+/**
+ * Client discards against every item.
+ */
+function clientDiscardRole(outcome: string): OutcomeRole {
+  return outcome === Outcome.CLIENT_DISCARD ? 'dropped' : 'kept';
+}
+
+/**
+ * Server-side drops against everything that reached Sentry.
+ */
+function serverDropRole(outcome: string): OutcomeRole {
+  if (outcome === Outcome.CLIENT_DISCARD) {
+    return 'ignored';
+  }
+  return outcome === Outcome.ACCEPTED ? 'kept' : 'dropped';
 }
 
 type ClientDiscardCountChart = {
   chartData: Pick<ChartData, 'cardStats' | 'chartStats' | 'chartSubLabels'>;
   /**
-   * Client discards in bytes, banded under the count chart.
+   * Server-side drops in bytes, banded under the count chart.
    */
   byteDroppedData: DroppedDataProps;
   /**
@@ -653,19 +673,20 @@ export function UsageStatsOrganization({
       },
       byteDroppedData: {
         dataset: clientDiscardCountCategory.dataset,
-        label: t('%s Discarded (Bytes)', dataCategoryName),
+        label: t('%s Dropped (Bytes)', dataCategoryName),
         formatValue: getTooltipFormatter(dataCategory),
-        // Client discards are often a tiny share of all items, so show any of them
         minHighlightRatio: Number.MIN_VALUE,
-        ...getClientDiscardRows(dataCategoryApiName, orgStatsReponse.data),
+        ...getDroppedDataRows(dataCategoryApiName, orgStatsReponse.data, serverDropRole),
       },
       countDroppedData: {
         dataset: clientDiscardCountCategory.dataset,
         label: t('%s Discarded (Count)', dataCategoryName),
+        // Client discards are often a tiny share of all items, so show any of them
         minHighlightRatio: Number.MIN_VALUE,
-        ...getClientDiscardRows(
+        ...getDroppedDataRows(
           clientDiscardCountCategory.countCategory.name,
-          countStatsResponse.data
+          countStatsResponse.data,
+          clientDiscardRole
         ),
       },
       dataCategory: countDataCategory,
