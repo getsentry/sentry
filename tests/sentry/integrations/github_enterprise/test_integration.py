@@ -1244,17 +1244,23 @@ class GitHubEnterpriseApiPipelineTest(APITestCase):
         assert resp.data["step"] == "oauth_login"
         pipeline_signature = self._get_pipeline_signature(resp)
 
-        resp = self._advance_step({"code": "auth-code", "state": pipeline_signature})
+        with mock.patch(
+            "sentry.integrations.github_enterprise.integration.sync_repos_for_org.apply_async"
+        ) as mock_sync:
+            resp = self._advance_step({"code": "auth-code", "state": pipeline_signature})
         assert resp.status_code == 200
         assert resp.data["status"] == "complete"
         assert "data" in resp.data
 
         integration = Integration.objects.get(provider="github_enterprise")
         assert integration.metadata["installation_id"] == int(self.installation_id)
-        assert OrganizationIntegration.objects.filter(
+        org_integration = OrganizationIntegration.objects.get(
             organization_id=self.organization.id,
             integration=integration,
-        ).exists()
+        )
+        mock_sync.assert_called_once_with(
+            kwargs={"organization_integration_id": org_integration.id}
+        )
 
     @responses.activate
     @mock.patch(

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Iterable, Mapping, MutableMapping
 from typing import Any, cast
 from urllib.parse import urlparse
@@ -41,6 +42,7 @@ from sentry.integrations.source_code_management.repository import (
     RepositoryInfo,
     RepositoryIntegration,
 )
+from sentry.integrations.source_code_management.sync_repos import sync_repos_for_org
 from sentry.integrations.source_code_management.url import url_is_under
 from sentry.integrations.types import HaltReason, IntegrationProviderSlug
 from sentry.models.repository import Repository
@@ -60,6 +62,8 @@ from sentry.utils.http import absolute_uri
 
 from .client import GitHubEnterpriseApiClient
 from .repository import GitHubEnterpriseRepositoryProvider
+
+logger = logging.getLogger("sentry.integrations.github_enterprise")
 
 
 def _api_base_url(url: str) -> str:
@@ -702,7 +706,18 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
         *,
         extra: dict[str, Any],
     ) -> None:
-        pass
+        """Link repositories now; the sweep that would otherwise do it runs daily."""
+        org_integration = integration_service.get_organization_integration(
+            integration_id=integration.id, organization_id=organization.id
+        )
+        if org_integration is None:
+            logger.warning(
+                "github_enterprise.post_install.no_org_integration",
+                extra={"integration_id": integration.id, "organization_id": organization.id},
+            )
+            return
+
+        sync_repos_for_org.apply_async(kwargs={"organization_integration_id": org_integration.id})
 
     def _get_ghe_installation_info(
         self,
