@@ -15,7 +15,7 @@ import type {Project} from 'sentry/types/project';
 import type {Release, ReleaseMeta, ReleaseProject} from 'sentry/types/release';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {useProjectFromId} from 'sentry/utils/useProjectFromId';
+import {useProjectFromSlug} from 'sentry/utils/useProjectFromSlug';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {isReleaseArchived} from 'sentry/views/explore/releases/utils';
 import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
@@ -86,8 +86,7 @@ function ModalMessage({
 
 interface Props {
   organization: Organization;
-  projectId: string;
-  projectSlug: string;
+  project: ReleaseProject;
   refetchData: () => void;
   release: Release;
   releaseMeta: ReleaseMeta;
@@ -100,8 +99,7 @@ interface Props {
  */
 export function useReleaseMenuItems({
   organization,
-  projectId,
-  projectSlug,
+  project,
   refetchData,
   release,
   releaseMeta,
@@ -111,16 +109,16 @@ export function useReleaseMenuItems({
   // The filter belongs to the project selected on the page. The release only
   // carries a summary of it, so look up the full project for its features and
   // access.
-  const project = useProjectFromId({project_id: projectId});
-  const addInboundFilterAvailability = project
-    ? getAddInboundFilterAvailability(organization, project)
+  const fullProject = useProjectFromSlug({organization, projectSlug: project.slug});
+  const addInboundFilterAvailability = fullProject
+    ? getAddInboundFilterAvailability(organization, fullProject)
     : undefined;
 
   async function handleArchive() {
     try {
       await archiveRelease(new Client(), {
         orgSlug: organization.slug,
-        projectSlug,
+        projectSlug: project.slug,
         releaseVersion: release.version,
       });
       navigate(makeReleasesPathname({organization, path: '/'}));
@@ -133,7 +131,7 @@ export function useReleaseMenuItems({
     try {
       await restoreRelease(new Client(), {
         orgSlug: organization.slug,
-        projectSlug,
+        projectSlug: project.slug,
         releaseVersion: release.version,
       });
       refetchData();
@@ -209,8 +207,8 @@ export function useReleaseMenuItems({
       disabled: addInboundFilterAvailability?.disabledReason !== undefined,
       details: addInboundFilterAvailability?.disabledReason,
       onAction: () => {
-        if (project) {
-          openCustomFilterModalFromRelease(project, release.version);
+        if (fullProject) {
+          openCustomFilterModalFromRelease(fullProject, release.version);
         }
       },
     },

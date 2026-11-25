@@ -34,6 +34,16 @@ describe('ReleaseHeader', () => {
 
   const releaseMeta = ReleaseMetaFixture({projects: [project]});
 
+  beforeEach(() => {
+    ProjectsStore.loadInitialData([
+      ProjectFixture({id: String(project.id), slug: project.slug}),
+    ]);
+  });
+
+  afterEach(() => {
+    act(() => ProjectsStore.reset());
+  });
+
   function renderHeader({
     org = organization,
     pathname,
@@ -237,10 +247,6 @@ describe('ReleaseHeader', () => {
         ]);
       });
 
-      afterEach(() => {
-        act(() => ProjectsStore.reset());
-      });
-
       it('opens the filter modal drafted from the release and saves it', async () => {
         const createMock = MockApiClient.addMockResponse({
           url: createUrl,
@@ -311,6 +317,36 @@ describe('ReleaseHeader', () => {
             name: 'Add Inbound Filter for this release',
           })
         ).not.toBeInTheDocument();
+      });
+
+      it('fetches the selected project when the store does not have it', async () => {
+        ProjectsStore.loadInitialData([]);
+        const projectsMock = MockApiClient.addMockResponse({
+          url: `/organizations/${filterOrg.slug}/projects/`,
+          body: [
+            ProjectFixture({
+              id: String(project.id),
+              slug: project.slug,
+              features: ['custom-inbound-filters'],
+            }),
+          ],
+        });
+        const release = ReleaseFixture({projects: [project]});
+        renderHeader({org: filterOrg, release});
+
+        await waitFor(() => expect(projectsMock).toHaveBeenCalledTimes(1));
+        expect(projectsMock).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            query: expect.objectContaining({query: `slug:${project.slug}`}),
+          })
+        );
+        await userEvent.click(screen.getByRole('button', {name: 'Release Actions'}));
+        expect(
+          await screen.findByRole('menuitemradio', {
+            name: 'Add Inbound Filter for this release',
+          })
+        ).not.toHaveAttribute('aria-disabled', 'true');
       });
     });
   });

@@ -55,8 +55,7 @@ export function ReleaseHeader({
 
   const menuItems = useReleaseMenuItems({
     organization,
-    projectId: String(project.id),
-    projectSlug: project.slug,
+    project,
     refetchData,
     release,
     releaseMeta,
