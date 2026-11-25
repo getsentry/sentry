@@ -7,6 +7,12 @@ from rest_framework.response import Response
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.source_code_management.repo_sync_status import (
+    RepoSyncTrigger,
+    record_sync_failed,
+    record_sync_requested,
+    record_synced,
+)
 from sentry.models.repository import REPOSITORY_NAME_LENGTH, Repository
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
@@ -109,8 +115,32 @@ class OrganizationSeerRepoAccessTest(APITestCase):
         assert response.data == {"status": "no_scm_integration", "connectedAccounts": []}
 
     def test_without_repo_name_found_once_source_control_is_connected(self) -> None:
-        # No repositories yet: connected is enough.
+        # No sync running, like an install from before syncs were tracked: connected is enough.
         self._connect_github()
+
+        response = self._get_without_repo()
+
+        assert response.status_code == 200
+        assert response.data == {"status": "found", "connectedAccounts": []}
+
+    def test_without_repo_name_waits_for_the_repos(self) -> None:
+        integration = self._connect_github()
+        record_sync_requested(self.organization.id, integration.id, RepoSyncTrigger.INSTALL)
+
+        response = self._get_without_repo()
+
+        assert response.status_code == 200
+        assert response.data == {"status": "repos_syncing", "connectedAccounts": []}
+
+        record_synced(self.organization.id, integration.id)
+
+        assert self._get_without_repo().data == {"status": "found", "connectedAccounts": []}
+
+    def test_without_repo_name_found_when_getting_the_repos_failed(self) -> None:
+        # Seer lists what Sentry got. Waiting longer wouldn't help: Sentry retries within a day.
+        integration = self._connect_github()
+        record_sync_requested(self.organization.id, integration.id, RepoSyncTrigger.INSTALL)
+        record_sync_failed(self.organization.id, integration.id, "rate_limited")
 
         response = self._get_without_repo()
 

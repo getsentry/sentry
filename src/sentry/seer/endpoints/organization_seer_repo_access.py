@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Final
+
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
@@ -12,15 +14,21 @@ from sentry.api.authentication import SessionNoAuthTokenAuthentication
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.integrations.services.integration import integration_service
 from sentry.models.organization import Organization
 from sentry.models.repository import REPOSITORY_NAME_LENGTH
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.agent.client_utils import has_seer_agent_access_with_detail
 from sentry.seer.agent.tools import get_repository_definition
-from sentry.seer.scm_connect import NO_SCM_INTEGRATION, has_seer_scm_integration
+from sentry.seer.scm_connect import NO_SCM_INTEGRATION
+from sentry.seer.seer_setup import get_supported_scm_providers
 from sentry.seer.sentry_data_models import RepositoryDefinitionFailure
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.auth import is_user_from_viewer_context
+
+# Asked without a repository: source control is connected, but Sentry is still getting its
+# repositories, so a list of them would come back empty or short.
+REPOS_SYNCING: Final = "repos_syncing"
 
 
 class RepoAccessQuerySerializer(serializers.Serializer):
@@ -71,8 +79,9 @@ class OrganizationSeerRepoAccessEndpoint(OrganizationEndpoint):
         ``scm_account_not_connected``, ``repo_not_in_sentry`` or ``repo_ambiguous``) when it
         can't, or ``unknown`` when the lookup misses for a reason Sentry can't name.
 
-        Without ``repoName``, ``status`` is ``found`` when any source control Seer can use is
-        connected, and ``no_scm_integration`` when none is.
+        Without ``repoName``, ``status`` is ``found`` once source control Seer can use is
+        connected and Sentry has its repositories, ``repos_syncing`` while Sentry is still getting
+        them, and ``no_scm_integration`` when none is connected.
         """
         # The auth middleware signs in a viewer-context user before authentication runs, so the
         # call would pass as a browser session. Refuse it: only the UI checks this.
@@ -93,7 +102,19 @@ class OrganizationSeerRepoAccessEndpoint(OrganizationEndpoint):
 
         repo_name = serializer.validated_data.get("repoName")
         if repo_name is None:
-            status = "found" if has_seer_scm_integration(organization) else NO_SCM_INTEGRATION
+            # On `found`, the popup has Seer list the repositories again. Right after an install
+            # that list would be empty, since the install only starts getting them, so `found`
+            # waits for that.
+            sync = integration_service.get_scm_repo_sync_state(
+                organization_id=organization.id,
+                providers=get_supported_scm_providers(organization),
+            )
+            if not sync.has_integration:
+                status = NO_SCM_INTEGRATION
+            elif sync.syncing:
+                status = REPOS_SYNCING
+            else:
+                status = "found"
             return Response({"status": status, "connectedAccounts": []})
 
         result = get_repository_definition(
