@@ -41,7 +41,7 @@ export const useAiConfig = (group: Group, project: Project): AiConfigResult => {
 
   const hasSummary = Boolean(isSummaryEnabled && areAiFeaturesAllowed);
   const hasAutofix = isAutofixEnabled && areAiFeaturesAllowed && !isSampleError;
-  const hasGithubIntegration = !!autofixSetupData?.integration.ok;
+  const hasGithubIntegration = !!autofixSetupData?.integration?.ok;
 
   return {
     hasSummary,

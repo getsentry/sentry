@@ -72,7 +72,7 @@ export function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
 
   const warnAboutSCMIntegration =
     isGroupMode &&
-    !setupData?.integration.ok &&
+    !setupData?.integration?.ok &&
     shouldShowBilling &&
     !isTouchCustomer &&
     !hasSeerButNeedsPayg;

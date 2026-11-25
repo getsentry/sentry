@@ -7,8 +7,8 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 export interface AutofixSetupResponse {
   billing: {hasAutofixQuota: boolean} | null;
-  integration: {ok: boolean; reason: string | null};
   seerReposLinked: boolean;
+  integration?: {ok: boolean; reason: string | null};
 }
 
 export function autofixSetupApiOptions({
@@ -50,7 +50,7 @@ export function useAutofixSetup(
     data: queryData.data,
     isPending: queryData.isPending,
     refetch: queryData.refetch,
-    canStartAutofix: Boolean(queryData.data?.integration.ok),
+    canStartAutofix: Boolean(queryData.data?.integration?.ok),
     hasAutofixQuota: Boolean(queryData.data?.billing?.hasAutofixQuota),
     seerReposLinked: Boolean(queryData.data?.seerReposLinked),
   };
