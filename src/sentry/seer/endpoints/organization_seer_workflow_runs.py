@@ -141,8 +141,7 @@ class ManualTriggerResponse(TypedDict):
     type: Literal["manual"]
 
 
-# Discriminated by `type`; add new trigger variants to this union. `type` must be a
-# `SeerWorkflowRunSource` value, except `monitor`, the existing name for `event` runs.
+# Discriminated by `type`; add new trigger variants to this union.
 TriggerResponse = MonitorTriggerResponse | CronTriggerResponse | ManualTriggerResponse
 
 
