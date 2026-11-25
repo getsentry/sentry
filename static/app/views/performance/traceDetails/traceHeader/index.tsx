@@ -1,7 +1,11 @@
-import {Container} from '@sentry/scraps/layout';
+import {Fragment} from 'react';
+
+import {EntityHeader} from '@sentry/scraps/entityHeader';
+import type {EntityHeaderLeadingGraphic} from '@sentry/scraps/entityHeader';
 
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import type {AvatarProject} from 'sentry/types/project';
 import {defined} from 'sentry/utils/defined';
 import {useProjects} from 'sentry/utils/useProjects';
 import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
@@ -13,14 +17,16 @@ import type {TraceRootEventQueryResults} from 'sentry/views/performance/traceDet
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import {useTraceContextSections} from 'sentry/views/performance/traceDetails/useTraceContextSections';
 import type {TraceOverviewData} from 'sentry/views/performance/traceDetails/useTraceOverviewData';
+import {useTraceQueryParams} from 'sentry/views/performance/traceDetails/useTraceQueryParams';
 
-import {Highlights} from './highlights';
-import {Meta} from './meta';
-import {PlaceHolder} from './placeholder';
-import {Projects} from './projects';
-import {TraceHeaderComponents} from './styles';
-import {Title} from './title';
 import {TraceBreadcrumbs} from './traceBreadcrumbs';
+import {
+  getReplayId,
+  getTraceMetadataItems,
+  getTraceProperties,
+  getTraceStatItems,
+  getTraceTitle,
+} from './traceEntityHeaderItems';
 
 export interface TraceMetadataHeaderProps {
   metaResults: TraceMetaQueryResults;
@@ -36,10 +42,14 @@ const traceViewFeedbackOptions = {
   tags: {'feedback.source': 'trace-view', 'feedback.owner': 'performance'},
 };
 
+const STATS_LABEL = t('Trace stats');
+const METADATA_LABEL = t('Trace properties');
+
 export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
   const logsEnabled = isLogsEnabled(props.organization);
   const metricsEnabled = canUseMetricsUI(props.organization);
   const {projects} = useProjects();
+  const {timestamp} = useTraceQueryParams();
   const {hasLogs, hasMetrics} = useTraceContextSections({
     tree: props.tree,
     logs: props.overview.logs.representative,
@@ -63,11 +73,30 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
     !hasMetrics &&
     !props.overview.isTabLoading &&
     !isRepresentativeLoading;
+
+  // An error or an empty trace keeps the skeleton: the body below explains it.
   if (isLoading || isError || noEvents) {
-    return <PlaceHolder organization={props.organization} traceSlug={props.traceSlug} />;
+    return (
+      <Fragment>
+        <TraceBreadcrumbs organization={props.organization} traceSlug={props.traceSlug} />
+        <TopBar.Slot name="feedback" feedbackOptions={traceViewFeedbackOptions} />
+        <EntityHeader
+          isLoading
+          title={{type: 'text', label: t('Trace'), value: t('Trace')}}
+          stats={{
+            label: STATS_LABEL,
+            items: [
+              {label: t('Root Duration'), value: null},
+              {label: t('Spans'), value: null},
+              {label: t('Issues'), value: null},
+            ],
+          }}
+          metadata={{label: METADATA_LABEL, items: [null, null, null, null]}}
+        />
+      </Fragment>
+    );
   }
 
-  const isProjectsLoading = props.overview.isProjectsLoading;
   const rep = props.tree.findRepresentativeTraceNode({
     logs: props.overview.logs.representative,
   });
@@ -81,60 +110,72 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
   const overviewProjectSlugs = (props.overview.projectIds ?? [])
     .map(projectId => projects.find(p => p.id === projectId)?.slug)
     .filter(defined);
+  const traceProjects: AvatarProject[] = Array.from(
+    new Set([
+      ...Array.from(props.tree.projects.values()).map(p => p.slug),
+      ...overviewProjectSlugs,
+      ...(project ? [project.slug] : []),
+    ])
+  ).map(slug => projects.find(p => p.slug === slug) ?? {slug});
+
+  const projectsGraphic: EntityHeaderLeadingGraphic | undefined =
+    traceProjects.length > 0
+      ? {
+          type: 'project',
+          projects: traceProjects,
+          label: t('Projects: %s', traceProjects.map(p => p.slug).join(', ')),
+        }
+      : undefined;
+
+  const traceNode = props.tree.root.children[0];
+  // Without trace data, the timestamp from the query params approximates when
+  // the trace started.
+  const startTimestamp =
+    traceNode?.space[0] ?? (timestamp ? timestamp * 1000 : undefined);
+  const traceTitle = getTraceTitle(rep);
 
   return (
-    <TraceHeaderComponents.HeaderLayout>
-      <TraceHeaderComponents.HeaderContent gap="xs">
-        <TraceBreadcrumbs
-          organization={props.organization}
-          traceSlug={props.traceSlug}
-          project={project}
-          rootEventResults={props.rootEventResults}
-        />
-        <TopBar.Slot name="feedback" feedbackOptions={traceViewFeedbackOptions} />
-
-        <TraceHeaderComponents.HeaderGrid>
-          <Container area="title" minWidth={0}>
-            <Title
-              isLoading={isRepresentativeLoading}
-              representativeEvent={rep}
-              rootEventResults={props.rootEventResults}
-            />
-          </Container>
-          <Container area="meta" justifySelf={{zero: 'start', xl: 'end'}}>
-            <Meta
-              tree={props.tree}
-              meta={props.metaResults.data}
-              overview={props.overview}
-              representativeEvent={rep}
-              logsEnabled={logsEnabled}
-              metricsEnabled={metricsEnabled}
-            />
-          </Container>
-          <Container area="highlights" minWidth={0}>
-            <Highlights
-              rootEventResults={props.rootEventResults}
-              project={project}
-              organization={props.organization}
-            />
-          </Container>
-          <Container area="projects" justifySelf={{zero: 'start', xl: 'end'}}>
-            {isProjectsLoading ? (
-              <TraceHeaderComponents.StyledPlaceholder _width={50} _height={28} />
-            ) : (
-              <Projects
-                projectSlugs={Array.from(
-                  new Set([
-                    ...Array.from(props.tree.projects.values()).map(p => p.slug),
-                    ...overviewProjectSlugs,
-                    ...(project ? [project.slug] : []),
-                  ])
-                )}
-              />
-            )}
-          </Container>
-        </TraceHeaderComponents.HeaderGrid>
-      </TraceHeaderComponents.HeaderContent>
-    </TraceHeaderComponents.HeaderLayout>
+    <Fragment>
+      <TraceBreadcrumbs
+        organization={props.organization}
+        traceSlug={props.traceSlug}
+        project={project}
+        rootEventResults={props.rootEventResults}
+      />
+      <TopBar.Slot name="feedback" feedbackOptions={traceViewFeedbackOptions} />
+      <EntityHeader
+        isLoading={isRepresentativeLoading}
+        title={{
+          type: 'text',
+          label: t('Trace'),
+          value: traceTitle.title,
+          leadingGraphic: projectsGraphic,
+        }}
+        stats={{
+          label: STATS_LABEL,
+          items: getTraceStatItems({
+            logsEnabled,
+            meta: props.metaResults.data,
+            metricsEnabled,
+            organization: props.organization,
+            overview: props.overview,
+            representativeEvent: rep,
+            traceSlug: props.traceSlug,
+            tree: props.tree,
+          }),
+        }}
+        metadata={{
+          label: METADATA_LABEL,
+          items: getTraceMetadataItems({
+            operation: traceTitle.operation,
+            organization: props.organization,
+            project,
+            properties: getTraceProperties(props.rootEventResults.data),
+            replayId: getReplayId(props.rootEventResults.data),
+            startTimestamp,
+          }),
+        }}
+      />
+    </Fragment>
   );
 }

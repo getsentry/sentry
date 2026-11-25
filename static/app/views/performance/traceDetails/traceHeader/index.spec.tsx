@@ -23,11 +23,9 @@ import {
   makeUptimeCheck,
 } from 'sentry/views/performance/traceDetails/traceModels/traceTreeTestUtils';
 
-import {Projects} from './projects';
 import {TraceViewSources} from './traceViewSources';
 
 jest.mock('sentry/views/performance/traceDetails/traceState/traceStateProvider');
-jest.mock('sentry/views/performance/traceDetails/traceHeader/projects');
 
 const baseProps: Partial<TraceMetadataHeaderProps> = {
   metaResults: {
@@ -58,7 +56,15 @@ const baseProps: Partial<TraceMetadataHeaderProps> = {
 };
 let organization: Organization;
 
-const projectsMock = jest.mocked(Projects);
+// Outside a <main>, the EntityHeader's <header> is a banner too; the TopBar is
+// the one holding the page's <h1>.
+function getTopBar() {
+  const topBar = screen
+    .getAllByRole('banner')
+    .find(banner => within(banner).queryByRole('heading', {level: 1}));
+  expect(topBar).toBeDefined();
+  return topBar!;
+}
 
 function TestHeader(props: TraceMetadataHeaderProps) {
   return (
@@ -72,7 +78,6 @@ function TestHeader(props: TraceMetadataHeaderProps) {
 describe('TraceMetaDataHeader', () => {
   beforeEach(() => {
     jest.resetAllMocks();
-    projectsMock.mockReturnValue(<div />);
 
     MockApiClient.addMockResponse({
       method: 'GET',
@@ -94,7 +99,7 @@ describe('TraceMetaDataHeader', () => {
         },
       });
 
-      const topBar = screen.getByRole('banner');
+      const topBar = getTopBar();
       const breadcrumbsLinks = within(topBar).getAllByRole('link');
       expect(breadcrumbsLinks).toHaveLength(2);
       expect(breadcrumbsLinks[0]).toHaveTextContent('Backend');
@@ -118,7 +123,7 @@ describe('TraceMetaDataHeader', () => {
         },
       });
 
-      const topBar = screen.getByRole('banner');
+      const topBar = getTopBar();
       const breadcrumbsLinks = within(topBar).getAllByRole('link');
       expect(breadcrumbsLinks).toHaveLength(1);
       expect(breadcrumbsLinks[0]).toHaveTextContent('Transaction Summary');
@@ -145,7 +150,7 @@ describe('TraceMetaDataHeader', () => {
         },
       });
 
-      const topBar = screen.getByRole('banner');
+      const topBar = getTopBar();
       const breadcrumbsLinks = within(topBar).getAllByRole('link');
       expect(breadcrumbsLinks).toHaveLength(1);
       expect(breadcrumbsLinks[0]).toHaveTextContent('Transaction Summary');
@@ -252,10 +257,14 @@ describe('TraceMetaDataHeader', () => {
         },
       });
 
-      // Check for uptime monitor title
-      expect(screen.getByText('Uptime Monitor Check')).toBeInTheDocument();
-      // Check for subtitle with method and URL
-      expect(screen.getByText('GET https://example.com')).toBeInTheDocument();
+      expect(
+        screen.getByRole('heading', {level: 2, name: 'Trace, GET https://example.com'})
+      ).toBeInTheDocument();
+      expect(
+        within(screen.getByRole('list', {name: 'Trace properties'})).getByText(
+          'Uptime Monitor Check'
+        )
+      ).toBeInTheDocument();
     });
   });
 
@@ -282,12 +291,15 @@ describe('TraceMetaDataHeader', () => {
         },
       });
 
-      expect(screen.getByText('Issues')).toBeInTheDocument();
-      expect(screen.getByText('Logs')).toBeInTheDocument();
-      expect(screen.getByText('Metrics')).toBeInTheDocument();
+      const stats = screen.getByRole('list', {name: 'Trace stats'});
+      expect(within(stats).getByText('Issues')).toBeInTheDocument();
+      // Logs and Metrics hold their slots as skeletons until their counts land.
+      expect(within(stats).queryByText('Logs')).not.toBeInTheDocument();
+      expect(within(stats).queryByText('Metrics')).not.toBeInTheDocument();
+      expect(within(stats).getAllByTestId('loading-placeholder')).toHaveLength(2);
     });
 
-    it('keeps the core header for an empty tree while overview availability loads', () => {
+    it('holds the header as a skeleton for an empty tree while the representative event loads', () => {
       const overviewOrganization = OrganizationFixture({
         features: ['ourlogs-enabled', 'tracemetrics-enabled'],
       });
@@ -316,9 +328,9 @@ describe('TraceMetaDataHeader', () => {
         },
       });
 
-      expect(screen.getByText('Issues')).toBeInTheDocument();
-      expect(screen.getByText('Logs')).toBeInTheDocument();
-      expect(screen.getByText('Metrics')).toBeInTheDocument();
+      expect(screen.getByRole('heading', {level: 2})).toHaveAccessibleName('Trace');
+      expect(screen.getByRole('list', {name: 'Trace stats'})).toBeInTheDocument();
+      expect(screen.queryByText('Issues')).not.toBeInTheDocument();
     });
 
     it('renders the core header when root event details fail', () => {
@@ -390,15 +402,18 @@ describe('TraceMetaDataHeader', () => {
         },
       });
 
-      expect(screen.getByText('Representative log message')).toBeInTheDocument();
-      expect(screen.getByText('Logs')).toBeInTheDocument();
-      expect(screen.getByText('4')).toBeInTheDocument();
+      expect(
+        screen.getByRole('heading', {level: 2, name: 'Trace, Representative log message'})
+      ).toBeInTheDocument();
+      const stats = screen.getByRole('list', {name: 'Trace stats'});
+      expect(within(stats).getByText('Logs')).toBeInTheDocument();
+      expect(within(stats).getByText('4')).toBeInTheDocument();
       expect(findRepresentativeTraceNode).toHaveBeenCalledWith({
         logs: representativeLogs,
       });
-      expect(projectsMock.mock.calls[0]?.[0]).toEqual({
-        projectSlugs: ['project-one', 'project-two'],
-      });
+      expect(
+        screen.getByRole('img', {name: 'Projects: project-one, project-two'})
+      ).toBeInTheDocument();
     });
 
     it('should render logs count from trace meta before logs have loaded', () => {
@@ -523,6 +538,93 @@ describe('TraceMetaDataHeader', () => {
       expect(screen.getByText('20')).toBeInTheDocument();
       await userEvent.hover(screen.getByText('20'));
       expect(await screen.findByText('Showing 1 of 20 spans')).toBeInTheDocument();
+    });
+
+    it('links the root event replay in the metadata', () => {
+      const props = {
+        ...baseProps,
+        rootEventResults: {
+          data: TransactionEventFixture({
+            contexts: {
+              replay: {replay_id: '761104e184c64d439ee1014b72b4d83b', type: 'replay'},
+            },
+          }),
+        } as any,
+      } as TraceMetadataHeaderProps;
+      render(<TraceMetaDataHeader {...props} organization={organization} />, {
+        initialRouterConfig: {
+          location: {pathname: '/organizations/org-slug/traces/trace/trace-slug'},
+        },
+      });
+
+      const metadata = screen.getByRole('list', {name: 'Trace properties'});
+      expect(
+        within(metadata).getByRole('link', {name: 'Replay 761104e1'})
+      ).toHaveAttribute(
+        'href',
+        '/organizations/org-slug/explore/replays/761104e184c64d439ee1014b72b4d83b/'
+      );
+      expect(
+        within(screen.getByRole('list', {name: 'Trace stats'})).queryByText('Replays')
+      ).not.toBeInTheDocument();
+    });
+
+    it('renders root event properties as metadata', () => {
+      const props = {
+        ...baseProps,
+        rootEventResults: {
+          data: TransactionEventFixture({
+            contexts: {browser: {name: 'Chrome', version: '120.0'}},
+            tags: [{key: 'environment', value: 'production'}],
+          }),
+        } as any,
+      } as TraceMetadataHeaderProps;
+      render(<TraceMetaDataHeader {...props} organization={organization} />, {
+        initialRouterConfig: {
+          location: {pathname: '/organizations/org-slug/traces/trace/trace-slug'},
+        },
+      });
+
+      const metadata = screen.getByRole('list', {name: 'Trace properties'});
+      expect(within(metadata).getByText('Chrome')).toBeInTheDocument();
+      expect(within(metadata).getByText('120.0')).toBeInTheDocument();
+      expect(within(metadata).getByText('production')).toBeInTheDocument();
+    });
+
+    it('titles a log-only trace with its log message, without escape codes', () => {
+      const logsOrganization = OrganizationFixture({features: ['ourlogs-enabled']});
+      const representativeLog = {
+        [OurLogKnownFieldKey.MESSAGE]: '\x1B[31mfailed\x1B[0m to connect',
+        [OurLogKnownFieldKey.SEVERITY]: 'info',
+      } as NonNullable<
+        TraceMetadataHeaderProps['overview']['logs']['representative']
+      >[number];
+      const tree = TraceTree.Empty();
+      jest
+        .spyOn(tree, 'findRepresentativeTraceNode')
+        .mockReturnValue({event: representativeLog, dataset: null});
+      const props = {
+        ...baseProps,
+        tree,
+        metaResults: {
+          ...baseProps.metaResults,
+          data: {...baseProps.metaResults?.data, logsCount: 1, spansCount: 0},
+        },
+        overview: {
+          ...baseProps.overview,
+          logs: {availability: 'present', count: 1, representative: [representativeLog]},
+        },
+      } as TraceMetadataHeaderProps;
+
+      render(<TraceMetaDataHeader {...props} organization={logsOrganization} />, {
+        initialRouterConfig: {
+          location: {pathname: '/organizations/org-slug/traces/trace/trace-slug'},
+        },
+      });
+
+      expect(
+        screen.getByRole('heading', {level: 2, name: 'Trace, failed to connect'})
+      ).toBeInTheDocument();
     });
   });
 });
