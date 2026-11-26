@@ -14,6 +14,14 @@ describe('getting started with ruby', () => {
     expect(screen.getByRole('heading', {name: 'Install'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Configure SDK'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
+
+    // Uses data_collection instead of the deprecated send_default_pii
+    expect(
+      screen.getByText(textWithMarkupMatcher(/config\.data_collection\.user_info = true/))
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/send_default_pii/))
+    ).not.toBeInTheDocument();
   });
 
   it('renders performance onboarding docs correctly', async () => {
@@ -47,14 +55,14 @@ describe('getting started with ruby', () => {
     ).toBeInTheDocument();
   });
 
-  it('enables logs by setting enable_logs to true', () => {
+  it('does not suggest the removed enable_logs option', () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.LOGS],
     });
 
     expect(
-      screen.getByText(textWithMarkupMatcher(/config.enable_logs = true/))
-    ).toBeInTheDocument();
+      screen.queryByText(textWithMarkupMatcher(/config.enable_logs/))
+    ).not.toBeInTheDocument();
     expect(
       screen.getByText(textWithMarkupMatcher(/config.enabled_patches = \[:logger\]/))
     ).toBeInTheDocument();
