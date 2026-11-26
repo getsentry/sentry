@@ -6,9 +6,11 @@ from sentry.constants import DataCategory
 from sentry.preprod.retention import (
     DEFAULT_RETENTION_DAYS,
     MAX_RETENTION_DAYS,
+    SNAPSHOT_RETENTION_DAYS,
     get_artifact_expiry,
     get_artifact_retention_days,
     get_retention_days,
+    get_snapshot_expiry,
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
@@ -97,4 +99,24 @@ class GetArtifactExpiryTest(TestCase):
         assert get_artifact_expiry(self.organization, date_added) == {
             "date_expires": date_added + timedelta(days=396),
             "date_size_analysis_expires": date_added + timedelta(days=30),
+        }
+
+
+class GetSnapshotExpiryTest(TestCase):
+    @freeze_time("2026-01-01T00:00:00Z")
+    @patch("sentry.quotas.backend.get_event_retention")
+    def test_expiry_counts_from_now(self, mock_retention: MagicMock) -> None:
+        now = datetime(2026, 1, 1, tzinfo=UTC)
+
+        assert get_snapshot_expiry() == {
+            "date_expires": now + timedelta(days=SNAPSHOT_RETENTION_DAYS)
+        }
+        # A snapshot's expiry does not depend on the plan's build retentions.
+        mock_retention.assert_not_called()
+
+    def test_expiry_counts_from_date_added(self) -> None:
+        date_added = datetime(2025, 6, 1, tzinfo=UTC)
+
+        assert get_snapshot_expiry(date_added) == {
+            "date_expires": date_added + timedelta(days=SNAPSHOT_RETENTION_DAYS)
         }

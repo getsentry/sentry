@@ -245,6 +245,8 @@ class PreprodArtifact(DefaultFieldsModel):
     # When the artifact's size analysis expires. Set like `date_expires`, from the Size
     # Analysis retention, which can be shorter than the one of Build Distribution: the
     # artifact then stays installable after its size analysis can no longer be read.
+    # Always null on snapshot artifacts, which have no size analysis, and null on builds
+    # created before the column existed that are not backfilled yet.
     date_size_analysis_expires = models.DateTimeField(null=True)
 
     def get_mobile_app_info(self) -> PreprodArtifactMobileAppInfo | None:
