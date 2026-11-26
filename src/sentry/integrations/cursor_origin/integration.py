@@ -31,6 +31,10 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.repository.model import RpcRepository
+from sentry.integrations.source_code_management.repo_sync_status import (
+    RepoSyncTrigger,
+    record_sync_requested,
+)
 from sentry.integrations.source_code_management.repo_trees import RepoTreesIntegration
 from sentry.integrations.source_code_management.repository import (
     RepositoryInfo,
@@ -313,6 +317,7 @@ class CursorOriginIntegrationProvider(IntegrationProvider):
             )
             return
 
+        record_sync_requested(organization.id, integration.id, RepoSyncTrigger.INSTALL)
         sync_repos_for_org.apply_async(kwargs={"organization_integration_id": org_integration.id})
 
     def setup(self) -> None:

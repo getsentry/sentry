@@ -36,6 +36,10 @@ from sentry.integrations.source_code_management.commit_context import (
     CommitContextIntegration,
     PRCommentWorkflow,
 )
+from sentry.integrations.source_code_management.repo_sync_status import (
+    RepoSyncTrigger,
+    record_sync_requested,
+)
 from sentry.integrations.source_code_management.repository import (
     RepositoryInfo,
     RepositoryIntegration,
@@ -665,6 +669,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
             organization_id=organization.id, integration_id=integration.id
         )
         # Discover and relink repositories without waiting for the daily sync cycle.
+        record_sync_requested(organization.id, integration.id, RepoSyncTrigger.INSTALL)
         sync_repos_for_org.delay(organization_integration_id=org_integration.id)
 
         # A recent settings save must not suppress repair of retained hooks on reinstall.
