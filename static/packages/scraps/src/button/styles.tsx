@@ -16,6 +16,16 @@ export const DO_NOT_USE_BUTTON_ICON_SIZES: Record<ButtonSize, SVGIconProps['size
   md: 'sm',
 };
 
+/**
+ * How far chonky buttons lift their surface and label above their layout box.
+ */
+export const DO_NOT_USE_BUTTON_LIFT: Record<ButtonSize, string> = {
+  zero: '0px',
+  xs: '1px',
+  sm: '2px',
+  md: '2px',
+};
+
 interface ButtonStyleProps {
   busy: boolean;
   /**
@@ -304,7 +314,7 @@ function getSizeTokens(size: ButtonSize, theme: Theme): SizeTokens {
         lineHeight: '1rem',
         padding: `${theme.space.md} ${theme.space.xl}`,
         borderRadius: theme.radius.lg,
-        lift: '2px',
+        lift: DO_NOT_USE_BUTTON_LIFT.md,
       };
     case 'sm':
       return {
@@ -314,7 +324,7 @@ function getSizeTokens(size: ButtonSize, theme: Theme): SizeTokens {
         lineHeight: '1rem',
         padding: `${theme.space.md} ${theme.space.lg}`,
         borderRadius: theme.radius.md,
-        lift: '2px',
+        lift: DO_NOT_USE_BUTTON_LIFT.sm,
       };
     case 'xs':
       return {
@@ -324,7 +334,7 @@ function getSizeTokens(size: ButtonSize, theme: Theme): SizeTokens {
         lineHeight: '1rem',
         padding: `${theme.space.sm} ${theme.space.md}`,
         borderRadius: theme.radius.sm,
-        lift: '1px',
+        lift: DO_NOT_USE_BUTTON_LIFT.xs,
       };
     case 'zero':
       return {
@@ -334,7 +344,7 @@ function getSizeTokens(size: ButtonSize, theme: Theme): SizeTokens {
         lineHeight: '1rem',
         padding: `${theme.space.xs} ${theme.space.sm}`,
         borderRadius: theme.radius.xs,
-        lift: '0px',
+        lift: DO_NOT_USE_BUTTON_LIFT.zero,
       };
   }
 }
