@@ -481,9 +481,9 @@ function EventRunGroup({
           });
         }}
       >
-        <NestedMessageList gap="0" width="100%">
-          {children}
-        </NestedMessageList>
+        {/* No fixed width, so the negative margins widen the list on both sides
+         * and the rows' meta column lines up with the summary's. */}
+        <NestedMessageList gap="0">{children}</NestedMessageList>
       </CollapsibleChatRow>
     </MessageRow>
   );
