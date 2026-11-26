@@ -122,22 +122,21 @@ def per_minute(args: ResolvedArguments, settings: ResolverSettings) -> Column.Bi
 
 WEB_VITALS = ["lcp", "fcp", "cls", "ttfb", "inp"]
 
+# Each web vital metric carries its score ratio (0 to 1) as a numeric attribute.
 WEB_VITAL_SCORE_METRICS: dict[str, TraceMetric] = {
     vital: TraceMetric(
-        metric_name=f"browser.web_vital.{vital}.score",
+        metric_name=f"browser.web_vital.{vital}",
         metric_type="distribution",
-        metric_unit="ratio",
+        metric_unit=None,
     )
     for vital in WEB_VITALS
 }
-
-VALUE_KEY = AttributeKey(name="sentry.value", type=AttributeKey.TYPE_DOUBLE)
 
 TOTAL_SCORE_COUNTS_CACHE_KEY = "trace_metrics_total_score_counts"
 
 
 def _score_count_column(vital: str) -> str:
-    return f"count(value,browser.web_vital.{vital}.score,distribution,ratio)"
+    return f"count(tags[score.ratio.{vital},number],browser.web_vital.{vital},distribution,-)"
 
 
 def _score_aggregate(
@@ -146,7 +145,7 @@ def _score_aggregate(
     return Column(
         conditional_aggregation=AttributeConditionalAggregation(
             aggregate=aggregate,
-            key=VALUE_KEY,
+            key=AttributeKey(name=f"score.ratio.{vital}", type=AttributeKey.TYPE_DOUBLE),
             filter=WEB_VITAL_SCORE_METRICS[vital].get_filter(),
             extrapolation_mode=settings["extrapolation_mode"],
         )

@@ -1023,11 +1023,10 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
         self, vital: str, ratio: float, transaction: str = "/"
     ) -> TraceItem:
         return self.create_trace_metric(
-            f"browser.web_vital.{vital}.score",
-            ratio,
+            f"browser.web_vital.{vital}",
+            1000.0,
             "distribution",
-            metric_unit="ratio",
-            attributes={"sentry.segment.name": transaction},
+            attributes={"sentry.segment.name": transaction, f"score.ratio.{vital}": ratio},
         )
 
     def test_web_vital_total_performance_score(self) -> None:
@@ -1035,7 +1034,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
             [
                 self._create_web_vital_score("lcp", 1.0),
                 self._create_web_vital_score("cls", 0.5),
-                # the raw vital metric must not affect the score
+                # a vital without a score ratio must not affect the score
                 self.create_trace_metric("browser.web_vital.lcp", 1000.0, "distribution"),
             ]
         )
@@ -1123,15 +1122,15 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
             [
                 self._create_web_vital_score("lcp", 0.5),
                 self._create_web_vital_score("cls", 0.25),
-                self.create_trace_metric("browser.web_vital.cls", 0.1, "distribution"),
+                self.create_trace_metric("request_count", 3, "counter"),
             ]
         )
 
         response = self.do_request(
             {
                 "field": [
-                    "p75(value,browser.web_vital.cls,distribution,-)",
-                    "avg(value,browser.web_vital.lcp.score,distribution,ratio)",
+                    "sum(value,request_count,counter,-)",
+                    "avg(tags[score.ratio.lcp,number],browser.web_vital.lcp,distribution,-)",
                     "performance_score()",
                 ],
                 "project": self.project.id,
@@ -1142,9 +1141,9 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
         assert response.status_code == 200, response.content
         data = response.data["data"]
         assert len(data) == 1
-        assert data[0]["p75(value,browser.web_vital.cls,distribution,-)"] == pytest.approx(0.1)
+        assert data[0]["sum(value,request_count,counter,-)"] == 3
         assert data[0][
-            "avg(value,browser.web_vital.lcp.score,distribution,ratio)"
+            "avg(tags[score.ratio.lcp,number],browser.web_vital.lcp,distribution,-)"
         ] == pytest.approx(0.5)
         expected = (0.5 * 0.30 + 0.25 * 0.15) / (0.30 + 0.15)
         assert data[0]["performance_score()"] == pytest.approx(expected)
