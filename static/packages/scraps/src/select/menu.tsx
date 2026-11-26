@@ -13,6 +13,7 @@ import {type VirtualCollection, VirtualRows} from '@sentry/scraps/useVirtualColl
 import {SelectOption, SelectSection} from './option';
 import {CREATE_KEY} from './options';
 import type {getSelectStyles} from './styles';
+import {applyStyleSlot} from './types';
 import type {SelectComponents, SelectValue, StylesConfig} from './types';
 
 export const MENU_GAP = 8;
@@ -109,7 +110,7 @@ export function SelectMenu<TValue, TOption extends SelectValue<TValue>>({
       data-overlay-root=""
       css={
         menuPortalTarget
-          ? (styles?.menuPortal?.(positionStyle, {}) ?? positionStyle)
+          ? applyStyleSlot(styles, 'menuPortal', positionStyle, {})
           : positionStyle
       }
       onKeyDown={event => {
@@ -134,7 +135,7 @@ export function SelectMenu<TValue, TOption extends SelectValue<TValue>>({
           <ul
             {...listBoxProps}
             ref={listRef}
-            css={styles?.menuList?.(menuListStyle, {}) ?? menuListStyle}
+            css={applyStyleSlot(styles, 'menuList', menuListStyle, {})}
           >
             <VirtualRows
               virtual={virtual}
@@ -156,10 +157,12 @@ export function SelectMenu<TValue, TOption extends SelectValue<TValue>>({
               renderSection={(section, children) => (
                 <SelectSection
                   row={section}
-                  headingStyle={
-                    styles?.groupHeading?.(selectStyles.heading, {}) ??
-                    selectStyles.heading
-                  }
+                  headingStyle={applyStyleSlot(
+                    styles,
+                    'groupHeading',
+                    selectStyles.heading,
+                    {}
+                  )}
                 >
                   {children}
                 </SelectSection>

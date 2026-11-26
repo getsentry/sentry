@@ -4,6 +4,7 @@ import {IconClose} from '@sentry/icons/close';
 import {useTranslation} from '@sentry/scraps/translation';
 
 import type {getSelectStyles} from './styles';
+import {applyStyleSlot} from './types';
 import type {SelectComponents, SelectValue, StylesConfig} from './types';
 
 export function SelectChips<TValue, TOption extends SelectValue<TValue>>({
@@ -36,21 +37,19 @@ export function SelectChips<TValue, TOption extends SelectValue<TValue>>({
       isSelected: true,
     };
     const focusRing = index === focusedChip ? theme.focusRing() : undefined;
+    const chipStyle = {...selectStyles.chip, ...focusRing};
     return (
       <div
         key={key ?? index}
-        css={
-          styles?.multiValue?.({...selectStyles.chip, ...focusRing}, optionStyle) ?? {
-            ...selectStyles.chip,
-            ...focusRing,
-          }
-        }
+        css={applyStyleSlot(styles, 'multiValue', chipStyle, optionStyle)}
       >
         <span
-          css={
-            styles?.multiValueLabel?.(selectStyles.chipLabel, optionStyle) ??
-            selectStyles.chipLabel
-          }
+          css={applyStyleSlot(
+            styles,
+            'multiValueLabel',
+            selectStyles.chipLabel,
+            optionStyle
+          )}
         >
           {MultiValueLabel ? (
             <MultiValueLabel option={option}>{option.label}</MultiValueLabel>
@@ -63,10 +62,12 @@ export function SelectChips<TValue, TOption extends SelectValue<TValue>>({
             type="button"
             tabIndex={-1}
             aria-label={t('Remove item')}
-            css={
-              styles?.multiValueRemove?.(selectStyles.chipRemove, optionStyle) ??
-              selectStyles.chipRemove
-            }
+            css={applyStyleSlot(
+              styles,
+              'multiValueRemove',
+              selectStyles.chipRemove,
+              optionStyle
+            )}
             onMouseDown={event => event.preventDefault()}
             onClick={() => onRemove(index)}
           >

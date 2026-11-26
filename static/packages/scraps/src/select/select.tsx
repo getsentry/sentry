@@ -37,6 +37,7 @@ import {SelectIndicators} from './indicators';
 import {MENU_GAP, SelectMenu} from './menu';
 import {CREATE_KEY, useOptionIndex, type OptionRow} from './options';
 import {getSelectStyles} from './styles';
+import {applyStyleSlot} from './types';
 import type {
   SelectComponents,
   SelectHandle,
@@ -410,7 +411,7 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
     searchable,
   });
   const baseMenuStyle: CSSObject = {...selectStyles.menu, maxWidth: props.maxMenuWidth};
-  const menuStyle = styles?.menu?.(baseMenuStyle, {}) ?? baseMenuStyle;
+  const menuStyle = applyStyleSlot(styles, 'menu', baseMenuStyle, {});
   const shouldLockMenuWidth = isOpen && virtualized && menuStyle.width === 'max-content';
   const widestKey = shouldLockMenuWidth
     ? getWidestMenuItemKey(
@@ -624,17 +625,15 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
       className={props.className}
       ref={selectRef}
       data-scraps-select=""
-      css={
-        styles?.container?.(selectStyles.container, {isDisabled: disabled}) ??
-        selectStyles.container
-      }
+      css={applyStyleSlot(styles, 'container', selectStyles.container, {
+        isDisabled: disabled,
+      })}
     >
       <div
         ref={mergeRefs<HTMLDivElement>(controlRef, element => setTriggerElement(element))}
-        css={
-          styles?.control?.(selectStyles.control, {isDisabled: disabled}) ??
-          selectStyles.control
-        }
+        css={applyStyleSlot(styles, 'control', selectStyles.control, {
+          isDisabled: disabled,
+        })}
         onMouseDown={event => {
           if (
             event.target !== inputRef.current &&
@@ -679,10 +678,12 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
           )}
           {!query && !multiple && first && (
             <div
-              css={
-                styles?.singleValue?.(selectStyles.singleValue, optionStyle(first)) ??
-                selectStyles.singleValue
-              }
+              css={applyStyleSlot(
+                styles,
+                'singleValue',
+                selectStyles.singleValue,
+                optionStyle(first)
+              )}
             >
               {Value ? (
                 <Value option={first} />
@@ -702,10 +703,7 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
           )}
           {!query && !selected.length && (
             <div
-              css={
-                styles?.placeholder?.(selectStyles.placeholder, {}) ??
-                selectStyles.placeholder
-              }
+              css={applyStyleSlot(styles, 'placeholder', selectStyles.placeholder, {})}
             >
               {placeholder === undefined ? t('Select...') : placeholder}
             </div>
@@ -749,7 +747,7 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
                 : undefined
             }
             tabIndex={props.tabIndex}
-            css={styles?.input?.(selectStyles.input, {}) ?? selectStyles.input}
+            css={applyStyleSlot(styles, 'input', selectStyles.input, {})}
           />
         </div>
         <SelectIndicators
