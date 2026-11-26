@@ -16,6 +16,7 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.preprod.artifact_search import artifact_matches_query
 from sentry.preprod.models import PreprodArtifact
+from sentry.preprod.retention import get_retention_days
 
 logger = logging.getLogger(__name__)
 
@@ -25,16 +26,8 @@ class PreprodFeature(Enum):
     BUILD_DISTRIBUTION = "build_distribution"
 
 
-DEFAULT_SIZE_RETENTION_DAYS = 90
-
-
 def get_size_retention_cutoff(organization: Organization) -> datetime:
-    retention_days = (
-        quotas.backend.get_event_retention(
-            organization=organization, category=DataCategory.SIZE_ANALYSIS
-        )
-        or DEFAULT_SIZE_RETENTION_DAYS
-    )
+    retention_days = get_retention_days(organization, DataCategory.SIZE_ANALYSIS)
     return timezone.now() - timedelta(days=retention_days)
 
 

@@ -194,23 +194,6 @@ class GroupSubscriptionManager(BaseManager["GroupSubscription"]):
                     result.add(provider, user, reason)
         return result
 
-    def get_possible_team_actors(self, group: Group) -> list[Actor]:
-        from sentry.models.team import Team
-
-        possible_teams_ids = Team.objects.filter(id__in=self.get_participating_team_ids(group))
-        return Actor.many_from_object(possible_teams_ids)
-
-    def get_subscriptions_by_team_id(
-        self, group: Group, possible_team_actors: list[Actor]
-    ) -> dict[int, GroupSubscription]:
-        active_and_disabled_team_subscriptions = self.filter(
-            group=group, team_id__in=[t.id for t in possible_team_actors]
-        )
-        return {
-            subscription.team_id: subscription
-            for subscription in active_and_disabled_team_subscriptions
-        }
-
     @staticmethod
     def get_participating_user_ids(group: Group) -> list[int]:
         """Return the list of user ids participating in this issue."""
@@ -221,18 +204,6 @@ class GroupSubscriptionManager(BaseManager["GroupSubscription"]):
                 group=group, is_active=True, team=None
             ).values_list("user_id", flat=True)
             if user_id is not None
-        ]
-
-    @staticmethod
-    def get_participating_team_ids(group: Group) -> list[int]:
-        """Return the list of team ids participating in this issue."""
-
-        return [
-            team_id
-            for team_id in GroupSubscription.objects.filter(
-                group=group, is_active=True, user_id=None
-            ).values_list("team_id", flat=True)
-            if team_id is not None
         ]
 
 

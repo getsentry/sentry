@@ -878,6 +878,40 @@ describe('IssueStackTrace', () => {
       });
     });
 
+    it('collapses the registers of a frame that shows extracted variables', async () => {
+      const {event, stacktrace} = makeCopyTestData();
+      stacktrace.registers = {x0: '0x0000000000000001'};
+      stacktrace.frames = [
+        FrameFixture({
+          filename: 'variables_crash.c',
+          function: 'crash',
+          lineNo: 45,
+          platform: undefined,
+          context: [[45, 'null_player->id = 999;']],
+          vars: {crash_float: {kind: 'local', type: 'float', value: 25.5}},
+        }),
+      ];
+
+      render(
+        <IssueStackTrace
+          event={{...event, platform: 'native'}}
+          stacktrace={stacktrace}
+          projectSlug="project-slug"
+        />,
+        {organization: OrganizationFixture({features: ['native-variable-extraction']})}
+      );
+
+      const toggle = await screen.findByRole('button', {
+        name: 'Registers',
+        expanded: false,
+      });
+      expect(screen.getByText('crash_float')).toBeInTheDocument();
+      expect(screen.queryByText('x0')).not.toBeInTheDocument();
+
+      await userEvent.click(toggle);
+      expect(screen.getByText('x0')).toBeInTheDocument();
+    });
+
     it('does not include spurious exception header when copying as text', async () => {
       const {event, stacktrace} = makeCopyTestData();
 

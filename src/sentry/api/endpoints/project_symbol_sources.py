@@ -454,23 +454,20 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
         if "id" not in source:
             source["id"] = str(uuid4())
 
+        index = next((i for i, src in enumerate(sources) if src["id"] == id), None)
+        if index is None:
+            return Response(data={"error": f"Unknown source id: {id}"}, status=404)
+
         try:
-            sources_by_id = {src["id"]: src for src in sources}
-            backfill_source(source, sources_by_id)
-        except InvalidSourcesError:
-            return Response(status=400)
+            # Secrets are always restored from the source being replaced (`?id=`), never from the
+            # source named by the body's `id`, which may refer to a different source.
+            backfill_source(source, sources[index])
+        except InvalidSourcesError as e:
+            return Response(data={"error": str(e)}, status=400)
         except KeyError:
             return Response(status=400)
 
-        found = False
-        for i in range(len(sources)):
-            if sources[i]["id"] == id:
-                found = True
-                sources[i] = source
-                break
-
-        if not found:
-            return Response(data={"error": f"Unknown source id: {id}"}, status=404)
+        sources[index] = source
 
         try:
             validate_sources(sources)

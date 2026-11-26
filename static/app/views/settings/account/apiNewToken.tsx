@@ -22,6 +22,7 @@ import {
   DISTRIBUTION_SENTRY_APP_PERMISSION,
   SENTRY_APP_PERMISSIONS,
   SERVICE_ACCOUNT_SENTRY_APP_PERMISSION,
+  USER_PREFERENCE_SENTRY_APP_PERMISSION,
 } from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import type {Permissions} from 'sentry/types/integrations';
@@ -61,14 +62,16 @@ const INITIAL_PERMISSIONS: Permissions = {
   Alerts: 'no-access',
   Distribution: 'no-access',
   ServiceAccount: 'no-access',
+  UserPreference: 'no-access',
 };
 
 // Personal tokens can't be used for Distribution. The point of
 // Distribution is to embed the token into an app. We don't want people
 // using personal tokens for that.
-const DISPLAYED_PERMISSIONS = SENTRY_APP_PERMISSIONS.filter(
-  o => o !== DISTRIBUTION_SENTRY_APP_PERMISSION
-);
+const DISPLAYED_PERMISSIONS = [
+  ...SENTRY_APP_PERMISSIONS.filter(o => o !== DISTRIBUTION_SENTRY_APP_PERMISSION),
+  USER_PREFERENCE_SENTRY_APP_PERMISSION,
+];
 
 function getPermissionsPreview(scopes: string[]): string {
   return scopes.join(', ');

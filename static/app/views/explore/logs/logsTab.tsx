@@ -53,6 +53,7 @@ import {
 } from 'sentry/views/explore/contexts/logs/logsPageData';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useLogAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
+import {useSearchAttributeKeyQuery} from 'sentry/views/explore/hooks/useSearchAttributeKeyQuery';
 import {useLogItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {
   useQueryParamsAggregateSortBys,
@@ -146,19 +147,29 @@ const LogsSearchSection = memo(function LogsSearchSectionImpl({
 
   const organization = useOrganization();
   const supportsArrays = organization.features.includes('trace-item-array-query-support');
-  const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
-    useLogItemAttributes({}, 'string', HiddenLogSearchFields);
-  const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
-    useLogItemAttributes({}, 'number', HiddenLogSearchFields);
-  const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
-    useLogItemAttributes({}, 'boolean', HiddenLogSearchFields);
-  const {attributes: arrayAttributes, secondaryAliases: arraySecondaryAliases} =
-    useLogItemAttributes({enabled: supportsArrays}, 'array', HiddenLogSearchFields);
+  const {data: validatedSearchQueryData, isPlaceholderData: validationIsPlaceholderData} =
+    useValidateLogsTab();
+  const attributeKeyQuery = useSearchAttributeKeyQuery(logsSearch.formatString(), {
+    data: validatedSearchQueryData,
+    isPlaceholderData: validationIsPlaceholderData,
+  });
 
-  const {data: validatedSearchQueryData} = useValidateLogsTab();
+  const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
+    useLogItemAttributes({query: attributeKeyQuery}, 'string', HiddenLogSearchFields);
+  const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
+    useLogItemAttributes({query: attributeKeyQuery}, 'number', HiddenLogSearchFields);
+  const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
+    useLogItemAttributes({query: attributeKeyQuery}, 'boolean', HiddenLogSearchFields);
+  const {attributes: arrayAttributes, secondaryAliases: arraySecondaryAliases} =
+    useLogItemAttributes(
+      {query: attributeKeyQuery, enabled: supportsArrays},
+      'array',
+      HiddenLogSearchFields
+    );
 
   const {tracesItemSearchQueryBuilderProps, searchQueryBuilderProviderProps} =
     useLogsSearchQueryBuilderProps({
+      attributeKeyQuery,
       arrayAttributes,
       booleanAttributes,
       numberAttributes,

@@ -1,9 +1,9 @@
 import {useEffect, useImperativeHandle} from 'react';
+import {IconAdd} from '@sentry/icons/add';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
-import {LinkButton} from '@sentry/scraps/button';
-import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {
   ScrapsForm,
@@ -12,13 +12,16 @@ import {
   useScrapsForm,
   useSelector,
 } from '@sentry/scraps/form';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Select} from '@sentry/scraps/select';
 import {Switch} from '@sentry/scraps/switch';
 import {Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
-import {t} from 'sentry/locale';
+import {timezoneOptions} from 'sentry/data/timezones';
+import {t, tct} from 'sentry/locale';
 import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
@@ -37,6 +40,7 @@ import {
   type CreateAutomationFormProps,
   type EditAutomationFormProps,
 } from './baseForm';
+import {hasDuplicateCrontabs, isValidCrontab, ScheduleField} from './scheduleField';
 import {
   DEFAULT_SERVICE_ACCOUNT_SCOPES,
   getServiceAccountProjectIds,
@@ -48,9 +52,29 @@ import {
   type ProjectSelection,
 } from './serviceAccountAccess';
 
+/**
+ * The most schedules one automation can run on
+ */
+const MAX_SCHEDULES = 5;
+
 const schema = z.object({
   name: z.string().trim().min(1, t('Give your automation a name.')).max(64),
   enabled: z.boolean(),
+  crontabs: z
+    .array(
+      z
+        .string()
+        .trim()
+        .refine(isValidCrontab, {
+          message: t('Enter a valid crontab schedule, e.g. 0 0 * * *'),
+        })
+    )
+    .min(1)
+    .max(MAX_SCHEDULES),
+  /**
+   * IANA name that every schedule is evaluated in
+   */
+  timezone: z.string(),
   projects: z
     .object({allProjects: z.boolean(), projectIds: z.array(z.string())})
     .refine(projects => projects.allProjects || projects.projectIds.length > 0, {
@@ -68,6 +92,11 @@ const schema = z.object({
     .array(z.string())
     .min(1, t('Give the service account at least one permission.')),
 });
+
+/**
+ * Every day at midnight
+ */
+const DEFAULT_CRONTAB = '0 0 * * *';
 
 const ENVIRONMENTS = ['production', 'staging', 'development'];
 
@@ -115,6 +144,7 @@ export function ScheduledInvestigationForm(
   const mutationError = props.mode === 'create' ? createConfig.error : updateConfig.error;
   const saveConfig = async (value: z.infer<typeof schema>) => {
     const fields = {
+      cronSchedules: value.crontabs.map(crontab => ({crontab, timezone: value.timezone})),
       projectIds: value.projects.allProjects
         ? [ALL_ACCESS_PROJECTS]
         : value.projects.projectIds.map(Number),
@@ -160,6 +190,8 @@ export function ScheduledInvestigationForm(
         props.mode === 'create'
           ? t('Scheduled Investigation')
           : (props.config.name ?? STRATEGY_META.scheduled_investigation.label),
+      crontabs: [DEFAULT_CRONTAB],
+      timezone: 'UTC',
       projects: defaultProjects,
       environment: currEnvironment,
       serviceAccountProjects: getServiceAccountProjectSelection(serviceAccount),
@@ -169,12 +201,18 @@ export function ScheduledInvestigationForm(
     },
     validators: defaultFormValidators(schema),
     onSubmit: async ({value, formApi, createValidationError}) => {
+      if (hasDuplicateCrontabs(value.crontabs)) {
+        toast.error(t('Each crontab must be different. Remove the duplicates to save.'));
+        return;
+      }
       try {
         const config = await saveConfig(schema.parse(value));
         if (props.mode === 'edit') {
           formApi.reset({
             name: value.name,
             enabled: config.enabled,
+            crontabs: value.crontabs,
+            timezone: value.timezone,
             projects: getProjectSelection(config.projects),
             environment: config.environments[0] ?? '',
             serviceAccountProjects: getServiceAccountProjectSelection(
@@ -246,20 +284,74 @@ export function ScheduledInvestigationForm(
 
           <FormSection title={t('Trigger')}>
             <form.FieldGroup>
-              {/* Not configurable yet, so this shows the fixed schedule */}
-              <DisplayField.Row
-                label={t('Schedule')}
-                hintText={t('(mock) Runs on a schedule.')}
-              >
-                <CompactSelect
-                  value="twice-daily"
-                  onChange={() => {}}
-                  disabled={readOnly}
-                  options={[
-                    {value: 'twice-daily', label: t('Every day at 8 AM and 8 PM')},
-                  ]}
-                />
-              </DisplayField.Row>
+              <form.ArrayField name="crontabs">
+                {field => {
+                  const atMax = field.value.length >= MAX_SCHEDULES;
+                  return (
+                    <DisplayField.Row
+                      label={t('Schedule')}
+                      hintText={tct(
+                        'Runs on a schedule. Use [link:the crontab syntax].',
+                        {link: <ExternalLink href="https://en.wikipedia.org/wiki/Cron" />}
+                      )}
+                    >
+                      <Stack gap="md" flexGrow={1}>
+                        {field.value.map((_, index) => (
+                          <form.Field key={index} name={`crontabs[${index}]`}>
+                            {crontabField => (
+                              <crontabField.Base<HTMLInputElement>>
+                                {({disabled: _disabled, ...inputProps}) => (
+                                  <ScheduleField
+                                    value={crontabField.value}
+                                    onChange={crontabField.handleChange}
+                                    onRemove={() => field.removeValue(index)}
+                                    // An automation always has at least one schedule
+                                    canRemove={field.value.length > 1}
+                                    disabled={readOnly}
+                                    inputProps={inputProps}
+                                  />
+                                )}
+                              </crontabField.Base>
+                            )}
+                          </form.Field>
+                        ))}
+                        <Grid columns="minmax(0, 1fr) max-content" gap="md">
+                          <form.Field name="timezone">
+                            {timezoneField => (
+                              <timezoneField.Base>
+                                {() => (
+                                  <Stack width="100%">
+                                    <Select
+                                      aria-label={t('Timezone')}
+                                      value={timezoneField.value}
+                                      options={timezoneOptions}
+                                      disabled={readOnly}
+                                      onChange={option =>
+                                        timezoneField.handleChange(option.value)
+                                      }
+                                    />
+                                  </Stack>
+                                )}
+                              </timezoneField.Base>
+                            )}
+                          </form.Field>
+                          <Button
+                            aria-label={t('Add schedule')}
+                            icon={<IconAdd />}
+                            disabled={readOnly || atMax}
+                            tooltipProps={{
+                              title: atMax
+                                ? t('You have reached the maximum number of crontabs.')
+                                : t('Add a crontab'),
+                            }}
+                            onClick={() => field.pushValue(DEFAULT_CRONTAB)}
+                          />
+                        </Grid>
+                      </Stack>
+                    </DisplayField.Row>
+                  );
+                }}
+              </form.ArrayField>
             </form.FieldGroup>
           </FormSection>
 

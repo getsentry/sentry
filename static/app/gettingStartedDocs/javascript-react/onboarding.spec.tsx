@@ -149,6 +149,19 @@ describe('javascript-react onboarding docs', () => {
     ).toBeInTheDocument();
   });
 
+  it('tells the user to render ErrorButton in the verify step', () => {
+    renderWithOnboardingLayout(docs);
+
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher(/Render <ErrorButton \/> in one of your components/)
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher(/function ErrorButton\(\)/))
+    ).toBeInTheDocument();
+  });
+
   it('includes metrics API calls in verify when metrics is selected', () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.METRICS],

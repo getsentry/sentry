@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import {
   createIdempotentOperationMatcher,
+  isIdempotentRequest,
   selectIdempotentWrites,
 } from "../../src/api-client/idempotent-operations.ts";
 
@@ -74,5 +75,20 @@ describe("createIdempotentOperationMatcher", () => {
     matcher("POST", url);
     matcher("POST", url);
     expect(loads).toBe(1);
+  });
+});
+
+describe("isIdempotentRequest", () => {
+  test("replays only GET, HEAD, and OPTIONS by default", () => {
+    for (const method of ["GET", "head", "OPTIONS"]) {
+      expect(isIdempotentRequest(method)).toBe(true);
+    }
+    for (const method of ["POST", "PUT", "PATCH", "DELETE"]) {
+      expect(isIdempotentRequest(method)).toBe(false);
+    }
+  });
+
+  test("replays any method when the caller opts in", () => {
+    expect(isIdempotentRequest("POST", true)).toBe(true);
   });
 });

@@ -4,6 +4,7 @@ export type QuickStartEventParameters = {
     source:
       | 'targeted_onboarding_welcome_skip'
       | 'targeted_onboarding_first_event_footer_skip'
+      | 'targeted_onboarding_setup_docs_setup_later'
       | 'targeted_onboarding_scm_connect_skip'
       | 'targeted_onboarding_scm_platform_features_skip'
       | 'onboarding_sidebar';

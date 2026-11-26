@@ -10,36 +10,58 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {FrameVariablesGrid} from './frameVariablesGrid';
 
 describe('FrameVariablesGrid', () => {
-  it('renders proposed native payloads with type labels and formatted values', async () => {
+  it('renders extracted native variables with type labels, pointer chains and values', async () => {
     const writeText = jest.fn().mockResolvedValue(undefined);
     Object.assign(navigator, {clipboard: {writeText}});
     render(
       <FrameVariablesGrid
         platform="native"
         data={{
-          argc: {kind: 'parameter', type: 'int', formatted: '0x2'},
-          player: {kind: 'local', type: 'Player *', formatted: null},
-          token: {kind: 'local', type: 'char *', formatted: null},
+          argc: {kind: 'parameter', type: 'int', value: 2},
+          health_ptr: {
+            kind: 'local',
+            type: 'float*',
+            pointer_address: ['0x000000016b29a4b0'],
+            value: -5.5,
+          },
+          null_player: {
+            kind: 'local',
+            type: 'Player*',
+            pointer_address: ['0x0000000000000000'],
+          },
+          buffer: {kind: 'local', type: ''},
+          token: {
+            kind: 'local',
+            type: 'char*',
+            pointer_address: ['0x000000016b29a4c0'],
+            value: null,
+          },
           legacy: '0x1 (int)',
         }}
-        meta={{token: {formatted: {'': {rem: [['!config', 'x']]}}}}}
+        meta={{token: {value: {'': {rem: [['!config', 'x']]}}}}}
       />,
       {organization: OrganizationFixture({features: ['native-variable-extraction']})}
     );
 
     expect(screen.getByText('int')).toBeInTheDocument();
-    expect(screen.getByText('Player *')).toBeInTheDocument();
+    expect(screen.getByText('float*')).toBeInTheDocument();
+    expect(screen.getByText('0x000000016b29a4b0 \u2192')).toBeInTheDocument();
+    expect(screen.getByText('-5.5')).toBeInTheDocument();
+    expect(screen.getByText('nullptr')).toBeInTheDocument();
+    expect(screen.queryByText(/0x0000000000000000/)).not.toBeInTheDocument();
     expect(screen.getByText('Unavailable')).toBeInTheDocument();
     expect(screen.getByText('<redacted>')).toBeInTheDocument();
     expect(screen.getByText('0x1 (int)')).toBeInTheDocument();
     expect(
-      screen.queryByRole('button', {name: 'Copy player value'})
+      screen.queryByRole('button', {name: 'Copy buffer value'})
     ).not.toBeInTheDocument();
     expect(
       screen.queryByRole('button', {name: 'Copy token value'})
     ).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', {name: 'Copy argc value'}));
-    expect(writeText).toHaveBeenCalledWith('0x2');
+    expect(writeText).toHaveBeenCalledWith('2');
+    await userEvent.click(screen.getByRole('button', {name: 'Copy health_ptr value'}));
+    expect(writeText).toHaveBeenLastCalledWith('-5.5');
   });
 
   it('uses the legacy renderer without the variable extraction flag', () => {

@@ -52,10 +52,3 @@ export const bigNumFormatter = (
   }
   return num + (units === BigNumUnits.KILO_BYTES ? ' bytes' : '');
 };
-
-export const midPeriod = (period: string[]) => {
-  const [start, end] = period;
-  const startTimestamp = new Date(start!).getTime() / 1000;
-  const endTimestamp = new Date(end!).getTime() / 1000;
-  return (startTimestamp + endTimestamp) / 2;
-};

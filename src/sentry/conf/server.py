@@ -186,6 +186,7 @@ SENTRY_DEBUG_FILES_REDIS_CLUSTER = "default"
 SENTRY_MONITORS_REDIS_CLUSTER = "default"
 SENTRY_STATISTICAL_DETECTORS_REDIS_CLUSTER = "default"
 SENTRY_ESCALATION_THRESHOLDS_REDIS_CLUSTER = "default"
+SENTRY_ANOMALY_DETECTION_REDIS_CLUSTER = "default"
 # Redis cluster for span buffer data and flush locks. Flush locks must remain
 # on this cluster because add-buffer.lua checks lock existence atomically.
 SENTRY_SPAN_BUFFER_CLUSTER = "default"
@@ -910,6 +911,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.demo_mode.tasks",
     "sentry.dynamic_sampling.per_org.feature_cache",
     "sentry.dynamic_sampling.per_org.scheduler",
+    "sentry.feedback.tasks.spam_shadow",
     "sentry.feedback.tasks.update_user_reports",
     "sentry.hybridcloud.tasks.deliver_from_outbox",
     "sentry.hybridcloud.tasks.deliver_webhooks",
@@ -944,6 +946,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.issues.action_log.tasks",
     "sentry.issues.derived.tasks",
     "sentry.issues.escalating.forecasts",
+    "sentry.issues.impact.tasks",
     "sentry.middleware.integrations.tasks",
     "sentry.models.counter",
     "sentry.monitors.tasks.clock_pulse",
@@ -1237,6 +1240,11 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "seer:sentry.tasks.seer.night_shift.schedule_night_shift",
         # Run every 12 hours, at 10:00 and 22:00 UTC
         "schedule": crontab("0", "10,22", "*", "*", "*"),
+    },
+    "issues-scheduled-impact-assessments": {
+        "task": "seer:sentry.issues.impact.tasks.schedule_impact_assessments",
+        # Every hour, on the hour
+        "schedule": crontab("0", "*", "*", "*", "*"),
     },
     "seer-autofix-issue-data-judging": {
         "task": "seer:sentry.tasks.seer.autofix_issue_data.schedule_judging",
@@ -2074,8 +2082,6 @@ GRANULAR_SCOPES = frozenset(
         "dashboard:write",
         "saved_query:read",
         "saved_query:write",
-        "user_preference:read",
-        "user_preference:write",
         # Accepted by endpoints, but not granted by any role yet.
         "membership:read",
         "membership:write",
@@ -2096,35 +2102,26 @@ DEPRECATED_SCOPE_TRANSLATIONS: dict[str, frozenset[str]] = {
             "dashboard:write",
             "saved_query:read",
             "saved_query:write",
-            # Recent searches and prompt activity accept org:read today, including writes.
-            "user_preference:read",
-            "user_preference:write",
         ]
     ),
-    # Starring and starred order accept member:read today, including writes.
     "member:read": frozenset(
         [
             # Removed once member:read has a full 1:1 translation to granular scopes.
             "member:read",
             # Org and team membership reads.
             "membership:read",
-            "user_preference:read",
-            "user_preference:write",
         ]
     ),
     # Membership scopes don't imply each other, and each endpoint method accepts only the one
     # it needs. So each member scope translates to the membership scope of every method that
     # accepts that member scope today, e.g. member:write can read and invite as well as write.
     "member:invite": frozenset(["member:invite", "membership:invite"]),
-    # Starring and starred order accept member:write too, like member:read.
     "member:write": frozenset(
         [
             "member:write",
             "membership:read",
             "membership:invite",
             "membership:write",
-            "user_preference:read",
-            "user_preference:write",
         ]
     ),
     "member:admin": frozenset(
@@ -2269,6 +2266,8 @@ SENTRY_ROLES: tuple[RoleDict, ...] = (
             "team:read",
             "alerts:read",
             "alerts:write",
+            "user_preference:read",
+            "user_preference:write",
             "seer:read",
             "seer:write",
         },
@@ -2304,6 +2303,8 @@ SENTRY_ROLES: tuple[RoleDict, ...] = (
             "org:integrations",
             "alerts:read",
             "alerts:write",
+            "user_preference:read",
+            "user_preference:write",
             "seer:read",
             "seer:write",
         },
@@ -2333,6 +2334,8 @@ SENTRY_ROLES: tuple[RoleDict, ...] = (
             "org:integrations",
             "alerts:read",
             "alerts:write",
+            "user_preference:read",
+            "user_preference:write",
             "seer:read",
             "seer:write",
             "service_account:read",
@@ -2371,6 +2374,8 @@ SENTRY_ROLES: tuple[RoleDict, ...] = (
             "event:admin",
             "alerts:read",
             "alerts:write",
+            "user_preference:read",
+            "user_preference:write",
             "seer:read",
             "seer:write",
             "service_account:read",

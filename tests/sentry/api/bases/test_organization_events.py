@@ -2,8 +2,13 @@ from typing import Any
 
 from django.test import RequestFactory
 
-from sentry.api.bases.organization_events import OrganizationEventsEndpointBase
+from sentry.api.bases.organization_events import (
+    OrganizationEventsEndpointBase,
+    requests_legacy_dataset,
+    requests_legacy_replay_data_source,
+)
 from sentry.auth import access
+from sentry.auth.services.auth import AuthenticatedToken
 from sentry.snuba import discover, metrics_enhanced_performance, metrics_performance, transactions
 from sentry.testutils.cases import TestCase
 from sentry.testutils.requests import drf_request_from_request
@@ -113,3 +118,40 @@ class OrganizationEventsEndpointBaseCaseInsensitiveTest(TestCase):
 
     def test_missing_keeps_case_sensitive(self) -> None:
         assert self.resolve() is False
+
+
+class RequestsLegacyDatasetTest(TestCase):
+    def check(
+        self,
+        params: dict[str, str],
+        *,
+        token: bool = True,
+        replay_count: bool = False,
+        flag: bool = True,
+    ) -> bool:
+        request = RequestFactory().get("/", params)
+        if token:
+            request.auth = AuthenticatedToken(kind="api_token", user_id=self.user.id)
+        predicate = requests_legacy_replay_data_source if replay_count else requests_legacy_dataset
+        with self.feature({"organizations:legacy-datasets-api-brownout": flag}):
+            return predicate(drf_request_from_request(request), self.organization)
+
+    def test_legacy_datasets(self) -> None:
+        assert self.check({"dataset": "discover"}) is True
+        assert self.check({"dataset": "transactions"}) is True
+        assert self.check({"dataset": "events"}) is True
+
+    def test_missing_dataset_defaults_to_discover(self) -> None:
+        assert self.check({}) is True
+
+    def test_replacement_datasets(self) -> None:
+        assert self.check({"dataset": "spans"}) is False
+        assert self.check({"dataset": "errors"}) is False
+
+    def test_orgs_without_flag_are_excluded(self) -> None:
+        assert self.check({"dataset": "transactions"}, flag=False) is False
+
+    def test_replay_data_source(self) -> None:
+        assert self.check({"data_source": "transactions"}, replay_count=True) is True
+        assert self.check({"data_source": "spans"}, replay_count=True) is False
+        assert self.check({"dataset": "spans"}, replay_count=True) is True

@@ -1329,6 +1329,71 @@ class SyncReposForOrgBitbucketTestCase(TestCase):
         assert len(repos) == 2
         assert repos[0].provider == "integrations:bitbucket"
 
+    @responses.activate
+    def test_failed_webhook_does_not_block_batch(self) -> None:
+        integration = self.create_provider_integration(
+            provider="bitbucket",
+            external_id="connect:1234567",
+            name="sentryuser",
+            metadata={
+                "base_url": "https://api.bitbucket.org",
+                "domain_name": "bitbucket.org/sentryuser",
+                "shared_secret": "secret123",
+                "subject": "connect:1234567",
+            },
+        )
+        integration.add_organization(self.organization, self.user)
+        oi = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id, integration=integration
+        )
+
+        responses.add(
+            responses.GET,
+            "https://api.bitbucket.org/2.0/repositories/sentryuser",
+            json={
+                "values": [
+                    {"full_name": f"sentryuser/repo{i}", "uuid": f"{{uuid-00{i}}}"}
+                    for i in (1, 2, 3)
+                ]
+            },
+        )
+        responses.add(
+            responses.POST,
+            "https://api.bitbucket.org/2.0/repositories/sentryuser/repo1/hooks",
+            status=403,
+            json={"type": "error", "error": {"message": "Forbidden"}},
+        )
+        for i in (2, 3):
+            responses.add(
+                responses.POST,
+                f"https://api.bitbucket.org/2.0/repositories/sentryuser/repo{i}/hooks",
+                json={"uuid": f"{{hook-00{i}}}"},
+            )
+
+        with self.tasks():
+            sync_repos_for_org(oi.id)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            repos = {
+                r.name: r
+                for r in Repository.objects.filter(
+                    organization_id=self.organization.id, status=ObjectStatus.ACTIVE
+                )
+            }
+        assert set(repos) == {"sentryuser/repo1", "sentryuser/repo2", "sentryuser/repo3"}
+        assert "webhook_id" not in repos["sentryuser/repo1"].config
+        assert repos["sentryuser/repo2"].config["webhook_id"] == "{hook-002}"
+        assert repos["sentryuser/repo3"].config["webhook_id"] == "{hook-003}"
+
+        with assume_test_silo_mode_of(AuditLogEntry):
+            assert (
+                AuditLogEntry.objects.filter(
+                    organization_id=self.organization.id,
+                    event=audit_log.get_event_id("REPO_ADDED"),
+                ).count()
+                == 3
+            )
+
 
 @control_silo_test
 class SyncReposForOrgVstsTestCase(TestCase):

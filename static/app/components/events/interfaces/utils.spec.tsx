@@ -8,11 +8,26 @@ import {
   getCurlCommand,
   getCurrentThread,
   getThreadById,
+  isAndroidAnrMechanism,
   stringifyQueryList,
   userContextToActor,
 } from './utils';
 
 describe('components/interfaces/utils', () => {
+  describe('isAndroidAnrMechanism()', () => {
+    it('returns true for android ANR mechanisms', () => {
+      expect(isAndroidAnrMechanism('ANR')).toBe(true);
+      expect(isAndroidAnrMechanism('AppExitInfo')).toBe(true);
+      expect(isAndroidAnrMechanism('NonFatalANR')).toBe(true);
+    });
+
+    it('returns false for other mechanisms', () => {
+      expect(isAndroidAnrMechanism('AppHang')).toBe(false);
+      expect(isAndroidAnrMechanism('onerror')).toBe(false);
+      expect(isAndroidAnrMechanism(undefined)).toBe(false);
+    });
+  });
+
   describe('getCurlCommand()', () => {
     it('should convert an http request object to an equivalent unix curl command string', () => {
       expect(

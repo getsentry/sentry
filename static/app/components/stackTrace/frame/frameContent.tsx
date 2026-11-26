@@ -19,6 +19,7 @@ import {
 } from 'sentry/components/stackTrace/stackTraceContext';
 import {t} from 'sentry/locale';
 import {getFileExtension} from 'sentry/utils/fileExtension';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {FrameVariablesGrid} from './frameVariablesGrid';
 
@@ -34,6 +35,7 @@ export function FrameContent({
   const {event, frame, frameContextId, frameIndex, isExpanded, platform} =
     useStackTraceFrameContext();
   const {frames, lastFrameIndex, meta, stacktrace} = useStackTraceContext();
+  const organization = useOrganization({allowNull: true});
 
   // Lazy: don't mount until first expanded, then preserve via Activity.
   // A ref is sufficient — the re-render is already triggered by isExpanded changing.
@@ -58,6 +60,9 @@ export function FrameContent({
   const hasSourceContext = contextLines.length > 0;
   const hasFrameVariables = !!frameVariables && Object.keys(frameVariables).length > 0;
   const hasFrameRegisters = !!expandedFrameRegisters;
+  // Extracted variables answer most of what the registers are read for.
+  const collapseRegisters =
+    hasFrameVariables && !!organization?.features.includes('native-variable-extraction');
   const hasAnyFrameDetails =
     hasSourceContext ||
     isLoadingSourceContext ||
@@ -132,6 +137,7 @@ export function FrameContent({
           <Container borderTop="primary">
             <FrameRegisters
               registers={expandedFrameRegisters}
+              collapsedByDefault={collapseRegisters}
               meta={meta?.registers}
               deviceArch={event.contexts?.device?.arch}
             />

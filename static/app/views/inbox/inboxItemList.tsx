@@ -115,6 +115,10 @@ function InboxItemRow({
   const {type, title} = item.subject;
   const SubjectIcon = INBOX_SUBJECT_CONFIG[type].icon;
   const {pathname, search, hash} = new URL(item.url);
+  // Link expects an org-scoped path and strips the prefix on customer domains.
+  const itemPath = pathname.startsWith('/organizations/')
+    ? pathname
+    : `/organizations/${organization.slug}${pathname}`;
   const queryClient = useQueryClient();
   const {mutate: updateInboxItems, isPending: isUpdating} = useMutation(
     updateInboxItemsMutationOptions({organization, queryClient})
@@ -165,7 +169,11 @@ function InboxItemRow({
                 {linkProps => (
                   <ItemLink
                     {...linkProps}
-                    to={{pathname, query: {...filters, ...qs.parse(search)}, hash}}
+                    to={{
+                      pathname: itemPath,
+                      query: {...filters, ...qs.parse(search)},
+                      hash,
+                    }}
                     aria-current={isSelected ? 'true' : undefined}
                   >
                     <SubjectIcon size="sm" />
