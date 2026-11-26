@@ -36,15 +36,13 @@ const getPlugSnippet = () => `
 
 +  plug Sentry.PlugContext`;
 
-const getLoggerHandlerSnippet = () => `
-# lib/my_app/application.ex
-
-def start(_type, _args) do
-  :logger.add_handler(:my_sentry_handler, Sentry.LoggerHandler, %{
-    config: %{capture_metadata: [:file, :line]}
-  })
+const getLogsConfigSnippet = () => `
+# config/prod.exs
+config :sentry,
   # ...
-end`;
+  logs: [
+    capture_metadata: [:file, :line]
+  ]`;
 
 const getVerifySnippet = () => `
 try do
@@ -123,11 +121,12 @@ export const onboarding: OnboardingConfig = {
       content: [
         {
           type: 'text',
-          text: t(
-            'This library comes with an extension to capture all error messages that the Plug handler might not. This is based on adding an erlang logger handler when your application starts:'
+          text: tct(
+            'To capture crashes that the Plug integration might not catch, set the [code:logs] option in your Sentry configuration. The SDK then attaches [code:Sentry.LoggerHandler] on startup, so you do not need to add a handler yourself. [code:capture_metadata] adds the listed [code:Logger] metadata to the captured events:',
+            {code: <code />}
           ),
         },
-        {type: 'code', language: 'elixir', code: getLoggerHandlerSnippet()},
+        {type: 'code', language: 'elixir', code: getLogsConfigSnippet()},
       ],
     },
   ],

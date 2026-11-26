@@ -37,14 +37,17 @@ describe('elixir onboarding docs', () => {
     expect(screen.queryByText(textWithMarkupMatcher(/:hackney/))).not.toBeInTheDocument();
   });
 
-  it('configures the logger handler with capture_metadata', () => {
+  it('captures crashes through the logs option instead of a manual handler', () => {
     renderWithOnboardingLayout(docs);
 
     expect(
       screen.getByText(
-        textWithMarkupMatcher(/config: %\{capture_metadata: \[:file, :line\]\}/)
+        textWithMarkupMatcher(/logs: \[\s*capture_metadata: \[:file, :line\]\s*\]/)
       )
     ).toBeInTheDocument();
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/:logger\.add_handler/))
+    ).not.toBeInTheDocument();
   });
 
   it('enables logs with the logs level instead of enable_logs', async () => {
