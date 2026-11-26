@@ -735,6 +735,15 @@ export type BillingHistory = {
   reservedBudgets?: ReservedBudget[];
 };
 
+/**
+ * The period that one receipt billed, as one period of the Usage History page.
+ * A legacy period without metric rows has no `categories`.
+ */
+export type InvoiceUsage = Omit<
+  BillingHistory,
+  'categories' | 'reserved' | 'usage' | 'reservedBudgets'
+> & {categories?: BillingHistory['categories']};
+
 export type PreviewData = {
   atPeriodEnd: boolean;
   billedAmount: number;
