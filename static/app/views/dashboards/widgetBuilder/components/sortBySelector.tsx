@@ -3,9 +3,7 @@ import {Fragment, useEffect} from 'react';
 import {Stack} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 import type {SelectValue} from '@sentry/scraps/select';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {t, tn} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
@@ -132,72 +130,56 @@ export function WidgetBuilderSortBySelector() {
         title={t('Sort by')}
         tooltipText={t('Results you see first and last in your samples or aggregates')}
       />
-      <Tooltip
-        title={disableSortReason}
-        disabled={!(disableSortDirection && disableSort)}
-        skipWrapper
-      >
-        <FieldGroup
-          inline={false}
-          style={{paddingRight: 0}}
-          flexibleControlStateSize
-          stacked
-        >
-          <Stack gap="sm">
-            {maxLimit > 0 && state.limit && (
-              <Select
-                disabled={disableSortDirection && disableSort}
-                name="resultsLimit"
-                options={Array.from(
-                  Array.from({length: maxLimit}).keys(),
-                  resultLimit => {
-                    const value = resultLimit + 1;
-                    return {
-                      label: tn('Limit to %s result', 'Limit to %s results', value),
-                      value,
-                    };
-                  }
-                )}
-                value={state.limit}
-                onChange={(option: SelectValue<number>) => {
-                  dispatch({type: BuilderStateAction.SET_LIMIT, payload: option.value});
-                }}
-              />
-            )}
-            <SortBySelectors
-              displayType={displayType}
-              widgetType={state.dataset ?? WidgetType.ERRORS}
-              hasGroupBy={isTimeseriesChart && !!widget.queries[0]!.columns.length}
-              disableSortReason={disableSortReason}
-              disableSort={disableSort}
-              disableSortDirection={disableSortDirection}
-              widgetQuery={widget.queries[0]!}
-              values={{
-                sortDirection:
-                  state.sort?.[0]?.kind === 'asc'
-                    ? SortDirection.LOW_TO_HIGH
-                    : SortDirection.HIGH_TO_LOW,
-                sortBy: state.sort?.length ? state.sort.at(0)!.field : '',
-              }}
-              onChange={({sortDirection, sortBy}) => {
-                const newSortDirection =
-                  sortDirection === SortDirection.HIGH_TO_LOW ? 'desc' : 'asc';
-                handleSortByChange(sortBy, newSortDirection);
-                trackAnalytics('dashboards_views.widget_builder.change', {
-                  builder_version: WidgetBuilderVersion.SLIDEOUT,
-                  field: 'sortBy.update',
-                  from: source,
-                  new_widget: !isEditing,
-                  value: '',
-                  widget_type: state.dataset ?? '',
-                  organization,
-                });
-              }}
-              tags={tags}
-            />
-          </Stack>
-        </FieldGroup>
-      </Tooltip>
+      <Stack gap="sm">
+        {maxLimit > 0 && state.limit && (
+          <Select
+            disabled={disableSortDirection && disableSort}
+            name="resultsLimit"
+            options={Array.from(Array.from({length: maxLimit}).keys(), resultLimit => {
+              const value = resultLimit + 1;
+              return {
+                label: tn('Limit to %s result', 'Limit to %s results', value),
+                value,
+              };
+            })}
+            value={state.limit}
+            onChange={(option: SelectValue<number>) => {
+              dispatch({type: BuilderStateAction.SET_LIMIT, payload: option.value});
+            }}
+          />
+        )}
+        <SortBySelectors
+          displayType={displayType}
+          widgetType={state.dataset ?? WidgetType.ERRORS}
+          hasGroupBy={isTimeseriesChart && !!widget.queries[0]!.columns.length}
+          disableSortReason={disableSortReason}
+          disableSort={disableSort}
+          disableSortDirection={disableSortDirection}
+          widgetQuery={widget.queries[0]!}
+          values={{
+            sortDirection:
+              state.sort?.[0]?.kind === 'asc'
+                ? SortDirection.LOW_TO_HIGH
+                : SortDirection.HIGH_TO_LOW,
+            sortBy: state.sort?.length ? state.sort.at(0)!.field : '',
+          }}
+          onChange={({sortDirection, sortBy}) => {
+            const newSortDirection =
+              sortDirection === SortDirection.HIGH_TO_LOW ? 'desc' : 'asc';
+            handleSortByChange(sortBy, newSortDirection);
+            trackAnalytics('dashboards_views.widget_builder.change', {
+              builder_version: WidgetBuilderVersion.SLIDEOUT,
+              field: 'sortBy.update',
+              from: source,
+              new_widget: !isEditing,
+              value: '',
+              widget_type: state.dataset ?? '',
+              organization,
+            });
+          }}
+          tags={tags}
+        />
+      </Stack>
     </Fragment>
   );
 }
