@@ -120,9 +120,15 @@ const sort: GridColumnSortBy<keyof TransactionSampleRowWithScore> = {
 export function PageOverviewWebVitalsDetailPanel({
   webVital,
   dashboardFilters,
+  metricsQuery,
 }: {
   webVital: WebVitals | null;
   dashboardFilters?: DashboardFilters;
+  /**
+   * When set, the header and chart query trace metrics with this search
+   * instead of spans. The samples table always lists spans.
+   */
+  metricsQuery?: string;
 }) {
   const location = useLocation();
   const {projects} = useProjects();
@@ -180,6 +186,7 @@ export function PageOverviewWebVitalsDetailPanel({
     browserTypes,
     deviceType,
     subregions,
+    metricsQuery,
   });
   const {data: projectScoresData} = useProjectWebVitalsScoresQuery({
     weightWebVital: webVital ?? 'total',
@@ -187,6 +194,7 @@ export function PageOverviewWebVitalsDetailPanel({
     browserTypes,
     deviceType,
     subregions,
+    metricsQuery,
   });
 
   const projectScore = getWebVitalScoresFromTableDataRow(projectScoresData?.[0]);
@@ -388,6 +396,7 @@ export function PageOverviewWebVitalsDetailPanel({
                 browserTypes={browserTypes}
                 deviceType={deviceType}
                 subregions={subregions}
+                metricsQuery={metricsQuery}
               />
             )}
           </ChartContainer>

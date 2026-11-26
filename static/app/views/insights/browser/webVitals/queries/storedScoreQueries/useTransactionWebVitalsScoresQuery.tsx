@@ -1,19 +1,30 @@
 import type {Sort} from 'sentry/utils/discover/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {
+  webVitalCountField,
+  webVitalP75Field,
+  webVitalScoreCountField,
+  webVitalScoreField,
+} from 'sentry/views/dashboards/utils/webVitalTraceMetricFields';
 import {Referrer} from 'sentry/views/insights/browser/webVitals/referrers';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
-import type {
-  Opportunity,
-  Score,
-  WebVitals,
+import {
+  WEB_VITAL_TO_FIELD,
+  type Opportunity,
+  type Score,
+  type WebVitals,
 } from 'sentry/views/insights/browser/webVitals/types';
 import {
   addBrowserFilter,
+  getMetricsSearch,
   type DeviceType,
 } from 'sentry/views/insights/browser/webVitals/utils/deviceType';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {useWebVitalsSort} from 'sentry/views/insights/browser/webVitals/utils/useWebVitalsSort';
-import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {
+  useSpans,
+  useTraceMetrics,
+} from 'sentry/views/insights/common/queries/useDiscover';
 import {
   SpanFields,
   type SpanProperty,
@@ -28,6 +39,11 @@ type Props = {
   deviceType?: DeviceType;
   enabled?: boolean;
   limit?: number;
+  /**
+   * When set, query trace metrics with this search instead of spans. Needs a
+   * single `webVital`, and sorts by its opportunity.
+   */
+  metricsQuery?: string;
   query?: string;
   sortName?: string;
   subregions?: SubregionCode[];
@@ -44,7 +60,10 @@ export const useTransactionWebVitalsScoresQuery = ({
   browserTypes,
   deviceType,
   subregions,
+  metricsQuery,
 }: Props) => {
+  const metricsVital =
+    metricsQuery !== undefined && webVital !== 'total' ? webVital : undefined;
   const sort = useWebVitalsSort({sortName, defaultSort});
 
   const totalOpportunityScoreField =
@@ -71,7 +90,7 @@ export const useTransactionWebVitalsScoresQuery = ({
       limit: limit ?? 50,
       search: [DEFAULT_QUERY_FILTER, search.formatString()].join(' ').trim(),
       sorts: [sort],
-      enabled,
+      enabled: enabled !== false && metricsQuery === undefined,
       fields: [
         'project.id',
         'project',
@@ -127,6 +146,66 @@ export const useTransactionWebVitalsScoresQuery = ({
         ],
     };
   });
+
+  const metricsSearch = getMetricsSearch(metricsQuery, browserTypes, deviceType);
+  const metricsEnabled = enabled !== false && metricsVital !== undefined;
+  // Pageloads. TTFB comes from navigation timing, so every pageload reports it.
+  const pageloadsField = webVitalCountField('ttfb');
+  const scoreCountField = webVitalScoreCountField(metricsVital ?? 'lcp');
+  const scoreField = webVitalScoreField(metricsVital ?? 'lcp');
+  const p75Field = webVitalP75Field(metricsVital ?? 'lcp');
+
+  const metrics = useTraceMetrics(
+    {
+      enabled: metricsEnabled,
+      search: metricsSearch,
+      limit: limit ?? 50,
+      sorts: [{field: scoreCountField, kind: 'desc'}],
+      fields: [
+        'project.id',
+        'project',
+        'transaction',
+        p75Field,
+        scoreField,
+        scoreCountField,
+        pageloadsField,
+      ],
+    },
+    Referrer.WEB_VITAL_TRANSACTIONS_SCORES
+  );
+  // The opportunity is each page's missing score over the scores of every page
+  const metricsTotals = useTraceMetrics(
+    {enabled: metricsEnabled, search: metricsSearch, limit: 1, fields: [scoreCountField]},
+    Referrer.WEB_VITAL_TRANSACTIONS_SCORES
+  );
+
+  if (metricsQuery !== undefined) {
+    const totalCount = Number(metricsTotals.data[0]?.[scoreCountField] ?? 0);
+    // Key the rows like the spans rows so callers read one shape
+    const metricsData = metrics.data
+      .filter(row => Number(row[scoreCountField] ?? 0) > 0)
+      .map(row => {
+        const count = Number(row[scoreCountField]);
+        const ratio = Number(row[scoreField] ?? 0);
+        return {
+          transaction: row.transaction,
+          project: row.project,
+          'project.id': row['project.id'],
+          [`p75(${WEB_VITAL_TO_FIELD[metricsVital ?? 'lcp']})`]: Number(
+            row[p75Field] ?? 0
+          ),
+          'count()': Number(row[pageloadsField] ?? 0),
+          [`count_scores(measurements.score.${metricsVital})`]: count,
+          [`${metricsVital}Score`]: Math.round(ratio * 100),
+          opportunity: totalCount > 0 ? (count * (1 - ratio)) / totalCount : 0,
+        } as (typeof tableData)[number];
+      });
+    return {
+      ...metrics,
+      data: metricsData,
+      isPending: metrics.isPending || metricsTotals.isPending,
+    };
+  }
 
   return {data: tableData, isPending, ...rest};
 };

@@ -10,6 +10,12 @@ import {
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {
+  webVitalCountField,
+  webVitalP75Field,
+  webVitalScoreCountField,
+  webVitalScoreField,
+} from 'sentry/views/dashboards/utils/webVitalTraceMetricFields';
 import {MOBILE_BROWSER_TYPES} from 'sentry/views/insights/browser/webVitals/utils/deviceType';
 
 import {WebVitalsDetailPanel} from './webVitalsDetailPanel';
@@ -211,6 +217,70 @@ describe('WebVitalsDetailPanel', () => {
       expect.objectContaining({
         query: expect.objectContaining({
           query: `span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,ui.webvital.lcp,pageload,""] browser.name:["Chrome Mobile"]`,
+        }),
+      })
+    );
+  });
+
+  it('queries trace metrics with the given search', async () => {
+    eventsMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: {
+        data: [
+          {
+            transaction: '/home',
+            project: 'frontend',
+            'project.id': 1,
+            [webVitalP75Field('lcp')]: 2000,
+            [webVitalScoreField('lcp')]: 0.5,
+            [webVitalScoreCountField('lcp')]: 10,
+            [webVitalCountField('ttfb')]: 20,
+          },
+        ],
+      },
+    });
+
+    render(
+      <WebVitalsDetailPanel webVital="lcp" metricsQuery="user.geo.subregion:[21]" />,
+      {organization}
+    );
+
+    // Half of the page's 10 scores are missing, out of 10 scores overall
+    expect(await screen.findByRole('link', {name: '/home'})).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: '50'})).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: '20'})).toBeInTheDocument();
+
+    const query = `user.geo.subregion:[21] ${DESKTOP_FILTER}`;
+    expect(eventsMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          dataset: 'tracemetrics',
+          field: [
+            'project.id',
+            'project',
+            'transaction',
+            'p75(value,browser.web_vital.lcp,distribution,millisecond)',
+            'avg(tags[score.ratio.lcp,number],browser.web_vital.lcp,distribution,millisecond)',
+            'count(tags[score.ratio.lcp,number],browser.web_vital.lcp,distribution,millisecond)',
+            'count(value,browser.web_vital.ttfb,distribution,millisecond)',
+          ],
+          sort: '-count(tags[score.ratio.lcp,number],browser.web_vital.lcp,distribution,millisecond)',
+          query,
+        }),
+      })
+    );
+    expect(eventsMock).not.toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({query: expect.objectContaining({dataset: 'spans'})})
+    );
+    expect(eventsStatsMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          dataset: 'tracemetrics',
+          yAxis: ['p75(value,browser.web_vital.lcp,distribution,millisecond)'],
+          query,
         }),
       })
     );
