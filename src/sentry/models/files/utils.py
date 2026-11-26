@@ -59,10 +59,11 @@ def get_and_optionally_update_blob(
     """
     try:
         existing = file_blob_model.objects.get(checksum=checksum)
+        refresh_blob_timestamp(existing)
     except file_blob_model.DoesNotExist:
-        return None
+        existing = None
 
-    return existing if refresh_blob_timestamp(existing) else None
+    return existing
 
 
 def refresh_blob_timestamp(blob: AbstractFileBlob[Any]) -> bool:

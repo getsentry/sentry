@@ -87,15 +87,17 @@ class AbstractFileBlob(Model, _Parent[BlobOwnerType]):
         """
         logger.debug("FileBlob.from_files.start")
 
-        chunks: dict[str, tuple[IO[bytes], int]] = {}
-        for fileobj in files:
-            chunk, reference_checksum = fileobj if isinstance(fileobj, tuple) else (fileobj, None)
-            size, checksum = get_size_and_checksum(chunk)
+        # Checksum every file up front so all existing blobs can be fetched in
+        # one query. Duplicate files in the same request collapse to one entry.
+        files_by_checksum: dict[str, tuple[IO[bytes], int]] = {}
+        for file in files:
+            fileobj, reference_checksum = file if isinstance(file, tuple) else (file, None)
+            size, checksum = get_size_and_checksum(fileobj)
             if reference_checksum is not None and checksum != reference_checksum:
                 raise OSError("Checksum mismatch")
-            chunks[checksum] = (chunk, size)
+            files_by_checksum[checksum] = (fileobj, size)
 
-        existing_blobs = cls.objects.in_bulk(chunks, field_name="checksum")
+        existing_blobs = cls.objects.in_bulk(files_by_checksum, field_name="checksum")
         blobs_to_save = []
         semaphore = Semaphore(value=MULTI_BLOB_UPLOAD_CONCURRENCY)
 
@@ -148,10 +150,12 @@ class AbstractFileBlob(Model, _Parent[BlobOwnerType]):
                 semaphore.release()
 
         try:
-            for checksum, (chunk, size) in chunks.items():
+            for checksum, (fileobj, size) in files_by_checksum.items():
                 logger.debug("FileBlob.from_files.executor_start", extra={"checksum": checksum})
                 _flush_blobs()
 
+                # The blob may have been cleaned up since the lookup above, in
+                # which case refreshing it fails and we upload it again.
                 existing = existing_blobs.get(checksum)
                 if existing is not None and refresh_blob_timestamp(existing):
                     existing._ensure_blob_owned(organization)
@@ -164,7 +168,7 @@ class AbstractFileBlob(Model, _Parent[BlobOwnerType]):
                 # `_flush_blobs` call will take all those uploaded
                 # blobs and associate them with the database.
                 semaphore.acquire()
-                _upload_and_pend_chunk(chunk, size, checksum)
+                _upload_and_pend_chunk(fileobj, size, checksum)
                 logger.debug("FileBlob.from_files.end", extra={"checksum": checksum})
 
             _flush_blobs()
