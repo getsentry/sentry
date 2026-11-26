@@ -63,10 +63,7 @@ it('opens on the selected option when pressing Down from a closed select', async
   expect(onChange).not.toHaveBeenCalled();
 
   await userEvent.keyboard('{ArrowDown}{Enter}');
-  expect(onChange).toHaveBeenCalledWith(
-    {value: '1h', label: 'in one hour'},
-    expect.objectContaining({action: 'select-option'})
-  );
+  expect(onChange).toHaveBeenCalledWith({value: '1h', label: 'in one hour'});
 });
 
 it('selects the first search match when the selected option still matches', async () => {
@@ -79,7 +76,7 @@ it('selects the first search match when the selected option still matches', asyn
   await userEvent.tab();
   await userEvent.keyboard('e{Enter}');
 
-  expect(onChange).toHaveBeenCalledWith(options[0], expect.anything());
+  expect(onChange).toHaveBeenCalledWith(options[0]);
 });
 
 it('runs the caller keyboard handler before opening or choosing options', async () => {

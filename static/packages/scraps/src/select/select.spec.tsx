@@ -59,7 +59,7 @@ it('customizes value and option content while preserving selection data', async 
   await userEvent.click(screen.getByRole('combobox', {name: 'Fruit'}));
   await userEvent.click(screen.getByRole('option', {name: 'Choose Cherry'}));
 
-  expect(onChange).toHaveBeenCalledWith(options[1], expect.anything());
+  expect(onChange).toHaveBeenCalledWith(options[1]);
 });
 
 it('shows trailing items alongside the clear button', async () => {
@@ -77,7 +77,7 @@ it('shows trailing items alongside the clear button', async () => {
 
   expect(screen.getByText('Saved')).toBeInTheDocument();
   await userEvent.click(screen.getByLabelText('Clear choices'));
-  expect(onChange).toHaveBeenCalledWith(null, expect.anything());
+  expect(onChange).toHaveBeenCalledWith(null);
 });
 
 it('keeps option selection and clearing available when the chevron is hidden', async () => {
@@ -95,10 +95,10 @@ it('keeps option selection and clearing available when the chevron is hidden', a
   );
 
   await userEvent.click(screen.getByRole('button', {name: 'Clear choices'}));
-  expect(onChange).toHaveBeenCalledWith(null, expect.anything());
+  expect(onChange).toHaveBeenCalledWith(null);
   await userEvent.click(screen.getByRole('combobox', {name: 'Fruit'}));
   await userEvent.click(screen.getByRole('option', {name: 'Cherry'}));
-  expect(onChange).toHaveBeenCalledWith(options[1], expect.anything());
+  expect(onChange).toHaveBeenCalledWith(options[1]);
 });
 
 it('provides a native input ref and forwards validation attributes', () => {
@@ -246,10 +246,7 @@ it.each([false, true])(
     await userEvent.click(screen.getByRole('option', {name: 'Cherry'}));
     await userEvent.keyboard('{Escape}');
 
-    expect(onChange).toHaveBeenCalledWith(
-      multiple ? options : options[1],
-      expect.anything()
-    );
+    expect(onChange).toHaveBeenCalledWith(multiple ? options : options[1]);
     expect(screen.getByText('Apple')).toBeInTheDocument();
     expect(screen.queryByText('Cherry')).not.toBeInTheDocument();
 

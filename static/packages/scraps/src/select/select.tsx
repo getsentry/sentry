@@ -276,17 +276,6 @@ export function Select<TValue, TOption extends SelectValue<TValue>>(
   const selected = selectedRows.map(({option}) => option);
   const disabledKeys = rows.flatMap(({key, option}) => (option.disabled ? [key] : []));
 
-  function commit(
-    next: Array<SelectValue<TValue | string>> | SelectValue<TValue | string> | null,
-    action: string
-  ) {
-    // The previous implementation also supplied action metadata at runtime.
-    const onChange = props.onChange as
-      | ((value: typeof next, metadata: {action: string; name?: string}) => void)
-      | undefined;
-    onChange?.(next, {action, name});
-  }
-
   function choose(
     key: Key,
     {deselect = false, fromKeyboard = false}: {deselect?: boolean; fromKeyboard?: boolean}
@@ -305,15 +294,14 @@ export function Select<TValue, TOption extends SelectValue<TValue>>(
     }
     if (created && props.onCreateOption) {
       props.onCreateOption(query);
-    } else if (multiple) {
-      commit(
+    } else if (props.multiple) {
+      props.onChange?.(
         deselect
           ? selectedRows.filter(row => row.key !== key).map(row => row.option)
-          : [...selected, choice],
-        created ? 'create-option' : deselect ? 'deselect-option' : 'select-option'
+          : [...selected, choice]
       );
     } else {
-      commit(choice, created ? 'create-option' : 'select-option');
+      props.onChange?.(choice);
     }
     if (blurInputOnSelect) {
       const input = inputRef.current;
@@ -330,16 +318,20 @@ export function Select<TValue, TOption extends SelectValue<TValue>>(
   }
 
   function clear() {
-    commit(multiple ? [] : null, 'clear');
+    if (props.multiple) {
+      props.onChange?.([]);
+    } else if (props.clearable) {
+      props.onChange?.(null);
+    }
     setFocusedChip(null);
     inputRef.current?.focus();
   }
 
-  function remove(index: number, action = 'remove-value') {
-    commit(
-      selected.filter((_, itemIndex) => itemIndex !== index),
-      action
-    );
+  function remove(index: number) {
+    if (!props.multiple) {
+      return;
+    }
+    props.onChange?.(selected.filter((_, itemIndex) => itemIndex !== index));
     setFocusedChip(null);
     inputRef.current?.focus();
   }
@@ -586,11 +578,11 @@ export function Select<TValue, TOption extends SelectValue<TValue>>(
       focusedChip != null &&
       (event.key === 'Backspace' || event.key === 'Delete')
     ) {
-      remove(focusedChip, 'pop-value');
+      remove(focusedChip);
     } else if (event.key === 'Backspace' && clearable) {
       event.preventDefault();
       if (multiple) {
-        remove(selected.length - 1, 'pop-value');
+        remove(selected.length - 1);
       } else {
         clear();
       }

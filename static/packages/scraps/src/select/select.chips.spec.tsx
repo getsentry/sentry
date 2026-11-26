@@ -23,7 +23,7 @@ it('customizes chip labels while retaining the remove control', async () => {
   expect(screen.getByText('Apple: Fruit')).toBeInTheDocument();
   await userEvent.click(screen.getAllByLabelText('Remove item')[0]!);
 
-  expect(onChange).toHaveBeenCalledWith([options[1]], expect.anything());
+  expect(onChange).toHaveBeenCalledWith([options[1]]);
 });
 
 it('removes the last selected item with Backspace when the search is empty', async () => {
@@ -45,7 +45,7 @@ it('removes the last selected item with Backspace when the search is empty', asy
   expect(onChange).not.toHaveBeenCalled();
 
   await userEvent.keyboard('{Backspace}');
-  expect(onChange).toHaveBeenCalledWith([options[0]], expect.anything());
+  expect(onChange).toHaveBeenCalledWith([options[0]]);
 });
 
 it('announces the focused chip and removes it with Backspace', async () => {
@@ -77,7 +77,7 @@ it('announces the focused chip and removes it with Backspace', async () => {
   expect(screen.getByRole('combobox', {name: 'Fruit'})).toHaveFocus();
 
   await userEvent.keyboard('{Backspace}');
-  expect(onChange).toHaveBeenCalledWith([options[1]], expect.anything());
+  expect(onChange).toHaveBeenCalledWith([options[1]]);
   expect(screen.getByRole('status')).toBeEmptyDOMElement();
 });
 
@@ -115,5 +115,5 @@ it('clears all selected items in a multi-select by default', async () => {
   );
 
   await userEvent.click(screen.getByRole('button', {name: 'Clear choices'}));
-  expect(onChange).toHaveBeenCalledWith([], expect.anything());
+  expect(onChange).toHaveBeenCalledWith([]);
 });
