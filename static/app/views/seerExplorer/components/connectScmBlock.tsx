@@ -11,7 +11,6 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
 import {Container, Stack} from '@sentry/scraps/layout';
-import {openModal} from '@sentry/scraps/modal';
 import {usePictureInPicture} from '@sentry/scraps/pictureInPicture';
 import {Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
@@ -31,7 +30,7 @@ import type {
   RespondToUserInputOptions,
 } from 'sentry/views/seerExplorer/types';
 
-import {ConnectScmModal} from './connectScmModal';
+import {openConnectScmModal} from './connectScmModal';
 
 // The fix usually lands a few seconds after the user makes it (a webhook, then a sync job), and
 // the slowest normal path (a sync retrying) takes about 6 minutes. After that it stops, and only
@@ -143,10 +142,12 @@ function getProblem(access: RepoAccess, orgSlug: string): Problem | null {
 function RequestInstallButton({
   message,
   pauseId,
+  repoName,
   requested,
 }: {
   message: string;
   pauseId: string;
+  repoName: string;
   requested: boolean;
 }) {
   const organization = useOrganization();
@@ -165,6 +166,7 @@ function RequestInstallButton({
           providerType: 'category',
           providerSlug: SCM_CATEGORY,
           message: requestMessage,
+          repoName,
         },
       }),
     onSuccess: () => {
@@ -473,16 +475,7 @@ export function ConnectScmBlock({
   const {pipWindow, closePipWindow} = usePictureInPicture();
 
   function openConnectModal() {
-    openModal(
-      modalProps => (
-        <ConnectScmModal
-          {...modalProps}
-          repoName={data.repo_name}
-          onInstall={checkAgain}
-        />
-      ),
-      {closeEvents: 'escape-key'}
-    );
+    openConnectScmModal({repoName: data.repo_name, onInstall: checkAgain});
   }
 
   const prompt: Prompt = pipWindow
@@ -548,6 +541,7 @@ export function ConnectScmBlock({
                         key="request-installation"
                         message={action.requestMessage}
                         pauseId={pendingInput.id}
+                        repoName={data.repo_name}
                         requested={action.requested}
                       />
                     );

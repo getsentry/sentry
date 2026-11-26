@@ -219,6 +219,7 @@ describe('ConnectScmBlock', () => {
           providerSlug: 'source code management',
           message:
             "Seer can't access acme/app. This repo's account isn't connected to this organization. Connected: acme-labs.",
+          repoName: 'acme/app',
         },
       })
     );

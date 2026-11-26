@@ -1,9 +1,10 @@
 import {Fragment, useEffect, useState} from 'react';
-import {useQuery} from '@tanstack/react-query';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Stack} from '@sentry/scraps/layout';
-import type {ModalRenderProps} from '@sentry/scraps/modal';
+import {openModal, type ModalRenderProps} from '@sentry/scraps/modal';
 import {Text} from '@sentry/scraps/text';
 
 import {ScmProviderPills} from 'sentry/components/onboarding/scm/scmProviderPills';
@@ -14,21 +15,64 @@ import {
 import {Placeholder} from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
 import type {Integration} from 'sentry/types/integrations';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {canManageIntegrations} from 'sentry/utils/integrationUtil';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {organizationConfigIntegrationsQueryOptions} from 'sentry/views/settings/organizationRepositories/hooks/organizationConfigIntegrationsQueryOptions';
 
 const SEER_SCM_PROVIDERS = new Set(['github', 'github_enterprise', 'gitlab']);
+
+const CONNECT_SCM_REPO_PARAM = 'connectScmRepo';
 
 interface ConnectScmModalProps extends ModalRenderProps {
   onInstall: (integration: Integration) => void;
   repoName: string;
 }
 
-export function ConnectScmModal({
+export function openConnectScmModal({
   repoName,
   onInstall,
-  ...modalProps
-}: ConnectScmModalProps) {
+}: Pick<ConnectScmModalProps, 'repoName' | 'onInstall'>) {
+  openModal(
+    modalProps => (
+      <ConnectScmModal {...modalProps} repoName={repoName} onInstall={onInstall} />
+    ),
+    {closeEvents: 'escape-key'}
+  );
+}
+
+export function useConnectScmModalFromUrl() {
+  const organization = useOrganization();
+  const queryClient = useQueryClient();
+  const [repoName, setRepoName] = useQueryState(
+    CONNECT_SCM_REPO_PARAM,
+    parseAsString.withOptions({history: 'replace'})
+  );
+  const canInstall = canManageIntegrations(organization);
+  const hasPrompt = organization.features.includes('ask-seer-scm-connect-prompt');
+
+  useEffect(() => {
+    if (repoName === null) {
+      return;
+    }
+    setRepoName(null);
+    const name = repoName.trim();
+    if (!name || !canInstall || !hasPrompt) {
+      return;
+    }
+    openConnectScmModal({
+      repoName: name,
+      onInstall: () =>
+        queryClient.invalidateQueries(
+          apiOptions.queryFilter('/organizations/$organizationIdOrSlug/integrations/', {
+            path: {organizationIdOrSlug: organization.slug},
+          })
+        ),
+    });
+  }, [repoName, setRepoName, canInstall, hasPrompt, queryClient, organization.slug]);
+}
+
+function ConnectScmModal({repoName, onInstall, ...modalProps}: ConnectScmModalProps) {
   const {Header, Body, closeModal} = modalProps;
   const organization = useOrganization();
   const {data, isPending, isLoadingError} = useQuery(
