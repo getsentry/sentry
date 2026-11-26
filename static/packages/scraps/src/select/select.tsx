@@ -112,7 +112,7 @@ export interface BaseSelectProps<
   /** Content beside the clear button and dropdown indicator. Each item is centered in a slot at least 24px wide. */
   trailingItems?: React.ReactNode;
   /** Virtualize when the number of options, including grouped options, exceeds this threshold. Defaults to 150. */
-  virtualThreshold?: number;
+  virtualizeThreshold?: number;
 }
 
 type DisabledSelectionProps<Props extends {onChange: unknown}> = Props extends unknown
@@ -161,7 +161,7 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
     searchable = true,
     styles,
     size = 'md',
-    virtualThreshold = 150,
+    virtualizeThreshold = 150,
     components,
     blurInputOnSelect = !multiple,
     inputValue,
@@ -234,7 +234,7 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
 
   const {entries, rows} = useOptionIndex(options, isValueEqual);
   const rowsByKey = new Map<Key, TOption>(rows.map(row => [row.key, row.option]));
-  const virtualized = rows.length > virtualThreshold;
+  const virtualized = rows.length > virtualizeThreshold;
   const rawValues: Array<TValue | null> = props.multiple ? props.value : [props.value];
   const selectedRows = rawValues.flatMap<{option: TOption; key?: string}>(value => {
     const existing = rows.find(row =>
