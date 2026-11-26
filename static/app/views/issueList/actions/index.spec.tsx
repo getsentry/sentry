@@ -19,6 +19,7 @@ import {
   useStreamGroupColumns,
 } from 'sentry/components/stream/groupColumns';
 import {GroupStore} from 'sentry/stores/groupStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {IssueCategory} from 'sentry/types/group';
 import * as analytics from 'sentry/utils/analytics';
 import {IssueListActions} from 'sentry/views/issueList/actions';
@@ -769,6 +770,163 @@ describe('IssueListActions', () => {
         // Should show merge button directly when multiple issues are selected
         expect(screen.getByRole('button', {name: 'Merge'})).toBeInTheDocument();
       });
+    });
+  });
+
+  describe('add inbound filter', () => {
+    const filterOrg = OrganizationFixture({
+      features: [
+        'inbound-filters-v2',
+        'inbound-filters-v2-ui',
+        'inbound-filters-in-product-flows',
+      ],
+      access: ['project:write'],
+    });
+    const filterProject = ProjectFixture({
+      id: '1',
+      slug: 'project-1',
+      features: ['custom-inbound-filters'],
+    });
+    const filtersUrl = `/projects/${filterOrg.slug}/${filterProject.slug}/custom-inbound-filters/`;
+
+    beforeEach(() => {
+      ProjectsStore.loadInitialData([filterProject]);
+    });
+
+    it('walks through the filters drafted from the selected issues', async () => {
+      GroupStore.add([
+        GroupFixture({id: '1', project: filterProject}),
+        GroupFixture({id: '2', project: filterProject}),
+      ]);
+      const suggestionsMock = MockApiClient.addMockResponse({
+        url: `${filtersUrl}suggestions/`,
+        body: {
+          filters: [
+            {
+              name: 'Timeout errors',
+              dataType: 'error',
+              conditions: [
+                {type: 'error_type', operator: 'glob', value: ['*TimeoutError']},
+              ],
+            },
+            {
+              name: 'Resize observer loops',
+              dataType: 'error',
+              conditions: [
+                {
+                  type: 'error_message',
+                  operator: 'starts_with',
+                  value: ['ResizeObserver loop'],
+                },
+              ],
+            },
+          ],
+        },
+      });
+      const createMock = MockApiClient.addMockResponse({
+        url: filtersUrl,
+        method: 'POST',
+        body: {},
+      });
+      MockApiClient.addMockResponse({url: filtersUrl, body: []});
+
+      render(<WrappedComponent selectedIds={['1', '2']} />, {organization: filterOrg});
+
+      await userEvent.click(screen.getByRole('button', {name: 'More issue actions'}));
+      await userEvent.click(
+        await screen.findByRole('menuitemradio', {name: 'Add Inbound Filter'})
+      );
+
+      const modal = await screen.findByRole('dialog');
+      expect(
+        await within(modal).findByText('Create Custom Filter 1 of 2')
+      ).toBeInTheDocument();
+      expect(suggestionsMock).toHaveBeenCalledWith(
+        `${filtersUrl}suggestions/`,
+        expect.objectContaining({query: {group: ['1', '2']}})
+      );
+      expect(within(modal).getByRole('textbox', {name: 'Name'})).toHaveValue(
+        'Timeout errors'
+      );
+      expect(
+        within(modal).getByRole('row', {name: 'error_type:*TimeoutError'})
+      ).toBeInTheDocument();
+
+      await userEvent.click(within(modal).getByRole('button', {name: 'Create Filter'}));
+
+      expect(
+        await within(modal).findByText('Create Custom Filter 2 of 2')
+      ).toBeInTheDocument();
+      expect(createMock).toHaveBeenCalledWith(
+        filtersUrl,
+        expect.objectContaining({
+          data: {
+            name: 'Timeout errors',
+            dataType: 'error',
+            conditions: [
+              {type: 'error_type', operator: 'glob', value: ['*TimeoutError']},
+            ],
+          },
+        })
+      );
+      expect(within(modal).getByRole('textbox', {name: 'Name'})).toHaveValue(
+        'Resize observer loops'
+      );
+      expect(
+        within(modal).queryByRole('button', {name: 'Skip This Filter'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('is disabled for issues of several projects', async () => {
+      GroupStore.add([
+        GroupFixture({id: '1', project: filterProject}),
+        GroupFixture({id: '2', project: ProjectFixture({id: '2', slug: 'project-2'})}),
+      ]);
+
+      render(<WrappedComponent selectedIds={['1', '2']} />, {organization: filterOrg});
+
+      await userEvent.click(screen.getByRole('button', {name: 'More issue actions'}));
+
+      expect(
+        await screen.findByRole('menuitemradio', {name: 'Add Inbound Filter'})
+      ).toHaveAttribute('aria-disabled', 'true');
+      expect(screen.getByText('Select issues of one project')).toBeInTheDocument();
+    });
+
+    it('is disabled for issues that are not errors', async () => {
+      GroupStore.add([
+        GroupFixture({
+          id: '1',
+          project: filterProject,
+          issueCategory: IssueCategory.PERFORMANCE,
+        }),
+      ]);
+
+      render(<WrappedComponent selectedIds={['1']} />, {organization: filterOrg});
+
+      await userEvent.click(screen.getByRole('button', {name: 'More issue actions'}));
+
+      expect(
+        await screen.findByRole('menuitemradio', {name: 'Add Inbound Filter'})
+      ).toHaveAttribute('aria-disabled', 'true');
+      expect(
+        screen.getByText('Inbound filters only apply to error issues')
+      ).toBeInTheDocument();
+    });
+
+    it('is hidden without the in-product flows feature', async () => {
+      GroupStore.add([GroupFixture({id: '1', project: filterProject})]);
+
+      render(<WrappedComponent selectedIds={['1']} />);
+
+      await userEvent.click(screen.getByRole('button', {name: 'More issue actions'}));
+
+      expect(
+        await screen.findByRole('menuitemradio', {name: 'Delete'})
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Add Inbound Filter'})
+      ).not.toBeInTheDocument();
     });
   });
 });

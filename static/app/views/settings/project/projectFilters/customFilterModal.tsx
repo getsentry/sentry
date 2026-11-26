@@ -1,6 +1,6 @@
-import {useMemo, useRef} from 'react';
+import {Fragment, useMemo, useRef, useState} from 'react';
 import {css} from '@emotion/react';
-import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -13,6 +13,7 @@ import {openModal} from '@sentry/scraps/modal';
 import {Heading, Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import {
   escapeTagValue,
@@ -34,7 +35,7 @@ import {
 } from 'sentry/components/searchSyntax/parser';
 import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import {android, gaming, sourceMaps} from 'sentry/data/platformCategories';
-import {t, tct} from 'sentry/locale';
+import {t, tct, tn} from 'sentry/locale';
 import type {EntryException, Event, ExceptionValue} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import type {TagCollection} from 'sentry/types/group';
@@ -121,6 +122,20 @@ type CustomInboundFilterValidation = {
   errors: Record<string, unknown>;
   suggestedName: string | null;
 };
+
+// The answer of the suggestions endpoint: the filters that drop the errors of a set
+// of issues, none of them saved yet.
+type CustomInboundFilterSuggestions = {
+  filters: Array<{
+    conditions: CustomInboundFilterCondition[];
+    dataType: FilterDataType;
+    name: string;
+  }>;
+};
+
+// The place of a drafted filter among the ones the modal walks through. `next` shows
+// the draft after this one. It is absent on the last draft.
+type DraftStep = {position: number; total: number; next?: () => void};
 
 type PropertyOption = {label: string; value: ConditionType};
 
@@ -828,7 +843,7 @@ function ObfuscatedErrorWarning({project}: {project: Project}) {
 function getModalDescription(
   legacyCondition: CustomInboundFilterCondition | undefined,
   isReadOnly: boolean,
-  isEventDraft: boolean
+  draftSource: 'event' | 'issues' | undefined
 ): string {
   if (legacyCondition) {
     const {label} = getCondition(legacyCondition.type);
@@ -839,7 +854,12 @@ function getModalDescription(
           label
         );
   }
-  if (isEventDraft) {
+  if (draftSource === 'issues') {
+    return t(
+      'Sentry drafted the conditions below from the issues you selected. Check that they describe only what you want to drop, then remove a condition, pick another operator or change a value where they do not. Sentry drops data that meets every condition.'
+    );
+  }
+  if (draftSource === 'event') {
     return t(
       'The conditions below come from the event you were looking at. Remove the ones you do not want, and widen the rest with another operator or a * wildcard where one exact value is too narrow. Sentry drops data that meets every condition.'
     );
@@ -851,9 +871,16 @@ function getModalDescription(
       );
 }
 
-function getModalTitle(isReadOnly: boolean, hasFilter: boolean): string {
+function getModalTitle(
+  isReadOnly: boolean,
+  hasFilter: boolean,
+  draftStep: DraftStep | undefined
+): string {
   if (isReadOnly) {
     return t('View Custom Filter');
+  }
+  if (draftStep && draftStep.total > 1) {
+    return t('Create Custom Filter %s of %s', draftStep.position, draftStep.total);
   }
 
   return hasFilter ? t('Edit Custom Filter') : t('Create Custom Filter');
@@ -872,6 +899,8 @@ const DETAIL_PATH =
   '/projects/$organizationIdOrSlug/$projectIdOrSlug/custom-inbound-filters/$filterId/';
 const VALIDATE_PATH =
   '/projects/$organizationIdOrSlug/$projectIdOrSlug/custom-inbound-filters/validate/';
+const SUGGESTIONS_PATH =
+  '/projects/$organizationIdOrSlug/$projectIdOrSlug/custom-inbound-filters/suggestions/';
 
 // The filters of a project, as the settings table lists them. The modal
 // invalidates this query after a save, so the table picks up the change.
@@ -968,9 +997,12 @@ function CustomFilterModal({
   project,
   filter,
   initialValues,
+  draftStep,
   readOnlyReason,
 }: ModalRenderProps & {
   project: Project;
+  // Set when `initialValues` is one of the filters drafted from a selection of issues.
+  draftStep?: DraftStep;
   // The filter to edit. Absent when the modal creates one.
   filter?: CustomInboundFilter;
   // Starting values of a new filter. Ignored when `filter` is set.
@@ -987,6 +1019,12 @@ function CustomFilterModal({
   // modal edits the lines of the condition.
   const legacyCondition = filter?.legacyFilter ? filter.conditions[0] : undefined;
   const isReadOnly = readOnlyReason !== undefined;
+  let draftSource: 'event' | 'issues' | undefined;
+  if (!filter && draftStep) {
+    draftSource = 'issues';
+  } else if (!filter && initialValues) {
+    draftSource = 'event';
+  }
   const editor = useMemo(() => getConditionEditor(legacyCondition), [legacyCondition]);
   const filterSchema = useMemo(() => getFilterSchema(editor), [editor]);
   const defaultValues = filter
@@ -1093,7 +1131,7 @@ function CustomFilterModal({
     onSubmit: ({value}) =>
       saveMutation
         .mutateAsync(value)
-        .then(() => closeModal())
+        .then(() => (draftStep?.next ? draftStep.next() : closeModal()))
         .catch(() => {}),
   });
 
@@ -1101,13 +1139,9 @@ function CustomFilterModal({
     <form.AppForm form={form}>
       <Header closeButton>
         <Stack gap="xs">
-          <Heading as="h4">{getModalTitle(isReadOnly, !!filter)}</Heading>
+          <Heading as="h4">{getModalTitle(isReadOnly, !!filter, draftStep)}</Heading>
           <Text variant="muted" size="sm">
-            {getModalDescription(
-              legacyCondition,
-              isReadOnly,
-              initialValues !== undefined && !filter
-            )}
+            {getModalDescription(legacyCondition, isReadOnly, draftSource)}
           </Text>
         </Stack>
       </Header>
@@ -1251,6 +1285,9 @@ function CustomFilterModal({
         ) : (
           <Flex gap="md">
             <Button onClick={closeModal}>{t('Cancel')}</Button>
+            {draftStep?.next && (
+              <Button onClick={draftStep.next}>{t('Skip This Filter')}</Button>
+            )}
             <form.SubmitButton>
               {filter ? t('Save Changes') : t('Create Filter')}
             </form.SubmitButton>
@@ -1259,6 +1296,94 @@ function CustomFilterModal({
       </Footer>
     </form.AppForm>
   );
+}
+
+// Asks the API which filters drop the errors of the issues, then walks the user
+// through them one at a time: each draft opens in the filter form, where the user
+// creates it or skips it.
+function SuggestedFiltersModal({
+  project,
+  groupIds,
+  ...modalProps
+}: ModalRenderProps & {groupIds: string[]; project: Project}) {
+  const {Header, Body, Footer, closeModal} = modalProps;
+  const organization = useOrganization();
+  const [position, setPosition] = useState(1);
+  const {data, error} = useQuery(
+    apiOptions.as<CustomInboundFilterSuggestions>()(SUGGESTIONS_PATH, {
+      path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
+      query: {group: groupIds},
+      // Seer may word its answer differently each time, so the drafts stay the ones
+      // the user saw first.
+      staleTime: Infinity,
+    })
+  );
+
+  const draft = data?.filters[position - 1];
+  if (data && draft) {
+    const total = data.filters.length;
+    return (
+      <CustomFilterModal
+        key={position}
+        {...modalProps}
+        project={project}
+        initialValues={{
+          name: draft.name,
+          dataType: draft.dataType,
+          conditions: conditionsToQuery(draft.conditions),
+        }}
+        draftStep={{
+          position,
+          total,
+          next: position < total ? () => setPosition(position + 1) : undefined,
+        }}
+      />
+    );
+  }
+
+  return (
+    <Fragment>
+      <Header closeButton>
+        <Heading as="h4">{t('Create Custom Filter')}</Heading>
+      </Header>
+      <Body>
+        {error ? (
+          <Alert variant="danger">
+            {getErrorDetail(
+              error,
+              t('Unable to draft a filter from the selected issues')
+            )}
+          </Alert>
+        ) : (
+          <Stack align="center" gap="md">
+            <LoadingIndicator />
+            <Text variant="muted">
+              {tn(
+                'Drafting a filter from the selected issue\u2026',
+                'Drafting filters from the %s selected issues\u2026',
+                groupIds.length
+              )}
+            </Text>
+          </Stack>
+        )}
+      </Body>
+      <Footer>
+        <Button onClick={closeModal}>{t('Close')}</Button>
+      </Footer>
+    </Fragment>
+  );
+}
+
+// Opens the modal on the filters that drop the errors of the issues. Sentry drafts
+// them: one filter where the issues belong together, with a wildcard where a pattern
+// describes them, and several filters where they do not.
+export function openSuggestedFiltersModal(options: {
+  groupIds: string[];
+  project: Project;
+}) {
+  openModal(deps => <SuggestedFiltersModal {...deps} {...options} />, {
+    modalCss: filterModalCss,
+  });
 }
 
 // Opens the modal to create a filter, from a draft or from scratch, or to edit

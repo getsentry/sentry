@@ -177,6 +177,12 @@ export type IssueEventParameters = {
   'issue_views.table.create_view_clicked': Record<string, unknown>;
   'issue_views.table.search': {query: string};
   'issue_views.table.sort_changed': {sort: string};
+  'issues_stream.add_inbound_filter': {
+    area: string;
+    issue_count: number;
+    platform: string | undefined;
+    project_id: string;
+  };
   'issues_stream.archived': {
     area: string;
     action_status_details?: string;
@@ -277,6 +283,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_inbox.item_clicked': 'Issue Inbox: Item Clicked',
   'issue_inbox.open_in_desktop_app_clicked': 'Issue Inbox: Open in Desktop App Clicked',
   'issues_stream.archived': 'Issues Stream: Archived',
+  'issues_stream.add_inbound_filter': 'Issues Stream: Add Inbound Filter',
   'issues_stream.copied': 'Issues Stream: Copied',
   'issues_stream.updated_priority': 'Issues Stream: Updated Priority',
   'issues_stream.realtime_clicked': 'Issues Stream: Realtime Clicked',

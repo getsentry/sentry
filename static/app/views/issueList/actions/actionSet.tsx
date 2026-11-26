@@ -12,17 +12,64 @@ import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {makeGroupPriorityDropdownOptions} from 'sentry/components/badge/groupPriority';
 import {t} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {BaseGroup} from 'sentry/types/group';
-import {GroupStatus} from 'sentry/types/group';
+import {GroupStatus, IssueCategory} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import type {IssueTypeConfig} from 'sentry/utils/issueTypeConfig/types';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
+import {
+  getFilterWriteDisabledReason,
+  offersInProductFilters,
+} from 'sentry/views/settings/project/projectFilters/inProductFilterAccess';
 
 import {CopyActions} from './copyActions';
 import {ResolveActionsContainer as ResolveActions} from './resolveActions';
 import {ConfirmAction, getConfirm, getLabel} from './utils';
+
+// The API drafts filters from at most this many issues.
+const MAX_ISSUES_PER_FILTER_DRAFT = 100;
+
+// The modal and its form live with the project settings, so the issue stream only
+// loads them once the action runs.
+async function openSuggestedFiltersModal(project: Project, groupIds: string[]) {
+  const {openSuggestedFiltersModal: open} =
+    await import('sentry/views/settings/project/projectFilters/customFilterModal');
+  open({project, groupIds});
+}
+
+// Why the selection cannot become a custom inbound filter, or undefined when it can.
+// A filter belongs to one project and drops errors, and the API drafts it from the
+// issues it is given, so it needs their IDs.
+function getAddInboundFilterDisabledReason({
+  allInQuerySelected,
+  organization,
+  project,
+  selectedIssues,
+}: {
+  allInQuerySelected: boolean;
+  organization: Organization;
+  project: Project | undefined;
+  selectedIssues: BaseGroup[];
+}): string | undefined {
+  if (allInQuerySelected) {
+    return t('Select issues on this page instead of every issue of the search');
+  }
+  if (!project) {
+    return t('Select issues of one project');
+  }
+  if (selectedIssues.some(issue => issue.issueCategory !== IssueCategory.ERROR)) {
+    return t('Inbound filters only apply to error issues');
+  }
+  if (selectedIssues.length > MAX_ISSUES_PER_FILTER_DRAFT) {
+    return t('Select at most %s issues', MAX_ISSUES_PER_FILTER_DRAFT);
+  }
+  return getFilterWriteDisabledReason(organization, project);
+}
 
 type Props = {
   allInQuerySelected: boolean;
@@ -135,6 +182,16 @@ export function ActionSet({
       issue => issue.status === 'resolved' || issue.status === 'ignored'
     );
 
+  const filterProject = selectedProjectSlug
+    ? ProjectsStore.getBySlug(selectedProjectSlug)
+    : undefined;
+  const addInboundFilterDisabledReason = getAddInboundFilterDisabledReason({
+    allInQuerySelected,
+    organization,
+    project: filterProject,
+    selectedIssues,
+  });
+
   const makeMergeTooltip = () => {
     if (mergeDisabledReason) {
       return mergeDisabledReason;
@@ -199,6 +256,29 @@ export function ActionSet({
           message: confirm({action: ConfirmAction.UNRESOLVE, canBeUndone: true}),
           confirmText: label('unresolve'),
         });
+      },
+    },
+    {
+      key: 'add-inbound-filter',
+      label: t('Add Inbound Filter'),
+      hidden: !offersInProductFilters(organization),
+      disabled: addInboundFilterDisabledReason !== undefined,
+      details: addInboundFilterDisabledReason,
+      onAction: () => {
+        if (!filterProject) {
+          return;
+        }
+        trackAnalytics('issues_stream.add_inbound_filter', {
+          organization,
+          project_id: filterProject.id,
+          platform: filterProject.platform,
+          issue_count: selectedIssues.length,
+          area,
+        });
+        openSuggestedFiltersModal(
+          filterProject,
+          selectedIssues.map(issue => issue.id)
+        );
       },
     },
     {
