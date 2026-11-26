@@ -23,6 +23,7 @@ class TelemetryClassifierOutputType(models.TextChoices):
 
 
 class TelemetryClassifierStatus(models.TextChoices):
+    DRAFT = "draft", "Draft"
     DISABLED = "disabled", "Disabled"
     ENABLED = "enabled", "Enabled"
 

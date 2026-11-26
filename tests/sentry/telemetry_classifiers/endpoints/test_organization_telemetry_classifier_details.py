@@ -170,6 +170,11 @@ class OrganizationTelemetryClassifierDetailsPutTest(APITestCase):
             )
             assert "status" in response.data
 
+            response = self.get_error_response(
+                self.organization.slug, self.classifier.id, status="draft", status_code=400
+            )
+            assert "status" in response.data
+
     def test_rejects_other_fields(self) -> None:
         with self.feature(self.features):
             response = self.get_error_response(

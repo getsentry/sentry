@@ -542,7 +542,14 @@ class ExhaustiveFixtures(Fixtures):
             filter_query="",
             status=TelemetryClassifierStatus.ENABLED,
             natural_language_prompt="Is this conversation useful?",
-            compiled_prompt="Return yes when this conversation is useful.",
+            compiled_prompt={
+                "runner": "seer_decision",
+                "version": 1,
+                "question": {
+                    "type": "predicate",
+                    "instructions": "Return yes when this conversation is useful.",
+                },
+            },
             output_type=TelemetryClassifierOutputType.BINARY,
             created_by_id=owner_id,
         )

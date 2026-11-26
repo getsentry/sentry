@@ -23,10 +23,10 @@ class TelemetryClassifier(DefaultFieldsModel):
 
     project = FlexibleForeignKey("sentry.Project", on_delete=models.CASCADE)
 
-    name = models.CharField(max_length=256)
+    name = models.CharField(max_length=256, null=True)
 
     # Attribute used to store classifier results, without RESULT_ATTRIBUTE_PREFIX.
-    result_attribute = models.CharField(max_length=256)
+    result_attribute = models.CharField(max_length=256, null=True)
 
     dataset = models.CharField(max_length=32, choices=Dataset.choices)
     filter_query = models.TextField()
@@ -41,7 +41,8 @@ class TelemetryClassifier(DefaultFieldsModel):
 
     # Custom classifier fields.
     natural_language_prompt = models.TextField(null=True)
-    compiled_prompt = models.TextField(null=True)
+    # Never serialized, so it can't reach the client. Parsed with SeerDecisionPrompt.
+    compiled_prompt = models.JSONField(null=True)
     output_type = models.CharField(
         max_length=16,
         choices=TelemetryClassifierOutputType.choices,
@@ -77,6 +78,18 @@ class TelemetryClassifier(DefaultFieldsModel):
                     compiled_prompt__isnull=True,
                 ),
                 name="telemetry_classifier_enabled_definition_ready",
+            ),
+            models.CheckConstraint(
+                condition=(
+                    models.Q(status=TelemetryClassifierStatus.DRAFT)
+                    | models.Q(name__isnull=False, result_attribute__isnull=False)
+                ),
+                name="telemetry_classifier_named_unless_draft",
+            ),
+            models.UniqueConstraint(
+                fields=["project", "result_attribute"],
+                condition=~models.Q(status=TelemetryClassifierStatus.DRAFT),
+                name="telemetry_classifier_unique_result_attribute",
             ),
         ]
 

@@ -35,12 +35,14 @@ from sentry.users.services.user.service import user_service
 
 RESULT_ATTRIBUTE_PATTERN = re.compile(r"\A[a-z0-9_]+(\.[a-z0-9_]+)*\Z")
 
+WRITABLE_STATUSES = [TelemetryClassifierStatus.ENABLED, TelemetryClassifierStatus.DISABLED]
+
 
 class TelemetryClassifierResponse(TypedDict):
     id: str
     projectId: str
-    name: str
-    resultAttribute: str
+    name: str | None
+    resultAttribute: str | None
     dataset: Dataset
     filterQuery: str
     status: TelemetryClassifierStatus
@@ -160,7 +162,7 @@ class TelemetryClassifierRequestSerializer(CamelSnakeSerializer[TelemetryClassif
         help_text="Search query selecting the telemetry to classify.",
     )
     status = serializers.ChoiceField(
-        choices=TelemetryClassifierStatus.choices,
+        choices=WRITABLE_STATUSES,
         default=TelemetryClassifierStatus.ENABLED,
     )
     prebuilt_classifier_key = serializers.ChoiceField(
@@ -186,9 +188,13 @@ class TelemetryClassifierRequestSerializer(CamelSnakeSerializer[TelemetryClassif
         except InvalidSearchQuery as error:
             raise serializers.ValidationError({"filter_query": str(error)})
 
-        if TelemetryClassifier.objects.filter(
-            project=attrs["project"], result_attribute=attrs["result_attribute"]
-        ).exists():
+        if (
+            TelemetryClassifier.objects.filter(
+                project=attrs["project"], result_attribute=attrs["result_attribute"]
+            )
+            .exclude(status=TelemetryClassifierStatus.DRAFT)
+            .exists()
+        ):
             raise serializers.ValidationError(
                 {"result_attribute": "Another classifier in this project uses this attribute."}
             )
@@ -203,7 +209,7 @@ class TelemetryClassifierRequestSerializer(CamelSnakeSerializer[TelemetryClassif
 
 
 class TelemetryClassifierUpdateRequestSerializer(CamelSnakeSerializer[TelemetryClassifier]):
-    status = serializers.ChoiceField(choices=TelemetryClassifierStatus.choices)
+    status = serializers.ChoiceField(choices=WRITABLE_STATUSES)
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         # TODO: Allow editing the classifier definition, not just enabling or disabling it.

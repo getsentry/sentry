@@ -2757,7 +2757,7 @@ class Factories:
             project = Factories.create_project()
         defaults: dict[str, Any] = {
             "name": petname.generate(2, " ", letters=10).title(),
-            "result_attribute": "result",
+            "result_attribute": petname.generate(2, "_", letters=10),
             "dataset": telemetry_classifier_types.Dataset.CONVERSATION,
             "filter_query": "",
             "prebuilt_classifier_key": "conversation_user_frustration",
