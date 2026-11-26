@@ -98,6 +98,7 @@ from sentry.issues.action_log.types import GroupActionType, GroupActorType
 from sentry.issues.grouptype import get_group_type_by_type_id
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.models.groupderiveddata import GroupDerivedData
+from sentry.issues.models.issuemergeoperation import IssueMergeOperation, IssueUnmergeOperation
 from sentry.models.activity import Activity
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apidevicecode import ApiDeviceCode
@@ -1644,6 +1645,27 @@ class Factories:
             user_id=user_id,
             team=team,
             **kwargs,
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_issue_merge_operation(
+        project: Project, source_group_ids: list[int], destination_group_id: int, **kwargs: Any
+    ) -> IssueMergeOperation:
+        return IssueMergeOperation.objects.create(
+            project=project,
+            source_group_ids=source_group_ids,
+            destination_group_id=destination_group_id,
+            **kwargs,
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_issue_unmerge_operation(
+        project: Project, source_group_id: int, group_hashes: list[str], **kwargs: Any
+    ) -> IssueUnmergeOperation:
+        return IssueUnmergeOperation.objects.create(
+            project=project, source_group_id=source_group_id, group_hashes=group_hashes, **kwargs
         )
 
     @staticmethod

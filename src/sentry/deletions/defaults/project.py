@@ -17,6 +17,10 @@ class ProjectDeletionTask(ModelDeletionTask[Project]):
         from sentry.integrations.models.repository_project_path_config import (
             RepositoryProjectPathConfig,
         )
+        from sentry.issues.models.issuemergeoperation import (
+            IssueMergeOperation,
+            IssueUnmergeOperation,
+        )
         from sentry.models.activity import Activity
         from sentry.models.artifactbundle import ProjectArtifactBundle
         from sentry.models.debugfile import ProguardArtifactRelease, ProjectDebugFile
@@ -66,6 +70,8 @@ class ProjectDeletionTask(ModelDeletionTask[Project]):
             GroupAssignee,
             GroupBookmark,
             GroupEmailThread,
+            IssueMergeOperation,
+            IssueUnmergeOperation,
             GroupRelease,
             GroupSeen,
             GroupShare,
