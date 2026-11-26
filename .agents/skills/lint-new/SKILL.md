@@ -1,9 +1,9 @@
 ---
 name: lint-new
-description: Create or extend a custom oxlint rule in Sentry's eslintPluginSentry or eslintPluginScraps plugins. Use when asked to "add a lint rule", "change an existing lint rule", or "new design system lint rule".
+description: Create or extend a custom oxlint rule in Sentry's eslintPluginSentry or eslintPluginScraps plugins. Use when asked to "add a lint rule", "add an eslint rule", "create a lint rule", "change an existing lint rule", or "new design system lint rule".
 ---
 
-Create a new oxlint rule named `$ARGUMENTS` (kebab-case, e.g. `no-foo-bar`).
+Create or extend the oxlint rule named `$ARGUMENTS` (kebab-case, e.g. `no-foo-bar`). To change an existing rule, skip to [Extending an Existing Rule](#extending-an-existing-rule).
 
 Oxlint runs our custom rules as JS plugins through `@oxlint/plugins`. The API mirrors ESLint's (`create(context)`, AST visitors, `context.report`, fixers), but the imports, file layout, and config are oxlint's.
 
@@ -18,7 +18,7 @@ Before writing anything, read the closest existing rule in the chosen plugin and
 
 For Scraps rules, also read [references/rule-archetypes.md](references/rule-archetypes.md) and pick the archetype that matches. Scraps has shared AST helpers in `src/ast/` (import tracking, styled-call detection, CSS template parsing); reuse them rather than re-walking the AST. Rules that inspect Emotion styles also need [references/styled-css-guide.md](references/styled-css-guide.md).
 
-For Sentry rules, `utils/styled.ts` detects styled and `css` templates, and `fixtures/` holds real files for specs whose rule reads other files or depends on the file path (see `noDefaultExports.spec.ts`).
+For Sentry rules, `utils/styled.ts` detects styled and `css` templates, and `fixtures/` holds real files for specs whose rule reads other files or depends on the file path (see `noDefaultExports.spec.ts`). For a rule that only applies to test files, start from `preferFakeTimers.ts` or `requireFakeTimerCleanup.ts`.
 
 ## Step 2: Create the Files
 
@@ -52,7 +52,7 @@ export const noFooBar = defineRule({
 
 - Import node types with `import {defineRule, type ESTree} from '@oxlint/plugins';`.
 - Read source text and scopes through `context.sourceCode` (`getText`, `getScope`, `ast`).
-- Local imports inside the plugin use the `.ts` extension (`'../ast/tracker/imports.ts'`).
+- In rule and helper files, local imports use the `.ts` extension (`'../ast/tracker/imports.ts'`). Specs import the rule without it.
 - Configurable options: [references/schema-patterns.md](references/schema-patterns.md).
 
 ### Test
@@ -76,7 +76,7 @@ ruleTester.run('no-foo-bar', noFooBar, {
 });
 ```
 
-Parser: `new RuleTester()` parses plain JS; set `lang: 'ts'` for type syntax and `lang: 'tsx'` for TSX. Pass `filename` on a case when the rule depends on the file path, and `options` when it takes options.
+Parser: `new RuleTester()` parses plain JS; set `lang: 'ts'` for type syntax and `lang: 'tsx'` for TSX. Pass `filename` on a case when the rule depends on the file path, and `options` when it takes options. A `filename` overrides `lang`: the language comes from its extension, so use `.tsx` when the case has JSX.
 
 Cover the false positives you can think of in `valid`: aliased imports, shadowed names, type-only imports, and look-alike paths or identifiers.
 
@@ -89,7 +89,7 @@ Implement an autofix when the transformation is unambiguous and keeps runtime be
 - Wrapping an expression in a known component
 - Renames with no shadowing risk
 
-Leave the rule report-only when more than one fix is plausible, the fix needs type information, it changes control flow, or it spans files. A report-only rule can still offer `suggest` entries.
+Leave the rule report-only when more than one fix is plausible, the fix needs type information, it changes control flow, or it spans files. A report-only rule can still offer `suggest` entries in `context.report`; set `meta.hasSuggestions: true` when it does.
 
 ```typescript
 context.report({
@@ -122,7 +122,7 @@ Keep fixes from dropping comments inside the replaced range, and report on the n
 
 ## Step 4: Enroll Incubator Rules
 
-Only for rules added to `incubator`. Incubator rules fail `pnpm run lint:js` and CI on new violations, while each workspace's `oxlint-suppressions.json` (`static/app/`, `static/gsApp/`, `static/gsAdmin/`) caps the existing ones per file and rule. Suppressions are only accepted for incubator rules.
+Only for rules added to `incubator`. Suppression budgets are explained under Linting in `static/AGENTS.md`. To record the existing violations as the new rule's budget:
 
 ```bash
 pnpm run lint:suppressions --enroll --base origin/master
@@ -141,7 +141,7 @@ pnpm run lint:js static/oxlint                                   # lints the plu
 pnpm run lint:js                                                 # the new rule over the codebase
 ```
 
-For an incubator rule, also run `pnpm run lint:suppressions --ci` and read through `pnpm run lint:suppressions --backlog --rule @sentry/no-foo-bar` for false positives.
+For an incubator rule, also run `pnpm run lint:suppressions --ci --base origin/master` (without `--base`, stale budgets only warn) and read through `pnpm run lint:suppressions --backlog --rule @sentry/no-foo-bar` for false positives.
 
 ## Extending an Existing Rule
 
