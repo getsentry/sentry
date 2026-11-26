@@ -215,14 +215,8 @@ export function Alert({
           </StyledIconWrapper>
         )}
         <Container alignSelf="center" padding="xs 0">
-          {layoutProps => (
-            <Text
-              {...layoutProps}
-              as="div"
-              density="comfortable"
-              trim={false}
-              variant="inherit"
-            >
+          {containerProps => (
+            <Text {...containerProps} as="div" density="comfortable" variant="inherit">
               {children}
             </Text>
           )}
