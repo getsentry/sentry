@@ -650,6 +650,14 @@ E.g. `['release', 'environment']`""",
             )
         return value
 
+    def validate_impactAssessmentProjectContext(self, value: str) -> str:
+        organization = self.context["project"].organization
+        if not features.has("organizations:seer-impact-assessment", organization):
+            raise serializers.ValidationError(
+                "Organization does not have the impact assessment feature enabled."
+            )
+        return value
+
     def validate_debugFilesRole(self, value: str | None) -> str | None:
         if value is None:
             return value

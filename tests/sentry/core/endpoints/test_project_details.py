@@ -1221,6 +1221,7 @@ class ProjectUpdateTest(APITestCase):
         )
         assert "must be a list of strings" in resp.data["highlightContext"][0]
 
+    @with_feature("organizations:seer-impact-assessment")
     def test_impact_assessment_project_context(self) -> None:
         context = "Customers use this project to complete purchases."
 
@@ -1250,6 +1251,7 @@ class ProjectUpdateTest(APITestCase):
         assert response.data["impactAssessmentProjectContext"] is None
         assert self.project.get_option("sentry:impact_assessment_project_context") is None
 
+    @with_feature("organizations:seer-impact-assessment")
     def test_impact_assessment_project_context_max_length(self) -> None:
         response = self.get_error_response(
             self.org_slug,
@@ -1261,6 +1263,20 @@ class ProjectUpdateTest(APITestCase):
             "Ensure this field has no more than 4000 characters"
             in response.data["impactAssessmentProjectContext"][0]
         )
+
+    def test_impact_assessment_project_context_requires_feature(self) -> None:
+        response = self.get_error_response(
+            self.org_slug,
+            self.proj_slug,
+            impactAssessmentProjectContext="Customers use this project to complete purchases.",
+            status_code=400,
+        )
+
+        assert (
+            "Organization does not have the impact assessment feature enabled."
+            in response.data["impactAssessmentProjectContext"][0]
+        )
+        assert self.project.get_option("sentry:impact_assessment_project_context") is None
 
     def test_store_crash_reports(self) -> None:
         resp = self.get_success_response(self.org_slug, self.proj_slug, storeCrashReports=10)
