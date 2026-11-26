@@ -607,9 +607,13 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
         )
         number = "avg(tags[score.ratio.lcp,number],browser.web_vital.lcp,distribution,millisecond)"
         value = "avg(value,browser.web_vital.lcp,distribution,millisecond)"
+        count = (
+            "count(tags[score.ratio.lcp,percentage],browser.web_vital.lcp,distribution,millisecond)"
+        )
+        rate = "per_second(tags[score.ratio.lcp,percentage],browser.web_vital.lcp,distribution,millisecond)"
         response = self.do_request(
             {
-                "field": [percentage, number, value],
+                "field": [percentage, number, value, count, rate],
                 "project": self.project.id,
                 "dataset": self.dataset,
                 "statsPeriod": "10m",
@@ -623,10 +627,13 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
         assert data[0][percentage] == 0.75
         assert data[0][number] == 0.75
         assert data[0][value] == 200.0
+        assert data[0][count] == 2
 
         assert meta["fields"][percentage] == "percentage"
         assert meta["fields"][number] == "number"
         assert meta["fields"][value] == "duration"
+        assert meta["fields"][count] == "integer"
+        assert meta["fields"][rate] == "rate"
         assert meta["units"][percentage] is None
         assert meta["units"][number] is None
         assert meta["units"][value] == "millisecond"
