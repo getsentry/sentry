@@ -33,6 +33,32 @@ describe('TraceItemFieldSelector', () => {
     });
   });
 
+  describe('fromField', () => {
+    it('escapes single quotes in attribute names so they round-trip', () => {
+      const alias = "**.naam || **.'e-mail'";
+      const selector = TraceItemFieldSelector.fromField(
+        AllowedDataScrubbingDatasets.LOGS,
+        alias
+      );
+      expect(selector?.getSelector()).toBe(
+        "$log.attributes.'**.naam || **.''e-mail'''.value"
+      );
+      expect(selector?.toField()).toBe(alias);
+      expect(
+        TraceItemFieldSelector.fromSourceString(selector!.getSelector())?.toField()
+      ).toBe(alias);
+    });
+
+    it('escapes single quotes for trace metric attributes', () => {
+      const selector = TraceItemFieldSelector.fromField(
+        AllowedDataScrubbingDatasets.METRICS,
+        "it's"
+      );
+      expect(selector?.getSelector()).toBe("$trace_metric.attributes.'it''s'.value");
+      expect(selector?.toField()).toBe("it's");
+    });
+  });
+
   describe('isTraceItemField', () => {
     it('does not match $logentry for the logs dataset', () => {
       expect(

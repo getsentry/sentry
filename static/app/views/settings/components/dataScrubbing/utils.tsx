@@ -239,6 +239,17 @@ function getSourceLabel(rule: Rule) {
   return rule.source;
 }
 
+/**
+ * Relay selectors allow single quotes inside quoted keys by doubling them (`''`).
+ */
+function escapeQuotedKey(key: string): string {
+  return key.replace(/'/g, "''");
+}
+
+function unescapeQuotedKey(key: string): string {
+  return key.replace(/''/g, "'");
+}
+
 interface SelectorToFieldMapping {
   fieldName: string;
   regex: RegExp;
@@ -257,11 +268,11 @@ export class TraceItemFieldSelector {
     Array<SelectorToFieldMapping | SelectorToAttributeMapping>
   > = {
     [AllowedDataScrubbingDatasets.LOGS]: [
-      {regex: /^\$log\.attributes\.'([^']+)'\.value$/},
+      {regex: /^\$log\.attributes\.'((?:[^']|'')+)'\.value$/},
       {regex: /^\$log\.body$/, fieldName: 'message'},
     ],
     [AllowedDataScrubbingDatasets.METRICS]: [
-      {regex: /^\$trace_metric\.attributes\.'([^']+)'\.value$/},
+      {regex: /^\$trace_metric\.attributes\.'((?:[^']|'')+)'\.value$/},
     ],
     [AllowedDataScrubbingDatasets.DEFAULT]: [],
   };
@@ -283,10 +294,10 @@ export class TraceItemFieldSelector {
       if (alias === 'message') {
         return '$log.body';
       }
-      return `$log.attributes.'${alias}'.value`;
+      return `$log.attributes.'${escapeQuotedKey(alias)}'.value`;
     },
     [AllowedDataScrubbingDatasets.METRICS]: (alias: string) => {
-      return `$trace_metric.attributes.'${alias}'.value`;
+      return `$trace_metric.attributes.'${escapeQuotedKey(alias)}'.value`;
     },
     [AllowedDataScrubbingDatasets.DEFAULT]: () => null,
   };
@@ -375,7 +386,7 @@ export class TraceItemFieldSelector {
     if (attributeMapping) {
       const match = this.selector.match(attributeMapping.regex);
       if (match?.[1]) {
-        return match[1];
+        return unescapeQuotedKey(match[1]);
       }
     }
 
@@ -434,7 +445,7 @@ export class TraceItemFieldSelector {
       if (attributeMapping) {
         const match = selector.match(attributeMapping.regex);
         if (match?.[1]) {
-          return match[1];
+          return unescapeQuotedKey(match[1]);
         }
       }
     }
