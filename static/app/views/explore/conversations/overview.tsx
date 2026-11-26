@@ -185,12 +185,15 @@ function ConversationsOverviewPage() {
     }
   }, [activeTab, onboardingEmptyState, isOnboardingLoading, organization]);
 
+  const initialQuery =
+    searchQuery ?? (activeTab === 'spans' ? LLM_CALLS_DEFAULT_SEARCH : '');
   const searchQueryBuilderProps: UseSpanSearchQueryBuilderProps = useMemo(
     () => ({
-      initialQuery:
-        searchQuery ?? (activeTab === 'spans' ? LLM_CALLS_DEFAULT_SEARCH : ''),
+      initialQuery,
       onSearch: (newQuery, {queryIsValid}) => {
-        if (!queryIsValid) {
+        // The builder also calls this when a tab change swaps the default
+        // query. Writing that to the URL would replace the LLM Calls default.
+        if (!queryIsValid || newQuery === initialQuery) {
           return;
         }
         setSearchQuery(newQuery);
@@ -200,14 +203,7 @@ function ConversationsOverviewPage() {
       searchSource: isConversationsTab ? 'conversations' : 'agents',
       ...(isConversationsTab ? CONVERSATION_SEARCH_QUERY_BUILDER_PROPS : {}),
     }),
-    [
-      activeTab,
-      isConversationsTab,
-      searchQuery,
-      setSearchQuery,
-      setSpansCursor,
-      unsetCursor,
-    ]
+    [initialQuery, isConversationsTab, setSearchQuery, setSpansCursor, unsetCursor]
   );
 
   const {spanSearchQueryBuilderProviderProps, spanSearchQueryBuilderProps} =

@@ -203,6 +203,27 @@ describe('ConversationsOverviewPage', () => {
     await waitFor(() => expect(spansRequest).toHaveBeenCalled());
   });
 
+  it('keeps the pre-filled LLM Calls filter after switching tabs', async () => {
+    render(<ConversationsOverviewPage />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/explore/agents/`,
+          query: {table: 'spans'},
+        },
+      },
+    });
+
+    expect(
+      await screen.findByRole('row', {name: 'has:gen_ai.output.messages'})
+    ).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('tab', {name: 'Traces'}));
+    await userEvent.click(screen.getByRole('tab', {name: 'LLM Calls'}));
+    expect(
+      await screen.findByRole('row', {name: 'has:gen_ai.output.messages'})
+    ).toBeInTheDocument();
+  });
+
   it('filters conversations to those with errors', async () => {
     const allRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/agents/conversations/`,
