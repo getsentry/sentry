@@ -162,11 +162,8 @@ const clearAll = async (
   {user = userEvent}: UserEventOptions = {}
 ) => {
   const container = getSelectContainer(input);
-  await user.click(
-    within(container).queryByRole('button', {name: 'Clear choices'}) ??
-      within(container).getAllByRole('button', {name: 'Remove item'})[0]!,
-    {skipHover: true}
-  );
+  const clearButton = within(container).getByRole('button', {name: 'Clear choices'});
+  await user.click(clearButton, {skipHover: true});
 };
 
 export const selectEvent = {select, create, clearFirst, clearAll, openMenu};
