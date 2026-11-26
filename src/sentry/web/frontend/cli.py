@@ -161,7 +161,13 @@ install_legacy() {
   major=${installed_version%%.*}
   minor=${installed_version#*.}
   minor=${minor%%.*}
-  if [ -d "${HOME:-}/.oh-my-zsh" ] && [ "$major" -eq 2 ] && [ "$minor" -ge 22 ]; then
+  # `sentry-cli completions` exists since 2.22.
+  if [ "$major" -gt 2 ] || { [ "$major" -eq 2 ] && [ "$minor" -ge 22 ]; }; then
+    has_completions=true
+  else
+    has_completions=false
+  fi
+  if [ -d "${HOME:-}/.oh-my-zsh" ] && [ "$has_completions" = true ]; then
     echo 'Detected Oh My Zsh, installing Zsh completions...'
     if mkdir -p "${HOME}/.oh-my-zsh/completions" && "$install_path" completions zsh > "${HOME}/.oh-my-zsh/completions/_sentry_cli"; then
       echo "Successfully installed Zsh completions."
