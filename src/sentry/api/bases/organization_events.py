@@ -11,6 +11,7 @@ import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
 from django.http.request import HttpRequest
 from django.utils import timezone
+from drf_spectacular.utils import OpenApiResponse
 from rest_framework.exceptions import ParseError, ValidationError
 from rest_framework.request import Request
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import ExtrapolationMode
@@ -85,6 +86,9 @@ LEGACY_DATASETS_GONE_MESSAGE = (
     "The transactions, discover, and events datasets are no longer available through the API. "
     "Query the spans or errors dataset instead: "
     "https://www.sentry.help/en/articles/17632566-migrating-from-the-transactions-and-discover-api-datasets"
+)
+LEGACY_DATASETS_GONE_RESPONSE = OpenApiResponse(
+    description="The transactions, discover, and events datasets are deprecated and no longer available."
 )
 _LEGACY_DATASET_LABELS = frozenset(
     {Dataset.Discover.value, Dataset.Events.value, Dataset.Transactions.value}

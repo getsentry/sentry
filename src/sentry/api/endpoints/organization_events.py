@@ -19,6 +19,7 @@ from sentry.api.bases.organization_events import (
     LEGACY_DATASETS_BROWNOUT_KEY,
     LEGACY_DATASETS_DEPRECATION_DATE,
     LEGACY_DATASETS_GONE_MESSAGE,
+    LEGACY_DATASETS_GONE_RESPONSE,
     legacy_dataset_metric_attributes,
     requests_legacy_dataset,
 )
@@ -245,6 +246,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
             ),
             400: OpenApiResponse(description="Invalid Query"),
             403: api_constants.RESPONSE_FORBIDDEN,
+            410: LEGACY_DATASETS_GONE_RESPONSE,
         },
         examples=DiscoverAndPerformanceExamples.QUERY_DISCOVER_EVENTS,
     )

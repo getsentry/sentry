@@ -15,6 +15,7 @@ from sentry.api.bases.organization_events import (
     LEGACY_DATASETS_BROWNOUT_KEY,
     LEGACY_DATASETS_DEPRECATION_DATE,
     LEGACY_DATASETS_GONE_MESSAGE,
+    LEGACY_DATASETS_GONE_RESPONSE,
     OrganizationEventsEndpointBase,
     legacy_replay_data_source_metric_attributes,
     requests_legacy_replay_data_source,
@@ -114,6 +115,7 @@ class OrganizationReplayCountEndpoint(OrganizationEventsEndpointBase):
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
+            410: LEGACY_DATASETS_GONE_RESPONSE,
         },
     )
     @deprecated(
