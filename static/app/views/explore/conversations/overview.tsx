@@ -40,6 +40,7 @@ import {AgentsChartIntervalSelector} from './components/agentsChartsControls';
 import {
   AGENTS_TABLE_TABS,
   AgentsTable,
+  LLM_CALLS_DEFAULT_SEARCH,
   type AgentsTableTab,
 } from './components/agentsTable';
 import {ConversationMissingMessagesAlert} from './components/conversationMissingMessagesAlert';
@@ -186,7 +187,8 @@ function ConversationsOverviewPage() {
 
   const searchQueryBuilderProps: UseSpanSearchQueryBuilderProps = useMemo(
     () => ({
-      initialQuery: searchQuery ?? '',
+      initialQuery:
+        searchQuery ?? (activeTab === 'spans' ? LLM_CALLS_DEFAULT_SEARCH : ''),
       onSearch: (newQuery, {queryIsValid}) => {
         if (!queryIsValid) {
           return;
@@ -198,7 +200,14 @@ function ConversationsOverviewPage() {
       searchSource: isConversationsTab ? 'conversations' : 'agents',
       ...(isConversationsTab ? CONVERSATION_SEARCH_QUERY_BUILDER_PROPS : {}),
     }),
-    [isConversationsTab, searchQuery, setSearchQuery, setSpansCursor, unsetCursor]
+    [
+      activeTab,
+      isConversationsTab,
+      searchQuery,
+      setSearchQuery,
+      setSpansCursor,
+      unsetCursor,
+    ]
   );
 
   const {spanSearchQueryBuilderProviderProps, spanSearchQueryBuilderProps} =

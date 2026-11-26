@@ -31,8 +31,10 @@ export const LLM_CALLS_SAVED_QUERY = {
     SpanFields.GEN_AI_COST_TOTAL_TOKENS,
     SpanFields.TIMESTAMP,
   ],
-  query: `${getAiClientSpansFilter()} has:${SpanFields.GEN_AI_OUTPUT_MESSAGES}`,
+  query: getAiClientSpansFilter(),
 } satisfies Pick<ReadableQueryParamsOptions, 'fields' | 'query'>;
+// Pre-filled in the search bar, so people can see and remove it.
+export const LLM_CALLS_DEFAULT_SEARCH = `has:${SpanFields.GEN_AI_OUTPUT_MESSAGES}`;
 
 interface AgentsTableProps {
   activeTab: AgentsTableTab;
@@ -92,7 +94,7 @@ function AgentsSpansTable() {
 }
 
 function AgentsSpansTableContent() {
-  const query = useCombinedQuery(LLM_CALLS_SAVED_QUERY.query);
+  const query = useCombinedQuery(LLM_CALLS_SAVED_QUERY.query, LLM_CALLS_DEFAULT_SEARCH);
   const spansTableResult = useExploreSpansTable({
     query,
     limit: SPANS_TABLE_LIMIT,
