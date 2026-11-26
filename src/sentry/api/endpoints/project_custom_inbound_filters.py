@@ -185,7 +185,7 @@ class CustomInboundFilterConditionSerializer(serializers.Serializer[CustomInboun
             "`environment`, `ip_address`, `browser_name` and `browser_version`. In addition, `error` accepts `error_type`, `error_message` and "
             "`geo_country_code`, `log` accepts `log_message`, and `metric` accepts "
             "`metric_name`. `span` and `all` accept no other types. `attribute` matches "
-            "the tag or attribute that `key` names, on every `dataType`."
+            "the tag or attribute that `key` names, on every `dataType` except `all`."
         ),
     )
     key = serializers.CharField(

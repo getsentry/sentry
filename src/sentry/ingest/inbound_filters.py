@@ -613,24 +613,23 @@ class _KeyedMatcher:
     Builds the matcher for a text field that the key of a condition names, such as one
     tag or one attribute.
 
-    ``names`` holds the name of the field for each data type that carries it, with a
-    ``{key}`` placeholder. The key fills the placeholder as it is: Relay reads everything
-    in its place as the key, so a key cannot name a field outside of the tags or the
-    attributes.
+    ``names`` holds the names of the field for each data type that carries it, with a
+    ``{key}`` placeholder. A condition matches when any of them does. The key fills the
+    placeholder as it is: Relay reads everything in its place as the key, so a key
+    cannot name a field outside of the tags or the attributes.
     """
 
-    names: Mapping[DataType, str]
+    names: Mapping[DataType, Sequence[str]]
     operators = TEXT_OPERATORS
 
     def for_data_type(self, data_type: DataType) -> _KeyedMatcher | None:
-        if data_type is DataType.ALL:
-            return self if set(self.names) == _SINGLE_DATA_TYPES else None
-        if data_type not in self.names:
-            return None
-        return _KeyedMatcher({data_type: self.names[data_type]})
+        names = self.names.get(data_type)
+        return _KeyedMatcher({data_type: names}) if names else None
 
     def for_key(self, key: str) -> _ConditionMatcher:
-        matchers = [_field_matcher(name.format(key=key)) for name in self.names.values()]
+        matchers = [
+            _field_matcher(name.format(key=key)) for names in self.names.values() for name in names
+        ]
         return matchers[0] if len(matchers) == 1 else _any_condition_matcher(matchers)
 
 
@@ -730,6 +729,10 @@ def _negation(
     return {"op": "and", "inner": [matcher.match(ConditionOperator.GLOB, ["*"]), negation]}
 
 
+# The types of the events that count as errors, as Relay names them.
+_ERROR_EVENT_TYPES = ("error", "default", "csp")
+
+
 _CONDITION_MATCHERS: Mapping[
     ConditionType,
     _ConditionMatcher | _KeyedMatcher | Mapping[DataType, _ConditionMatcher],
@@ -781,12 +784,18 @@ _CONDITION_MATCHERS: Mapping[
     },
     # Relay matches a text operator against a string only, so a condition never matches
     # an attribute that holds a number or a boolean.
+    #
+    # Relay answers the `event` prefix on every item that has tags, a transaction
+    # included, and an event type as prefix on events of that type only. An error
+    # filter reads the tag under the error event types, so that it drops nothing else.
+    # The catch-all data type takes no attribute condition: a key names a different
+    # thing on each data type.
     ConditionType.ATTRIBUTE: _KeyedMatcher(
         {
-            DataType.ERROR: "event.tags.{key}",
-            DataType.LOG: "log.attributes.{key}.value",
-            DataType.METRIC: "trace_metric.attributes.{key}.value",
-            DataType.SPAN: "span.attributes.{key}.value",
+            DataType.ERROR: [f"{event_type}.tags.{{key}}" for event_type in _ERROR_EVENT_TYPES],
+            DataType.LOG: ["log.attributes.{key}.value"],
+            DataType.METRIC: ["trace_metric.attributes.{key}.value"],
+            DataType.SPAN: ["span.attributes.{key}.value"],
         }
     ),
 }

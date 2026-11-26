@@ -433,7 +433,7 @@ class CustomInboundFiltersTest(APITestCase):
             {"type": "release", "operator": "starts_with", "value": ["1."]},
         ]
 
-        for data_type in ["all", "error", "span", "log", "metric"]:
+        for data_type in ["error", "span", "log", "metric"]:
             with (
                 self.feature(
                     [
@@ -458,6 +458,25 @@ class CustomInboundFiltersTest(APITestCase):
             custom_filter = CustomInboundFilter.objects.get(id=response.data["id"])
             assert response.data["conditions"] == conditions
             assert custom_filter.conditions == conditions
+
+    def test_catch_all_takes_no_attribute(self) -> None:
+        with self.feature([*self.features, "organizations:inbound-filters-attribute-condition"]):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                name="Tenant acme",
+                dataType="all",
+                conditions=[
+                    {"type": "attribute", "key": "tenant", "operator": "equals", "value": ["a"]}
+                ],
+                status_code=400,
+            )
+
+        assert str(response.data["conditions"][0]) == (
+            "A filter on all data cannot use the attribute condition. "
+            "It accepts release, environment, ip_address, browser_name, browser_version."
+        )
 
     def test_attribute_condition_needs_a_key(self) -> None:
         for key in [{}, {"key": ""}, {"key": "  "}, {"key": "k" * 201}]:
@@ -646,13 +665,13 @@ class CustomInboundFiltersTest(APITestCase):
                     {"type": "error_message", "operator": "starts_with", "value": ["TypeError"]},
                 ],
                 "A filter on all data cannot use the error_message condition. "
-                "It accepts release, environment, ip_address, browser_name, browser_version, attribute.",
+                "It accepts release, environment, ip_address, browser_name, browser_version.",
             ),
             (
                 "all",
                 [{"type": "geo_country_code", "operator": "equals", "value": ["US"]}],
                 "A filter on all data cannot use the geo_country_code condition. "
-                "It accepts release, environment, ip_address, browser_name, browser_version, attribute.",
+                "It accepts release, environment, ip_address, browser_name, browser_version.",
             ),
         ]
 
@@ -1347,7 +1366,7 @@ class CustomInboundFilterDetailsTest(APITestCase):
         assert (
             str(response.data["conditions"][0])
             == "A filter on all data cannot use the error_message condition. "
-            "It accepts release, environment, ip_address, browser_name, browser_version, attribute."
+            "It accepts release, environment, ip_address, browser_name, browser_version."
         )
         error_filter.refresh_from_db()
         assert error_filter.data_type == "error"

@@ -389,15 +389,6 @@ BROWSER_VERSION_FIELDS = [
 ]
 
 
-def attribute_fields(key: str) -> list[str]:
-    return [
-        f"event.tags.{key}",
-        f"log.attributes.{key}.value",
-        f"trace_metric.attributes.{key}.value",
-        f"span.attributes.{key}.value",
-    ]
-
-
 def release_rule_condition(values: list[str]) -> dict[str, object]:
     """The catch-all shape: the release field of every data type, combined with OR."""
     return {
@@ -803,8 +794,18 @@ def release_version_rule_condition(comparator: str, release: str) -> dict[str, o
                     "value": ["canary-", "staging-"],
                 }
             ],
-            {"op": "glob", "name": "event.tags.server_name", "value": ["canary-*", "staging-*"]},
-            id="attribute_is_a_tag_on_errors",
+            {
+                "op": "or",
+                "inner": [
+                    {
+                        "op": "glob",
+                        "name": f"{event_type}.tags.server_name",
+                        "value": ["canary-*", "staging-*"],
+                    }
+                    for event_type in ("error", "default", "csp")
+                ],
+            },
+            id="attribute_is_a_tag_on_error_events_only",
         ),
         pytest.param(
             "log",
@@ -850,18 +851,6 @@ def release_version_rule_condition(comparator: str, release: str) -> dict[str, o
                 ],
             },
             id="attributes_on_spans",
-        ),
-        pytest.param(
-            "all",
-            [{"type": "attribute", "key": "tenant", "operator": "equals", "value": ["acme"]}],
-            {
-                "op": "or",
-                "inner": [
-                    {"op": "glob", "name": name, "value": ["acme"]}
-                    for name in attribute_fields("tenant")
-                ],
-            },
-            id="catch_all_attribute",
         ),
         pytest.param(
             "log",
@@ -1242,6 +1231,12 @@ def test_custom_inbound_filter_skips_untranslatable_filters(
         default_project,
         data_type="all",
         conditions=[{"type": "error_message", "value": ["*Error*"]}],
+    )
+    # A catch-all takes no attribute condition, e.g. one stored through a later revision.
+    factories.create_project_custom_inbound_filter(
+        default_project,
+        data_type="all",
+        conditions=[{"type": "attribute", "key": "tenant", "value": ["acme"]}],
     )
     # A log carries no exception type, so a filter mixing data types matches nothing.
     factories.create_project_custom_inbound_filter(
