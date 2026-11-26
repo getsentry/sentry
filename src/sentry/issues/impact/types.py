@@ -63,6 +63,12 @@ class ImpactDerivedData(TypedDict):
     sourceEventId: Annotated[
         str, ApiDescription("ID of the issue event used to generate the impact assessment")
     ]
+    runUuid: Annotated[
+        str | None, ApiDescription("UUID of the Seer run that produced the impact assessment")
+    ]
+    promptVersion: Annotated[
+        str | None, ApiDescription("Version of the prompt that produced the impact assessment")
+    ]
 
 
 # See assess_impact_for_group(), these citations should be stable references to details pulled from

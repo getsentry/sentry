@@ -23,7 +23,7 @@ from sentry.issues.derived.features import (
     STATUS,
     VIEW_COUNT,
 )
-from sentry.issues.derived.framework import DerivedDataError
+from sentry.issues.derived.framework import DerivedDataError, State
 from sentry.issues.derived.processing import PIPELINE
 from sentry.issues.derived.reporting import report_derived_data_error
 from sentry.issues.derived.store import GroupDerivedDataStore
@@ -75,6 +75,16 @@ class GroupDerivedDataResponse(TypedDict):
     ]
 
 
+def get_derived_impact(state: State) -> ImpactDerivedData | None:
+    impact = state[IMPACT]
+    if not impact:
+        return None
+    # Omitted from older records so must be set manually
+    impact.setdefault("runUuid", None)
+    impact.setdefault("promptVersion", None)
+    return impact
+
+
 def get_bulk_group_derived_data(group_ids: set[int]) -> dict[int, GroupDerivedDataResponse]:
     """Bulk-load derived action log data for a set of groups, keyed by group id."""
     if not group_ids:
@@ -96,7 +106,7 @@ def get_bulk_group_derived_data(group_ids: set[int]) -> dict[int, GroupDerivedDa
                 hasRootCause=state[HAS_ROOT_CAUSE],
                 lastCompletedAutofixStep=state[LAST_COMPLETED_AUTOFIX_STEP].value,
                 lastProgressedAt=state[LAST_PROGRESSED_AT],
-                impact=state[IMPACT],
+                impact=get_derived_impact(state=state),
             )
         except DerivedDataError as error:
             report_derived_data_error(
