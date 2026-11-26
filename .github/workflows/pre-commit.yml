@@ -114,6 +114,19 @@ jobs:
           LINT_CONFIG_CHANGED: ${{ steps.changes.outputs.lint_config }}
         run: .github/workflows/scripts/run-prek.sh
 
+      - name: Find the PR's merge base
+        id: merge-base
+        if: github.event_name == 'pull_request' && !cancelled() && (steps.prek.outcome == 'success' || steps.prek.outcome == 'failure')
+        # the next step fails without it, which the PR comment reports
+        continue-on-error: true
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const {setMergeBase} = await import(
+              `${process.env.GITHUB_WORKSPACE}/.github/workflows/scripts/merge-base.ts`
+            );
+            await setMergeBase({github, context, core});
+
       - name: Flag new API findings (report-only)
         id: check-new
         if: github.event_name == 'pull_request' && !cancelled() && (steps.prek.outcome == 'success' || steps.prek.outcome == 'failure')
