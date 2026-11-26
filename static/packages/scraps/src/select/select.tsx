@@ -241,35 +241,17 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
     },
   });
 
-  const {entries, rows} = useOptionIndex(options, isValueEqual);
-  const rowsByKey = new Map<Key, TOption>(rows.map(row => [row.key, row.option]));
-  const rawValues: Array<TValue | null> = props.multiple ? props.value : [props.value];
-  const selectedRows = rawValues.flatMap<{option: TOption; key?: string}>(value => {
-    const existing = rows.find(row =>
-      value != null && row.option.value != null && isValueEqual
-        ? isValueEqual(row.option.value, value)
-        : row.option.value === value
-    );
-    if (existing) {
-      return [existing];
-    }
-    if (creatable && value != null) {
-      return [{option: {value, label: String(value)} as TOption, key: undefined}];
-    }
-    return [];
+  const {entries, rows, selectedRows, canCreate} = useOptionIndex(options, {
+    creatable,
+    isLoading,
+    isValueEqual,
+    query,
+    values: props.multiple ? props.value : [props.value],
   });
+  const rowsByKey = new Map<Key, TOption>(rows.map(row => [row.key, row.option]));
   const selectedKeys = selectedRows.flatMap(({key}) => (key === undefined ? [] : [key]));
   const selected = selectedRows.map(({option}) => option);
   const disabledKeys = rows.flatMap(({key, option}) => (option.disabled ? [key] : []));
-  const canCreate =
-    creatable &&
-    query !== '' &&
-    !isLoading &&
-    ![...rows.map(row => row.option), ...selected].some(option =>
-      [option.label, option.value].some(
-        value => typeof value === 'string' && value.toLowerCase() === query.toLowerCase()
-      )
-    );
 
   function commit(next: TOption[] | TOption | null, action: string) {
     // The previous implementation also supplied action metadata at runtime.

@@ -10,6 +10,16 @@ type OptionEntry<T> = OptionRow<T> | {rows: Array<OptionRow<T>>; label?: ReactNo
 
 type Options<T> = ReadonlyArray<T | {options: readonly T[]; label?: ReactNode}>;
 
+function matchesValue<TValue>(
+  optionValue: TValue,
+  value: TValue | null,
+  isValueEqual?: (a: TValue, b: TValue) => boolean
+) {
+  return value != null && optionValue != null && isValueEqual
+    ? isValueEqual(optionValue, value)
+    : optionValue === value;
+}
+
 function indexOptions<TValue, TOption extends SelectValue<TValue>>(
   options: Options<TOption>,
   previousRows: ReadonlyArray<OptionRow<TOption>>,
@@ -33,8 +43,7 @@ function indexOptions<TValue, TOption extends SelectValue<TValue>>(
         previousRows.find(
           row =>
             !used.has(row.key) &&
-            row.option.value != null &&
-            isValueEqual(row.option.value, option.value)
+            matchesValue(row.option.value, option.value, isValueEqual)
         )?.key);
     const key = previousKey || `option-${nextId++}`;
     used.add(key);
@@ -53,13 +62,55 @@ function indexOptions<TValue, TOption extends SelectValue<TValue>>(
 
 export function useOptionIndex<TValue, TOption extends SelectValue<TValue>>(
   options: Options<TOption>,
-  isValueEqual?: (a: TValue, b: TValue) => boolean
-) {
-  const [index, setIndex] = useState(() => indexOptions(options, [], 0, isValueEqual));
-  if (options !== index.options) {
-    const next = indexOptions(options, index.rows, index.nextId, isValueEqual);
-    setIndex(next);
-    return next;
+  {
+    creatable,
+    isLoading,
+    isValueEqual,
+    query,
+    values,
+  }: {
+    query: string;
+    values: ReadonlyArray<TValue | null>;
+    creatable?: boolean;
+    isLoading?: boolean;
+    isValueEqual?: (a: TValue, b: TValue) => boolean;
   }
-  return index;
+) {
+  const [previousIndex, setIndex] = useState(() =>
+    indexOptions(options, [], 0, isValueEqual)
+  );
+  const index =
+    options === previousIndex.options
+      ? previousIndex
+      : indexOptions(options, previousIndex.rows, previousIndex.nextId, isValueEqual);
+  if (index !== previousIndex) {
+    setIndex(index);
+  }
+
+  const findRow = (value: TValue | null) =>
+    index.rows.find(row => matchesValue(row.option.value, value, isValueEqual));
+
+  const selectedRows = values.flatMap<{option: TOption; key?: string}>(value => {
+    const existing = findRow(value);
+    if (existing) {
+      return [existing];
+    }
+    if (creatable && value != null) {
+      return [{option: {value, label: String(value)} as TOption, key: undefined}];
+    }
+    return [];
+  });
+
+  const normalizedQuery = query.toLowerCase();
+  const canCreate =
+    creatable &&
+    query !== '' &&
+    !isLoading &&
+    ![...index.rows, ...selectedRows].some(({option}) =>
+      [option.label, option.value].some(
+        value => typeof value === 'string' && value.toLowerCase() === normalizedQuery
+      )
+    );
+
+  return {entries: index.entries, rows: index.rows, selectedRows, canCreate};
 }
