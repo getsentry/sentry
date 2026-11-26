@@ -1,17 +1,13 @@
 import {Fragment, useMemo} from 'react';
-import {IconClose} from '@sentry/icons/close';
+import {SEARCH_PAGE__SERVER_RENDERING__TYPE} from '@sentry/conventions/attributes/search';
 import * as Sentry from '@sentry/react';
 
-import {Alert} from '@sentry/scraps/alert';
-import {Button} from '@sentry/scraps/button';
 import {Stack, type FlexProps} from '@sentry/scraps/layout';
 
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {useDismissAlert} from 'sentry/utils/useDismissAlert';
-import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useHasProjectAccess} from 'sentry/utils/useHasProjectAccess';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -110,6 +106,8 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
       'gen_ai.operation.type',
       'http.response.status_code',
       'span.status',
+      // Marks pageloads of reused pages, see TraceTree.AddServerRenderPlaceholders
+      SEARCH_PAGE__SERVER_RENDERING__TYPE,
     ],
   });
   const tree = useTraceTree({trace, replay: null});
@@ -201,7 +199,6 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
         traceSlug={traceSlug}
       />
       <TraceInnerLayout>
-        <TraceWaterfallVersionBanner />
         <TraceTabsAndVitals
           tabsConfig={tabsConfig}
           rootEventResults={rootEventResults}
@@ -289,57 +286,6 @@ function TraceProjectGuard({
   }
 
   return <NoProjectMessage organization={organization}>{children}</NoProjectMessage>;
-}
-
-function TraceWaterfallVersionBanner() {
-  const organization = useOrganization();
-  const openForm = useFeedbackForm();
-  const {isDismissed, dismiss} = useDismissAlert({
-    key: 'trace-waterfall-version-message',
-  });
-
-  if (
-    !organization.features.includes('trace-waterfall-version-message') ||
-    isDismissed ||
-    !openForm
-  ) {
-    return null;
-  }
-
-  return (
-    <Alert
-      variant="info"
-      trailingItems={
-        <Alert.Button
-          variant="transparent"
-          icon={<IconClose size="sm" />}
-          onClick={dismiss}
-          aria-label={t('Dismiss')}
-        />
-      }
-    >
-      {tct(
-        "You're seeing a new version of the trace waterfall that shows the full distributed trace. We'd love your [feedback].",
-        {
-          feedback: (
-            <Button
-              variant="link"
-              onClick={() =>
-                openForm({
-                  tags: {
-                    'feedback.source': 'trace-waterfall-version-message',
-                    'feedback.owner': 'performance',
-                  },
-                })
-              }
-            >
-              {t('feedback')}
-            </Button>
-          ),
-        }
-      )}
-    </Alert>
-  );
 }
 
 function TraceInnerLayout(props: FlexProps) {

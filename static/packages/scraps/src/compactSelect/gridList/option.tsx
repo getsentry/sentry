@@ -1,8 +1,9 @@
+import type * as React from 'react';
 import {Fragment, useContext, useMemo, useRef, useState} from 'react';
 import type {AriaGridListItemOptions} from '@react-aria/gridlist';
 import {useGridListItem, useGridListSelectionCheckbox} from '@react-aria/gridlist';
 import {useFocusWithin, useHover} from '@react-aria/interactions';
-import {mergeProps} from '@react-aria/utils';
+import {mergeProps, mergeRefs} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 import {IconCheckmark} from '@sentry/icons/checkmark';
@@ -25,6 +26,8 @@ export interface GridListOptionProps<
   listState: ListState<T>;
   node: Node<T>;
   size: FormSize;
+  'data-index'?: number;
+  ref?: React.Ref<HTMLLIElement>;
 }
 
 /**
@@ -35,6 +38,8 @@ export function GridListOption<T extends ListItemBase>({
   node,
   listState,
   size,
+  ref: refProp,
+  'data-index': dataIndex,
 }: GridListOptionProps<T>) {
   const ref = useRef<HTMLLIElement>(null);
   const {
@@ -146,7 +151,8 @@ export function GridListOption<T extends ListItemBase>({
   return (
     <ListItem
       {...rowPropsMerged}
-      ref={ref}
+      data-index={dataIndex}
+      ref={mergeRefs(ref, refProp)}
       size={size}
       label={renderedLabel}
       details={details}

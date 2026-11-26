@@ -7,6 +7,7 @@ from sentry.testutils.silo import control_silo_test
 from sentry.users.api.serializers.user import DetailedSelfUserSerializer, DetailedUserSerializer
 from sentry.users.models.authenticator import Authenticator
 from sentry.users.models.user_avatar import UserAvatar
+from sentry.users.models.user_option import UserOption
 from sentry.users.models.useremail import UserEmail
 from sentry.users.models.userpermission import UserPermission
 
@@ -113,14 +114,17 @@ class DetailedUserSerializerTest(TestCase):
         UserAvatar.objects.create(
             user_id=self.user.id,
             avatar_type=1,  # upload
-            ident="abc123",
+            ident="9fac2ceed9344f2bbfdd1fdacb0ed9b1",
             control_file_id=1,
         )
         result = serialize(self.user, self.user, DetailedUserSerializer())
         assert "avatar" in result
-        assert result["avatar"]["avatarUuid"] == "abc123"
+        assert result["avatar"]["avatarUuid"] == "9fac2ceed9344f2bbfdd1fdacb0ed9b1"
         assert result["avatar"]["avatarType"] == "upload"
-        assert result["avatar"]["avatarUrl"] == "http://testserver/avatar/abc123/"
+        assert (
+            result["avatar"]["avatarUrl"]
+            == "http://testserver/avatar/9fac2ceed9344f2bbfdd1fdacb0ed9b1/"
+        )
 
 
 @control_silo_test
@@ -156,3 +160,17 @@ class DetailedSelfUserSerializerTest(TestCase):
         assert len(result["authenticators"]) == 1
         assert result["authenticators"][0]["id"] == str(self.auth.id)
         assert result["permissions"] == ["foo"]
+
+    def test_unknown_stored_theme_variant_dark_falls_back_to_default(self) -> None:
+        UserOption.objects.set_value(user=self.user, key="theme_variant_dark", value="chartreuse")
+
+        result = serialize(self.user, self.user, DetailedSelfUserSerializer())
+
+        assert result["options"]["themeVariantDark"] == "default"
+
+    def test_theme_variant_dark_returns_stored_value(self) -> None:
+        UserOption.objects.set_value(user=self.user, key="theme_variant_dark", value="midnight")
+
+        result = serialize(self.user, self.user, DetailedSelfUserSerializer())
+
+        assert result["options"]["themeVariantDark"] == "midnight"

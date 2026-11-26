@@ -98,7 +98,7 @@ function MemoryRecordsSection({
 
   if (records && records.length > 0) {
     const ordered = showScore
-      ? [...records].sort((a, b) => (b.score ?? -Infinity) - (a.score ?? -Infinity))
+      ? records.toSorted((a, b) => (b.score ?? -Infinity) - (a.score ?? -Infinity))
       : records;
 
     return (

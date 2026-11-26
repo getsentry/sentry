@@ -5,7 +5,9 @@ import type {AskSeerSearchQuery} from 'sentry/components/searchQueryBuilder/askS
 import {LOGS_CURSOR_KEY} from 'sentry/views/explore/contexts/logs/constants';
 import {
   LOGS_AGGREGATE_CURSOR_KEY,
+  LOGS_ANCHOR_TIMESTAMP_KEY,
   LOGS_FIELDS_KEY,
+  LOGS_QUERY_KEY,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
@@ -13,12 +15,7 @@ import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 import {getLogsSeerLocationQuery} from './logsTabSeerComboBox';
 
-const pageDatetime = {
-  start: null,
-  end: null,
-  period: '7d',
-  utc: null,
-};
+const pageDatetime = {start: null, end: null, period: '7d', utc: null};
 
 function seerResult(overrides: Partial<AskSeerSearchQuery>): AskSeerSearchQuery {
   return {
@@ -160,11 +157,7 @@ describe('getLogsSeerLocationQuery', () => {
       }),
       currentAggregateFields: [new VisualizeFunction('count(message)')],
       pageDatetime,
-      result: seerResult({
-        query: 'severity:error',
-        sort: '-timestamp',
-        mode: 'logs',
-      }),
+      result: seerResult({query: 'severity:error', sort: '-timestamp', mode: 'logs'}),
     }).query;
 
     expect(sampleQuery[LOGS_CURSOR_KEY]).toBeUndefined();
@@ -188,6 +181,37 @@ describe('getLogsSeerLocationQuery', () => {
     expect(aggregateQuery[LOGS_AGGREGATE_CURSOR_KEY]).toBeUndefined();
   });
 
+  it('drops the log anchor when the Seer query changes', () => {
+    const {query} = getLogsSeerLocationQuery({
+      currentLocation: locationWithQuery({
+        [LOGS_ANCHOR_TIMESTAMP_KEY]: '5000',
+        [LOGS_QUERY_KEY]: 'severity:error',
+        mode: Mode.SAMPLES,
+      }),
+      currentAggregateFields: [new VisualizeFunction('count(message)')],
+      pageDatetime,
+      result: seerResult({query: 'severity:info', mode: 'logs'}),
+    });
+
+    expect(query[LOGS_QUERY_KEY]).toBe('severity:info');
+    expect(query[LOGS_ANCHOR_TIMESTAMP_KEY]).toBeUndefined();
+  });
+
+  it('keeps the log anchor when the Seer query matches the current one', () => {
+    const {query} = getLogsSeerLocationQuery({
+      currentLocation: locationWithQuery({
+        [LOGS_ANCHOR_TIMESTAMP_KEY]: '5000',
+        [LOGS_QUERY_KEY]: 'severity:error',
+        mode: Mode.SAMPLES,
+      }),
+      currentAggregateFields: [new VisualizeFunction('count(message)')],
+      pageDatetime,
+      result: seerResult({query: 'severity:error', mode: 'logs'}),
+    });
+
+    expect(query[LOGS_ANCHOR_TIMESTAMP_KEY]).toBe('5000');
+  });
+
   it('clears stale aggregate params when switching to samples mode', () => {
     const {query} = getLogsSeerLocationQuery({
       currentLocation: locationWithQuery({
@@ -198,11 +222,7 @@ describe('getLogsSeerLocationQuery', () => {
       }),
       currentAggregateFields: [new VisualizeFunction('count(message)')],
       pageDatetime,
-      result: seerResult({
-        query: 'severity:error',
-        sort: '-timestamp',
-        mode: 'logs',
-      }),
+      result: seerResult({query: 'severity:error', sort: '-timestamp', mode: 'logs'}),
     });
 
     expect(query.mode).toBe(Mode.SAMPLES);
@@ -213,9 +233,7 @@ describe('getLogsSeerLocationQuery', () => {
 
   it('clears stale samples sort when switching to aggregate mode', () => {
     const {query} = getLogsSeerLocationQuery({
-      currentLocation: locationWithQuery({
-        logsSortBys: ['-timestamp'],
-      }),
+      currentLocation: locationWithQuery({logsSortBys: ['-timestamp']}),
       currentAggregateFields: [new VisualizeFunction('count(message)')],
       pageDatetime,
       result: seerResult({
@@ -232,15 +250,10 @@ describe('getLogsSeerLocationQuery', () => {
 
   it('preserves the existing samples sort when Seer omits one', () => {
     const {query} = getLogsSeerLocationQuery({
-      currentLocation: locationWithQuery({
-        logsSortBys: ['-severity'],
-      }),
+      currentLocation: locationWithQuery({logsSortBys: ['-severity']}),
       currentAggregateFields: [new VisualizeFunction('count(message)')],
       pageDatetime,
-      result: seerResult({
-        query: 'severity:error',
-        mode: 'logs',
-      }),
+      result: seerResult({query: 'severity:error', mode: 'logs'}),
     });
 
     expect(query.mode).toBe(Mode.SAMPLES);
@@ -249,9 +262,7 @@ describe('getLogsSeerLocationQuery', () => {
 
   it('preserves the existing aggregate sort when Seer omits one', () => {
     const {query} = getLogsSeerLocationQuery({
-      currentLocation: locationWithQuery({
-        logsAggregateSortBys: ['-count(message)'],
-      }),
+      currentLocation: locationWithQuery({logsAggregateSortBys: ['-count(message)']}),
       currentAggregateFields: [new VisualizeFunction('count(message)')],
       pageDatetime,
       result: seerResult({
@@ -279,10 +290,7 @@ describe('getLogsSeerLocationQuery', () => {
       }),
       currentAggregateFields: [new VisualizeFunction('count(message)')],
       pageDatetime,
-      result: seerResult({
-        query: 'severity:error',
-        statsPeriod: '24h',
-      }),
+      result: seerResult({query: 'severity:error', statsPeriod: '24h'}),
     }).query;
 
     expect(relativeQuery.statsPeriod).toBe('24h');
@@ -306,10 +314,7 @@ describe('getLogsSeerLocationQuery', () => {
       }),
       currentAggregateFields: [new VisualizeFunction('count(message)')],
       pageDatetime,
-      result: seerResult({
-        end: '2024-06-02T00:00:00Z',
-        start: '2024-06-01T00:00:00Z',
-      }),
+      result: seerResult({end: '2024-06-02T00:00:00Z', start: '2024-06-01T00:00:00Z'}),
     }).query;
 
     expect(absoluteQuery.start).toBe('2024-06-01T00:00:00');
@@ -320,6 +325,21 @@ describe('getLogsSeerLocationQuery', () => {
     expect(absoluteQuery.pageEnd).toBeUndefined();
     expect(absoluteQuery.pageStatsPeriod).toBeUndefined();
     expect(absoluteQuery.pageUtc).toBeUndefined();
+  });
+
+  it('leaves blank params in place when Seer clears them', () => {
+    const {query} = getLogsSeerLocationQuery({
+      currentLocation: locationWithQuery({logsSortBys: '', start: ''}),
+      currentAggregateFields: [new VisualizeFunction('count(message)')],
+      pageDatetime,
+      result: seerResult({
+        mode: 'aggregates',
+        statsPeriod: '24h',
+        visualizations: [{chartType: ChartType.BAR, yAxes: ['count(message)']}],
+      }),
+    });
+
+    expect(query).toMatchObject({logsSortBys: '', start: '', statsPeriod: '24h'});
   });
 
   it('clears absolute datetime params when Seer returns a stats period', () => {
@@ -399,10 +419,7 @@ describe('getLogsSeerLocationQuery', () => {
       currentLocation: locationWithQuery({}),
       currentAggregateFields: [new VisualizeFunction('count(message)')],
       pageDatetime,
-      result: seerResult({
-        query: 'severity:error',
-        expandedProjectIds: [1, 2],
-      }),
+      result: seerResult({query: 'severity:error', expandedProjectIds: [1, 2]}),
     });
 
     expect(query.project).toEqual(['1', '2']);
@@ -425,9 +442,7 @@ describe('getLogsSeerLocationQuery', () => {
       currentAggregateFields: [new VisualizeFunction('count(message)')],
       pageDatetime,
       projects: [ProjectFixture({id: '9', slug: 'seer'})],
-      result: seerResult({
-        query: 'project:seer severity:error',
-      }),
+      result: seerResult({query: 'project:seer severity:error'}),
     });
 
     // Project scope goes to the page-level selector, not the search bar.

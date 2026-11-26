@@ -41,11 +41,7 @@ export default function ProfileAndTransactionProvider(): React.ReactElement {
       return null;
     }
 
-    return {
-      start,
-      end,
-      profiler_id: profilerId,
-    };
+    return {start, end, profiler_id: profilerId};
   }, [location.query.start, location.query.end, location.query.profilerId]);
 
   // Legacy event ID for spans extracted from transactions (`transaction.event_id`)

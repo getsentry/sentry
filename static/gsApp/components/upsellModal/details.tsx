@@ -2,7 +2,6 @@ import {Fragment, useEffect, useEffectEvent, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 import incidentsPerformanceImg from 'getsentry-images/features/alert-builder.svg';
-import dashboardsImg from 'getsentry-images/features/dashboards.svg';
 import dataRetentionImg from 'getsentry-images/features/data-retention.svg';
 import tracingImg from 'getsentry-images/features/distributed-tracing.svg';
 import dataVolumeImg from 'getsentry-images/features/event-volume.svg';
@@ -131,18 +130,6 @@ const ALL_FEATURE_LIST: Feature[] = [
     image: userMiseryImg,
     desc: tct(
       "Identify how user misery each transaction is causing in your app and where. Prefer to gauge it by Apdex instead? We've got that too.",
-      {
-        strong: <strong />,
-      }
-    ),
-  },
-  {
-    id: 'custom-dashboards',
-    planFeatures: ['dashboards-edit'],
-    name: t('Unlimited Custom Dashboards'),
-    image: dashboardsImg,
-    desc: tct(
-      'Build custom dashboards for your team with a range of rich data visualizations such as histograms, time series, tables, global maps and more.',
       {strong: <strong />}
     ),
   },
@@ -167,7 +154,6 @@ const BUSINESS_FEATURES = selectFeatures([
   'discover-query',
   'change-alerts',
   'event-volume',
-  'custom-dashboards',
   'sso',
   'integration-alerts',
   'team-roles-upsell',
@@ -179,7 +165,6 @@ const PERFORMANCE_FEATURES = selectFeatures([
   'performance-view',
   'discover-query',
   'incidents-performance',
-  'custom-dashboards',
   'user-misery',
 ]).filter(Boolean);
 
@@ -399,19 +384,7 @@ const FeatureContent = styled(motion.div)`
 `;
 
 const featureContentAnimation = {
-  initial: {
-    opacity: 0,
-    x: -20,
-  },
-  exit: {
-    opacity: 0,
-    x: 20,
-  },
-  animate: {
-    opacity: 1,
-    x: 0,
-    transition: {
-      delay: 0.02,
-    },
-  },
+  initial: {opacity: 0, x: -20},
+  exit: {opacity: 0, x: 20},
+  animate: {opacity: 1, x: 0, transition: {delay: 0.02}},
 };

@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING, Annotated, TypedDict
 
 from django.db import models
 from django.utils import timezone
 
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedPositiveIntegerField,
@@ -140,9 +141,11 @@ class ReleaseProjectEnvironment(Model):
 
 
 class AdoptionStage(TypedDict):
-    stage: ReleaseStages
-    adopted: datetime | None
-    unadopted: datetime | None
+    stage: Annotated[ReleaseStages, ApiDescription("Adoption stage of the release")]
+    adopted: Annotated[datetime | None, ApiDescription("When the release was adopted (ISO 8601)")]
+    unadopted: Annotated[
+        datetime | None, ApiDescription("When the release stopped being adopted (ISO 8601)")
+    ]
 
 
 def adoption_stage(adopted: datetime | None, unadopted: datetime | None) -> AdoptionStage:

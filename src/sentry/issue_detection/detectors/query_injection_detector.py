@@ -50,10 +50,8 @@ class QueryInjectionDetector(PerformanceDetector):
                 self.potential_unsafe_inputs.append(query_pair)
 
     def visit_span(self, span: Span) -> None:
-        if not self._is_span_eligible(span):
-            return
-
-        if len(self.potential_unsafe_inputs) == 0:
+        # Check the event-level inputs first: free, unlike the span checks.
+        if not self.potential_unsafe_inputs or not self._is_span_eligible(span):
             return
 
         description = get_span_description(span)

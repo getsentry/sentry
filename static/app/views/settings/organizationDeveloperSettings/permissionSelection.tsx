@@ -14,6 +14,7 @@ import {FormField} from 'sentry/components/forms/formField';
 import {
   CONTINUOUS_INTEGRATION_SENTRY_APP_PERMISSION,
   SENTRY_APP_PERMISSIONS,
+  SERVICE_ACCOUNT_SENTRY_APP_PERMISSION,
   type PermissionObj,
 } from 'sentry/constants';
 import {t} from 'sentry/locale';
@@ -111,10 +112,7 @@ type Props = {
   hasContinuousIntegration?: boolean;
 };
 
-type State = {
-  hasContinuousIntegration: boolean;
-  permissions: Permissions;
-};
+type State = {hasContinuousIntegration: boolean; permissions: Permissions};
 
 type SpecialPermissionFieldProps = {
   disabled: boolean;
@@ -181,7 +179,9 @@ function SpecialPermissionField({
 }
 
 function findResource(r: PermissionResource) {
-  return SENTRY_APP_PERMISSIONS.find(permissions => permissions.resource === r);
+  return [...SENTRY_APP_PERMISSIONS, SERVICE_ACCOUNT_SENTRY_APP_PERMISSION].find(
+    permissions => permissions.resource === r
+  );
 }
 
 /**
@@ -246,12 +246,7 @@ export function PermissionSelection({
   };
 
   const handleChange = (resource: PermissionResource, choice: PermissionValue) => {
-    save({
-      permissions: {
-        ...state.permissions,
-        [resource]: choice,
-      },
-    });
+    save({permissions: {...state.permissions, [resource]: choice}});
   };
 
   const handleContinuousIntegrationChange = (hasContinuousIntegration: boolean) => {

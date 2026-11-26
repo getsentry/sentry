@@ -2,7 +2,9 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 import debounce from 'lodash/debounce';
+import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
+import {parseAsString, useQueryStates} from 'nuqs';
 import {PlatformIcon} from 'platformicons';
 
 import {Button} from '@sentry/scraps/button';
@@ -31,26 +33,34 @@ import type {Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDisabledGamingPlatform} from 'sentry/utils/platform';
-import {decodeScalar} from 'sentry/utils/queryString';
+import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {slugify} from 'sentry/utils/slugify';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTeams} from 'sentry/utils/useTeams';
+import {parseAsScalar} from 'sentry/views/explore/queryParams/parsers';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
+import {FROM_PROJECT_CREATION_STATE} from './gettingStartedLocationState';
 import {useCreateNotificationAction} from './issueAlertNotificationOptions';
 import type {AlertRuleOptions, RequestDataFragment} from './issueAlertOptions';
-import {getRequestDataFragment, IssueAlertOptions, RuleAction} from './issueAlertOptions';
 import {
+  DEFAULT_ISSUE_ALERT_OPTIONS_VALUES,
+  getRequestDataFragment,
+  IssueAlertOptions,
+  RuleAction,
+} from './issueAlertOptions';
+import {
+  buildNotificationSelection,
   MultipleCheckboxOptions,
   type IntegrationChannel,
+  type NotificationSelection,
 } from './messagingIntegrationTypes';
 import {useProjectCreationPageOrigin} from './projectCreationOrigin';
 import {validateChannelQueryOptions} from './useValidateChannel';
@@ -66,9 +76,33 @@ type CreatedProject = Pick<Project, 'name' | 'id'> & {
   platform: OnboardingSelectedSDK;
   alertRule?: Partial<AlertRuleOptions>;
   notificationRule?: CreatedProjectWorkflow;
+  notificationSelection?: NotificationSelection;
   team?: string;
   wasNameManuallyModified?: boolean;
 };
+
+function isUnchangedFromCreatedProject({
+  formData,
+  createdProject,
+  project,
+  notificationSelection,
+}: {
+  createdProject: CreatedProject;
+  formData: FormData;
+  notificationSelection: NotificationSelection | undefined;
+  project: Project;
+}) {
+  return (
+    formData.platform?.key === project.platform &&
+    formData.projectName === createdProject.name &&
+    formData.team === createdProject.team &&
+    isEqual(
+      {...DEFAULT_ISSUE_ALERT_OPTIONS_VALUES, ...formData.alertRule},
+      {...DEFAULT_ISSUE_ALERT_OPTIONS_VALUES, ...createdProject.alertRule}
+    ) &&
+    isEqual(notificationSelection, createdProject.notificationSelection)
+  );
+}
 
 function getMissingValues({
   team,
@@ -81,10 +115,7 @@ function getMissingValues({
   platform,
 }: {
   isOrgMemberWithNoAccess: boolean;
-  notificationProps: {
-    actions?: string[];
-    channel?: IntegrationChannel;
-  };
+  notificationProps: {actions?: string[]; channel?: IntegrationChannel};
   projectName: string;
   team: string | undefined;
   platform?: OnboardingSelectedSDK;
@@ -113,9 +144,7 @@ function getSubmitTooltipText({
   isMissingMessagingIntegrationChannel,
   isMissingPlatform,
   formErrorCount,
-}: ReturnType<typeof getMissingValues> & {
-  formErrorCount: number;
-}): string {
+}: ReturnType<typeof getMissingValues> & {formErrorCount: number}): string {
   if (formErrorCount > 1) {
     return t('Please fill out all the required fields');
   }
@@ -135,18 +164,19 @@ function getSubmitTooltipText({
   return t('Please select a team');
 }
 
+const autoFillParsers = {referrer: parseAsString, project: parseAsScalar};
+
 export function CreateProject() {
   const {openModal, visible: isModalVisible} = useModal();
   const navigate = useNavigate();
   const organization = useOrganization();
-  const location = useLocation();
   const canUserCreateProject = useCanCreateProject();
   const createProjectAndRules = useCreateProjectAndRules();
 
   const {teams} = useTeams();
   const accessTeams = teams.filter((team: Team) => team.access.includes('team:admin'));
-  const referrer = decodeScalar(location.query.referrer);
-  const projectId = decodeScalar(location.query.project);
+  const [{referrer, project: projectParam}] = useQueryStates(autoFillParsers);
+  const projectId = projectParam ?? undefined;
   const [createdProject, setCreatedProject] = useLocalStorageState<CreatedProject | null>(
     'created-project-context',
     null
@@ -155,15 +185,25 @@ export function CreateProject() {
     return referrer === 'getting-started' && projectId === createdProject?.id;
   }, [referrer, projectId, createdProject?.id]);
 
+  // Fetched directly rather than read from the projects store: the query can
+  // fail or 404 (deleted on Back), so waiting on it never leaves Create stuck.
+  const returnedProjectQuery = useDetailedProject(
+    {orgSlug: organization.slug, projectSlug: createdProject?.id ?? ''},
+    {enabled: autoFill, staleTime: 0}
+  );
+  const returnedProject = autoFill ? returnedProjectQuery.data : undefined;
+
   const notificationActionParam = useMemo(() => {
     return autoFill && createdProject?.notificationRule?.actions
       ? {actions: createdProject.notificationRule.actions}
       : undefined;
   }, [autoFill, createdProject]);
 
-  const {getIntegrationAction, notificationProps} = useCreateNotificationAction(
-    notificationActionParam
-  );
+  const {getIntegrationAction, isSelectionSettled, notificationProps} =
+    useCreateNotificationAction(notificationActionParam);
+  const isReturnCheckPending =
+    (autoFill && returnedProjectQuery.isPending) ||
+    (!!notificationActionParam && !isSelectionSettled);
 
   const validateChannel = useQuery({
     ...validateChannelQueryOptions({
@@ -192,11 +232,7 @@ export function CreateProject() {
       };
     }
 
-    return {
-      projectName: '',
-      platform: undefined,
-      team: defaultTeam,
-    };
+    return {projectName: '', platform: undefined, team: defaultTeam};
   }, [autoFill, defaultTeam, createdProject]);
 
   const [formData, setFormData] = useState(initialData);
@@ -242,6 +278,16 @@ export function CreateProject() {
   const isNotifyingViaIntegration =
     alertRuleConfig.shouldCreateRule &&
     notificationProps.actions?.includes(MultipleCheckboxOptions.INTEGRATION);
+  // Memoized so the creation callbacks, and the debounce built on them, stay
+  // stable across renders.
+  const {provider, integration, channel} = notificationProps;
+  const notificationSelection = useMemo(
+    () =>
+      isNotifyingViaIntegration
+        ? buildNotificationSelection({provider, integration, channel})
+        : undefined,
+    [isNotifyingViaIntegration, provider, integration, channel]
+  );
 
   const formErrorCount = [
     missingValues.isMissingPlatform,
@@ -255,17 +301,11 @@ export function CreateProject() {
   const submitTooltipText =
     isNotifyingViaIntegration && validateChannelError
       ? validateChannelError
-      : getSubmitTooltipText({
-          ...missingValues,
-          formErrorCount,
-        });
+      : getSubmitTooltipText({...missingValues, formErrorCount});
 
   const updateFormData = useCallback(
     <K extends keyof FormData>(field: K, value: FormData[K]) => {
-      setFormData(prev => ({
-        ...prev,
-        [field]: value,
-      }));
+      setFormData(prev => ({...prev, [field]: value}));
     },
     []
   );
@@ -288,6 +328,21 @@ export function CreateProject() {
   // `variant` and to `referrer=getting-started` autofill — back-from-docs
   // must not reclassify an org-activation visit as existing_org.
   useRouteAnalyticsParams({variant: 'legacy', origin: useProjectCreationPageOrigin()});
+
+  const navigateToGettingStarted = useCallback(
+    (projectSlug: Project['slug']) => {
+      navigate(
+        {
+          pathname: normalizeUrl(
+            makeProjectsPathname({path: `/${projectSlug}/getting-started/`, organization})
+          ),
+          query: {projectCreationVariant: 'legacy'},
+        },
+        {state: FROM_PROJECT_CREATION_STATE}
+      );
+    },
+    [navigate, organization]
+  );
 
   const configurePlatform = useCallback(
     async ({
@@ -345,18 +400,11 @@ export function CreateProject() {
           platform: selectedPlatform,
           alertRule,
           notificationRule,
+          notificationSelection,
           wasNameManuallyModified: hasUserModifiedProjectName.current,
         });
 
-        navigate({
-          pathname: normalizeUrl(
-            makeProjectsPathname({
-              path: `/${project.slug}/getting-started/`,
-              organization,
-            })
-          ),
-          query: {projectCreationVariant: 'legacy'},
-        });
+        navigateToGettingStarted(project.slug);
       } catch (error: any) {
         toast.error(t('Failed to create project %s', projectName));
 
@@ -379,10 +427,11 @@ export function CreateProject() {
     [
       organization,
       setCreatedProject,
-      navigate,
+      navigateToGettingStarted,
       createProjectAndRules,
       getIntegrationAction,
       alertRuleConfig,
+      notificationSelection,
       accessTeams,
     ]
   );
@@ -392,6 +441,28 @@ export function CreateProject() {
       // At this point, platform should be defined
       // otherwise the submit button would be disabled.
       if (!platform) {
+        return;
+      }
+
+      // Back from getting-started with nothing changed: reuse the project
+      // rather than create a duplicate the backend would give a new slug.
+      if (
+        returnedProject &&
+        createdProject &&
+        isUnchangedFromCreatedProject({
+          formData: {...data, platform},
+          createdProject,
+          project: returnedProject,
+          notificationSelection,
+        })
+      ) {
+        trackAnalytics('project_creation.project_reused', {
+          organization,
+          project_id: returnedProject.id,
+          platform: platform.key,
+          variant: 'legacy',
+        });
+        navigateToGettingStarted(returnedProject.slug);
         return;
       }
 
@@ -426,17 +497,21 @@ export function CreateProject() {
           onClose: () => {
             trackAnalytics(
               'project_creation.select_framework_modal_close_button_clicked',
-              {
-                platform: platform.key,
-                organization,
-                variant: 'legacy',
-              }
+              {platform: platform.key, organization, variant: 'legacy'}
             );
           },
         }
       );
     },
-    [configurePlatform, organization, openModal]
+    [
+      configurePlatform,
+      organization,
+      openModal,
+      returnedProject,
+      createdProject,
+      notificationSelection,
+      navigateToGettingStarted,
+    ]
   );
 
   const debounceHandleProjectCreation = useMemo(
@@ -533,10 +608,7 @@ export function CreateProject() {
             threshold={formData.alertRule?.threshold}
             notificationProps={notificationProps}
             onFieldChange={(field, value) => {
-              updateFormData('alertRule', {
-                ...formData.alertRule,
-                [field]: value,
-              });
+              updateFormData('alertRule', {...formData.alertRule, [field]: value});
               if (field === 'alertSetting') {
                 const optionMap: Record<number, string> = {
                   [RuleAction.DEFAULT_ALERT]: 'high_priority',
@@ -640,11 +712,13 @@ export function CreateProject() {
                     !(
                       canUserCreateProject &&
                       formErrorCount === 0 &&
+                      !isReturnCheckPending &&
                       !(isNotifyingViaIntegration && validateChannel.isFetching)
                     )
                   }
                   busy={
                     createProjectAndRules.isPending ||
+                    isReturnCheckPending ||
                     (isNotifyingViaIntegration && validateChannel.isFetching)
                   }
                   onClick={() => debounceHandleProjectCreation(formData)}

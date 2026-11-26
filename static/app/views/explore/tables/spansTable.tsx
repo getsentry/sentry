@@ -21,6 +21,7 @@ import type {EventData, MetaType} from 'sentry/utils/discover/eventView';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {getQueryErrorMessage} from 'sentry/utils/discover/genericDiscoverQuery';
 import {FieldValueType, getFieldDefinition, prettifyTagKey} from 'sentry/utils/fields';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
@@ -170,11 +171,7 @@ export function SpansTable({
   }, [addedFields, lastResolvedTable, result.error, result.isError, setFields]);
 
   const meta = useMemo(
-    () =>
-      addValidatedFieldTypesToMeta({
-        meta: displayedMeta ?? {},
-        validatedFieldTypes,
-      }),
+    () => addValidatedFieldTypesToMeta({meta: displayedMeta ?? {}, validatedFieldTypes}),
     [displayedMeta, validatedFieldTypes]
   );
   const columnsFromEventView = useMemo(
@@ -277,8 +274,10 @@ export function SpansTable({
         />
       ) : null}
       <Pagination
-        pageLinks={displayedPageLinks}
-        paginationAnalyticsEvent={paginationAnalyticsEvent}
+        {...getPaginationProps(displayedPageLinks)}
+        onPageChange={(_cursor, delta) =>
+          paginationAnalyticsEvent(delta === -1 ? 'Previous' : 'Next')
+        }
       />
     </Fragment>
   );

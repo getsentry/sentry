@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TypedDict, cast
+from typing import Annotated, TypedDict, cast
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import APIException
@@ -11,6 +11,7 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, cell_silo_endpoint
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.models import SeerApiError
@@ -37,7 +38,7 @@ class SeerConnectionError(APIException):
 class SeerModelsResponse(TypedDict):
     """Response containing list of actively used LLM model names from Seer."""
 
-    models: list[str]
+    models: Annotated[list[str], ApiDescription("Names of the LLM models Seer uses")]
 
 
 @extend_schema(tags=["Seer"])

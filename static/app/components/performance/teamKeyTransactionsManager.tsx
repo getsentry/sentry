@@ -47,10 +47,7 @@ type Props = {
 type State = Omit<
   TeamKeyTransactionManagerChildrenProps,
   'teams' | 'counts' | 'getKeyedTeams' | 'handleToggleKeyTransaction'
-> & {
-  keyFetchID: symbol | null | undefined;
-  teamKeyTransactions: TeamKeyTransactions;
-};
+> & {keyFetchID: symbol | null | undefined; teamKeyTransactions: TeamKeyTransactions};
 
 const initialState = {
   keyFetchID: null,
@@ -90,15 +87,10 @@ export function Provider({
       error = err.responseJSON?.detail ?? t('Error fetching team key transactions');
     }
 
-    setState({
-      isLoading: false,
-      keyFetchID: undefined,
-      error,
-      teamKeyTransactions,
-    });
+    setState({isLoading: false, keyFetchID: undefined, error, teamKeyTransactions});
     // This component receives referentially new selectedTeams and selectedProjects
     // on many renders. Ideally fetchTeamKeyTransactions should be refactored to use
-    // `useApiQuery` or `useMutation` with `fetchDataQuery` and `fetchMutation`.
+    // `useQuery` or `useMutation` with `fetchDataQuery` and `fetchMutation`.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [api, organization.slug, refetchKey]);
 
@@ -163,13 +155,7 @@ export function Provider({
         return {
           team,
           count: count + 1,
-          keyed: [
-            ...keyed,
-            {
-              project_id: project.id,
-              transaction: transactionName,
-            },
-          ],
+          keyed: [...keyed, {project_id: project.id, transaction: transactionName}],
         };
       });
 

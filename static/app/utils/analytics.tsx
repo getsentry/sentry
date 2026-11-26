@@ -69,6 +69,8 @@ import type {PerformanceEventParameters} from './analytics/performanceAnalyticsE
 import {performanceEventMap} from './analytics/performanceAnalyticsEvents';
 import type {PreprodBuildEventParameters} from './analytics/preprodBuildAnalyticsEvents';
 import {preprodBuildEventMap} from './analytics/preprodBuildAnalyticsEvents';
+import type {ProductEmptyStateEventParameters} from './analytics/productEmptyStateAnalyticsEvents';
+import {productEmptyStateEventMap} from './analytics/productEmptyStateAnalyticsEvents';
 import type {ProfilingEventParameters} from './analytics/profilingAnalyticsEvents';
 import {profilingEventMap} from './analytics/profilingAnalyticsEvents';
 import type {ProjectCreationEventParameters} from './analytics/projectCreationAnalyticsEvents';
@@ -91,7 +93,6 @@ import type {SignupAnalyticsParameters} from './analytics/signupAnalyticsEvents'
 import {signupEventMap} from './analytics/signupAnalyticsEvents';
 import type {StackTraceEventParameters} from './analytics/stackTraceAnalyticsEvents';
 import {stackTraceEventMap} from './analytics/stackTraceAnalyticsEvents';
-import {starfishEventMap} from './analytics/starfishAnalyticsEvents';
 import {statsEventMap, type StatsEventParameters} from './analytics/statsAnalyticsEvents';
 import type {TempestEventParameters} from './analytics/tempestAnalyticsEvents';
 import {tempestEventMap} from './analytics/tempestAnalyticsEvents';
@@ -133,6 +134,7 @@ interface EventParameters
     StackTraceEventParameters,
     EcosystemEventParameters,
     IntegrationEventParameters,
+    ProductEmptyStateEventParameters,
     ProjectCreationEventParameters,
     SignupAnalyticsParameters,
     LogsAnalyticsEventParameters,
@@ -181,8 +183,8 @@ const allEventMap: Record<string, string | null> = {
   ...stackTraceEventMap,
   ...ecosystemEventMap,
   ...integrationEventMap,
+  ...productEmptyStateEventMap,
   ...projectCreationEventMap,
-  ...starfishEventMap,
   ...signupEventMap,
   ...statsEventMap,
   ...quickStartEventMap,

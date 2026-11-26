@@ -7,7 +7,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {openDebugFileSourceModal} from 'sentry/actionCreators/modal';
 import {Access} from 'sentry/components/acl/access';
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
@@ -67,13 +67,7 @@ export function CustomRepositories({
   );
 
   const handleCloseModal = useCallback(() => {
-    navigate({
-      ...location,
-      query: {
-        ...location.query,
-        customRepository: undefined,
-      },
-    });
+    navigate({...location, query: {...location.query, customRepository: undefined}});
   }, [location, navigate]);
 
   const openDebugFileSourceDialog = useCallback(() => {
@@ -123,13 +117,7 @@ export function CustomRepositories({
   }
 
   function handleEditRepository(repoId: CustomRepo['id']) {
-    navigate({
-      ...location,
-      query: {
-        ...location.query,
-        customRepository: repoId,
-      },
-    });
+    navigate({...location, query: {...location.query, customRepository: repoId}});
   }
 
   return (

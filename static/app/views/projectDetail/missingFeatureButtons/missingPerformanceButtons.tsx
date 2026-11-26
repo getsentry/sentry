@@ -2,7 +2,6 @@ import {Button} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
-import Feature from 'sentry/components/acl/feature';
 import {FeatureTourModal} from 'sentry/components/modals/featureTourModal';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
@@ -19,9 +18,7 @@ import {
 
 const DOCS_URL = 'https://docs.sentry.io/performance-monitoring/getting-started/';
 
-type Props = {
-  organization: Organization;
-};
+type Props = {organization: Organization};
 
 export function MissingPerformanceButtons({organization}: Props) {
   const navigate = useNavigate();
@@ -49,48 +46,42 @@ export function MissingPerformanceButtons({organization}: Props) {
   const domainView = platformToDomainView(projects, selectedProjects);
 
   return (
-    <Feature
-      overrideName="feature-disabled:project-performance-score-card"
-      features="performance-view"
-      organization={organization}
-    >
-      <Grid flow="column" align="center" gap="md">
-        <Button
-          size="sm"
-          variant="primary"
-          analyticsEventKey="project_detail.performance_setup_clicked"
-          analyticsEventName="Project Detail: Performance Start Setup Clicked"
-          onClick={event => {
-            event.preventDefault();
-            navigateTo(
-              `${getPerformanceBaseUrl(organization.slug, domainView)}/?project=:project#performance-sidequest`,
-              navigate,
-              location
-            );
-          }}
-        >
-          {t('Start Setup')}
-        </Button>
+    <Grid flow="column" align="center" gap="md">
+      <Button
+        size="sm"
+        variant="primary"
+        analyticsEventKey="project_detail.performance_setup_clicked"
+        analyticsEventName="Project Detail: Performance Start Setup Clicked"
+        onClick={event => {
+          event.preventDefault();
+          navigateTo(
+            `${getPerformanceBaseUrl(organization.slug, domainView)}/?project=:project#performance-sidequest`,
+            navigate,
+            location
+          );
+        }}
+      >
+        {t('Start Setup')}
+      </Button>
 
-        <FeatureTourModal
-          steps={PERFORMANCE_TOUR_STEPS}
-          onAdvance={handleTourAdvance}
-          onCloseModal={handleClose}
-          doneText={t('Start Setup')}
-          doneUrl={DOCS_URL}
-        >
-          {({showModal}) => (
-            <Button
-              size="sm"
-              onClick={showModal}
-              analyticsEventKey="project_detail.performance_tour_clicked"
-              analyticsEventName="Project Detail: Performance Get Tour Clicked"
-            >
-              {t('Get Tour')}
-            </Button>
-          )}
-        </FeatureTourModal>
-      </Grid>
-    </Feature>
+      <FeatureTourModal
+        steps={PERFORMANCE_TOUR_STEPS}
+        onAdvance={handleTourAdvance}
+        onCloseModal={handleClose}
+        doneText={t('Start Setup')}
+        doneUrl={DOCS_URL}
+      >
+        {({showModal}) => (
+          <Button
+            size="sm"
+            onClick={showModal}
+            analyticsEventKey="project_detail.performance_tour_clicked"
+            analyticsEventName="Project Detail: Performance Get Tour Clicked"
+          >
+            {t('Get Tour')}
+          </Button>
+        )}
+      </FeatureTourModal>
+    </Grid>
   );
 }

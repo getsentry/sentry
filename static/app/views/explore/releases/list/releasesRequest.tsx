@@ -1,9 +1,8 @@
 import {Component} from 'react';
-import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
-import pick from 'lodash/pick';
 import moment from 'moment-timezone';
+import {useQueryStates, type Values} from 'nuqs';
 
 import {toast} from '@sentry/scraps/toast';
 
@@ -15,7 +14,6 @@ import {
   TWENTY_FOUR_HOURS,
   TWO_WEEKS,
 } from 'sentry/components/charts/utils';
-import {URL_PARAM} from 'sentry/components/pageFilters/constants';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
@@ -25,7 +23,8 @@ import {HealthStatsPeriodOption} from 'sentry/types/release';
 import {percent} from 'sentry/utils';
 import {defined} from 'sentry/utils/defined';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {withApi} from 'sentry/utils/withApi';
+import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
+import {useApi} from 'sentry/utils/useApi';
 import {getCrashFreePercent} from 'sentry/views/explore/releases/utils';
 
 import {ReleasesDisplayOption} from './releasesDisplayOptions';
@@ -75,7 +74,7 @@ export function sessionDisplayToField(display: ReleasesDisplayOption) {
 
 export type ReleasesRequestRenderProps = {
   errored: boolean;
-  getHealthData: ReturnType<ReleasesRequest['getHealthData']>;
+  getHealthData: ReturnType<ReleasesRequestBase['getHealthData']>;
   isHealthLoading: boolean;
 };
 
@@ -83,8 +82,8 @@ type Props = {
   api: Client;
   children: (renderProps: ReleasesRequestRenderProps) => React.ReactNode;
   display: ReleasesDisplayOption[];
-  location: Location;
   organization: Organization;
+  pageFilterQuery: Values<typeof pageFilterParsers>;
   releases: string[];
   selection: PageFilters;
   healthStatsPeriod?: HealthStatsPeriodOption;
@@ -101,7 +100,7 @@ type State = {
   totalCountByReleaseInPeriod: SessionApiResponse | null;
 };
 
-class ReleasesRequest extends Component<Props, State> {
+class ReleasesRequestBase extends Component<Props, State> {
   state: State = {
     loading: false,
     errored: false,
@@ -135,7 +134,7 @@ class ReleasesRequest extends Component<Props, State> {
   }
 
   get baseQueryParams() {
-    const {location, selection, releases} = this.props;
+    const {pageFilterQuery, selection, releases} = this.props;
 
     return {
       query: new MutableSearch(
@@ -149,7 +148,7 @@ class ReleasesRequest extends Component<Props, State> {
         }, [])
       ).formatString(),
       interval: getInterval(selection.datetime),
-      ...normalizeDateTimeParams(pick(location.query, Object.values(URL_PARAM))),
+      ...normalizeDateTimeParams(pageFilterQuery),
     };
   }
 
@@ -201,10 +200,7 @@ class ReleasesRequest extends Component<Props, State> {
     } catch (error: any) {
       const detail: unknown = error.responseJSON?.detail;
       toast.error(typeof detail === 'string' ? detail : t('Error loading health data'));
-      this.setState({
-        loading: false,
-        errored: true,
-      });
+      this.setState({loading: false, errored: true});
     }
   };
 
@@ -516,4 +512,8 @@ class ReleasesRequest extends Component<Props, State> {
   }
 }
 
-export default withApi(ReleasesRequest);
+export function ReleasesRequest(props: Omit<Props, 'api' | 'pageFilterQuery'>) {
+  const api = useApi();
+  const [pageFilterQuery] = useQueryStates(pageFilterParsers);
+  return <ReleasesRequestBase {...props} api={api} pageFilterQuery={pageFilterQuery} />;
+}

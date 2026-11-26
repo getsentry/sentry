@@ -11,11 +11,7 @@ const backgroundAnimateIn: Variants = {
   animate: {
     opacity: 1,
     scale: 1,
-    transition: {
-      type: 'spring',
-      damping: 8,
-      stiffness: 60,
-    },
+    transition: {type: 'spring', damping: 8, stiffness: 60},
   },
 };
 
@@ -38,10 +34,7 @@ const Background = styled(motion.g)`
 
 const animation: Variants = {
   initial: {opacity: 0, translateY: -100},
-  animate: {
-    opacity: 1,
-    translateY: 0,
-  },
+  animate: {opacity: 1, translateY: 0},
 };
 
 const fallingKeyframes = keyframes`
@@ -83,9 +76,7 @@ const starGroupAnimation = {
   },
 };
 
-type Props = {
-  anchorRef: React.Ref<SVGForeignObjectElement>;
-};
+type Props = {anchorRef: React.Ref<SVGForeignObjectElement>};
 
 export function PerformanceBackground({anchorRef}: Props) {
   return (

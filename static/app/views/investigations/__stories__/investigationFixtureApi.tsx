@@ -29,7 +29,6 @@ import type {
   InvestigationComment,
   InvestigationDetail,
   InvestigationExecutionDetail,
-  InvestigationHypothesis,
   InvestigationListItem,
   InvestigationOrchestration,
   InvestigationOrchestrationCommand,
@@ -66,15 +65,9 @@ type FixtureApiConfig = Omit<InvestigationFixtureApiProps, 'children'> & {
   viewer: AvatarUser;
 };
 
-type FixtureResponse = {
-  body: unknown;
-  headers?: Record<string, string>;
-};
+type FixtureResponse = {body: unknown; headers?: Record<string, string>};
 
-type FixtureErrorResponse = {
-  body: ActionRequestError & {detail: string};
-  status: number;
-};
+type FixtureErrorResponse = {body: ActionRequestError & {detail: string}; status: number};
 
 type FixtureHandlerResult = Promise<FixtureResponse> | typeof NO_MATCH;
 type FixtureHandler = (
@@ -116,10 +109,7 @@ export function InvestigationFixtureApi({
         ...DEFAULT_QUERY_CLIENT_CONFIG,
         defaultOptions: {
           ...DEFAULT_QUERY_CLIENT_CONFIG.defaultOptions,
-          queries: {
-            ...DEFAULT_QUERY_CLIENT_CONFIG.defaultOptions?.queries,
-            retry: false,
-          },
+          queries: {...DEFAULT_QUERY_CLIENT_CONFIG.defaultOptions?.queries, retry: false},
         },
       })
   );
@@ -409,10 +399,7 @@ function handleFixtureRequest(
 
   if (parts[1] === 'favorite' && method === 'PUT') {
     const detail = getFixtureDetail(state, investigationId);
-    setFixtureDetail(state, {
-      ...detail,
-      isFavorited: data.shouldFavorite === true,
-    });
+    setFixtureDetail(state, {...detail, isFavorited: data.shouldFavorite === true});
     return {body: undefined};
   }
 
@@ -443,14 +430,14 @@ function handleFixtureRequest(
   ) {
     const run = getFixtureOrchestration(state, investigationId);
     const command = data.command as InvestigationOrchestrationCommand;
-    // Seer would apply the command and push a new projection; the fixture
-    // applies it inline so a story stays interactive.
+    // Seer would take the question and push a new projection; the fixture
+    // starts the run inline so a story stays interactive.
     const updated: InvestigationOrchestration = {
       ...run,
+      ...(command.type === 'provide_input'
+        ? {phase: 'broad_scan', status: 'processing', pendingInput: null}
+        : {}),
       workflowVersion: run.workflowVersion + 1,
-      hypotheses: run.hypotheses.map(hypothesis =>
-        applyFixtureCommandToHypothesis(hypothesis, command)
-      ),
     };
     state.orchestration.set(investigationId, updated);
     return {
@@ -743,11 +730,7 @@ function handleFixtureRequest(
       const current =
         state.executions.get(key) ??
         InvestigationExecutionDetailFixture({id: executionId});
-      state.executions.set(key, {
-        ...current,
-        status,
-        pendingUserInput: null,
-      });
+      state.executions.set(key, {...current, status, pendingUserInput: null});
       setFixtureDetail(state, {
         ...detail,
         blocks: detail.blocks?.map(block =>
@@ -802,52 +785,6 @@ function getFixtureOrchestration(state: FixtureState, investigationId: string) {
     throw new Error(`No fixture orchestration run for investigation: ${investigationId}`);
   }
   return run;
-}
-
-function applyFixtureCommandToHypothesis(
-  hypothesis: InvestigationHypothesis,
-  command: InvestigationOrchestrationCommand
-): InvestigationHypothesis {
-  if (
-    command.type === 'set_hypothesis_disposition' &&
-    command.hypothesisId === hypothesis.id
-  ) {
-    if (command.disposition === null) {
-      // Clearing hands the hypothesis back to whatever the agent concluded.
-      return {
-        ...hypothesis,
-        decisionSource: 'agent',
-        effectiveStatus: hypothesis.agentVerdict?.verdict ?? 'inconclusive',
-      };
-    }
-    return {
-      ...hypothesis,
-      decisionSource: 'user',
-      effectiveStatus: command.disposition,
-    };
-  }
-
-  if (
-    command.type === 'retry' &&
-    command.target === 'hypothesis' &&
-    command.targetId === hypothesis.id
-  ) {
-    return {
-      ...hypothesis,
-      status: 'running',
-      effectiveStatus: 'investigating',
-      decisionSource: 'none',
-      confidence: null,
-      agentVerdict: null,
-      verificationSteps: (hypothesis.verificationSteps ?? []).map(step => ({
-        ...step,
-        status: 'queued',
-        result: null,
-      })),
-    };
-  }
-
-  return hypothesis;
 }
 
 function setFixtureDetail(state: FixtureState, detail: InvestigationDetail) {

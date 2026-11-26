@@ -21,6 +21,7 @@ import {SpanFields} from 'sentry/views/insights/types';
 export interface UseSpanSearchQueryBuilderProps {
   initialQuery: string;
   searchSource: string;
+  attributeKeyQuery?: string;
   autoFocus?: boolean;
   caseInsensitive?: CaseInsensitive;
   datetime?: PageFilterDatetime;
@@ -61,22 +62,19 @@ export function useSpanSearchQueryBuilderProps(props: UseSpanSearchQueryBuilderP
   spanSearchQueryBuilderProviderProps: UseTraceItemSearchQueryBuilderPropsReturnType;
 } {
   const {attributes: spanBooleanAttributes, secondaryAliases: booleanSecondaryAliases} =
-    useSpanItemAttributes({}, 'boolean');
+    useSpanItemAttributes({query: props.attributeKeyQuery}, 'boolean');
   const {attributes: spanNumberAttributes, secondaryAliases: numberSecondaryAliases} =
-    useSpanItemAttributes({}, 'number');
+    useSpanItemAttributes({query: props.attributeKeyQuery}, 'number');
   const {attributes: spanStringAttributes, secondaryAliases: stringSecondaryAliases} =
-    useSpanItemAttributes({}, 'string');
+    useSpanItemAttributes({query: props.attributeKeyQuery}, 'string');
   const {attributes: spansArrayAttributes, secondaryAliases: arraySecondaryAliases} =
-    useSpanItemAttributes({}, 'array');
+    useSpanItemAttributes({query: props.attributeKeyQuery}, 'array');
   const organization = useOrganization();
   const supportsArrays = organization.features.includes('trace-item-array-query-support');
 
   const spanStringAttributesWithSemver = useMemo(() => {
     if (SpanFields.RELEASE in spanStringAttributes) {
-      return {
-        ...spanStringAttributes,
-        ...STATIC_SEMVER_TAGS,
-      };
+      return {...spanStringAttributes, ...STATIC_SEMVER_TAGS};
     }
     return spanStringAttributes;
   }, [spanStringAttributes]);
@@ -98,7 +96,6 @@ export function useSpanSearchQueryBuilderProps(props: UseSpanSearchQueryBuilderP
       for (const item of props.validatedSearchQueryData.query.fields) {
         if (item.valid) {
           if (item.attrType === 'boolean' && item.name) {
-            // oxlint-disable-next-line react/todo
             localBooleanAttributes[item.name] ??= {
               key: item.name,
               name: prettifyAttributeName(item.name),
@@ -107,7 +104,6 @@ export function useSpanSearchQueryBuilderProps(props: UseSpanSearchQueryBuilderP
           }
 
           if (item.attrType === 'number' && item.name) {
-            // oxlint-disable-next-line react/todo
             localNumberAttributes[item.name] ??= {
               key: item.name,
               name: prettifyAttributeName(item.name),
@@ -116,7 +112,6 @@ export function useSpanSearchQueryBuilderProps(props: UseSpanSearchQueryBuilderP
           }
 
           if (item.attrType === 'string' && item.name) {
-            // oxlint-disable-next-line react/todo
             localStringAttributes[item.name] ??= {
               key: item.name,
               name: prettifyAttributeName(item.name),
@@ -125,7 +120,6 @@ export function useSpanSearchQueryBuilderProps(props: UseSpanSearchQueryBuilderP
           }
 
           if (supportsArrays && item.attrType === 'array' && item.name) {
-            // oxlint-disable-next-line react/todo
             localArrayAttributes[item.name] ??= {
               key: item.name,
               name: prettifyAttributeName(item.name),
@@ -189,8 +183,5 @@ export function useSpanSearchQueryBuilderProps(props: UseSpanSearchQueryBuilderP
     invalidFilterKeys,
   };
 
-  return {
-    spanSearchQueryBuilderProps,
-    spanSearchQueryBuilderProviderProps,
-  };
+  return {spanSearchQueryBuilderProps, spanSearchQueryBuilderProviderProps};
 }

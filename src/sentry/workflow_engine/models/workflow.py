@@ -2,12 +2,15 @@ from __future__ import annotations
 
 import logging
 from dataclasses import replace
+from enum import StrEnum
 from typing import Any, ClassVar, TypedDict
 
 from django.conf import settings
 from django.db import models
 
-from sentry.backup.scopes import RelocationScope
+from sentry.backup.dependencies import PrimaryKeyMap
+from sentry.backup.helpers import ImportFlags
+from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.constants import ObjectStatus
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, cell_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
@@ -29,6 +32,7 @@ logger = logging.getLogger(__name__)
 
 class WorkflowSnapshot(TypedDict):
     id: int
+    type: Workflow.Type
     enabled: bool
     environment_id: int | None
     status: int
@@ -48,7 +52,12 @@ class WorkflowManager(BaseManager["Workflow"]):
 class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     """
     A workflow is a way to execute actions in a specified order.
-    Workflows are initiated after detectors have been processed, driven by changes to their state.
+
+    Workflows are triggered by other systems. For example, alert workflows are triggered
+    after detectors have been processed.
+
+    Not every workflow is user-facing. The `type` field says what the workflow is for, and the public
+    API only exposes workflows with a type in `VISIBLE_WORKFLOW_TYPES`
     """
 
     __relocation_scope__ = RelocationScope.Organization
@@ -56,8 +65,25 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     objects: ClassVar[WorkflowManager] = WorkflowManager()
     objects_for_deletion: ClassVar[BaseManager[Workflow]] = BaseManager()
 
+    class Type(StrEnum):
+        # A user-configured alert
+        ALERT = "alert"
+
+        # A hidden workflow to support inbox notifications
+        INBOX = "inbox"
+
+        # A Seer automation's workflow, managed through the Seer automations API instead of Alerts
+        SEER_INVESTIGATION = "seer_investigation"
+
     name = models.CharField(max_length=256)
     organization = FlexibleForeignKey("sentry.Organization")
+
+    type = models.CharField(
+        max_length=256,
+        choices=[(t.value, t.value) for t in Type],
+        default=Type.ALERT,
+        db_default=Type.ALERT,
+    )
 
     # If the workflow is not enabled, it will not be evaluated / invoke actions. This is how we "snooze" a workflow
     enabled = models.BooleanField(db_default=True)
@@ -74,6 +100,14 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
     created_by_id = HybridCloudForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True, on_delete="SET_NULL"
+    )
+    # Service accounts and org auth tokens authenticate without a user, so they need their
+    # own creator columns. At most one creator column is set.
+    created_by_service_account_id = HybridCloudForeignKey(
+        "service_accounts.ServiceAccount", null=True, blank=True, on_delete="SET_NULL"
+    )
+    created_by_org_auth_token_id = HybridCloudForeignKey(
+        "sentry.OrgAuthToken", null=True, blank=True, on_delete="SET_NULL"
     )
 
     DEFAULT_FREQUENCY = 30
@@ -102,10 +136,36 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
                 fields=["when_condition_group_id"],
                 name="workflow_engine_workflow_when_condition_group_id_11d9ba05_uniq",
             ),
+            models.CheckConstraint(
+                condition=(
+                    models.Q(created_by_service_account_id__isnull=True)
+                    & models.Q(created_by_org_auth_token_id__isnull=True)
+                )
+                | (
+                    models.Q(created_by_id__isnull=True)
+                    & models.Q(created_by_org_auth_token_id__isnull=True)
+                )
+                | (
+                    models.Q(created_by_id__isnull=True)
+                    & models.Q(created_by_service_account_id__isnull=True)
+                ),
+                name="workflow_engine_workflow_single_creator",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["type", "organization"], name="workflow_type_org_idx"),
         ]
 
+    def normalize_before_relocation_import(
+        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
+    ) -> int | None:
+        # Org auth tokens are imported after every other model, so their new pks can't be mapped
+        # here. Drop the reference rather than dropping the whole workflow.
+        self.created_by_org_auth_token_id = None
+        return super().normalize_before_relocation_import(pk_map, scope, flags)
+
     def get_audit_log_data(self) -> dict[str, Any]:
-        return {"name": self.name}
+        return {"name": self.name, "type": self.type}
 
     def get_snapshot(self) -> WorkflowSnapshot:
         when_condition_group = None
@@ -118,6 +178,7 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
         return {
             "id": self.id,
+            "type": Workflow.Type(self.type),
             "enabled": self.enabled,
             "environment_id": environment_id,
             "status": self.status,
@@ -187,6 +248,9 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
             group, workflow_event_data, when_data_conditions
         )
         return group_evaluation, remaining_conditions
+
+
+VISIBLE_WORKFLOW_TYPES = frozenset({Workflow.Type.ALERT})
 
 
 def get_slow_conditions(workflow: Workflow) -> list[DataCondition]:

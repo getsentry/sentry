@@ -16,6 +16,7 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {HealthStatsPeriodOption, type Release} from 'sentry/types/release';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {isMobileRelease} from 'sentry/views/explore/releases/utils';
@@ -24,7 +25,7 @@ import {ReleaseCard} from './releaseCard';
 import {ReleasesAdoptionChart} from './releasesAdoptionChart';
 import {ReleasesDisplayOption} from './releasesDisplayOptions';
 import {ReleasesPromo} from './releasesPromo';
-import ReleasesRequest from './releasesRequest';
+import {ReleasesRequest} from './releasesRequest';
 import {ReleasesStatusOption} from './releasesStatusOptions';
 import {useReleasesSdkVersions} from './useReleasesSdkVersions';
 
@@ -81,7 +82,6 @@ export function ReleaseListInner({
       releases={releases.map(({version}) => version)}
       organization={organization}
       selection={selection}
-      location={location}
       display={[getDisplay(location)]}
       releasesReloading={reloading}
       healthStatsPeriod={
@@ -128,7 +128,7 @@ export function ReleaseListInner({
                 showReleaseAdoptionStages={showReleaseAdoptionStages}
               />
             ))}
-            <Pagination pageLinks={releasesPageLinks} />
+            <Pagination {...getPaginationProps(releasesPageLinks)} />
           </Fragment>
         );
       }}

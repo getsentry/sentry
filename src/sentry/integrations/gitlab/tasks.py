@@ -45,14 +45,18 @@ logger = logging.getLogger(__name__)
 release_debounce = load_redis_script("utils/locking/delete_lock.lua")
 
 MAX_RATE_LIMIT_DEFERRALS = 1000
-# The limiter is region-local. These caps keep two active regions at a combined
-# best-effort ceiling of 20 burst and 4 tokens per second per GitLab identity.
+# The limiter is cell-local and scoped by GitLab host. These caps keep two active
+# cells at a combined best-effort ceiling of 20 burst and 4 tokens per second per host.
 WEBHOOK_RECONCILIATION_MAX_BURST = 10
 WEBHOOK_RECONCILIATION_MAX_PER_SECOND = 2
+WEBHOOK_RECONCILIATION_MAX_FORCED_FANOUT_JITTER_SECONDS = 3600
 WEBHOOK_RECONCILIATION_MAX_RETRY_DELAY_SECONDS = 3600
-WEBHOOK_RECONCILIATION_REPOSITORY_COST = 3
+WEBHOOK_RECONCILIATION_REPOSITORY_COST = 5
+WEBHOOK_RECONCILIATION_RETRY_AFTER_JITTER_SECONDS = 300
+WEBHOOK_RECONCILIATION_RATE_LIMIT_JITTER_MIN_SECONDS = 11
+WEBHOOK_RECONCILIATION_RATE_LIMIT_JITTER_MAX_SECONDS = 73
 WEBHOOK_RECONCILIATION_FANOUT_JITTER_SECONDS = 5
-WEBHOOK_RECONCILIATION_RETRY_AFTER_JITTER_SECONDS = 73
+WEBHOOK_RECONCILIATION_FORCED_FANOUT_JITTER_MIN_SECONDS = 11
 WEBHOOK_RECONCILIATION_SUCCESS_OUTCOMES = frozenset({"adopted", "created", "recreated", "updated"})
 
 GITLAB_RETRY_CODES = (
@@ -217,15 +221,23 @@ def _webhook_reconciliation_retry_delay_seconds() -> int:
     )
 
 
-def _consume_webhook_reconciliation_capacity(
-    base_url: str, identity_external_id: str
-) -> LeakyBucketLimitInfo:
+def _webhook_reconciliation_forced_fanout_jitter_max_seconds() -> int:
+    return min(
+        WEBHOOK_RECONCILIATION_MAX_FORCED_FANOUT_JITTER_SECONDS,
+        max(
+            WEBHOOK_RECONCILIATION_FORCED_FANOUT_JITTER_MIN_SECONDS,
+            options.get("gitlab.webhook-reconcile.forced-fanout-jitter-max-seconds"),
+        ),
+    )
+
+
+def _consume_webhook_reconciliation_capacity(base_url: str) -> LeakyBucketLimitInfo:
     hostname = urlsplit(base_url).hostname or base_url
     burst_limit, drip_rate = _webhook_reconciliation_rate_limits()
     limiter = LeakyBucketRateLimiter(
         burst_limit=burst_limit,
         drip_rate=drip_rate,
-        key=f"gitlab:webhook-reconcile:{hostname}:{identity_external_id}",
+        key=f"gitlab:webhook-reconcile:{hostname}",
         fail_open=False,
     )
     try:
@@ -350,14 +362,15 @@ def update_project_webhook(
                 installation = integration.get_installation(organization_id=organization_id)
                 client = installation.get_client()
 
-                limit_info = _consume_webhook_reconciliation_capacity(
-                    client.base_url, client.identity.external_id
-                )
+                limit_info = _consume_webhook_reconciliation_capacity(client.base_url)
                 if limit_info.wait_time:
                     countdown = max(
                         ceil(limit_info.wait_time),
                         _webhook_reconciliation_retry_delay_seconds(),
-                    ) + randint(0, WEBHOOK_RECONCILIATION_FANOUT_JITTER_SECONDS)
+                    ) + randint(
+                        WEBHOOK_RECONCILIATION_RATE_LIMIT_JITTER_MIN_SECONDS,
+                        WEBHOOK_RECONCILIATION_RATE_LIMIT_JITTER_MAX_SECONDS,
+                    )
                     lifecycle.add_extras(
                         {
                             "rate_limit_countdown": countdown,
@@ -691,14 +704,22 @@ def update_all_project_webhooks(
 
             lifecycle.add_extra("total_repositories", len(repositories))
             burst_limit, drip_rate = _webhook_reconciliation_rate_limits()
+            fanout_jitter_min = (
+                WEBHOOK_RECONCILIATION_FORCED_FANOUT_JITTER_MIN_SECONDS if force else 0
+            )
+            fanout_jitter_max = (
+                _webhook_reconciliation_forced_fanout_jitter_max_seconds()
+                if force
+                else WEBHOOK_RECONCILIATION_FANOUT_JITTER_SECONDS
+            )
             for index, repo in enumerate(repositories):
                 required_capacity = (index + 1) * WEBHOOK_RECONCILIATION_REPOSITORY_COST
-                if required_capacity <= burst_limit:
+                if required_capacity <= burst_limit and not force:
                     update_project_webhook.delay(integration_id, organization_id, repo.id)
                     continue
 
-                countdown = ceil((required_capacity - burst_limit) / drip_rate) + randint(
-                    0, WEBHOOK_RECONCILIATION_FANOUT_JITTER_SECONDS
+                countdown = max(0, ceil((required_capacity - burst_limit) / drip_rate)) + randint(
+                    fanout_jitter_min, fanout_jitter_max
                 )
                 update_project_webhook.apply_async(
                     args=(integration_id, organization_id, repo.id),

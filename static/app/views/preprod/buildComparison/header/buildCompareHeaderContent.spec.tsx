@@ -67,12 +67,28 @@ describe('BuildCompareHeaderContent', () => {
     // The crumb carries the project badge so it matches the page it leads back
     // to. The project is android; the build's own platform is apple, so this
     // icon can only be the crumb's.
-    expect(screen.getByTestId('platform-icon-android')).toBeInTheDocument();
+    expect(screen.getByAltText('android')).toBeInTheDocument();
 
     expect(
       screen.getByRole('heading', {name: 'Compare Builds', level: 1})
     ).toBeInTheDocument();
     expect(screen.queryByRole('link', {name: 'Compare Builds'})).not.toBeInTheDocument();
+  });
+
+  it('shows the default platform icon for a project without a platform', () => {
+    ProjectsStore.loadInitialData([
+      ProjectFixture({slug: 'test-project', platform: undefined}),
+    ]);
+
+    render(
+      <BuildCompareHeaderContent
+        buildDetails={buildDetails}
+        headArtifactId="artifact-1"
+      />,
+      {organization}
+    );
+
+    expect(screen.getByAltText('default')).toBeInTheDocument();
   });
 
   it('renders the shared build entity header', () => {

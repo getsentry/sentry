@@ -24,6 +24,7 @@ from sentry.api.helpers.group_index import (
     build_query_params_from_request,
     calculate_stats_period,
     get_by_short_ids,
+    is_api_request,
     schedule_tasks_to_delete_groups,
     track_slo_response,
     update_groups_with_search_fn,
@@ -329,7 +330,6 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
             IssueParams.GROUP_STATS_PERIOD,
             IssueParams.SHORT_ID_LOOKUP,
             IssueParams.DEFAULT_QUERY,
-            IssueParams.VIEW_ID,
             IssueParams.ORGANIZATION_VIEW_SORT,
             IssueParams.LIMIT,
             IssueParams.GROUP_INDEX_EXPAND,
@@ -396,6 +396,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
                         f"{key}={value}" for key, value in request.GET.items()
                     ),
                     query=query,
+                    is_api_token=is_api_request(request),
                 )
             )
         except Exception as e:
@@ -521,9 +522,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
             GlobalParams.START,
             GlobalParams.END,
             IssueParams.DEFAULT_QUERY,
-            IssueParams.VIEW_ID,
             IssueParams.ORGANIZATION_VIEW_SORT,
-            IssueParams.LIMIT,
         ],
         request=GroupValidator,
         responses={
@@ -575,9 +574,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
             GlobalParams.START,
             GlobalParams.END,
             IssueParams.DEFAULT_QUERY,
-            IssueParams.VIEW_ID,
             IssueParams.ORGANIZATION_VIEW_SORT,
-            IssueParams.LIMIT,
         ],
         responses={
             204: RESPONSE_NO_CONTENT,

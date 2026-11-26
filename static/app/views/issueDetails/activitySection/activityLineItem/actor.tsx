@@ -45,7 +45,13 @@ export function renderActivityLineActor(item: GroupActivity): React.ReactElement
     );
   }
 
-  if (SEER_ACTIVITY_TYPES.has(item.type)) {
+  // Without a user, these come from Seer, e.g. a Seer automation starting an
+  // investigation.
+  if (
+    SEER_ACTIVITY_TYPES.has(item.type) ||
+    item.type === GroupActivityType.INVESTIGATION_LINKED ||
+    item.type === GroupActivityType.INVESTIGATION_STARTED
+  ) {
     return (
       <Tooltip title={t('Seer')} skipWrapper>
         <Flex

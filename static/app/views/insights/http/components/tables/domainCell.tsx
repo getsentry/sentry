@@ -1,8 +1,7 @@
-import * as qs from 'query-string';
-
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
+import * as qs from 'sentry/utils/url/qs';
 import {useLocation} from 'sentry/utils/useLocation';
 import {OverflowEllipsisTextContainer} from 'sentry/views/insights/common/components/textAlign';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';

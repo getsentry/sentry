@@ -1,6 +1,7 @@
 import {act} from 'react';
 import {duration} from 'moment-timezone';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {RawReplayErrorFixture} from 'sentry-fixture/replay/error';
 import {ReplayNavigateEventFixture} from 'sentry-fixture/replay/helpers';
 import {RRWebInitFrameEventsFixture} from 'sentry-fixture/replay/rrweb';
 import {
@@ -13,24 +14,25 @@ import {
   render,
   renderHookWithProviders,
   screen,
+  userEvent,
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
+import {DateTimeProvider} from '@sentry/scraps/dateTime';
+
+import type {ReplayPrefs} from 'sentry/components/replays/preferences/replayPreferences';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
+import {ReplayPreferencesContextProvider} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
+import {ReplayReader} from 'sentry/utils/replays/replayReader';
 import type {HydratedReplayRecord} from 'sentry/views/explore/replays/types';
 
 import {ReplayDetailsEntityHeader} from './replayDetailsEntityHeader';
 
-const {organization, project} = initializeOrg({
-  organization: OrganizationFixture({}),
-});
+const {organization, project} = initializeOrg({organization: OrganizationFixture({})});
 
 function replayRecordFixture(replayRecord?: Partial<HydratedReplayRecord>) {
-  return ReplayRecordFixture({
-    ...replayRecord,
-    project_id: project.id,
-  });
+  return ReplayRecordFixture({...replayRecord, project_id: project.id});
 }
 
 /**
@@ -67,10 +69,6 @@ describe('ReplayDetailsEntityHeader', () => {
       body: [project],
     });
     ProjectsStore.loadInitialData([project]);
-  });
-
-  afterEach(() => {
-    ProjectsStore.reset();
   });
 
   function mockViewedBy(replayId: string) {
@@ -208,6 +206,41 @@ describe('ReplayDetailsEntityHeader', () => {
     await waitFor(() => expect(viewedBy).toHaveBeenCalled());
   });
 
+  it.each<[ReplayPrefs['timestampType'], string]>([
+    ['relative', '5min ago'],
+    ['absolute', 'Jun 8, 2025 9:05:09 PM PDT'],
+  ])(
+    'draws the start time as the %s timestamp preference asks',
+    (timestampType, text) => {
+      jest.setSystemTime(new Date('2025-06-09T04:10:09Z'));
+      const replayRecord = replayRecordFixture({
+        started_at: new Date('2025-06-09T04:05:09Z'),
+      });
+      mockViewedBy(replayRecord.id);
+      const prefs: ReplayPrefs = {
+        isSkippingInactive: true,
+        playbackSpeed: 1,
+        timestampType,
+      };
+
+      // Pending renders the header from the replay record without a full reader.
+      render(
+        <DateTimeProvider value={{timezone: 'America/Los_Angeles', clock: '12'}}>
+          <ReplayPreferencesContextProvider
+            prefsStrategy={{_prefs: prefs, get: () => prefs, set: () => {}}}
+          >
+            <ReplayDetailsEntityHeader
+              readerResult={readerResultFixture({replayRecord, isPending: true})}
+            />
+          </ReplayPreferencesContextProvider>
+        </DateTimeProvider>,
+        {organization}
+      );
+
+      expect(screen.getByText(text)).toBeInTheDocument();
+    }
+  );
+
   it('holds the stats while the reader is still pending', () => {
     const replayRecord = replayRecordFixture({count_dead_clicks: 1});
     mockViewedBy(replayRecord.id);
@@ -224,11 +257,49 @@ describe('ReplayDetailsEntityHeader', () => {
     // The title comes off the record, so it is live.
     expect(screen.getByRole('heading', {name: /Replay user/})).toBeInTheDocument();
 
-    // The counts do not. Asserting them here would show "0 Errors" before the
+    // The counts do not. Asserting them here would show "Errors 0" before the
     // error pages land, and the click stats on a replay that has none.
     expect(screen.queryByRole('link', {name: /Errors/})).not.toBeInTheDocument();
     expect(screen.queryByRole('link', {name: /Dead Clicks/})).not.toBeInTheDocument();
     expect(screen.getByRole('banner')).toHaveAttribute('aria-busy', 'true');
+  });
+
+  it('breaks the error count down by project from the count, not the link', async () => {
+    const replayRecord = replayRecordFixture();
+    mockViewedBy(replayRecord.id);
+    const timestamp = new Date(replayRecord.started_at);
+    const errors = [
+      RawReplayErrorFixture({timestamp, id: 'e1', 'project.name': 'backend'}),
+      RawReplayErrorFixture({timestamp, id: 'e2', 'project.name': 'backend'}),
+      RawReplayErrorFixture({timestamp, id: 'e3', 'project.name': 'frontend'}),
+    ];
+
+    render(
+      <ReplayDetailsEntityHeader
+        readerResult={readerResultFixture({
+          replayRecord,
+          errors,
+          replay: ReplayReader.factory({
+            replayRecord,
+            errors,
+            fetching: false,
+            attachments: RRWebInitFrameEventsFixture({timestamp}),
+          }),
+        })}
+      />,
+      {organization}
+    );
+
+    // The breakdown describes the number, so the number is its trigger. The
+    // link only navigates.
+    const link = screen.getByRole('link', {name: 'Errors'});
+    await userEvent.hover(link, {delay: null});
+    expect(screen.queryByText('frontend')).not.toBeInTheDocument();
+
+    await userEvent.unhover(link, {delay: null});
+    await userEvent.hover(screen.getByText('3'), {delay: null});
+    expect(await screen.findByText('backend')).toBeInTheDocument();
+    expect(screen.getByText('frontend')).toBeInTheDocument();
   });
 
   it('should show LIVE badge when last received segment is within 5 minutes', async () => {
@@ -250,9 +321,7 @@ describe('ReplayDetailsEntityHeader', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
-      body: {
-        data: [],
-      },
+      body: {data: []},
       headers: {
         Link: [
           '<http://localhost/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:1:0"',
@@ -263,11 +332,7 @@ describe('ReplayDetailsEntityHeader', () => {
 
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/replays/${replayRecord.id}/recording-segments/`,
-      body: [
-        RRWebInitFrameEventsFixture({
-          timestamp: startedAt,
-        }),
-      ],
+      body: [RRWebInitFrameEventsFixture({timestamp: startedAt})],
       match: [(_url, options) => options.query?.cursor === '0:0:0'],
     });
 
@@ -309,9 +374,7 @@ describe('ReplayDetailsEntityHeader', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
-      body: {
-        data: [],
-      },
+      body: {data: []},
       headers: {
         Link: [
           '<http://localhost/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:1:0"',
@@ -323,13 +386,8 @@ describe('ReplayDetailsEntityHeader', () => {
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/replays/${replayRecord.id}/recording-segments/`,
       body: [
-        RRWebInitFrameEventsFixture({
-          timestamp: startedAt,
-        }),
-        ReplayNavigateEventFixture({
-          startTimestamp: startedAt,
-          endTimestamp: finishedAt,
-        }),
+        RRWebInitFrameEventsFixture({timestamp: startedAt}),
+        ReplayNavigateEventFixture({startTimestamp: startedAt, endTimestamp: finishedAt}),
       ],
       match: [(_url, options) => options.query?.cursor === '0:0:0'],
     });

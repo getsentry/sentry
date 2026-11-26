@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Annotated, Any, TypedDict
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
@@ -30,6 +30,7 @@ from sentry.api.event_search import QueryToken, parse_search_query
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.examples.replay_examples import ReplayExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, VisibilityParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
@@ -53,29 +54,36 @@ from sentry.utils.snuba import raw_snql_query
 ElementResponseType = TypedDict(
     "ElementResponseType",
     {
-        "alt": str,
-        "aria_label": str,
-        "class": list[str],
-        "component_name": str,
-        "id": str,
-        "role": str,
-        "tag": str,
-        "testid": str,
-        "title": str,
+        "alt": Annotated[str, ApiDescription("`alt` attribute of the element")],
+        "aria_label": Annotated[str, ApiDescription("`aria-label` attribute of the element")],
+        "class": Annotated[list[str], ApiDescription("CSS classes of the element")],
+        "component_name": Annotated[
+            str, ApiDescription("`data-sentry-component` attribute of the element")
+        ],
+        "id": Annotated[str, ApiDescription("`id` attribute of the element")],
+        "role": Annotated[str, ApiDescription("`role` attribute of the element")],
+        "tag": Annotated[str, ApiDescription("HTML tag of the element")],
+        "testid": Annotated[str, ApiDescription("`data-testid` attribute of the element")],
+        "title": Annotated[str, ApiDescription("`title` attribute of the element")],
     },
 )
 
 
 class ReplaySelectorResponseData(TypedDict, total=False):
-    count_dead_clicks: int
-    count_rage_clicks: int
-    dom_element: str
-    element: ElementResponseType
-    project_id: str
+    count_dead_clicks: Annotated[int, ApiDescription("Number of dead clicks on the element")]
+    count_rage_clicks: Annotated[int, ApiDescription("Number of rage clicks on the element")]
+    dom_element: Annotated[
+        str, ApiDescription("CSS selector of the element, built from its tag, ID and classes")
+    ]
+    element: Annotated[ElementResponseType, ApiDescription("Attributes of the clicked element")]
+    project_id: Annotated[str, ApiDescription("ID of the project the clicks were recorded in")]
 
 
 class ReplaySelectorResponse(TypedDict):
-    data: list[ReplaySelectorResponseData]
+    data: Annotated[
+        list[ReplaySelectorResponseData],
+        ApiDescription("Selectors of clicked elements that match the query"),
+    ]
 
 
 @cell_silo_endpoint

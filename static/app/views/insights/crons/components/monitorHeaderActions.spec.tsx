@@ -9,9 +9,7 @@ describe('MonitorHeaderActions', () => {
   const organization = OrganizationFixture();
 
   it('disables mute button when monitor has no environments', async () => {
-    const monitor = MonitorFixture({
-      environments: [],
-    });
+    const monitor = MonitorFixture({environments: []});
 
     render(
       <MonitorHeaderActions
@@ -57,16 +55,12 @@ describe('MonitorHeaderActions', () => {
     await userEvent.click(muteButton);
     expect(updateMock).toHaveBeenCalledWith(
       expect.anything(),
-      expect.objectContaining({
-        data: {isMuted: true},
-      })
+      expect.objectContaining({data: {isMuted: true}})
     );
   });
 
   it('shows unmute button when monitor is muted', () => {
-    const monitor = MonitorFixture({
-      isMuted: true,
-    });
+    const monitor = MonitorFixture({isMuted: true});
 
     render(
       <MonitorHeaderActions

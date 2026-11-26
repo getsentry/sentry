@@ -1,6 +1,7 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 import {useQuery, useQueryClient, useMutation} from '@tanstack/react-query';
+import {parseAsString, useQueryStates} from 'nuqs';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {Grid} from '@sentry/scraps/layout';
@@ -16,11 +17,12 @@ import {t} from 'sentry/locale';
 import type {BuiltinSymbolSource, CustomRepo, DebugFile} from 'sentry/types/debugFiles';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {resolveHostname} from 'sentry/utils/api/resolveHostname';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {routeTitleGen} from 'sentry/utils/routeTitle';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
@@ -34,13 +36,16 @@ export default function ProjectDebugSymbols() {
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
   const location = useLocation();
-  const navigate = useNavigate();
   const api = useApi();
   const queryClient = useQueryClient();
   const [showDetails, setShowDetails] = useState(false);
 
-  const query = location.query.query as string | undefined;
-  const cursor = location.query.cursor as string | undefined;
+  const [queryParams, setQueryParams] = useQueryStates({
+    query: parseAsString,
+    cursor: parseAsString,
+  });
+  const query = queryParams.query ?? undefined;
+  const cursor = queryParams.cursor ?? undefined;
 
   const debugFilesApiOptions = apiOptions.as<DebugFile[]>()(
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/files/dsyms/',
@@ -56,11 +61,7 @@ export default function ProjectDebugSymbols() {
     isPending: isLoadingDebugFiles,
     isLoadingError: isLoadingErrorDebugFiles,
     refetch: refetchDebugFiles,
-  } = useQuery({
-    ...debugFilesApiOptions,
-    select: selectJsonWithHeaders,
-    retry: false,
-  });
+  } = useQuery({...debugFilesApiOptions, select: selectJsonWithHeaders, retry: false});
 
   const debugFiles = debugFilesResponse?.json;
 
@@ -78,33 +79,22 @@ export default function ProjectDebugSymbols() {
     isPending: isLoadingSymbolSources,
     isError: isErrorSymbolSources,
     refetch: refetchSymbolSources,
-  } = useQuery({
-    ...symbolSourcesOptions,
-    retry: 0,
-  });
+  } = useQuery({...symbolSourcesOptions, retry: 0});
 
   const handleSearch = useCallback(
     (value: string) => {
-      navigate({
-        ...location,
-        query: {...location.query, cursor: undefined, query: value ? value : undefined},
-      });
+      setQueryParams({cursor: null, query: value || null}, {history: 'push'});
     },
-    [navigate, location]
+    [setQueryParams]
   );
 
   const {mutate: handleDeleteDebugFile} = useMutation<unknown, RequestError, string>({
     mutationFn: (id: string) => {
       return api.requestPromise(
         `${getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/files/dsyms/', {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            projectIdOrSlug: project.slug,
-          },
+          path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
         })}?id=${id}`,
-        {
-          method: 'DELETE',
-        }
+        {method: 'DELETE'}
       );
     },
     onMutate: () => {
@@ -114,14 +104,10 @@ export default function ProjectDebugSymbols() {
       toast.success('Successfully deleted debug file');
 
       // invalidate debug files query
-      queryClient.invalidateQueries({
-        queryKey: debugFilesApiOptions.queryKey,
-      });
+      queryClient.invalidateQueries({queryKey: debugFilesApiOptions.queryKey});
 
       // invalidate symbol sources query
-      queryClient.invalidateQueries({
-        queryKey: symbolSourcesOptions.queryKey,
-      });
+      queryClient.invalidateQueries({queryKey: symbolSourcesOptions.queryKey});
     },
     onError: () => {
       toast.error('Failed to delete debug file');
@@ -225,7 +211,9 @@ export default function ProjectDebugSymbols() {
             )}
             {debugFiles?.length
               ? debugFiles.map(debugFile => {
-                  const downloadUrl = `${api.baseUrl}/projects/${organization.slug}/${project.slug}/files/dsyms/?id=${debugFile.id}`;
+                  const downloadUrl = resolveHostname(
+                    `/api/0/projects/${organization.slug}/${project.slug}/files/dsyms/?id=${debugFile.id}`
+                  );
 
                   return (
                     <DebugFileRow
@@ -241,7 +229,7 @@ export default function ProjectDebugSymbols() {
                 })
               : null}
           </StyledSimpleTable>
-          <Pagination pageLinks={debugFilesResponse?.headers.Link} />
+          <Pagination {...getPaginationProps(debugFilesResponse?.headers.Link)} />
         </Fragment>
       )}
     </SentryDocumentTitle>

@@ -1,0 +1,47 @@
+import {Fragment} from 'react';
+import type {DistributedOmit} from 'type-fest';
+
+import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
+import {useLabelId} from '@sentry/scraps/form/field/fieldIds';
+import {Flex} from '@sentry/scraps/layout';
+import {Slider, type SliderProps} from '@sentry/scraps/slider';
+
+import {BaseField, type BaseFieldProps} from './baseField';
+
+export function RangeField({
+  onChange,
+  disabled,
+  value,
+  ref,
+  ...props
+}: BaseFieldProps<HTMLInputElement> &
+  DistributedOmit<SliderProps, 'value' | 'onChange' | 'onBlur' | 'disabled' | 'id'> & {
+    onChange: (value: number) => void;
+    value: number;
+    disabled?: boolean | string;
+  }) {
+  const autoSaveContext = useAutoSaveContext();
+  const labelId = useLabelId();
+
+  return (
+    <BaseField disabled={disabled} ref={ref}>
+      {(fieldProps, {indicator}) => (
+        <Fragment>
+          <Slider
+            {...fieldProps}
+            aria-labelledby={labelId}
+            {...props}
+            value={value}
+            onChange={onChange}
+            onChangeEnd={() => {
+              if (autoSaveContext) {
+                fieldProps.onBlur();
+              }
+            }}
+          />
+          {indicator ?? (autoSaveContext ? <Flex width="14px" flexShrink={0} /> : null)}
+        </Fragment>
+      )}
+    </BaseField>
+  );
+}

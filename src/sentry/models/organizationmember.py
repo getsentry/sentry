@@ -8,7 +8,7 @@ from collections.abc import Iterable, Mapping
 from datetime import timedelta
 from enum import Enum
 from hashlib import md5
-from typing import TYPE_CHECKING, Any, ClassVar, TypedDict
+from typing import TYPE_CHECKING, Any, ClassVar, Literal, TypedDict
 from urllib.parse import urlencode
 
 from django.conf import settings
@@ -24,7 +24,7 @@ from django.utils.translation import gettext_lazy as _
 from structlog import get_logger
 
 from bitfield.models import typed_dict_bitfield
-from sentry import features, roles
+from sentry import features, options, roles
 from sentry.backup.dependencies import NormalizedModelName, PrimaryKeyMap
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
@@ -106,7 +106,9 @@ class InviteStatus(Enum):
         )
 
 
-invite_status_names = {
+InviteStatusName = Literal["approved", "requested_to_be_invited", "requested_to_join"]
+
+invite_status_names: dict[int, InviteStatusName] = {
     InviteStatus.APPROVED.value: "approved",
     InviteStatus.REQUESTED_TO_BE_INVITED.value: "requested_to_be_invited",
     InviteStatus.REQUESTED_TO_JOIN.value: "requested_to_join",
@@ -273,7 +275,7 @@ class OrganizationMember(ReplicatedCellModel):
         update_fields: Iterable[str] | None = None,
     ) -> None:
         if self.id is not None:
-            invite = OrganizationMemberInvite.objects.filter(organization_member_id=self.id).first()
+            invite = OrganizationMemberInvite.objects.filter(organization_member_id=self.id).first()  # noqa: S035
             assert invite is None, "Cannot save placeholder organization member for an invited user"
 
         with outbox_context(transaction.atomic(using=router.db_for_write(OrganizationMember))):
@@ -285,6 +287,14 @@ class OrganizationMember(ReplicatedCellModel):
                 using=using,
                 update_fields=update_fields,
             )
+
+    @property
+    def default_flush(self) -> bool:  # type: ignore[override]
+        # Only used when no caller passed a flag to an enclosing outbox_context.
+        if not options.get("hybridcloud.outbox.organization_member_async_replication.enabled"):
+            return True
+        # Control needs new memberships right away; other writes can catch up.
+        return self._state.adding and self.user_id is not None
 
     def refresh_from_db(
         self,
@@ -320,7 +330,7 @@ class OrganizationMember(ReplicatedCellModel):
         self.invite_status = InviteStatus.APPROVED.value
         self.regenerate_token()
 
-    def get_invite_status_name(self) -> str | None:
+    def get_invite_status_name(self) -> InviteStatusName | None:
         if self.invite_status is None:
             return None
         return invite_status_names[self.invite_status]
@@ -751,7 +761,7 @@ class OrganizationMember(ReplicatedCellModel):
             self.inviter_id = None
 
         # If there is a token collision, just wipe the token. The user can always make a new one.
-        matching_token = self.__class__.objects.filter(token=self.token).first()
+        matching_token = self.__class__.objects.filter(token=self.token).first()  # noqa: S035
         if matching_token is not None:
             self.token = None
             self.token_expires_at = None

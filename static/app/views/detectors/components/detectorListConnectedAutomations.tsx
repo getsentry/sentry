@@ -7,7 +7,7 @@ import {Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import {Hovercard} from 'sentry/components/hovercard';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import {InteractionStateLayer} from 'sentry/components/interactionStateLayer';
 import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
 import {EmptyCell} from 'sentry/components/workflowEngine/gridCell/emptyCell';
@@ -21,18 +21,13 @@ import {useIssueStreamDetectorsForProject} from 'sentry/views/detectors/utils/us
 
 import {useIssueStreamDetectorContext} from './detectorListTable/issueStreamDetectorContext';
 
-type DetectorListConnectedAutomationsProps = {
-  automationIds: string[];
-  projectId: string;
-};
+type DetectorListConnectedAutomationsProps = {automationIds: string[]; projectId: string};
 
 function ConnectedAutomationsHoverBody({automationIds}: {automationIds: string[]}) {
   const organization = useOrganization();
   const shownAutomations = automationIds.slice(0, 5);
   const {data, isPending, isError} = useQuery(
-    automationsApiOptions(organization, {
-      ids: automationIds.slice(0, 5),
-    })
+    automationsApiOptions(organization, {ids: automationIds.slice(0, 5)})
   );
   const hasMore = automationIds.length > 5;
   const hasMoreText = hasMore ? (

@@ -4,15 +4,14 @@ import {toast} from '@sentry/scraps/toast';
 
 import {t} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
-import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {allDetectorListsQueryKey} from 'sentry/views/detectors/hooks';
+import {invalidateDetectorQueries} from 'sentry/views/detectors/hooks';
 
 /** Bulk update detectors. Currently supports enabling/disabling detectors. */
 export function useUpdateDetectorsMutation() {
   const org = useOrganization();
-  const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
 
   return useMutation<
@@ -21,31 +20,25 @@ export function useUpdateDetectorsMutation() {
     {enabled: boolean; ids?: string[]; projects?: number[]; query?: string}
   >({
     mutationFn: params => {
-      return api.requestPromise(
-        getApiUrl('/organizations/$organizationIdOrSlug/detectors/', {
+      return fetchMutation<void>({
+        url: getApiUrl('/organizations/$organizationIdOrSlug/detectors/', {
           path: {organizationIdOrSlug: org.slug},
         }),
-        {
-          method: 'PUT',
-          data: {enabled: params.enabled},
-          query: {
-            id: params.ids,
-            query: params.query,
-            project: params.projects,
-          },
-        }
-      );
+        method: 'PUT',
+        data: {enabled: params.enabled},
+        options: {query: {id: params.ids, query: params.query, project: params.projects}},
+      });
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: allDetectorListsQueryKey(org),
-      });
+      invalidateDetectorQueries(queryClient, org);
       toast.success(variables.enabled ? t('Monitors enabled') : t('Monitors disabled'));
     },
-    onError: (_, variables) => {
-      toast.error(
-        t('Unable to %s monitors', variables.enabled ? t('enable') : t('disable'))
-      );
+    onError: (error, variables) => {
+      const detail = error.responseJSON?.detail;
+      const fallback = variables.enabled
+        ? t('Unable to enable monitors')
+        : t('Unable to disable monitors');
+      toast.error(typeof detail === 'string' ? detail : fallback);
     },
   });
 }

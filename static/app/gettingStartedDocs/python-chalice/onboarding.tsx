@@ -67,9 +67,7 @@ export const onboarding: OnboardingConfig = {
       content: [
         {
           type: 'text',
-          text: tct('Install [code:sentry-sdk] from PyPI:', {
-            code: <code />,
-          }),
+          text: tct('Install [code:sentry-sdk] from PyPI:', {code: <code />}),
         },
         getPythonInstallCodeBlock({additionalPackage: 'chalice'}),
       ],
@@ -85,11 +83,7 @@ export const onboarding: OnboardingConfig = {
             'To configure the SDK, initialize it with the integration before or after your app has been initialized:'
           ),
         },
-        {
-          type: 'code',
-          language: 'python',
-          code: getSdkSetupSnippet(params),
-        },
+        {type: 'code', language: 'python', code: getSdkSetupSnippet(params)},
         alternativeProfiling(params),
       ],
     },
@@ -102,20 +96,14 @@ export const onboarding: OnboardingConfig = {
           type: 'text',
           text: t('To verify that everything is working trigger an error on purpose:'),
         },
-        {
-          type: 'code',
-          language: 'python',
-          code: getVerifySnippet(),
-        },
+        {type: 'code', language: 'python', code: getVerifySnippet()},
         logsVerify(params),
         metricsVerify(params),
         {
           type: 'text',
           text: tct(
             'When you enter the [code:"/"] route or the scheduled task is run, an error event will be sent to Sentry.',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
       ],

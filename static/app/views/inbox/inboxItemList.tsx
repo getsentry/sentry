@@ -1,33 +1,50 @@
-import {useId} from 'react';
+import {useId, type ReactNode} from 'react';
 import styled from '@emotion/styled';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconDelete} from '@sentry/icons/delete';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconMail} from '@sentry/icons/mail';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 
+import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Checkbox} from '@sentry/scraps/checkbox';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import {InteractionStateLayer} from 'sentry/components/interactionStateLayer';
 import {TimeSince} from 'sentry/components/timeSince';
 import {UnreadIndicator} from 'sentry/components/unreadIndicator';
 import {t} from 'sentry/locale';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
+import * as qs from 'sentry/utils/url/qs';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 
-import type {InboxItem} from './types';
-import {getInboxItemPath, INBOX_SUBJECT_CONFIG} from './utils';
+import {
+  removeInboxItemsMutationOptions,
+  updateInboxItemsMutationOptions,
+} from './inboxApiOptions';
+import type {InboxFilters, InboxIssueMetadata, InboxItem} from './types';
+import {INBOX_SUBJECT_CONFIG} from './utils';
 
 interface InboxItemListProps {
+  filters: InboxFilters;
   items: InboxItem[];
   selectedItemId: string | null;
 }
 
-export function InboxItemList({items, selectedItemId}: InboxItemListProps) {
+export function InboxItemList({items, selectedItemId, filters}: InboxItemListProps) {
   return (
     <Stack as="ul" padding="0" margin="0">
       {items.map(item => (
         <InboxItemListItem
           key={item.id}
           item={item}
+          filters={filters}
           isSelected={item.id === selectedItemId}
         />
       ))}
@@ -35,22 +52,94 @@ export function InboxItemList({items, selectedItemId}: InboxItemListProps) {
   );
 }
 
-interface InboxItemListItemProps {
+interface InboxItemRowProps {
+  filters: InboxFilters;
   isSelected: boolean;
   item: InboxItem;
 }
 
-function InboxItemListItem({item, isSelected}: InboxItemListItemProps) {
+function InboxItemListItem(props: InboxItemRowProps) {
+  const {subject} = props.item;
+  switch (subject.type) {
+    case 'issue':
+      return <InboxIssueItem {...props} metadata={subject.metadata} />;
+    default:
+      return <DefaultInboxItem {...props} />;
+  }
+}
+
+function InboxIssueItem({
+  metadata,
+  ...props
+}: InboxItemRowProps & {metadata: InboxIssueMetadata}) {
+  const project = useProjectFromId({project_id: metadata.project.id});
+
+  return (
+    <InboxItemRow {...props}>
+      <Flex align="center" gap="2xs" minWidth={0}>
+        <ProjectAvatar project={project ?? metadata.project} size={12} />
+        <Text size="sm" variant="muted" ellipsis>
+          {metadata.shortId}
+        </Text>
+      </Flex>
+      <InboxItemSummary summary={props.item.latestEvent.summary} />
+    </InboxItemRow>
+  );
+}
+
+function DefaultInboxItem(props: InboxItemRowProps) {
+  return (
+    <InboxItemRow {...props}>
+      <InboxItemSummary summary={props.item.latestEvent.summary} />
+    </InboxItemRow>
+  );
+}
+
+function InboxItemSummary({summary}: {summary: string}) {
+  return (
+    <Text size="sm" ellipsis>
+      {summary}
+    </Text>
+  );
+}
+
+function InboxItemRow({
+  item,
+  isSelected,
+  filters,
+  children,
+}: InboxItemRowProps & {children: ReactNode}) {
   const organization = useOrganization();
   const checkboxState = useListItemCheckboxContext();
   const checkboxId = useId();
-  const SubjectIcon = INBOX_SUBJECT_CONFIG[item.subjectType].icon;
-  const title = item.title ?? t('Unavailable');
+  const {type, title} = item.subject;
+  const SubjectIcon = INBOX_SUBJECT_CONFIG[type].icon;
+  const {pathname, search, hash} = new URL(item.url);
+  // Link expects an org-scoped path and strips the prefix on customer domains.
+  const itemPath = pathname.startsWith('/organizations/')
+    ? pathname
+    : `/organizations/${organization.slug}${pathname}`;
+  const queryClient = useQueryClient();
+  const {mutate: updateInboxItems, isPending: isUpdating} = useMutation(
+    updateInboxItemsMutationOptions({organization, queryClient})
+  );
+  const {mutate: removeInboxItems, isPending: isRemoving} = useMutation({
+    ...removeInboxItemsMutationOptions({organization, queryClient}),
+    onSuccess: () =>
+      toast.success(t('Removed 1 item'), {
+        action: {
+          label: t('Undo'),
+          onClick: () =>
+            updateInboxItems({selection: [item.id], update: {undoRemoval: true}}),
+        },
+      }),
+    onError: () => toast.error(t('Unable to remove item')),
+  });
 
   return (
     <Container position="relative" padding="xl" borderBottom="primary">
       {props => (
-        <ItemRow {...props} data-selected={isSelected}>
+        <ItemRow {...props} data-inbox-item data-selected={isSelected}>
           <InteractionStateLayer />
           <Grid columns="max-content 8px minmax(0, 1fr)" gap="xs md" align="center">
             <Container
@@ -71,14 +160,20 @@ function InboxItemListItem({item, isSelected}: InboxItemListItemProps) {
               />
             </Flex>
             <Flex column="2" row="1">
-              {item.isUnread && <UnreadIndicator />}
+              {item.isUnread && (
+                <UnreadIndicator data-test-id="unread-inbox-item-indicator" />
+              )}
             </Flex>
             <Flex column="3" row="1" gap="md" align="center" justify="between">
               <Flex gap="sm" align="center" minWidth={0}>
                 {linkProps => (
                   <ItemLink
                     {...linkProps}
-                    to={getInboxItemPath(organization, item)}
+                    to={{
+                      pathname: itemPath,
+                      query: {...filters, ...qs.parse(search)},
+                      hash,
+                    }}
                     aria-current={isSelected ? 'true' : undefined}
                   >
                     <SubjectIcon size="sm" />
@@ -88,20 +183,80 @@ function InboxItemListItem({item, isSelected}: InboxItemListItemProps) {
                   </ItemLink>
                 )}
               </Flex>
-              <Text size="sm" variant="muted" wrap="nowrap">
-                <TimeSince
-                  date={item.lastActivityAt}
-                  unitStyle="extraShort"
-                  suffix=""
-                  disabledAbsoluteTooltip
-                />
-              </Text>
+              <Grid
+                columns="max-content"
+                align="center"
+                justifyItems="end"
+                flexShrink={0}
+              >
+                <Container column="1" row="1">
+                  <Text data-inbox-item-timestamp size="sm" variant="muted" wrap="nowrap">
+                    <TimeSince
+                      date={item.lastActivityAt}
+                      unitStyle="narrow"
+                      suffix=""
+                      disabledAbsoluteTooltip
+                    />
+                  </Text>
+                </Container>
+                <Flex column="1" row="1" height="0" align="center">
+                  {actionProps => (
+                    <ItemActions {...actionProps}>
+                      <DropdownMenu
+                        size="sm"
+                        position="bottom-end"
+                        strategy="fixed"
+                        isDisabled={isUpdating || isRemoving}
+                        trigger={triggerProps => (
+                          <OverlayTrigger.IconButton
+                            {...triggerProps}
+                            aria-label={t('Actions for %s', title)}
+                            icon={<IconEllipsis />}
+                            size="xs"
+                            variant="transparent"
+                          />
+                        )}
+                        items={[
+                          {
+                            key: 'read-state',
+                            label: item.isUnread
+                              ? t('Mark as read')
+                              : t('Mark as unread'),
+                            leadingItems: item.isUnread ? (
+                              <IconCheckmark />
+                            ) : (
+                              <IconMail />
+                            ),
+                            onAction: () =>
+                              updateInboxItems(
+                                {selection: [item.id], update: {isRead: item.isUnread}},
+                                {
+                                  onError: () =>
+                                    toast.error(t('Unable to update read status')),
+                                }
+                              ),
+                          },
+                          {
+                            key: 'remove',
+                            label: t('Remove'),
+                            leadingItems: <IconDelete />,
+                            onAction: () => {
+                              if (checkboxState.isSelected(item.id)) {
+                                checkboxState.toggleSelected(item.id);
+                              }
+                              removeInboxItems({ids: [item.id]});
+                            },
+                          },
+                        ]}
+                      />
+                    </ItemActions>
+                  )}
+                </Flex>
+              </Grid>
             </Flex>
-            <Container column="3" row="2" minWidth={0}>
-              <Text size="sm" variant="muted" ellipsis>
-                {item.latestEvent.summary}
-              </Text>
-            </Container>
+            <Stack column="3" row="2" gap="xs" minWidth={0}>
+              {children}
+            </Stack>
           </Grid>
         </ItemRow>
       )}
@@ -112,9 +267,41 @@ function InboxItemListItem({item, isSelected}: InboxItemListItemProps) {
 const ItemRow = styled('li')`
   list-style: none;
 
+  &:hover,
+  &:has([aria-haspopup]:focus-visible),
+  &:has([aria-expanded='true']) {
+    [data-inbox-item-timestamp] {
+      opacity: 0;
+    }
+  }
+
+  @media (hover: none) {
+    [data-inbox-item-timestamp] {
+      opacity: 0;
+    }
+  }
+
   &[data-selected='true'] {
     background: ${p =>
       p.theme.tokens.interactive.transparent.accent.selected.background.rest};
+  }
+`;
+
+const ItemActions = styled('div')`
+  z-index: 1;
+  opacity: 0;
+  pointer-events: none;
+
+  [data-inbox-item]:hover &,
+  &:has(:focus-visible),
+  &:has([aria-expanded='true']) {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  @media (hover: none) {
+    opacity: 1;
+    pointer-events: auto;
   }
 `;
 

@@ -17,8 +17,5 @@ export function filterProjects(rawProjects: Project[]) {
     p => p.platform && withPerformanceOnboarding.has(p.platform)
   );
 
-  return {
-    projectsWithoutFirstTransactionEvent,
-    projectsForOnboarding,
-  };
+  return {projectsWithoutFirstTransactionEvent, projectsForOnboarding};
 }

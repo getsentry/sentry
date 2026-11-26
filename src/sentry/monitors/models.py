@@ -6,7 +6,7 @@ import zoneinfo
 from collections.abc import Iterable, Mapping, Sequence
 from datetime import datetime
 from functools import cache
-from typing import TYPE_CHECKING, Any, ClassVar, Self, cast, override
+from typing import TYPE_CHECKING, Any, ClassVar, Self, override
 from uuid import uuid4
 
 import jsonschema
@@ -27,7 +27,6 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     DefaultFieldsModel,
     FlexibleForeignKey,
-    LegacyTextJSONField,
     Model,
     UUIDField,
     cell_silo_model,
@@ -73,10 +72,7 @@ MONITOR_CONFIG = {
 
 @cache
 def get_monitor_config_validator() -> jsonschema.protocols.Validator:
-    validator_cls = cast(
-        "type[jsonschema.protocols.Validator]",
-        jsonschema.validators.validator_for(MONITOR_CONFIG),
-    )
+    validator_cls = jsonschema.validators.validator_for(MONITOR_CONFIG)
     validator_cls.check_schema(MONITOR_CONFIG)
     return validator_cls(MONITOR_CONFIG)
 
@@ -268,6 +264,26 @@ class Monitor(Model):
     The team assigned as the owner of this model.
     """
 
+    created_by_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
+    """
+    The user who created this monitor. Unlike the owner, this is never reassigned.
+    """
+
+    created_by_service_account_id = HybridCloudForeignKey(
+        "service_accounts.ServiceAccount", null=True, on_delete="SET_NULL"
+    )
+    """
+    The service account that created this monitor.
+    """
+
+    created_by_org_auth_token_id = HybridCloudForeignKey(
+        "sentry.OrgAuthToken", null=True, on_delete="SET_NULL"
+    )
+    """
+    The org auth token that created this monitor. At most one creator column is set, and
+    monitors created by check-in upserts have none.
+    """
+
     config = models.JSONField(default=dict)
     """
     Stores the monitor configuration. See MONITOR_CONFIG for the schema.
@@ -288,7 +304,16 @@ class Monitor(Model):
                     | models.Q(owner_team_id__isnull=True, owner_user_id__isnull=True)
                 ),
                 name="monitor_owner_team_or_user_check",
-            )
+            ),
+            models.CheckConstraint(
+                condition=(
+                    Q(created_by_service_account_id__isnull=True)
+                    & Q(created_by_org_auth_token_id__isnull=True)
+                )
+                | (Q(created_by_id__isnull=True) & Q(created_by_org_auth_token_id__isnull=True))
+                | (Q(created_by_id__isnull=True) & Q(created_by_service_account_id__isnull=True)),
+                name="monitor_single_creator",
+            ),
         ]
 
     __repr__ = sane_repr("guid", "project_id", "name")
@@ -403,6 +428,9 @@ class Monitor(Model):
     def normalize_before_relocation_import(
         self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
     ) -> int | None:
+        # Org auth tokens are imported after every other model, so their new pks can't be mapped
+        # here. Drop the reference rather than dropping the whole monitor.
+        self.created_by_org_auth_token_id = None
         old_pk = super().normalize_before_relocation_import(pk_map, scope, flags)
         if old_pk is None:
             return None
@@ -552,16 +580,12 @@ class MonitorCheckIn(Model):
     max_runtime.
     """
 
-    monitor_config = LegacyTextJSONField(null=True)
-    """
-    Legacy snapshot of the monitor configuration at the time of the check-in.
-    No longer written; replaced by `checkin_config`.
-    """
-
     checkin_config = FlexibleForeignKey(
         "monitors.MonitorCheckInConfig",
-        null=True,
         on_delete=models.PROTECT,
+        # Nothing looks up check-ins by config, and config rows are never deleted
+        db_index=False,
+        db_constraint=False,
     )
     """
     References the MonitorCheckInConfig holding a snapshot of the monitor
@@ -588,12 +612,12 @@ class MonitorCheckIn(Model):
                 condition=Q(status=CheckInStatus.IN_PROGRESS),
                 name="consumer_latest",
             ),
-            # Note: If we remove all indexes that start with `monitor_environment`, we need to add the index back on the
-            # column
-            models.Index(fields=["monitor_environment", "status", "date_added"]),
             # used for timeout task
-            # Note: If we remove all indexes that start with `status`, we need to add the index back on the column
-            models.Index(fields=["status", "timeout_at"]),
+            models.Index(
+                fields=["timeout_at"],
+                condition=Q(status=CheckInStatus.IN_PROGRESS),
+                name="sentry_monitorcheckin_timeout",
+            ),
             # used for dispatch_mark_unknown
             models.Index(
                 fields=["-date_added"],
@@ -736,9 +760,6 @@ class MonitorEnvironment(Model):
         app_label = "monitors"
         db_table = "sentry_monitorenvironment"
         unique_together = (("monitor", "environment_id"),)
-        indexes = [
-            models.Index(fields=["status", "next_checkin_latest"]),
-        ]
 
     __repr__ = sane_repr("monitor_id", "environment_id")
 
@@ -751,13 +772,6 @@ class MonitorEnvironment(Model):
             "status": self.status,
             "monitor": self.monitor.name,
         }
-
-    def get_last_successful_checkin(self) -> MonitorCheckIn | None:
-        return (
-            MonitorCheckIn.objects.filter(monitor_environment=self, status=CheckInStatus.OK)
-            .order_by("-date_added")
-            .first()
-        )
 
     @property
     def active_incident(self) -> MonitorIncident | None:
@@ -818,6 +832,12 @@ class MonitorIncident(Model):
     This represents the final OK check-in that we receive
     """
 
+    last_successful_timestamp = models.DateTimeField(null=True)
+    """
+    Time of the newest OK check-in before this incident, or during it while
+    the recovery threshold is not yet met. Shown on the incident's issue.
+    """
+
     grouphash = models.CharField(max_length=32, default=default_grouphash)
     """
     Used for issue occurrences generation. Failed check-ins produce an
@@ -871,9 +891,9 @@ def get_cron_monitor(detector: Detector) -> Monitor:
     """
     Given a detector get the matching cron monitor.
     """
-    data_source = detector.data_sources.first()
+    data_source = detector.data_sources.filter(type=DATA_SOURCE_CRON_MONITOR).first()  # noqa: S035
     assert data_source
-    return Monitor.objects.get(id=int(data_source.source_id))
+    return Monitor.objects.get(id=int(data_source.source_id), project_id=detector.linked_project.id)
 
 
 def get_detector_for_monitor(monitor: Monitor) -> Detector | None:

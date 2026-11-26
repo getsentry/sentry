@@ -1,15 +1,25 @@
 import copy
+from collections.abc import Callable
+from typing import Any
 from unittest.mock import Mock, patch
 
 import jsonschema
+import orjson
 import pytest
 from django.conf import settings
 from django.test import override_settings
 
 from sentry.lang.native.sources import (
     BUILTIN_SOURCE_SCHEMA,
+    SOURCES_SCHEMA,
+    SOURCES_WITHOUT_APPSTORE_CONNECT,
+    InvalidSourcesError,
+    _sources_validator,
+    backfill_source,
     filter_ignored_sources,
     get_sources_for_project,
+    parse_sources,
+    validate_sources,
 )
 from sentry.models.project import Project
 from sentry.testutils.helpers import override_options
@@ -20,6 +30,81 @@ from sentry.testutils.pytest.fixtures import django_db_all
 def test_validate_builtin_sources() -> None:
     for source in settings.SENTRY_BUILTIN_SOURCES.values():
         jsonschema.validate(source, BUILTIN_SOURCE_SCHEMA)
+
+
+HTTP_SOURCE: dict[str, Any] = {
+    "id": "custom",
+    "type": "http",
+    "name": "Custom",
+    "url": "https://symbols.example.com/",
+    "layout": {"type": "native", "casing": "default"},
+}
+
+SOURCES = [
+    pytest.param([HTTP_SOURCE], id="valid"),
+    pytest.param([{**HTTP_SOURCE, "url": 1}], id="bad-url"),
+    pytest.param([{k: v for k, v in HTTP_SOURCE.items() if k != "layout"}], id="no-layout"),
+    pytest.param([{**HTTP_SOURCE, "layout": {"type": "unknown"}}], id="bad-layout"),
+    pytest.param([{**HTTP_SOURCE, "type": "appStoreConnect"}], id="app-store-connect"),
+]
+
+
+def _validation_error(validate: Callable[[], None]) -> tuple[Any, ...] | None:
+    try:
+        validate()
+    except InvalidSourcesError as e:
+        error = e.__context__
+        assert isinstance(error, jsonschema.ValidationError)
+        return (error.message, list(error.absolute_path), list(error.absolute_schema_path))
+    except jsonschema.ValidationError as e:
+        return (e.message, list(e.absolute_path), list(e.absolute_schema_path))
+    return None
+
+
+def test_sources_schema_is_valid() -> None:
+    jsonschema.validators.validator_for(SOURCES_WITHOUT_APPSTORE_CONNECT).check_schema(
+        SOURCES_WITHOUT_APPSTORE_CONNECT
+    )
+
+
+def test_sources_validator_matches_jsonschema_validate() -> None:
+    # `Any`: the stubs' `Validator` protocol lacks `format_checker`.
+    validator: Any = _sources_validator()
+    assert type(validator) is jsonschema.validators.validator_for(SOURCES_WITHOUT_APPSTORE_CONNECT)
+    assert validator.schema is SOURCES_WITHOUT_APPSTORE_CONNECT
+    assert validator.format_checker is None
+
+
+@pytest.mark.parametrize("sources", SOURCES)
+def test_validate_sources_matches_jsonschema_validate(sources: list[dict[str, Any]]) -> None:
+    assert _validation_error(lambda: validate_sources(sources)) == _validation_error(
+        lambda: jsonschema.validate(sources, SOURCES_WITHOUT_APPSTORE_CONNECT)
+    )
+
+
+@pytest.mark.parametrize("sources", SOURCES)
+def test_validate_sources_with_schema_matches_jsonschema_validate(
+    sources: list[dict[str, Any]],
+) -> None:
+    assert _validation_error(
+        lambda: validate_sources(sources, schema=SOURCES_SCHEMA)
+    ) == _validation_error(lambda: jsonschema.validate(sources, SOURCES_SCHEMA))
+
+
+def test_validate_sources_invalid() -> None:
+    with pytest.raises(InvalidSourcesError):
+        validate_sources([{**HTTP_SOURCE, "url": 1}])
+
+
+def test_parse_sources_does_not_recheck_schema() -> None:
+    config = orjson.dumps([HTTP_SOURCE]).decode()
+    assert parse_sources(config, filter_appconnect=True) == [HTTP_SOURCE]
+
+    with patch.object(type(_sources_validator()), "check_schema") as check_schema:
+        for _ in range(3):
+            assert parse_sources(config, filter_appconnect=True) == [HTTP_SOURCE]
+
+    check_schema.assert_not_called()
 
 
 SENTRY_BUILTIN_SOURCES_TEST = {
@@ -263,3 +348,135 @@ class TestIgnoredSourcesFiltering:
                 "sentry:tvos-source",
                 "custom",
             ]
+
+
+HIDDEN = {"hidden-secret": True}
+
+STORED_SOURCES: dict[str, dict[str, Any]] = {
+    "http": {
+        "id": "src",
+        "type": "http",
+        "name": "http",
+        "layout": {"type": "native"},
+        "url": "https://symbols.example.com/",
+        "username": "user",
+        "password": "secret",
+    },
+    "s3": {
+        "id": "src",
+        "type": "s3",
+        "name": "s3",
+        "layout": {"type": "native"},
+        "bucket": "bucket",
+        "region": "us-east-1",
+        "access_key": "AKIA",
+        "secret_key": "secret",
+    },
+    "gcs": {
+        "id": "src",
+        "type": "gcs",
+        "name": "gcs",
+        "layout": {"type": "native"},
+        "bucket": "bucket",
+        "client_email": "sa@example.iam.gserviceaccount.com",
+        "private_key": "secret",
+    },
+    "azure": {
+        "id": "src",
+        "type": "azure",
+        "name": "azure",
+        "layout": {"type": "native"},
+        "account": "account",
+        "container": "container",
+        "tenant_id": "tenant",
+        "client_id": "client",
+        "client_secret": "secret",
+    },
+}
+
+SECRET_FIELD = {
+    "http": "password",
+    "s3": "secret_key",
+    "gcs": "private_key",
+    "azure": "client_secret",
+}
+
+BINDING_FIELDS = [
+    ("http", "url"),
+    ("http", "username"),
+    ("s3", "bucket"),
+    ("s3", "region"),
+    ("s3", "access_key"),
+    ("gcs", "bucket"),
+    ("gcs", "client_email"),
+    ("azure", "account"),
+    ("azure", "container"),
+    ("azure", "tenant_id"),
+    ("azure", "client_id"),
+]
+
+
+def _redacted(source_type: str) -> dict[str, Any]:
+    source = copy.deepcopy(STORED_SOURCES[source_type])
+    source[SECRET_FIELD[source_type]] = HIDDEN
+    return source
+
+
+@pytest.mark.parametrize("source_type", sorted(STORED_SOURCES))
+def test_backfill_source_restores_secret(source_type: str) -> None:
+    source = _redacted(source_type)
+    backfill_source(source, STORED_SOURCES[source_type])
+    assert source == STORED_SOURCES[source_type]
+
+
+@pytest.mark.parametrize("source_type", sorted(STORED_SOURCES))
+def test_backfill_source_allows_non_destination_changes(source_type: str) -> None:
+    source = _redacted(source_type)
+    source["name"] = "renamed"
+    source["layout"] = {"type": "symstore", "casing": "lowercase"}
+    source["filters"] = {"filetypes": ["pe"]}
+    if source_type != "http":
+        source["prefix"] = "other/prefix"
+    backfill_source(source, STORED_SOURCES[source_type])
+    assert source[SECRET_FIELD[source_type]] == "secret"
+
+
+@pytest.mark.parametrize(("source_type", "field"), BINDING_FIELDS)
+def test_backfill_source_rejects_destination_change(source_type: str, field: str) -> None:
+    source = _redacted(source_type)
+    source[field] = "attacker-controlled"
+    with pytest.raises(InvalidSourcesError, match=field):
+        backfill_source(source, STORED_SOURCES[source_type])
+    assert source[SECRET_FIELD[source_type]] == HIDDEN
+
+
+@pytest.mark.parametrize(("source_type", "field"), BINDING_FIELDS)
+def test_backfill_source_allows_destination_change_with_new_secret(
+    source_type: str, field: str
+) -> None:
+    source = copy.deepcopy(STORED_SOURCES[source_type])
+    source[field] = "new-destination"
+    source[SECRET_FIELD[source_type]] = "new-secret"
+    backfill_source(source, STORED_SOURCES[source_type])
+    assert source[SECRET_FIELD[source_type]] == "new-secret"
+
+
+def test_backfill_source_rejects_removed_destination_field() -> None:
+    source = _redacted("http")
+    del source["username"]
+    with pytest.raises(InvalidSourcesError, match="username"):
+        backfill_source(source, STORED_SOURCES["http"])
+
+
+def test_backfill_source_rejects_type_change() -> None:
+    # Reuse the stored s3 source's secret under a different source type.
+    source = _redacted("gcs")
+    source["private_key"] = HIDDEN
+    with pytest.raises(InvalidSourcesError, match="type"):
+        backfill_source(source, STORED_SOURCES["s3"])
+
+
+def test_backfill_source_missing_original() -> None:
+    source = _redacted("http")
+    with pytest.raises(InvalidSourcesError, match="missing a value"):
+        backfill_source(source, None)

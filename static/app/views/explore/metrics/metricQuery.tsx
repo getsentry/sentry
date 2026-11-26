@@ -22,11 +22,7 @@ import {
 
 import {SORTABLE_SAMPLE_COLUMNS} from './types';
 
-export type TraceMetric = {
-  name: string;
-  type: string;
-  unit?: string | null;
-};
+export type TraceMetric = {name: string; type: string; unit?: string | null};
 
 export const traceMetricSchema = z.looseObject({
   name: z.string(),
@@ -148,21 +144,11 @@ export function defaultFields(): string[] {
 
 export function defaultSortBys(fields: string[]): Sort[] {
   if (fields.includes('timestamp')) {
-    return [
-      {
-        field: 'timestamp',
-        kind: 'desc' as const,
-      },
-    ];
+    return [{field: 'timestamp', kind: 'desc' as const}];
   }
 
   if (fields.length) {
-    return [
-      {
-        field: fields[0]!,
-        kind: 'desc' as const,
-      },
-    ];
+    return [{field: fields[0]!, kind: 'desc' as const}];
   }
 
   return [];

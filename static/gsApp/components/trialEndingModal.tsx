@@ -11,7 +11,7 @@ import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {t, tct, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
-import UpgradeOrTrialButton from 'getsentry/components/upgradeOrTrialButton';
+import {UpgradeOrTrialButton} from 'getsentry/components/upgradeOrTrialButton';
 import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
 import {displayPlanName, getTrialDaysLeft} from 'getsentry/utils/billing';

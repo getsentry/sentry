@@ -12,12 +12,7 @@ import {useCrossPlatformProject} from './useCrossPlatformProject';
 function initializePageFilters(projects: number[]) {
   PageFiltersStore.onInitializeUrlState(
     PageFiltersFixture({
-      datetime: {
-        period: '10d',
-        start: null,
-        end: null,
-        utc: false,
-      },
+      datetime: {period: '10d', start: null, end: null, utc: false},
       projects,
     })
   );
@@ -29,11 +24,6 @@ describe('useCrossPlatformProject', () => {
     mockProject = ProjectFixture({platform: 'flutter'});
     PageFiltersStore.init();
     ProjectsStore.loadInitialData([mockProject]);
-  });
-
-  afterEach(() => {
-    PageFiltersStore.reset();
-    ProjectsStore.reset();
   });
 
   it('returns null for project if >1 project is selected', () => {

@@ -8,8 +8,9 @@ from rest_framework import serializers
 
 from sentry import audit_log
 from sentry.api.fields.actor import OwnerActorField
+from sentry.api.helpers.creator import get_creator_reference
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
-from sentry.auth.principal import acting_user_id, has_user
+from sentry.auth.principal import has_user
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.utils.audit import create_audit_entry
@@ -137,6 +138,8 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
             raise serializers.ValidationError(error_message)
         if settings.validator is None:
             raise serializers.ValidationError("Detector type not compatible with detectors")
+        if self.instance is not None and detector_type != self.instance.type:
+            raise serializers.ValidationError("The type of a monitor cannot be changed.")
         # TODO: Probably need to check a feature flag to decide if a given
         # org/user is allowed to add a detector
         return detector_type
@@ -200,6 +203,9 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
     def get_quota(self) -> DetectorQuota:
         return DetectorQuota(has_exceeded=False, limit=-1, count=-1)
 
+    def get_quota_message(self, quota: DetectorQuota) -> str:
+        return f"This would exceed your plan's limit of {quota.limit} monitors."
+
     def enforce_quota(self, validated_data: dict[str, Any]) -> None:
         """
         Enforce quota limits for detector creation.
@@ -215,9 +221,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
                 organization=self.context["organization"],
                 actor=request.user if has_user(request.user) else None,
             )
-            raise serializers.ValidationError(
-                f"Used {detector_quota.count}/{detector_quota.limit} of allowed {validated_data['type']} monitors."
-            )
+            raise serializers.ValidationError(self.get_quota_message(detector_quota))
 
     def update(self, instance: Detector, validated_data: dict[str, Any]) -> Detector:
         organization = self.context["organization"]
@@ -343,7 +347,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
                 config=validated_data.get("config", {}),
                 owner_user_id=owner_user_id,
                 owner_team_id=owner_team_id,
-                created_by_id=acting_user_id(request.user),
+                **get_creator_reference(request),
             )
 
             try:

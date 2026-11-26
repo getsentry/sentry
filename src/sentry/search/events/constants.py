@@ -133,7 +133,7 @@ VALID_FIELD_PATTERN = re.compile(r"^[a-zA-Z0-9_.:-]*$")
 
 # The regex for alias here is to match any word, but exclude anything that is only digits
 # eg. 123 doesn't match, but test_123 will match
-ALIAS_REGEX = r"(\w+)?(?!\d+)\w+"
+ALIAS_REGEX = r"\d*[^\W\d]\w*"
 
 MISERY_ALPHA = 5.8875
 MISERY_BETA = 111.8625
@@ -217,6 +217,10 @@ DURATION_UNITS: dict[DurationUnit, float] = {
 RESULT_TYPES = RESULT_TYPES.union(SIZE_UNITS.keys())
 RESULT_TYPES = RESULT_TYPES.union(DURATION_UNITS.keys())
 PERCENT_UNITS = {"ratio", "percent"}
+NumericFieldType = Literal["number", "integer", "currency", "percentage"]
+NUMERIC_FIELD_TYPES: frozenset[NumericFieldType] = frozenset(
+    {"number", "integer", "currency", "percentage"}
+)
 
 NO_CONVERSION_FIELDS = {"start", "end"}
 # Skip total_count_alias since it queries the total count and therefore doesn't make sense in a filter

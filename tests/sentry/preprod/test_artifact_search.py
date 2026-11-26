@@ -655,6 +655,14 @@ class ArtifactMatchesQueryInstallGroupsFilterTest(TestCase):
         with pytest.raises(InvalidSearchQuery, match=r"Enter at least one install group\."):
             apply_filters(PreprodArtifact.objects.get_queryset(), [empty_filter], self.organization)
 
+    def test_array_attribute_key(self) -> None:
+        artifact = self._create_artifact_with_install_groups(["beta"])
+        key = "tags[install_groups[*],array]"
+
+        assert artifact_matches_query(artifact, f"{key}:beta", self.organization)
+        assert not artifact_matches_query(artifact, f"{key}:production", self.organization)
+        assert not artifact_matches_query(artifact, f"!{key}:beta", self.organization)
+
     def test_multiple_groups_on_artifact(self) -> None:
         artifact = self._create_artifact_with_install_groups(["beta", "internal", "qa"])
 

@@ -1,5 +1,9 @@
 """Type-only registration marker for seer RPC handlers.
 
+DEPRECATED: The Sentry<>Seer RPC surface is being removed. Seer now reads
+Sentry data through the public Sentry API via codemode. Do not add new methods;
+add or extend a public API endpoint instead.
+
 Each entry in `seer_method_registry`, `public_org_seer_method_registry`, and
 `public_project_seer_method_registry` must wrap its handler in `seer_rpc(...)`.
 The wrap is a runtime identity — no behavior change — but it gives the custom

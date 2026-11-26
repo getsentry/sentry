@@ -14,9 +14,7 @@ describe('ProjectReplays', () => {
     },
   });
   const initialRouterConfig = {
-    location: {
-      pathname: `/settings/projects/${project.slug}/replays/`,
-    },
+    location: {pathname: `/settings/projects/${project.slug}/replays/`},
     route: '/settings/projects/:projectId/replays/',
   };
   const getProjectEndpoint = `/projects/${organization.slug}/${project.slug}/`;
@@ -53,7 +51,7 @@ describe('ProjectReplays', () => {
     expect(deleteJobsMock).toHaveBeenCalled();
   });
 
-  it('hides the bulk delete tab when the user lacks write access', async () => {
+  it('hides the tabs when the user lacks write access', async () => {
     const deleteJobsMock = MockApiClient.addMockResponse({
       url: `${getProjectEndpoint}replays/jobs/delete/`,
       body: {data: []},
@@ -74,10 +72,9 @@ describe('ProjectReplays', () => {
       },
     });
 
-    expect(await screen.findByRole('tab', {name: 'Replay Issues'})).toBeInTheDocument();
-    expect(screen.queryByRole('tab', {name: 'Bulk Delete'})).not.toBeInTheDocument();
+    expect(await screen.findByText('Create Rage Click Issues')).toBeInTheDocument();
+    expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
     expect(screen.queryByText('Count Deleted')).not.toBeInTheDocument();
-    expect(screen.getByText('Create Rage Click Issues')).toBeInTheDocument();
     expect(deleteJobsMock).not.toHaveBeenCalled();
   });
 
@@ -124,9 +121,7 @@ describe('ProjectReplays', () => {
         getProjectEndpoint,
         expect.objectContaining({
           method: 'PUT',
-          data: {
-            options: {'sentry:replay_rage_click_issues': true},
-          },
+          data: {options: {'sentry:replay_rage_click_issues': true}},
         })
       )
     );
@@ -166,9 +161,7 @@ describe('ProjectReplays', () => {
         getProjectEndpoint,
         expect.objectContaining({
           method: 'PUT',
-          data: {
-            options: {'sentry:replay_hydration_error_issues': true},
-          },
+          data: {options: {'sentry:replay_hydration_error_issues': true}},
         })
       )
     );

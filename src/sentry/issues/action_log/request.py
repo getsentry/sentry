@@ -1,12 +1,20 @@
 from __future__ import annotations
 
 import logging
+from datetime import timedelta
 
 from django.http import HttpRequest
+from django.utils import timezone
 from rest_framework.request import Request
 
 from sentry.auth.services.auth import AuthenticatedToken
-from sentry.issues.action_log.types import SYSTEM_ACTOR, ActionSource, GroupActionActor
+from sentry.issues.action_log.types import (
+    SYSTEM_ACTOR,
+    ActionSource,
+    GroupActionActor,
+    GroupActionType,
+)
+from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.middleware import is_frontend_request
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
@@ -103,3 +111,22 @@ def resolve_action_actor(request: Request | HttpRequest) -> GroupActionActor:
         return GroupActionActor.user(user.id)
 
     return SYSTEM_ACTOR
+
+
+def has_recent_view(
+    group_id: int, *, source: str, actor: GroupActionActor, within: timedelta
+) -> bool:
+    """
+    Whether a ViewAction for this group from *source* and *actor* was logged in the last *within*.
+
+    Only reflects entries already written to the log: views still in the outbox, or published
+    while DB writes are disabled for the project, aren't counted.
+    """
+    return GroupActionLogEntry.objects.filter(
+        group_id=group_id,
+        date_added__gte=timezone.now() - within,
+        type=GroupActionType.VIEW,
+        source=source,
+        actor_type=actor.actor_type,
+        actor_id=actor.actor_id,
+    ).exists()

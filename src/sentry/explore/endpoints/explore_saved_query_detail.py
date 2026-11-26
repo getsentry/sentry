@@ -152,6 +152,9 @@ class ExploreSavedQueryDetailEndpoint(ExploreSavedQueryBase):
             query=data["query"],
             dataset=data["dataset"],
             changed_reason=None,
+            query_priority=(
+                data["query_priority"] if "query_priority" in data else query.query_priority
+            ),
         )
 
         query.set_projects(data["project_ids"])
@@ -186,29 +189,51 @@ class ExploreSavedQueryDetailEndpoint(ExploreSavedQueryBase):
         return Response(status=204)
 
 
+class ExploreSavedQueryVisitPermission(ExploreSavedQueryPermission):
+    # Anyone who can read a saved query can record a visit to it. A visit only updates
+    # metadata (visit count and last visited times), not the query itself.
+    scope_map = {
+        **ExploreSavedQueryPermission.scope_map,
+        "POST": ExploreSavedQueryPermission.scope_map["GET"],
+    }
+
+
+@extend_schema(tags=["Explore"])
 @cell_silo_endpoint
 class ExploreSavedQueryVisitEndpoint(ExploreSavedQueryBase):
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }
+    permission_classes = (ExploreSavedQueryVisitPermission,)
 
     def has_feature(self, organization: Organization, request: Request) -> bool:
         return features.has(
             "organizations:visibility-explore-view", organization, actor=request.user
         )
 
+    @extend_schema(
+        operation_id="Record a Visit to an Organization's Explore Saved Query",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, ExploreSavedQueryParams.EXPLORE_SAVED_QUERY_ID],
+        request=None,
+        responses={
+            204: RESPONSE_NO_CONTENT,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
     def post(
         self, request: Request, organization: Organization, query: ExploreSavedQuery
-    ) -> Response:
+    ) -> Response[None]:
         """
-        Update last_visited and increment visits counter
+        Record that the requesting user visited a saved query. Increments the query's
+        visit count and updates its last visited time.
         """
         if not self.has_feature(organization, request):
             return self.respond(status=404)
 
         self.check_object_permissions(request, query)
 
-        query.visits = cast(int, F("visits") + 1)
+        query.visits = F("visits") + 1
         query.last_visited = timezone.now()
         query.save(update_fields=["visits", "last_visited"])
 

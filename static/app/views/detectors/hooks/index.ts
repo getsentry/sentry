@@ -1,4 +1,5 @@
-import {queryOptions, useMutation, useQueryClient} from '@tanstack/react-query';
+import type {QueryClient} from '@tanstack/react-query';
+import {queryOptions, useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {toast} from '@sentry/scraps/toast';
 
@@ -9,19 +10,18 @@ import {
   type BaseDetectorUpdatePayload,
   type Detector,
   type IssueStreamDetector,
+  type MetricDetector,
   type UptimeDetector,
 } from 'sentry/types/workflowEngine/detectors';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import type {UseApiQueryOptions} from 'sentry/utils/queryClient';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface DetectorTypeMap {
   issue_stream: IssueStreamDetector;
+  metric_issue: MetricDetector;
   uptime: UptimeDetector;
 }
 
@@ -102,14 +102,33 @@ export function detectorListApiOptions<
   });
 }
 
+type MetricDetectorQuota = {count: number; hasReachedLimit: boolean; limit: number};
+
+export function metricDetectorQuotaApiOptions(organization: Organization) {
+  return apiOptions.as<MetricDetectorQuota>()(
+    '/organizations/$organizationIdOrSlug/detectors/metric-detector-quota/',
+    {path: {organizationIdOrSlug: organization.slug}, staleTime: 5 * 1000}
+  );
+}
+
 /**
  * Returns a query key prefix that matches all detector list queries
  * regardless of filters. Use with `invalidateQueries` after mutations.
  */
 export function allDetectorListsQueryKey(organization: Organization) {
-  return detectorListApiOptions(organization, {
-    includeIssueStreamDetectors: true,
-  }).queryKey;
+  return detectorListApiOptions(organization, {includeIssueStreamDetectors: true})
+    .queryKey;
+}
+
+/** Call after any detector mutation so lists and the metric detector quota refetch. */
+export function invalidateDetectorQueries(
+  queryClient: QueryClient,
+  organization: Organization
+) {
+  queryClient.invalidateQueries({queryKey: allDetectorListsQueryKey(organization)});
+  queryClient.invalidateQueries({
+    queryKey: metricDetectorQuotaApiOptions(organization).queryKey,
+  });
 }
 
 export function useCreateDetector<T extends Detector = Detector>() {
@@ -122,19 +141,12 @@ export function useCreateDetector<T extends Detector = Detector>() {
       api.requestPromise(
         getApiUrl(
           '/organizations/$organizationIdOrSlug/projects/$projectIdOrSlug/detectors/',
-          {
-            path: {organizationIdOrSlug: org.slug, projectIdOrSlug: data.projectId},
-          }
+          {path: {organizationIdOrSlug: org.slug, projectIdOrSlug: data.projectId}}
         ),
-        {
-          method: 'POST',
-          data,
-        }
+        {method: 'POST', data}
       ),
     onSuccess: _ => {
-      queryClient.invalidateQueries({
-        queryKey: allDetectorListsQueryKey(org),
-      });
+      invalidateDetectorQueries(queryClient, org);
     },
     onError: _ => {
       toast.error(t('Unable to create monitor'));
@@ -155,21 +167,15 @@ export function useUpdateDetector<T extends Detector = Detector>() {
         getApiUrl('/organizations/$organizationIdOrSlug/detectors/$detectorId/', {
           path: {organizationIdOrSlug: org.slug, detectorId: data.detectorId},
         }),
-        {
-          method: 'PUT',
-          data,
-        }
+        {method: 'PUT', data}
       ),
     onSuccess: (_, data) => {
+      invalidateDetectorQueries(queryClient, org);
       queryClient.invalidateQueries({
-        queryKey: allDetectorListsQueryKey(org),
-      });
-      queryClient.invalidateQueries({
-        queryKey: [
-          getApiUrl('/organizations/$organizationIdOrSlug/detectors/$detectorId/', {
-            path: {organizationIdOrSlug: org.slug, detectorId: data.detectorId},
-          }),
-        ],
+        queryKey: detectorDetailsApiOptions({
+          orgSlug: org.slug,
+          detectorId: data.detectorId,
+        }).queryKey,
       });
     },
     onError: error => {
@@ -182,25 +188,34 @@ export function useUpdateDetector<T extends Detector = Detector>() {
   });
 }
 
-export const makeDetectorDetailsQueryKey = ({
+export const detectorDetailsApiOptions = <T extends Partial<Detector> = Detector>({
   orgSlug,
   detectorId,
 }: {
   detectorId: string;
   orgSlug: string;
-}): ApiQueryKey => [
-  getApiUrl('/organizations/$organizationIdOrSlug/detectors/$detectorId/', {
+}) =>
+  apiOptions.as<T>()('/organizations/$organizationIdOrSlug/detectors/$detectorId/', {
     path: {organizationIdOrSlug: orgSlug, detectorId},
-  }),
-];
+    staleTime: 0,
+  });
+
+export const makeDetectorDetailsQueryKey = (params: {
+  detectorId: string;
+  orgSlug: string;
+}) => detectorDetailsApiOptions(params).queryKey;
 
 export function useDetectorQuery<T extends Detector = Detector>(
   detectorId: string,
-  options: Partial<UseApiQueryOptions<T>> = {}
+  options: Pick<
+    ReturnType<typeof detectorDetailsApiOptions<T>>,
+    'enabled' | 'retry' | 'staleTime' | 'refetchOnWindowFocus' | 'refetchInterval'
+  > = {}
 ) {
   const org = useOrganization();
 
-  return useApiQuery<T>(makeDetectorDetailsQueryKey({orgSlug: org.slug, detectorId}), {
+  return useQuery({
+    ...detectorDetailsApiOptions<T>({orgSlug: org.slug, detectorId}),
     staleTime: 0,
     retry: false,
     ...options,

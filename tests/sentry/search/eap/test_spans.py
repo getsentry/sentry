@@ -27,6 +27,7 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     AttributeAggregation,
     AttributeKey,
     AttributeValue,
+    DoubleArray,
     ExtrapolationMode,
     Function,
     IntArray,
@@ -45,8 +46,10 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
 
 from sentry.exceptions import InvalidFunctionArgumentQuery, InvalidSearchQuery
 from sentry.search.eap import utils as eap_utils
-from sentry.search.eap.columns import ResolvedAttribute
+from sentry.search.eap.columns import ColumnDefinitions, ResolvedAttribute
 from sentry.search.eap.occurrences.definitions import OCCURRENCE_DEFINITIONS
+from sentry.search.eap.ourlogs.definitions import OURLOG_DEFINITIONS
+from sentry.search.eap.profile_functions.definitions import PROFILE_FUNCTIONS_DEFINITIONS
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.attributes import (
     SPAN_ATTRIBUTE_DEFINITIONS,
@@ -266,6 +269,19 @@ class SearchResolverQueryTest(TestCase):
                 key=AttributeKey(name="sentry.raw_description", type=AttributeKey.Type.TYPE_STRING),
                 op=ComparisonFilter.OP_NOT_IN,
                 value=AttributeValue(val_str_array=StrArray(values=["foo", "bar", "baz"])),
+            )
+        )
+        assert having is None
+
+    def test_percentage_in_filter(self) -> None:
+        where, having, _ = self.resolver.resolve_query("app.vitals.stall.percentage:[0,1]")
+        assert where == TraceItemFilter(
+            comparison_filter=ComparisonFilter(
+                key=AttributeKey(
+                    name="app.vitals.stall.percentage", type=AttributeKey.Type.TYPE_DOUBLE
+                ),
+                op=ComparisonFilter.OP_IN,
+                value=AttributeValue(val_double_array=DoubleArray(values=[0.0, 1.0])),
             )
         )
         assert having is None
@@ -502,6 +518,39 @@ class SearchResolverQueryTest(TestCase):
                     val=2,
                 )
             )
+
+    def test_max_timestamp_relative_aggregate_query(self) -> None:
+        with freeze_time("2018-12-11 10:20:00"):
+            where, having, _ = self.resolver.resolve_query("max(timestamp):-24h")
+        assert where is None
+        assert having == AggregationFilter(
+            comparison_filter=AggregationComparisonFilter(
+                aggregation=AttributeAggregation(
+                    aggregate=Function.FUNCTION_MAX,
+                    key=AttributeKey(name="sentry.timestamp", type=AttributeKey.Type.TYPE_DOUBLE),
+                    label="max(timestamp)",
+                    extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
+                ),
+                op=AggregationComparisonFilter.OP_GREATER_THAN_OR_EQUALS,
+                val=datetime.fromisoformat("2018-12-10 10:20:00+00:00").timestamp(),
+            )
+        )
+
+    def test_max_timestamp_absolute_aggregate_query(self) -> None:
+        where, having, _ = self.resolver.resolve_query("max(timestamp):>2018-12-10T10:20:00+00:00")
+        assert where is None
+        assert having == AggregationFilter(
+            comparison_filter=AggregationComparisonFilter(
+                aggregation=AttributeAggregation(
+                    aggregate=Function.FUNCTION_MAX,
+                    key=AttributeKey(name="sentry.timestamp", type=AttributeKey.Type.TYPE_DOUBLE),
+                    label="max(timestamp)",
+                    extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
+                ),
+                op=AggregationComparisonFilter.OP_GREATER_THAN,
+                val=datetime.fromisoformat("2018-12-10 10:20:00+00:00").timestamp(),
+            )
+        )
 
     def test_simple_negation_aggregate_query(self) -> None:
         operators = [
@@ -1662,3 +1711,37 @@ def test_loaded_replacement_with_different_type_than_deprecated_attribute(
     # Number attributes returned by the attribute names RPC map to the public alias
     # instead of `tags[<name>,number]`.
     assert SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS["number"][replacement] == replacement
+
+
+@pytest.mark.parametrize(
+    ("definitions", "column"),
+    [
+        (SPAN_DEFINITIONS, "id"),
+        (SPAN_DEFINITIONS, "span_id"),
+        (SPAN_DEFINITIONS, "parent_span"),
+        (SPAN_DEFINITIONS, "trace"),
+        (SPAN_DEFINITIONS, "sentry.item_id"),
+        (SPAN_DEFINITIONS, "sentry.parent_span_id"),
+        (SPAN_DEFINITIONS, "sentry.trace_id"),
+        (OCCURRENCE_DEFINITIONS, "id"),
+        (OCCURRENCE_DEFINITIONS, "trace"),
+        (OURLOG_DEFINITIONS, "id"),
+        (OURLOG_DEFINITIONS, "trace"),
+        (PROFILE_FUNCTIONS_DEFINITIONS, "id"),
+        (PROFILE_FUNCTIONS_DEFINITIONS, "trace"),
+        (TRACE_METRICS_DEFINITIONS, "id"),
+        (TRACE_METRICS_DEFINITIONS, "trace"),
+    ],
+)
+@pytest.mark.parametrize("query", ["{}:*", "{}:abc*", "!{}:*", "{}:[abc*,def]"])
+def test_wildcard_on_id_column_rejected(
+    definitions: ColumnDefinitions, column: str, query: str
+) -> None:
+    resolver = SearchResolver(
+        params=SnubaParams(), config=SearchResolverConfig(), definitions=definitions
+    )
+
+    with pytest.raises(
+        InvalidSearchQuery, match=f"^Wildcard conditions are not permitted on `{column}` field$"
+    ):
+        resolver.resolve_query(query.format(column))

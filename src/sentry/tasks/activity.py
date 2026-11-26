@@ -66,6 +66,10 @@ def _send_deploy_activity_notification(activity: Activity, organization: Organiz
     namespace=notifications_tasks,
     processing_deadline_duration=180,
     silo_mode=SiloMode.CELL,
+    # Taskbroker delivery is at-least-once. On the notification platform path this
+    # task sends email and Slack itself, so a second run notifies every recipient
+    # again. Skipping a re-run (and dropping a timed-out run) beats that.
+    at_most_once=True,
 )
 def send_activity_notifications(activity_id: int) -> None:
     from sentry.models.activity import Activity

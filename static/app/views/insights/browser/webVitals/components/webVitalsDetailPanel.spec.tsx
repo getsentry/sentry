@@ -1,11 +1,22 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
-import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitForElementToBeRemoved,
+} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {MOBILE_BROWSER_TYPES} from 'sentry/views/insights/browser/webVitals/utils/deviceType';
 
 import {WebVitalsDetailPanel} from './webVitalsDetailPanel';
+
+const DESKTOP_FILTER = new MutableSearch('')
+  .addFilterValueList('!browser.name', MOBILE_BROWSER_TYPES)
+  .formatString();
 
 describe('WebVitalsDetailPanel', () => {
   const organization = OrganizationFixture();
@@ -17,15 +28,11 @@ describe('WebVitalsDetailPanel', () => {
 
     eventsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
-      body: {
-        data: [],
-      },
+      body: {data: []},
     });
     eventsStatsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-timeseries/`,
-      body: {
-        timeSeries: [],
-      },
+      body: {timeSeries: []},
     });
   });
 
@@ -34,9 +41,7 @@ describe('WebVitalsDetailPanel', () => {
   });
 
   it('renders correctly with empty results', async () => {
-    render(<WebVitalsDetailPanel webVital="lcp" />, {
-      organization,
-    });
+    render(<WebVitalsDetailPanel webVital="lcp" />, {organization});
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
     // Raw web vital metric tile queries
     expect(eventsMock).toHaveBeenNthCalledWith(
@@ -53,8 +58,7 @@ describe('WebVitalsDetailPanel', () => {
             'p75(browser.web_vital.inp.value)',
             'count()',
           ],
-          query:
-            'span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,ui.webvital.lcp,pageload,""]',
+          query: `span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,ui.webvital.lcp,pageload,""] ${DESKTOP_FILTER}`,
         }),
       })
     );
@@ -86,8 +90,7 @@ describe('WebVitalsDetailPanel', () => {
             'count_scores(measurements.score.inp)',
             'sum(measurements.score.weight.lcp)',
           ],
-          query:
-            'span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,ui.webvital.lcp,pageload,""]',
+          query: `span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,ui.webvital.lcp,pageload,""] ${DESKTOP_FILTER}`,
         }),
       })
     );
@@ -119,8 +122,7 @@ describe('WebVitalsDetailPanel', () => {
             'count_scores(measurements.score.total)',
             'opportunity_score(measurements.score.total)',
           ],
-          query:
-            'span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,ui.webvital.lcp,pageload,""] avg(measurements.score.total):>=0 count_scores(measurements.score.lcp):>0',
+          query: `span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,ui.webvital.lcp,pageload,""] avg(measurements.score.total):>=0 count_scores(measurements.score.lcp):>0 ${DESKTOP_FILTER}`,
         }),
       })
     );
@@ -132,7 +134,7 @@ describe('WebVitalsDetailPanel', () => {
     ).toBeInTheDocument();
   });
 
-  it('sends browser and subregion filters as lists', async () => {
+  it('narrows mixed browser filters to the selected device type', async () => {
     render(<WebVitalsDetailPanel webVital="lcp" />, {
       organization,
       initialRouterConfig: {
@@ -148,8 +150,7 @@ describe('WebVitalsDetailPanel', () => {
     });
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
-    const listFilters =
-      'user.geo.subregion:[21,154] browser.name:[Chrome,"Chrome Mobile"]';
+    const listFilters = 'user.geo.subregion:[21,154] browser.name:[Chrome]';
     expect(eventsMock).toHaveBeenNthCalledWith(
       1,
       expect.anything(),
@@ -164,7 +165,7 @@ describe('WebVitalsDetailPanel', () => {
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
-          query: `span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,ui.webvital.lcp,pageload,""] browser.name:[Chrome,"Chrome Mobile"] user.geo.subregion:[21,154]`,
+          query: `span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,ui.webvital.lcp,pageload,""] browser.name:[Chrome] user.geo.subregion:[21,154]`,
         }),
       })
     );
@@ -173,7 +174,43 @@ describe('WebVitalsDetailPanel', () => {
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
-          query: `span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,ui.webvital.lcp,pageload,""] avg(measurements.score.total):>=0 count_scores(measurements.score.lcp):>0 browser.name:[Chrome,"Chrome Mobile"] user.geo.subregion:[21,154]`,
+          query: `span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,ui.webvital.lcp,pageload,""] avg(measurements.score.total):>=0 count_scores(measurements.score.lcp):>0 browser.name:[Chrome] user.geo.subregion:[21,154]`,
+        }),
+      })
+    );
+
+    eventsMock.mockClear();
+    await userEvent.click(screen.getByRole('radio', {name: 'Mobile'}));
+    expect(eventsMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          query: `span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,ui.webvital.lcp,pageload,""] user.geo.subregion:[21,154] browser.name:["Chrome Mobile"]`,
+        }),
+      })
+    );
+  });
+
+  it('hides the device type selector when the browser filter has one device type', async () => {
+    render(<WebVitalsDetailPanel webVital="lcp" />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/insights/browser/pageloads/`,
+          query: {'browser.name': ['Chrome Mobile']},
+        },
+        route: '/organizations/:orgId/insights/browser/pageloads/',
+      },
+    });
+    await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
+
+    expect(screen.queryByRole('radio', {name: 'Mobile'})).not.toBeInTheDocument();
+    expect(eventsMock).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          query: `span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,ui.webvital.lcp,pageload,""] browser.name:["Chrome Mobile"]`,
         }),
       })
     );

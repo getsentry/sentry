@@ -1,6 +1,5 @@
 import time
 from datetime import datetime, timedelta, timezone
-from typing import cast
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -94,7 +93,7 @@ def test_generate_rules_capture_exception(
     get_blended_sample_rate.return_value = None
     # since we mock get_blended_sample_rate function
     # no need to create real project in DB
-    fake_project = cast(Project, MagicMock())
+    fake_project = MagicMock()
     # if blended rate is None that means dynamic sampling rate should be set to 1.
     rules = generate_rules(fake_project)
     assert rules[0]["samplingValue"]["value"] == 1.0

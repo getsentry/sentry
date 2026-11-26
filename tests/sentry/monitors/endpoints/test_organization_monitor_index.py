@@ -344,6 +344,10 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
         )
         self.check_valid_response(response, [])
 
+        # Unknown owner
+        response = self.get_error_response(self.organization.slug, owner=["me"], status_code=400)
+        assert response.data["detail"] == "Invalid owner"
+
     def test_all_monitor_environments(self) -> None:
         monitor = self._create_monitor()
         monitor_environment = self._create_monitor_environment(
@@ -488,7 +492,9 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
             data={"upsert": False, **monitor.get_audit_log_data()},
         )
 
-        assert get_detector_for_monitor(monitor) is not None
+        detector = get_detector_for_monitor(monitor)
+        assert detector is not None
+        assert detector.created_by_id == self.user.id
         self.project.refresh_from_db()
         assert self.project.flags.has_cron_monitors
 

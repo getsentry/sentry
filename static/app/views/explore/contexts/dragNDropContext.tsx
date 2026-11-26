@@ -41,17 +41,11 @@ export function DragNDropContext<T>({
     updateColumnAtIndex,
     deleteColumnAtIndex,
     onDragEnd,
-  } = useDragNDropColumns({
-    columns,
-    setColumns,
-    canReorder,
-  });
+  } = useDragNDropColumns({columns, setColumns, canReorder});
 
   const sensors = useSensors(
     useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
+    useSensor(KeyboardSensor, {coordinateGetter: sortableKeyboardCoordinates})
   );
 
   return (

@@ -27,6 +27,7 @@ import {
   useSetQueryParamsSortBys,
 } from 'sentry/views/explore/queryParams/context';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {isHeatMapAggregate} from 'sentry/views/explore/utils/heatMapAggregate';
 
 export function ToolbarSortBy() {
   const mode = useQueryParamsMode();
@@ -53,45 +54,27 @@ export function ToolbarSortBy() {
   const fieldOptions = useSortByFields({
     config: spansConfig,
     fields,
-    yAxes: visualizes.map(v => v.yAxis),
+    yAxes: visualizes.map(v => v.yAxis).filter(yAxis => !isHeatMapAggregate(yAxis)),
     groupBys,
     mode,
   });
 
   const setSortField = (i: number, {value}: SelectOption<SelectKey>) => {
     if (sorts[i] && typeof value === 'string') {
-      setSorts([
-        {
-          field: value,
-          kind: sorts[i].kind,
-        },
-      ]);
+      setSorts([{field: value, kind: sorts[i].kind}]);
     }
   };
 
   const kindOptions: Array<SelectOption<Sort['kind']>> = useMemo(() => {
     return [
-      {
-        label: 'Desc',
-        value: 'desc',
-        textValue: t('Descending'),
-      },
-      {
-        label: 'Asc',
-        value: 'asc',
-        textValue: t('Ascending'),
-      },
+      {label: 'Desc', value: 'desc', textValue: t('Descending')},
+      {label: 'Asc', value: 'asc', textValue: t('Ascending')},
     ];
   }, []);
 
   const setSortKind = (i: number, {value}: SelectOption<SelectKey>) => {
     if (sorts[i]) {
-      setSorts([
-        {
-          field: sorts[i].field,
-          kind: value as Sort['kind'],
-        },
-      ]);
+      setSorts([{field: sorts[i].field, kind: value as Sort['kind']}]);
     }
   };
 

@@ -83,6 +83,7 @@ from .authentication import (
     AgentTokenAuthentication,
     ApiKeyAuthentication,
     OrgAuthTokenAuthentication,
+    ServiceAccountTokenAuthentication,
     UserAuthTokenAuthentication,
     ViewerContextAuthentication,
     update_token_access_record,
@@ -126,6 +127,7 @@ DEFAULT_AUTHENTICATION = (
     *map(import_string, settings.SENTRY_EXTRA_API_AUTHENTICATION),
     UserAuthTokenAuthentication,
     OrgAuthTokenAuthentication,
+    ServiceAccountTokenAuthentication,
     AgentTokenAuthentication,
     ApiKeyAuthentication,
     ViewerContextAuthentication,
@@ -133,7 +135,7 @@ DEFAULT_AUTHENTICATION = (
 )
 
 
-def _with_endpoint_scope_declaration(
+def _with_endpoint_scope(
     func: Callable[..., Response],
 ) -> Callable[..., Response]:
     @functools.wraps(func)
@@ -145,21 +147,12 @@ def _with_endpoint_scope_declaration(
             method=request.method,
             permission_classes=self.permission_classes,
         ):
-            return func(self, request, *args, **kwargs)
-
-    return wrapper
-
-
-def _with_endpoint_owner_tag(
-    func: Callable[..., Response],
-) -> Callable[..., Response]:
-    # A forked scope (rather than the isolation scope) guarantees the tag is dropped when
-    # dispatch returns, so it can't leak into in-process callers such as tasks or other endpoints.
-    @functools.wraps(func)
-    def wrapper(self: Endpoint, request: Request, *args: Any, **kwargs: Any) -> Response:
-        with sentry_sdk.new_scope() as scope:
-            scope.set_tag("endpoint_owner", self.owner.value)
-            return func(self, request, *args, **kwargs)
+            # A forked scope (rather than the isolation scope) guarantees the tag is dropped when
+            # dispatch returns, so it can't leak into in-process callers such as tasks or other
+            # endpoints.
+            with sentry_sdk.new_scope() as scope:
+                scope.set_tag("endpoint_owner", self.owner.value)
+                return func(self, request, *args, **kwargs)
 
     return wrapper
 
@@ -314,6 +307,7 @@ class Endpoint(APIView):
     idempotent_methods: frozenset[HTTP_METHOD_NAME] | None = None
     rate_limits: RateLimitConfig | Callable[..., RateLimitConfig] = DEFAULT_RATE_LIMIT_CONFIG
     enforce_rate_limit: bool = settings.SENTRY_RATELIMITER_ENABLED
+    # Origins that serve this endpoint, for the API docs; the schema build adds the base path.
     servers: list[dict[str, Any]] | None = None
     # For endpoints people may call with any credential, API tokens included, but a caller
     # with no user (e.g. a service account) may not: it gets a 403 user-required, counted
@@ -514,8 +508,7 @@ class Endpoint(APIView):
 
     @csrf_exempt
     @allow_cors_options
-    @_with_endpoint_scope_declaration
-    @_with_endpoint_owner_tag
+    @_with_endpoint_scope
     def dispatch(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         Identical to rest framework's dispatch except we add the ability

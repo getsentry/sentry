@@ -2,12 +2,17 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {Referrer} from 'sentry/views/insights/browser/webVitals/referrers';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
+import {
+  addBrowserFilter,
+  type DeviceType,
+} from 'sentry/views/insights/browser/webVitals/utils/deviceType';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {SpanFields, type SubregionCode} from 'sentry/views/insights/types';
 
 type Props = {
   browserTypes?: BrowserType[];
+  deviceType?: DeviceType;
   subregions?: SubregionCode[];
   transaction?: string;
   weightWebVital?: WebVitals | 'total';
@@ -17,15 +22,14 @@ export const useProjectWebVitalsScoresQuery = ({
   transaction,
   weightWebVital = 'total',
   browserTypes,
+  deviceType,
   subregions,
 }: Props = {}) => {
   const search = new MutableSearch([]);
   if (transaction) {
     search.addFilterValue('transaction', transaction);
   }
-  if (browserTypes?.length) {
-    search.addFilterValueList(SpanFields.BROWSER_NAME, browserTypes);
-  }
+  addBrowserFilter(search, browserTypes, deviceType);
   if (subregions?.length) {
     search.addFilterValueList(SpanFields.USER_GEO_SUBREGION, subregions);
   }
@@ -63,9 +67,7 @@ export const useProjectWebVitalsScoresQuery = ({
   );
 
   const finalData: Array<
-    (typeof result.data)[0] & {
-      'avg(measurements.score.total)': number;
-    }
+    (typeof result.data)[0] & {'avg(measurements.score.total)': number}
   > = result.data.map(row => {
     // Map performance_score(measurements.score.total) to avg(measurements.score.total) so we don't have to handle both keys in the UI
     return {

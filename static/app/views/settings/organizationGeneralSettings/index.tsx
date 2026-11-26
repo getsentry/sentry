@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 
 import {Button} from '@sentry/scraps/button';
+import {Confirm} from '@sentry/scraps/confirm';
 import {toast} from '@sentry/scraps/toast';
 
 import {
@@ -8,7 +9,6 @@ import {
   removeAndRedirectToRemainingOrganization,
   updateOrganization,
 } from 'sentry/actionCreators/organizations';
-import {Confirm} from 'sentry/components/confirm';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {List} from 'sentry/components/list';
 import {ListItem} from 'sentry/components/list/listItem';
@@ -42,9 +42,7 @@ export default function OrganizationGeneralSettings() {
       <TextBlock>
         {tct(
           'Removing the organization, [name] is permanent and cannot be undone! Are you sure you want to continue?',
-          {
-            name: organization && <strong>{organization.name}</strong>,
-          }
+          {name: organization && <strong>{organization.name}</strong>}
         )}
       </TextBlock>
 

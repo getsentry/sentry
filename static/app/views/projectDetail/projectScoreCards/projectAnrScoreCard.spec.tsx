@@ -12,51 +12,26 @@ describe('ProjectDetail > ProjectAnr', () => {
   let endpointMockPreviousPeriod: jest.Mock;
 
   const {organization} = initializeOrg();
-  const location = LocationFixture({
-    query: {project: '1', statsPeriod: '7d'},
-  });
+  const location = LocationFixture({query: {project: '1', statsPeriod: '7d'}});
 
   const selection = {
     projects: [1],
     environments: [],
-    datetime: {
-      period: '7d',
-      start: null,
-      end: null,
-      utc: false,
-    },
+    datetime: {period: '7d', start: null, end: null, utc: false},
   } as PageFilters;
 
   beforeEach(() => {
     endpointMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/sessions/`,
       match: [MockApiClient.matchQuery({statsPeriod: '7d'})],
-      body: {
-        groups: [
-          {
-            by: {},
-            totals: {
-              'anr_rate()': 0.11561866125760649,
-            },
-          },
-        ],
-      },
+      body: {groups: [{by: {}, totals: {'anr_rate()': 0.11561866125760649}}]},
       status: 200,
     });
 
     endpointMockPreviousPeriod = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/sessions/`,
       match: [MockApiClient.matchQuery({statsPeriodStart: '14d'})],
-      body: {
-        groups: [
-          {
-            by: {},
-            totals: {
-              'anr_rate()': 0.08558558558558559,
-            },
-          },
-        ],
-      },
+      body: {groups: [{by: {}, totals: {'anr_rate()': 0.08558558558558559}}]},
       status: 200,
     });
   });
@@ -130,6 +105,27 @@ describe('ProjectDetail > ProjectAnr', () => {
     expect(screen.getByRole('button', {name: 'View Issues'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/issues/?project=1&query=mechanism%3A%5BANR%2CAppExitInfo%5D%20release%3Aabc&sort=freq&statsPeriod=7d'
+    );
+  });
+
+  it('renders open in issues CTA with only fatal ANRs for android', async () => {
+    organization.features = ['discover-basic'];
+    render(
+      <ProjectAnrScoreCard
+        organization={{...organization}}
+        selection={selection}
+        isProjectStabilized
+        query="release:abc"
+        location={location}
+        platform="android"
+      />
+    );
+
+    await screen.findByText('11.56%');
+
+    expect(screen.getByRole('button', {name: 'View Issues'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/issues/?project=1&query=mechanism%3A%5BANR%2CAppExitInfo%5D%20error.unhandled%3ATrue%20release%3Aabc&sort=freq&statsPeriod=7d'
     );
   });
 });

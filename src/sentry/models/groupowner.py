@@ -4,7 +4,7 @@ from collections import defaultdict
 from collections.abc import Callable, Sequence
 from datetime import datetime
 from enum import Enum, StrEnum
-from typing import TYPE_CHECKING, Any, ClassVar, TypedDict, cast
+from typing import TYPE_CHECKING, Annotated, Any, ClassVar, TypedDict, cast
 
 from django.conf import settings
 from django.db import models
@@ -13,6 +13,7 @@ from django.db.models.fields.json import KeyTextTransform
 from django.db.models.functions import Cast
 from django.utils import timezone
 
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, cell_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
@@ -62,9 +63,14 @@ class SuspectCommitStrategy(StrEnum):
 
 
 class OwnersSerialized(TypedDict):
-    type: str
-    owner: str
-    date_added: datetime
+    type: Annotated[
+        str,
+        ApiDescription(
+            "How the owner was found: suspectCommit, ownershipRule, codeowners or seerSuggested"
+        ),
+    ]
+    owner: Annotated[str, ApiDescription("Owner as an actor identifier, such as user:1 or team:1")]
+    date_added: Annotated[datetime, ApiDescription("When the owner was suggested (ISO 8601)")]
 
 
 class GroupOwnerManager(BaseManager["GroupOwner"]):

@@ -2,12 +2,12 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {parseAsFloat, parseAsString, useQueryStates} from 'nuqs';
 
+import {getDuration} from '@sentry/scraps/duration';
 import {Flex, type Responsive, useResponsivePropValue} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getDuration} from 'sentry/utils/duration/getDuration';
 import {MobileVital, type WebVital} from 'sentry/utils/fields';
 import {VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import type {Vital, Vital as VitalDetails} from 'sentry/utils/performance/vitals/types';
@@ -34,10 +34,7 @@ import {
 import {useTraceContextSections} from './useTraceContextSections';
 import {TraceLayoutTabKeys} from './useTraceLayoutTabs';
 
-type Props = {
-  rootEventResults: TraceRootEventQueryResults;
-  tree: TraceTree;
-};
+type Props = {rootEventResults: TraceRootEventQueryResults; tree: TraceTree};
 
 const zoomToVitalParsers = {
   tab: parseAsString,
@@ -120,9 +117,7 @@ export function TraceContextVitals({rootEventResults, tree}: Props) {
             onClick={
               vital
                 ? () => {
-                    trackAnalytics('trace.trace_layout.zoom_to_fill', {
-                      organization,
-                    });
+                    trackAnalytics('trace.trace_layout.zoom_to_fill', {organization});
                     setZoomToVitalParams({
                       tab: TraceLayoutTabKeys.WATERFALL,
                       zoomToNode: vital.node.pathToNode()[0] ?? null,
@@ -287,7 +282,7 @@ function getFormattedValue(
 
 function defaultVitalValueFormatter(vital: Vital, value: number) {
   if (vital?.type === 'duration') {
-    return getDuration(value / 1000, 2, true);
+    return getDuration(value / 1000, {precision: 2, style: 'short'});
   }
 
   if (vital?.type === 'integer') {

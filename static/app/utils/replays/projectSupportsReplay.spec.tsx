@@ -6,11 +6,7 @@ import type {MinimalProject} from 'sentry/types/project';
 import {projectCanLinkToReplay, projectSupportsReplay} from './projectSupportsReplay';
 
 function mockProjectFixture(platform: PlatformKey): MinimalProject {
-  return {
-    id: '1',
-    slug: 'test-project',
-    platform,
-  };
+  return {id: '1', slug: 'test-project', platform};
 }
 
 describe('projectSupportsReplay & projectCanLinkToReplay', () => {

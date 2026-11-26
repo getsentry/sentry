@@ -6,7 +6,7 @@ import {Button} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
 
 import {Access} from 'sentry/components/acl/access';
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {Hovercard} from 'sentry/components/hovercard';
 import {PanelItem} from 'sentry/components/panels/panelItem';
@@ -30,10 +30,7 @@ type LockedFeatureProps = {
   className?: string;
 };
 
-type Props = {
-  active: boolean;
-  provider: AuthProvider;
-};
+type Props = {active: boolean; provider: AuthProvider};
 
 export function ProviderItem({provider, active}: Props) {
   const renderDisabledLock = (p: LockedFeatureProps) => (

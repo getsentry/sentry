@@ -146,6 +146,12 @@ class DebugFilesTest(DebugFilesTestCases):
         assert response.data[0]["cpuName"] == "any"
         assert response.data[0]["symbolType"] == "proguard"
 
+    def test_upload_rejects_non_file_field(self) -> None:
+        response = self.client.post(self.url, {"file": "/etc/hostname"}, format="multipart")
+        assert response.status_code == 400, response.content
+        assert response.data == {"detail": "Missing uploaded file"}
+        assert not ProjectDebugFile.objects.filter(project_id=self.project.id).exists()
+
     def test_dsyms_search(self) -> None:
         for i in range(25):
             last_uuid = str(uuid4())
@@ -532,7 +538,7 @@ class DebugFileObjectstoreRedirectTest(DebugFilesTestCases):
     """Explicit coverage of both redirect branches for Objectstore-backed debug files."""
 
     def _upload_and_get_download_id(self) -> str:
-        with self.feature({"organizations:objectstore-debugfiles-write": True}):
+        with self.feature("organizations:objectstore-debugfiles-exclusive-write"):
             response = self._upload_proguard(self.url, PROGUARD_UUID)
         assert response.status_code == 201, response.content
         download_response: Response = self.client.get(self.url)
@@ -544,10 +550,7 @@ class DebugFileObjectstoreRedirectTest(DebugFilesTestCases):
     def test_internal_request_redirects_to_objectstore(self) -> None:
         download_id = self._upload_and_get_download_id()
 
-        with (
-            self.feature("organizations:objectstore-debugfiles-read"),
-            patch("sentry.auth.system.is_internal_ip", return_value=True),
-        ):
+        with patch("sentry.auth.system.is_internal_ip", return_value=True):
             response = self.client.get(f"{self.url}?id={download_id}")
 
         assert response.status_code == 302
@@ -558,10 +561,7 @@ class DebugFileObjectstoreRedirectTest(DebugFilesTestCases):
     def test_external_request_redirects_to_cell_proxy(self) -> None:
         download_id = self._upload_and_get_download_id()
 
-        with (
-            self.feature("organizations:objectstore-debugfiles-read"),
-            patch("sentry.auth.system.is_internal_ip", return_value=False),
-        ):
+        with patch("sentry.auth.system.is_internal_ip", return_value=False):
             response = self.client.get(f"{self.url}?id={download_id}")
 
         assert response.status_code == 302
@@ -571,8 +571,13 @@ class DebugFileObjectstoreRedirectTest(DebugFilesTestCases):
         )
         assert "os_auth=" in location
 
-    def test_redirect_requires_read_gate(self) -> None:
-        download_id = self._upload_and_get_download_id()
+    def test_file_backed_dif_does_not_redirect(self) -> None:
+        response = self._upload_proguard(self.url, PROGUARD_UUID)
+        assert response.status_code == 201, response.content
+        download_id = response.data[0]["id"]
+        dif = ProjectDebugFile.objects.get(id=download_id)
+        assert dif.file_id is not None
+        assert dif.storage_path is None
 
         response = self.client.get(f"{self.url}?id={download_id}")
 

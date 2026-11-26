@@ -19,6 +19,7 @@ export interface LegendItem {
   color: string;
   label: string;
   name: string;
+  suffix?: string;
 }
 
 interface ChartLegendProps {
@@ -140,10 +141,7 @@ export function ChartLegend({
   const overflowSet = new Set(overflowItems.map(item => item.name));
 
   const toggleItem = (name: string) => {
-    onSelectionChange({
-      ...selected,
-      [name]: selected[name] === false ? true : false,
-    });
+    onSelectionChange({...selected, [name]: selected[name] === false ? true : false});
   };
 
   const overflowOptions: Array<SelectOption<string>> = overflowItems.map(item => ({
@@ -156,7 +154,19 @@ export function ChartLegend({
     // No `size` here, unlike the row: the menu sets its own option type, and
     // overriding it would leave this one menu's labels smaller than every
     // other one in the app.
-    label: truncateMenuLabels ? (
+    label: item.suffix ? (
+      <Flex align="center" gap="xs" minWidth="0">
+        <Text
+          ellipsis={truncateMenuLabels || undefined}
+          style={truncateMenuLabels ? {maxWidth: MAX_LABEL_WIDTH} : undefined}
+        >
+          {item.label}
+        </Text>
+        <Text variant="secondary" wrap="nowrap">
+          · {item.suffix}
+        </Text>
+      </Flex>
+    ) : truncateMenuLabels ? (
       <Text ellipsis style={{maxWidth: MAX_LABEL_WIDTH}}>
         {item.label}
       </Text>
@@ -165,7 +175,7 @@ export function ChartLegend({
     ),
     // React-aria needs the plain string once the label stops being one, or
     // typeahead and screen readers lose the option's name.
-    textValue: item.label,
+    textValue: getLegendItemText(item),
     // Suppress the built-in checkmark; we render a custom LegendCheckbox via leadingItems
     hideCheck: true,
     leadingItems: renderLeadingCheckbox(item),
@@ -211,23 +221,26 @@ export function ChartLegend({
             align="center"
             gap="xs"
             flexShrink={0}
-            style={{
-              visibility: overflowSet.has(item.name) ? 'hidden' : 'visible',
-            }}
+            style={{visibility: overflowSet.has(item.name) ? 'hidden' : 'visible'}}
             onClick={() => toggleItem(item.name)}
             role="button"
-            aria-label={t('Toggle %s', item.label)}
+            aria-label={t('Toggle %s', getLegendItemText(item))}
           >
             <LegendCheckbox
               color={item.color}
               checked={selected[item.name] !== false}
               onChange={() => {}}
-              aria-label={item.label}
+              aria-label={getLegendItemText(item)}
             />
 
             <Text size="xs" ellipsis style={{maxWidth: MAX_LABEL_WIDTH}}>
               {item.label}
             </Text>
+            {item.suffix && (
+              <Text size="xs" variant="secondary" wrap="nowrap">
+                · {item.suffix}
+              </Text>
+            )}
           </LegendItemButton>
         ))}
       </Flex>
@@ -260,6 +273,10 @@ export function ChartLegend({
   );
 }
 
+function getLegendItemText(item: LegendItem): string {
+  return item.suffix ? `${item.label} · ${item.suffix}` : item.label;
+}
+
 /**
  * Renders a leading checkbox for a legend item inside the overflow dropdown.
  * Stateless — only depends on its arguments, so it lives outside the component.
@@ -271,7 +288,7 @@ function renderLeadingCheckbox(item: LegendItem) {
         color={item.color}
         checked={isSelected}
         onChange={() => {}}
-        aria-label={item.label}
+        aria-label={getLegendItemText(item)}
       />
     );
   };

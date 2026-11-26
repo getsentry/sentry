@@ -45,6 +45,9 @@ Intervals = Literal["5m", "15m", "30m", "1h", "4h", "12h", "24h"]
 # Blocklist for frequently hallucinated functions or functions we want to avoid using
 FUNCTION_BLOCKLIST: set[str] = {"spm", "apdex", "http_error_count", "http_error_count_percent"}
 
+# Mirrors SUPPORTED_AXES in OrganizationIssueTimeseriesEndpoint, which issue chart widgets query.
+ISSUE_CHART_AGGREGATES: frozenset[str] = frozenset({"count(new_issues)", "count(resolved_issues)"})
+
 
 class GeneratedWidgetQuery(BaseModel):
     name: str = ""
@@ -60,6 +63,9 @@ class GeneratedWidgetQuery(BaseModel):
             the Y-axis values; for table widgets they become data columns alongside columns[].
             Valid aggregate function values vary by dataset type. Do not make up functions or
             use unsupported functions.
+
+            For the 'issue' widget_type, chart widgets support only `count(new_issues)` and
+            `count(resolved_issues)`. Issue table widgets take no aggregates.
 
             For the 'tracemetrics' widget_type, aggregates use a required 4-argument form:
             `func(attribute, metric_name, metric_type, metric_unit)` where attribute must be
@@ -290,6 +296,19 @@ class GeneratedWidget(BaseModel):
             raise ValueError(f"Height must be at least {min_height} for {display_type} widgets.")
 
         layout.min_h = min_height
+        return values
+
+    @root_validator
+    def check_issue_chart_aggregates(cls, values: dict[str, Any]) -> dict[str, Any]:
+        if values.get("widget_type") != "issue" or values.get("display_type") == "table":
+            return values
+        for query in values.get("queries") or []:
+            unsupported = [a for a in query.aggregates if a not in ISSUE_CHART_AGGREGATES]
+            if unsupported:
+                raise ValueError(
+                    f"Unsupported aggregates {unsupported} for an issue chart widget. Issue "
+                    f"charts only support {sorted(ISSUE_CHART_AGGREGATES)}."
+                )
         return values
 
     @root_validator

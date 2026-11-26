@@ -16,14 +16,17 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
 import type {DetailedProject} from 'sentry/types/project';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
+import {useShowOpenPrs} from 'sentry/utils/seer/openPrs';
 import {
   NON_GITHUB_HANDOFF_WARNING,
   seerAgentIntegrationsSelectQueryOptions,
   knownAgentIntegrationsQueryOptions,
   coalesePreferredAgent,
 } from 'sentry/utils/seer/preferredAgent';
+import {NON_GITHUB_PR_ITERATION_WARNING} from 'sentry/utils/seer/prIteration';
 import {
   getSeerProjectReposInfiniteQueryOptions,
+  isGitHubDotComProvider,
   isGitHubProvider,
 } from 'sentry/utils/seer/seerProjectRepos';
 import {
@@ -54,6 +57,7 @@ export function AutofixAgent({canWrite, project}: Props) {
     seerAgentIntegrationsSelectQueryOptions({organization})
   );
   const stoppingPointOptions = useStoppingPointSelectOptions();
+  const showOpenPrsToggle = useShowOpenPrs();
 
   // Only GitHub repos can hand off to an external coding agent, so the agent
   // dropdown is disabled when this project has any non-GitHub repo attached.
@@ -67,10 +71,17 @@ export function AutofixAgent({canWrite, project}: Props) {
   // the warning (a repos-fetch error keeps handoff restricted, which is safe).
   const reposLoaded =
     reposResult.isSuccess && !reposResult.hasNextPage && !reposResult.isFetchingNextPage;
-  const hasNonGithubRepo = (reposResult.data?.pages ?? [])
-    .flatMap(page => page.json)
-    .some(repo => !isGitHubProvider(repo.provider));
+  const repos = (reposResult.data?.pages ?? []).flatMap(page => page.json);
+  const hasNonGithubRepo = repos.some(repo => !isGitHubProvider(repo.provider));
   const restrictToSeer = reposLoaded && hasNonGithubRepo;
+  // Auto-Iterate only runs on github.com PRs, so it needs at least one such repo.
+  // Unlike the agent, the stored value is left alone: it does nothing without a
+  // github.com repo, and comes back into effect if one is linked later.
+  const hasGitHubDotComRepo = repos.some(repo => isGitHubDotComProvider(repo.provider));
+  const prIterationUnavailable = reposLoaded && !hasGitHubDotComRepo;
+  // If the repos request fails, fall back to the stored value rather than
+  // locking a setting the user may need to turn off.
+  const prIterationLoading = !reposLoaded && !reposResult.isError;
 
   // `isIdle` is true only until the first attempt settles, so the effect below
   // fires at most once. This matters because the mutation rolls back its
@@ -86,10 +97,7 @@ export function AutofixAgent({canWrite, project}: Props) {
   );
 
   const {data, isPending, isError, error} = useQuery(
-    getSeerProjectSettingsQueryOptions({
-      organization,
-      project: {slug: project.slug},
-    })
+    getSeerProjectSettingsQueryOptions({organization, project: {slug: project.slug}})
   );
 
   // A non-GitHub repo means the stored agent can no longer hand off, so persist
@@ -219,6 +227,64 @@ export function AutofixAgent({canWrite, project}: Props) {
                 value={field.state.value}
                 onChange={field.handleChange}
                 options={stoppingPointOptions}
+              />
+            </field.Layout.Row>
+          )}
+        </AutoSaveForm>
+
+        {showOpenPrsToggle && (
+          <AutoSaveForm
+            name="openPrs"
+            schema={seerProjectSettingsSchema}
+            initialValue={data.openPrs}
+            mutationOptions={getMutateSeerProjectSettingsOptions({
+              organization,
+              project: {slug: project.slug},
+              queryClient,
+            })}
+          >
+            {field => (
+              <field.Layout.Row
+                label={t('Open PRs')}
+                hintText={t(
+                  'When Seer finds a fix, it opens a PR. You can still ask Seer to open a PR when this is off.'
+                )}
+              >
+                <field.Switch
+                  checked={field.state.value}
+                  disabled={!canWrite}
+                  onChange={field.handleChange}
+                />
+              </field.Layout.Row>
+            )}
+          </AutoSaveForm>
+        )}
+
+        <AutoSaveForm
+          name="prIteration"
+          schema={seerProjectSettingsSchema}
+          initialValue={data.prIteration}
+          mutationOptions={getMutateSeerProjectSettingsOptions({
+            organization,
+            project: {slug: project.slug},
+            queryClient,
+          })}
+        >
+          {field => (
+            <field.Layout.Row
+              label={t('Auto-Iterate on PRs')}
+              hintText={t(
+                'After opening a PR, Seer automatically pushes fixes when CI checks fail. You can still ask Seer to iterate on a PR yourself.'
+              )}
+            >
+              <field.Switch
+                checked={prIterationUnavailable ? false : field.state.value}
+                disabled={
+                  prIterationUnavailable
+                    ? NON_GITHUB_PR_ITERATION_WARNING
+                    : !canWrite || prIterationLoading
+                }
+                onChange={field.handleChange}
               />
             </field.Layout.Row>
           )}

@@ -20,7 +20,7 @@ from requests import PreparedRequest
 from responses import matchers
 from scm import Secret
 from scm.git.grant import generate_private_key, public_key_of, sign_grant
-from scm.git.types import GRANT_HEADER, GitOperation, Grant
+from scm.git.types import GRANT_HEADER, FetchRule, Grant, PushRule
 from scm.types import RepositoryId
 from sentry_sdk import traces
 from sentry_sdk.data_collection import _apply_key_value_collection_filtering
@@ -38,6 +38,7 @@ TOKEN = "ghs_installation_token"
 GITLAB_TOKEN = "gitlab_oauth_token"
 FEATURE = "organizations:scm-git-endpoint"
 REFERRER = "seer.coding_job"
+PUSH_BRANCH = "seer/fix"
 # Far enough ahead that the GitHub client never refreshes the token over the network.
 TOKEN_EXPIRES_AT = "3000-01-01T00:00:00"
 
@@ -58,18 +59,30 @@ def make_key_pair() -> KeyPair:
 KEY = make_key_pair()
 
 
+def fetch_rules(repository: RepositoryId) -> list[FetchRule]:
+    return [FetchRule(repository=repository, any_object=True)]
+
+
+def push_rules(repository: RepositoryId) -> list[PushRule]:
+    return [PushRule(repository=repository, branches=[PUSH_BRANCH])]
+
+
+def push_body(ref: str) -> bytes:
+    # One ref update creating ``ref``, with the capabilities git asks for, then the pack.
+    update = f"{'0' * 40} {'a' * 40} {ref}\0report-status side-band-64k".encode()
+    return f"{len(update) + 4:04x}".encode() + update + b"0000PACK-bytes"
+
+
 def sign(
     organization_id: int,
-    operation: GitOperation,
-    repositories: Sequence[RepositoryId],
+    rules: Sequence[FetchRule | PushRule],
     *,
     expires_in: int = 300,
     key: KeyPair = KEY,
 ) -> str:
     grant = Grant(
         organization_id=organization_id,
-        operation=operation,
-        repositories=list(repositories),
+        rules=list(rules),
         expires_at=int(time.time()) + expires_in,
         referrer=REFERRER,
     )
@@ -97,7 +110,7 @@ class ScmGitEndpointTest(TestCase):
         )
 
     def fetch_grant(self) -> str:
-        return sign(self.organization.id, "fetch", [self.repo.id])
+        return sign(self.organization.id, fetch_rules(self.repo.id))
 
     def git(
         self,
@@ -107,6 +120,7 @@ class ScmGitEndpointTest(TestCase):
         grant: str,
         repository_id: int | None = None,
         body: bytes = b"",
+        content_type: str = "application/x-git-request",
     ) -> HttpResponseBase:
         url = reverse(
             "sentry-api-0-scm-git",
@@ -116,7 +130,7 @@ class ScmGitEndpointTest(TestCase):
             method,
             f"{url}?{query}",
             data=body,
-            content_type="application/x-git-request",
+            content_type=content_type,
             headers={GRANT_HEADER: grant},
         )
 
@@ -170,13 +184,57 @@ class ScmGitEndpointTest(TestCase):
             body=b"000eunpack ok\n0000",
             content_type="application/x-git-receive-pack-result",
         )
-        grant = sign(self.organization.id, "push", [self.repo.id])
+        grant = sign(self.organization.id, push_rules(self.repo.id))
+        body = push_body(f"refs/heads/{PUSH_BRANCH}")
 
-        response = self.git("POST", "git-receive-pack", "", grant, body=b"0000PACK-bytes")
+        response = self.git(
+            "POST",
+            "git-receive-pack",
+            "",
+            grant,
+            body=body,
+            content_type="application/x-git-receive-pack-request",
+        )
 
         assert response.status_code == 200
         assert b"".join(response) == b"000eunpack ok\n0000"
-        assert b"".join(responses.calls[0].request.body) == b"0000PACK-bytes"
+        assert b"".join(responses.calls[0].request.body) == body
+
+    @responses.activate
+    @mock.patch("sentry.scm.endpoints.scm_git.sentry_sdk")
+    @mock.patch("sentry.scm.endpoints.scm_git.record_count_metric")
+    def test_refuses_a_push_to_a_branch_outside_the_grant(
+        self, mock_record_count: mock.MagicMock, mock_sdk: mock.MagicMock
+    ) -> None:
+        grant = sign(self.organization.id, push_rules(self.repo.id))
+
+        response = self.git(
+            "POST",
+            "git-receive-pack",
+            "",
+            grant,
+            body=push_body("refs/heads/main"),
+            content_type="application/x-git-receive-pack-request",
+        )
+
+        # git reads the refusal from the status report it asked for, as a rejected ref.
+        assert response.status_code == 200
+        report = b"".join(response)
+        assert b"ng refs/heads/main the git grant does not cover this branch\n" in report
+        assert len(responses.calls) == 0
+        # The only refusal answered with a 200, so check it's still counted and reported.
+        mock_record_count.assert_called_once_with(
+            "sentry.scm.git.request.failed",
+            1,
+            {"code": "git_operation_not_granted", "referrer": REFERRER},
+        )
+        self.assert_reported_message(
+            mock_sdk,
+            "The git grant does not allow this push: refs/heads/main "
+            "(the git grant does not cover this branch).",
+        )
+        scope = mock_sdk.new_scope.return_value.__enter__.return_value
+        assert scope.fingerprint == ["scm-git", "git_operation_not_granted"]
 
     @responses.activate
     @override_settings(SENTRY_BACKEND_APM_SAMPLING=0)
@@ -329,7 +387,7 @@ class ScmGitEndpointTest(TestCase):
     ) -> None:
         # Anyone can write a referrer into a grant they sign themselves, so only a verified one
         # may tag metrics and issues.
-        grant = sign(self.organization.id, "fetch", [self.repo.id], key=make_key_pair())
+        grant = sign(self.organization.id, fetch_rules(self.repo.id), key=make_key_pair())
 
         response = self.fetch_refs(grant)
 
@@ -354,7 +412,7 @@ class ScmGitEndpointTest(TestCase):
 
         with override_settings(SCM_GIT_GRANT_PUBLIC_KEYS=[KEY.public, new_key.public]):
             response = self.fetch_refs(
-                sign(self.organization.id, "fetch", [self.repo.id], key=new_key)
+                sign(self.organization.id, fetch_rules(self.repo.id), key=new_key)
             )
 
         assert response.status_code == 200
@@ -399,7 +457,7 @@ class ScmGitEndpointTest(TestCase):
 
     @responses.activate
     def test_refuses_an_expired_grant(self) -> None:
-        grant = sign(self.organization.id, "fetch", [self.repo.id], expires_in=-1)
+        grant = sign(self.organization.id, fetch_rules(self.repo.id), expires_in=-1)
 
         response = self.fetch_refs(grant)
 
@@ -449,7 +507,7 @@ class ScmGitEndpointTest(TestCase):
 
     @responses.activate
     def test_refuses_a_grant_for_an_organization_that_does_not_exist(self) -> None:
-        grant = sign(self.organization.id + 1000, "fetch", [self.repo.id])
+        grant = sign(self.organization.id + 1000, fetch_rules(self.repo.id))
 
         response = self.fetch_refs(grant)
 
@@ -459,7 +517,9 @@ class ScmGitEndpointTest(TestCase):
     def test_refuses_a_push_with_a_fetch_grant(self) -> None:
         response = self.git("GET", "info/refs", "service=git-receive-pack", self.fetch_grant())
 
-        self.assert_refused(response, 403, b"The git grant allows fetch, not push.")
+        self.assert_refused(
+            response, 403, b"The git grant allows fetch on this repository, not push."
+        )
 
     @responses.activate
     @mock.patch("sentry.scm.endpoints.scm_git.sentry_sdk")
@@ -469,18 +529,22 @@ class ScmGitEndpointTest(TestCase):
     ) -> None:
         response = self.git("GET", "info/refs", "service=git-receive-pack", self.fetch_grant())
 
-        self.assert_refused(response, 403, b"The git grant allows fetch, not push.")
+        self.assert_refused(
+            response, 403, b"The git grant allows fetch on this repository, not push."
+        )
         mock_logger.error.assert_called_once_with(
             "scm.git.request_failed",
             extra={
                 "code": "git_operation_not_granted",
-                "detail": "The git grant allows fetch, not push.",
+                "detail": "The git grant allows fetch on this repository, not push.",
                 "repository_id": str(self.repo.id),
                 "organization_id": str(self.organization.id),
                 "referrer": REFERRER,
             },
         )
-        self.assert_reported_message(mock_sdk, "The git grant allows fetch, not push.")
+        self.assert_reported_message(
+            mock_sdk, "The git grant allows fetch on this repository, not push."
+        )
         self.assert_reported(
             mock_sdk,
             "git_operation_not_granted",
@@ -493,11 +557,13 @@ class ScmGitEndpointTest(TestCase):
 
     @responses.activate
     def test_refuses_a_fetch_with_a_push_grant(self) -> None:
-        grant = sign(self.organization.id, "push", [self.repo.id])
+        grant = sign(self.organization.id, push_rules(self.repo.id))
 
         response = self.git("POST", "git-upload-pack", "", grant, body=b"0000")
 
-        self.assert_refused(response, 403, b"The git grant allows push, not fetch.")
+        self.assert_refused(
+            response, 403, b"The git grant allows push on this repository, not fetch."
+        )
 
     @responses.activate
     def test_refuses_a_route_git_does_not_use(self) -> None:
@@ -521,7 +587,7 @@ class ScmGitEndpointTest(TestCase):
 
     @responses.activate
     def test_refuses_a_grant_that_names_the_repository_by_external_id(self) -> None:
-        grant = sign(self.organization.id, "fetch", [("github", "12345")])
+        grant = sign(self.organization.id, fetch_rules(("github", "12345")))
 
         response = self.fetch_refs(grant)
 
@@ -530,7 +596,7 @@ class ScmGitEndpointTest(TestCase):
     @responses.activate
     def test_refuses_a_repository_the_organization_has_not_connected(self) -> None:
         unconnected_id = self.repo.id + 1000
-        grant = sign(self.organization.id, "fetch", [unconnected_id])
+        grant = sign(self.organization.id, fetch_rules(unconnected_id))
 
         response = self.fetch_refs(grant, unconnected_id)
 
@@ -552,7 +618,7 @@ class ScmGitEndpointTest(TestCase):
             integration_id=other_integration.id,
             external_id="24680",
         )
-        grant = sign(self.organization.id, "fetch", [other_repo.id])
+        grant = sign(self.organization.id, fetch_rules(other_repo.id))
 
         response = self.fetch_refs(grant, other_repo.id)
 
@@ -605,7 +671,7 @@ class ScmGitEndpointTest(TestCase):
             body=b"001e# service=git-upload-pack\n0000",
             content_type="application/x-git-upload-pack-advertisement",
         )
-        grant = sign(self.organization.id, "fetch", [repo.id])
+        grant = sign(self.organization.id, fetch_rules(repo.id))
 
         response = self.fetch_refs(grant, repo.id)
 
@@ -669,7 +735,7 @@ class ScmGitEndpointTest(TestCase):
             integration_id=integration.id,
             external_id="13579",
         )
-        grant = sign(self.organization.id, "fetch", [repo.id])
+        grant = sign(self.organization.id, fetch_rules(repo.id))
 
         response = self.fetch_refs(grant, repo.id)
 

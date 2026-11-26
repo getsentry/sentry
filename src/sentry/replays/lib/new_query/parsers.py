@@ -44,15 +44,19 @@ def parse_str(value: str) -> str:
     return value
 
 
-def parse_ipv4(value: str) -> str | None:
-    """Validates an IPv4 address"""
+def parse_ip_address(value: str) -> ipaddress.IPv4Address | ipaddress.IPv6Address | None:
+    """Coerce to an IPv4 or IPv6 address or fail."""
     if value == "":
         return None
     try:
-        ipaddress.IPv4Address(value)
-        return value
-    except ipaddress.AddressValueError:
-        raise CouldNotParseValue("Invalid IPv4")
+        address = ipaddress.ip_address(value)
+    except ValueError:
+        raise CouldNotParseValue("Invalid IP address")
+
+    # ClickHouse can't parse zone ids, and ingestion never stores addresses that have one.
+    if isinstance(address, ipaddress.IPv6Address) and address.scope_id is not None:
+        raise CouldNotParseValue("Invalid IP address")
+    return address
 
 
 def parse_uuid(value: str) -> uuid.UUID:

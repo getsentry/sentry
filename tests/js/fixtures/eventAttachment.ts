@@ -6,9 +6,7 @@ export function EventAttachmentFixture(
   return {
     id: '1',
     name: 'screenshot.png',
-    headers: {
-      'Content-Type': 'image/png',
-    },
+    headers: {'Content-Type': 'image/png'},
     mimetype: 'image/png',
     size: 84235,
     sha1: '986043ce8056f3cde048720d30a3959a6692fbef',

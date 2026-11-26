@@ -1,4 +1,9 @@
-from sentry.utils.email.sanitize import WORD_JOINER, sanitize_outbound_name
+from sentry.utils.email.sanitize import WORD_JOINER, sanitize_outbound_name, strip_control_chars
+
+
+def test_strip_control_chars() -> None:
+    assert strip_control_chars("a\x00b\x07c\x1bd\x7fe") == "abcde"
+    assert strip_control_chars("line1\nline2\r\n\ttab") == "line1\nline2\r\n\ttab"
 
 
 class TestSanitizeOutboundName:

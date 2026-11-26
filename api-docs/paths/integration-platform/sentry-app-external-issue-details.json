@@ -2,7 +2,8 @@
   "delete": {
     "tags": ["Integration"],
     "description": "Delete an external issue.",
-    "operationId": "Delete an External Issue",
+    "operationId": "deleteSentryAppInstallationExternalIssue",
+    "summary": "Delete an External Issue",
     "parameters": [
       {
         "name": "uuid",

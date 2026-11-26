@@ -15,10 +15,13 @@ from sentry.seer.similarity.utils import (
     filter_null_from_string,
     get_stacktrace_string,
     get_token_count,
+    project_uses_seer_similarity,
+    projects_using_seer_similarity,
     stacktrace_exceeds_limits,
 )
 from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 
 
 class GetStacktraceStringTest(TestCase):
@@ -1188,3 +1191,28 @@ class GetTokenCountTest(TestCase):
         assert token_count > 0
         # Verify we get the expected token count for this specific stacktrace
         assert token_count == 33
+
+
+class ProjectsUsingSeerSimilarityTest(TestCase):
+    """
+    The batch helper backs the ``projects:similarity-embeddings`` feature handler in getsentry,
+    so it must give the same answer as the single-project helper for every path.
+    """
+
+    def test_batch_matches_single(self) -> None:
+        opted_in = self.create_project()
+        opted_in.update_option("sentry:similarity_backfill_completed", 1)
+        legacy = self.create_project()
+        projects = [opted_in, legacy]
+
+        assert projects_using_seer_similarity([]) == {}
+
+        option_overrides: list[dict[str, Any]] = [
+            {},
+            {"similarity.seer_grouping.all_projects": True},
+        ]
+        for overrides in option_overrides:
+            with override_options(overrides):
+                assert projects_using_seer_similarity(projects) == {
+                    project: project_uses_seer_similarity(project) for project in projects
+                }

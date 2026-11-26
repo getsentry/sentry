@@ -67,13 +67,12 @@ class NotificationTrackingMiddlewareTest(TestCase):
             event,
         )
 
-    def test_legacy_alert(self, mock_record: mock.MagicMock) -> None:
+    def test_legacy_referrer(self, mock_record: mock.MagicMock) -> None:
         self.login_as(self.user)
 
         self.client.get(self.issue_path(referrer="slack"))
 
-        [event] = _engagements(mock_record)
-        assert (event.source, event.category, event.provider) == ("issue", "issue", "slack")
+        assert _engagements(mock_record) == []
 
     def test_login_return(self, mock_record: mock.MagicMock) -> None:
         self.user.set_password("password")
@@ -188,7 +187,7 @@ class NotificationTrackingApiGatewayTest(ApiGatewayTestCase):
         self.create_member(user=self.user, organization=self.organization)
 
     def path(self, endpoint: str) -> str:
-        query = urlencode({"referrer": "slack", "notification_uuid": str(uuid4())})
+        query = urlencode({"referrer": "issue-slack", "notification_uuid": str(uuid4())})
         return f"/organizations/{self.organization.slug}/{endpoint}/?{query}"
 
     @responses.activate

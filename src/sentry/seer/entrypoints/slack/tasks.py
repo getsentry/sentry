@@ -4,6 +4,9 @@ import logging
 from collections.abc import Mapping, Sequence
 from typing import Any, NamedTuple
 
+from sentry_protos.billing.v1.common.v1.seer_billing_feature_pb2 import (
+    SEER_BILLING_FEATURE_SEER_AGENT_SLACK,
+)
 from slack_sdk.models.blocks import MarkdownBlock
 from taskbroker_client.retry import Retry
 
@@ -14,6 +17,13 @@ from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
 from sentry.models.organization import Organization
 from sentry.notifications.platform.slack.provider import SlackRenderable
+from sentry.notifications.platform.templates.seer import SeerAgentOutOfCredits
+from sentry.seer.credits import (
+    SeerCreditDenialReason,
+    SeerOperation,
+    check_seer_operation,
+    get_denial_reason,
+)
 from sentry.seer.entrypoints.metrics import (
     SlackEntrypointEventLifecycleMetric,
     SlackEntrypointInteractionType,
@@ -24,7 +34,10 @@ from sentry.seer.entrypoints.slack.analytics import (
     SlackSeerAgentResponded,
 )
 from sentry.seer.entrypoints.slack.cache import SlackSeerAgentMessageCache
-from sentry.seer.entrypoints.slack.entrypoint import EntrypointSetupError, SlackAgentEntrypoint
+from sentry.seer.entrypoints.slack.entrypoint import (
+    EntrypointSetupError,
+    SlackAgentEntrypoint,
+)
 from sentry.seer.entrypoints.slack.mention import (
     SlackMessageLink,
     build_linked_messages_context,
@@ -36,6 +49,7 @@ from sentry.seer.entrypoints.slack.mention import (
 from sentry.seer.entrypoints.slack.messaging import (
     send_halt_message,
     send_not_org_member_message,
+    send_thread_update,
 )
 from sentry.seer.entrypoints.slack.metrics import (
     ProcessMentionFailureReason,
@@ -43,6 +57,7 @@ from sentry.seer.entrypoints.slack.metrics import (
     ProcessReactionFailureReason,
     ProcessReactionHaltReason,
 )
+from sentry.seer.entrypoints.slack.types import SlackThreadDetails
 from sentry.seer.entrypoints.types import SeerEntrypointKey
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_tasks
@@ -153,6 +168,26 @@ def process_mention_for_slack(
                 thread_ts=thread_ts if thread_ts else "",
                 org_name=organization.name,
             )
+            entrypoint.install.set_thread_status(
+                channel_id=channel_id,
+                thread_ts=thread_ts or ts,
+                status="",
+            )
+            return
+
+        # Check credits up front so an org without them gets an answer right away.
+        credits = check_seer_operation(
+            organization, SEER_BILLING_FEATURE_SEER_AGENT_SLACK, SeerOperation.AGENT_CHAT_MESSAGE
+        )
+        if not credits.has_enough_credits:
+            lifecycle.record_halt(ProcessMentionHaltReason.OUT_OF_SEER_CREDITS)
+            _send_out_of_credits_message(
+                entrypoint=entrypoint,
+                organization=organization,
+                thread_ts=thread_ts or ts,
+                denial_reason=get_denial_reason(credits),
+            )
+            # The webhook set "is thinking..." before queueing this task; clear it.
             entrypoint.install.set_thread_status(
                 channel_id=channel_id,
                 thread_ts=thread_ts or ts,
@@ -392,6 +427,26 @@ def _resolve_linked_messages(
         unresolved_channel_ids=list(unresolved),
         private_channel_ids=list(private_channels),
     )
+
+
+def _send_out_of_credits_message(
+    *,
+    entrypoint: SlackAgentEntrypoint,
+    organization: Organization,
+    thread_ts: str,
+    denial_reason: SeerCreditDenialReason | None,
+) -> None:
+    """Reply in the thread, for everyone to see, that the org is out of Seer credits."""
+    try:
+        send_thread_update(
+            install=entrypoint.install,
+            thread=SlackThreadDetails(thread_ts=thread_ts, channel_id=entrypoint.channel_id),
+            data=SeerAgentOutOfCredits(
+                organization_id=organization.id, denial_reason=denial_reason
+            ),
+        )
+    except Exception as e:
+        _logger.warning("seer.slack.process_mention.send_out_of_credits_failed", exc_info=e)
 
 
 def _send_inaccessible_links_prompt(

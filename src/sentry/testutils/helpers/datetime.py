@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 
 import time_machine
 
@@ -29,7 +29,7 @@ class MockClock:
         return self.time
 
 
-def freeze_time(t: str | datetime | None = None) -> time_machine.travel:
+def freeze_time(t: str | date | None = None) -> time_machine.travel:
     if t is None:
         t = datetime.now(UTC)
     return time_machine.travel(t, tick=False)

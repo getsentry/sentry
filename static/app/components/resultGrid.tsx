@@ -22,6 +22,7 @@ import type {Client} from 'sentry/api';
 import {t, tct, tn} from 'sentry/locale';
 import type {Cell} from 'sentry/types/system';
 import {getCells} from 'sentry/utils/cells';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -75,11 +76,7 @@ function Filter({name, queryKey, options, path, value}: FilterProps) {
   );
 }
 
-type SortByProps = {
-  options: Option[];
-  path: string;
-  value: string;
-};
+type SortByProps = {options: Option[]; path: string; value: string};
 
 function SortBy({options, path, value}: SortByProps) {
   const location = useLocation();
@@ -107,10 +104,7 @@ function SortBy({options, path, value}: SortByProps) {
   );
 }
 
-type FilterDescriptor = {
-  name: string;
-  options: Option[];
-};
+type FilterDescriptor = {name: string; options: Option[]};
 
 export type ResultGridColumn = {
   key: string;
@@ -383,10 +377,7 @@ const IDLE_REGIONS: Pick<Results, 'pendingRegions' | 'regionCursors' | 'regionEr
   regionErrors: [],
 };
 
-type RegionSelection = {
-  allRegions: boolean;
-  cell: Cell | undefined;
-};
+type RegionSelection = {allRegions: boolean; cell: Cell | undefined};
 
 type RegionProbe = {
   missingExactMatch: boolean;
@@ -633,10 +624,7 @@ export function ResultGrid({
       ? cells.find(c => c.locality_url === regionUrl)
       : undefined;
     const allRegions = allowAllRegions && !requestedCell;
-    return {
-      allRegions,
-      cell: allRegions ? undefined : (requestedCell ?? cells[0]),
-    };
+    return {allRegions, cell: allRegions ? undefined : (requestedCell ?? cells[0])};
   });
   const {allRegions, cell} = region;
 
@@ -1299,7 +1287,7 @@ export function ResultGrid({
       {hasPagination && results.pageLinks && (
         <Container marginBottom="2xl">
           <Pagination
-            pageLinks={results.pageLinks}
+            {...getPaginationProps(results.pageLinks)}
             onCursor={useQueryString ? undefined : onCursor}
           />
         </Container>

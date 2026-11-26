@@ -1,11 +1,10 @@
 import logging
 from collections.abc import Mapping, Sequence
 from concurrent.futures import as_completed
-from typing import Any, TypedDict, cast
+from typing import Annotated, Any, Literal, TypedDict, cast
 
 import sentry_sdk
 from drf_spectacular.utils import OpenApiResponse, extend_schema
-from rest_framework import status
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -28,6 +27,7 @@ from sentry.api.helpers.ingestion_delay import (
 from sentry.api.paginator import EAPPageTokenPaginator, GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
 from sentry.apidocs import constants as api_constants
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.examples.discover_performance_examples import DiscoverAndPerformanceExamples
 from sentry.apidocs.parameters import (
     CursorQueryParam,
@@ -63,7 +63,7 @@ from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.preprod_size import PreprodSize
 from sentry.snuba.processing_errors_rpc import ProcessingErrors
 from sentry.snuba.profile_functions import ProfileFunctions
-from sentry.snuba.referrer import Referrer, is_valid_referrer
+from sentry.snuba.referrer import Referrer, is_valid_referrer, resolve_client_referrer
 from sentry.snuba.rpc_dataset_common import RPCBase
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace_metrics import TraceMetrics
@@ -108,24 +108,57 @@ class EventsMeta(TypedDict, total=False):
     no-projects path only carries `tips`, the standard path carries
     everything below."""
 
-    fields: dict[str, str]
-    units: dict[str, str | None]
-    tips: dict[str, str]
-    datasetReason: str
-    isMetricsData: bool
-    isMetricsExtractedData: bool
-    dataset: str
-    discoverSplitDecision: Any
-    dataScanned: str
-    bytesScanned: int
-    routingHint: str
-    debug_info: Any
+    fields: Annotated[
+        dict[str, str], ApiDescription("Type of each returned field, keyed by field name")
+    ]
+    units: Annotated[
+        dict[str, str | None],
+        ApiDescription(
+            "Unit of each returned field, keyed by field name, or null if the field has no unit"
+        ),
+    ]
+    tips: Annotated[
+        dict[str, str],
+        ApiDescription("Suggestions for improving the query, under the `query` and `columns` keys"),
+    ]
+    datasetReason: Annotated[
+        str, ApiDescription("Why the query ran on a different dataset than requested, or unchanged")
+    ]
+    isMetricsData: Annotated[bool, ApiDescription("Whether the results came from metrics data")]
+    isMetricsExtractedData: Annotated[
+        bool, ApiDescription("Whether the results came from metrics extracted on demand")
+    ]
+    dataset: Annotated[str, ApiDescription("Dataset that was queried")]
+    discoverSplitDecision: Annotated[
+        Literal["error-events", "transaction-like"],
+        ApiDescription(
+            "Dataset the results were taken from when a Discover dashboard widget query was split between errors and transactions"
+        ),
+    ]
+    dataScanned: Annotated[
+        str,
+        ApiDescription("Whether the query scanned the `full` data set or only a `partial` sample"),
+    ]
+    bytesScanned: Annotated[int, ApiDescription("Number of bytes the query scanned")]
+    routingHint: Annotated[
+        str,
+        ApiDescription(
+            "Opaque routing hint of an EAP table query. Pass it unchanged as routing_hint when fetching item details for a row"
+        ),
+    ]
+    debug_info: Annotated[
+        Any,
+        ApiDescription("Debug information about the query. Only present when `debug` is passed"),
+    ]
     ingestion: IngestionMeta
 
 
 # Only used for api docs
 class EventsApiResponse(TypedDict):
-    data: list[dict[str, Any]]
+    data: Annotated[
+        list[dict[str, Any]],
+        ApiDescription("Rows returned by the query, keyed by the requested fields"),
+    ]
     meta: EventsMeta
 
 
@@ -223,13 +256,6 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
           `routing_hint` when fetching item details for a row in this response. It identifies how
           the table query was routed and is omitted when no hint is available.
         """
-        if not self.has_feature(organization, request):
-            return Response(
-                {
-                    "detail": "Discover, Performance, or Explore is required to access this endpoint."
-                },
-                status=status.HTTP_403_FORBIDDEN,
-            )
 
         referrer = request.GET.get("referrer")
         sentry_sdk.set_attribute("query.raw_referrer", referrer or "")
@@ -277,37 +303,36 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
 
         # Force the referrer to "api.auth-token.events" for events requests authorized through a bearer token
         if request.auth:
-            if referrer is not None and is_valid_referrer(referrer):
-                if referrer.startswith("seer."):
-                    sentry_sdk.set_tag("query.from_seer", True)
-                    sentry_sdk.set_attribute("query.from_seer", True)
-                elif referrer.startswith("api.mcp."):
-                    sentry_sdk.set_tag("query.from_mcp", True)
-                    sentry_sdk.set_attribute("query.from_mcp", True)
+            if referrer and referrer.startswith("seer.") and is_valid_referrer(referrer):
+                sentry_sdk.set_tag("query.from_seer", True)
+                sentry_sdk.set_attribute("query.from_seer", True)
+            elif referrer and referrer.startswith("api.mcp.") and is_valid_referrer(referrer):
+                sentry_sdk.set_tag("query.from_mcp", True)
+                sentry_sdk.set_attribute("query.from_mcp", True)
             else:
                 referrer = Referrer.API_AUTH_TOKEN_EVENTS.value
-        elif referrer is None or not referrer:
-            referrer = Referrer.API_ORGANIZATION_EVENTS.value
-        elif not is_valid_referrer(referrer):
-            referrer = Referrer.API_ORGANIZATION_EVENTS.value
+        else:
+            referrer = resolve_client_referrer(referrer, Referrer.API_ORGANIZATION_EVENTS.value)
 
         sentry_sdk.set_tag("query.referrer", referrer)
         sentry_sdk.set_attribute("query.referrer", referrer)
 
         # We are going to start ratcheting usage of this endpoint for legacy
-        # datasets. For now, log usage from blocked orgs but still permit the
-        # request.
+        # datasets. For now, log all external usage but still permit the
+        # request. Logging allowlisted (unblocked) orgs too lets us see who
+        # still relies on these datasets before shrinking the allowlist.
         is_external_api_request = request.auth and referrer == Referrer.API_AUTH_TOKEN_EVENTS
         is_legacy_dataset = dataset in {transactions, discover, metrics_enhanced_performance}
         is_blocked = batch_features.get(
             "organizations:events-endpoint-transactions-discover-blocked", False
         )
-        if is_external_api_request and is_legacy_dataset and is_blocked:
+        if is_external_api_request and is_legacy_dataset:
             sdk_logger.warning(
-                "events endpoint called by blocked org",
+                "events endpoint called with legacy dataset",
                 attributes={
                     "org_id": organization.id,
                     "org_slug": organization.slug,
+                    "is_blocked": is_blocked,
                     "effective_dataset": DATASET_LABELS.get(dataset, ""),
                     "requested_dataset": request.GET.get("dataset", ""),
                     "endpoint_name": "organization-events",
@@ -709,23 +734,20 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                 def flex_time_data_fn(limit: int, page_token: PageToken | None) -> dict[str, Any]:
                     config = get_rpc_config()
 
-                    return cast(
-                        dict[str, Any],
-                        scoped_dataset.run_table_query(
-                            params=snuba_params,
-                            query_string=scoped_query or "",
-                            selected_columns=self.get_field_list(organization, request),
-                            equations=self.get_equation_list(organization, request),
-                            orderby=self.get_orderby(request),
-                            offset=0,  # required but not used because we're using page tokens here
-                            limit=limit,
-                            referrer=referrer,
-                            config=config,
-                            sampling_mode=snuba_params.sampling_mode,
-                            page_token=page_token,
-                            additional_queries=additional_queries,
-                            max_string_length=max_string_length,
-                        ),
+                    return scoped_dataset.run_table_query(
+                        params=snuba_params,
+                        query_string=scoped_query or "",
+                        selected_columns=self.get_field_list(organization, request),
+                        equations=self.get_equation_list(organization, request),
+                        orderby=self.get_orderby(request),
+                        offset=0,  # required but not used because we're using page tokens here
+                        limit=limit,
+                        referrer=referrer,
+                        config=config,
+                        sampling_mode=snuba_params.sampling_mode,
+                        page_token=page_token,
+                        additional_queries=additional_queries,
+                        max_string_length=max_string_length,
                     )
 
                 return EAPPageTokenPaginator(data_fn=flex_time_data_fn), EAPPageTokenCursor

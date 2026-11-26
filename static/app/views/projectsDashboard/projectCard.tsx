@@ -23,6 +23,7 @@ import {
 } from 'sentry/components/scoreCard';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
+import type {SettingsEntryPoint} from 'sentry/utils/analytics/settingsAnalyticsEvents';
 import {defined} from 'sentry/utils/defined';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -50,11 +51,7 @@ export function ProjectCard({
   hasProjectAccess,
 }: ProjectCardProps) {
   const organization = useOrganization();
-  const hasPerformance = organization.features.includes('performance-view');
-  const {getOne: getProjectStats} = useProjectStats({
-    organization,
-    hasPerformance,
-  });
+  const {getOne: getProjectStats} = useProjectStats({organization});
 
   const {stats, transactionStats, sessionStats, latestDeploys} =
     getProjectStats(simpleProject);
@@ -121,6 +118,9 @@ export function ProjectCard({
               tooltipProps={{title: t('Settings')}}
               aria-label={t('Settings')}
               to={`/settings/${organization.slug}/projects/${slug}/`}
+              analyticsEventKey="settings.entry_point_clicked"
+              analyticsEventName="Settings: Entry Point Clicked"
+              analyticsParams={{entry_point: 'project_card' satisfies SettingsEntryPoint}}
             />
             <BookmarkStar organization={organization} project={simpleProject} />
           </Grid>
@@ -134,21 +134,19 @@ export function ProjectCard({
               >
                 {t('Errors: %s', formatAbbreviatedNumber(totalErrors))}
               </Link>
-              {hasPerformance && (
-                <TransactionsLink
-                  data-test-id="project-transactions"
-                  to={`${getPerformanceBaseUrl(organization.slug, domainView)}/?project=${simpleProject.id}`}
-                >
-                  {t('Transactions: %s', formatAbbreviatedNumber(totalTransactions))}
-                  {totalTransactions === 0 && (
-                    <InfoTip
-                      title={t('Click here to learn more about performance monitoring')}
-                      position="top"
-                      size="xs"
-                    />
-                  )}
-                </TransactionsLink>
-              )}
+              <TransactionsLink
+                data-test-id="project-transactions"
+                to={`${getPerformanceBaseUrl(organization.slug, domainView)}/?project=${simpleProject.id}`}
+              >
+                {t('Transactions: %s', formatAbbreviatedNumber(totalTransactions))}
+                {totalTransactions === 0 && (
+                  <InfoTip
+                    title={t('Click here to learn more about performance monitoring')}
+                    position="top"
+                    size="xs"
+                  />
+                )}
+              </TransactionsLink>
             </Fragment>
           ) : (
             <SummaryLinkPlaceholder />

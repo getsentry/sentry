@@ -59,15 +59,20 @@ import type {
 } from './types';
 import {useIsInView} from './useIsInView';
 
-function hasCodeChangesError(sectionKey: AutofixStateKey, run: OverviewRun): boolean {
-  return sectionKey === 'code_changes_ready' && run.status === 'error';
+const RUN_ERROR_SECTIONS = new Set<AutofixStateKey>([
+  'needs_investigation',
+  'code_changes_ready',
+]);
+
+function hasRunError(sectionKey: AutofixStateKey, run: OverviewRun): boolean {
+  return RUN_ERROR_SECTIONS.has(sectionKey) && run.status === 'error';
 }
 
 function canShowCodeChanges(sectionKey: AutofixStateKey, run: OverviewRun): boolean {
   return (
     sectionKey === 'code_changes_ready' &&
     Boolean(run.codeChanges?.length) &&
-    !hasCodeChangesError(sectionKey, run)
+    !hasRunError(sectionKey, run)
   );
 }
 
@@ -116,29 +121,17 @@ const ChecksSpinner = styled('span')`
 `;
 
 const CHECKS_STATUS_TAGS = {
-  failure: {
-    icon: <IconClose />,
-    label: t('Checks Failing'),
-    variant: 'danger',
-  },
+  failure: {icon: <IconClose />, label: t('Checks Failing'), variant: 'danger'},
   pending: {
     icon: <ChecksSpinner aria-hidden />,
     label: t('Checks Running'),
     variant: 'warning',
   },
-  success: {
-    icon: <IconCheckmark />,
-    label: t('Checks Passing'),
-    variant: 'success',
-  },
+  success: {icon: <IconCheckmark />, label: t('Checks Passing'), variant: 'success'},
 } satisfies Record<PullRequestChecksStatus, PullRequestStatusTagMeta>;
 
 const REVIEW_STATUS_TAGS = {
-  approved: {
-    icon: <IconThumb />,
-    label: t('Approved'),
-    variant: 'success',
-  },
+  approved: {icon: <IconThumb />, label: t('Approved'), variant: 'success'},
   changes_requested: {
     icon: <IconClose />,
     label: t('Changes Requested'),
@@ -181,14 +174,14 @@ function OverviewAction({
           aria-busy
           icon={<ButtonSpinner size={14} />}
         >
-          {getProcessingLabel(sectionKey)}
+          {getProcessingLabel(sectionKey, run)}
         </Button>
         <OpenSeerButton run={run} section={sectionKey} size="sm" />
       </ActionButtonBar>
     );
   }
 
-  if (hasCodeChangesError(sectionKey, run)) {
+  if (hasRunError(sectionKey, run)) {
     return (
       <ActionButtonBar>
         <OpenSeerButton run={run} section={sectionKey} size="sm" />
@@ -569,8 +562,8 @@ export const OverviewCard = memo(function OverviewCardComponent({
   const inView = useIsInView(cardRef);
   useEffect(() => {
     if (inView && scmWindows) {
-      for (const window of scmWindows) {
-        requestScmWindow(window);
+      for (const scmWindow of scmWindows) {
+        requestScmWindow(scmWindow);
       }
     }
   }, [inView, scmWindows, requestScmWindow]);
@@ -596,7 +589,7 @@ export const OverviewCard = memo(function OverviewCardComponent({
       section: sectionKey,
     });
 
-  const showCodeChangesError = hasCodeChangesError(sectionKey, run);
+  const showRunError = hasRunError(sectionKey, run);
   const showCodeChanges = canShowCodeChanges(sectionKey, run);
   const showEnrichmentPlaceholder = enrichmentPending && Boolean(reviewPullRequest?.url);
   const showPullRequestFiles =
@@ -605,7 +598,7 @@ export const OverviewCard = memo(function OverviewCardComponent({
     rootCause ||
     proposedFix ||
     showCodeChanges ||
-    showCodeChangesError ||
+    showRunError ||
     showEnrichmentPlaceholder ||
     showPullRequestFiles
   );
@@ -695,10 +688,10 @@ export const OverviewCard = memo(function OverviewCardComponent({
                 {proposedFix}
               </NarrativeBlock>
             )}
-            {showCodeChangesError ? (
+            {showRunError ? (
               <NarrativeBlock
                 icon={<IconWarning size="xs" variant="secondary" aria-hidden />}
-                label={t('Code Changes')}
+                label={t('Error')}
               >
                 {t('Seer ran into an error on the latest attempt. Open Seer to retry.')}
               </NarrativeBlock>

@@ -71,7 +71,7 @@ function BlockThread({
   const block = investigation?.blocks?.find(b => b.id === blockId);
   const blockMissing = !!investigation && !block;
   const readOnly = investigation?.status === 'archived';
-  const comments = data ? [...data.json].reverse() : [];
+  const comments = data ? data.json.toReversed() : [];
   const hasOlder = parseLinkHeader(data?.headers.Link ?? null).next?.results === true;
 
   // Open at the newest comment, then follow only your own new comments, so

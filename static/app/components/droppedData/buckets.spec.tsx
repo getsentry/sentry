@@ -46,12 +46,7 @@ describe('groupIntoBuckets', () => {
 
   it('collapses events sharing a (start, end) and sums count', () => {
     const buckets = groupIntoBuckets([
-      OutcomeRowFixture({
-        start: 0,
-        end: 60_000,
-        count: 10,
-        reason: 'rate_limited',
-      }),
+      OutcomeRowFixture({start: 0, end: 60_000, count: 10, reason: 'rate_limited'}),
       OutcomeRowFixture({start: 0, end: 60_000, count: 5, reason: 'quota'}),
     ]);
 
@@ -86,12 +81,7 @@ describe('groupIntoBuckets', () => {
       [OutcomeRowFixture({count: 90, outcome: 'accepted', tags: []})]
     );
 
-    expect(buckets).toEqual([
-      expect.objectContaining({
-        dropped: 10,
-        ratio: 0.1,
-      }),
-    ]);
+    expect(buckets).toEqual([expect.objectContaining({dropped: 10, ratio: 0.1})]);
   });
 
   it('subtotals dropped volume by outcome, largest first', () => {
@@ -112,12 +102,7 @@ describe('groupIntoBuckets', () => {
       [OutcomeRowFixture({start: 0, end: 60_000, count: 10})],
       [
         OutcomeRowFixture({start: 0, end: 60_000, count: 90, outcome: 'accepted'}),
-        OutcomeRowFixture({
-          start: 60_000,
-          end: 120_000,
-          count: 500,
-          outcome: 'accepted',
-        }),
+        OutcomeRowFixture({start: 60_000, end: 120_000, count: 500, outcome: 'accepted'}),
       ]
     );
 
@@ -138,26 +123,12 @@ describe('groupIntoBuckets', () => {
     const buckets = groupIntoBuckets(
       [
         OutcomeRowFixture({start: 0, end: 60_000, count: 10}),
-        OutcomeRowFixture({
-          start: 120_000,
-          end: 180_000,
-          tags: ['intentional'],
-        }),
+        OutcomeRowFixture({start: 120_000, end: 180_000, tags: ['intentional']}),
       ],
       [
         OutcomeRowFixture({start: 0, end: 60_000, count: 90, outcome: 'accepted'}),
-        OutcomeRowFixture({
-          start: 60_000,
-          end: 120_000,
-          count: 30,
-          outcome: 'accepted',
-        }),
-        OutcomeRowFixture({
-          start: 60_000,
-          end: 120_000,
-          count: 20,
-          outcome: 'accepted',
-        }),
+        OutcomeRowFixture({start: 60_000, end: 120_000, count: 30, outcome: 'accepted'}),
+        OutcomeRowFixture({start: 60_000, end: 120_000, count: 20, outcome: 'accepted'}),
       ]
     );
 

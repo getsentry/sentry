@@ -68,7 +68,6 @@ export function StreamingEmbedExamples() {
       }
       buffer += STREAMING_CHUNKS[i];
       setText(buffer);
-      // oxlint-disable-next-line react/todo
       i++;
       setTimeout(nextChunk, 150 + Math.random() * 200);
     }

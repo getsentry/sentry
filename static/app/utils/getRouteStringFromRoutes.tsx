@@ -5,14 +5,8 @@ import type {PlainRoute} from 'sentry/types/legacyReactRouter';
 type RouteWithPath = Omit<PlainRoute, 'path'> & Required<Pick<PlainRoute, 'path'>>;
 
 type Props =
-  | {
-      matches?: never;
-      routes?: PlainRoute[];
-    }
-  | {
-      matches?: UIMatch[];
-      routes?: never;
-    };
+  | {matches?: never; routes?: PlainRoute[]}
+  | {matches?: UIMatch[]; routes?: never};
 
 /**
  * Creates a route string from an array of `routes` from react-router

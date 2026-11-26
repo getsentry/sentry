@@ -23,10 +23,6 @@ describe('SegmentSpansTable', () => {
     ProjectsStore.loadInitialData([project]);
   });
 
-  afterEach(() => {
-    ProjectsStore.reset();
-  });
-
   it('renders column headers and data rows', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,

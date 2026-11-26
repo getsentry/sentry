@@ -14,12 +14,7 @@ export function TargetDisplayField({placeholder}: {placeholder?: string}) {
       placeholder={placeholder ? placeholder : t('channel name or ID')}
       value={action.config.targetDisplay ?? ''}
       onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-        onUpdate({
-          config: {
-            ...action.config,
-            targetDisplay: e.target.value,
-          },
-        });
+        onUpdate({config: {...action.config, targetDisplay: e.target.value}});
         removeError(action.id);
       }}
     />
@@ -37,12 +32,7 @@ export function TargetIdentifierField({placeholder}: {placeholder?: string}) {
       placeholder={placeholder}
       value={action.config.targetIdentifier ?? ''}
       onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-        onUpdate({
-          config: {
-            ...action.config,
-            targetIdentifier: e.target.value,
-          },
-        });
+        onUpdate({config: {...action.config, targetIdentifier: e.target.value}});
         removeError(action.id);
       }}
     />

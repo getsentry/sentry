@@ -29,8 +29,11 @@ from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.notifications.platform.templates.seer import (
     SeerAgentError,
+    SeerAgentOutOfCredits,
     SeerAgentResponse,
     SeerAutofixError,
+    SeerAutofixOutOfCredits,
+    SeerAutofixStopped,
     SeerAutofixTrigger,
     SeerAutofixUpdate,
     SeerInvestigationConclusion,
@@ -47,6 +50,8 @@ from sentry.notifications.platform.types import (
 )
 from sentry.seer.agent.client_models import RepoPRState
 from sentry.seer.autofix.utils import AutofixStoppingPoint, CodingAgentProviderType
+from sentry.seer.credits import OUT_OF_CREDITS
+from sentry.utils.strings import truncatechars
 
 if TYPE_CHECKING:
     from sentry.models.group import Group
@@ -58,6 +63,8 @@ class AutofixStageConfig(TypedDict):
     working_text: str
     completed_text: str
 
+
+SEER_AUTO_RELOAD_MODAL_FRAGMENT = "open-seer-auto-reload-modal"
 
 MAX_STEPS = 10
 MAX_CHANGES = 5
@@ -73,7 +80,7 @@ AUTOFIX_CONFIG: dict[AutofixStoppingPoint, AutofixStageConfig] = {
     AutofixStoppingPoint.ROOT_CAUSE: AutofixStageConfig(
         heading=":mag:  *Root Cause Analysis*",
         label="Fix with Seer",
-        working_text="Seer is peering into the void...",
+        working_text="Seer is peering into the void... Updates will appear in this thread.",
         completed_text="Seer's eye has seen the root cause",
     ),
     AutofixStoppingPoint.SOLUTION: AutofixStageConfig(
@@ -102,10 +109,13 @@ AUTOFIX_CONFIG: dict[AutofixStoppingPoint, AutofixStageConfig] = {
     sources=[
         NotificationSource.SEER_AUTOFIX_TRIGGER,
         NotificationSource.SEER_AUTOFIX_ERROR,
+        NotificationSource.SEER_AUTOFIX_STOPPED,
         NotificationSource.SEER_AUTOFIX_SUCCESS,
         NotificationSource.SEER_AUTOFIX_UPDATE,
+        NotificationSource.SEER_AUTOFIX_OUT_OF_CREDITS,
         NotificationSource.SEER_AGENT_RESPONSE,
         NotificationSource.SEER_AGENT_ERROR,
+        NotificationSource.SEER_AGENT_OUT_OF_CREDITS,
         NotificationSource.SEER_INVESTIGATION_STARTED,
         NotificationSource.SEER_INVESTIGATION_ERROR,
         NotificationSource.SEER_INVESTIGATION_STATUS,
@@ -129,8 +139,19 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
             )
         elif isinstance(data, SeerAutofixError):
             return cls._render_autofix_error(data)
+        elif isinstance(data, SeerAutofixStopped):
+            return SlackRenderable(
+                blocks=[
+                    SectionBlock(text="Seer stopped early"),
+                    cls._render_section(f">{data.reason}"),
+                    cls._render_section(f"*Suggestion:* {data.suggestion}"),
+                ],
+                text="Seer stopped early",
+            )
         elif isinstance(data, SeerAutofixUpdate):
             return cls._render_autofix_update(data, link_decorator)
+        elif isinstance(data, (SeerAutofixOutOfCredits, SeerAgentOutOfCredits)):
+            return cls._render_out_of_credits(data, link_decorator)
         elif isinstance(data, SeerAgentError):
             return cls._render_agent_error(data)
         elif isinstance(data, SeerAgentResponse):
@@ -145,6 +166,13 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
             return cls._render_investigation_conclusion(data, link_decorator)
         else:
             raise ValueError(f"SeerSlackRenderer does not support {data.__class__.__name__}")
+
+    @classmethod
+    def _render_section(cls, text: str) -> SectionBlock:
+        # Slack rejects blocks >3000 characters, truncate anything exceeding that
+        return SectionBlock(
+            text=MarkdownTextObject(text=truncatechars(text, SectionBlock.text_max_length))
+        )
 
     @classmethod
     def create_first_block_id(cls, group_id: int, run_id: int | None) -> str:
@@ -190,11 +218,55 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         )
 
     @classmethod
+    def _render_out_of_credits(
+        cls,
+        data: SeerAutofixOutOfCredits | SeerAgentOutOfCredits,
+        link_decorator: NotificationLinkDecorator,
+    ) -> SlackRenderable:
+        from sentry.integrations.slack.message_builder.routing import encode_action_id
+        from sentry.integrations.slack.message_builder.types import SlackAction
+        from sentry.models.organization import Organization
+
+        message = data.message
+        blocks: list[Block] = [SectionBlock(text=message)]
+
+        try:
+            organization = Organization.objects.get_from_cache(id=data.organization_id)
+        except Organization.DoesNotExist:
+            return SlackRenderable(blocks=blocks, text=message)
+
+        fragment = SEER_AUTO_RELOAD_MODAL_FRAGMENT
+        if data.denial_reason:
+            fragment += f":{data.denial_reason}"
+        blocks.append(
+            ActionsBlock(
+                elements=[
+                    ButtonElement(
+                        text="Configure auto-reload",
+                        style="primary",
+                        url=link_decorator.decorate_url(
+                            organization.absolute_url(
+                                f"/settings/{organization.slug}/billing/overview/",
+                                fragment=fragment,
+                            )
+                        ),
+                        action_id=encode_action_id(
+                            action=SlackAction.SEER_VIEW_BILLING.value,
+                            organization_id=data.organization_id,
+                            project_id=None,
+                        ),
+                    )
+                ]
+            )
+        )
+        return SlackRenderable(blocks=blocks, text=message)
+
+    @classmethod
     def _render_autofix_error(cls, data: SeerAutofixError) -> SlackRenderable:
         return SlackRenderable(
             blocks=[
-                SectionBlock(text=data.error_title),
-                SectionBlock(text=MarkdownTextObject(text=f">{data.error_message}")),
+                cls._render_section(data.error_title),
+                cls._render_section(f">{data.error_message}"),
             ],
             text=f"Seer stumbled: {data.error_title}",
         )
@@ -232,7 +304,7 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         ]
 
         if data.summary:
-            blocks.append(SectionBlock(text=MarkdownTextObject(text=data.summary)))
+            blocks.append(cls._render_section(data.summary))
         if data.reasoning:
             if data.reasoning_header:
                 blocks.append(
@@ -257,24 +329,27 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
 
                 if change.get("description"):
                     change_mrkdwn.append(f"{change['description']}")
-                if change.get("diff"):
-                    change_mrkdwn.append(f"```{change['diff']}```")
-                blocks.append(SectionBlock(text=MarkdownTextObject(text="\n".join(change_mrkdwn))))
-        if data.pull_requests:
-            action_id = encode_action_id(
-                action=SlackAction.SEER_AUTOFIX_VIEW_PR.value,
-                organization_id=data.organization_id,
-                project_id=data.project_id,
-            )
-            for pr in data.pull_requests[:MAX_PRS]:
-                action_elements.append(
-                    LinkButtonElement(
-                        text=f"View PR (#{pr['pr_number']})",
-                        style="primary",
-                        url=link_decorator.decorate_url(pr["pr_url"]),
-                        action_id=f"{action_id}::{pr['pr_number']}",
-                    )
+                text = "\n".join(change_mrkdwn)
+                if diff := change.get("diff"):
+                    # Cut the diff, not the fence, so the code block stays closed.
+                    max_diff_length = SectionBlock.text_max_length - len(text) - len("\n``````")
+                    if max_diff_length >= len("..."):
+                        text += f"\n```{truncatechars(diff, max_diff_length)}```"
+                blocks.append(cls._render_section(text))
+        for pr in data.pull_requests[:MAX_PRS]:
+            action_elements.append(
+                LinkButtonElement(
+                    text=f"View PR (#{pr['pr_number']})",
+                    style="primary",
+                    url=link_decorator.decorate_url(pr["pr_url"]),
+                    action_id=encode_action_id(
+                        action=SlackAction.SEER_AUTOFIX_VIEW_PR.value,
+                        organization_id=data.organization_id,
+                        project_id=data.project_id,
+                        suffix=str(pr["pr_number"]),
+                    ),
                 )
+            )
 
         if action_elements:
             blocks.append(ActionsBlock(elements=action_elements))
@@ -285,24 +360,28 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
     def _render_agent_error(cls, data: SeerAgentError) -> SlackRenderable:
         return SlackRenderable(
             blocks=[
-                SectionBlock(text=data.error_title),
-                SectionBlock(text=MarkdownTextObject(text=f">{data.error_message}")),
+                cls._render_section(data.error_title),
+                cls._render_section(f">{data.error_message}"),
             ],
             text=f"Seer stumbled: {data.error_title}",
         )
 
     @classmethod
     def _render_investigation_started(cls, data: SeerInvestigationStarted) -> SlackRenderable:
-        text = f"<@{data.slack_user_id}> started a Seer investigation for this alert."
+        text = (
+            f"<@{data.slack_user_id}> started a Seer investigation for this alert."
+            if data.slack_user_id
+            else "Sentry started a Seer investigation for this alert."
+        )
         return SlackRenderable(blocks=[MarkdownBlock(text=text)], text=text)
 
     @classmethod
     def render_investigation_link_button(
-        cls, data: SeerInvestigationStarted, link_decorator: NotificationLinkDecorator
+        cls, investigation_url: str, link_decorator: NotificationLinkDecorator
     ) -> ButtonElement:
         return ButtonElement(
             text="Open investigation",
-            url=link_decorator.decorate_url(data.investigation_url),
+            url=link_decorator.decorate_url(investigation_url),
             value="link_clicked",
         )
 
@@ -341,7 +420,7 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         if data.subtitle:
             header += f"\n{escape_slack_text(data.subtitle)}"
         bold = RichTextElementParts.TextStyle(bold=True)
-        blocks: list[Block] = [SectionBlock(text=MarkdownTextObject(text=header))]
+        blocks: list[Block] = [cls._render_section(header)]
         for index, hypothesis in enumerate(data.hypotheses, start=1):
             quote = RichTextQuoteElement(
                 elements=[
@@ -379,13 +458,13 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         text = f"*{escape_slack_text(data.summary)}*"
         if data.summary_description:
             text += f"\n{escape_slack_text(data.summary_description)}"
-        blocks: list[Block] = [SectionBlock(text=MarkdownTextObject(text=text))]
+        blocks: list[Block] = [cls._render_section(text)]
         if data.next_step:
             next_step = (
                 f"*Suggested next step:* {escape_slack_text(data.next_step['title'])}\n"
                 f"{escape_slack_text(data.next_step['rationale'])}"
             )
-            blocks.append(SectionBlock(text=MarkdownTextObject(text=next_step)))
+            blocks.append(cls._render_section(next_step))
         blocks.append(DividerBlock())
         blocks.append(
             ActionsBlock(
@@ -453,6 +532,8 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
                 return (
                     f"Updating {pr_text}..." if pr.pr_number else f"Creating a PR in {repo_text}..."
                 )
+            case "error" if pr.pr_creation_error_code == OUT_OF_CREDITS:
+                return f"Couldn't push to {pr_text}: your organization does not have enough Seer credits"
             case "error":
                 return f"Latest push failed for {pr_text}"
             case "completed":

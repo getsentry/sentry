@@ -2,6 +2,7 @@ import {useMemo, useState} from 'react';
 
 import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
 import {
+  isSingleRunAutofix,
   type AutofixExplorerStep,
   type AutofixSection,
   type useExplorerAutofix,
@@ -32,21 +33,24 @@ export function useResetAutofixStep({
     Object.values(autofix.runState?.coding_agents ?? {}).length === 0;
   const defaultCanReset = notProcessing && noPRs && noCodingAgents;
 
-  const isResetEligible = canReset ?? defaultCanReset;
+  const isResetEligible = !isSingleRunAutofix(runState) && (canReset ?? defaultCanReset);
 
   const handleReset = useMemo(() => {
     return async (userContext?: string) => {
       // Dismiss the reset UI before kicking off the run so it doesn't reappear
       // once the run completes (during processing the loading view takes over).
+      const wasShowingReset = shouldShowReset;
       setShouldShowReset(false);
       try {
         await startStep(step, {runId, userContext, insertIndex: section.index});
       } catch {
-        // startStep already reports why the request failed.
-        setShouldShowReset(true);
+        // startStep already reports why the request failed. Re-runs also start
+        // from buttons outside the prompt, such as the out-of-credits Re-run,
+        // so only bring the prompt back if it was open.
+        setShouldShowReset(wasShowingReset);
       }
     };
-  }, [startStep, step, runId, section.index]);
+  }, [shouldShowReset, startStep, step, runId, section.index]);
 
   return {
     canReset:

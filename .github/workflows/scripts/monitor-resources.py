@@ -15,6 +15,10 @@ Each shard writes `.artifacts/resource-usage.jsonl` (one sample per line) and
 Each sample also attributes CPU to process groups: docker containers by name,
 xdist workers, the pytest controller, and other host processes by command name.
 CPU that exited between samples shows up as `unattributed`.
+
+Steps can name the phase the job is in with `--phase NAME` (`setup` until the
+first one). The sampler takes a sample as soon as the phase changes, so each
+sample, and the summary's `cpu_s_by_phase`, covers exactly one phase.
 """
 
 from __future__ import annotations
@@ -28,6 +32,7 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+from typing import Any
 
 INTERVAL_S = 5.0
 STOP_TIMEOUT_S = 30
@@ -36,6 +41,9 @@ STATE_DIR = Path(os.environ.get("RUNNER_TEMP", "/tmp")) / "resource-monitor"
 PID_FILE = STATE_DIR / "pid"
 STOP_FILE = STATE_DIR / "stop"
 LOG_FILE = STATE_DIR / "log"
+PHASE_FILE = STATE_DIR / "phase"
+DEFAULT_PHASE = "setup"
+PHASE_POLL_S = 0.5
 
 CPU_HEADROOM_P95 = 75.0
 CPU_HEADROOM_MAX = 90.0
@@ -360,6 +368,25 @@ def cpu_s_by_group(samples: list[dict]) -> dict[str, float]:
     return {k: round(v, 1) for k, v in sorted(totals.items(), key=lambda kv: -kv[1])}
 
 
+def cpu_s_by_phase(samples: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    by_phase: dict[str, list[dict[str, Any]]] = {}
+    durations: dict[str, float] = {}
+    prev_ts = None
+    for s in samples:
+        phase = s.get("phase", DEFAULT_PHASE)
+        by_phase.setdefault(phase, []).append(s)
+        if prev_ts is not None:
+            durations[phase] = durations.get(phase, 0.0) + s["ts"] - prev_ts
+        prev_ts = s["ts"]
+    return {
+        phase: {
+            "duration_s": round(durations.get(phase, 0.0), 1),
+            "cpu_s_by_group": cpu_s_by_group(phase_samples),
+        }
+        for phase, phase_samples in by_phase.items()
+    }
+
+
 def summarize(samples: list[dict]) -> dict:
     cpus = [s["cpu_pct"] for s in samples if "cpu_pct" in s]
     mems = [s["mem_used_pct"] for s in samples if "mem_used_pct" in s]
@@ -416,6 +443,7 @@ def summarize(samples: list[dict]) -> dict:
         "cpu_s_by_group_during_tests": cpu_s_by_group(
             [s for s in samples if "pytest:worker" in s.get("cpu_s_by_group", {})]
         ),
+        "cpu_s_by_phase": cpu_s_by_phase(samples),
         "headroom": {
             "cpu": cpu_verdict,
             "memory": mem_verdict,
@@ -425,23 +453,48 @@ def summarize(samples: list[dict]) -> dict:
     return summary
 
 
+def read_phase() -> str:
+    try:
+        return PHASE_FILE.read_text().strip() or DEFAULT_PHASE
+    except OSError:
+        return DEFAULT_PHASE
+
+
+def set_phase(phase: str) -> None:
+    STATE_DIR.mkdir(parents=True, exist_ok=True)
+    tmp = PHASE_FILE.with_suffix(".tmp")
+    tmp.write_text(phase)
+    tmp.replace(PHASE_FILE)
+
+
+def wait_for_next_sample(phase: str, interval: float) -> str:
+    """Waits out the interval, or until the phase changes. Returns the phase."""
+    deadline = time.monotonic() + interval
+    while (current := read_phase()) == phase and time.monotonic() < deadline:
+        time.sleep(min(PHASE_POLL_S, interval))
+    return current
+
+
 def run_sampler(output: Path, interval: float) -> None:
     output.parent.mkdir(parents=True, exist_ok=True)
     tracker = ProcessCpuTracker()
     tracker.sample()
     prev_cpu = read_cpu_times()
+    phase = read_phase()
     with open(output, "a") as f:
         while not STOP_FILE.exists():
-            time.sleep(interval)
+            next_phase = wait_for_next_sample(phase, interval)
             entry, prev_cpu = sample(prev_cpu, tracker)
             if len(entry) > 1:
+                entry["phase"] = phase
                 f.write(json.dumps(entry) + "\n")
                 f.flush()
+            phase = next_phase
 
 
 def start_background(output: Path, interval: float) -> None:
     STATE_DIR.mkdir(parents=True, exist_ok=True)
-    for stale in (PID_FILE, STOP_FILE):
+    for stale in (PID_FILE, STOP_FILE, PHASE_FILE):
         try:
             stale.unlink()
         except OSError:
@@ -514,6 +567,12 @@ def stop_background(output: Path, summary_path: Path | None) -> int:
     print(line)
     top = list(summary["cpu_s_by_group_during_tests"].items())[:10]
     print("cpu-seconds during tests: " + ", ".join(f"{k}={v}" for k, v in top))
+    for phase, usage in summary["cpu_s_by_phase"].items():
+        top = list(usage["cpu_s_by_group"].items())[:5]
+        print(
+            f"cpu-seconds in phase {phase} ({usage['duration_s']}s): "
+            + ", ".join(f"{k}={v}" for k, v in top)
+        )
     if step_summary := os.environ.get("GITHUB_STEP_SUMMARY"):
         with open(step_summary, "a") as f:
             f.write(f"### Resource usage ({summary['samples']} samples)\n\n")
@@ -532,16 +591,19 @@ def main() -> int:
     parser.add_argument("--start", action="store_true")
     parser.add_argument("--stop", action="store_true")
     parser.add_argument("--run-background", action="store_true")
+    parser.add_argument("--phase", help="attribute the following samples to this phase")
     args = parser.parse_args()
 
-    if args.start:
+    if args.phase:
+        set_phase(args.phase)
+    elif args.start:
         start_background(args.output, args.interval)
     elif args.run_background:
         run_background(args.output, args.interval)
     elif args.stop:
         stop_background(args.output, args.summary)
     else:
-        parser.error("expected one of --start, --stop, --run-background")
+        parser.error("expected one of --start, --stop, --run-background, --phase")
     return 0
 
 

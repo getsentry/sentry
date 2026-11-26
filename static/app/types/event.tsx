@@ -2,6 +2,8 @@ import type {CloudResourceContext} from '@sentry/core';
 
 import type {AppContext} from 'sentry/components/events/contexts/knownContext/app';
 import type {CultureContext} from 'sentry/components/events/contexts/knownContext/culture';
+import type {GPUContext} from 'sentry/components/events/contexts/knownContext/gpu';
+import type {GPUCrashContext} from 'sentry/components/events/contexts/knownContext/gpuCrash';
 import type {MissingInstrumentationContext} from 'sentry/components/events/contexts/knownContext/missingInstrumentation';
 import type {WERContext} from 'sentry/components/events/contexts/knownContext/wer';
 import type {
@@ -178,6 +180,7 @@ export type Frame = {
   trust: any | null;
   vars: Record<string, any> | null;
   addrMode?: string;
+  fileRevision?: string | null;
   lock?: Lock | null;
   // map exists if the frame has a source map
   map?: string | null;
@@ -272,45 +275,20 @@ export type EntryDebugMeta = {
   type: EntryType.DEBUGMETA;
 };
 
-export type EntryBreadcrumbs = {
-  data: {
-    values: RawCrumb[];
-  };
-  type: EntryType.BREADCRUMBS;
-};
+export type EntryBreadcrumbs = {data: {values: RawCrumb[]}; type: EntryType.BREADCRUMBS};
 
-export type EntryThreads = {
-  data: {
-    values?: Thread[];
-  };
-  type: EntryType.THREADS;
-};
+export type EntryThreads = {data: {values?: Thread[]}; type: EntryType.THREADS};
 
-export type EntryException = {
-  data: ExceptionType;
-  type: EntryType.EXCEPTION;
-};
+export type EntryException = {data: ExceptionType; type: EntryType.EXCEPTION};
 
-export type EntryStacktrace = {
-  data: StacktraceType;
-  type: EntryType.STACKTRACE;
-};
+export type EntryStacktrace = {data: StacktraceType; type: EntryType.STACKTRACE};
 
-export type EntrySpans = {
-  data: RawSpanType[];
-  type: EntryType.SPANS;
-};
+export type EntrySpans = {data: RawSpanType[]; type: EntryType.SPANS};
 
-type AggregateEntrySpans = {
-  data: AggregateSpanType[];
-  type: EntryType.SPANS;
-};
+type AggregateEntrySpans = {data: AggregateSpanType[]; type: EntryType.SPANS};
 
 type EntryMessage = {
-  data: {
-    formatted: string;
-    params?: Record<string, any> | any[];
-  };
+  data: {formatted: string; params?: Record<string, any> | any[]};
   type: EntryType.MESSAGE;
 };
 
@@ -348,15 +326,9 @@ export type EntryRequest = {
   type: EntryType.REQUEST;
 };
 
-type EntryTemplate = {
-  data: Frame;
-  type: EntryType.TEMPLATE;
-};
+type EntryTemplate = {data: Frame; type: EntryType.TEMPLATE};
 
-type EntryCsp = {
-  data: Record<string, any>;
-  type: EntryType.CSP;
-};
+type EntryCsp = {data: Record<string, any>; type: EntryType.CSP};
 
 type EntryResources = {
   data: any; // Data is unused here
@@ -514,6 +486,25 @@ type OSContext = {
   name: string;
   type: string;
   version: string;
+  raw_description?: string;
+};
+
+type UnrealContext = {
+  build_config?: string;
+  build_version?: string;
+  cpu_brand?: string;
+  crash_type?: string;
+  engine_mode?: string;
+  engine_version?: string;
+  error_message?: string;
+  game?: string;
+  is_assert?: boolean;
+  is_ensure?: boolean;
+  is_stall?: boolean;
+  os?: string;
+  platform?: string;
+  seconds_since_start?: number | string;
+  total_ram_gb?: number | string;
 };
 
 enum OtelContextKey {
@@ -608,9 +599,7 @@ export interface ThreadPoolInfoContext {
   [ThreadPoolInfoContextKey.AVAILABLE_COMPLETION_PORT_THREADS]: number;
 }
 
-type MetricAlertContextType = {
-  alert_rule_id?: string;
-};
+type MetricAlertContextType = {alert_rule_id?: string};
 
 export enum ProfileContextKey {
   PROFILE_ID = 'profile_id',
@@ -635,6 +624,26 @@ interface BrowserContext {
   version: string;
 }
 
+/**
+ * Added by Relay when it rate limits attachments of the event.
+ */
+interface AttachmentsContext {
+  rate_limited?: Array<{
+    /**
+     * The reason code of the quota that rate limited the attachment, for example `attachment_usage_exceeded`.
+     */
+    reason_code?: string | null;
+    /**
+     * The attachment type, for example `event.minidump`.
+     */
+    type?: string | null;
+  } | null> | null;
+  /**
+   * Sentry stores contexts it doesn't know as `default`.
+   */
+  type?: string;
+}
+
 interface ResponseContext {
   data: unknown;
   type: 'response';
@@ -649,6 +658,7 @@ export type EventContexts = {
   'Memory Info'?: MemoryInfoContext;
   'ThreadPool Info'?: ThreadPoolInfoContext;
   app?: AppContext;
+  attachments?: AttachmentsContext;
   browser?: BrowserContext;
   client_os?: OSContext;
   cloud_resource?: CloudResourceContext;
@@ -656,7 +666,8 @@ export type EventContexts = {
   device?: DeviceContext;
   feedback?: Record<string, any>;
   flags?: Flags;
-  gpu_crash?: Record<string, any>;
+  gpu?: GPUContext;
+  gpu_crash?: GPUCrashContext;
   memory_info?: MemoryInfoContext;
   metric_alert?: MetricAlertContextType;
   missing_instrumentation?: MissingInstrumentationContext;
@@ -672,6 +683,7 @@ export type EventContexts = {
   threadpool_info?: ThreadPoolInfoContext;
   trace?: TraceContextType;
   unity?: UnityContext;
+  unreal?: UnrealContext;
   wer?: WERContext;
 };
 
@@ -683,23 +695,14 @@ export type EventTagWithMeta = EventTag & {meta?: Record<string, any>};
 type EventUser = {
   data?: string | null;
   email?: string;
-  geo?: {
-    city?: string;
-    country_code?: string;
-    region?: string;
-    subdivision?: string;
-  };
+  geo?: {city?: string; country_code?: string; region?: string; subdivision?: string};
   id?: string;
   ip_address?: string;
   name?: string | null;
   username?: string | null;
 };
 
-export type EventEvidenceDisplay = {
-  important: boolean;
-  name: string;
-  value: string;
-};
+export type EventEvidenceDisplay = {important: boolean; name: string; value: string};
 
 export type EventOccurrence = {
   detectionTime: string;
@@ -766,10 +769,7 @@ interface EventBase {
   endTimestamp?: number;
   formatted?: {content: string; format: string};
   groupID?: string;
-  groupingConfig?: {
-    enhancements: string;
-    id: string;
-  };
+  groupingConfig?: {enhancements: string; id: string};
   issueCategory?: IssueCategory;
   latestEventID?: string | null;
   measurements?: Record<string, Measurement>;
@@ -781,10 +781,7 @@ interface EventBase {
   projectSlug?: string;
   release?: EventRelease | null;
   resolvedWith?: string[];
-  sdk?: {
-    name: string | null;
-    version: string | null;
-  } | null;
+  sdk?: {name: string | null; version: string | null} | null;
   sdkUpdates?: SDKUpdatesSuggestion[];
   userReport?: UserReport | null;
 }

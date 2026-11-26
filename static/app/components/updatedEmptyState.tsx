@@ -1,5 +1,7 @@
 import {useEffect} from 'react';
 import {useTheme} from '@emotion/react';
+import {useStore} from 'zustand';
+import {useShallow} from 'zustand/react/shallow';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
@@ -11,7 +13,6 @@ import {Text} from '@sentry/scraps/text';
 import {allPlatforms as platforms} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {pulsingIndicatorStyles} from 'sentry/styles/pulsingIndicator';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -35,6 +36,7 @@ import {StepTitles} from './onboarding/gettingStartedDoc/step';
 import type {DocsParams, OnboardingStep} from './onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from './onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from './onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
+import {PeekingBug} from './peekingBug/peekingBug';
 
 export function SetupTitle({project}: {project: Project}) {
   return (
@@ -52,31 +54,29 @@ export function SetupTitle({project}: {project: Project}) {
 
 function WaitingIndicator({project}: {project: Project}) {
   const organization = useOrganization();
-  const firstIssue = useEventWaiter({
-    eventType: 'error',
-    organization,
-    project,
-  });
+  const firstIssue = useEventWaiter({eventType: 'error', organization, project});
 
   if (!firstIssue) {
     return <EventWaitingIndicator />;
   }
 
   return (
-    <LinkButton
-      onClick={() =>
-        trackAnalytics('growth.onboarding_take_to_error', {
-          organization,
-          platform: project.platform,
-        })
-      }
-      to={`/organizations/${organization.slug}/issues/${
-        firstIssue !== true && 'id' in firstIssue ? `${firstIssue.id}/` : ''
-      }?referrer=onboarding-first-event-indicator`}
-      variant="primary"
-    >
-      {t('Take me to my error')}
-    </LinkButton>
+    <PeekingBug>
+      <LinkButton
+        onClick={() =>
+          trackAnalytics('growth.onboarding_take_to_error', {
+            organization,
+            platform: project.platform,
+          })
+        }
+        to={`/organizations/${organization.slug}/issues/${
+          firstIssue !== true && 'id' in firstIssue ? `${firstIssue.id}/` : ''
+        }?referrer=onboarding-first-event-indicator`}
+        variant="primary"
+      >
+        {t('Take me to my error')}
+      </LinkButton>
+    </PeekingBug>
   );
 }
 
@@ -90,7 +90,10 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
   const {isPending: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
 
-  const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
+  const {isSelfHosted, urlPrefix} = useStore(
+    ConfigStore,
+    useShallow(state => ({isSelfHosted: state.isSelfHosted, urlPrefix: state.urlPrefix}))
+  );
 
   const currentPlatformKey = project?.platform ?? 'other';
   const currentPlatform = platforms.find(p => p.id === currentPlatformKey)!;
@@ -133,10 +136,7 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
     isPerformanceSelected: false,
     isProfilingSelected: false,
     isReplaySelected: false,
-    sourcePackageRegistries: {
-      isLoading: isLoadingRegistry,
-      data: registryData,
-    },
+    sourcePackageRegistries: {isLoading: isLoadingRegistry, data: registryData},
     platformOptions: {installationMode: 'auto'},
     replayOptions: {block: true, mask: true},
     isSelfHosted,
@@ -144,10 +144,7 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
   };
 
   if (currentPlatformKey === 'java' || currentPlatformKey === 'java-spring-boot') {
-    docParams.platformOptions = {
-      ...docParams.platformOptions,
-      packageManager: 'gradle',
-    };
+    docParams.platformOptions = {...docParams.platformOptions, packageManager: 'gradle'};
   }
 
   if (currentPlatformKey === 'javascript') {
@@ -212,10 +209,7 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
                 onStepChange={step => {
                   navigate({
                     pathname: location.pathname,
-                    query: {
-                      ...location.query,
-                      guidedStep: step,
-                    },
+                    query: {...location.query, guidedStep: step},
                   });
                 }}
               >

@@ -20,8 +20,71 @@ describe('javascript-react onboarding docs', () => {
 
     // Includes import statement
     expect(
-      screen.getByText(textWithMarkupMatcher(/import \* as Sentry from "@sentry\/react"/))
+      screen.getAllByText(
+        textWithMarkupMatcher(/import \* as Sentry from "@sentry\/react"/)
+      )[0]
     ).toBeInTheDocument();
+  });
+
+  it('initializes Sentry in instrument.js and imports it first in the entry point', () => {
+    renderWithOnboardingLayout(docs);
+
+    expect(
+      screen.getByText('instrument.js', {selector: '*:not(code)'})
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher(/^\/\/.*\nimport "\.\/instrument";/))
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher(/import \{ createRoot \} from "react-dom\/client";/)
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher(/import App from "\.\/App";/))
+    ).toBeInTheDocument();
+  });
+
+  it('captures React errors with reactErrorHandler and ErrorBoundary', () => {
+    renderWithOnboardingLayout(docs);
+
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher(/onUncaughtError: Sentry\.reactErrorHandler\(/)
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher(/<Sentry\.ErrorBoundary fallback=/))
+    ).toBeInTheDocument();
+  });
+
+  it('keeps the init options indented and comma-separated', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [
+        ProductSolution.ERROR_MONITORING,
+        ProductSolution.PERFORMANCE_MONITORING,
+        ProductSolution.SESSION_REPLAY,
+        ProductSolution.PROFILING,
+      ],
+    });
+
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher(
+          /\n {2}integrations: \[\n {4}Sentry\.browserTracingIntegration\(\),\n/
+        )
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher(
+          /\n {2}replaysOnErrorSampleRate: 1\.0,\n {2}\/\/ Profiling\n/
+        )
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/transactions/))
+    ).not.toBeInTheDocument();
   });
 
   it('displays sample rates by default', () => {
@@ -83,6 +146,19 @@ describe('javascript-react onboarding docs', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByText(textWithMarkupMatcher(/profileSessionSampleRate: 1\.0/))
+    ).toBeInTheDocument();
+  });
+
+  it('tells the user to render ErrorButton in the verify step', () => {
+    renderWithOnboardingLayout(docs);
+
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher(/Render <ErrorButton \/> in one of your components/)
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher(/function ErrorButton\(\)/))
     ).toBeInTheDocument();
   });
 

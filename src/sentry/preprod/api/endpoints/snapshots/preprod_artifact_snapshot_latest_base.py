@@ -20,6 +20,7 @@ from sentry.api.bases.organization import (
 from sentry.api.helpers.projects import PROJECT_ID_OR_SLUG_SCHEMA
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.preprod_examples import PreprodExamples
+from sentry.apidocs.formats import iso_datetime
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
@@ -240,7 +241,7 @@ class OrganizationPreprodLatestBaseSnapshotEndpoint(OrganizationEndpoint):
             "image_count": snapshot_metrics.image_count,
             "images": images,
             "diff_threshold": manifest_diff_threshold,
-            "date_added": artifact.date_added.isoformat(),
+            "date_added": iso_datetime(artifact.date_added),
         }
 
         cc = artifact.commit_comparison

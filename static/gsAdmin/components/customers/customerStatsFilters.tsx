@@ -3,11 +3,11 @@ import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {DateTime} from '@sentry/scraps/dateTime';
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import type {DateTimeObject} from 'sentry/components/charts/utils';
-import {DateTime} from 'sentry/components/dateTime';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {
   TimeRangeSelector,
@@ -19,6 +19,8 @@ import {DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+
+import {billingCalendarDateToTimestamp} from 'getsentry/utils/billingCalendarDate';
 
 const ON_DEMAND_PERIOD_KEY = 'onDemand';
 
@@ -52,10 +54,7 @@ export function CustomerStatsFilters({
     }
 
     if (start && end) {
-      return {
-        start: moment.utc(start).format(),
-        end: moment.utc(end).format(),
-      };
+      return {start: moment.utc(start).format(), end: moment.utc(end).format()};
     }
 
     return {};
@@ -101,7 +100,22 @@ export function CustomerStatsFilters({
   const onDemandLabel = (
     <Fragment>
       On-Demand (
-      <DateTime date={onDemandPeriodStart} /> - <DateTime date={onDemandPeriodEnd} />)
+      {onDemandPeriodStart && (
+        <DateTime
+          date={billingCalendarDateToTimestamp(onDemandPeriodStart)}
+          timezone="UTC"
+          showTimezone={false}
+        />
+      )}{' '}
+      -{' '}
+      {onDemandPeriodEnd && (
+        <DateTime
+          date={billingCalendarDateToTimestamp(onDemandPeriodEnd)}
+          timezone="UTC"
+          showTimezone={false}
+        />
+      )}
+      )
     </Fragment>
   );
 
@@ -149,7 +163,7 @@ export function CustomerStatsFilters({
         }
         defaultPeriod={onDemand ? ON_DEMAND_PERIOD_KEY : '90d'}
         defaultAbsolute={
-          onDemand
+          onDemandPeriodStart && onDemandPeriodEnd
             ? {
                 start: moment(onDemandPeriodStart).toDate(),
                 end: moment(onDemandPeriodEnd).toDate(),

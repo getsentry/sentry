@@ -41,7 +41,7 @@ describe('traceWaterfall embed', () => {
 
     expect(
       await screen.findByText(
-        /We were unable to find any spans for this trace/,
+        /We couldn't find any spans for this trace/,
         {},
         {timeout: 10_000}
       )
@@ -91,15 +91,11 @@ describe('traceWaterfall embed', () => {
     );
     expect(traceRequest).toHaveBeenCalledWith(
       expect.anything(),
-      expect.objectContaining({
-        query: expect.not.objectContaining({limit: 5}),
-      })
+      expect.objectContaining({query: expect.not.objectContaining({limit: 5})})
     );
     expect(traceRequest).toHaveBeenCalledWith(
       expect.anything(),
-      expect.objectContaining({
-        query: expect.not.objectContaining({statsPeriod: '90d'}),
-      })
+      expect.objectContaining({query: expect.not.objectContaining({statsPeriod: '90d'})})
     );
   });
 

@@ -99,16 +99,14 @@ function copySavedFilters(target: DashboardDetails, source: DashboardDetails): v
     target.filters?.globalFilter ?? [],
     sourceFilters.globalFilter ?? []
   );
-  target.filters = {
-    ...sourceFilters,
-    globalFilter: mergedGlobalFilter,
-  };
+  target.filters = {...sourceFilters, globalFilter: mergedGlobalFilter};
   target.projects = source.projects;
   target.environment = source.environment;
   target.period = source.period;
   target.start = source.start;
   target.end = source.end;
   target.utc = source.utc;
+  target.queryPriority = source.queryPriority;
 }
 
 /**

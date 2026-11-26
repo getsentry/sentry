@@ -5,13 +5,14 @@ from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
 from enum import Enum
-from typing import Annotated, Any, TypedDict, cast
+from typing import Annotated, Any, Literal, NotRequired, TypedDict, cast
 
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register
 from sentry.apidocs.descriptions import ApiDescription
+from sentry.apidocs.formats import HexId, NumericId, hex_id, numeric_id
 from sentry.app import env
 from sentry.auth.elevated_mode import has_elevated_mode
 from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
@@ -21,6 +22,12 @@ from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.organizations.services.organization import RpcOrganizationSummary
+from sentry.users.api.parsers.display_preference import (
+    DefaultIssueEvent,
+    Theme,
+    ThemeVariantDark,
+    coerce_theme_variant_dark,
+)
 from sentry.users.models.authenticator import Authenticator
 from sentry.users.models.user import User
 from sentry.users.models.user_avatar import UserAvatar
@@ -31,12 +38,14 @@ from sentry.users.services.user import RpcUser
 from sentry.utils.avatar import get_gravatar_url
 from sentry.utils.serializers import manytoone_to_dict
 
+# The names of the avatar type choices of users, organizations and teams, as
+# get_avatar_type_display() returns them.
+AvatarTypeName = Literal["letter_avatar", "upload", "gravatar"]
+
 
 class SerializedAvatarFields(TypedDict, total=False):
-    avatarType: Annotated[
-        str, ApiDescription("Avatar type, such as letter_avatar, upload or gravatar")
-    ]
-    avatarUuid: Annotated[str | None, ApiDescription("ID of the uploaded avatar image, or null")]
+    avatarType: Annotated[AvatarTypeName, ApiDescription("Avatar type")]
+    avatarUuid: Annotated[HexId | None, ApiDescription("ID of the uploaded avatar image, or null")]
     avatarUrl: Annotated[
         str | None, ApiDescription("URL of the avatar image, or null if none is set")
     ]
@@ -83,13 +92,40 @@ class _SerializedStacktraceOrder(int, Enum):
 
 
 class _UserOptions(TypedDict):
-    theme: str  # TODO: enum/literal for theme options
-    language: str
-    stacktraceOrder: _SerializedStacktraceOrder
-    defaultIssueEvent: str
-    timezone: str
-    clock24Hours: bool
-    prefersIssueDetailsStreamlinedUI: bool | None
+    theme: Annotated[
+        Theme, ApiDescription('UI theme: "light", "dark" or "system". Defaults to "system"')
+    ]
+    themeVariantDark: Annotated[
+        ThemeVariantDark,
+        ApiDescription("Palette used in dark mode. Defaults to `default`"),
+    ]
+    language: Annotated[str, ApiDescription("UI language code, such as `en`")]
+    stacktraceOrder: Annotated[
+        _SerializedStacktraceOrder,
+        ApiDescription(
+            "Stack trace frame order: -1 for the default (most recent first), 1 for most recent last, 2 for most recent first"
+        ),
+    ]
+    defaultIssueEvent: Annotated[
+        DefaultIssueEvent,
+        ApiDescription(
+            'Event shown by default on issue details: "recommended", "latest" or "oldest"'
+        ),
+    ]
+    timezone: Annotated[str, ApiDescription("Time zone for displayed dates, such as `UTC`")]
+    clock24Hours: Annotated[bool, ApiDescription("Whether times are shown in 24-hour format")]
+    prefersIssueDetailsStreamlinedUI: Annotated[
+        bool | None,
+        ApiDescription(
+            "Whether the user prefers the streamlined issue details UI, or null if they haven't chosen"
+        ),
+    ]
+
+
+class _UserFlags(TypedDict):
+    newsletter_consent_prompt: Annotated[
+        bool, ApiDescription("Whether to ask the user for newsletter consent")
+    ]
 
 
 class _AuthenticatorSerializerResponse(TypedDict):
@@ -129,7 +165,7 @@ class UserSerializerResponseOptional(TypedDict, total=False):
 
 
 class UserSerializerResponse(UserSerializerResponseOptional):
-    id: Annotated[str, ApiDescription("User ID")]
+    id: Annotated[NumericId, ApiDescription("User ID")]
     name: Annotated[
         str,
         ApiDescription(
@@ -168,8 +204,8 @@ class UserSerializerResponse(UserSerializerResponseOptional):
 
 
 class UserSerializerResponseSelf(UserSerializerResponse):
-    options: _UserOptions
-    flags: Any  # TODO
+    options: Annotated[_UserOptions, ApiDescription("Preferences of the user")]
+    flags: Annotated[_UserFlags, ApiDescription("Account flags of the user")]
 
 
 @register(User)
@@ -225,7 +261,7 @@ class UserSerializer(Serializer):
         **kwargs: Any,
     ) -> UserSerializerResponse | UserSerializerResponseSelf:
         d: UserSerializerResponse = {
-            "id": str(obj.id),
+            "id": numeric_id(obj.id),
             "name": obj.get_display_name(),
             "username": obj.username,
             "email": obj.email,
@@ -270,6 +306,7 @@ class UserSerializer(Serializer):
 
             d["options"] = {
                 "theme": options.get("theme") or "system",
+                "themeVariantDark": coerce_theme_variant_dark(options.get("theme_variant_dark")),
                 "language": options.get("language") or settings.SENTRY_DEFAULT_LANGUAGE,
                 "stacktraceOrder": stacktrace_order,
                 "defaultIssueEvent": options.get("default_issue_event") or "recommended",
@@ -285,7 +322,9 @@ class UserSerializer(Serializer):
         if attrs.get("avatar"):
             avatar: SerializedAvatarFields = {
                 "avatarType": attrs["avatar"].get_avatar_type_display(),
-                "avatarUuid": attrs["avatar"].ident if attrs["avatar"].get_file_id() else None,
+                "avatarUuid": (
+                    hex_id(attrs["avatar"].ident) if attrs["avatar"].get_file_id() else None
+                ),
                 "avatarUrl": attrs["avatar"].absolute_url(),
             }
         else:
@@ -391,7 +430,24 @@ class DetailedUserSerializer(UserSerializer):
 
 
 class DetailedSelfUserSerializerResponse(UserSerializerResponse):
-    permissions: Sequence[str]
+    permissions: Annotated[
+        Sequence[str],
+        ApiDescription(
+            "Sentry staff permissions granted to the user, such as users.admin. Empty for most users"
+        ),
+    ]
+    options: NotRequired[
+        Annotated[
+            _UserOptions,
+            ApiDescription("The user's preferences. Only included for the requesting user"),
+        ]
+    ]
+    flags: NotRequired[
+        Annotated[
+            _UserFlags,
+            ApiDescription("Account flags. Only included for the requesting user"),
+        ]
+    ]
 
 
 class UserSerializerWithOrgMembershipsResponse(UserSerializerResponse):

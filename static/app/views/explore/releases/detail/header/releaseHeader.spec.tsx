@@ -1,10 +1,12 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 import {ReleaseFixture} from 'sentry-fixture/release';
 import {ReleaseMetaFixture} from 'sentry-fixture/releaseMeta';
 import {ReleaseProjectFixture} from 'sentry-fixture/releaseProject';
 
 import {
+  act,
   render,
   renderGlobalModal,
   screen,
@@ -14,6 +16,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import type {RouterConfig} from 'sentry-test/reactTestingLibrary';
 
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Release, ReleaseProject} from 'sentry/types/release';
 import {ReleaseStatus} from 'sentry/types/release';
 import {TopBar} from 'sentry/views/navigation/topBar';
@@ -30,6 +33,16 @@ describe('ReleaseHeader', () => {
   }) as Required<ReleaseProject>;
 
   const releaseMeta = ReleaseMetaFixture({projects: [project]});
+
+  beforeEach(() => {
+    ProjectsStore.loadInitialData([
+      ProjectFixture({id: String(project.id), slug: project.slug}),
+    ]);
+  });
+
+  afterEach(() => {
+    act(() => ProjectsStore.reset());
+  });
 
   function renderHeader({
     org = organization,
@@ -126,9 +139,7 @@ describe('ReleaseHeader', () => {
     });
 
     it('copies the release version from the menu rather than a standalone button', async () => {
-      Object.assign(navigator, {
-        clipboard: {writeText: jest.fn().mockResolvedValue('')},
-      });
+      Object.assign(navigator, {clipboard: {writeText: jest.fn().mockResolvedValue('')}});
       const release = ReleaseFixture({version: '0c7d1730b1b1', projects: [project]});
       renderHeader({release});
 
@@ -213,6 +224,130 @@ describe('ReleaseHeader', () => {
         })
       );
       await waitFor(() => expect(refetchData).toHaveBeenCalledTimes(1));
+    });
+
+    describe('add inbound filter', () => {
+      const filterOrg = OrganizationFixture({
+        features: [
+          'inbound-filters-v2',
+          'inbound-filters-v2-ui',
+          'inbound-filters-in-product-flows',
+        ],
+        access: [...organization.access, 'project:write'],
+      });
+      const createUrl = `/projects/${filterOrg.slug}/${project.slug}/custom-inbound-filters/`;
+
+      beforeEach(() => {
+        ProjectsStore.loadInitialData([
+          ProjectFixture({
+            id: String(project.id),
+            slug: project.slug,
+            features: ['custom-inbound-filters'],
+          }),
+        ]);
+      });
+
+      it('opens the filter modal drafted from the release and saves it', async () => {
+        const createMock = MockApiClient.addMockResponse({
+          url: createUrl,
+          method: 'POST',
+          body: {},
+        });
+        const release = ReleaseFixture({version: '0c7d1730b1b1', projects: [project]});
+        renderHeader({org: filterOrg, release});
+        renderGlobalModal({organization: filterOrg});
+
+        await userEvent.click(screen.getByRole('button', {name: 'Release Actions'}));
+        expect(screen.getAllByRole('menuitemradio').map(el => el.textContent)).toEqual([
+          'Copy release version to clipboard',
+          'Add Inbound Filter for this release',
+          'Archive',
+        ]);
+        await userEvent.click(
+          screen.getByRole('menuitemradio', {name: 'Add Inbound Filter for this release'})
+        );
+
+        const modal = await screen.findByRole('dialog');
+        expect(within(modal).getByText('Create Custom Filter')).toBeInTheDocument();
+        expect(within(modal).getByRole('textbox', {name: 'Name'})).toHaveValue(
+          'Release 0c7d1730b1b1'
+        );
+        expect(
+          within(modal).getByRole('row', {name: 'release:0c7d1730b1b1'})
+        ).toBeInTheDocument();
+
+        await userEvent.click(within(modal).getByRole('button', {name: 'Create Filter'}));
+
+        await waitFor(() => expect(createMock).toHaveBeenCalledTimes(1));
+        expect(createMock.mock.calls[0][1].data).toEqual({
+          name: 'Release 0c7d1730b1b1',
+          dataType: 'all',
+          conditions: [{type: 'release', operator: 'equals', value: ['0c7d1730b1b1']}],
+        });
+      });
+
+      it('offers the action for an archived release', async () => {
+        const release = ReleaseFixture({
+          projects: [project],
+          status: ReleaseStatus.ARCHIVED,
+        });
+        renderHeader({org: filterOrg, release});
+
+        await userEvent.click(screen.getByRole('button', {name: 'Release Actions'}));
+        expect(screen.getAllByRole('menuitemradio').map(el => el.textContent)).toEqual([
+          'Copy release version to clipboard',
+          'Add Inbound Filter for this release',
+          'Restore',
+        ]);
+      });
+
+      it('hides the action without the in-product flows feature flag', async () => {
+        const release = ReleaseFixture({projects: [project]});
+        renderHeader({
+          org: OrganizationFixture({
+            ...filterOrg,
+            features: ['inbound-filters-v2', 'inbound-filters-v2-ui'],
+          }),
+          release,
+        });
+
+        await userEvent.click(screen.getByRole('button', {name: 'Release Actions'}));
+        expect(
+          screen.queryByRole('menuitemradio', {
+            name: 'Add Inbound Filter for this release',
+          })
+        ).not.toBeInTheDocument();
+      });
+
+      it('fetches the selected project when the store does not have it', async () => {
+        ProjectsStore.loadInitialData([]);
+        const projectsMock = MockApiClient.addMockResponse({
+          url: `/organizations/${filterOrg.slug}/projects/`,
+          body: [
+            ProjectFixture({
+              id: String(project.id),
+              slug: project.slug,
+              features: ['custom-inbound-filters'],
+            }),
+          ],
+        });
+        const release = ReleaseFixture({projects: [project]});
+        renderHeader({org: filterOrg, release});
+
+        await waitFor(() => expect(projectsMock).toHaveBeenCalledTimes(1));
+        expect(projectsMock).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            query: expect.objectContaining({query: `slug:${project.slug}`}),
+          })
+        );
+        await userEvent.click(screen.getByRole('button', {name: 'Release Actions'}));
+        expect(
+          await screen.findByRole('menuitemradio', {
+            name: 'Add Inbound Filter for this release',
+          })
+        ).not.toHaveAttribute('aria-disabled', 'true');
+      });
     });
   });
 

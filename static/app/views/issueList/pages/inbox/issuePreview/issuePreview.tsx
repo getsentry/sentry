@@ -20,6 +20,7 @@ import {useLinkedPullRequests} from 'sentry/components/group/externalIssuesList/
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Placeholder} from 'sentry/components/placeholder';
+import {SeerOutOfCreditsCta} from 'sentry/components/seer/outOfCredits/seerOutOfCreditsCta';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {stripAnsi} from 'sentry/utils/ansiEscapeCodes';
@@ -41,7 +42,10 @@ import {GroupHeaderAssigneeSelector} from 'sentry/views/issueDetails/header/assi
 import {EventUserCounts} from 'sentry/views/issueDetails/header/eventUserCounts';
 import {GroupStatusSubtitle} from 'sentry/views/issueDetails/header/groupStatusSubtitle';
 import {IssueIdBreadcrumb} from 'sentry/views/issueDetails/header/issueIdBreadcrumb';
-import {groupApiOptions} from 'sentry/views/issueDetails/useGroup';
+import {
+  groupApiOptions,
+  shouldExpandDerivedData,
+} from 'sentry/views/issueDetails/useGroup';
 import {useMarkGroupSeen} from 'sentry/views/issueDetails/useMarkGroupSeen';
 import {
   getGroupReprocessingStatus,
@@ -104,7 +108,7 @@ export function IssuePreview({groupId}: IssuePreviewProps) {
       groupId,
       // The inbox list spans all environments, regardless of URL filters.
       environments: [],
-      expandDerivedData: organization.features.includes('issue-inbox'),
+      expandDerivedData: shouldExpandDerivedData(organization),
     }),
     gcTime: 30_000,
     retry: false,
@@ -114,17 +118,14 @@ export function IssuePreview({groupId}: IssuePreviewProps) {
   const issueDetailsUrl = normalizeUrl(
     `/organizations/${organization.slug}/issues/${groupId}/`
   );
-  const issueDetailsLocation = {
-    pathname: issueDetailsUrl,
-    query: {referrer: 'inbox'},
-  };
+  const issueDetailsLocation = {pathname: issueDetailsUrl, query: {referrer: 'inbox'}};
 
   useMarkPreviewedGroupSeen(group);
   useTrackPreviewedGroup(group);
 
   return (
     <AnalyticsArea name="issue_inbox" overrideParent>
-      <Container padding="xs 2xl" borderBottom="muted">
+      <Container padding="xs 2xl" borderBottom="secondary">
         <Flex align="center" justify="between" flex="1" gap="md">
           {group && project ? (
             <IssueIdBreadcrumb group={group} project={project} />
@@ -204,10 +205,7 @@ function IssuePreviewContent() {
   const issueDetailsUrl = normalizeUrl(
     `/organizations/${organization.slug}/issues/${group.id}/`
   );
-  const issueDetailsLocation = {
-    pathname: issueDetailsUrl,
-    query: {referrer: 'inbox'},
-  };
+  const issueDetailsLocation = {pathname: issueDetailsUrl, query: {referrer: 'inbox'}};
   function openSeer(action?: string) {
     navigate(
       makeSeerLocation({
@@ -274,7 +272,7 @@ function IssuePreviewContent() {
       <Flex
         paddingTop="sm"
         paddingBottom="lg"
-        borderBottom="muted"
+        borderBottom="secondary"
         justify="between"
         align="center"
         wrap="wrap"
@@ -308,8 +306,19 @@ function IssuePreviewContent() {
         <LoadingIndicator />
       ) : (
         <Stack gap="2xl" paddingTop="xl" paddingBottom="md">
+          {/* The header's disabled Seer button has no room for the CTA. */}
+          {!previewSeer.creditCheck.hasEnoughCredits && (
+            <SeerOutOfCreditsCta
+              reason={
+                previewSeer.creditAction === 'root_cause'
+                  ? 'autofix-start'
+                  : 'autofix-continue'
+              }
+              denialReason={previewSeer.creditCheck.denialReason}
+            />
+          )}
           {summary && <IssuePreviewSummary summary={summary} />}
-          {event && hasEventStackTrace(event, group) && (
+          {event && hasEventStackTrace(event, group, organization) && (
             <Container key={event.id}>
               <ErrorBoundary mini>
                 <EventStackTrace
@@ -322,7 +331,7 @@ function IssuePreviewContent() {
               </ErrorBoundary>
             </Container>
           )}
-          <Container borderTop="muted" paddingTop="xl">
+          <Container borderTop="secondary" paddingTop="xl">
             <IssuePreviewTimeline
               key={group.id}
               group={group}

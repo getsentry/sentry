@@ -46,4 +46,49 @@ describe('Area', () => {
     expect(left[0]!.stack).not.toBe(right[0]!.stack);
     expect(left[1]!.stack).not.toBe(right[1]!.stack);
   });
+
+  it.each([
+    {segmentBy: [], lineStyles: [[undefined, undefined]]},
+    {
+      segmentBy: ['completeness'],
+      lineStyles: [
+        [undefined, undefined],
+        ['dotted', undefined],
+      ],
+    },
+    {
+      segmentBy: ['confidence'],
+      lineStyles: [
+        [undefined, undefined],
+        [undefined, 0.45],
+        [undefined, undefined],
+      ],
+    },
+    {
+      segmentBy: ['completeness', 'confidence'],
+      lineStyles: [
+        [undefined, undefined],
+        [undefined, 0.45],
+        ['dotted', undefined],
+      ],
+    },
+  ] as const)('segments by $segmentBy', ({segmentBy, lineStyles}) => {
+    const segmentedTimeSeries = TimeSeriesFixture({
+      values: [
+        {timestamp: 1729796400000, value: 10},
+        {timestamp: 1729798200000, value: 20, confidence: 'low'},
+        {timestamp: 1729800000000, value: 30, incomplete: true},
+      ],
+    });
+    const series = new Area(segmentedTimeSeries).toSeries({
+      segmentBy,
+      color: '#7553FF',
+      unit: segmentedTimeSeries.meta.valueUnit,
+      yAxisPosition: 'left',
+    });
+
+    expect(series.map(s => [s.lineStyle?.type, s.lineStyle?.opacity])).toEqual(
+      lineStyles
+    );
+  });
 });

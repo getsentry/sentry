@@ -6,9 +6,11 @@ from unittest import mock
 import pytest
 
 from sentry.apidocs.descriptions import ApiDescription
+from sentry.apidocs.formats import JsonValue
 from sentry.apidocs.response_coverage import (
     CYCLE,
     FIELD_SOURCE,
+    JSON_VALUE,
     find_violations,
     has_field_sources,
 )
@@ -92,6 +94,7 @@ def test_untyped_schemas() -> None:
             "dict_list": prop({"type": "array", "items": {"type": "object"}}),
             "any_branch": prop({"anyOf": [{"type": "string"}, {}]}),
             "typed_map": prop({"type": "object", "additionalProperties": {"type": "integer"}}),
+            "empty_object": prop({"type": "object", "maxProperties": 0}),
             "enum": prop({"enum": ["a", "b"]}),
             "union": prop({"oneOf": [{"type": "string"}, {"type": "integer"}]}),
             "reference": prop({"allOf": [_ref("Thing")], "nullable": True}),
@@ -123,6 +126,17 @@ def test_recursive_typed_dict_is_typed(field_sources: None) -> None:
     tree = resolve_type_hint(TreeResponse)
     assert tree["properties"]["children"]["items"][CYCLE] is True
     assert find_violations(_spec([tree])) == set()
+
+
+class JsonValueResponse(TypedDict):
+    data: Annotated[JsonValue, ApiDescription("Data an SDK sent")]
+    by_key: Annotated[dict[str, JsonValue], ApiDescription("Data an SDK sent, by key")]
+
+
+def test_json_value_is_typed(field_sources: None) -> None:
+    schema = resolve_type_hint(JsonValueResponse)
+    assert schema["properties"]["data"][JSON_VALUE] is True
+    assert find_violations(_spec([schema])) == set()
 
 
 def test_reference_uses_component_description() -> None:
@@ -176,3 +190,4 @@ def test_no_field_sources_outside_the_docs_build() -> None:
         os.environ.pop("OPENAPIGENERATE", None)
         assert FIELD_SOURCE not in resolve_type_hint(ItemResponse)["properties"]["name"]
         assert CYCLE not in resolve_type_hint(TreeResponse)["properties"]["children"]["items"]
+        assert JSON_VALUE not in resolve_type_hint(JsonValueResponse)["properties"]["data"]
