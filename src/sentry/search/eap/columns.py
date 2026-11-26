@@ -704,13 +704,22 @@ class TraceMetricAggregateDefinition(AggregateDefinition):
                 f"Trace metric aggregates expect argument {self.offset} to be of type AttributeArgumentDefinition"
             )
 
-        resolved_attribute = resolved_arguments[self.offset]
-        if self.attribute_resolver is not None:
-            resolved_attribute = self.attribute_resolver(resolved_attribute)
-
         trace_metric = extract_trace_metric_aggregate_arguments(
             resolved_arguments, offset=self.offset
         )
+        resolved_attribute = resolved_arguments[self.offset]
+        is_histogram = is_histogram_metric(search_config, trace_metric)
+        # Snuba only reads histogram buckets for some aggregates of the value
+        if is_histogram and (
+            self.internal_function not in HISTOGRAM_BUCKET_FUNCTIONS
+            or resolved_attribute
+            != AttributeKey(name="sentry.value", type=AttributeKey.Type.TYPE_DOUBLE)
+        ):
+            raise InvalidSearchQuery(f"{alias} is not supported for histogram metrics")
+        # Snuba only expands the bucket counts when aggregating the value, so keep it instead
+        # of the sentry.project_id optimization for count
+        if self.attribute_resolver is not None and not is_histogram:
+            resolved_attribute = self.attribute_resolver(resolved_attribute)
 
         # The search type for the first argument is always going to be 'number', but
         # the real unit for the metric is stored in the metric_unit field of the trace metric
@@ -1052,6 +1061,32 @@ def validate_trace_metric_aggregate_arguments(
             raise InvalidSearchQuery(
                 f"Trace metric aggregates expects argument {i} to be of type ValueArgumentDefinition"
             )
+
+
+# The aggregates Snuba can compute from histogram buckets
+HISTOGRAM_BUCKET_FUNCTIONS = {
+    Function.FUNCTION_COUNT,
+    Function.FUNCTION_SUM,
+    Function.FUNCTION_AVG,
+    Function.FUNCTION_MIN,
+    Function.FUNCTION_MAX,
+    Function.FUNCTION_P50,
+    Function.FUNCTION_P75,
+    Function.FUNCTION_P90,
+    Function.FUNCTION_P95,
+    Function.FUNCTION_P99,
+}
+
+
+def is_histogram_metric(
+    search_config: SearchResolverConfig, trace_metric: TraceMetric | None
+) -> bool:
+    if trace_metric is None or trace_metric.metric_type != "histogram":
+        return False
+    # Paths without the flag would aggregate each point's mean as one sample, so reject them
+    if not search_config.otlp_histograms:
+        raise InvalidSearchQuery("Invalid parameter histogram")
+    return True
 
 
 def extract_trace_metric_aggregate_arguments(

@@ -486,6 +486,20 @@ class OrganizationEventsStatsTraceMetricsEndpointTest(OrganizationEventsEndpoint
         # only the metrics with a unit of none should be counted
         assert response.data["timeSeries"][0]["values"][0]["value"] == 1
 
+    def test_histogram_aggregates_require_flag(self) -> None:
+        data = {
+            "start": self.start,
+            "end": self.end,
+            "interval": "1h",
+            "yAxis": "count(value,foo,histogram,-)",
+            "project": self.project.id,
+            "dataset": "tracemetrics",
+        }
+        assert self._do_request(data=data).status_code == 400
+        with self.feature("organizations:tracemetrics-otlp-histograms"):
+            response = self._do_request(data=data)
+        assert response.status_code == 200, response.content
+
     def test_equation_where_one_term_has_no_data(self) -> None:
         trace_metrics = []
         for hour in range(5):

@@ -58,6 +58,11 @@ from sentry.utils import snuba_rpc
             "Code: 427. DB::Exception: cannot compile re2: (?<=a)b (CANNOT_COMPILE_REGEXP)",
             snuba_rpc.SnubaRPCInvalidRegex,
         ),
+        (
+            400,
+            "A filter on sentry.value is not supported for histogram metrics",
+            snuba_rpc.SnubaRPCHistogramValueFilter,
+        ),
         (400, "Too many simultaneous queries", snuba_rpc.SnubaRPCTooManySimultaneous),
         (404, "not found", NotFound),
         (429, "rate limited", snuba_rpc.SnubaRPCRateLimitExceeded),

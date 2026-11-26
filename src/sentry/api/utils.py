@@ -77,6 +77,7 @@ from sentry.utils.snuba import (
 )
 from sentry.utils.snuba_rpc import (
     SnubaRPCError,
+    SnubaRPCHistogramValueFilter,
     SnubaRPCInvalidRegex,
     SnubaRPCRateLimitExceeded,
     SnubaRPCTooManySimultaneous,
@@ -447,6 +448,10 @@ def handle_query_errors() -> Iterator[None]:
         sentry_sdk.set_tag("query.error_reason", "InvalidRegex")
         sentry_sdk.set_attribute("query.error_reason", "InvalidRegex")
         raise ParseError(detail=INVALID_REGEX_ERROR_MESSAGE)
+    except SnubaRPCHistogramValueFilter:
+        sentry_sdk.set_tag("query.error_reason", "HistogramValueFilter")
+        sentry_sdk.set_attribute("query.error_reason", "HistogramValueFilter")
+        raise ParseError(detail="Filtering on value is not supported for histogram metrics")
     except SnubaRPCRateLimitExceeded:
         sentry_sdk.set_tag("query.error_reason", "RateLimitExceeded")
         sentry_sdk.set_attribute("query.error_reason", "RateLimitExceeded")

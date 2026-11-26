@@ -11,7 +11,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     TraceItemFilter,
 )
 
-TraceMetricType = Literal["counter", "gauge", "distribution"]
+TraceMetricType = Literal["counter", "gauge", "distribution", "histogram"]
 
 # Represents "any unit" — no unit filter is applied
 ANY_UNIT = "-"

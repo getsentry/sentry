@@ -99,6 +99,10 @@ class SnubaRPCInvalidRegex(SnubaRPCBadRequest):
     pass
 
 
+class SnubaRPCHistogramValueFilter(SnubaRPCBadRequest):
+    """Snuba can't filter OTLP histogram metrics on their value, which is each point's mean."""
+
+
 class SnubaRPCTimeout(SnubaRPCError):
     pass
 
@@ -497,6 +501,8 @@ def _make_rpc_request(
                     if http_resp.status == 400:
                         if "CANNOT_COMPILE_REGEXP" in error.message:
                             raise SnubaRPCInvalidRegex(error.message)
+                        if "A filter on sentry.value" in error.message:
+                            raise SnubaRPCHistogramValueFilter(error.message)
                         raise SnubaRPCBadRequest(error.message)
                     raise SnubaRPCError(error)
                 return http_resp
