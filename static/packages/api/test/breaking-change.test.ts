@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isBreakingChange } from "./consumers/breaking-change.mjs";
+import { changeMessage, isBreakingChange } from "./consumers/breaking-change.mjs";
 
 describe("isBreakingChange", () => {
   it.each([
@@ -19,5 +19,17 @@ describe("isBreakingChange", () => {
     "docs(api): Explain BREAKING CHANGE: footers",
   ])("treats %j as not breaking", (message) => {
     expect(isBreakingChange(message)).toBe(false);
+  });
+});
+
+describe("changeMessage", () => {
+  it("reads the PR title, then the pushed or queued commit message", () => {
+    expect(changeMessage({ pull_request: { title: "ref(api)!: Drop it" } })).toBe("ref(api)!: Drop it");
+    expect(changeMessage({ head_commit: { message: "ref(api)!: Drop it (#1)" } })).toBe("ref(api)!: Drop it (#1)");
+    expect(changeMessage({ merge_group: { head_commit: { message: "ref(api)!: Drop it" } } })).toBe("ref(api)!: Drop it");
+  });
+
+  it("has no message outside GitHub Actions", () => {
+    expect(changeMessage(undefined)).toBeUndefined();
   });
 });

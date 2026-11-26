@@ -4,8 +4,8 @@
  * release. A renamed export shows up as the old name going missing.
  *
  * A breaking change releases as a major, which may remove exports, so the
- * removals are listed but allowed when CHANGE_MESSAGE, the PR title or the
- * commit message CI checks, marks one (see breaking-change.mjs).
+ * removals are listed but allowed when the run's GitHub event marks one: the
+ * PR title, or the merged commit's message (see breaking-change.mjs).
  *
  *   node test/consumers/exports.mjs path/to/sentry-api-x.y.z.tgz
  */
@@ -14,7 +14,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import ts from "typescript";
-import { isBreakingChange } from "./breaking-change.mjs";
+import { changeMessage, isBreakingChange } from "./breaking-change.mjs";
 
 const [tarball] = process.argv.slice(2);
 if (!tarball) throw new Error("Usage: exports.mjs <packed @sentry/api tarball>");
@@ -41,6 +41,9 @@ function exportsOf(directory) {
   }));
 }
 
+/** The GitHub Actions event this run is for, or undefined outside Actions. */
+const event = process.env.GITHUB_EVENT_PATH ? JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH, "utf8")) : undefined;
+
 const work = mkdtempSync(join(tmpdir(), "sentry-api-exports-"));
 try {
   const packed = execFileSync("npm", ["pack", "--json", "@sentry/api@latest"], { cwd: work, encoding: "utf8" });
@@ -58,7 +61,7 @@ try {
     for (const name of names) if (!now.has(name)) missing.push(`${name} from "${subpath}"`);
   }
   const report = `Compared with @sentry/api ${version}, this package no longer exports:\n${missing.map(item => `  ${item}`).join("\n")}`;
-  if (missing.length > 0 && isBreakingChange(process.env.CHANGE_MESSAGE)) {
+  if (missing.length > 0 && isBreakingChange(changeMessage(event))) {
     console.log(`${report}\nThis is a breaking change, so it releases as a major and may remove them.`);
   } else if (missing.length > 0) {
     console.error(`${report}\nMark the change breaking (\`type(scope)!:\`) if it should release as a major.`);

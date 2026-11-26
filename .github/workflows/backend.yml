@@ -153,11 +153,7 @@ jobs:
       - name: Pack
         run: pnpm --filter @sentry/api pack --out "$SENTRY_API_TARBALL"
 
-      # A breaking change (`type(scope)!:`) may remove exports: it releases as
-      # a major. The PR title, or the commit message after merge, says which.
       - name: Check for exports removed since the latest release
-        env:
-          CHANGE_MESSAGE: ${{ github.event.pull_request.title || github.event.head_commit.message || github.event.merge_group.head_commit.message }}
         run: node static/packages/api/test/consumers/exports.mjs "$SENTRY_API_TARBALL"
 
       - uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4
