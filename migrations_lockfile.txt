@@ -41,7 +41,7 @@ seer: 0050_rename_agentic_triage_v2
 
 seer_workflow_outputs: 0001_initial
 
-sentry: 1269_add_eventattachment_crash_report_index
+sentry: 1270_set_explicit_db_defaults
 
 service_accounts: 0008_add_owner_kind
 
@@ -51,8 +51,8 @@ telemetry_classifiers: 0001_create_telemetry_classifier
 
 tempest: 0001_squashed_0003_use_encrypted_char_field
 
-timeseries_annotations: 0002_add_environment_and_severity
+timeseries_annotations: 0003_add_pinned
 
 uptime: 0056_encrypt_uptime_subscription_headers_body
 
-workflow_engine: 0127_normalize_string_condition_results
+workflow_engine: 0129_add_workflow_non_user_creator

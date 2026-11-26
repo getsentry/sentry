@@ -23,6 +23,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import ONE_DAY, cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.decorators import sudo_required
+from sentry.api.exceptions import UserRequired
 from sentry.api.fields import AvatarField
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models import organization as org_serializers
@@ -99,6 +100,7 @@ from sentry.relay.datascrubbing import validate_pii_config_update, validate_pii_
 from sentry.replays.models import OrganizationMemberReplayAccess
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.autofix.utils import get_valid_automated_run_stopping_points
+from sentry.service_accounts.auth import is_service_account_auth
 from sentry.services.organization.provisioning import organization_provisioning_service
 from sentry.tasks.console_platform_cleanup import remove_inaccessible_console_platform_sources
 from sentry.users.services.user.serial import serialize_generic_user
@@ -1123,6 +1125,11 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         """
         Update various attributes and configurable settings for the given organization.
         """
+        # Org settings reach every project, including ones a service account isn't
+        # linked to, so only a person may change them.
+        if is_service_account_auth(request.auth):
+            raise UserRequired()
+
         # This param will be used to determine if we should include feature flags in the response
         include_feature_flags = request.GET.get("include_feature_flags", "0") != "0"
 

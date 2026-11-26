@@ -1446,13 +1446,13 @@ wheels = [
 
 [[package]]
 name = "openapi-pydantic"
-version = "0.4.0"
+version = "0.4.1"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "pydantic" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/openapi_pydantic-0.4.0-py3-none-any.whl", hash = "sha256:8f782be72a4792bf6b5bbc4cf694fda2ca0719c0354ee6a062179982544fb5c0" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/openapi_pydantic-0.4.1-py3-none-any.whl", hash = "sha256:4038612afd80b846a5e30758565dceb6b98a6ba5b7e98241452b0a2bc29bd78a" },
 ]
 
 [[package]]
@@ -2431,7 +2431,7 @@ requires-dist = [
     { name = "sentry-protos", specifier = ">=0.129.0" },
     { name = "sentry-redis-tools", specifier = ">=0.5.0" },
     { name = "sentry-relay", specifier = ">=0.10.3" },
-    { name = "sentry-scm", specifier = ">=4.0.0" },
+    { name = "sentry-scm", specifier = ">=4.1.0" },
     { name = "sentry-sdk", extras = ["http2"], specifier = ">=3.0.1b2" },
     { name = "sentry-usage-accountant", specifier = ">=0.0.10" },
     { name = "sentry-viewercontext", specifier = ">=0.2.0" },
@@ -2474,7 +2474,7 @@ dev = [
     { name = "mypy", specifier = ">=2.1.0" },
     { name = "mypy-extensions", specifier = ">=1.0.0" },
     { name = "openapi-core", specifier = ">=0.18.2" },
-    { name = "openapi-pydantic", specifier = ">=0.4.0" },
+    { name = "openapi-pydantic", specifier = ">=0.4.1" },
     { name = "prek", specifier = ">=0.3.6" },
     { name = "pytest", specifier = ">=9.1.1" },
     { name = "pytest-cov", specifier = ">=4.0.0" },
@@ -2646,7 +2646,7 @@ wheels = [
 
 [[package]]
 name = "sentry-scm"
-version = "4.0.0"
+version = "4.1.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "cryptography" },
@@ -2656,7 +2656,7 @@ dependencies = [
     { name = "urllib3" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_scm-4.0.0-py3-none-any.whl", hash = "sha256:cbcec14eafefe296542df8277e73291ab55aa58ba3fc5146bfe510df353ebc6c" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_scm-4.1.0-py3-none-any.whl", hash = "sha256:35d732e78ba05bb71962af0461d987a0dd46602bc440559155d2aaae2184f47b" },
 ]
 
 [[package]]

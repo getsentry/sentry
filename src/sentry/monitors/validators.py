@@ -434,7 +434,7 @@ class MonitorValidator(CamelSnakeSerializer[Monitor]):
         from_detector_flow = self.context.get("from_detector_flow", False)
 
         if not from_detector_flow:
-            detector = ensure_cron_detector(monitor)
+            detector = ensure_cron_detector(monitor, get_creator_reference(self.context["request"]))
             assert detector
 
             # A monitor created disabled gets its seat when it is enabled.

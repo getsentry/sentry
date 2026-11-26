@@ -41,11 +41,3 @@ class RpcRepositoryRename(RpcModel):
     expected_config_name: str | None
     name: str
     url: str
-
-
-class RpcRepointIntegrationResult(RpcModel):
-    repositories: int
-    code_mappings: int
-    external_issues: int
-    external_actors: int
-    project_options: int

@@ -11,7 +11,6 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {ConfigStore} from 'sentry/stores/configStore';
 import AutomationDetail from 'sentry/views/seerWorkflows/automations/detail';
 import type {SeerWorkflowConfigResponse} from 'sentry/views/seerWorkflows/types';
 
@@ -248,8 +247,7 @@ describe('AutomationDetail', () => {
     expect(await screen.findByRole('button', {name: 'Disable'})).toBeInTheDocument();
   });
 
-  it('runs the automation now on behalf of the current user', async () => {
-    ConfigStore.set('user', UserFixture({id: '7'}));
+  it('runs the automation now', async () => {
     mockConfig(
       SeerWorkflowConfigFixture({id: '42', strategy: 'scheduled_investigation'})
     );
@@ -267,7 +265,7 @@ describe('AutomationDetail', () => {
     await waitFor(() =>
       expect(manualRunRequest).toHaveBeenCalledWith(
         manualRunUrl,
-        expect.objectContaining({method: 'POST', data: {config_id: '42', user_id: '7'}})
+        expect.objectContaining({method: 'POST', data: {configId: '42'}})
       )
     );
     expect(manualRunRequest).toHaveBeenCalledTimes(1);

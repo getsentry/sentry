@@ -208,20 +208,6 @@ def get_redis_rules(namespace: ClustererNamespace, project: Project) -> RuleSet:
     return RedisRuleStore(namespace).read(project)
 
 
-def get_sorted_rules_from_redis(
-    namespace: ClustererNamespace, project: Project
-) -> list[tuple[ReplacementRule, int]]:
-    """Public interface for fetching rules for a project from Redis.
-
-    Typically `get_sorted_rules` is preferred, but for high throughput scenarios
-    it may be appropriate to use Redis instead.
-
-    The rules are ordered by specificity, meaning that rules that go deeper
-    into the URL tree occur first.
-    """
-    return RedisRuleStore(namespace).read_sorted(project)
-
-
 def get_sorted_rules(
     namespace: ClustererNamespace, project: Project
 ) -> list[tuple[ReplacementRule, int]]:

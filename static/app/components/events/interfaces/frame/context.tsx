@@ -181,6 +181,11 @@ export function Context({
       {hasContextRegisters && (
         <FrameRegisters
           registers={registers!}
+          // Extracted variables answer most of what the registers are read for.
+          collapsedByDefault={
+            hasContextVars &&
+            !!organization?.features.includes('native-variable-extraction')
+          }
           meta={registersMeta}
           deviceArch={event.contexts?.device?.arch}
         />

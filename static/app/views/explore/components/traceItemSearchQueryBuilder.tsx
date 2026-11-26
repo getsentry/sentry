@@ -40,6 +40,8 @@ export type TraceItemSearchQueryBuilderProps = {
   allowedAttributeKeys?: string[];
   arrayAttributes?: TagCollection;
   arraySecondaryAliases?: TagCollection;
+  // Scopes key suggestions only, values stay unscoped
+  attributeKeyQuery?: string;
   attributeQuery?: string;
   caseInsensitive?: CaseInsensitive;
   defaultToAskSeerOnFreeTextSearch?: SearchQueryBuilderProps['defaultToAskSeerOnFreeTextSearch'];
@@ -163,6 +165,7 @@ export function useTraceItemSearchQueryBuilderProps({
   disableRecentSearches,
   disabled,
   defaultToAskSeerOnFreeTextSearch,
+  attributeKeyQuery,
   attributeQuery,
   hiddenAttributeKeys,
   allowedAttributeKeys,
@@ -202,11 +205,12 @@ export function useTraceItemSearchQueryBuilderProps({
     arrayAttributes,
   });
 
+  const keyQuery = attributeKeyQuery ?? attributeQuery;
   const dynamicTagKeys = useGetTraceItemAttributeTagKeys({
     itemType,
     projects,
     extraTags: functionTags,
-    query: attributeQuery,
+    query: keyQuery,
     hiddenKeys: hiddenAttributeKeys,
     datetime,
   });
@@ -221,13 +225,13 @@ export function useTraceItemSearchQueryBuilderProps({
       effectiveProjects,
       selection.environments,
       effectiveDatetime,
-      attributeQuery,
+      keyQuery,
       hiddenAttributeKeys,
       allowedAttributeKeys,
     ],
     [
       allowedAttributeKeys,
-      attributeQuery,
+      keyQuery,
       effectiveDatetime,
       effectiveProjects,
       hiddenAttributeKeys,
@@ -362,6 +366,7 @@ export function TraceItemSearchQueryBuilder({
   disallowLogicalOperators,
   disallowNegation,
   disableRecentSearches,
+  attributeKeyQuery,
   attributeQuery,
   hiddenAttributeKeys,
   allowedAttributeKeys,
@@ -404,6 +409,7 @@ export function TraceItemSearchQueryBuilder({
     disableRecentSearches,
     disabled,
     defaultToAskSeerOnFreeTextSearch,
+    attributeKeyQuery,
     attributeQuery,
     hiddenAttributeKeys,
     allowedAttributeKeys,

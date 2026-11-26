@@ -631,6 +631,16 @@ function getActivityItemContent({
         ),
       };
     }
+    case GroupActivityType.INVESTIGATION_STARTED: {
+      const {investigation} = activity.data;
+      if (!investigation) {
+        return {title: t('Started an investigation'), details: t('that was deleted')};
+      }
+      return {
+        title: t('Started investigation'),
+        details: <InvestigationChip investigation={investigation} />,
+      };
+    }
   }
 
   Sentry.captureMessage(`Unknown group activity type: ${activityContext.type}`, {
