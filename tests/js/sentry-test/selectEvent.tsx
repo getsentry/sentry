@@ -88,14 +88,19 @@ const select = async (
     const target = config.container;
     const container =
       typeof target === 'function' ? await waitFor(target) : (target ?? document.body);
+    const menus = within(container);
     const popup = await waitFor(() => {
-      const id = input.getAttribute('aria-controls');
-      // eslint-disable-next-line testing-library/no-node-access -- Follow aria-controls to the popup, which may be portaled.
-      const element = id && input.ownerDocument.getElementById(id);
-      if (!element || !container.contains(element)) {
-        throw new Error('Expected an open popup for the Select');
+      const listboxes = menus.getAllByRole('listbox');
+      if (listboxes.length === 1) {
+        return listboxes[0]!;
       }
-      return element;
+
+      const popupId = input.getAttribute('aria-controls');
+      const listbox = listboxes.find(menu => menu.id === popupId);
+      if (!listbox) {
+        throw new Error('Expected an open listbox for the Select');
+      }
+      return listbox;
     });
 
     const row = typeof option === 'number' ? String(option) : option;
