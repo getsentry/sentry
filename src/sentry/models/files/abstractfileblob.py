@@ -18,10 +18,10 @@ from sentry.db.models import Model, WrappingU32IntegerField
 from sentry.models.files.abstractfileblobowner import AbstractFileBlobOwner
 from sentry.models.files.utils import (
     get_and_optionally_update_blob,
+    get_and_optionally_update_blobs,
     get_size_and_checksum,
     get_storage,
     nooplogger,
-    refresh_blob_timestamp,
 )
 from sentry.utils import metrics
 
@@ -149,16 +149,14 @@ class AbstractFileBlob(Model, _Parent[BlobOwnerType]):
                     raise OSError("Checksum mismatch")
                 files_by_checksum[checksum] = (fileobj, size)
 
-            existing_blobs = cls.objects.in_bulk(files_by_checksum, field_name="checksum")
+            existing_blobs = get_and_optionally_update_blobs(cls, files_by_checksum)
 
             for checksum, (fileobj, size) in files_by_checksum.items():
                 logger.debug("FileBlob.from_files.executor_start", extra={"checksum": checksum})
                 _flush_blobs()
 
-                # The blob may have been cleaned up since the lookup above, in
-                # which case refreshing it fails and we upload it again.
                 existing = existing_blobs.get(checksum)
-                if existing is not None and refresh_blob_timestamp(existing):
+                if existing is not None:
                     existing._ensure_blob_owned(organization)
                     continue
 

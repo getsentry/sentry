@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import time
+from collections.abc import Iterable
 from datetime import timedelta
 from hashlib import sha1
 from typing import IO, TYPE_CHECKING, Any, TypeVar
@@ -57,20 +58,33 @@ def get_and_optionally_update_blob(
     This will also bump its `timestamp` in a debounced fashion,
     in order to prevent it from being cleaned up.
     """
-    try:
-        existing = file_blob_model.objects.get(checksum=checksum)
-    except file_blob_model.DoesNotExist:
-        return None
-
-    return existing if refresh_blob_timestamp(existing) else None
+    return get_and_optionally_update_blobs(file_blob_model, [checksum]).get(checksum)
 
 
-def refresh_blob_timestamp(blob: AbstractFileBlob[Any]) -> bool:
-    """Refresh an old blob, returning False if it was already removed."""
+def get_and_optionally_update_blobs(
+    file_blob_model: type[FileModelT], checksums: Iterable[str]
+) -> dict[str, FileModelT]:
+    """
+    Bulk version of `get_and_optionally_update_blob`, returning the existing blobs
+    by checksum.
+    """
+    blobs = file_blob_model.objects.in_bulk(checksums, field_name="checksum")
+
     now = timezone.now()
-    if blob.timestamp <= now - HALF_DAY:
-        return bool(blob.update(timestamp=now))
-    return True
+    stale_ids = {blob.id for blob in blobs.values() if blob.timestamp <= now - HALF_DAY}
+    if not stale_ids:
+        return blobs
+
+    # Cleanup may have removed a stale blob since the lookup. It won't be
+    # updated, so treat it as missing.
+    refreshed_ids = {
+        blob_id
+        for (blob_id,) in file_blob_model.objects.filter(id__in=stale_ids).update_with_returning(
+            ["id"], timestamp=now
+        )
+    }
+    removed_ids = stale_ids - refreshed_ids
+    return {checksum: blob for checksum, blob in blobs.items() if blob.id not in removed_ids}
 
 
 class AssembleChecksumMismatch(Exception):

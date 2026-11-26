@@ -2,6 +2,7 @@ import os
 from datetime import timedelta
 from hashlib import sha1
 from io import BytesIO
+from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 from uuid import uuid4
 
@@ -14,6 +15,7 @@ from django.utils import timezone
 from sentry.models.files.file import File
 from sentry.models.files.fileblob import FileBlob
 from sentry.models.files.fileblobindex import FileBlobIndex
+from sentry.models.files.utils import get_and_optionally_update_blobs
 from sentry.testutils.cases import TestCase
 from sentry.testutils.pytest.fixtures import django_db_all
 
@@ -21,31 +23,52 @@ from sentry.testutils.pytest.fixtures import django_db_all
 class FileBlobTest(TestCase):
     def test_from_files_batches_checksum_lookups(self) -> None:
         fresh = FileBlob.from_file(ContentFile(b"fresh"))
-        stale = FileBlob.from_file(ContentFile(b"stale"))
-        stale.update(timestamp=timezone.now() - timedelta(days=2))
+        stale = [
+            FileBlob.from_file(ContentFile(b"stale1")),
+            FileBlob.from_file(ContentFile(b"stale2")),
+        ]
+        for blob in stale:
+            blob.update(timestamp=timezone.now() - timedelta(days=2))
         fresh_timestamp = fresh.timestamp
 
         with CaptureQueriesContext(connections[router.db_for_read(FileBlob)]) as queries:
             FileBlob.from_files(
                 [
                     ContentFile(b"fresh"),
-                    (ContentFile(b"stale"), stale.checksum),
+                    (ContentFile(b"stale1"), stale[0].checksum),
+                    ContentFile(b"stale2"),
                     ContentFile(b"new"),
                     ContentFile(b"new"),
                 ]
             )
 
-        reads = [
+        fileblob_queries = [
             query["sql"]
             for query in queries.captured_queries
-            if query["sql"].startswith("SELECT") and 'FROM "sentry_fileblob"' in query["sql"]
+            if 'FROM "sentry_fileblob"' in query["sql"]
+            or 'UPDATE "sentry_fileblob"' in query["sql"]
         ]
-        assert len(reads) == 1
+        assert len([sql for sql in fileblob_queries if sql.startswith("SELECT")]) == 1
+        assert len([sql for sql in fileblob_queries if sql.startswith("UPDATE")]) == 1
         assert FileBlob.objects.get(checksum=sha1(b"new").hexdigest()).size == 3
-        stale.refresh_from_db()
         fresh.refresh_from_db()
-        assert stale.timestamp >= fresh_timestamp
         assert fresh.timestamp == fresh_timestamp
+        for blob in stale:
+            blob.refresh_from_db()
+            assert blob.timestamp >= fresh_timestamp
+
+    def test_get_and_optionally_update_blobs_skips_removed_blob(self) -> None:
+        blob = FileBlob.from_file(ContentFile(b"stale"))
+        blob.update(timestamp=timezone.now() - timedelta(days=2))
+        in_bulk = FileBlob.objects.in_bulk
+
+        def in_bulk_then_cleanup(*args: Any, **kwargs: Any) -> dict[str, FileBlob]:
+            blobs = in_bulk(*args, **kwargs)
+            FileBlob.objects.filter(id=blob.id).delete()
+            return blobs
+
+        with patch.object(FileBlob.objects, "in_bulk", side_effect=in_bulk_then_cleanup):
+            assert get_and_optionally_update_blobs(FileBlob, [blob.checksum]) == {}
 
     def test_from_file(self) -> None:
         fileobj = ContentFile(b"foo bar")
