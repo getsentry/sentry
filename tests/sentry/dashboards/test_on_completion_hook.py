@@ -240,6 +240,28 @@ def test_build_widget_request_grouped_chart_queries_top_events() -> None:
     )
 
 
+def test_build_widget_request_grouped_chart_groups_by_unselected_sort() -> None:
+    widget = _make_artifact(
+        display_type="line",
+        widget_type="spans",
+        queries=[
+            {
+                "columns": ["span.op"],
+                "aggregates": ["avg(span.duration)"],
+                "orderby": "-count()",
+            }
+        ],
+    ).widgets[0]
+
+    request = _build_widget_request(widget, widget.queries[0])
+
+    assert request is not None
+    _, params = request
+    assert params["field"] == ["span.op", "avg(span.duration)", "count()"]
+    assert params["groupBy"] == ["span.op", "avg(span.duration)", "count()"]
+    assert params["sort"] == "-count()"
+
+
 def test_build_widget_request_issue_widget_queries_issues() -> None:
     widget = _make_artifact(
         display_type="table",
@@ -313,6 +335,21 @@ class DryRunWidgetQueriesTest(TestCase, SnubaTestCase):
         assert _dry_run_widget_queries(artifact, self.organization) == [
             "Widget 0 ('ANRs'), query 0: Error parsing search query: Invalid category value of 'anr'"
         ]
+
+    def test_grouped_chart_sorted_by_unselected_aggregate_passes(self) -> None:
+        artifact = _make_artifact(
+            display_type="line",
+            widget_type="spans",
+            queries=[
+                {
+                    "columns": ["span.op"],
+                    "aggregates": ["avg(span.duration)"],
+                    "orderby": "-count()",
+                }
+            ],
+        )
+
+        assert _dry_run_widget_queries(artifact, self.organization) == []
 
     def test_non_400_failures_are_skipped(self) -> None:
         with patch(

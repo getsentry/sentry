@@ -154,6 +154,10 @@ def _build_events_request(
         params["interval"] = DRY_RUN_INTERVAL
         if query.columns:
             fields = [*query.columns, *query.aggregates]
+            # Like getSeriesQueryFields, group by the sort field too when it isn't selected.
+            sort_field = query.orderby.lstrip("-")
+            if sort_field and sort_field not in fields:
+                fields.append(sort_field)
             params["field"] = fields
             params["groupBy"] = fields
             params["topEvents"] = widget.limit
