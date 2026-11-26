@@ -140,6 +140,16 @@ class TestMergeAttributesAcrossDatasets:
 
         assert merged[0]["context"] == ORGANIZATION_CONTEXT
 
+    def test_prefers_later_unit_only_context_over_earlier_empty_context(self) -> None:
+        merged = merge_attributes_across_datasets(
+            {
+                "spans": [_cart_attribute({})],
+                "logs": [_cart_attribute({"unit": "byte"})],
+            }
+        )
+
+        assert merged[0]["context"] == {"unit": "byte"}
+
     def test_keeps_separate_rows_when_types_or_sources_differ(self) -> None:
         merged = merge_attributes_across_datasets(
             {
