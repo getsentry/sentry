@@ -67,7 +67,7 @@ def get_and_optionally_update_blob(
 
 
 def refresh_blob_timestamp(blob: AbstractFileBlob[Any]) -> bool:
-    """Refresh an old blob, returning False if cleanup already removed it."""
+    """Refresh an old blob, returning False if it was already removed."""
     now = timezone.now()
     if blob.timestamp <= now - HALF_DAY:
         return bool(blob.update(timestamp=now))
