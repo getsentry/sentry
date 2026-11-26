@@ -10,6 +10,7 @@ export type Permissions = {
   Alerts?: PermissionValue;
   Distribution?: PermissionValue;
   ServiceAccount?: PermissionValue;
+  UserPreference?: PermissionValue;
 };
 
 export type PermissionResource = keyof Permissions;
