@@ -49,6 +49,26 @@ class AssessImpactForGroupTest(TestCase):
             "available_citation_references": [f"entire-event:{event.event_id}"],
         }
 
+    @patch("sentry.issues.impact.assessment.SeerAgentClient")
+    def test_forwards_project_context(self, mock_client_cls: MagicMock) -> None:
+        event = self.store_event(data={}, project_id=self.project.id)
+        assert event.group is not None
+        self.project.update_option(
+            "sentry:impact_assessment_project_context",
+            "Customers use this project to complete purchases.",
+        )
+        mock_client_cls.return_value.start_feature_run.return_value = self.create_seer_run(
+            organization=self.organization, type="feature_run"
+        )
+
+        with self.feature("organizations:seer-impact-assessment"):
+            assess_impact_for_group(group=event.group)
+
+        call = mock_client_cls.return_value.start_feature_run.call_args.kwargs
+        assert call["payload"]["project_context"] == {
+            "description": "Customers use this project to complete purchases."
+        }
+
     def test_requires_an_event(self) -> None:
         group = self.create_group(project=self.project)
 

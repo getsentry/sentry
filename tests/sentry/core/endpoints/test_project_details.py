@@ -1221,6 +1221,47 @@ class ProjectUpdateTest(APITestCase):
         )
         assert "must be a list of strings" in resp.data["highlightContext"][0]
 
+    def test_impact_assessment_project_context(self) -> None:
+        context = "Customers use this project to complete purchases."
+
+        with outbox_runner():
+            response = self.get_success_response(
+                self.org_slug,
+                self.proj_slug,
+                impactAssessmentProjectContext=context,
+            )
+
+        assert response.data["impactAssessmentProjectContext"] == context
+        assert self.project.get_option("sentry:impact_assessment_project_context") == context
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            audit_entry = AuditLogEntry.objects.get(
+                organization_id=self.organization.id,
+                event=audit_log.get_event_id("PROJECT_EDIT"),
+            )
+            assert audit_entry.data["impact_assessment_project_context_configured"] is True
+            assert context not in audit_entry.data.values()
+
+        response = self.get_success_response(
+            self.org_slug,
+            self.proj_slug,
+            impactAssessmentProjectContext="",
+        )
+
+        assert response.data["impactAssessmentProjectContext"] is None
+        assert self.project.get_option("sentry:impact_assessment_project_context") is None
+
+    def test_impact_assessment_project_context_max_length(self) -> None:
+        response = self.get_error_response(
+            self.org_slug,
+            self.proj_slug,
+            impactAssessmentProjectContext="a" * 4_001,
+        )
+
+        assert (
+            "Ensure this field has no more than 4000 characters"
+            in response.data["impactAssessmentProjectContext"][0]
+        )
+
     def test_store_crash_reports(self) -> None:
         resp = self.get_success_response(self.org_slug, self.proj_slug, storeCrashReports=10)
         assert self.project.get_option("sentry:store_crash_reports") == 10

@@ -1207,6 +1207,10 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
             "Context keys highlighted on the project's issues, as a mapping of context types to lists of keys"
         ),
     ]
+    impactAssessmentProjectContext: Annotated[
+        str | None,
+        ApiDescription("Customer-provided guidance about the project's user-facing purpose"),
+    ]
     highlightPreset: Annotated[
         HighlightPreset,
         ApiDescription("Default highlighted tags and context for the project's platform"),
@@ -1429,6 +1433,9 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 "highlightContext": attrs["options"].get(
                     "sentry:highlight_context",
                     attrs["highlight_preset"].get("context", {}),
+                ),
+                "impactAssessmentProjectContext": attrs["options"].get(
+                    "sentry:impact_assessment_project_context"
                 ),
                 "highlightPreset": attrs["highlight_preset"],
                 "groupingConfig": self.get_value_with_default(attrs, "sentry:grouping_config"),

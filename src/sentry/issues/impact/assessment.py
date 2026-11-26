@@ -2,7 +2,11 @@ from __future__ import annotations
 
 from sentry import features
 from sentry.auth.principal import RequestPrincipal
-from sentry.issues.impact.types import IMPACT_FEATURE_ID, AvailableImpactCitation
+from sentry.issues.impact.types import (
+    IMPACT_FEATURE_ID,
+    AvailableImpactCitation,
+    ProjectImpactContext,
+)
 from sentry.models.group import Group
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.models.run import SeerRun
@@ -37,6 +41,7 @@ def assess_impact_for_group(*, group: Group, user: RequestPrincipal | None = Non
             reference=f"entire-event:{source_event_id}",
         )
     ]
+    context = group.project.get_option("sentry:impact_assessment_project_context")
     client = SeerAgentClient(group.organization, user=user, project=group.project, group=group)
     return client.start_feature_run(
         feature_id=IMPACT_FEATURE_ID,
@@ -45,8 +50,9 @@ def assess_impact_for_group(*, group: Group, user: RequestPrincipal | None = Non
             "project_id": group.project_id,
             "source_event_id": source_event_id,
             "available_citations": available_citations,
-            # TODO(Leander): Allow users to enter custom project_context for better impact assessment
-            "project_context": None,
+            "project_context": (
+                ProjectImpactContext(description=context).dict() if context else None
+            ),
         },
         title=f"Impact assessment for issue {group.id}",
         referrer=IMPACT_FEATURE_ID,
