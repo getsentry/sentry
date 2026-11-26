@@ -1795,6 +1795,9 @@ describe('Customer Details', () => {
       const {router} = renderGlobalModal();
 
       await userEvent.click(screen.getByText('Fork Customer'));
+      expect(
+        screen.getByRole('button', {name: 'Fork Customer into Another Region'})
+      ).toBeDisabled();
       await selectEvent.openMenu(
         screen.getByRole('textbox', {name: 'Duplicate into Region'})
       );
