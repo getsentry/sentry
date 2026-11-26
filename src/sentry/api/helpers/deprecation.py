@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import functools
 import logging
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from datetime import datetime, timedelta
-from typing import Concatenate, ParamSpec, TypeVar, cast
+from typing import Any, Concatenate, ParamSpec, TypeVar, cast
 
+import sentry_sdk
 from cronsim import CronSim, CronSimError
 from django.conf import settings
 from django.http.response import HttpResponseBase
@@ -13,8 +14,10 @@ from django.utils import timezone
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.status import HTTP_410_GONE as GONE
+from sentry_conventions.attributes import ATTRIBUTE_NAMES
 
 from sentry import options
+from sentry.auth.principal import acting_user_id, get_request_auth_kind
 from sentry.options import UnknownOption
 from sentry.utils import metrics
 from sentry.utils.settings import is_self_hosted
@@ -148,6 +151,42 @@ def _resolve_suggested_api(suggested_api: str | None, request: Request) -> str |
     return _resolve_route_name(suggested_api, request)
 
 
+MetricAttributes = Mapping[str, str | int]
+
+
+def _record_caller_in_sentry(
+    request: Request,
+    endpoint_kwargs: Mapping[str, Any],
+    attributes: MetricAttributes,
+) -> None:
+    """
+    Count the request in Sentry with enough attributes to identify who is still calling a
+    deprecated API.
+    """
+    auth = request.auth
+    organization = endpoint_kwargs.get("organization")
+    optional: dict[str, str | int | None] = {
+        "referrer": request.GET.get("referrer"),
+        ATTRIBUTE_NAMES.USER_AGENT_ORIGINAL: request.META.get("HTTP_USER_AGENT"),
+        ATTRIBUTE_NAMES.USER_ID: acting_user_id(request.user),
+        "api.deprecated.auth_kind": get_request_auth_kind(request),
+        "api.deprecated.token_id": getattr(auth, "entity_id", None) or getattr(auth, "id", None),
+        "api.deprecated.application_id": getattr(auth, "application_id", None),
+        "api.deprecated.organization_id": getattr(organization, "id", None),
+        "api.deprecated.organization_slug": getattr(organization, "slug", None),
+    }
+    sentry_sdk.metrics.count(
+        "api.deprecated.request",
+        1,
+        attributes={
+            **{name: value for name, value in optional.items() if value is not None},
+            **attributes,
+            ATTRIBUTE_NAMES.HTTP_REQUEST_METHOD: request.method,
+            ATTRIBUTE_NAMES.URL_PATH: request.path,
+        },
+    )
+
+
 SelfT = TypeVar("SelfT")
 P = ParamSpec("P")
 EndpointT = Callable[Concatenate[SelfT, Request, P], HttpResponseBase]
@@ -158,6 +197,9 @@ def deprecated(
     suggested_api: str | None = None,
     key: str = "",
     url_names: list[str] | None = None,
+    applies_to: Callable[..., bool] | None = None,
+    gone_message: str | None = None,
+    metric_attributes: Callable[..., MetricAttributes] | None = None,
 ) -> Callable[[EndpointT[SelfT, P]], EndpointT[SelfT, P]]:
     """
     Deprecation decorator that handles all the overhead related to deprecated endpoints
@@ -184,6 +226,15 @@ def deprecated(
                 is using schedule of a 1 minute blackout at noon UTC.
     :param url_names: A list of URL names that are deprecated if an endpoint has multiple URLs
                       and you need to deprecate one of the URLs.
+    :param applies_to: A predicate that limits the deprecation to matching requests, such as
+                       requests that pass a deprecated parameter value. It is called with the
+                       same arguments as the endpoint method. Other requests get no headers
+                       and no brownouts.
+    :param gone_message: The message returned during a brownout. Overrides the default
+                         `GONE_MESSAGE`.
+    :param metric_attributes: Returns extra attributes for the Sentry metric that records each
+                              caller, such as the deprecated parameter value. It is called with
+                              the same arguments as the endpoint method.
     """
 
     def decorator(func: EndpointT[SelfT, P]) -> EndpointT[SelfT, P]:
@@ -191,39 +242,48 @@ def deprecated(
         def endpoint_method(
             self: SelfT, request: Request, *args: P.args, **kwargs: P.kwargs
         ) -> HttpResponseBase:
-            matches_url_name = True
-            url_name = request.resolver_match.url_name if request.resolver_match else "unknown"
-            if url_names:
-                matches_url_name = url_name in url_names
-
             # Don't do anything for deprecated endpoints on self hosted
             # but allow testing deprecation in development
             if is_self_hosted() and not settings.ENVIRONMENT == "development":
                 return func(self, request, *args, **kwargs)
 
+            url_name = request.resolver_match.url_name if request.resolver_match else "unknown"
+            matches = (not url_names or url_name in url_names) and (
+                applies_to is None or applies_to(request, *args, **kwargs)
+            )
+            if not matches:
+                return func(self, request, *args, **kwargs)
+
             now = timezone.now()
 
-            metric_action = "header"
-            if (
-                now > deprecation_date
-                and matches_url_name
-                and _should_be_blocked(deprecation_date, now, key)
-            ):
-                metric_action = "gone"
-                response: HttpResponseBase = Response(GONE_MESSAGE, status=GONE)
+            blocked = now > deprecation_date and _should_be_blocked(deprecation_date, now, key)
+            metric_action = "gone" if blocked else "header"
+            _record_caller_in_sentry(
+                request,
+                kwargs,
+                {
+                    **(metric_attributes(request, *args, **kwargs) if metric_attributes else {}),
+                    "api.deprecated.url_name": url_name or "unknown",
+                    "api.deprecated.action": metric_action,
+                    "api.deprecated.deprecation_date": deprecation_date.isoformat(),
+                    "api.deprecated.brownout_key": key or "api.deprecation.brownout",
+                },
+            )
+            if blocked:
+                body = {"message": gone_message} if gone_message else GONE_MESSAGE
+                response: HttpResponseBase = Response(body, status=GONE)
             else:
                 response = func(self, request, *args, **kwargs)
 
-            if matches_url_name:
-                metrics.incr(
-                    "api.deprecated.request",
-                    tags={
-                        "url_name": url_name,
-                        "action": metric_action,
-                    },
-                )
-                resolved_api = _resolve_suggested_api(suggested_api, request)
-                _add_deprecation_headers(response, deprecation_date, resolved_api)
+            metrics.incr(
+                "api.deprecated.request",
+                tags={
+                    "url_name": url_name,
+                    "action": metric_action,
+                },
+            )
+            resolved_api = _resolve_suggested_api(suggested_api, request)
+            _add_deprecation_headers(response, deprecation_date, resolved_api)
 
             return response
 

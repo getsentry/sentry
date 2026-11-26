@@ -16,6 +16,13 @@ from sentry import features, quotas
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
+from sentry.api.bases.organization_events import (
+    LEGACY_DATASETS_BROWNOUT_KEY,
+    LEGACY_DATASETS_DEPRECATION_DATE,
+    LEGACY_DATASETS_GONE_MESSAGE,
+    legacy_dataset_metric_attributes,
+    requests_legacy_dataset,
+)
 from sentry.api.endpoints.organization_events_stats import SENTRY_BACKEND_REFERRERS
 from sentry.api.endpoints.timeseries import (
     EMPTY_STATS_RESPONSE,
@@ -27,6 +34,7 @@ from sentry.api.endpoints.timeseries import (
     StatsResponse,
     TimeSeries,
 )
+from sentry.api.helpers.deprecation import deprecated
 from sentry.api.helpers.ingestion_delay import (
     get_ingestion_delay_status,
     serialize_ingestion_status,
@@ -335,6 +343,13 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
             404: api_constants.RESPONSE_NOT_FOUND,
         },
         examples=DiscoverAndPerformanceExamples.QUERY_TIMESERIES,
+    )
+    @deprecated(
+        LEGACY_DATASETS_DEPRECATION_DATE,
+        key=LEGACY_DATASETS_BROWNOUT_KEY,
+        applies_to=requests_legacy_dataset,
+        gone_message=LEGACY_DATASETS_GONE_MESSAGE,
+        metric_attributes=legacy_dataset_metric_attributes,
     )
     def get(self, request: Request, organization: Organization) -> Response[StatsResponse]:
         """

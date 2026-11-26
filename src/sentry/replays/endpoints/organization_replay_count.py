@@ -11,7 +11,15 @@ from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects
-from sentry.api.bases.organization_events import OrganizationEventsEndpointBase
+from sentry.api.bases.organization_events import (
+    LEGACY_DATASETS_BROWNOUT_KEY,
+    LEGACY_DATASETS_DEPRECATION_DATE,
+    LEGACY_DATASETS_GONE_MESSAGE,
+    OrganizationEventsEndpointBase,
+    legacy_replay_data_source_metric_attributes,
+    requests_legacy_replay_data_source,
+)
+from sentry.api.helpers.deprecation import deprecated
 from sentry.api.utils import handle_query_errors
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.replay_examples import ReplayExamples
@@ -107,6 +115,13 @@ class OrganizationReplayCountEndpoint(OrganizationEventsEndpointBase):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
+    )
+    @deprecated(
+        LEGACY_DATASETS_DEPRECATION_DATE,
+        key=LEGACY_DATASETS_BROWNOUT_KEY,
+        applies_to=requests_legacy_replay_data_source,
+        gone_message=LEGACY_DATASETS_GONE_MESSAGE,
+        metric_attributes=legacy_replay_data_source_metric_attributes,
     )
     def get(
         self, request: Request, organization: Organization

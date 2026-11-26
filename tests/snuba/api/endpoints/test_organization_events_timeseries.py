@@ -9,6 +9,10 @@ import pytest
 from django.urls import reverse
 from rest_framework.response import Response
 
+from sentry.api.bases.organization_events import (
+    LEGACY_DATASETS_DEPRECATION_DATE,
+    LEGACY_DATASETS_GONE_MESSAGE,
+)
 from sentry.api.endpoints.timeseries import IncompleteReason
 from sentry.ingestion_delay.status import IngestionDelayStatus, IngestionStatus
 from sentry.testutils.cases import APITestCase, SnubaTestCase
@@ -857,6 +861,21 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
         )
 
         mock_sdk_logger.warning.assert_not_called()
+
+    def test_legacy_dataset_brownout(self) -> None:
+        data = {"interval": "1h", "statsPeriod": "1d", "project": [self.project.id]}
+        brownout = LEGACY_DATASETS_DEPRECATION_DATE.replace(hour=12)
+        with self.settings(SENTRY_SELF_HOSTED=False), freeze_time(brownout):
+            response = self._api_token_request(
+                data,
+                features={
+                    "organizations:discover-basic": True,
+                    "organizations:legacy-datasets-api-brownout": True,
+                },
+            )
+
+        assert response.status_code == 410
+        assert response.data == {"message": LEGACY_DATASETS_GONE_MESSAGE}
 
 
 class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):

@@ -9,6 +9,10 @@ import pytest
 from django.db.models import F
 from django.urls import reverse
 
+from sentry.api.bases.organization_events import (
+    LEGACY_DATASETS_DEPRECATION_DATE,
+    LEGACY_DATASETS_GONE_MESSAGE,
+)
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.replays.endpoints.organization_replay_count import project_in_org_has_sent_replay
@@ -21,7 +25,7 @@ from sentry.testutils.cases import (
     SnubaTestCase,
     SpanTestCase,
 )
-from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.utils.samples import load_data
 
 pytestmark = pytest.mark.sentry_metrics
@@ -844,3 +848,20 @@ class OrganizationReplayCountEndpointTest(
 
         assert response.status_code == 400
         assert response.data["detail"] == "The spans data source only supports a single value"
+
+    def test_legacy_data_source_brownout(self) -> None:
+        api_key = self.create_api_key(organization=self.organization, scope_list=["org:read"])
+        brownout = LEGACY_DATASETS_DEPRECATION_DATE.replace(hour=12)
+        with (
+            self.feature({**self.features, "organizations:legacy-datasets-api-brownout": True}),
+            self.settings(SENTRY_SELF_HOSTED=False),
+            freeze_time(brownout),
+        ):
+            response = self.client.get(
+                self.url,
+                {"query": "issue.id:[1]"},
+                HTTP_AUTHORIZATION=self.create_basic_auth_header(api_key.key),
+            )
+
+        assert response.status_code == 410
+        assert response.data == {"message": LEGACY_DATASETS_GONE_MESSAGE}
