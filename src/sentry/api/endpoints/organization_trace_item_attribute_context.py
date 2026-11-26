@@ -282,6 +282,8 @@ class OrganizationTraceItemAttributeContextEndpoint(OrganizationTraceItemAttribu
         optional_fields = {
             field: data[field] for field in ("additional_context", "examples") if field in data
         }
+        if "additional_context" in optional_fields:
+            optional_fields["additional_context"] = optional_fields["additional_context"] or None
         defaults = {
             "brief": data["brief"] or None,
             "updated_by_id": acting_user_id(request.user),
