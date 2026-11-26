@@ -298,7 +298,7 @@ class IntegrationProxyClientTest(TestCase):
         assert len(responses.calls) == 1
 
     @responses.activate
-    def test_provider_timeout_is_not_retried(self) -> None:
+    def test_provider_timeout_is_not_retried_for_writes(self) -> None:
         proxy_url = "http://controlserver/api/0/internal/integration-proxy/"
         responses.add(
             responses.POST, proxy_url, status=504, headers={PROXY_ERROR_HEADER: "host_timeout"}
@@ -310,6 +310,43 @@ class IntegrationProxyClientTest(TestCase):
             match=r"^Timed out attempting to reach host: example.com \(via integration proxy\)$",
         ):
             client.post("/some/endpoint")
+
+        assert len(responses.calls) == 1
+
+    @responses.activate
+    def test_provider_timeout_is_retried_once(self) -> None:
+        proxy_url = "http://controlserver/api/0/internal/integration-proxy/"
+        responses.add(
+            responses.GET, proxy_url, status=504, headers={PROXY_ERROR_HEADER: "host_timeout"}
+        )
+        responses.add(responses.GET, proxy_url, json={"ok": True})
+        client = self.client_cls(org_integration_id=self.oi_id)
+
+        assert client.get("/some/endpoint").json == {"ok": True}
+        assert len(responses.calls) == 2
+
+    @responses.activate
+    def test_provider_timeout_gives_up_after_one_retry(self) -> None:
+        proxy_url = "http://controlserver/api/0/internal/integration-proxy/"
+        for _ in range(3):
+            responses.add(
+                responses.GET, proxy_url, status=504, headers={PROXY_ERROR_HEADER: "host_timeout"}
+            )
+        client = self.client_cls(org_integration_id=self.oi_id)
+
+        with raises(ApiTimeoutError):
+            client.get("/some/endpoint")
+
+        assert len(responses.calls) == 2
+
+    @responses.activate
+    def test_provider_gateway_timeout_is_not_retried(self) -> None:
+        proxy_url = "http://controlserver/api/0/internal/integration-proxy/"
+        responses.add(responses.GET, proxy_url, status=504, body="Gateway Timeout")
+        client = self.client_cls(org_integration_id=self.oi_id)
+
+        with raises(ApiError):
+            client.get("/some/endpoint")
 
         assert len(responses.calls) == 1
 

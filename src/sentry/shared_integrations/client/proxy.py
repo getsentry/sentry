@@ -23,6 +23,7 @@ from sentry.integrations.client import ApiClient
 from sentry.integrations.services.integration.service import integration_service
 from sentry.net.http import SafeSession
 from sentry.shared_integrations.client.base import SessionSettings
+from sentry.shared_integrations.exceptions import ProxiedApiTimeoutError
 from sentry.silo.base import SiloMode, control_silo_function
 from sentry.silo.util import (
     DEFAULT_REQUEST_BODY,
@@ -283,6 +284,19 @@ class IntegrationProxyClient(ApiClient):
         encoded = encode_proxy_timeout(timeout)
         if encoded is not None:
             prepared_request.headers[PROXY_TIMEOUT_HEADER] = encoded
+
+    def request(self, *args: Any, **kwargs: Any) -> Any:
+        """
+        Try once more when control reports that the provider didn't answer in time. Only for
+        idempotent methods: the provider may have acted on a write it was too slow to answer.
+        """
+        try:
+            return super().request(*args, **kwargs)
+        except ProxiedApiTimeoutError:
+            method = kwargs["method"] if "method" in kwargs else args[0]
+            if method.upper() not in Retry.DEFAULT_ALLOWED_METHODS:
+                raise
+            return super().request(*args, **kwargs)
 
     def _build_session_settings(
         self,

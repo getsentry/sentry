@@ -94,7 +94,7 @@ class ApiError(Exception):
         if proxy_error == PROXY_ERROR_HOST_UNREACHABLE:
             return ApiHostError(f"Unable to reach host: {host} (via integration proxy)", url=url)
         elif proxy_error == PROXY_ERROR_HOST_TIMEOUT:
-            return ApiTimeoutError(
+            return ProxiedApiTimeoutError(
                 f"Timed out attempting to reach host: {host} (via integration proxy)", url=url
             )
 
@@ -160,6 +160,10 @@ class ApiTimeoutError(ApiError):
     def from_request(cls, request: _RequestHasUrl) -> ApiTimeoutError:
         host = urlparse(request.url).netloc
         return cls(f"Timed out attempting to reach host: {host}", url=request.url)
+
+
+class ProxiedApiTimeoutError(ApiTimeoutError):
+    """The integration proxy reached the provider, but the provider didn't answer in time."""
 
 
 class ApiUnauthorized(ApiError):
