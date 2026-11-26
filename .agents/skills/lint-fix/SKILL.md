@@ -1,6 +1,6 @@
 ---
 name: lint-fix
-description: Fix existing violations of a custom oxlint rule from eslintPluginSentry or eslintPluginScraps. Use when asked to "fix lint violations", "roll out a lint rule", "burn down an incubator rule", "fix the suppression backlog", or "enforce a rule codebase-wide".
+description: Fix existing violations of a custom oxlint rule from eslintPluginSentry or eslintPluginScraps. Use when asked to "fix lint violations" or "fix the suppression backlog".
 ---
 
 Fix violations of rule `$0` on files matching `$1`.
@@ -10,24 +10,31 @@ Fix violations of rule `$0` on files matching `$1`.
 - `$0`: full rule key, e.g. `@sentry/scraps/no-manual-table` or `@sentry/prefer-nuqs`
 - `$1`: repository-relative path prefix, e.g. `static/app/views/alerts/`
 
+If `$0` is empty, ask for the rule. If `$1` is empty, the scope is the whole repository: the commands below then lint and list every file.
+
 Linting runs through `pnpm run lint:js`, which always applies the committed config and rejects rule overrides (`-A`, `-W`, `-D`, `--config`). To find a rule's violations, the rule has to be in the config.
 
 ## Step 1: Find Where the Rule Stands
 
-Search for `$0` in `oxlint.config.ts` and `oxlint.base.ts`:
+Search for `$0` in `oxlint.config.ts`, `oxlint.base.ts`, and the package configs in `static/packages/*/oxlint.config.ts`:
 
-| Where the rule is                                    | Its violations                                                                                    | Next                                                                                                                                                                            |
-| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `incubator` at the top of `oxlint.config.ts`         | Capped per file in `oxlint-suppressions.json` (`static/app/`, `static/gsApp/`, `static/gsAdmin/`) | Step 2                                                                                                                                                                          |
-| Not in either config (only in the plugin's `index`)  | Unreported                                                                                        | Register it first, following Step 3 of the `lint-new` skill. More violations than this PR will fix → incubator and enroll. Few enough to fix now → enable it as a regular rule. |
-| Anywhere else (`base`, top-level `rules`, overrides) | None: `pnpm run lint:js` already fails CI on them                                                 | Nothing to fix                                                                                                                                                                  |
+| Where the rule is                                    | Its violations                                                                                    | Next                          |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------- | ----------------------------- |
+| `incubator` at the top of `oxlint.config.ts`         | Capped per file in `oxlint-suppressions.json` (`static/app/`, `static/gsApp/`, `static/gsAdmin/`) | Step 2                        |
+| In no config (only in the plugin's `index`)          | Unreported                                                                                        | Register it first; see below. |
+| Anywhere else (`base`, top-level `rules`, overrides) | None: `pnpm run lint:js` already fails CI on them                                                 | Nothing to fix                |
+
+To register an unconfigured rule, count its violations first: enable it in top-level `rules` in `oxlint.config.ts` and run `pnpm run lint:js`, which prints the total. Then follow Step 3 of the `lint-new` skill:
+
+- Few enough to fix in this PR: keep it as a regular rule.
+- More than that: move it to `incubator` and enroll it (Step 4 of `lint-new`, `pnpm run lint:suppressions --enroll --base origin/master`).
 
 ## Step 2: Understand the Fix
 
-The rule's error message names the replacement. For anything it leaves open, read the rule source and the `valid` cases in its spec:
+The rule's error message names the replacement. For anything it leaves open, read the rule source and the `valid` cases in its spec. The plugin index imports each rule from its source file, usually `<camelName>.ts` next to `<camelName>.spec.ts` (some rules share a file, e.g. `emotionRules.ts`):
 
-- Scraps: `static/oxlint/eslintPluginScraps/src/rules/<camelName>.ts` and `<camelName>.spec.ts`
-- Sentry: `static/oxlint/eslintPluginSentry/<camelName>.ts` and `<camelName>.spec.ts`
+- Scraps: `static/oxlint/eslintPluginScraps/src/rules/index.ts`
+- Sentry: `static/oxlint/eslintPluginSentry/index.ts`
 
 [references/fix-patterns.md](references/fix-patterns.md) has worked fixes for some Scraps rules. For `use-semantic-token`, you MUST load [references/token-taxonomy.md](references/token-taxonomy.md).
 
@@ -50,18 +57,20 @@ The backlog takes no path and scans the whole repository (about 30 seconds), so 
 pnpm run lint:js $1
 ```
 
+A regular rule fails CI on every violation, so it must end up clean across the whole repository, not just under `$1`.
+
 ## Step 4: Choose a Strategy
 
-| Violations in scope | Strategy                                                                                                                                                                                |
-| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Any, autofixable    | `pnpm run lint:js --fix $1`. This applies every autofixable rule on those files, not only `$0`, so review the diff. Fix whatever it leaves by hand.                                     |
-| Under 100           | Fix by hand, 5-10 files at a time, re-listing after each batch                                                                                                                          |
-| 100-500             | Split `$1` into subdirectories and fix one per batch or PR                                                                                                                              |
-| 500+                | A throwaway codemod for mechanical transforms (`oxc-parser` from the repo root parses to the AST oxlint rules see), or several PRs split by owner while the rule stays in the incubator |
+| Violations in scope | Strategy                                                                                                                                            |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Any, autofixable    | `pnpm run lint:js --fix $1`. This applies every autofixable rule on those files, not only `$0`, so review the diff. Fix whatever it leaves by hand. |
+| Under 100           | Fix by hand, 5-10 files at a time, re-listing after each batch                                                                                      |
+| 100-500             | Split `$1` into subdirectories and fix one per batch or PR                                                                                          |
+| 500+                | A throwaway codemod for mechanical transforms, or several PRs split by owner while the rule stays in the incubator                                  |
 
 ## Step 5: Lower the Budgets
 
-Only for incubator rules. Once violations are fixed, the budgets for those files are stale, and `pnpm run lint:suppressions --ci` fails CI on stale budgets your change made. Lower them:
+Only for incubator rules. Once violations are fixed, the budgets for those files are stale, and `pnpm run lint:suppressions --ci --base <ref>` fails CI on stale budgets your change made. Lower them:
 
 ```bash
 pnpm run lint:suppressions --prune
@@ -82,10 +91,18 @@ Done when all of these pass:
 
 ```bash
 pnpm run lint:js $1
-pnpm run lint:suppressions --ci                                   # incubator rules
-pnpm run lint:suppressions --backlog --rule $0 | grep -c '^$1'     # 0
 pnpm run typecheck
+.venv/bin/prek run -q --files <changed files>
 ```
+
+For an incubator rule, also:
+
+```bash
+pnpm run lint:suppressions --ci --base origin/master            # without --base, stale budgets only warn
+pnpm run lint:suppressions --backlog --rule $0 | grep -c '^$1'   # 0
+```
+
+For a regular rule, or after graduating the rule, run `pnpm run lint:js` with no path. `--backlog --rule` only accepts incubator rules.
 
 ## Coordinating Large Changes
 
