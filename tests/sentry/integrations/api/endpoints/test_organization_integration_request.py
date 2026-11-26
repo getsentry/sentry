@@ -46,6 +46,42 @@ class OrganizationIntegrationRequestTest(APITestCase):
             "?category=source%20code%20management&referrer=request_email"
         ) in body
 
+    @with_feature("organizations:ask-seer-scm-connect-prompt")
+    def test_integration_request_for_source_control_for_a_repo(self) -> None:
+        with self.tasks():
+            self.get_success_response(
+                self.organization.slug,
+                providerSlug="source code management",
+                providerType="category",
+                message="Seer can't access acme-labs/app.",
+                repoName="acme-labs/app",
+                status_code=201,
+            )
+
+        assert len(mail.outbox) == 1
+        body = mail.outbox[0].body
+        assert "Connect source control by clicking the link below" in body
+        assert (
+            f"/settings/{self.organization.slug}/integrations/"
+            "?category=source%20code%20management&connectScmRepo=acme-labs%2Fapp"
+            "&referrer=request_email"
+        ) in body
+
+    def test_integration_request_for_a_repo_without_the_prompt(self) -> None:
+        with self.tasks():
+            self.get_success_response(
+                self.organization.slug,
+                providerSlug="source code management",
+                providerType="category",
+                repoName="acme-labs/app",
+                status_code=201,
+            )
+
+        assert len(mail.outbox) == 1
+        body = mail.outbox[0].body
+        assert "Install integration by clicking the link below" in body
+        assert "connectScmRepo" not in body
+
     def test_integration_request_without_provider(self) -> None:
         with self.tasks():
             self.get_success_response(self.organization.slug, status_code=201)

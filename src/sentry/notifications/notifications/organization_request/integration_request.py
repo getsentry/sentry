@@ -27,17 +27,24 @@ provider_types = {
 # A request can name a category of the integrations directory instead of one provider, with
 # provider type "category" and the category as the slug, when any integration in it would do.
 CATEGORY_PROVIDER_TYPE = "category"
+SCM_CATEGORY = "source code management"
 # The categories a request can name, each with how the email says what was requested.
 REQUESTABLE_CATEGORIES: Mapping[str, str] = {
-    "source code management": "a source code management integration",
+    SCM_CATEGORY: "a source code management integration",
 }
+CONNECT_SCM_REPO_PARAM = "connectScmRepo"
 
 
 def get_url(
-    organization: Organization, provider_type: str | None, provider_slug: str | None
+    organization: Organization,
+    provider_type: str | None,
+    provider_slug: str | None,
+    repo_name: str | None = None,
 ) -> str:
     if provider_slug is None or provider_type == CATEGORY_PROVIDER_TYPE:
         query = {"referrer": "request_email"}
+        if repo_name is not None:
+            query = {CONNECT_SCM_REPO_PARAM: repo_name, **query}
         if provider_slug is not None:
             query = {"category": provider_slug, **query}
         return str(
@@ -70,6 +77,7 @@ class IntegrationRequestNotification(OrganizationRequestNotification):
         provider_slug: str | None,
         provider_name: str | None,
         message: str | None = None,
+        repo_name: str | None = None,
     ) -> None:
         """With no provider, the request is for any integration. With a category as the provider
         (`CATEGORY_PROVIDER_TYPE`), it's for any integration in that category."""
@@ -78,14 +86,23 @@ class IntegrationRequestNotification(OrganizationRequestNotification):
         self.provider_slug = provider_slug
         self.provider_name = provider_name
         self.message = message
+        self.repo_name = repo_name
         self.integration_link = get_url(
             self.organization,
             self.provider_type,
             self.provider_slug,
+            self.repo_name,
         )
 
     def _is_one_provider(self) -> bool:
         return self.provider_name is not None and self.provider_type != CATEGORY_PROVIDER_TYPE
+
+    def _install_label(self) -> str:
+        if self._is_one_provider():
+            return f"Install {self.provider_name}"
+        if self.repo_name is not None:
+            return "Connect source control"
+        return "Install integration"
 
     def _requested(self) -> str:
         """What was requested, for the middle of a sentence."""
@@ -106,11 +123,7 @@ class IntegrationRequestNotification(OrganizationRequestNotification):
                 if self._is_one_provider()
                 else self._requested()
             ),
-            "install_label": (
-                f"Install {self.provider_name}"
-                if self._is_one_provider()
-                else "Install integration"
-            ),
+            "install_label": self._install_label(),
             "message": self.message,
         }
 
