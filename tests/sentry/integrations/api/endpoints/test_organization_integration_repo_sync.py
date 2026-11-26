@@ -1,6 +1,8 @@
 from unittest.mock import MagicMock, patch
 
+from sentry.integrations.source_code_management.repo_sync_status import FEATURE
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import control_silo_test
 
 
@@ -27,6 +29,32 @@ class OrganizationIntegrationRepoSyncTest(APITestCase):
         mock_sync.apply_async.assert_called_once()
         kwargs = mock_sync.apply_async.call_args.kwargs["kwargs"]
         assert "organization_integration_id" in kwargs
+
+    def test_get_without_the_feature(self) -> None:
+        response = self.client.get(self.path)
+        assert response.status_code == 404, response.content
+
+    @with_feature(FEATURE)
+    def test_get_without_a_sync(self) -> None:
+        response = self.client.get(self.path)
+        assert response.status_code == 200, response.content
+        assert response.data["status"] is None
+
+    @with_feature(FEATURE)
+    @patch(
+        "sentry.integrations.api.endpoints.organization_integration_repo_sync.sync_repos_for_org"
+    )
+    def test_get_while_syncing(self, mock_sync: MagicMock) -> None:
+        self.client.post(self.path, format="json")
+
+        # Members can't start a sync, but can wait for one.
+        member = self.create_user()
+        self.create_member(user=member, organization=self.org, role="member")
+        self.login_as(user=member)
+
+        response = self.client.get(self.path)
+        assert response.status_code == 200, response.content
+        assert response.data == {"status": "syncing", "trigger": "manual", "reason": None}
 
     @patch(
         "sentry.integrations.api.endpoints.organization_integration_repo_sync.sync_repos_for_org"
