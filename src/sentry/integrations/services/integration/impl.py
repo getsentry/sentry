@@ -44,12 +44,14 @@ from sentry.integrations.services.integration.model import (
     RpcIntegrationIdentityContext,
     RpcOrganizationContext,
     RpcOrganizationContextList,
+    RpcScmRepoSyncState,
 )
 from sentry.integrations.services.integration.serial import (
     serialize_integration,
     serialize_integration_external_project,
     serialize_organization_integration,
 )
+from sentry.integrations.source_code_management.repo_sync_status import RepoSyncFailed, get_statuses
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEvent
 from sentry.sentry_apps.event_types import SentryAppEventType
@@ -659,6 +661,33 @@ class DatabaseBackedIntegrationService(IntegrationService):
             identity_provider=identity_provider,
             identity=identity,
             user=user,
+        )
+
+    def get_scm_repo_sync_state(
+        self,
+        *,
+        organization_id: int,
+        providers: list[str],
+        sync_integration_ids: list[int] | None = None,
+    ) -> RpcScmRepoSyncState:
+        integration_ids = list(
+            OrganizationIntegration.objects.filter(
+                organization_id=organization_id,
+                status=ObjectStatus.ACTIVE,
+                integration__status=ObjectStatus.ACTIVE,
+                integration__provider__in=providers,
+            ).values_list("integration_id", flat=True)
+        )
+        selected_ids = set(integration_ids)
+        if sync_integration_ids is not None:
+            selected_ids.intersection_update(sync_integration_ids)
+        statuses = get_statuses(organization_id, sorted(selected_ids)).values()
+        return RpcScmRepoSyncState(
+            has_integration=bool(integration_ids),
+            syncing=any(status.state == "syncing" for status in statuses),
+            failure_reason=next(
+                (status.reason for status in statuses if isinstance(status, RepoSyncFailed)), None
+            ),
         )
 
     def get_gcp_service_account_email(
