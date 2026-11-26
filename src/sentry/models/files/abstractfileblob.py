@@ -93,7 +93,7 @@ class AbstractFileBlob(Model, _Parent[BlobOwnerType]):
             size, checksum = get_size_and_checksum(chunk)
             if reference_checksum is not None and checksum != reference_checksum:
                 raise OSError("Checksum mismatch")
-            chunks.setdefault(checksum, (chunk, size))
+            chunks[checksum] = (chunk, size)
 
         existing_blobs = cls.objects.in_bulk(chunks, field_name="checksum")
         blobs_to_save = []
