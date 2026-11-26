@@ -27,6 +27,7 @@ import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ListItem} from '@sentry/scraps/menu';
 import {Overlay, PositionWrapper} from '@sentry/scraps/overlay';
+import type {OverlayPlacement} from '@sentry/scraps/overlayPositioning';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 import {useOverlay} from '@sentry/scraps/useOverlay';
@@ -35,13 +36,13 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
+import type {PageFilterDatetime} from 'sentry/types/core';
 import {usePrevious} from 'sentry/utils/usePrevious';
 import {
-  AwaitingDataTag,
+  NoRecentDataTag,
   FREEFORM_METRIC_TYPES,
   FREEFORM_METRIC_UNITS,
   FreeformName,
-  FreeformNewTag,
   FreeformOptionLabel,
   FreeformTypeDescription,
   getFreeformName,
@@ -75,6 +76,16 @@ const FIELD_OPTION_VALUE = '__field__';
 const FREEFORM_OPTION_VALUE = '__freeform__';
 const FREEFORM_METRIC_TYPE_OPTION_PREFIX = '__freeform_metric_type__:';
 const FREEFORM_METRIC_UNIT_OPTION_PREFIX = '__freeform_metric_unit__:';
+// The widest window Snuba serves at full fidelity (EAP_FULL_FIDELITY_QUERY_DAYS);
+// older data is downsampled, so a rarely sent metric could be missed there.
+// Keeps the overlay on the side it opened on (see `freeformPlacement`).
+const NO_FLIP = {mainAxis: false};
+const METRIC_EXISTS_LOOKBACK: PageFilterDatetime = {
+  period: '30d',
+  start: null,
+  end: null,
+  utc: null,
+};
 
 function maybePortal(element: React.ReactElement, portal?: boolean) {
   return portal ? createPortal(element, document.body) : element;
@@ -152,6 +163,11 @@ export function MetricSelector({
   const [pendingFreeformName, setPendingFreeformName] = useState<string | null>(null);
   const [pendingFreeformType, setPendingFreeformType] =
     useState<TraceMetricTypeValue | null>(null);
+  // To prevent the type and unit selector from jumping around when overlay flips
+  const [freeformPlacement, setFreeformPlacement] = useState<OverlayPlacement | null>(
+    null
+  );
+  const lockedPlacement = pendingFreeformName ? freeformPlacement : null;
 
   const {data: metricOptionsData, isFetching} = useMetricOptions({
     search: debouncedSearch,
@@ -160,19 +176,41 @@ export function MetricSelector({
     enabled: !pendingFreeformName,
   });
 
-  // Looked up separately from the search results so the "Awaiting data" state
-  // doesn't flicker while the user types in the search input.
+  // Looked up by exact name over the retention window, separately from the
+  // search results, so the "No recent data" state doesn't depend on what's typed or
+  // on the widget's time range.
   const {data: selectedMetricData} = useMetricOptions({
-    search: traceMetric.name,
+    exactName: traceMetric.name,
     projectIds,
     environments,
+    datetime: METRIC_EXISTS_LOOKBACK,
     enabled: Boolean(allowFreeformMetric && traceMetric.name),
   });
-  const isAwaitingData =
+  const hasNoRecentData =
     Boolean(allowFreeformMetric && traceMetric.name) &&
     selectedMetricData !== undefined &&
     !selectedMetricData.data?.some(
-      row => row[TraceMetricKnownFieldKey.METRIC_NAME] === traceMetric.name
+      row =>
+        row[TraceMetricKnownFieldKey.METRIC_NAME] === traceMetric.name &&
+        row[TraceMetricKnownFieldKey.METRIC_TYPE] === traceMetric.type
+    );
+
+  // The search results match substrings and are capped, so they can miss an
+  // existing metric with exactly the typed name.
+  const freeformCandidate = debouncedSearch.trim();
+  const {data: exactNameData, isFetching: isFetchingExactName} = useMetricOptions({
+    exactName: freeformCandidate,
+    projectIds,
+    environments,
+    datetime: METRIC_EXISTS_LOOKBACK,
+    enabled: Boolean(allowFreeformMetric && freeformCandidate && !pendingFreeformName),
+  });
+  const typedNameExists =
+    exactNameData === undefined ||
+    Boolean(
+      exactNameData.data?.some(
+        row => row[TraceMetricKnownFieldKey.METRIC_NAME] === freeformCandidate
+      )
     );
 
   const traceMetricDisplayUnit =
@@ -306,7 +344,7 @@ export function MetricSelector({
       o => o.value === traceMetricSelectValue
     );
     const fallbackOption =
-      optionFromTraceMetric && isAwaitingData
+      optionFromTraceMetric && hasNoRecentData
         ? {
             ...optionFromTraceMetric,
             trailingItems: () => (
@@ -315,7 +353,7 @@ export function MetricSelector({
                   metricType={optionFromTraceMetric.metricType}
                   metricUnit={traceMetricDisplayUnit}
                 />
-                <AwaitingDataTag />
+                <NoRecentDataTag />
               </Fragment>
             ),
           }
@@ -345,7 +383,7 @@ export function MetricSelector({
       ...options,
     ];
   }, [
-    isAwaitingData,
+    hasNoRecentData,
     traceMetricDisplayUnit,
     fieldOption,
     metricOptionsData,
@@ -399,9 +437,10 @@ export function MetricSelector({
   const previousOptions = usePrevious(metricOptions);
 
   // Only show freeform once the search has settled
-  const areOptionsCurrent = !isFetching && searchInputValue === debouncedSearch;
+  const areOptionsCurrent =
+    !isFetching && !isFetchingExactName && searchInputValue === debouncedSearch;
   const freeformName =
-    allowFreeformMetric && areOptionsCurrent
+    allowFreeformMetric && areOptionsCurrent && !typedNameExists
       ? getFreeformName(
           searchInputValue,
           metricOptions.filter(isMetricSelectorOption).map(option => option.metricName)
@@ -449,14 +488,13 @@ export function MetricSelector({
         metricName: freeformName,
         label: (
           <FreeformOptionLabel>
-            {tct('Add freeform metric [name]', {
+            {tct('Use freeform metric [name]', {
               name: <FreeformName name={freeformName} />,
             })}
           </FreeformOptionLabel>
         ),
         textValue: freeformName,
         value: FREEFORM_OPTION_VALUE,
-        trailingItems: () => <FreeformNewTag />,
       },
       ...options,
     ];
@@ -648,7 +686,8 @@ export function MetricSelector({
     triggerRef,
   } = useOverlay({
     type: 'listbox',
-    position: 'bottom-start',
+    position: lockedPlacement ?? 'bottom-start',
+    flipOptions: lockedPlacement ? NO_FLIP : undefined,
     offset: 6,
     isOpen: comboBoxState.isOpen,
     isKeyboardDismissDisabled: true,
@@ -667,6 +706,12 @@ export function MetricSelector({
       }
     },
   });
+
+  // Follow the overlay's side while the metric list shows, so it's frozen at that
+  // side once the freeform steps start.
+  if (!pendingFreeformName && freeformPlacement !== overlayArrowProps.placement) {
+    setFreeformPlacement(overlayArrowProps.placement);
+  }
 
   const {inputProps: comboBoxInputProps, listBoxProps} = useComboBox<MetricSelectorItem>(
     {
@@ -801,10 +846,10 @@ export function MetricSelector({
           <Text ellipsis italic>
             {t('field')}
           </Text>
-        ) : isAwaitingData ? (
+        ) : hasNoRecentData ? (
           <Flex gap="sm" align="center" minWidth="0">
             <Text ellipsis>{traceMetric.name}</Text>
-            <AwaitingDataTag />
+            <NoRecentDataTag />
           </Flex>
         ) : (
           <Text ellipsis>{traceMetric.name || t('None')}</Text>

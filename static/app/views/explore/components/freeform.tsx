@@ -93,10 +93,6 @@ export function FreeformTypeDescription({children}: {children: ReactNode}) {
   );
 }
 
-export function FreeformNewTag() {
-  return <Tag variant="info">{t('New')}</Tag>;
-}
-
-export function AwaitingDataTag() {
-  return <Tag variant="muted">{t('Awaiting data')}</Tag>;
+export function NoRecentDataTag() {
+  return <Tag variant="muted">{t('No recent data')}</Tag>;
 }

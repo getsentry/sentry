@@ -739,7 +739,8 @@ describe('MetricSelector', () => {
       const freeformOption = await screen.findByRole('option', {
         name: 'checkout.latency',
       });
-      expect(freeformOption).toHaveTextContent('Add freeform metric "checkout.latency"');
+      expect(freeformOption).toHaveTextContent('Use freeform metric "checkout.latency"');
+      expect(within(freeformOption).queryByText('New')).not.toBeInTheDocument();
       await userEvent.click(freeformOption);
 
       // The second step asks for a metric type before anything is selected.
@@ -922,7 +923,7 @@ describe('MetricSelector', () => {
       expect(screen.queryByText(/Choose a metric type for/)).not.toBeInTheDocument();
     });
 
-    it('marks a selected metric with no data as awaiting data, keeping its badges', async () => {
+    it('marks a selected metric with no data as having no recent data, keeping its badges', async () => {
       render(
         <MetricSelector
           traceMetric={{name: 'checkout.latency', type: 'counter', unit: 'millisecond'}}
@@ -933,16 +934,16 @@ describe('MetricSelector', () => {
       );
 
       const trigger = screen.getByRole('button', {name: /checkout\.latency/});
-      expect(await within(trigger).findByText('Awaiting data')).toBeInTheDocument();
+      expect(await within(trigger).findByText('No recent data')).toBeInTheDocument();
 
       await userEvent.click(trigger);
       const option = await screen.findByRole('option', {name: /checkout\.latency/});
-      expect(within(option).getByText('Awaiting data')).toBeInTheDocument();
+      expect(within(option).getByText('No recent data')).toBeInTheDocument();
       expect(within(option).getByText('counter')).toBeInTheDocument();
       expect(within(option).getByText('millisecond')).toBeInTheDocument();
     });
 
-    it('does not mark a selected metric that has data as awaiting data', async () => {
+    it('does not mark a selected metric that has data as having no recent data', async () => {
       render(
         <MetricSelector
           traceMetric={DEFAULT_TRACE_METRIC}
@@ -954,8 +955,116 @@ describe('MetricSelector', () => {
 
       await userEvent.click(screen.getByRole('button', {name: 'bar'}));
       await screen.findByRole('option', {name: 'bar'});
-      expect(screen.queryByText('Awaiting data')).not.toBeInTheDocument();
+      expect(screen.queryByText('No recent data')).not.toBeInTheDocument();
     });
+
+    it('does not offer a name that exists but is missing from the search results', async () => {
+      // Search results match substrings and are capped, so only the exact-name
+      // lookup returns this metric.
+      const exactNameMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events/`,
+        body: {
+          data: [
+            {
+              'metric.name': 'checkout.latency',
+              'metric.type': 'counter',
+              'metric.unit': 'none',
+              'count(metric.name)': 1,
+            },
+          ],
+        },
+        match: [MockApiClient.matchQuery({query: 'metric.name:checkout.latency'})],
+      });
+      render(
+        <MetricSelector
+          traceMetric={DEFAULT_TRACE_METRIC}
+          onChange={jest.fn()}
+          allowFreeformMetric
+        />,
+        {organization}
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'bar'}));
+      await userEvent.type(
+        await screen.findByPlaceholderText('Search application metrics\u2026'),
+        'checkout.latency'
+      );
+      await waitFor(() => expect(exactNameMock).toHaveBeenCalled());
+      await screen.findByRole('option', {name: 'bar'});
+      expect(screen.queryByText(/Use freeform metric/)).not.toBeInTheDocument();
+    });
+
+    it('checks for the selected metric by exact name over the last 30 days', async () => {
+      const exactNameMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events/`,
+        body: {data: []},
+        match: [MockApiClient.matchQuery({query: 'metric.name:checkout.latency'})],
+      });
+      render(
+        <MetricSelector
+          traceMetric={{name: 'checkout.latency', type: 'counter', unit: 'millisecond'}}
+          onChange={jest.fn()}
+          allowFreeformMetric
+        />,
+        {organization}
+      );
+
+      await waitFor(() => {
+        expect(exactNameMock).toHaveBeenCalledWith(
+          `/organizations/${organization.slug}/events/`,
+          expect.objectContaining({
+            query: expect.objectContaining({
+              query: 'metric.name:checkout.latency',
+              statsPeriod: '30d',
+            }),
+          })
+        );
+      });
+      const [, request] = exactNameMock.mock.calls[0];
+      expect(request.query.caseInsensitive).toBeUndefined();
+    });
+
+    it.each([
+      {sentType: 'gauge', hasNoRecentData: true},
+      {sentType: 'counter', hasNoRecentData: false},
+    ])(
+      'marks no recent data by name and type (sent as $sentType)',
+      async ({sentType, hasNoRecentData}) => {
+        const exactNameMock = MockApiClient.addMockResponse({
+          url: `/organizations/${organization.slug}/events/`,
+          body: {
+            data: [
+              {
+                'metric.name': 'checkout.latency',
+                'metric.type': sentType,
+                'metric.unit': 'millisecond',
+                'count(metric.name)': 1,
+              },
+            ],
+          },
+          match: [MockApiClient.matchQuery({query: 'metric.name:checkout.latency'})],
+        });
+        render(
+          <MetricSelector
+            traceMetric={{name: 'checkout.latency', type: 'counter', unit: 'millisecond'}}
+            onChange={jest.fn()}
+            allowFreeformMetric
+          />,
+          {organization}
+        );
+
+        const trigger = screen.getByRole('button', {name: /checkout\.latency/});
+        await waitFor(() => expect(exactNameMock).toHaveBeenCalled());
+        if (hasNoRecentData) {
+          expect(await within(trigger).findByText('No recent data')).toBeInTheDocument();
+        } else {
+          // Let the lookup's response render before checking for the tag.
+          await waitFor(() => expect(exactNameMock).toHaveBeenCalledTimes(1));
+          await act(() => Promise.resolve());
+          expect(within(trigger).queryByText('No recent data')).not.toBeInTheDocument();
+        }
+      }
+    );
 
     it('disables freeform metric types that getDisabledOptionReason rejects', async () => {
       const onChange = jest.fn();
@@ -1016,7 +1125,7 @@ describe('MetricSelector', () => {
       expect(
         screen.queryByRole('option', {name: 'checkout.latency'})
       ).not.toBeInTheDocument();
-      expect(screen.queryByText(/Add freeform metric/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Use freeform metric/)).not.toBeInTheDocument();
     });
   });
 });
