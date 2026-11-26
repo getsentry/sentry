@@ -81,9 +81,6 @@ jobs:
         id: file
         run: |
           echo 'added<<EOF' >> "$GITHUB_OUTPUT"
-          # Without --no-renames, git can pair an added migration with a migration that
-          # master has and HEAD lacks, as on a PR based on another branch, and report it
-          # as renamed instead of added.
           git diff --no-renames --diff-filter=A --name-only origin/master HEAD -- 'src/sentry/*/migrations/*' 'src/sentry/migrations/*' ':!*/__init__.py' >> "$GITHUB_OUTPUT"
           echo 'EOF' >> "$GITHUB_OUTPUT"
 
