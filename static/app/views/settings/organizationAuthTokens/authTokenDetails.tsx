@@ -3,12 +3,11 @@ import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormOptions, DisplayField, useScrapsForm} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {toast} from '@sentry/scraps/toast';
 
-import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -130,19 +129,19 @@ function AuthTokenDetailsForm({token}: {token: OrgAuthToken}) {
             </field.Layout.Row>
           )}
         </form.AppField>
-        <FieldGroup
+        <DisplayField.Row
           label={t('Token')}
-          help={t('You can only view the token once after creation.')}
+          hintText={t('You can only view the token once after creation.')}
         >
           <div>{tokenPreview(token.tokenLastCharacters || '****')}</div>
-        </FieldGroup>
+        </DisplayField.Row>
 
-        <FieldGroup
+        <DisplayField.Row
           label={t('Scopes')}
-          help={t('You cannot change the scopes of an existing token.')}
+          hintText={t('You cannot change the scopes of an existing token.')}
         >
           <div>{token.scopes.toSorted().join(', ')}</div>
-        </FieldGroup>
+        </DisplayField.Row>
       </form.FieldGroup>
 
       <Flex justify="end" gap="md" padding="md">

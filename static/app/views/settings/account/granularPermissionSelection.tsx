@@ -1,11 +1,12 @@
 import {Fragment} from 'react';
 
+import {DisplayField} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 import type {SelectValue} from '@sentry/scraps/select';
 import {Text} from '@sentry/scraps/text';
 
-import {FieldGroup} from 'sentry/components/forms/fieldGroup';
+import {PanelItem} from 'sentry/components/panels/panelItem';
 import {GRANULAR_SENTRY_APP_PERMISSIONS, GranularPermissionLevel} from 'sentry/constants';
 import {t} from 'sentry/locale';
 
@@ -58,22 +59,27 @@ export function GranularPermissionSelection({permissions, onChange}: Props) {
         </Text>
       </Flex>
       {GRANULAR_SENTRY_APP_PERMISSIONS.map(({label, help, levels}) => (
-        <FieldGroup key={label} label={label} help={help}>
-          <Select<GranularPermissionLevel | typeof NO_ACCESS>
-            aria-label={label}
-            name={`${label}--granular-permission`}
-            value={permissions[label] ?? NO_ACCESS}
-            options={
-              [
-                {value: NO_ACCESS, label: t('No Access')},
-                ...levels.map(level => ({value: level, label: LEVEL_LABELS[level]})),
-              ] satisfies Array<SelectValue<GranularPermissionLevel | typeof NO_ACCESS>>
-            }
-            onChange={({value}) =>
-              onChange({...permissions, [label]: value === NO_ACCESS ? undefined : value})
-            }
-          />
-        </FieldGroup>
+        <PanelItem key={label}>
+          <DisplayField.Row label={label} hintText={help}>
+            <Select<GranularPermissionLevel | typeof NO_ACCESS>
+              aria-label={label}
+              name={`${label}--granular-permission`}
+              value={permissions[label] ?? NO_ACCESS}
+              options={
+                [
+                  {value: NO_ACCESS, label: t('No Access')},
+                  ...levels.map(level => ({value: level, label: LEVEL_LABELS[level]})),
+                ] satisfies Array<SelectValue<GranularPermissionLevel | typeof NO_ACCESS>>
+              }
+              onChange={({value}) =>
+                onChange({
+                  ...permissions,
+                  [label]: value === NO_ACCESS ? undefined : value,
+                })
+              }
+            />
+          </DisplayField.Row>
+        </PanelItem>
       ))}
     </Fragment>
   );

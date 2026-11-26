@@ -2583,7 +2583,7 @@
     "@sentry/scraps/prefer-primitives": {"count": 2}
   },
   "views/settings/featureFlags/changeTracking/newSecretHandler.tsx": {
-    "@sentry/scraps/prefer-primitives": {"count": 3}
+    "@sentry/scraps/prefer-primitives": {"count": 2}
   },
   "views/settings/featureFlags/changeTracking/organizationFeatureFlagsAuditLogTable.tsx": {
     "@sentry/scraps/prefer-primitives": {"count": 1}

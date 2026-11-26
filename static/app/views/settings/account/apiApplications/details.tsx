@@ -10,13 +10,13 @@ import {Button} from '@sentry/scraps/button';
 import {Confirm} from '@sentry/scraps/confirm';
 import {
   AutoSaveForm,
+  DisplayField,
   FieldGroup as FormFieldGroup,
   FormSearch,
 } from '@sentry/scraps/form';
 import {useModal} from '@sentry/scraps/modal';
 import {toast} from '@sentry/scraps/toast';
 
-import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -289,19 +289,20 @@ function ApiApplicationsDetails() {
       </FormSearch>
 
       <FormFieldGroup title={t('Credentials')}>
-        <FieldGroup label={t('Client ID')} flexibleControlStateSize>
-          <TextCopyInput>{app.clientID}</TextCopyInput>
-        </FieldGroup>
+        <DisplayField.Row label={t('Client ID')}>
+          <TextCopyInput aria-label={t('Client ID')}>{app.clientID}</TextCopyInput>
+        </DisplayField.Row>
 
         {!app.isPublic && (
-          <FieldGroup
+          <DisplayField.Row
             label={t('Client Secret')}
-            help={t(`Your secret is only available briefly after application creation. Make
+            hintText={t(`Your secret is only available briefly after application creation. Make
                     sure to save this value!`)}
-            flexibleControlStateSize
           >
             {app.clientSecret ? (
-              <TextCopyInput>{app.clientSecret}</TextCopyInput>
+              <TextCopyInput aria-label={t('Client Secret')}>
+                {app.clientSecret}
+              </TextCopyInput>
             ) : (
               <ClientSecret>
                 <HiddenSecret>{t('hidden')}</HiddenSecret>
@@ -317,26 +318,34 @@ function ApiApplicationsDetails() {
                 </Confirm>
               </ClientSecret>
             )}
-          </FieldGroup>
+          </DisplayField.Row>
         )}
 
-        <FieldGroup label={t('Authorization URL')} flexibleControlStateSize>
-          <TextCopyInput>{`${oauthBaseUrl}/authorize/`}</TextCopyInput>
-        </FieldGroup>
+        <DisplayField.Row label={t('Authorization URL')}>
+          <TextCopyInput
+            aria-label={t('Authorization URL')}
+          >{`${oauthBaseUrl}/authorize/`}</TextCopyInput>
+        </DisplayField.Row>
 
-        <FieldGroup label={t('Token URL')} flexibleControlStateSize>
-          <TextCopyInput>{`${oauthBaseUrl}/token/`}</TextCopyInput>
-        </FieldGroup>
+        <DisplayField.Row label={t('Token URL')}>
+          <TextCopyInput
+            aria-label={t('Token URL')}
+          >{`${oauthBaseUrl}/token/`}</TextCopyInput>
+        </DisplayField.Row>
 
         {app.isPublic && (
           <Fragment>
-            <FieldGroup label={t('Device Authorization URL')} flexibleControlStateSize>
-              <TextCopyInput>{`${oauthBaseUrl}/device/code/`}</TextCopyInput>
-            </FieldGroup>
+            <DisplayField.Row label={t('Device Authorization URL')}>
+              <TextCopyInput
+                aria-label={t('Device Authorization URL')}
+              >{`${oauthBaseUrl}/device/code/`}</TextCopyInput>
+            </DisplayField.Row>
 
-            <FieldGroup label={t('Device Verification URL')} flexibleControlStateSize>
-              <TextCopyInput>{`${oauthBaseUrl}/device/`}</TextCopyInput>
-            </FieldGroup>
+            <DisplayField.Row label={t('Device Verification URL')}>
+              <TextCopyInput
+                aria-label={t('Device Verification URL')}
+              >{`${oauthBaseUrl}/device/`}</TextCopyInput>
+            </DisplayField.Row>
           </Fragment>
         )}
       </FormFieldGroup>
