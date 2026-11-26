@@ -56,7 +56,7 @@ main() {
   version=${SENTRY_CLI_VERSION:-latest}
   require_curl
   case "$version" in
-    [0-3].*|v[0-3].*) install_legacy "${version#v}" ;;
+    [0-3]|v[0-3]|[0-3].*|v[0-3].*) install_legacy "${version#v}" ;;
     *) install_v4 "$version" ;;
   esac
 }
