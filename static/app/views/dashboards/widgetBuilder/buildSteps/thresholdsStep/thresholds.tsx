@@ -4,9 +4,9 @@ import {parseAsJson} from 'nuqs';
 import {z} from 'zod';
 
 import {Flex} from '@sentry/scraps/layout';
+import {RadioGroup} from '@sentry/scraps/radio';
 
 import {CircleIndicator} from 'sentry/components/circleIndicator';
-import {RadioGroup} from 'sentry/components/forms/controls/radioGroup';
 import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import type {NumberFieldProps} from 'sentry/components/forms/fields/numberField';
 import {NumberField} from 'sentry/components/forms/fields/numberField';

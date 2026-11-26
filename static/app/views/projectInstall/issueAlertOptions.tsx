@@ -2,9 +2,9 @@ import styled from '@emotion/styled';
 
 import {Input} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
+import {RadioGroup} from '@sentry/scraps/radio';
 import {Select} from '@sentry/scraps/select';
 
-import {RadioGroup} from 'sentry/components/forms/controls/radioGroup';
 import {t, tct} from 'sentry/locale';
 import type {IssueAlertRule} from 'sentry/types/alerts';
 import {IssueAlertActionType, IssueAlertConditionType} from 'sentry/types/alerts';

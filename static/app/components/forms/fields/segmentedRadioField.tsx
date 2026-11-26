@@ -1,11 +1,11 @@
 import {useId} from 'react';
 
 import {Grid, Stack} from '@sentry/scraps/layout';
+import type {RadioGroupProps} from '@sentry/scraps/radio';
 import {Text} from '@sentry/scraps/text';
 import {ToggleCard} from '@sentry/scraps/toggleCard';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import type {RadioGroupProps} from 'sentry/components/forms/controls/radioGroup';
 import {FormField} from 'sentry/components/forms/formField';
 
 import type {InputFieldProps, OnEvent} from './inputField';

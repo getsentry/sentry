@@ -5,8 +5,8 @@ import styled from '@emotion/styled';
 import {Input} from '@sentry/scraps/input';
 import {Stack} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
+import {RadioGroup} from '@sentry/scraps/radio';
 
-import {RadioGroup} from 'sentry/components/forms/controls/radioGroup';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t} from 'sentry/locale';

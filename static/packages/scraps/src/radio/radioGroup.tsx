@@ -1,14 +1,13 @@
+import type * as React from 'react';
 import {Fragment} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
 import type {OverlayPlacement} from '@sentry/scraps/overlayPositioning';
-import {Radio} from '@sentry/scraps/radio';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-interface ContainerProps extends React.HTMLAttributes<HTMLDivElement> {
-  orientInline?: boolean;
-}
+import {Radio} from './radio';
 
 interface BaseRadioGroupProps<C extends string> {
   /**
@@ -43,7 +42,7 @@ export type RadioOption<C extends string = string> = [
 ];
 
 export interface RadioGroupProps<C extends string = string>
-  extends BaseRadioGroupProps<C>, Omit<ContainerProps, 'onChange'> {
+  extends BaseRadioGroupProps<C>, Omit<React.HTMLAttributes<HTMLDivElement>, 'onChange'> {
   name?: string;
 }
 
@@ -60,8 +59,9 @@ export function RadioGroup<C extends string>({
   ...props
 }: RadioGroupProps<C>) {
   return (
-    <Container
-      orientInline={orientInline}
+    <Flex
+      direction={orientInline ? 'row' : 'column'}
+      gap={orientInline ? '2xl' : 'md'}
       {...props}
       role="radiogroup"
       aria-label={label}
@@ -103,15 +103,9 @@ export function RadioGroup<C extends string>({
           </Tooltip>
         );
       })}
-    </Container>
+    </Flex>
   );
 }
-
-const Container = styled('div')<ContainerProps>`
-  display: flex;
-  gap: ${p => (p.orientInline ? p.theme.space['2xl'] : p.theme.space.md)};
-  flex-direction: ${p => (p.orientInline ? 'row' : 'column')};
-`;
 
 const shouldForwardProp = (p: PropertyKey) =>
   typeof p === 'string' && !['disabled', 'animate'].includes(p) && isPropValid(p);

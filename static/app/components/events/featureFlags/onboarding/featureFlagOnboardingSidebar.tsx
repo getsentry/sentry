@@ -11,10 +11,10 @@ import {useDrawer} from '@sentry/scraps/drawer';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {RadioGroup} from '@sentry/scraps/radio';
 import type {SelectValue} from '@sentry/scraps/select';
 
 import {SdkProviderEnum} from 'sentry/components/events/featureFlags/utils';
-import {RadioGroup} from 'sentry/components/forms/controls/radioGroup';
 import {IdBadge} from 'sentry/components/idBadge';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {useCurrentProjectState} from 'sentry/components/onboarding/gettingStartedDoc/utils/useCurrentProjectState';

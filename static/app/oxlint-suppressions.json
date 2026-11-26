@@ -368,9 +368,6 @@
   "components/forms/controls/multipleCheckbox.tsx": {
     "@sentry/scraps/prefer-primitives": {"count": 1}
   },
-  "components/forms/controls/radioGroup.tsx": {
-    "@sentry/scraps/prefer-primitives": {"count": 3}
-  },
   "components/forms/controls/rangeSlider/index.tsx": {
     "@sentry/scraps/prefer-primitives": {"count": 1}
   },

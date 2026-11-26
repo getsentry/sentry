@@ -6,10 +6,10 @@ import {Button} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 import {type ModalRenderProps} from '@sentry/scraps/modal';
+import {RadioGroup} from '@sentry/scraps/radio';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {toast} from '@sentry/scraps/toast';
 
-import {RadioGroup} from 'sentry/components/forms/controls/radioGroup';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';

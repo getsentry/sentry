@@ -7,10 +7,10 @@ import toNumber from 'lodash/toNumber';
 import {Alert} from '@sentry/scraps/alert';
 import {Flex, Stack, Grid} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
+import type {RadioOption} from '@sentry/scraps/radio';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
 
-import type {RadioOption} from 'sentry/components/forms/controls/radioGroup';
 import {NumberField} from 'sentry/components/forms/fields/numberField';
 import {SegmentedRadioField} from 'sentry/components/forms/fields/segmentedRadioField';
 import {SelectField} from 'sentry/components/forms/fields/selectField';
