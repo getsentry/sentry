@@ -1,3 +1,7 @@
+## 3.2.0
+
+- No documented changes.
+
 ## 3.1.0
 
 - No documented changes.
