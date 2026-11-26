@@ -206,7 +206,7 @@ class RecentSearchesListTest(APITestCase):
             query="some test",
         )
         service_account = self.create_service_account(
-            organization=self.organization, scope_list=["org:read"]
+            organization=self.organization, scope_list=["user_preference:read"]
         )
         viewer_context = encode_viewer_context(
             ViewerContext(
@@ -312,10 +312,8 @@ class RecentSearchesScopeTest(APITestCase):
         )
 
 
-@with_feature("organizations:granular-permission-scopes")
-@override_options({"auth.deprecated-scope-translation.enabled": True})
-class RecentSearchesGranularScopesTest(APITestCase):
-    """With granular scopes, recent searches require user_preference:* instead of org:read."""
+class RecentSearchesDeprecatedScopesTest(APITestCase):
+    """Recent searches need user_preference:*, and no longer accept org:read in any org."""
 
     endpoint = "sentry-api-0-organization-recent-searches"
 
@@ -325,8 +323,36 @@ class RecentSearchesGranularScopesTest(APITestCase):
             token = self.create_user_auth_token(user=self.user, scope_list=scope_list)
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
 
-    def test_org_read_token_is_translated(self) -> None:
+    @override_options({"auth.deprecated-scope-translation.enabled": True})
+    def test_org_read_not_accepted(self) -> None:
         self._use_token(["org:read"])
+        self.get_error_response(
+            self.organization.slug, type=SearchType.ISSUE.value, status_code=403
+        )
+        self.get_error_response(
+            self.organization.slug,
+            method="post",
+            type=SearchType.ISSUE.value,
+            query="is:unresolved",
+            status_code=403,
+        )
+
+    @with_feature("organizations:granular-permission-scopes")
+    @override_options({"auth.deprecated-scope-translation.enabled": True})
+    def test_org_read_not_accepted_with_granular_scopes(self) -> None:
+        self._use_token(["org:read"])
+        self.get_error_response(
+            self.organization.slug, type=SearchType.ISSUE.value, status_code=403
+        )
+
+    def test_org_write_and_admin_not_accepted(self) -> None:
+        self._use_token(["org:write", "org:admin"])
+        self.get_error_response(
+            self.organization.slug, type=SearchType.ISSUE.value, status_code=403
+        )
+
+    def test_user_preference_token_has_access(self) -> None:
+        self._use_token(["user_preference:read", "user_preference:write"])
         self.get_success_response(self.organization.slug, type=SearchType.ISSUE.value)
         self.get_success_response(
             self.organization.slug,
@@ -336,20 +362,8 @@ class RecentSearchesGranularScopesTest(APITestCase):
             status_code=201,
         )
 
-    @override_settings(DEPRECATED_SCOPE_TRANSLATIONS={})
-    def test_org_read_not_accepted(self) -> None:
-        self._use_token(["org:read"])
-        self.get_error_response(
-            self.organization.slug, type=SearchType.ISSUE.value, status_code=403
-        )
-
-    @override_settings(DEPRECATED_SCOPE_TRANSLATIONS={})
-    @with_feature({"organizations:granular-permission-scopes": False})
-    def test_org_read_accepted_without_granular_scopes(self) -> None:
-        self._use_token(["org:read"])
-        self.get_success_response(self.organization.slug, type=SearchType.ISSUE.value)
-
     def test_member_session_has_access(self) -> None:
+        # Every role grants user_preference, with or without granular scopes.
         member = self.create_user()
         self.create_member(user=member, organization=self.organization, role="member")
         self.login_as(member)

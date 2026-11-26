@@ -66,11 +66,10 @@ class PromptsActivitySerializer(serializers.Serializer):
 
 class PromptsActivityPermission(OrganizationPermission):
     scope_map = {
-        "GET": ["org:read", "org:write", "org:admin", "user_preference:read"],
-        "PUT": ["org:read", "org:write", "org:admin", "user_preference:write"],
+        "GET": ["user_preference:read"],
+        "PUT": ["user_preference:write"],
     }
 
-    # user_preference:read and user_preference:write replace org:read in orgs with granular scopes.
     rejects_deprecated_scopes = True
 
 
