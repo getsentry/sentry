@@ -68,7 +68,7 @@ type TraceMetricCustomFieldKey = string;
 
 export type TraceMetricFieldKey = TraceMetricCustomFieldKey | TraceMetricKnownFieldKey;
 
-export type TraceMetricTypeValue = 'counter' | 'gauge' | 'distribution';
+export type TraceMetricTypeValue = 'counter' | 'gauge' | 'distribution' | 'histogram';
 
 export function isTraceMetricTypeValue(
   metricType: string
@@ -77,6 +77,7 @@ export function isTraceMetricTypeValue(
     case 'counter':
     case 'distribution':
     case 'gauge':
+    case 'histogram':
       return true;
     default:
       return false;

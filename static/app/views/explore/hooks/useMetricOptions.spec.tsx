@@ -181,4 +181,27 @@ describe('useMetricOptions', () => {
       )
     );
   });
+
+  it.each([
+    [['tracemetrics-otlp-histograms'], '!metric.type:[histogram_exemplar]'],
+    [[], '!metric.type:[histogram,histogram_exemplar]'],
+  ])('hides histogram metric types with features %j', async (features, query) => {
+    const mockRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {data: []},
+    });
+
+    renderHookWithProviders(useMetricOptions, {
+      ...context,
+      organization: OrganizationFixture({features}),
+    });
+
+    await waitFor(() =>
+      expect(mockRequest).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/events/`,
+        expect.objectContaining({query: expect.objectContaining({query})})
+      )
+    );
+  });
 });

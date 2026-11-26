@@ -5,10 +5,10 @@ import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters, PageFilterDatetime} from 'sentry/types/core';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {defined} from 'sentry/utils/defined';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {HISTOGRAM_EXEMPLAR_METRIC_TYPE} from 'sentry/views/explore/metrics/constants';
 import {
   TraceMetricKnownFieldKey,
   type TraceMetricEventsResult,
@@ -18,6 +18,7 @@ interface UseMetricOptionsProps {
   datetime?: PageFilterDatetime;
   enabled?: boolean;
   environments?: PageFilters['environments'];
+  hideHistograms?: boolean;
   orgSlug?: string;
   projectIds?: PageFilters['projects'];
   search?: string;
@@ -29,6 +30,7 @@ function metricOptionsQueryKey({
   datetime,
   search,
   environments,
+  hideHistograms,
 }: UseMetricOptionsProps = {}) {
   const queryFields = [
     TraceMetricKnownFieldKey.METRIC_NAME,
@@ -38,9 +40,14 @@ function metricOptionsQueryKey({
     TraceMetricKnownFieldKey.METRIC_UNIT,
   ];
 
-  let searchValue: MutableSearch | undefined;
+  // Exemplars are samples of a histogram metric, not metrics of their own
+  const searchValue = new MutableSearch('').addFilterValueList(
+    `!${TraceMetricKnownFieldKey.METRIC_TYPE}`,
+    hideHistograms
+      ? ['histogram', HISTOGRAM_EXEMPLAR_METRIC_TYPE]
+      : [HISTOGRAM_EXEMPLAR_METRIC_TYPE]
+  );
   if (search) {
-    searchValue = new MutableSearch('');
     searchValue.addContainsFilterValue(TraceMetricKnownFieldKey.METRIC_NAME, search);
   }
 
@@ -48,8 +55,8 @@ function metricOptionsQueryKey({
     dataset: DiscoverDatasets.TRACEMETRICS,
     field: queryFields,
     referrer: 'api.explore.metric-options',
-    query: defined(searchValue) ? searchValue.formatString() : undefined,
-    caseInsensitive: defined(searchValue) ? '1' : undefined,
+    query: searchValue.formatString(),
+    caseInsensitive: search ? '1' : undefined,
     project: projectIds?.length ? projectIds?.map(String) : undefined,
     environment: environments?.length ? environments : undefined,
   };
@@ -78,6 +85,7 @@ export function useMetricOptions({
   datetime,
   environments,
   enabled = true,
+  hideHistograms = false,
 }: UseMetricOptionsProps = {}) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
@@ -93,6 +101,8 @@ export function useMetricOptions({
       projectIds: projectIds ?? selection.projects,
       datetime: datetime ?? selection.datetime,
       environments: environments ?? selection.environments,
+      hideHistograms:
+        hideHistograms || !organization.features.includes('tracemetrics-otlp-histograms'),
     }),
 
     refetchOnWindowFocus: false,

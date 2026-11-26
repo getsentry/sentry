@@ -69,6 +69,8 @@ export function MetricsVisualize() {
     search,
     projectIds: projectId ? [parseInt(projectId, 10)] : undefined,
     environments: environment ? [environment] : undefined,
+    // Monitors don't support histogram metrics yet
+    hideHistograms: true,
   });
 
   const metricSelectValue = makeMetricSelectValue(traceMetric);

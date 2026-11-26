@@ -5,6 +5,7 @@ import {type QueryFieldValue} from 'sentry/utils/discover/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTags} from 'sentry/utils/useTags';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
+import {useTraceMetricsSearchScope} from 'sentry/views/dashboards/datasetConfig/traceMetrics';
 import {WidgetType} from 'sentry/views/dashboards/types';
 import {GroupBySelector} from 'sentry/views/dashboards/widgetBuilder/buildSteps/groupByStep/groupBySelector';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
@@ -15,6 +16,7 @@ import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {HIDDEN_PREPROD_ATTRIBUTES} from 'sentry/views/explore/constants';
 import {useTraceItemDatasetAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {HiddenTraceMetricGroupByFields} from 'sentry/views/explore/metrics/constants';
+import {useHiddenTraceMetricFields} from 'sentry/views/explore/metrics/hooks/useHiddenTraceMetricFields';
 
 import {SectionHeader} from './common/sectionHeader';
 
@@ -31,10 +33,15 @@ export function WidgetBuilderGroupBySelector({
   const organization = useOrganization();
 
   const tags = useTags();
+  const {traceMetrics} = useTraceMetricsSearchScope();
+  const hiddenTraceMetricFields = useHiddenTraceMetricFields(
+    traceMetrics,
+    HiddenTraceMetricGroupByFields
+  );
 
   let hiddenKeys: string[] = [];
   if (state.dataset === WidgetType.TRACEMETRICS) {
-    hiddenKeys = HiddenTraceMetricGroupByFields;
+    hiddenKeys = hiddenTraceMetricFields;
   } else if (state.dataset === WidgetType.PREPROD_APP_SIZE) {
     hiddenKeys = HIDDEN_PREPROD_ATTRIBUTES;
   }

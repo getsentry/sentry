@@ -21,6 +21,7 @@ import {
   SENTRY_TRACEMETRIC_STRING_TAGS,
 } from 'sentry/views/explore/constants';
 import {HiddenTraceMetricSearchFields} from 'sentry/views/explore/metrics/constants';
+import {useHiddenTraceMetricFields} from 'sentry/views/explore/metrics/hooks/useHiddenTraceMetricFields';
 import {useTraceMetricFilter} from 'sentry/views/explore/metrics/hooks/useTraceMetricFilter';
 import {useValidateMetricsTab} from 'sentry/views/explore/metrics/hooks/useValidateMetricsTab';
 import {type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
@@ -128,6 +129,10 @@ export function MetricFilterBar({
   const {selection} = usePageFilters();
 
   const supportsArrays = organization.features.includes('trace-item-array-query-support');
+  const hiddenFields = useHiddenTraceMetricFields(
+    [traceMetric],
+    HiddenTraceMetricSearchFields
+  );
 
   const traceMetricFilter = useTraceMetricFilter(traceMetric);
   const attributeQuery = skipTraceMetricFilter ? undefined : traceMetricFilter;
@@ -162,11 +167,11 @@ export function MetricFilterBar({
       ...staticNumberTags,
       ...Object.fromEntries(
         Object.entries(data?.numberAttributes ?? {}).filter(
-          ([key]) => !HiddenTraceMetricSearchFields.includes(key)
+          ([key]) => !hiddenFields.includes(key)
         )
       ),
     };
-  }, [data?.numberAttributes]);
+  }, [data?.numberAttributes, hiddenFields]);
 
   const visibleStringTags = useMemo(() => {
     const staticStringTags = SENTRY_TRACEMETRIC_STRING_TAGS.reduce<TagCollection>(
@@ -312,7 +317,7 @@ export function MetricFilterBar({
         namespace: traceMetric.name,
         defaultToAskSeerOnFreeTextSearch: enableAISearch,
         attributeQuery,
-        hiddenAttributeKeys: HiddenTraceMetricSearchFields,
+        hiddenAttributeKeys: hiddenFields,
         projects: projectIds,
         environments,
         disabled: isSearchBarDisabled,
@@ -327,6 +332,7 @@ export function MetricFilterBar({
       attributeQuery,
       enableAISearch,
       environments,
+      hiddenFields,
       invalidFilterKeys,
       isSearchBarDisabled,
       onSearch,

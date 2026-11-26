@@ -256,16 +256,19 @@ describe('useSaveAsMetricItems', () => {
     );
   });
 
-  it('enables the alert option when there are aggregates', () => {
+  it.each([
+    {type: 'counter', disabled: false, alerts: 1},
+    {type: 'histogram', disabled: true, alerts: 0},
+  ])('sets the alert option for $type aggregates', ({type, disabled, alerts}) => {
     const encodedMetricQuery = encodeMetricQueryParams({
-      metric: {name: 'metric.a', type: 'counter'},
+      metric: {name: 'metric.a', type},
       queryParams: new ReadableQueryParams({
         extrapolate: true,
         mode: Mode.AGGREGATE,
         query: 'release:1.2.3',
         aggregateCursor: '',
-        aggregateFields: [new VisualizeFunction('sum(value,metric.a,counter,none)')],
-        aggregateSortBys: [{field: 'sum(value,metric.a,counter,none)', kind: 'desc'}],
+        aggregateFields: [new VisualizeFunction(`sum(value,metric.a,${type},none)`)],
+        aggregateSortBys: [{field: `sum(value,metric.a,${type},none)`, kind: 'desc'}],
         cursor: '',
         fields: [],
         sortBys: [],
@@ -289,8 +292,8 @@ describe('useSaveAsMetricItems', () => {
       | {children: unknown[]; disabled: boolean}
       | undefined;
 
-    expect(alertItem?.disabled).toBe(false);
-    expect(alertItem?.children).toHaveLength(1);
+    expect(alertItem?.disabled).toBe(disabled);
+    expect(alertItem?.children).toHaveLength(alerts);
   });
 
   it('formats alerts submenu labels for equations', () => {

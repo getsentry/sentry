@@ -25,7 +25,10 @@ import {Actions} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {ALLOWED_CELL_ACTIONS} from 'sentry/views/explore/components/cellActions';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {DEFAULT_YAXIS_BY_TYPE} from 'sentry/views/explore/metrics/constants';
+import {
+  DEFAULT_YAXIS_BY_TYPE,
+  HISTOGRAM_EXEMPLAR_METRIC_TYPE,
+} from 'sentry/views/explore/metrics/constants';
 import {
   defaultAggregateSortBys,
   defaultMetricQuery,
@@ -104,7 +107,7 @@ const getExtraMenuItems = ({
   const metricUnit = row[TraceMetricKnownFieldKey.METRIC_UNIT];
   const metric = {
     name: metricName,
-    type: metricType,
+    type: metricType === HISTOGRAM_EXEMPLAR_METRIC_TYPE ? 'histogram' : metricType,
     unit: metricUnit?.length > 0 ? metricUnit : undefined,
   };
   const aggregateFields = [

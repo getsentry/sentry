@@ -125,26 +125,29 @@ export function getTraceSamplesTableFields(
   );
 }
 
+const DISTRIBUTION_OPTIONS: Array<SelectOption<string>> = [
+  {label: 'p50', value: 'p50'},
+  {label: 'p75', value: 'p75'},
+  {label: 'p90', value: 'p90'},
+  {label: 'p95', value: 'p95'},
+  {label: 'p99', value: 'p99'},
+  {label: 'avg', value: 'avg'},
+  {label: 'min', value: 'min'},
+  {label: 'max', value: 'max'},
+  {label: 'sum', value: 'sum'},
+  {label: 'count', value: 'count'},
+  {label: 'per_second', value: 'per_second'},
+  {label: 'per_minute', value: 'per_minute'},
+];
+
 export const OPTIONS_BY_TYPE: Record<string, Array<SelectOption<string>>> = {
   counter: [
     {label: 'per_second', value: 'per_second'},
     {label: 'per_minute', value: 'per_minute'},
     {label: 'sum', value: 'sum'},
   ],
-  distribution: [
-    {label: 'p50', value: 'p50'},
-    {label: 'p75', value: 'p75'},
-    {label: 'p90', value: 'p90'},
-    {label: 'p95', value: 'p95'},
-    {label: 'p99', value: 'p99'},
-    {label: 'avg', value: 'avg'},
-    {label: 'min', value: 'min'},
-    {label: 'max', value: 'max'},
-    {label: 'sum', value: 'sum'},
-    {label: 'count', value: 'count'},
-    {label: 'per_second', value: 'per_second'},
-    {label: 'per_minute', value: 'per_minute'},
-  ],
+  distribution: DISTRIBUTION_OPTIONS,
+  histogram: DISTRIBUTION_OPTIONS,
   gauge: [
     {label: 'min', value: 'min'},
     {label: 'max', value: 'max'},
@@ -155,6 +158,39 @@ export const OPTIONS_BY_TYPE: Record<string, Array<SelectOption<string>>> = {
     {label: 'per_minute', value: 'per_minute'},
   ],
 };
+
+const GROUPED_DISTRIBUTION_OPTIONS: Array<SelectSection<string>> = [
+  {
+    key: 'percentiles',
+    label: t('Percentiles'),
+    options: [
+      {label: 'p50', value: 'p50'},
+      {label: 'p75', value: 'p75'},
+      {label: 'p90', value: 'p90'},
+      {label: 'p95', value: 'p95'},
+      {label: 'p99', value: 'p99'},
+      {label: 'avg', value: 'avg'},
+      {label: 'min', value: 'min'},
+      {label: 'max', value: 'max'},
+    ],
+  },
+  {
+    key: 'math',
+    label: t('Math'),
+    options: [
+      {label: 'sum', value: 'sum', trailingItems: <Text size="xs">{t('Default')}</Text>},
+      {label: 'count', value: 'count'},
+    ],
+  },
+  {
+    key: 'rate',
+    label: t('Rate'),
+    options: [
+      {label: 'per_second', value: 'per_second'},
+      {label: 'per_minute', value: 'per_minute'},
+    ],
+  },
+];
 
 export const GROUPED_OPTIONS_BY_TYPE: Record<string, Array<SelectSection<string>>> = {
   counter: [
@@ -209,47 +245,17 @@ export const GROUPED_OPTIONS_BY_TYPE: Record<string, Array<SelectSection<string>
       ],
     },
   ],
-  distribution: [
-    {
-      key: 'percentiles',
-      label: t('Percentiles'),
-      options: [
-        {label: 'p50', value: 'p50'},
-        {label: 'p75', value: 'p75'},
-        {label: 'p90', value: 'p90'},
-        {label: 'p95', value: 'p95'},
-        {label: 'p99', value: 'p99'},
-        {label: 'avg', value: 'avg'},
-        {label: 'min', value: 'min'},
-        {label: 'max', value: 'max'},
-      ],
-    },
-    {
-      key: 'math',
-      label: t('Math'),
-      options: [
-        {
-          label: 'sum',
-          value: 'sum',
-          trailingItems: <Text size="xs">{t('Default')}</Text>,
-        },
-        {label: 'count', value: 'count'},
-      ],
-    },
-    {
-      key: 'rate',
-      label: t('Rate'),
-      options: [
-        {label: 'per_second', value: 'per_second'},
-        {label: 'per_minute', value: 'per_minute'},
-      ],
-    },
-  ],
+  distribution: GROUPED_DISTRIBUTION_OPTIONS,
+  histogram: GROUPED_DISTRIBUTION_OPTIONS,
 };
+
+// The samples of an OTLP histogram metric are stored with their own metric type
+export const HISTOGRAM_EXEMPLAR_METRIC_TYPE = 'histogram_exemplar';
 
 export const DEFAULT_YAXIS_BY_TYPE: Record<string, string> = {
   counter: 'sum',
   distribution: 'sum',
+  histogram: 'sum',
   gauge: 'avg',
 };
 

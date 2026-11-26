@@ -12,6 +12,7 @@ import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useGroupByFields} from 'sentry/views/explore/hooks/useGroupByFields';
 import {useValidatedGroupBys} from 'sentry/views/explore/hooks/useValidatedGroupBys';
 import {HiddenTraceMetricGroupByFields} from 'sentry/views/explore/metrics/constants';
+import {useHiddenTraceMetricFields} from 'sentry/views/explore/metrics/hooks/useHiddenTraceMetricFields';
 import {useTraceMetricFilter} from 'sentry/views/explore/metrics/hooks/useTraceMetricFilter';
 import {useValidateMetricsTab} from 'sentry/views/explore/metrics/hooks/useValidateMetricsTab';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
@@ -76,6 +77,10 @@ export function GroupBySelector({
   });
 
   const traceMetricFilter = useTraceMetricFilter(traceMetric);
+  const hiddenFields = useHiddenTraceMetricFields(
+    [traceMetric],
+    HiddenTraceMetricGroupByFields
+  );
 
   const {data, isLoading} = useQuery({
     ...traceItemAttributeKeysOptions({
@@ -96,7 +101,7 @@ export function GroupBySelector({
     );
     const visibleNumberTags = Object.fromEntries(
       Object.entries(data?.numberAttributes ?? {}).filter(
-        ([key]) => !HiddenTraceMetricGroupByFields.includes(key)
+        ([key]) => !hiddenFields.includes(key)
       )
     );
     const visibleStringTags = Object.fromEntries(
@@ -118,6 +123,7 @@ export function GroupBySelector({
     data?.numberAttributes,
     data?.stringAttributes,
     groupBys,
+    hiddenFields,
     validatedSearchQueryData?.field,
   ]);
 
