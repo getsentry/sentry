@@ -1241,6 +1241,11 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         # Run every 12 hours, at 10:00 and 22:00 UTC
         "schedule": crontab("0", "10,22", "*", "*", "*"),
     },
+    "issues-scheduled-impact-assessments": {
+        "task": "seer:sentry.issues.impact.tasks.schedule_impact_assessments",
+        # Every hour, on the hour
+        "schedule": crontab("0", "*", "*", "*", "*"),
+    },
     "seer-autofix-issue-data-judging": {
         "task": "seer:sentry.tasks.seer.autofix_issue_data.schedule_judging",
         # Twice daily at 08:00 and 20:00 PST (16:00 and 04:00 UTC)
