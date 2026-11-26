@@ -20,7 +20,9 @@ class GroupEmailThread(Model):
 
     email = models.EmailField(max_length=GROUP_EMAIL_THREAD_EMAIL_MAX_LENGTH)
     project = FlexibleForeignKey("sentry.Project", related_name="groupemail_set")
-    group = FlexibleForeignKey("sentry.Group", related_name="groupemail_set")
+    # Group deletion already removes these rows, and adding the constraint would lock
+    # `sentry_groupedmessage`.
+    group = FlexibleForeignKey("sentry.Group", related_name="groupemail_set", db_constraint=False)
     msgid = models.CharField(max_length=100)
     date = models.DateTimeField(default=timezone.now, db_index=True)
 
