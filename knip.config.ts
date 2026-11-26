@@ -10,7 +10,6 @@ const productionEntryPoints = [
   // --- we should be able to get rid of those: ---
   // todo find out how chartcuterie works
   'chartcuterie/**/*.{js,ts,tsx}',
-  'components/brandPageLayout/**/*.{ts,tsx}',
 ];
 
 // Scoped configs reuse the test package's dependencies. Parse the shared config
