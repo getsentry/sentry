@@ -51,3 +51,30 @@ it('returns a string option when creating a choice alongside numeric options', a
 
   expect(onChange).toHaveBeenCalledWith({value: 'New answer', label: 'New answer'});
 });
+
+it('hides Create when the query exactly matches an option’s textValue', async () => {
+  const option = {
+    value: 'team-1',
+    label: <strong>Team One</strong>,
+    textValue: 'Team One',
+  };
+  const onChange = jest.fn();
+  render(
+    <Select
+      aria-label="Choices"
+      creatable
+      options={[option]}
+      value={null}
+      onChange={onChange}
+    />,
+    {wrapper: ThemeWrapper}
+  );
+
+  await userEvent.type(screen.getByRole('combobox', {name: 'Choices'}), 'team one');
+
+  expect(
+    screen.queryByRole('option', {name: 'Create "team one"'})
+  ).not.toBeInTheDocument();
+  await userEvent.click(screen.getByRole('option', {name: 'Team One'}));
+  expect(onChange).toHaveBeenCalledWith(option);
+});

@@ -110,7 +110,7 @@ export function useOptionIndex<TValue, TOption extends SelectValue<TValue>>(
     query !== '' &&
     !isLoading &&
     ![...index.rows, ...selectedRows].some(({option}) =>
-      [option.label, option.value].some(
+      [option.label, option.value, option.textValue].some(
         value => typeof value === 'string' && value.toLowerCase() === normalizedQuery
       )
     );
