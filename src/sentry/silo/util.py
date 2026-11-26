@@ -14,6 +14,10 @@ PROXY_SIGNATURE_HEADER = "X-Sentry-Subnet-Signature"
 PROXY_PATH = "X-Sentry-Subnet-Path"
 PROXY_KEYID_HEADER = "X-Sentry-Subnet-Keyid"
 PROXY_TIMEOUT_HEADER = "X-Sentry-Subnet-Timeout"
+# Set by the integration proxy when it couldn't get an answer from the provider.
+PROXY_ERROR_HEADER = "X-Sentry-Subnet-Error"
+PROXY_ERROR_HOST_UNREACHABLE = "host_unreachable"
+PROXY_ERROR_HOST_TIMEOUT = "host_timeout"
 PROXY_DIRECT_LOCATION_HEADER = "X-Sentry-Proxy-URL"
 PROXY_APIGATEWAY_HEADER = "X-Apigateway"
 WEBHOOK_DELIVERY_SIGNATURE_HEADER = "X-Sentry-Webhook-Delivery-Signature"
@@ -28,6 +32,7 @@ INVALID_OUTBOUND_HEADERS = INVALID_PROXY_HEADERS | {
     PROXY_BASE_URL_HEADER,
     PROXY_PATH,
     PROXY_TIMEOUT_HEADER,
+    PROXY_ERROR_HEADER,
 }
 
 # url_names whose request body is forwarded raw through the gateway and whose

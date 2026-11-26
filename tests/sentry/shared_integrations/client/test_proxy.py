@@ -14,9 +14,10 @@ from sentry.shared_integrations.client.proxy import (
     get_control_silo_ip_address,
     infer_org_integration,
 )
-from sentry.shared_integrations.exceptions import ApiHostError
+from sentry.shared_integrations.exceptions import ApiError, ApiHostError, ApiTimeoutError
 from sentry.silo.base import SiloMode
 from sentry.silo.util import (
+    PROXY_ERROR_HEADER,
     PROXY_OI_HEADER,
     PROXY_PATH,
     PROXY_SIGNATURE_HEADER,
@@ -243,7 +244,31 @@ class IntegrationProxyClientTest(TestCase):
 
         client.get(f"{self.base_url}/some/endpoint", params={"query": 1, "user": "me"})
         assert mock_session_send.call_count == 1
-        assert mock_session_send.mock_calls[0].kwargs["timeout"] == 10
+        send_call = mock_session_send.mock_calls[0]
+        # Control gets the caller's timeout; the cell waits for control a little longer.
+        assert send_call.args[0].headers[PROXY_TIMEOUT_HEADER] == "10"
+        assert send_call.kwargs["timeout"] == (10, 12.0)
+
+    def test_session_timeout_adds_margin_to_read_timeout(self) -> None:
+        client = self.client_cls(org_integration_id=self.oi_id)
+        client._should_proxy_to_control = True
+
+        assert client._build_session_settings(10, False)["timeout"] == (10, 12.0)
+        assert client._build_session_settings((3.0, 10.0), False)["timeout"] == (3.0, 12.0)
+
+    def test_session_timeout_margin_is_configurable(self) -> None:
+        client = self.client_cls(org_integration_id=self.oi_id)
+        client._should_proxy_to_control = True
+
+        with self.options({"hybridcloud.integrationproxy.cell_timeout_margin": 5.0}):
+            assert client._build_session_settings(10, False)["timeout"] == (10, 15.0)
+
+    def test_session_timeout_unchanged_without_proxy(self) -> None:
+        client = self.client_cls(org_integration_id=self.oi_id)
+        client._should_proxy_to_control = False
+
+        assert client._build_session_settings(10, False)["timeout"] == 10
+        assert client._build_session_settings((3.0, 10.0), False)["timeout"] == (3.0, 10.0)
 
     @responses.activate
     def test_retries_proxy_requests_by_default(self) -> None:
@@ -256,6 +281,50 @@ class IntegrationProxyClientTest(TestCase):
             assert client.post("/some/endpoint").json == {"ok": True}
 
         assert len(responses.calls) == 2
+
+    @responses.activate
+    def test_unreachable_provider_is_not_retried(self) -> None:
+        proxy_url = "http://controlserver/api/0/internal/integration-proxy/"
+        responses.add(
+            responses.POST, proxy_url, status=502, headers={PROXY_ERROR_HEADER: "host_unreachable"}
+        )
+        client = self.client_cls(org_integration_id=self.oi_id)
+
+        with raises(
+            ApiHostError, match=r"^Unable to reach host: example.com \(via integration proxy\)$"
+        ):
+            client.post("/some/endpoint")
+
+        assert len(responses.calls) == 1
+
+    @responses.activate
+    def test_provider_timeout_is_not_retried(self) -> None:
+        proxy_url = "http://controlserver/api/0/internal/integration-proxy/"
+        responses.add(
+            responses.POST, proxy_url, status=504, headers={PROXY_ERROR_HEADER: "host_timeout"}
+        )
+        client = self.client_cls(org_integration_id=self.oi_id)
+
+        with raises(
+            ApiTimeoutError,
+            match=r"^Timed out attempting to reach host: example.com \(via integration proxy\)$",
+        ):
+            client.post("/some/endpoint")
+
+        assert len(responses.calls) == 1
+
+    @responses.activate
+    def test_provider_server_error_is_not_retried(self) -> None:
+        proxy_url = "http://controlserver/api/0/internal/integration-proxy/"
+        responses.add(responses.POST, proxy_url, status=502, body="Bad Gateway")
+        client = self.client_cls(org_integration_id=self.oi_id)
+
+        with raises(ApiError) as exc_info:
+            client.post("/some/endpoint")
+
+        assert type(exc_info.value) is ApiError
+        assert exc_info.value.code == 502
+        assert len(responses.calls) == 1
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_does_not_honor_retry_after_in_control(self) -> None:

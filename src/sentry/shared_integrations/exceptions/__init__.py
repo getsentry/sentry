@@ -10,6 +10,11 @@ from requests import Response
 from requests.adapters import RetryError
 from requests.exceptions import RequestException
 
+from sentry.silo.util import (
+    PROXY_ERROR_HEADER,
+    PROXY_ERROR_HOST_TIMEOUT,
+    PROXY_ERROR_HOST_UNREACHABLE,
+)
 from sentry.utils import json
 
 __all__ = (
@@ -82,6 +87,17 @@ class ApiError(Exception):
 
     @classmethod
     def from_response(cls, response: Response, url: str | None = None) -> ApiError:
+        # The integration proxy couldn't get an answer from the provider. Name the provider,
+        # not the proxy, which is the host this response came from.
+        proxy_error = response.headers.get(PROXY_ERROR_HEADER)
+        host = urlparse(url or "").netloc
+        if proxy_error == PROXY_ERROR_HOST_UNREACHABLE:
+            return ApiHostError(f"Unable to reach host: {host} (via integration proxy)", url=url)
+        elif proxy_error == PROXY_ERROR_HOST_TIMEOUT:
+            return ApiTimeoutError(
+                f"Timed out attempting to reach host: {host} (via integration proxy)", url=url
+            )
+
         if response.status_code == 401:
             return ApiUnauthorized(response.text, url=url)
         elif response.status_code == 429:

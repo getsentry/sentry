@@ -22,6 +22,7 @@ from sentry.http import build_session
 from sentry.integrations.client import ApiClient
 from sentry.integrations.services.integration.service import integration_service
 from sentry.net.http import SafeSession
+from sentry.shared_integrations.client.base import SessionSettings
 from sentry.silo.base import SiloMode, control_silo_function
 from sentry.silo.util import (
     DEFAULT_REQUEST_BODY,
@@ -280,3 +281,19 @@ class IntegrationProxyClient(ApiClient):
         encoded = encode_proxy_timeout(timeout)
         if encoded is not None:
             prepared_request.headers[PROXY_TIMEOUT_HEADER] = encoded
+
+    def _build_session_settings(
+        self,
+        timeout: int | tuple[float, float],
+        allow_redirects: bool,
+        **kwargs: Any,
+    ) -> SessionSettings:
+        """
+        Wait longer than the timeout forwarded to control. This prevents the cell from giving
+        up while control is still waiting for an answer from the provider.
+        """
+        if self._should_proxy_to_control:
+            margin = options.get("hybridcloud.integrationproxy.cell_timeout_margin")
+            connect, read = timeout if isinstance(timeout, tuple) else (timeout, timeout)
+            timeout = (connect, read + margin)
+        return super()._build_session_settings(timeout, allow_redirects, **kwargs)

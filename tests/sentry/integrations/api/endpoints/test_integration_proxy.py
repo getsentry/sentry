@@ -38,6 +38,7 @@ from sentry.shared_integrations.exceptions import (
 from sentry.silo.base import SiloMode
 from sentry.silo.util import (
     PROXY_BASE_PATH,
+    PROXY_ERROR_HEADER,
     PROXY_OI_HEADER,
     PROXY_SIGNATURE_HEADER,
     encode_subnet_signature,
@@ -548,7 +549,8 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
 
         proxy_response = self.client.get(self.path, **headers)
 
-        assert proxy_response.status_code == 503
+        assert proxy_response.status_code == 502
+        assert proxy_response.headers[PROXY_ERROR_HEADER] == "host_unreachable"
         assert proxy_response.data is None
 
         self.assert_metric_count(
@@ -593,6 +595,7 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         proxy_response = self.client.get(self.path, **headers)
 
         assert proxy_response.status_code == 504
+        assert proxy_response.headers[PROXY_ERROR_HEADER] == "host_timeout"
         assert proxy_response.data is None
 
         self.assert_metric_count(
