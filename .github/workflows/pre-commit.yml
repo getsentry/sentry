@@ -133,6 +133,7 @@ jobs:
         continue-on-error: true
         env:
           CHANGED_FILES: ${{ fromJSON(steps.changes.outputs.changed_count) <= 1000 && steps.changes.outputs.changed_files || '' }}
+          MERGE_BASE: ${{ steps.merge-base.outputs.sha }}
         run: .venv/bin/python -m tools.api_guidelines.check_new
 
       - name: Comment new API findings (report-only)
