@@ -15,9 +15,7 @@ from sentry.issues.grouptype import GroupType
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.types.actor import Actor
 from sentry.utils import metrics
-from sentry.workflow_engine.caches.data_source import (
-    get_data_sources_by_detector_and_source_id,
-)
+from sentry.workflow_engine.caches.data_source import get_data_sources_by_detector_and_source_id
 from sentry.workflow_engine.handlers.detector_outcome import DetectorOutcome
 from sentry.workflow_engine.models import DataPacket, Detector
 from sentry.workflow_engine.processors import DetectorEvaluation
@@ -357,17 +355,6 @@ class BaseDetectorHandler(abc.ABC, Generic[DataPacketType, DataPacketEvaluationT
     def _build_evidence_data_sources(self, source_id: str) -> list[dict[str, Any]]:
         try:
             data_sources = get_data_sources_by_detector_and_source_id(self.detector.id, source_id)
-
-            if not data_sources:
-                logger.warning(
-                    "Matching data source not found for detector while generating occurrence evidence data",
-                    extra={
-                        "detector_id": self.detector.id,
-                        "data_packet_source_id": source_id,
-                    },
-                )
-
-                return []
 
             # Serializers return camelcased keys, but evidence data should use snakecase
             return convert_dict_key_case(serialize(data_sources), camel_to_snake_case)

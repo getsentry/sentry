@@ -53,6 +53,7 @@ export function RelatedIssues({
       loadQueryParamsFromLocation(relatedIssuesParsers, location).query
     );
     currentFilter.renameFilter('request.method', 'http.method');
+    currentFilter.renameFilter('http.request.method', 'http.method');
     removeTracingKeysFromSearch(currentFilter);
     currentFilter
       .addFreeText('is:unresolved')

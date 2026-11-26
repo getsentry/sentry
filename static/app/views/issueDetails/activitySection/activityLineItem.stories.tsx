@@ -409,6 +409,29 @@ const investigationLinkActivities = [
   },
 ];
 
+const investigationStartActivities = [
+  {
+    ...activity(GroupActivityType.INVESTIGATION_STARTED, {investigation}),
+    id: 'investigation-started-by-user',
+    source: 'web',
+  },
+  {
+    ...activity(GroupActivityType.INVESTIGATION_STARTED, {investigation}),
+    id: 'investigation-started-from-slack',
+    source: 'slack',
+  },
+  {
+    ...seerActivity(GroupActivityType.INVESTIGATION_STARTED, {investigation}),
+    id: 'investigation-started-by-automation',
+    source: 'system',
+  },
+  {
+    ...seerActivity(GroupActivityType.INVESTIGATION_STARTED, {investigation: null}),
+    id: 'investigation-started-deleted',
+    source: 'system',
+  },
+];
+
 export default Storybook.story('Issue Activity', story => {
   story('Resolution', () => <ResolutionExamples />);
   story('Archived', () => <ActivityExamples items={archivedActivities} />);
@@ -422,6 +445,9 @@ export default Storybook.story('Issue Activity', story => {
   story('Collapsed Seer', () => <ActivityFeedExamples items={collapsedSeerActivities} />);
   story('Investigation links', () => (
     <ActivityExamples items={investigationLinkActivities} />
+  ));
+  story('Investigation starts', () => (
+    <ActivityExamples items={investigationStartActivities} />
   ));
 });
 

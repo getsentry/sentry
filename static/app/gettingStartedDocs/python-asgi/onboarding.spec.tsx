@@ -72,9 +72,7 @@ describe('asgi onboarding docs', () => {
     renderWithOnboardingLayout(docs, {selectedProducts: [ProductSolution.LOGS]});
 
     expect(
-      screen.getByText(
-        textWithMarkupMatcher(/LoggingIntegration\(capture_sentry_logs=True\)/)
-      )
+      screen.getByText(textWithMarkupMatcher(/LoggingIntegration\(\),/))
     ).toBeInTheDocument();
 
     expect(
@@ -83,7 +81,7 @@ describe('asgi onboarding docs', () => {
     expect(
       screen.getByText(
         textWithMarkupMatcher(
-          "You can also forward logs from Python's built-in logging module by setting capture_sentry_logs=True on the LoggingIntegration:"
+          "You can also forward logs from Python's built-in logging module by adding the LoggingIntegration:"
         )
       )
     ).toBeInTheDocument();
@@ -93,9 +91,7 @@ describe('asgi onboarding docs', () => {
     renderWithOnboardingLayout(docs, {selectedProducts: []});
 
     expect(
-      screen.queryByText(
-        textWithMarkupMatcher(/LoggingIntegration\(capture_sentry_logs=True\)/)
-      )
+      screen.queryByText(textWithMarkupMatcher(/LoggingIntegration\(\),/))
     ).not.toBeInTheDocument();
 
     expect(
@@ -104,7 +100,7 @@ describe('asgi onboarding docs', () => {
     expect(
       screen.queryByText(
         textWithMarkupMatcher(
-          "You can also forward logs from Python's built-in logging module by setting capture_sentry_logs=True on the LoggingIntegration:"
+          "You can also forward logs from Python's built-in logging module by adding the LoggingIntegration:"
         )
       )
     ).not.toBeInTheDocument();

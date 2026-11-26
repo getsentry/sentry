@@ -23,6 +23,7 @@ import type {EventValidationData} from 'sentry/views/explore/utils/validateEvent
 import {HiddenLogSearchFields} from './constants';
 
 export function useLogsSearchQueryBuilderProps({
+  attributeKeyQuery,
   attributeQuery,
   arrayAttributes = {},
   arraySecondaryAliases = {},
@@ -42,6 +43,7 @@ export function useLogsSearchQueryBuilderProps({
   stringSecondaryAliases: TagCollection;
   arrayAttributes?: TagCollection;
   arraySecondaryAliases?: TagCollection;
+  attributeKeyQuery?: string;
   attributeQuery?: string;
   validatedSearchQueryData?: EventValidationData;
 }) {
@@ -173,11 +175,13 @@ export function useLogsSearchQueryBuilderProps({
       replaceRawSearchKeys: ['message'],
       matchKeySuggestions: [{key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/}],
       hiddenAttributeKeys: HiddenLogSearchFields,
+      attributeKeyQuery,
       attributeQuery,
       invalidFilterKeys,
     }),
     [
       arraySecondaryAliases,
+      attributeKeyQuery,
       attributeQuery,
       booleanSecondaryAliases,
       caseInsensitive,

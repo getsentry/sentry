@@ -138,11 +138,11 @@ describe('useDroppedDataBand', () => {
           dataset: DiscoverDatasets.SPANS,
           droppedEvents: [
             OutcomeRowFixture({start: 0, count: 25}),
-            OutcomeRowFixture({start: 60_000, count: 0}),
+            OutcomeRowFixture({start: 60_000, end: 120_000, count: 0}),
           ],
           acceptedEvents: [
             OutcomeRowFixture({start: 0, count: 75}),
-            OutcomeRowFixture({start: 60_000, count: 100}),
+            OutcomeRowFixture({start: 60_000, end: 120_000, count: 100}),
           ],
         },
       })
@@ -150,15 +150,29 @@ describe('useDroppedDataBand', () => {
     const band = result.current!;
 
     expect(band.buckets.map(({start}) => start)).toEqual([0, 60_000]);
-    expect(band.tooltipSection?.(120_000)).toBeNull();
+    expect(band.tooltipSection?.({start: 120_000, end: 180_000})).toBeNull();
 
-    const {unmount} = render(band.tooltipSection!(0)!);
+    const {unmount} = render(band.tooltipSection!({start: 0, end: 60_000})!);
     expect(screen.getByText('Dropped Spans')).toBeInTheDocument();
     expect(screen.getByText('25%')).toBeInTheDocument();
     unmount();
 
-    render(band.tooltipSection!(60_000)!);
+    render(band.tooltipSection!({start: 60_000, end: 120_000})!);
     expect(screen.getByText('0%')).toBeInTheDocument();
+  });
+
+  it('leaves its section out of the shared tooltip when the hovered range spans several of its buckets', () => {
+    const {result} = renderHookWithProviders(() =>
+      useDroppedDataBand({
+        droppedData: {
+          dataset: DiscoverDatasets.SPANS,
+          droppedEvents: [OutcomeRowFixture({start: 0, count: 25})],
+          acceptedEvents: [OutcomeRowFixture({start: 0, count: 75})],
+        },
+      })
+    );
+
+    expect(result.current!.tooltipSection?.({start: 0, end: 240_000})).toBeNull();
   });
 
   it('collapses buckets sharing a time range into a single series datum', () => {

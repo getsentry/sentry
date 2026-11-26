@@ -1,5 +1,6 @@
 import logging
 from collections import defaultdict
+from datetime import datetime, timedelta
 from typing import Any, TypedDict, cast
 
 from drf_spectacular.utils import OpenApiParameter, extend_schema
@@ -22,7 +23,10 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
-from sentry.api.endpoints.organization_trace_item_attributes import adjust_start_end_window
+from sentry.api.endpoints.organization_trace_item_attributes import (
+    adjust_start_end_window,
+    full_retention_window,
+)
 from sentry.api.endpoints.organization_trace_item_attributes_types import (
     AttributeBucket,
     RankedAttribute,
@@ -249,6 +253,15 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsEndpointB
         return Response(ranked_distribution)
 
 
+def get_attribute_names_window(start: datetime, end: datetime) -> tuple[datetime, datetime]:
+    adjusted_start, adjusted_end = adjust_start_end_window(start, end)
+    retention_start, retention_end = full_retention_window(SupportedTraceItemType.SPANS)
+    # Snuba expires weekly names buckets a retention period after their Monday, before downsampled spans
+    if adjusted_start - timedelta(days=adjusted_start.weekday()) <= retention_start:
+        return retention_start, retention_end
+    return adjusted_start, adjusted_end
+
+
 class AttributeDistributionsResponse(TypedDict):
     """
     Response structure for query_attribute_distributions.
@@ -364,7 +377,7 @@ def query_attribute_distributions(
         cohort_2, _, _ = resolver.resolve_query(query_2)
 
     # Fetch attribute names for parallelization
-    adjusted_start_date, adjusted_end_date = adjust_start_end_window(
+    adjusted_start_date, adjusted_end_date = get_attribute_names_window(
         snuba_params.start_date, snuba_params.end_date
     )
     attrs_snuba_params = snuba_params.copy()

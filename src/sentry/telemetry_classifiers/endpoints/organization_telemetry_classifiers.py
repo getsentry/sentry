@@ -21,6 +21,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, OrganizationParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
+from sentry.telemetry_classifiers.definitions import has_valid_definition
 from sentry.telemetry_classifiers.models import TelemetryClassifier
 from sentry.telemetry_classifiers.search import filter_classifiers_by_query
 from sentry.telemetry_classifiers.serializers import (
@@ -112,7 +113,9 @@ class OrganizationTelemetryClassifiersEndpoint(OrganizationEndpoint):
             order_by=("is_disabled", "-date_added", "-id"),
             paginator_cls=OffsetPaginator,
             on_results=lambda results: serialize(
-                results, request.user, serializer=TelemetryClassifierSerializer()
+                [c for c in results if has_valid_definition(c)],
+                request.user,
+                serializer=TelemetryClassifierSerializer(),
             ),
         )
 

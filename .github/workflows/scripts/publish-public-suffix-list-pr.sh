@@ -11,6 +11,8 @@ gh auth setup-git
 BOT_ID=$(gh api "users/$BOT_LOGIN" --jq .id)
 git config user.name "$BOT_LOGIN"
 git config user.email "$BOT_ID+$BOT_LOGIN@users.noreply.github.com"
+# getsentry/eng-pipes posts this PR to #discuss-crons by matching this branch
+# name in src/brain/github/publicSuffixListPr/index.ts, so change both together.
 BRANCH="bot/update-public-suffix-list"
 git switch -C "$BRANCH"
 git add -- "$PSL_PATH"

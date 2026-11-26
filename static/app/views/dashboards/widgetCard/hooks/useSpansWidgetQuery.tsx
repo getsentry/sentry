@@ -42,8 +42,8 @@ import {
   getValidAggregatesForRequest,
   hasNoValidAggregatesForRequest,
 } from 'sentry/views/explore/utils/conditionalAggregate';
-import {STARRED_SEGMENT_TABLE_QUERY_KEY} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
 import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
+import {STARRED_SEGMENT_TABLE_QUERY_KEY} from 'sentry/views/insights/common/utils/useStarredSegment';
 import {SpanFields} from 'sentry/views/insights/types';
 
 import {
@@ -447,10 +447,14 @@ export function useSpansTableQuery(
 
       const baseQueryKey: ApiQueryKey = baseOptions.queryKey;
 
-      // eslint-disable-next-line @tanstack/query/exhaustive-deps
+      // eslint-disable-next-line @tanstack/query/exhaustive-deps -- The queue schedules the request without changing its result.
       return queryOptions({
         ...baseOptions,
-        queryKey: [...baseQueryKey, ...STARRED_SEGMENT_TABLE_QUERY_KEY] as const,
+        // Keep queued Spans requests separate from Transactions widgets.
+        queryKey: [
+          ...baseQueryKey,
+          hasStarredField ? STARRED_SEGMENT_TABLE_QUERY_KEY : 'dashboard-spans-table',
+        ] as const,
         queryFn: (context): Promise<ApiResponse<SpansTableResponse>> => {
           if (queue) {
             return new Promise((resolve, reject) => {

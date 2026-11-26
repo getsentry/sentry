@@ -16,6 +16,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getOrganizationItemProps} from 'sentry/utils/organization/getOrganizationItemProps';
 import {useCreateOrganizationLink} from 'sentry/utils/organization/useCreateOrganizationLink';
 import {useOrganizationSwitcher} from 'sentry/utils/organization/useOrganizationSwitcher';
+import {groupProjectsByMembership} from 'sentry/utils/project/groupProjectsByMembership';
 import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
 import {unreachable} from 'sentry/utils/unreachable';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -121,7 +122,7 @@ function SettingsProjectSelector() {
       {containerProps => (
         <CompactSelect
           {...containerProps}
-          size="sm"
+          size="md"
           position="bottom-start"
           // Same max width as the environment page filter menu
           menuWidth="24em"
@@ -154,10 +155,14 @@ function SettingsProjectSelector() {
               {t('Create Project')}
             </MenuComponents.CTALinkButton>
           }
-          options={projects.map(project => ({
-            value: project.slug,
-            label: project.slug,
-            leadingItems: <ProjectAvatar project={project} size={16} />,
+          options={groupProjectsByMembership(projects).map(group => ({
+            key: group.key,
+            label: group.label,
+            options: group.projects.map(project => ({
+              value: project.slug,
+              label: project.slug,
+              leadingItems: <ProjectAvatar project={project} size={16} />,
+            })),
           }))}
           onChange={selection => {
             trackAnalytics('settings.project_selector.changed', {organization});

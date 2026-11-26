@@ -4,7 +4,7 @@ from collections.abc import Iterator, Mapping, Sequence
 from typing import TYPE_CHECKING, Any, SupportsIndex, SupportsInt, TypeVar, cast, overload
 
 from django.db.models import Model
-from django.db.models.fields import BigIntegerField
+from django.db.models.fields import NOT_PROVIDED, BigIntegerField
 
 from bitfield.query import BitQueryExactLookupStub
 from bitfield.types import Bit, BitHandler
@@ -214,7 +214,12 @@ class TypedBitfieldMeta(type):
             if attr.startswith("_"):
                 continue
 
-            if attr in ("bitfield_default", "bitfield_null", "bitfield_db_column"):
+            if attr in (
+                "bitfield_default",
+                "bitfield_db_default",
+                "bitfield_null",
+                "bitfield_db_column",
+            ):
                 continue
 
             flags[attr] = ty
@@ -224,6 +229,7 @@ class TypedBitfieldMeta(type):
             BitField(
                 flags=flags_from_annotations(flags),
                 default=clsdict.get("bitfield_default"),
+                db_default=clsdict.get("bitfield_db_default", NOT_PROVIDED),
                 null=clsdict.get("bitfield_null") or False,
                 db_column=clsdict.get("bitfield_db_column"),
             ),
@@ -240,6 +246,7 @@ class TypedClassBitField(metaclass=TypedBitfieldMeta):
     """
 
     bitfield_default: Any | None
+    bitfield_db_default: Any
     bitfield_null: bool
 
     _value: int

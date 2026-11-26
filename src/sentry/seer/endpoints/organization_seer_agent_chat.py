@@ -466,7 +466,9 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
             user_id = acting_user_id(request.user)
             if user_id is None:
                 raise PermissionDenied("A user account is required to continue a conversation.")
-            result = resolve_seer_run(run_id, organization, for_continue=True, user_id=user_id)
+            result = resolve_seer_run(
+                run_id, organization, for_continue=True, user_id=user_id, access=request.access
+            )
             if isinstance(result, Response):
                 return result
             resolved = result

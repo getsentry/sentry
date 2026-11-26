@@ -1,6 +1,7 @@
 import {QueryClientProvider} from '@tanstack/react-query';
 import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
 import {EventFixture} from 'sentry-fixture/event';
+import {FrameFixture} from 'sentry-fixture/frame';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
@@ -328,6 +329,88 @@ describe('groupEventDetails', () => {
   afterEach(() => {
     MockApiClient.clearMockResponses();
   });
+
+  it.each([
+    {entryType: EntryType.EXCEPTION, enabled: true},
+    {entryType: EntryType.EXCEPTION, enabled: false},
+    {entryType: EntryType.STACKTRACE, enabled: true},
+    {entryType: EntryType.STACKTRACE, enabled: false},
+  ])(
+    'renders native $entryType with the new renderer only when enabled=$enabled',
+    async ({entryType, enabled}) => {
+      const props = makeDefaultMockData(
+        OrganizationFixture({
+          features: enabled ? ['issue-details-native-stack-trace'] : [],
+        })
+      );
+      const stacktrace = {
+        frames: [
+          FrameFixture({
+            platform: 'cocoa',
+            function: 'causeCrash',
+            rawFunction: null,
+            module: null,
+          }),
+        ],
+        framesOmitted: null,
+        hasSystemFrames: false,
+        registers: null,
+      };
+      props.event = EventFixture({
+        platform: 'cocoa',
+        projectID: props.project.id,
+        entries:
+          entryType === EntryType.STACKTRACE
+            ? [{type: EntryType.STACKTRACE, data: stacktrace}]
+            : [
+                {
+                  type: EntryType.EXCEPTION,
+                  data: {
+                    values: [
+                      {
+                        type: 'EXC_BAD_ACCESS',
+                        value: 'invalid address',
+                        module: null,
+                        mechanism: null,
+                        threadId: null,
+                        rawStacktrace: null,
+                        stacktrace,
+                      },
+                    ],
+                  },
+                },
+              ],
+      });
+      ProjectsStore.loadInitialData([props.project]);
+      mockGroupApis(props.organization, props.project, props.group, props.event);
+      MockApiClient.addMockResponse({
+        url: `/projects/${props.organization.slug}/${props.project.slug}/events/${props.event.id}/committers/`,
+        body: {committers: []},
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/prompts-activity/',
+        body: {dismissed_ts: undefined, snoozed_ts: undefined},
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/sentry-app-components/',
+        body: [],
+      });
+      const stacktraceLinkMock = MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/stacktrace-link/',
+        body: {config: null, sourceUrl: null, integrations: []},
+      });
+      render(<GroupEventDetailsWithProvider groupId={props.group.id} />, {
+        organization: props.organization,
+        initialRouterConfig: props.initialRouterConfig,
+      });
+
+      expect(await screen.findByText('causeCrash')).toBeInTheDocument();
+      expect(screen.queryAllByTestId('native-stack-trace-frame-title')).toHaveLength(
+        enabled ? 1 : 0
+      );
+      await waitFor(() => expect(stacktraceLinkMock).toHaveBeenCalled());
+    }
+  );
 
   describe('source-map issue content', () => {
     const eventUrl = '/organizations/org-slug/issues/1/events/recommended/';
@@ -830,6 +913,35 @@ describe('groupEventDetails', () => {
       ).toBeInTheDocument();
       expect(
         screen.getByRole('button', {name: 'Collapse Suspect Root Cause Section'})
+      ).toBeInTheDocument();
+      expect(screen.getByText('File IO on Main Thread')).toBeInTheDocument();
+    });
+
+    it('shows anr root cause for non-fatal ANR events', async () => {
+      const props = makeDefaultMockData();
+      const event = {
+        ...props.event,
+        tags: [
+          {key: 'environment', value: 'dev'},
+          {key: 'mechanism', value: 'NonFatalANR'},
+        ],
+      };
+      mockGroupApis(
+        props.organization,
+        props.project,
+        props.group,
+        event,
+        undefined,
+        mockedTrace(props.project)
+      );
+
+      render(<GroupEventDetailsWithProvider groupId={props.group.id} />, {
+        organization: props.organization,
+        initialRouterConfig: props.initialRouterConfig,
+      });
+
+      expect(
+        await screen.findByRole('region', {name: 'Suspect Root Cause'})
       ).toBeInTheDocument();
       expect(screen.getByText('File IO on Main Thread')).toBeInTheDocument();
     });

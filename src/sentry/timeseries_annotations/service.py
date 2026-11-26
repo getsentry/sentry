@@ -33,6 +33,7 @@ class TimeseriesAnnotationData:
     interval_type: IntervalType = IntervalType.POINT
     scope: AnnotationScope = AnnotationScope.GLOBAL
     severity: Severity = Severity.LOW
+    pinned: bool = False
     tags: Mapping[str, Any] | None = None
 
     created_by: ActorId | None = None
@@ -56,6 +57,7 @@ class TimeseriesAnnotationData:
             interval_type=IntervalType(annotation.interval_type),
             scope=AnnotationScope(annotation.scope),
             severity=Severity(annotation.severity),
+            pinned=annotation.pinned,
             tags=annotation.tags,
             created_by=_actor_from_model(annotation),
             created_by_label=annotation.created_by_label,
@@ -97,6 +99,7 @@ def create_timeseries_annotation(data: TimeseriesAnnotationData) -> TimeseriesAn
         annotation_type=data.annotation_type,
         scope=data.scope,
         severity=data.severity,
+        pinned=data.pinned,
         description=data.description,
         tags=dict(data.tags) if data.tags is not None else None,
         created_by_id=created_by_id,
@@ -108,6 +111,57 @@ def create_timeseries_annotation(data: TimeseriesAnnotationData) -> TimeseriesAn
     )
     metrics.incr(
         "timeseries_annotations.created",
+        tags={
+            "annotation_type": AnnotationType(annotation.annotation_type).name.lower(),
+            "interval_type": IntervalType(annotation.interval_type).name.lower(),
+            "severity": Severity(annotation.severity).name.lower(),
+        },
+    )
+    return annotation
+
+
+def update_timeseries_annotation(
+    annotation: TimeseriesAnnotation,
+    *,
+    updated_by: ActorId | None,
+    description: str | None = None,
+    severity: Severity | None = None,
+    end_timestamp: datetime | None = None,
+    set_end_timestamp: bool = False,
+) -> TimeseriesAnnotation:
+    """Update one annotation. ``set_end_timestamp`` distinguishes an omitted end from null."""
+    if (
+        set_end_timestamp
+        and end_timestamp is not None
+        and end_timestamp < annotation.start_timestamp
+    ):
+        raise ValueError("endTimestamp must be at or after startTimestamp")
+
+    if description is not None:
+        annotation.description = description
+    if severity is not None:
+        annotation.severity = severity
+    if set_end_timestamp:
+        annotation.end_timestamp = end_timestamp
+
+    # The updater check allows only one of user, service account, or label.
+    updated_by_id, updated_by_service_account_id = _actor_columns(updated_by)
+    annotation.updated_by_id = updated_by_id
+    annotation.updated_by_service_account_id = updated_by_service_account_id
+    annotation.updated_by_label = None
+    annotation.save(
+        update_fields=[
+            "description",
+            "severity",
+            "end_timestamp",
+            "updated_by_id",
+            "updated_by_service_account_id",
+            "updated_by_label",
+            "date_updated",
+        ]
+    )
+    metrics.incr(
+        "timeseries_annotations.updated",
         tags={
             "annotation_type": AnnotationType(annotation.annotation_type).name.lower(),
             "interval_type": IntervalType(annotation.interval_type).name.lower(),
