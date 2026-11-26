@@ -137,9 +137,9 @@ def is_size_analysis_expired(artifact: PreprodArtifact, organization: Organizati
     served.
 
     This is decided by the date stamped on the artifact when it was created. An
-    artifact without one (created before the column existed and not backfilled yet)
-    falls back to what applied before the column existed: the organization's current
-    retention, counted from `date_added`.
+    artifact without one falls back to what applied before the column existed: the
+    organization's current retention, counted from `date_added`. That is a build created
+    before the column existed and not backfilled yet, or a snapshot, which never has one.
     """
     now = timezone.now()
     if artifact.date_size_analysis_expires is not None:

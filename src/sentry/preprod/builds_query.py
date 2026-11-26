@@ -39,8 +39,9 @@ def filtered_builds_queryset(
     queryset = queryset.filter(unexpired_artifacts())
     # A build is listed for distribution until it expires. That can be after its size
     # analysis has expired, where Build Distribution has the longer retention. Every
-    # other display is about the size analysis, or about snapshots, which follow the
-    # Size Analysis retention until they have their own.
+    # other display is about the size analysis, or about snapshots. A snapshot has no
+    # `date_size_analysis_expires`, so it keeps the previous rule here: the Size Analysis
+    # retention, counted from `date_added`.
     if display != "distribution":
         queryset = queryset.filter(unexpired_size_analysis(organization))
     if start:
