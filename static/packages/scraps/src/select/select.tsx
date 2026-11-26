@@ -501,6 +501,7 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
       return;
     }
 
+    // Inline footers follow the control in the DOM. Portaled footers need a focus handoff.
     if (
       event.key === 'Tab' &&
       !event.shiftKey &&

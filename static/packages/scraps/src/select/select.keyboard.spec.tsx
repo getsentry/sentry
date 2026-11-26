@@ -174,31 +174,37 @@ it('keeps the controlled menu closed while entering text', async () => {
   expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
 });
 
-it('tabs to a portaled menu footer and returns focus on Escape', async () => {
-  const onChange = jest.fn();
-  render(
-    <Select
-      aria-label="Fruit"
-      options={options}
-      value={null}
-      onChange={onChange}
-      menuPortalTarget={document.body}
-      menuFooter={<Button>Manage fruit</Button>}
-    />,
-    {wrapper: ThemeWrapper}
-  );
+it.each(['inline', 'portaled'])(
+  'tabs to the %s menu footer and returns focus on Escape',
+  async placement => {
+    const onChange = jest.fn();
+    render(
+      <Fragment>
+        <Select
+          aria-label="Fruit"
+          options={options}
+          value={null}
+          onChange={onChange}
+          menuPortalTarget={placement === 'portaled' ? document.body : undefined}
+          menuFooter={<Button>Manage fruit</Button>}
+        />
+        <Button>Next field</Button>
+      </Fragment>,
+      {wrapper: ThemeWrapper}
+    );
 
-  const input = screen.getByRole('combobox', {name: 'Fruit'});
-  await userEvent.click(input);
-  await userEvent.tab();
-  expect(screen.getByRole('button', {name: 'Manage fruit'})).toHaveFocus();
-  expect(screen.getByRole('listbox')).toBeInTheDocument();
+    const input = screen.getByRole('combobox', {name: 'Fruit'});
+    await userEvent.click(input);
+    await userEvent.tab();
+    expect(screen.getByRole('button', {name: 'Manage fruit'})).toHaveFocus();
+    expect(screen.getByRole('listbox')).toBeInTheDocument();
 
-  await userEvent.keyboard('{Escape}');
-  expect(input).toHaveFocus();
-  expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
-  expect(onChange).not.toHaveBeenCalled();
-});
+    await userEvent.keyboard('{Escape}');
+    expect(input).toHaveFocus();
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+    expect(onChange).not.toHaveBeenCalled();
+  }
+);
 
 it('preserves the active option when object choices refetch and reorder', async () => {
   const first = {label: 'Apple', value: {id: 1}};
