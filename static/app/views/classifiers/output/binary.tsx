@@ -4,6 +4,7 @@ import {Tag} from '@sentry/scraps/badge';
 import {Flex} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
+import {alignTimeSeries} from 'sentry/utils/timeSeries/alignTimeSeries';
 import {ALL_RESULTS} from 'sentry/views/classifiers/constants';
 import type {TelemetryClassifier} from 'sentry/views/classifiers/types';
 import {getHasResultQuery, getResultField} from 'sentry/views/classifiers/utils';
@@ -65,6 +66,10 @@ function BinaryClassifierVisualization({
     query: getThresholdQuery(classifier, NON_MATCHES),
     enabled: isGrouped,
   });
+  const [matchesSeries, nonMatchesSeries] = alignTimeSeries([
+    primary.data?.timeSeries[0],
+    nonMatches.data?.timeSeries[0],
+  ]);
 
   return (
     <BaseClassifierVisualization
@@ -74,10 +79,8 @@ function BinaryClassifierVisualization({
       plottables={
         isGrouped
           ? [
-              createPlottable(chartType, primary.data?.timeSeries[0], {
-                alias: t('Matches'),
-              }),
-              createPlottable(chartType, nonMatches.data?.timeSeries[0], {
+              createPlottable(chartType, matchesSeries, {alias: t('Matches')}),
+              createPlottable(chartType, nonMatchesSeries, {
                 alias: t('Non-matches'),
                 color: neutral,
               }),
