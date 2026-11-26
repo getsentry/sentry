@@ -87,17 +87,6 @@ class AbstractFileBlob(Model, _Parent[BlobOwnerType]):
         """
         logger.debug("FileBlob.from_files.start")
 
-        # Checksum every file up front so all existing blobs can be fetched in
-        # one query. Duplicate files in the same request collapse to one entry.
-        files_by_checksum: dict[str, tuple[IO[bytes], int]] = {}
-        for file in files:
-            fileobj, reference_checksum = file if isinstance(file, tuple) else (file, None)
-            size, checksum = get_size_and_checksum(fileobj)
-            if reference_checksum is not None and checksum != reference_checksum:
-                raise OSError("Checksum mismatch")
-            files_by_checksum[checksum] = (fileobj, size)
-
-        existing_blobs = cls.objects.in_bulk(files_by_checksum, field_name="checksum")
         blobs_to_save = []
         semaphore = Semaphore(value=MULTI_BLOB_UPLOAD_CONCURRENCY)
 
@@ -150,6 +139,18 @@ class AbstractFileBlob(Model, _Parent[BlobOwnerType]):
                 semaphore.release()
 
         try:
+            # Checksum every file up front so all existing blobs can be fetched in
+            # one query. Duplicate files in the same request collapse to one entry.
+            files_by_checksum: dict[str, tuple[IO[bytes], int]] = {}
+            for file in files:
+                fileobj, reference_checksum = file if isinstance(file, tuple) else (file, None)
+                size, checksum = get_size_and_checksum(fileobj)
+                if reference_checksum is not None and checksum != reference_checksum:
+                    raise OSError("Checksum mismatch")
+                files_by_checksum[checksum] = (fileobj, size)
+
+            existing_blobs = cls.objects.in_bulk(files_by_checksum, field_name="checksum")
+
             for checksum, (fileobj, size) in files_by_checksum.items():
                 logger.debug("FileBlob.from_files.executor_start", extra={"checksum": checksum})
                 _flush_blobs()
