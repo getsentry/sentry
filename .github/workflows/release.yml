@@ -54,6 +54,13 @@ jobs:
         if: startsWith(inputs.workspace, 'static/packages/')
         with:
           node-version-file: '.node-version'
+      # scripts/bump-version.sh runs `uv version`. Keep the uv version in step with
+      # .github/actions/setup-sentry, or the bump also reformats uv.lock.
+      - uses: astral-sh/setup-uv@884ad927a57e558e7a70b92f2bccf9198a4be546 # v6
+        if: ${{ !startsWith(inputs.workspace, 'static/packages/') }}
+        with:
+          version: '0.13.7'
+          enable-cache: false
       - name: Prepare release
         uses: getsentry/craft@2e29b0819113d334c15da3d8cac2138cb9dc111a # 3.9.0
         env:
