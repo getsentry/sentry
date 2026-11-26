@@ -6,7 +6,7 @@ import logging
 import re
 import time
 from collections.abc import Mapping
-from typing import cast
+from typing import Any, cast
 
 import orjson
 import sentry_sdk
@@ -131,6 +131,20 @@ class GitHubEnterpriseWebhook:
 
 
 class GitHubEnterpriseInstallationEventWebhook(GitHubEnterpriseWebhook, InstallationEventWebhook):
+    def __call__(self, event: Mapping[str, Any], **kwargs: Any) -> None:
+        if event.get("action") == "created":
+            # GHE integrations are created by the setup pipeline, which has the
+            # installation config and OAuth state needed to build them. The github.com
+            # implementation would fetch the installation from github.com and create a
+            # github.com integration instead.
+            logger.debug(
+                "github_enterprise.webhook.installation_created",
+                extra={"installation_id": event["installation"]["id"]},
+            )
+            return
+
+        super().__call__(event, **kwargs)
+
     def _get_token_refresh_client(self, integration: RpcIntegration) -> GitHubBaseClient:
         metadata = integration.metadata
         installation = metadata["installation"]

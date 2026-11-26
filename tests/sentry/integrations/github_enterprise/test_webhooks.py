@@ -1379,6 +1379,30 @@ class GitHubEnterpriseControlSiloWebhookTest(TestCase):
         assert response.content == b""
 
     @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
+    @patch("sentry.integrations.github.webhook.GitHubIntegrationProvider.build_integration")
+    def test_installation_created_does_not_create_github_cloud_integration(
+        self, mock_build_integration: MagicMock, mock_installation: MagicMock
+    ) -> None:
+        mock_installation.return_value = self.metadata
+        body = orjson.dumps(
+            {
+                "action": "created",
+                "installation": {"id": 2, "account": {"login": "example"}},
+                "sender": {"id": 1, "login": "example"},
+            }
+        )
+
+        response = self._post(
+            url=self.url,
+            event="installation",
+            body=body,
+            HTTP_X_GITHUB_ENTERPRISE_HOST="github.example.com",
+        )
+
+        assert response.status_code == 204
+        mock_build_integration.assert_not_called()
+
+    @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
     def test_github_com_installation_event_is_not_rejected_by_silo_check(
         self, mock_installation: MagicMock
     ) -> None:
