@@ -11,8 +11,6 @@ const productionEntryPoints = [
   // todo find out how chartcuterie works
   'chartcuterie/**/*.{js,ts,tsx}',
   'components/brandPageLayout/**/*.{ts,tsx}',
-  // React authentication routes are discovered dynamically by the frontend route registry
-  'views/authV2/authLogin/**/*.{ts,tsx}',
 ];
 
 // Scoped configs reuse the test package's dependencies. Parse the shared config
