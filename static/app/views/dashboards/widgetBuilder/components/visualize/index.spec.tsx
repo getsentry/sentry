@@ -2821,7 +2821,7 @@ describe('Visualize', () => {
 
     beforeEach(() => {
       unifiedOrganization = OrganizationFixture({
-        features: ['performance-view', 'dashboards-trace-metrics-unified-visualize'],
+        features: ['dashboards-trace-metrics-unified-visualize'],
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events/',
