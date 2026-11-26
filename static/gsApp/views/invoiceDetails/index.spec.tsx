@@ -1,16 +1,27 @@
+import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
 import {BillingDetailsFixture} from 'getsentry-test/fixtures/billingDetails';
+import {BillingHistoryFixture} from 'getsentry-test/fixtures/billingHistory';
 import {InvoiceFixture} from 'getsentry-test/fixtures/invoice';
+import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
+  act,
+  cleanup,
   render,
   renderGlobalModal,
   screen,
   userEvent,
   waitFor,
+  within,
 } from 'sentry-test/reactTestingLibrary';
 
 import {DateTimeProvider} from '@sentry/scraps/dateTime';
+
+import {DataCategory} from 'sentry/types/core';
+import {DEFAULT_QUERY_CLIENT_CONFIG} from 'sentry/utils/queryClientConfig';
 
 import {PlanFixture} from 'getsentry/__fixtures__/plan';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
@@ -427,6 +438,404 @@ describe('InvoiceDetails', () => {
       await waitFor(() => expect(mockInvoice).toHaveBeenCalled());
       expect(await screen.findByText('VAT')).toBeInTheDocument();
       expect(screen.getByText('Reverse Charge')).toBeInTheDocument();
+    });
+  });
+
+  describe('Usage billed on this receipt', () => {
+    const usageOrganization = OrganizationFixture({
+      features: ['invoice-usage-downloads'],
+    });
+    const invoiceUrl = `/customers/${organization.slug}/invoices/${basicInvoice.id}/`;
+    const usageUrl = `/customers/${organization.slug}/invoices/${basicInvoice.id}/usage/`;
+
+    beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: `/customers/${organization.slug}/invoices/${basicInvoice.id}/`,
+        method: 'GET',
+        body: basicInvoice,
+      });
+    });
+
+    it('shows the billed period, the plan and both usage tables', async () => {
+      MockApiClient.addMockResponse({
+        url: usageUrl,
+        method: 'GET',
+        body: BillingHistoryFixture({
+          plan: 'am1_team',
+          periodStart: '2021-08-21',
+          periodEnd: '2021-09-20',
+          onDemandMaxSpend: 5000,
+          onDemandSpend: 838,
+          categories: {
+            errors: MetricHistoryFixture({
+              category: DataCategory.ERRORS,
+              usage: 62_000,
+              reserved: 50_000,
+              prepaid: 50_000,
+              onDemandSpendUsed: 838,
+            }),
+          },
+        }),
+      });
+      render(<InvoiceDetails />, {
+        organization: usageOrganization,
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/invoices/${params.invoiceGuid}/`,
+          },
+          route: '/organizations/:orgId/invoices/:invoiceGuid/',
+        },
+      });
+
+      const usage = await screen.findByRole('region', {
+        name: 'Usage billed on this receipt',
+      });
+      expect(within(usage).getByText('Aug 21, 2021 - Sep 20, 2021')).toBeInTheDocument();
+      expect(within(usage).getByText('Team Plan')).toBeInTheDocument();
+      expect(
+        within(usage).getByRole('row', {name: 'Errors 62,000 50,000 >100%'})
+      ).toBeInTheDocument();
+      expect(
+        within(usage).getByRole('row', {name: 'Total $8.38 $50.00 17%'})
+      ).toBeInTheDocument();
+    });
+
+    it('shows no usage when the receipt billed none', async () => {
+      const usageRequest = MockApiClient.addMockResponse({
+        url: usageUrl,
+        method: 'GET',
+        statusCode: 404,
+        body: {detail: 'This receipt billed no usage.'},
+      });
+      render(<InvoiceDetails />, {
+        organization: usageOrganization,
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/invoices/${params.invoiceGuid}/`,
+          },
+          route: '/organizations/:orgId/invoices/:invoiceGuid/',
+        },
+      });
+
+      await waitFor(() => expect(usageRequest).toHaveBeenCalled());
+      // Let the page render the response before checking that it shows nothing.
+      await act(() => new Promise(resolve => setTimeout(resolve, 0)));
+      expect(screen.getByText(/Subscription to Business/)).toBeInTheDocument();
+      expect(
+        screen.queryByRole('region', {name: 'Usage billed on this receipt'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('shows no usage when the period has no usage rows', async () => {
+      const {
+        categories: _categories,
+        planDetails: _planDetails,
+        ...usageBody
+      } = BillingHistoryFixture();
+      const usageRequest = MockApiClient.addMockResponse({
+        url: usageUrl,
+        method: 'GET',
+        body: usageBody,
+      });
+      render(<InvoiceDetails />, {
+        organization: usageOrganization,
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/invoices/${params.invoiceGuid}/`,
+          },
+          route: '/organizations/:orgId/invoices/:invoiceGuid/',
+        },
+      });
+
+      await waitFor(() => expect(usageRequest).toHaveBeenCalled());
+      // Let the page render the response before checking that it shows nothing.
+      await act(() => new Promise(resolve => setTimeout(resolve, 0)));
+      expect(screen.getByText(/Subscription to Business/)).toBeInTheDocument();
+      expect(
+        screen.queryByRole('region', {name: 'Usage billed on this receipt'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('does not request the usage without the feature', async () => {
+      const usageRequest = MockApiClient.addMockResponse({
+        url: usageUrl,
+        method: 'GET',
+        body: BillingHistoryFixture(),
+      });
+      render(<InvoiceDetails />, {
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/invoices/${params.invoiceGuid}/`,
+          },
+          route: '/organizations/:orgId/invoices/:invoiceGuid/',
+        },
+      });
+
+      expect(await screen.findByText(/Subscription to Business/)).toBeInTheDocument();
+      expect(usageRequest).not.toHaveBeenCalled();
+      expect(
+        screen.queryByRole('region', {name: 'Usage billed on this receipt'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('retries the usage after a server error', async () => {
+      const usageRequest = MockApiClient.addMockResponse({
+        url: usageUrl,
+        method: 'GET',
+        statusCode: 500,
+        body: {},
+      });
+      render(<InvoiceDetails />, {
+        organization: usageOrganization,
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/invoices/${params.invoiceGuid}/`,
+          },
+          route: '/organizations/:orgId/invoices/:invoiceGuid/',
+        },
+      });
+
+      const usage = await screen.findByRole('region', {
+        name: 'Usage billed on this receipt',
+      });
+      expect(
+        within(usage).getByText('There was an error loading data.')
+      ).toBeInTheDocument();
+      await userEvent.click(within(usage).getByRole('button', {name: 'Retry'}));
+      await waitFor(() => expect(usageRequest).toHaveBeenCalledTimes(2));
+    });
+
+    it('offers no retry when the usage is forbidden', async () => {
+      MockApiClient.addMockResponse({
+        url: usageUrl,
+        method: 'GET',
+        statusCode: 403,
+        body: {},
+      });
+      render(<InvoiceDetails />, {
+        organization: usageOrganization,
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/invoices/${params.invoiceGuid}/`,
+          },
+          route: '/organizations/:orgId/invoices/:invoiceGuid/',
+        },
+      });
+
+      const usage = await screen.findByRole('region', {
+        name: 'Usage billed on this receipt',
+      });
+      expect(
+        within(usage).getByText('There was an error loading data.')
+      ).toBeInTheDocument();
+      expect(
+        within(usage).queryByRole('button', {name: 'Retry'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('requests the usage while the receipt loads', async () => {
+      const receiptResponse = Promise.withResolvers<void>();
+      const invoiceRequest = MockApiClient.addMockResponse({
+        url: invoiceUrl,
+        method: 'GET',
+        body: basicInvoice,
+        asyncDelay: receiptResponse.promise,
+      });
+      const usageRequest = MockApiClient.addMockResponse({
+        url: usageUrl,
+        method: 'GET',
+        statusCode: 404,
+        body: {},
+      });
+      render(<InvoiceDetails />, {
+        organization: usageOrganization,
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/invoices/${params.invoiceGuid}/`,
+          },
+          route: '/organizations/:orgId/invoices/:invoiceGuid/',
+        },
+      });
+
+      // The receipt response is held, so the usage request must not wait for it.
+      await waitFor(() => expect(usageRequest).toHaveBeenCalled());
+      expect(invoiceRequest).toHaveBeenCalled();
+      expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+
+      receiptResponse.resolve();
+      expect(await screen.findByText(/Subscription to Business/)).toBeInTheDocument();
+    });
+
+    it('shows the usage only after the receipt loads', async () => {
+      const receiptResponse = Promise.withResolvers<void>();
+      MockApiClient.addMockResponse({
+        url: invoiceUrl,
+        method: 'GET',
+        body: basicInvoice,
+        asyncDelay: receiptResponse.promise,
+      });
+      const usageRequest = MockApiClient.addMockResponse({
+        url: usageUrl,
+        method: 'GET',
+        body: BillingHistoryFixture(),
+      });
+      render(<InvoiceDetails />, {
+        organization: usageOrganization,
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/invoices/${params.invoiceGuid}/`,
+          },
+          route: '/organizations/:orgId/invoices/:invoiceGuid/',
+        },
+      });
+
+      await waitFor(() => expect(usageRequest).toHaveBeenCalled());
+      // Let the page render the usage response before the receipt arrives.
+      await act(() => new Promise(resolve => setTimeout(resolve, 0)));
+      expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+      expect(
+        screen.queryByRole('region', {name: 'Usage billed on this receipt'})
+      ).not.toBeInTheDocument();
+
+      receiptResponse.resolve();
+      expect(
+        await screen.findByRole('region', {name: 'Usage billed on this receipt'})
+      ).toBeInTheDocument();
+      expect(screen.getByText(/Subscription to Business/)).toBeInTheDocument();
+    });
+
+    it('keeps the section with a spinner while Retry runs', async () => {
+      MockApiClient.addMockResponse({
+        url: usageUrl,
+        method: 'GET',
+        statusCode: 500,
+        body: {},
+      });
+      render(<InvoiceDetails />, {
+        organization: usageOrganization,
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/invoices/${params.invoiceGuid}/`,
+          },
+          route: '/organizations/:orgId/invoices/:invoiceGuid/',
+        },
+      });
+
+      const usage = await screen.findByRole('region', {
+        name: 'Usage billed on this receipt',
+      });
+      const retryResponse = Promise.withResolvers<void>();
+      MockApiClient.addMockResponse({
+        url: usageUrl,
+        method: 'GET',
+        body: BillingHistoryFixture(),
+        asyncDelay: retryResponse.promise,
+      });
+      await userEvent.click(within(usage).getByRole('button', {name: 'Retry'}));
+
+      expect(await within(usage).findByTestId('loading-indicator')).toBeInTheDocument();
+      expect(screen.getByRole('region', {name: 'Usage billed on this receipt'})).toBe(
+        usage
+      );
+
+      retryResponse.resolve();
+      expect(await screen.findByText('Jan 1, 2018 - Jan 31, 2018')).toBeInTheDocument();
+    });
+
+    it('shows no spinner when the page opens a 404 receipt again', async () => {
+      const otherInvoice = InvoiceFixture({id: 'other-receipt'}, organization);
+      MockApiClient.addMockResponse({
+        url: `/customers/${organization.slug}/invoices/${otherInvoice.id}/`,
+        method: 'GET',
+        body: otherInvoice,
+      });
+      MockApiClient.addMockResponse({
+        url: `/customers/${organization.slug}/invoices/${otherInvoice.id}/usage/`,
+        method: 'GET',
+        body: BillingHistoryFixture(),
+      });
+      const usageRequest = MockApiClient.addMockResponse({
+        url: usageUrl,
+        method: 'GET',
+        statusCode: 404,
+        body: {},
+      });
+      const {router} = render(<InvoiceDetails />, {
+        organization: usageOrganization,
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/invoices/${params.invoiceGuid}/`,
+          },
+          route: '/organizations/:orgId/invoices/:invoiceGuid/',
+        },
+      });
+      await waitFor(() => expect(usageRequest).toHaveBeenCalled());
+
+      router.navigate(`/organizations/${organization.slug}/invoices/${otherInvoice.id}/`);
+      expect(
+        await screen.findByRole('region', {name: 'Usage billed on this receipt'})
+      ).toBeInTheDocument();
+
+      // The query cache keeps the 404, and the page requests the usage again.
+      router.navigate(`/organizations/${organization.slug}/invoices/${basicInvoice.id}/`);
+      expect(
+        screen.queryByRole('region', {name: 'Usage billed on this receipt'})
+      ).not.toBeInTheDocument();
+      await waitFor(() => expect(usageRequest).toHaveBeenCalledTimes(2));
+      await act(() => new Promise(resolve => setTimeout(resolve, 0)));
+      expect(
+        screen.queryByRole('region', {name: 'Usage billed on this receipt'})
+      ).not.toBeInTheDocument();
+    });
+
+    describe('with the app query client', () => {
+      beforeEach(() => {
+        jest.useFakeTimers();
+      });
+
+      afterEach(async () => {
+        try {
+          cleanup();
+          await act(() => jest.runOnlyPendingTimersAsync());
+        } finally {
+          jest.useRealTimers();
+        }
+      });
+
+      it('shows a spinner in the section during the automatic retries', async () => {
+        const usageRequest = MockApiClient.addMockResponse({
+          url: usageUrl,
+          method: 'GET',
+          statusCode: 500,
+          body: {},
+        });
+        // The app's query client retries a server error 3 times, after 1, 2 and 4 s.
+        render(
+          <QueryClientProvider client={new QueryClient(DEFAULT_QUERY_CLIENT_CONFIG)}>
+            <InvoiceDetails />
+          </QueryClientProvider>,
+          {
+            organization: usageOrganization,
+            initialRouterConfig: {
+              location: {
+                pathname: `/organizations/${organization.slug}/invoices/${params.invoiceGuid}/`,
+              },
+              route: '/organizations/:orgId/invoices/:invoiceGuid/',
+            },
+          }
+        );
+
+        const usage = await screen.findByRole('region', {
+          name: 'Usage billed on this receipt',
+        });
+        expect(within(usage).getByTestId('loading-indicator')).toBeInTheDocument();
+
+        await act(() => jest.advanceTimersByTimeAsync(7_000));
+        expect(usageRequest).toHaveBeenCalledTimes(4);
+        expect(
+          within(usage).getByText('There was an error loading data.')
+        ).toBeInTheDocument();
+      });
     });
   });
 });
