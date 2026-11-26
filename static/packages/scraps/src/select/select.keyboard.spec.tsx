@@ -8,6 +8,27 @@ import {options, ThemeWrapper} from '../../test/selectFixtures';
 
 import {Select} from './select';
 
+it('wraps focus at both ends of the options list', async () => {
+  render(
+    <Select aria-label="Fruit" options={options} value="apple" onChange={jest.fn()} />,
+    {wrapper: ThemeWrapper}
+  );
+
+  const input = screen.getByRole('combobox', {name: 'Fruit'});
+  await userEvent.tab();
+  await userEvent.keyboard('{ArrowDown}{ArrowUp}');
+  expect(input).toHaveAttribute(
+    'aria-activedescendant',
+    screen.getByRole('option', {name: 'Cherry'}).id
+  );
+
+  await userEvent.keyboard('{ArrowDown}');
+  expect(input).toHaveAttribute(
+    'aria-activedescendant',
+    screen.getByRole('option', {name: 'Apple'}).id
+  );
+});
+
 it('leaves the current choice unchanged when Tab moves past an open select', async () => {
   const onChange = jest.fn();
   render(

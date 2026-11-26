@@ -450,6 +450,7 @@ export function Select<TValue, TOption extends SelectValue<TValue>>(
     selectionManager,
     keyboardDelegate: delegate,
     ref: inputRef,
+    shouldFocusWrap: true,
     shouldUseVirtualFocus: true,
     disallowTypeAhead: true,
     disallowSelectAll: true,
