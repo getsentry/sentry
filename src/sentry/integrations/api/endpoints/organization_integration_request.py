@@ -74,8 +74,8 @@ class OrganizationIntegrationRequestEndpoint(OrganizationRequestChangeEndpoint):
         :param string providerType: One of: first_party, plugin, sentry_app, category.
         :param string message: Optional message from the requester to the owners.
         :param string repoName: With the "source code management" category, the repo source
-                                control is needed for. The email's button then opens the modal
-                                that connects source control for it.
+                                control is needed for, if any. The email's button opens the
+                                modal that connects source control, for this repo.
         """
 
         provider_type = request.data.get("providerType")
@@ -96,14 +96,15 @@ class OrganizationIntegrationRequestEndpoint(OrganizationRequestChangeEndpoint):
                 return Response({"detail": f"Provider {provider_slug} not found"}, status=400)
 
         if (
-            not isinstance(repo_name, str)
-            or provider_type != CATEGORY_PROVIDER_TYPE
+            provider_type != CATEGORY_PROVIDER_TYPE
             or provider_slug != SCM_CATEGORY
             or not features.has(
                 "organizations:ask-seer-scm-connect-prompt", organization, actor=request.user
             )
         ):
             repo_name = None
+        elif not isinstance(repo_name, str):
+            repo_name = ""
 
         async_send_notification(
             IntegrationRequestNotification,
@@ -113,7 +114,7 @@ class OrganizationIntegrationRequestEndpoint(OrganizationRequestChangeEndpoint):
             provider_slug,
             provider_name,
             message_option,
-            **({"repo_name": repo_name} if repo_name else {}),
+            **({"repo_name": repo_name} if repo_name is not None else {}),
         )
 
         return Response(status=201)

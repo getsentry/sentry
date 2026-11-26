@@ -202,6 +202,17 @@ describe('useConnectScmModalFromUrl', () => {
     );
   });
 
+  it('opens with no repo when the URL names none', async () => {
+    renderFromUrl({connectScmRepo: ''});
+
+    expect(await screen.findByRole('button', {name: 'Add GitHub'})).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Seer can't see this organization's repos. Connect the source control account they're on."
+      )
+    ).toBeInTheDocument();
+  });
+
   it("doesn't open for a member, who can't install integrations", async () => {
     const member = OrganizationFixture({
       access: ['org:read'],

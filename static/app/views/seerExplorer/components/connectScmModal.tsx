@@ -75,11 +75,10 @@ export function useConnectScmModalFromUrl() {
       return;
     }
     setRepoName(null);
-    const name = repoName.trim();
-    if (!name || !canInstall || !hasPrompt) {
+    if (!canInstall || !hasPrompt) {
       return;
     }
-    openConnectScmModal({repoName: name});
+    openConnectScmModal({repoName: repoName.trim() || null});
   }, [repoName, setRepoName, canInstall, hasPrompt]);
 }
 

@@ -67,6 +67,23 @@ class OrganizationIntegrationRequestTest(APITestCase):
             "&referrer=request_email"
         ) in body
 
+    @with_feature("organizations:ask-seer-scm-connect-prompt")
+    def test_integration_request_for_source_control_without_a_repo(self) -> None:
+        with self.tasks():
+            self.get_success_response(
+                self.organization.slug,
+                providerSlug="source code management",
+                providerType="category",
+                status_code=201,
+            )
+
+        body = mail.outbox[0].body
+        assert "Connect source control by clicking the link below" in body
+        assert (
+            f"/settings/{self.organization.slug}/integrations/"
+            "?category=source%20code%20management&connectScmRepo=&referrer=request_email"
+        ) in body
+
     def test_integration_request_for_a_repo_without_the_prompt(self) -> None:
         with self.tasks():
             self.get_success_response(
