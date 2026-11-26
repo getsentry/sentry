@@ -145,6 +145,31 @@ describe('getReplayId', () => {
     ).toBe('from-context');
   });
 
+  it.each(['', '  '])(
+    'falls back to the replayId tag when the legacy replay context is %j',
+    replayId => {
+      expect(
+        getReplayId(
+          TransactionEventFixture({
+            contexts: {replay: {replay_id: replayId, type: 'replay'}},
+            tags: [{key: 'replayId', value: 'abc123'}],
+          })
+        )
+      ).toBe('abc123');
+    }
+  );
+
+  it('skips a blank replay attribute to read a populated alias', () => {
+    expect(
+      getReplayId(
+        makeTraceItemDetailsResponse([
+          {name: 'replay.id', type: 'str', value: ' '},
+          {name: 'sentry.replay_id', type: 'str', value: 'abc123'},
+        ])
+      )
+    ).toBe('abc123');
+  });
+
   it('returns undefined without a replay', () => {
     expect(getReplayId(makeTraceItemDetailsResponse([]))).toBeUndefined();
     expect(getReplayId(undefined)).toBeUndefined();

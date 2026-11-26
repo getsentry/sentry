@@ -14,6 +14,7 @@ import type {
 
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
+import {ReplayContextKey} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {AvatarProject} from 'sentry/types/project';
 import {stripAnsi} from 'sentry/utils/ansiEscapeCodes';
@@ -21,7 +22,6 @@ import {getShortEventId} from 'sentry/utils/events';
 import {FieldKey} from 'sentry/utils/fields';
 import {getAttributeValue} from 'sentry/utils/fields/getAttributeValue';
 import {generatePlatformIconName} from 'sentry/utils/replays/generatePlatformIconName';
-import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {unreachable} from 'sentry/utils/unreachable';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
@@ -144,27 +144,36 @@ export function getTraceTitle(
   return {title: subtitle, operation: title && title !== t('Trace') ? title : undefined};
 }
 
+/**
+ * getAttributeValue stops at the first alias that exists, so blank values are
+ * dropped to let a populated alias, such as `sentry.user.ip`, be found.
+ */
+function withoutBlankAttributes({attributes}: TraceItemDetailsResponse) {
+  return attributes.filter(({value}) => typeof value !== 'string' || present(value));
+}
+
 export function getReplayId(rootEvent: RootEvent): string | undefined {
   if (!rootEvent) {
     return undefined;
   }
 
-  const replayId = isTraceItemDetailsResponse(rootEvent)
-    ? getAttributeValue(rootEvent.attributes, FieldKey.REPLAY_ID, 'string')
-    : getReplayIdFromEvent(rootEvent);
+  if (isTraceItemDetailsResponse(rootEvent)) {
+    return present(
+      getAttributeValue(withoutBlankAttributes(rootEvent), FieldKey.REPLAY_ID, 'string')
+    );
+  }
 
-  return present(replayId);
+  return (
+    present(rootEvent.contexts.replay?.[ReplayContextKey.REPLAY_ID]) ??
+    present(rootEvent.tags?.find(({key}) => key === 'replayId')?.value)
+  );
 }
 
 function getAttributeProperties(
   rootEvent: TraceItemDetailsResponse,
   dataset: TraceItemDataset | null
 ): TraceProperties {
-  // getAttributeValue stops at the first alias that exists, so drop blank
-  // values to let a populated alias, such as `sentry.user.ip`, be found.
-  const attributes = rootEvent.attributes.filter(
-    ({value}) => typeof value !== 'string' || present(value)
-  );
+  const attributes = withoutBlankAttributes(rootEvent);
   const getString = (key: string) =>
     present(getAttributeValue(attributes, key, 'string'));
 
