@@ -6,6 +6,7 @@ import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
+import type {TraceItemDetailsResponse} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {TopBar} from 'sentry/views/navigation/topBar';
@@ -43,7 +44,7 @@ const baseProps: Partial<TraceMetadataHeaderProps> = {
     isLoading: false,
     status: 'success',
   },
-  rootEventResults: {data: TransactionEventFixture()} as any,
+  rootEventResults: {data: TransactionEventFixture()} as TraceRootEventQueryResults,
   overview: {
     isProjectsLoading: false,
     isRepresentativeLoading: false,
@@ -318,7 +319,7 @@ describe('TraceMetaDataHeader', () => {
         metaResults: {data: undefined, errors: [], isLoading: false, status: 'error'},
         rootEventResults: {
           data: TransactionEventFixture({tags: [{key: 'environment', value: 'prod'}]}),
-        } as any,
+        } as TraceRootEventQueryResults,
       } as TraceMetadataHeaderProps;
 
       render(<TraceMetaDataHeader {...props} organization={organization} />, {
@@ -342,8 +343,12 @@ describe('TraceMetaDataHeader', () => {
       const uptimeCheckEvent = makeUptimeCheck({
         additional_attributes: {method: 'GET', request_url: 'https://example.com'},
       });
-
-      const uptimeCheckWithContexts = {...uptimeCheckEvent, contexts: {}};
+      const uptimeRootEvent: TraceItemDetailsResponse = {
+        itemId: uptimeCheckEvent.event_id,
+        timestamp: '2024-01-01T00:00:00Z',
+        meta: {},
+        attributes: [],
+      };
 
       // Create a tree structure that matches getRepresentativeTraceEvent expectations
       const tree = new TraceTree();
@@ -366,7 +371,7 @@ describe('TraceMetaDataHeader', () => {
       const props = {
         ...baseProps,
         tree,
-        rootEventResults: {data: uptimeCheckWithContexts} as any,
+        rootEventResults: {data: uptimeRootEvent} as TraceRootEventQueryResults,
       } as TraceMetadataHeaderProps;
 
       render(<TraceMetaDataHeader {...props} organization={organization} />, {
@@ -401,7 +406,7 @@ describe('TraceMetaDataHeader', () => {
             meta: {},
             attributes: [{name: 'region', type: 'str', value: 'us-east-1'}],
           },
-        } as any,
+        } as TraceRootEventQueryResults,
       } as TraceMetadataHeaderProps;
       render(<TraceMetaDataHeader {...props} organization={organization} />, {
         initialRouterConfig: {
@@ -444,7 +449,7 @@ describe('TraceMetaDataHeader', () => {
               {name: 'environment', type: 'str', value: 'production'},
             ],
           },
-        } as any,
+        } as TraceRootEventQueryResults,
       } as TraceMetadataHeaderProps;
       render(<TraceMetaDataHeader {...props} organization={organization} />, {
         initialRouterConfig: {
@@ -740,7 +745,7 @@ describe('TraceMetaDataHeader', () => {
               replay: {replay_id: '761104e184c64d439ee1014b72b4d83b', type: 'replay'},
             },
           }),
-        } as any,
+        } as TraceRootEventQueryResults,
       } as TraceMetadataHeaderProps;
       render(<TraceMetaDataHeader {...props} organization={organization} />, {
         initialRouterConfig: {
@@ -768,7 +773,7 @@ describe('TraceMetaDataHeader', () => {
             contexts: {browser: {name: 'Chrome', version: '120.0'}},
             tags: [{key: 'environment', value: 'production'}],
           }),
-        } as any,
+        } as TraceRootEventQueryResults,
       } as TraceMetadataHeaderProps;
       render(<TraceMetaDataHeader {...props} organization={organization} />, {
         initialRouterConfig: {
@@ -915,7 +920,7 @@ describe('TraceMetaDataHeader', () => {
                 },
                 isLoading: false,
                 status: 'success',
-              } as any
+              } as TraceRootEventQueryResults
             }
             organization={logsOrganization}
           />
@@ -990,7 +995,7 @@ describe('TraceMetaDataHeader', () => {
                 },
                 isLoading: false,
                 status: 'success',
-              } as any
+              } as TraceRootEventQueryResults
             }
             organization={organization}
           />

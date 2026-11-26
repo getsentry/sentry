@@ -1,4 +1,4 @@
-import {EventFixture} from 'sentry-fixture/event';
+import {TransactionEventFixture} from 'sentry-fixture/event';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import type {
@@ -16,6 +16,9 @@ import {
   getTraceProperties,
   getTraceTitle,
 } from './traceEntityHeaderItems';
+
+// RuntimeContext types `version` as a number, but SDKs send a version string.
+const RUNTIME_VERSION = '3.12.0' as unknown as number;
 
 function makeTraceItemDetailsResponse(
   attributes: TraceItemResponseAttribute[]
@@ -117,7 +120,11 @@ describe('getReplayId', () => {
 
   it('reads the replay id from a legacy event context', () => {
     expect(
-      getReplayId(EventFixture({contexts: {replay: {replay_id: 'abc123'}}}) as any)
+      getReplayId(
+        TransactionEventFixture({
+          contexts: {replay: {replay_id: 'abc123', type: 'replay'}},
+        })
+      )
     ).toBe('abc123');
   });
 
@@ -133,7 +140,9 @@ describe('getReplayId', () => {
       )
     ).toBeUndefined();
     expect(
-      getReplayId(EventFixture({contexts: {replay: {replay_id: ' '}}}) as any)
+      getReplayId(
+        TransactionEventFixture({contexts: {replay: {replay_id: ' ', type: 'replay'}}})
+      )
     ).toBeUndefined();
   });
 });
@@ -280,11 +289,11 @@ describe('getTraceProperties', () => {
   });
 
   it('falls back to the username before the IP on a legacy event', () => {
-    const event = EventFixture({
+    const event = TransactionEventFixture({
       user: {id: '42', username: 'jsmith', ip_address: '10.0.0.12'},
     });
 
-    expect(getTraceProperties(event as any, null)?.user).toEqual({
+    expect(getTraceProperties(event, null)?.user).toEqual({
       field: 'user.username',
       value: 'jsmith',
     });
@@ -303,7 +312,7 @@ describe('getTraceProperties', () => {
 
     expect(
       getTraceProperties(
-        EventFixture({user: {email: ' ', username: 'jsmith'}}) as any,
+        TransactionEventFixture({user: {email: ' ', username: 'jsmith'}}),
         null
       )?.user
     ).toEqual({field: 'user.username', value: 'jsmith'});
@@ -337,11 +346,11 @@ describe('getTraceProperties', () => {
   });
 
   it('treats blank contexts and tags on a legacy event as missing', () => {
-    const event = EventFixture({
+    const event = TransactionEventFixture({
       contexts: {
-        runtime: {name: ' ', version: '3.12.0', type: 'runtime'},
-        browser: {name: 'Chrome', version: ' ', type: 'browser'},
-        os: {name: 'Linux', version: '6.1', type: 'os'},
+        runtime: {name: ' ', version: RUNTIME_VERSION, type: 'runtime'},
+        browser: {name: 'Chrome', version: ' '},
+        os: {name: 'Linux', version: '6.1', build: '', kernel_version: '', type: 'os'},
       },
       tags: [
         {key: 'release', value: ' '},
@@ -349,7 +358,7 @@ describe('getTraceProperties', () => {
       ],
     });
 
-    expect(getTraceProperties(event as any, null)).toEqual({
+    expect(getTraceProperties(event, null)).toEqual({
       runtime: undefined,
       browser: {name: 'Chrome', version: undefined},
       os: {name: 'Linux', version: '6.1'},
@@ -398,11 +407,11 @@ describe('getTraceProperties', () => {
   });
 
   it('reads contexts and tags from a legacy event', () => {
-    const event = EventFixture({
+    const event = TransactionEventFixture({
       contexts: {
-        runtime: {name: 'CPython', version: '3.12.0', type: 'runtime'},
-        browser: {name: 'Chrome', version: '120.0', type: 'browser'},
-        os: {name: 'Linux', version: '6.1', type: 'os'},
+        runtime: {name: 'CPython', version: RUNTIME_VERSION, type: 'runtime'},
+        browser: {name: 'Chrome', version: '120.0'},
+        os: {name: 'Linux', version: '6.1', build: '', kernel_version: '', type: 'os'},
       },
       user: {id: '42', email: 'user@example.com'},
       tags: [
@@ -411,7 +420,7 @@ describe('getTraceProperties', () => {
       ],
     });
 
-    expect(getTraceProperties(event as any, null)).toEqual({
+    expect(getTraceProperties(event, null)).toEqual({
       runtime: {name: 'CPython', version: '3.12.0'},
       browser: {name: 'Chrome', version: '120.0'},
       os: {name: 'Linux', version: '6.1'},
@@ -422,15 +431,21 @@ describe('getTraceProperties', () => {
   });
 
   it('hides the client browser on a meta-framework backend event', () => {
-    const event = EventFixture({
+    const event = TransactionEventFixture({
       contexts: {
-        browser: {name: 'Chrome', type: 'browser'},
-        client_os: {name: 'macOS', type: 'os'},
-        os: {name: 'Linux', type: 'os'},
+        browser: {name: 'Chrome', version: '120.0'},
+        client_os: {
+          name: 'macOS',
+          version: '15.0',
+          build: '',
+          kernel_version: '',
+          type: 'os',
+        },
+        os: {name: 'Linux', version: '6.1', build: '', kernel_version: '', type: 'os'},
       },
     });
 
-    expect(getTraceProperties(event as any, null)?.browser).toBeUndefined();
+    expect(getTraceProperties(event, null)?.browser).toBeUndefined();
   });
 });
 
