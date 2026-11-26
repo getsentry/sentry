@@ -10,12 +10,7 @@ import type {Organization} from 'sentry/types/organization';
 
 import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
-import {
-  getTrialDaysLeft,
-  getTrialLength,
-  hasPerformance,
-  isTrial,
-} from 'getsentry/utils/billing';
+import {getTrialDaysLeft, getTrialLength, isTrial} from 'getsentry/utils/billing';
 
 import {Details} from './details';
 
@@ -38,7 +33,7 @@ function UpsellModal({source, organization, subscription}: Props) {
       </Subheader>
       <Header>{t('Your trial is currently active')}</Header>
     </div>
-  ) : hasPerformance(subscription.planDetails) ? (
+  ) : (
     <div>
       <Subheader>
         {canTrial
@@ -46,15 +41,6 @@ function UpsellModal({source, organization, subscription}: Props) {
           : t('Next stop - Business Plan')}
       </Subheader>
       <Header>{t('Try the upgrade. Regret less.')}</Header>
-    </div>
-  ) : (
-    <div>
-      <Subheader>
-        {canTrial
-          ? t('%s-day Performance Trial', getTrialLength(organization))
-          : t("But wait there's more")}
-      </Subheader>
-      <Header>{t('Get a Performance Boost')}</Header>
     </div>
   );
 
