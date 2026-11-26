@@ -31,6 +31,8 @@ import {ResolveActions} from 'sentry/components/actions/resolve';
 import {CMDKAction} from 'sentry/components/commandPalette/ui/cmdk';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import {useAssessImpact} from 'sentry/components/issues/impact/assessImpact';
+import {useHasImpactAssessment} from 'sentry/components/issues/impact/utils';
 import {t} from 'sentry/locale';
 import {IssueListCacheStore} from 'sentry/stores/IssueListCacheStore';
 import type {Event} from 'sentry/types/event';
@@ -53,10 +55,6 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {isVersionInfoSemver} from 'sentry/views/explore/releases/utils';
 import {discardIssueMutationOptions} from 'sentry/views/issueDetails/discardIssueMutationOptions';
 import {Divider} from 'sentry/views/issueDetails/divider';
-import {
-  useAssessImpact,
-  useHasImpactAssessment,
-} from 'sentry/views/issueDetails/groupImpact';
 import {GroupPriorityCommandPaletteAction} from 'sentry/views/issueDetails/groupPriority';
 import {GroupHeaderAssigneeCommandPaletteAction} from 'sentry/views/issueDetails/header/assigneeSelector';
 import {groupQueryFilter} from 'sentry/views/issueDetails/useGroup';

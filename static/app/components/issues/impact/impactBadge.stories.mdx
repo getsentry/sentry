@@ -1,0 +1,88 @@
+---
+title: Impact Badge
+description: Show Seer's assessment of how much an issue affects users.
+source: sentry/components/issues/impact/impactBadge
+status: in-progress
+---
+
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+import * as Storybook from 'sentry/stories';
+import {ImpactBadge} from 'sentry/components/issues/impact/impactBadge';
+
+export const examples = [
+  {
+    level: 'super_low',
+    score: 4,
+    description: 'Only internal health checks hit this error. No users are affected.',
+  },
+  {
+    level: 'low',
+    score: 22.5,
+    description:
+      'A retry succeeds on the next request, so users rarely notice the failure.',
+  },
+  {
+    level: 'moderate',
+    score: 48,
+    description:
+      'Some users on older clients see a blank settings page until they reload.',
+  },
+  {
+    level: 'high',
+    score: 73.5,
+    description: 'Users on the checkout page cannot submit an order.',
+  },
+  {
+    level: 'super_high',
+    score: 96,
+    description:
+      'Every sign-in attempt fails, which locks all users out of the application.',
+  },
+].map(example => ({
+  ...example,
+  citations: [],
+  sourceEventId: '00000000000000000000000000000000',
+}));
+
+Seer scores how much an issue affects users from 0 to 100, and buckets the score into one of five levels. The bucketing is determined from the API response, not the frontend. Each level has its own icon and color, so the level reads at a glance.
+
+All impact UI is internal for now. Callers only render it for organizations with the `seer-impact-assessment` feature, using `useAssessedImpact(group)`.
+
+## Badge
+
+The activity feed uses the badge on its own, within the sentence describing the assessment.
+
+<Storybook.Demo>
+  <Stack gap="md">
+    {examples.map(({level, score}) => (
+      <Text key={level}>
+        Impact assessed as <ImpactBadge impact={{level, score}} />
+      </Text>
+    ))}
+  </Stack>
+</Storybook.Demo>
+
+```tsx
+<ImpactBadge impact={{level: 'high', score: 73.5}} />
+```
+
+## With Hovercard
+
+The issue details header and the universal inbox add `hovercard`. Hover a badge to see the level and Seer's description of the impact.
+
+<Storybook.Demo>
+  <Flex gap="md" wrap="wrap">
+    {examples.map(example => (
+      <ImpactBadge key={example.level} impact={example} hovercard />
+    ))}
+  </Flex>
+</Storybook.Demo>
+
+```tsx
+const impact = useAssessedImpact(group);
+
+{
+  impact && <ImpactBadge impact={impact} hovercard />;
+}
+```

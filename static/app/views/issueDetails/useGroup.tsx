@@ -1,11 +1,11 @@
 import {useQuery} from '@tanstack/react-query';
 
+import {hasImpactAssessment} from 'sentry/components/issues/impact/utils';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-import {hasImpactAssessment} from './groupImpact';
 import {useEnvironmentsFromUrl} from './utils';
 
 type GroupApiOptionsParameters = {

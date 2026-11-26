@@ -1,7 +1,7 @@
+import {useHasImpactAssessment} from 'sentry/components/issues/impact/utils';
 import type {TimeSince} from 'sentry/components/timeSince';
 import type {NoteType} from 'sentry/types/alerts';
 import type {Group, GroupActivityNote} from 'sentry/types/group';
-import {useHasImpactAssessment} from 'sentry/views/issueDetails/groupImpact';
 
 import {
   getActorActivity,
