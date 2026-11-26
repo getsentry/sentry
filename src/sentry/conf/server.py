@@ -3366,6 +3366,7 @@ SENTRY_REQUEST_METRIC_ALLOWED_PATHS: tuple[str, ...] = (
     "sentry.preprod.api.endpoints",
     "sentry.workflow_engine.endpoints",
     "sentry.feedback.endpoints",
+    "sentry.ai_monitoring.endpoints.organization_ai_conversation_details",
 )
 SENTRY_MAIL_ADAPTER_BACKEND = "sentry.mail.adapter.MailAdapter"
 
