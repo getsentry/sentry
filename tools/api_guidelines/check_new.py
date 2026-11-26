@@ -10,13 +10,15 @@ from pathlib import Path
 from tools.api_guidelines.rules import BASELINED_RULES, RULES
 from tools.api_guidelines.scan import collect_findings
 from tools.api_guidelines.signature import BaselineSignature
-from tools.flake8_plugin import ApiInputViolation
+from tools.flake8_plugin import INPUT_CHECKED_STATUSES, ApiInputViolation, PublishStatus
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 # the comment step in .github/workflows/pre-commit.yml reads it from NEW_API_FINDINGS_PATH
 FINDINGS_PATH = Path(".artifacts/new-api-findings.json")
 
 Finding = tuple[str, ApiInputViolation]
+# a signature plus its endpoint's publish status, so find_new can tell which way a status flipped
+Key = tuple[BaselineSignature, PublishStatus]
 
 
 def changed_paths(raw: str | None) -> list[str]:
@@ -65,13 +67,13 @@ def write_base_files(root: Path, merge_base: str, paths: list[str], into: Path) 
     return existing
 
 
-def scan(root: Path, paths: list[str]) -> tuple[dict[BaselineSignature, list[Finding]], list[str]]:
-    """Scans `paths` and groups the baselined rules' findings by signature
+def scan(root: Path, paths: list[str]) -> tuple[dict[Key, list[Finding]], list[str]]:
+    """Scans `paths` and groups the baselined rules' findings by signature and publish status
     `root` the folder the paths are under
     `paths` repo paths of the files to scan
-    Returns ({signature: findings}, paths that couldn't be parsed)
+    Returns ({(signature, publish status): findings}, paths that couldn't be parsed)
     """
-    by_signature: dict[BaselineSignature, list[Finding]] = {}
+    by_key: dict[Key, list[Finding]] = {}
     unparsed: list[str] = []
 
     for path in paths:
@@ -87,38 +89,54 @@ def scan(root: Path, paths: list[str]) -> tuple[dict[BaselineSignature, list[Fin
             signature = BaselineSignature(
                 rule=violation.rule, path=found_path, scope=violation.scope, key=violation.key
             )
-            by_signature.setdefault(signature, []).append((found_path, violation))
-    return by_signature, unparsed
+            key = (signature, violation.publish_status)
+            by_key.setdefault(key, []).append((found_path, violation))
+    return by_key, unparsed
 
 
-def base_counts(base_root: Path, paths: list[str]) -> dict[BaselineSignature, int]:
-    """How many findings each signature has in the base versions of the changed files
+def base_counts(base_root: Path, paths: list[str]) -> dict[Key, int]:
+    """How many findings each (signature, publish status) has in the changed files' base versions
     `base_root` the folder write_base_files wrote them to
     `paths` repo paths of the files that exist at the merge base
-    Returns {signature: count}. A base file that doesn't parse counts as having none
+    Returns {(signature, publish status): count}. A base file that doesn't parse has none
     """
-    by_signature, _ = scan(base_root, paths)
-    counts: dict[BaselineSignature, int] = {}
-    for signature, found in by_signature.items():
-        counts[signature] = len(found)
+    by_key, _ = scan(base_root, paths)
+    counts: dict[Key, int] = {}
+    for key, found in by_key.items():
+        counts[key] = len(found)
     return counts
 
 
+def _rank(status: PublishStatus) -> int:
+    """How public a publish status is
+    `status` a checked endpoint's status
+    Returns 0 for public and higher numbers for less public statuses
+    """
+    return INPUT_CHECKED_STATUSES.index(status)
+
+
 def find_new(
-    root: Path, paths: list[str], counts: dict[BaselineSignature, int]
+    root: Path, paths: list[str], counts: dict[Key, int]
 ) -> tuple[list[Finding], list[str]]:
     """Rescans `paths` and keeps the findings their base versions don't have
     `root` the checkout to scan
     `paths` repo paths of the files to rescan
-    `counts` {signature: count} from base_counts
-    Returns (new findings, paths that couldn't be parsed). When a signature has more findings than
-    its base count, every one of them is new, since there's no way to tell which line was added
+    `counts` {(signature, publish status): count} from base_counts
+    Returns (new findings, paths that couldn't be parsed). A finding's base count is its signature's
+    findings at the same status or a more public one, so a flip toward public makes them all new
+    and a flip toward private doesn't. When the count goes up, every finding with that signature
+    and status is new, since there's no way to tell which line was added
     """
-    by_signature, unparsed = scan(root, paths)
+    by_key, unparsed = scan(root, paths)
 
     new: list[Finding] = []
-    for signature, found in by_signature.items():
-        if len(found) > counts.get(signature, 0):
+    for (signature, status), found in by_key.items():
+        rank = _rank(status)
+        base = 0
+        for (base_signature, base_status), count in counts.items():
+            if base_signature == signature and _rank(base_status) <= rank:
+                base += count
+        if len(found) > base:
             new += found
     new.sort(key=lambda finding: (finding[0], finding[1].line))
     return new, unparsed
@@ -164,6 +182,7 @@ def write_findings(file: Path, new: list[Finding]) -> None:
                 "rule": violation.rule,
                 "title": rule.title,
                 "fix": rule.fix,
+                "publish_status": violation.publish_status,
             }
         )
     file.parent.mkdir(parents=True, exist_ok=True)

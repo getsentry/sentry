@@ -8,12 +8,17 @@
  */
 import {readFileSync} from 'node:fs';
 
+// the PublishStatus values check_new writes. Keep in sync with PublishStatus in
+// tools/flake8_plugin.py, a literal union since node only runs erasable TS
+type PublishStatus = 'public' | 'public_experimental' | 'private';
+
 interface Finding {
   path: string;
   line: number;
   rule: string;
   title: string;
   fix: string;
+  publish_status: PublishStatus;
 }
 
 interface IssueComment {
@@ -93,8 +98,8 @@ function findingsBody(
   runUrl: string
 ): string {
   const blobUrl = `https://github.com/${owner}/${repo}/blob/${sha}`;
-  // rule -> path -> lines, in the check's path then line order
-  const byRule = new Map<string, Map<string, number[]>>();
+  // rule -> path -> line links, in the check's path then line order
+  const byRule = new Map<string, Map<string, string[]>>();
   const ruleInfo = new Map<string, {fix: string; title: string}>();
   for (const finding of findings.slice(0, MAX_LISTED)) {
     if (!byRule.has(finding.rule)) {
@@ -102,9 +107,13 @@ function findingsBody(
       ruleInfo.set(finding.rule, {title: finding.title, fix: finding.fix});
     }
     const byPath = byRule.get(finding.rule)!;
-    const lines = byPath.get(finding.path) ?? [];
-    lines.push(finding.line);
-    byPath.set(finding.path, lines);
+    const links = byPath.get(finding.path) ?? [];
+    let link = `[L${finding.line}](${blobUrl}/${finding.path}#L${finding.line})`;
+    if (finding.publish_status !== 'public') {
+      link += ` (${finding.publish_status.replaceAll('_', ' ')})`;
+    }
+    links.push(link);
+    byPath.set(finding.path, links);
   }
 
   const sections: string[] = [];
@@ -112,9 +121,8 @@ function findingsBody(
     const {title, fix} = ruleInfo.get(rule)!;
     const files: string[] = [];
     let count = 0;
-    for (const [path, lines] of byPath) {
-      count += lines.length;
-      const links = lines.map(line => `[L${line}](${blobUrl}/${path}#L${line})`);
+    for (const [path, links] of byPath) {
+      count += links.length;
       files.push(`- [${path.split('/').pop()}](${blobUrl}/${path}) ${links.join(', ')}`);
     }
     sections.push(`**${title}** · \`${rule}\` · ${count}`, '', fix, '', ...files, '');
@@ -131,7 +139,7 @@ function findingsBody(
     NEW_API_FINDINGS_MARKER,
     '## New API findings',
     '',
-    `This PR has ${inputs} our docs can't see. When an endpoint reads params that its schema doesn't declare, the public API docs end up wrong and changes can break customers without anyone noticing. Nothing blocks the merge, this is a heads-up.`,
+    `This PR adds ${inputs} our docs can't see. When an endpoint reads params that its schema doesn't declare, the API docs end up wrong or incomplete, and changes can break customers without anyone noticing. Nothing blocks the merge, this is a heads-up.`,
     '',
     ...sections,
     "Add `# api-exception: <rule> <status> - <reason>` next to the error if it's intentional. Note: the comment doesn't silence anything yet but will be used in the future to bypass these checks.",
