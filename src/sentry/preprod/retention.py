@@ -9,8 +9,9 @@ from sentry.models.organization import Organization
 logger = logging.getLogger(__name__)
 
 # Thirteen months. Retention overrides have no upper bound, so longer ones are cut to
-# this and logged as an error. It matches the TTL cap of the preprod use case in
-# Objectstore (set in ops), which rejects writes with a longer TTL.
+# this and logged as an error.
+# If an organization needs longer retention, just update this value and the Objectstore cap
+# defined in the `getsentry/ops` repo in `k8s/services/objectstore/_values.yaml`.
 MAX_RETENTION_DAYS = 396
 
 # Used when no retention is configured, which only happens on self-hosted.
