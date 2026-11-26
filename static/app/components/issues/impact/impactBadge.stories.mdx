@@ -10,6 +10,8 @@ import {Text} from '@sentry/scraps/text';
 import * as Storybook from 'sentry/stories';
 import {ImpactBadge} from 'sentry/components/issues/impact/impactBadge';
 
+export const group = {id: '0'};
+
 export const examples = [
   {
     level: 'super_low',
@@ -71,12 +73,12 @@ The activity feed uses the badge on its own, within the sentence describing the 
 
 ## With Hovercard
 
-The issue details header and the universal inbox add `hovercard`. Hover a badge to see the level and Seer's description of the impact.
+The issue details header and the universal inbox add `hovercard`. Hover a badge to see the level and Seer's description of the impact. Organizations with the `seer-impact-assessment-feedback` feature also see feedback controls in the hovercard.
 
 <Storybook.Demo>
   <Flex gap="md" wrap="wrap">
     {examples.map(example => (
-      <ImpactBadge key={example.level} impact={example} hovercard />
+      <ImpactBadge key={example.level} impact={example} group={group} hovercard />
     ))}
   </Flex>
 </Storybook.Demo>
@@ -85,6 +87,6 @@ The issue details header and the universal inbox add `hovercard`. Hover a badge 
 const impact = useAssessedImpact(group);
 
 {
-  impact && <ImpactBadge impact={impact} hovercard />;
+  impact && <ImpactBadge impact={impact} group={group} hovercard />;
 }
 ```

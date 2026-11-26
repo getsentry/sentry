@@ -229,7 +229,7 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
                 {impact && (
                   <Flex align="center" gap="xs">
                     <Text variant="muted">{t('Impact')}</Text>
-                    <ImpactBadge impact={impact} hovercard />
+                    <ImpactBadge impact={impact} group={group} hovercard />
                   </Flex>
                 )}
                 <Flex align="center" gap="xs">

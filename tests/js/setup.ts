@@ -191,6 +191,7 @@ jest.mock('@sentry/react', function sentryReact() {
     addBreadcrumb: jest.fn(),
     captureMessage: jest.fn(),
     captureException: jest.fn(),
+    captureFeedback: jest.fn(),
     showReportDialog: jest.fn(),
     getDefaultIntegrations: jest.spyOn(SentryReact, 'getDefaultIntegrations'),
     startSpan: jest.spyOn(SentryReact, 'startSpan'),

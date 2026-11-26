@@ -193,7 +193,7 @@ function InboxIssuePreviewHeader({group, project, event}: InboxIssueSectionProps
       <Flex justify="between" align="center" gap="md" wrap="wrap">
         <GroupActions group={group} project={project} event={event ?? null} />
         <Flex align="center" gap="md">
-          {impact && <ImpactBadge impact={impact} hovercard />}
+          {impact && <ImpactBadge impact={impact} group={group} hovercard />}
           {hasParticipants && (
             <ParticipantList
               users={userParticipants}
@@ -286,7 +286,7 @@ function InboxImpactField({group}: {group: Group}) {
     <SidebarField label={t('Impact')} leadingItems={<FeatureBadge type="alpha" />}>
       {impact ? (
         <Flex>
-          <ImpactBadge impact={impact} hovercard />
+          <ImpactBadge impact={impact} group={group} hovercard />
         </Flex>
       ) : (
         <AssessImpactButton group={group} />

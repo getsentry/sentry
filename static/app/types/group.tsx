@@ -1062,7 +1062,15 @@ interface GroupActivityUnlinkPlatformExternalIssue extends GroupActivityBase {
   type: GroupActivityType.UNLINK_PLATFORM_EXTERNAL_ISSUE;
 }
 
-export type ImpactLevel = 'super_low' | 'low' | 'moderate' | 'high' | 'super_high';
+// Intentionally ordered
+export const IMPACT_LEVELS = [
+  'super_low',
+  'low',
+  'moderate',
+  'high',
+  'super_high',
+] as const;
+export type ImpactLevel = (typeof IMPACT_LEVELS)[number];
 
 interface ImpactCitation {
   claim: string;
