@@ -492,7 +492,8 @@ HTTP_METHODS = frozenset({"get", "post", "put", "patch", "delete", "head", "opti
 
 class PublishStatus(StrEnum):
     """ApiPublishStatus's members, mirrored because this plugin reads source with ast and must not
-    import from src/sentry. Keep in sync with src/sentry/api/api_publish_status.py
+    import from src/sentry. Keep in sync with src/sentry/api/api_publish_status.py and PublishStatus
+    in .github/workflows/scripts/new-api-findings-comment.ts
     """
 
     PRIVATE = "private"
