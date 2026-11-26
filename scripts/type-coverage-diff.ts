@@ -5,10 +5,12 @@ import {exec} from 'node:child_process';
 import fs from 'node:fs';
 import {promisify} from 'node:util';
 
-import * as ts from 'typescript';
+import {isTypeAliasDeclaration} from 'tsrs/ast';
+import {API} from 'tsrs/sync';
 
 const execAsync = promisify(exec);
-const typePrinter = ts.createPrinter({removeComments: true});
+let api: API | undefined;
+const normalizedTargetTypes = new Map<string, string>();
 
 export type CoverageItem = {
   column: number;
@@ -87,22 +89,25 @@ export function parseGitDiffText(diff: string): Map<string, GitDiffChange> {
 }
 
 function normalizeTargetType(targetType: string): string {
+  const cached = normalizedTargetTypes.get(targetType);
+  if (cached !== undefined) {
+    return cached;
+  }
   // Reprint the type with consistent formatting and without comments.
   // The printer preserves whitespace inside literals.
-  const source = ts.createSourceFile(
-    'assertion.ts',
-    `type Target = ${targetType};`,
-    ts.ScriptTarget.Latest
-  );
-  const declaration = source.statements[0];
+  api ??= new API({cwd: process.cwd()});
+  using source = api.createSourceFile('assertion.ts', `type Target = ${targetType};`);
+  const declaration = source.sourceFile.statements[0];
   if (
     !declaration ||
-    !ts.isTypeAliasDeclaration(declaration) ||
-    declaration.type.getWidth(source) !== targetType.length
+    !isTypeAliasDeclaration(declaration) ||
+    declaration.type.getWidth(source.sourceFile) !== targetType.length
   ) {
     throw new Error(`Could not parse assertion target type: ${targetType}`);
   }
-  return typePrinter.printNode(ts.EmitHint.Unspecified, declaration.type, source);
+  const normalized = api.printer.printNode(declaration.type);
+  normalizedTargetTypes.set(targetType, normalized);
+  return normalized;
 }
 
 function semanticKey(item: CoverageItem): string {
