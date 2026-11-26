@@ -81,7 +81,8 @@ export function DocIntegrationModal(props: Props) {
             })
           : getApiUrl('/doc-integrations/'),
         method: docIntegration ? 'PUT' : 'POST',
-        data,
+        // PUT is not partial: an omitted isDraft defaults to true and unpublishes.
+        data: docIntegration ? {...data, isDraft: docIntegration.isDraft} : data,
       }),
     onMutate: () => {
       toast.loading('Saving changes…');

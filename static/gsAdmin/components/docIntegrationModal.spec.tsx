@@ -142,6 +142,7 @@ describe('DocIntegrationModal', () => {
             resources: [],
             popularity: 8,
             features: [23],
+            isDraft: false,
           },
         })
       )
