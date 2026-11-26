@@ -91,7 +91,6 @@ function FooterDemo({firstEvent, width}: FooterDemoProps) {
           <FirstEventFooter
             organization={organization}
             project={{...firstProject, firstEvent}}
-            isLast
             onClickSetupLater={() => {}}
             leading={
               <Button icon={<IconArrow direction="left" />} variant="transparent">

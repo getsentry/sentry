@@ -15,9 +15,9 @@ import {
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useTraceMetricItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {HiddenTraceMetricSearchFields} from 'sentry/views/explore/metrics/constants';
+import {useTraceMetricFilter} from 'sentry/views/explore/metrics/hooks/useTraceMetricFilter';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {MetricSelector} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/metricSelector';
-import {createTraceMetricFilter} from 'sentry/views/explore/metrics/utils';
 import {
   useQueryParamsCrossEvents,
   useQueryParamsMode,
@@ -46,7 +46,7 @@ export const SpansTabCrossEventMetricsSearchBar = memo(
       'trace-item-array-query-support'
     );
 
-    const metricFilter = useMemo(() => createTraceMetricFilter(metric), [metric]);
+    const metricFilter = useTraceMetricFilter(metric);
     const attributeOptions = useMemo(
       () => (metricFilter ? {query: metricFilter} : {}),
       [metricFilter]

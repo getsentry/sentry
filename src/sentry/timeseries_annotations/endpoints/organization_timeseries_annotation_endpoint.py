@@ -38,6 +38,7 @@ from sentry.timeseries_annotations.models import (
 from sentry.timeseries_annotations.producers.sdk_config_change import (
     sdk_config_change_as_annotations,
 )
+from sentry.timeseries_annotations.rarity import annotation_type_counts
 from sentry.timeseries_annotations.service import (
     TimeseriesAnnotationData,
     create_timeseries_annotation,
@@ -125,10 +126,19 @@ class OrganizationTimeseriesAnnotationEndpoint(OrganizationEndpoint):
         # tiebreaker. The paginator scores by list position so equal-timestamp rows never fall
         # back to comparing model instances (which aren't orderable).
         annotations.sort(key=lambda a: (a.start_timestamp, a.id))
+
+        # Rarity is computed in context of retention period, hardcoded to max 90d.
+        counts, window_days = annotation_type_counts(organization)
         return self.paginate(
             request=request,
             paginator=SequencePaginator(list(enumerate(annotations))),
-            on_results=lambda rows: serialize(rows, request.user, TimeseriesAnnotationSerializer()),
+            on_results=lambda rows: serialize(
+                rows,
+                request.user,
+                TimeseriesAnnotationSerializer(),
+                rarity_counts=counts,
+                rarity_window_days=window_days,
+            ),
         )
 
     def _sdk_config_annotations(
@@ -198,6 +208,7 @@ class OrganizationTimeseriesAnnotationEndpoint(OrganizationEndpoint):
                 interval_type=IntervalType.RANGE if end is not None else IntervalType.POINT,
                 scope=data["scope"],
                 severity=data["severity"],
+                pinned=data["pinned"],
                 tags=data.get("tags"),
                 created_by=_creating_actor(request),
             )

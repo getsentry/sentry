@@ -9,6 +9,7 @@ from rest_framework.response import Response
 
 from sentry.onboarding.agentic_progress.model import (
     ConnectExtra,
+    CreateProjectExtra,
     ProgressUpdate,
     RunOrigin,
     RunStatus,
@@ -423,8 +424,15 @@ class OrganizationAgenticOnboardingEndpointTest(APITestCase):
                 "stage": "create_project",
                 "status": status_value,
                 "connection_method": None,
+                "project_slugs": project_slugs,
             }
-            for status_value in ["active", "waiting", "failed", "completed", "completed"]
+            for status_value, project_slugs in [
+                ("active", []),
+                ("waiting", []),
+                ("failed", []),
+                ("completed", ["frontend"]),
+                ("completed", ["frontend"]),
+            ]
         ] + [
             {
                 "user_id": self.user.id,
@@ -434,6 +442,7 @@ class OrganizationAgenticOnboardingEndpointTest(APITestCase):
                 "stage": "check_stack_trace_quality",
                 "status": "skipped",
                 "connection_method": None,
+                "project_slugs": [],
             }
         ]
 
@@ -490,7 +499,59 @@ class OrganizationAgenticOnboardingEndpointTest(APITestCase):
             "origin": run.origin,
             "status": "completed",
             "connection_method": None,
+            "project_slugs": [],
         }
+
+    def test_later_stages_record_the_runs_projects(self) -> None:
+        _, token = self.service.create_or_resume(
+            user_id=self.user.id,
+            organization_id=self.organization.id,
+            client_run_id=str(uuid4()),
+            onboarding_code="abcdefghij",
+            origin=RunOrigin.ONBOARDING,
+        )
+        assert token == "abcdefghij"
+        self.service.update(
+            token=token,
+            user_id=self.user.id,
+            organization_id=self.organization.id,
+            update=ProgressUpdate(
+                stage=Stage.CREATE_PROJECT,
+                status=StageStatus.COMPLETED,
+                extra=CreateProjectExtra(project_slugs=("frontend", "backend")),
+            ),
+        )
+        path = reverse(
+            "sentry-api-0-organization-agentic-onboarding-status",
+            args=[self.organization.slug],
+        )
+
+        with (
+            patch(
+                "sentry.api.endpoints.organization_agentic_onboarding."
+                "get_onboarding_progress_service",
+                return_value=self.service,
+            ),
+            patch("sentry.analytics.record") as record_analytics,
+        ):
+            response = self.client.post(
+                path,
+                {
+                    "schemaVersion": 1,
+                    "runToken": token,
+                    "stage": "instrument_app",
+                    "status": "completed",
+                },
+            )
+
+        assert response.status_code == 200, response.content
+        assert [
+            (call.args[0].type, call.args[0].project_slugs)
+            for call in record_analytics.call_args_list
+        ] == [
+            ("agentic_onboarding.stage_status_changed", ["frontend", "backend"]),
+            ("agentic_onboarding.stage_completed", ["frontend", "backend"]),
+        ]
 
     def _assert_connect_stage_records_method(self, stage_name: str, expected_method: str) -> None:
         _, token = self.service.create_or_resume(

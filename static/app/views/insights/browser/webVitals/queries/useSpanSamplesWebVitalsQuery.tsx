@@ -7,6 +7,10 @@ import {
   type SpanSampleRowWithScore,
   type WebVitals,
 } from 'sentry/views/insights/browser/webVitals/types';
+import {
+  addBrowserFilter,
+  type DeviceType,
+} from 'sentry/views/insights/browser/webVitals/utils/deviceType';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {useWebVitalsSort} from 'sentry/views/insights/browser/webVitals/utils/useWebVitalsSort';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
@@ -30,11 +34,13 @@ export function useSpanSamplesWebVitalsQuery({
   enabled,
   filter = SPANS_FILTER,
   browserTypes,
+  deviceType,
   subregions,
   webVital = 'inp',
 }: {
   limit: number;
   browserTypes?: BrowserType[];
+  deviceType?: DeviceType;
   enabled?: boolean;
   filter?: string;
   subregions?: SubregionCode[];
@@ -54,9 +60,7 @@ export function useSpanSamplesWebVitalsQuery({
   if (transaction !== undefined) {
     mutableSearch.addFilterValue(SpanFields.TRANSACTION, transaction);
   }
-  if (browserTypes?.length) {
-    mutableSearch.addFilterValueList(SpanFields.BROWSER_NAME, browserTypes);
-  }
+  addBrowserFilter(mutableSearch, browserTypes, deviceType);
   if (subregions?.length) {
     mutableSearch.addFilterValueList(SpanFields.USER_GEO_SUBREGION, subregions);
   }
