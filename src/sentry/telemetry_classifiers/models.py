@@ -41,7 +41,6 @@ class TelemetryClassifier(DefaultFieldsModel):
 
     # Custom classifier fields.
     natural_language_prompt = models.TextField(null=True)
-    # Never serialized, so it can't reach the client. Parsed with SeerDecisionPrompt.
     compiled_prompt = models.JSONField(null=True)
     output_type = models.CharField(
         max_length=16,
