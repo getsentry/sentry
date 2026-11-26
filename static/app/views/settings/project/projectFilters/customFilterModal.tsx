@@ -992,9 +992,6 @@ export function getFilterDraftFromRelease(version: string): FilterFormValues {
   };
 }
 
-// A draft filter that drops logs whose body is exactly this message, which is
-// what Relay matches `log_message` against. The user widens it in the modal if
-// the message carries values that change between logs.
 export function getFilterDraftFromLog(message: string): FilterFormValues {
   return {
     // The name is a single-line text field, so fold any line breaks.

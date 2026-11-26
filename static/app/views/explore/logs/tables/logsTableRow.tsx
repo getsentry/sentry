@@ -241,7 +241,6 @@ function getExploreConnectedSpansMenuItems({
   ];
 }
 
-// The modal is only needed once someone opens it, so it loads on demand.
 async function openCustomFilterModalFromLog(project: Project, message: string) {
   const {getFilterDraftFromLog, openCustomFilterModal} =
     await import('sentry/views/settings/project/projectFilters/customFilterModal');
