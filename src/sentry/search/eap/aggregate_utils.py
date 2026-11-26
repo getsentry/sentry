@@ -13,6 +13,7 @@ from sentry.search.eap.columns import (
     AggregateDefinition,
     ConditionalAggregateDefinition,
     ResolvedArguments,
+    ValueArgumentDefinition,
 )
 from sentry.search.eap.normalizer import unquote_literal
 
@@ -133,6 +134,25 @@ def if_query_validator(term: str) -> bool:
     if not term.startswith("`") or not term.endswith("`"):
         return False
     return True
+
+
+def if_combinator(definition: AggregateDefinition) -> AggregateDefinition:
+    """Wrap an aggregate so it takes a leading backticked query argument, e.g. `count_if`."""
+    return definition.__class__(
+        internal_function=definition.internal_function,
+        default_search_type=definition.default_search_type,
+        infer_search_type_from_arguments=definition.infer_search_type_from_arguments,
+        internal_type=definition.internal_type,
+        extrapolation_mode_override=definition.extrapolation_mode_override,
+        processor=definition.processor,
+        private=definition.private,
+        attribute_resolver=definition.attribute_resolver,
+        arguments=[
+            ValueArgumentDefinition(argument_types={"query"}, validator=if_query_validator),
+            *definition.arguments,
+        ],
+        valid_arithmetic=definition.valid_arithmetic,
+    )
 
 
 def apply_combinators(

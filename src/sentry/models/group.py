@@ -854,20 +854,27 @@ class Group(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
     project = FlexibleForeignKey("sentry.Project")
-    logger = models.CharField(max_length=64, blank=True, default=str(DEFAULT_LOGGER_NAME))
+    logger = models.CharField(
+        max_length=64,
+        blank=True,
+        default=str(DEFAULT_LOGGER_NAME),
+        db_default=str(DEFAULT_LOGGER_NAME),
+    )
     level = BoundedPositiveIntegerField(
         choices=[(key, str(val)) for key, val in sorted(LOG_LEVELS.items())],
         default=logging.ERROR,
+        db_default=logging.ERROR,
         blank=True,
     )
     message = models.TextField()
     culprit = models.CharField(
         max_length=MAX_CULPRIT_LENGTH, blank=True, null=True, db_column="view"
     )
-    num_comments = BoundedPositiveIntegerField(default=0, null=True)
+    num_comments = BoundedPositiveIntegerField(default=0, db_default=0, null=True)
     platform = models.CharField(max_length=64, null=True)
     status = BoundedPositiveIntegerField(
         default=GroupStatus.UNRESOLVED,
+        db_default=GroupStatus.UNRESOLVED,
         choices=(
             (GroupStatus.UNRESOLVED, _("Unresolved")),
             (GroupStatus.RESOLVED, _("Resolved")),
@@ -885,7 +892,7 @@ class Group(Model):
             (GroupSubStatus.FOREVER, _("Forever")),
         ),
     )
-    times_seen = BoundedPositiveIntegerField(default=1)
+    times_seen = BoundedPositiveIntegerField(default=1, db_default=1)
     last_seen = models.DateTimeField(default=timezone.now, db_index=True)
     first_seen = models.DateTimeField(default=timezone.now, db_index=True)
     first_release = FlexibleForeignKey("sentry.Release", null=True, on_delete=models.PROTECT)
