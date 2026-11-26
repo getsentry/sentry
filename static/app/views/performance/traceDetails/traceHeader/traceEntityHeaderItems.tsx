@@ -14,7 +14,6 @@ import type {
 
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
-import {ReplayContextKey} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {AvatarProject} from 'sentry/types/project';
 import {stripAnsi} from 'sentry/utils/ansiEscapeCodes';
@@ -22,6 +21,7 @@ import {getShortEventId} from 'sentry/utils/events';
 import {FieldKey} from 'sentry/utils/fields';
 import {getAttributeValue} from 'sentry/utils/fields/getAttributeValue';
 import {generatePlatformIconName} from 'sentry/utils/replays/generatePlatformIconName';
+import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {unreachable} from 'sentry/utils/unreachable';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
@@ -151,7 +151,7 @@ export function getReplayId(rootEvent: RootEvent): string | undefined {
 
   const replayId = isTraceItemDetailsResponse(rootEvent)
     ? getAttributeValue(rootEvent.attributes, FieldKey.REPLAY_ID, 'string')
-    : rootEvent.contexts.replay?.[ReplayContextKey.REPLAY_ID];
+    : getReplayIdFromEvent(rootEvent);
 
   return present(replayId);
 }

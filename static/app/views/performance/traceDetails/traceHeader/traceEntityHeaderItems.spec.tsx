@@ -128,6 +128,23 @@ describe('getReplayId', () => {
     ).toBe('abc123');
   });
 
+  it('reads the replay id from a legacy event tag', () => {
+    expect(
+      getReplayId(TransactionEventFixture({tags: [{key: 'replayId', value: 'abc123'}]}))
+    ).toBe('abc123');
+  });
+
+  it('prefers the replay context over the tag on a legacy event', () => {
+    expect(
+      getReplayId(
+        TransactionEventFixture({
+          contexts: {replay: {replay_id: 'from-context', type: 'replay'}},
+          tags: [{key: 'replayId', value: 'from-tag'}],
+        })
+      )
+    ).toBe('from-context');
+  });
+
   it('returns undefined without a replay', () => {
     expect(getReplayId(makeTraceItemDetailsResponse([]))).toBeUndefined();
     expect(getReplayId(undefined)).toBeUndefined();
