@@ -1,5 +1,12 @@
+from unittest.mock import patch
+
 import pytest
+from django.http import HttpResponse
+from django.http.response import HttpResponseBase
 from django.urls import reverse
+from rest_framework.request import Request
+from rest_framework.response import Response
+from rest_framework.test import APIRequestFactory
 
 from sentry.api.endpoints.organization_insights_tree import OrganizationInsightsTreeEndpoint
 from sentry.testutils.cases import SnubaTestCase, SpanTestCase, TestCase
@@ -165,6 +172,27 @@ class OrganizationInsightsTreeEndpointTest(
         assert element["function.nextjs.path"] == ["(route-group)"]
 
         assert "INSERT value INTO table" not in span_descriptions
+
+
+class OrganizationInsightsTreeResponseTest(TestCase):
+    def test_http_response(self) -> None:
+        self._assert_pass_through(HttpResponse(status=410))
+
+    def test_brownout_response(self) -> None:
+        self._assert_pass_through(Response({"message": "This API no longer exists."}, status=410))
+
+    def test_error_response(self) -> None:
+        self._assert_pass_through(Response({"detail": "Invalid query"}, status=400))
+
+    def _assert_pass_through(self, response: HttpResponseBase) -> None:
+        request = Request(APIRequestFactory().get("/", {"noPagination": "true"}))
+        with patch(
+            "sentry.api.endpoints.organization_events.OrganizationEventsEndpoint.get",
+            return_value=response,
+        ):
+            result = OrganizationInsightsTreeEndpoint().get(request, self.organization)
+
+        assert result is response
 
 
 class DescriptionParsingTest(TestCase):

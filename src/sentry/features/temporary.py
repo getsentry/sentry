@@ -300,6 +300,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:issue-details-boolean-search", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Block transactions/discover dataset usage of the events endpoints for external API requests
     manager.add("organizations:events-endpoint-transactions-discover-blocked", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Apply the legacy dataset deprecation (headers and brownouts) to requests on the events, events-timeseries, and replay-count endpoints
+    manager.add("organizations:legacy-datasets-api-brownout", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable detecting SDK crashes during event processing
     manager.add("organizations:sdk-crash-detection", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Relay git fetches and pushes for coding jobs through Sentry's git endpoint, with the org's integration credentials

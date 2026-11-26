@@ -1,5 +1,7 @@
 from datetime import datetime, timedelta
+from unittest import mock
 
+import pytest
 from cronsim import CronSim
 from django.http.request import HttpRequest
 from django.http.response import HttpResponse
@@ -11,6 +13,8 @@ from rest_framework.status import HTTP_200_OK, HTTP_410_GONE
 from sentry import options
 from sentry.api.base import Endpoint
 from sentry.api.helpers.deprecation import deprecated
+from sentry.auth.principal import set_request_principal
+from sentry.auth.services.auth import AuthenticatedToken
 from sentry.options import register
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import freeze_time
@@ -358,3 +362,112 @@ class TestDeprecationDecorator(APITestCase):
             resp = dummy_endpoint(request)
             assert resp.status_code == HTTP_200_OK
             assert resp["X-Sentry-Replacement-Endpoint"] == replacement_api_resolved
+
+    def test_applies_to_limits_deprecation_to_matching_requests(self) -> None:
+        class ParamDeprecatedEndpoint(Endpoint):
+            permission_classes = ()
+
+            @deprecated(
+                test_date,
+                applies_to=lambda request: request.GET.get("mode") == "old",
+                gone_message="The old mode is gone.",
+            )
+            def get(self, request: Request) -> Response:
+                return Response({"ok": True})
+
+        endpoint = ParamDeprecatedEndpoint.as_view()
+        brownout_start = next(timeiter)
+        with self.settings(SENTRY_SELF_HOSTED=False):
+            with freeze_time(test_date - timedelta(seconds=1)):
+                resp = endpoint(self.make_request(method="GET", GET={"mode": "old"}))
+                assert resp.status_code == HTTP_200_OK
+                assert resp["X-Sentry-Deprecation-Date"] == test_date.isoformat()
+
+            with freeze_time(brownout_start):
+                resp = endpoint(self.make_request(method="GET", GET={"mode": "old"}))
+                assert resp.status_code == HTTP_410_GONE
+                assert resp.data == {"message": "The old mode is gone."}
+                assert resp["X-Sentry-Deprecation-Date"] == test_date.isoformat()
+
+                resp = endpoint(self.make_request(method="GET", GET={"mode": "new"}))
+                assert resp.status_code == HTTP_200_OK
+                assert "X-Sentry-Deprecation-Date" not in resp
+
+    @mock.patch("sentry.api.helpers.deprecation.sentry_sdk.metrics.count")
+    def test_records_caller_metric_when_handler_raises(self, mock_count: mock.MagicMock) -> None:
+        class RaisingEndpoint(Endpoint):
+            permission_classes = ()
+
+            @deprecated(test_date)
+            def get(self, request: Request) -> Response:
+                raise ValueError("Endpoint failed")
+
+        endpoint = RaisingEndpoint()
+        with self.settings(SENTRY_SELF_HOSTED=False), freeze_time(test_date + timedelta(hours=1)):
+            request = Request(self.make_request(method="GET"))
+            with pytest.raises(ValueError, match="Endpoint failed"):
+                endpoint.get(request)
+
+        mock_count.assert_called_once()
+        assert mock_count.call_args.args == ("api.deprecated.request", 1)
+        assert mock_count.call_args.kwargs["attributes"]["api.deprecated.action"] == "header"
+
+    @mock.patch("sentry.api.helpers.deprecation.sentry_sdk.metrics.count")
+    def test_records_caller_metric_once_during_brownout(self, mock_count: mock.MagicMock) -> None:
+        with self.settings(SENTRY_SELF_HOSTED=False), freeze_time(test_date.replace(hour=12)):
+            self.assert_denied_request("GET")
+
+        mock_count.assert_called_once()
+        assert mock_count.call_args.args == ("api.deprecated.request", 1)
+        assert mock_count.call_args.kwargs["attributes"]["api.deprecated.action"] == "gone"
+
+    @mock.patch("sentry.api.helpers.deprecation.sentry_sdk.metrics.count")
+    def test_records_caller_auth_kind(self, mock_count: mock.MagicMock) -> None:
+        request = Request(self.make_request(method="GET"))
+        set_request_principal(request, self.user, AuthenticatedToken(kind="agent_token"))
+        with self.settings(SENTRY_SELF_HOSTED=False), freeze_time(test_date.replace(hour=12)):
+            response = DummyEndpoint().get(request)
+
+        assert response.status_code == HTTP_410_GONE
+        mock_count.assert_called_once()
+        assert (
+            mock_count.call_args.kwargs["attributes"]["api.deprecated.auth_kind"] == "agent_token"
+        )
+
+    @mock.patch("sentry.api.helpers.deprecation.sentry_sdk.metrics.count")
+    def test_records_caller_metric(self, mock_count: mock.MagicMock) -> None:
+        class CallerEndpoint(Endpoint):
+            permission_classes = ()
+
+            @deprecated(
+                test_date,
+                key="override",
+                metric_attributes=lambda request: {"mode": request.GET["mode"]},
+            )
+            def get(self, request: Request) -> Response:
+                return Response({"ok": True})
+
+        endpoint = CallerEndpoint.as_view()
+        with self.settings(SENTRY_SELF_HOSTED=False), freeze_time(test_date - timedelta(seconds=1)):
+            request = self.make_request(
+                user=self.user, method="GET", path="/old/", GET={"mode": "old", "referrer": "r"}
+            )
+            request.META["HTTP_USER_AGENT"] = "my-script/1.0"
+            resp = endpoint(request)
+
+        assert resp.status_code == HTTP_200_OK
+        mock_count.assert_called_once()
+        name, value = mock_count.call_args.args
+        assert (name, value) == ("api.deprecated.request", 1)
+        assert mock_count.call_args.kwargs["attributes"] == {
+            "mode": "old",
+            "api.deprecated.url_name": "unknown",
+            "api.deprecated.action": "header",
+            "api.deprecated.auth_kind": "session",
+            "api.deprecated.deprecation_date": test_date.isoformat(),
+            "api.deprecated.brownout_key": "override",
+            "referrer": "r",
+            "user_agent.original": "my-script/1.0",
+            "user.id": self.user.id,
+            "http.request.method": "GET",
+        }

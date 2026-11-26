@@ -2336,6 +2336,21 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Brownout schedule for API requests that query the legacy transactions,
+# discover, and events datasets. 1 minute blackout at noon UTC.
+register(
+    "api.deprecation.legacy-datasets-cron",
+    default="0 12 * * *",
+    type=String,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "api.deprecation.legacy-datasets-duration",
+    type=Int,
+    default=60,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Option to disable misbehaving use case IDs
 register(
     "sentry-metrics.indexer.disabled-namespaces",
