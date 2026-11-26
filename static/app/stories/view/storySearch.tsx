@@ -279,7 +279,7 @@ export function StorySearch() {
         dropdownIndicator={null}
         leadingItems={<IconSearch size="sm" aria-hidden />}
         trailingItems={<Hotkey value="/" />}
-        virtualized
+        virtualThreshold={0}
         maxMenuHeight={320}
         minMenuHeight={groups.length > 0 ? 64 : undefined}
         styles={{menu: base => ({...base, width: 320})}}

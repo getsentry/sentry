@@ -977,3 +977,30 @@ it('preserves the active option when object choices refetch and reorder', async 
   await userEvent.keyboard('{Enter}');
   expect(onChange.mock.calls[0]?.[0]).toBe(updatedCherry);
 });
+
+it.each([150, 151])(
+  'virtualizes only above the default threshold (%s options)',
+  async count => {
+    const options = Array.from({length: count}, (_, index) => ({
+      value: String(index),
+      label: `Option ${index}`,
+    }));
+    render(
+      <Select
+        aria-label="Choices"
+        options={[{label: 'Group', options}]}
+        value={null}
+        onChange={() => {}}
+      />,
+      {wrapper: ThemeWrapper}
+    );
+
+    await userEvent.click(screen.getByRole('combobox', {name: 'Choices'}));
+    const mountedOptions = screen.queryAllByRole('option');
+    if (count === 150) {
+      expect(mountedOptions).toHaveLength(count);
+    } else {
+      expect(mountedOptions.length).toBeLessThan(count);
+    }
+  }
+);
