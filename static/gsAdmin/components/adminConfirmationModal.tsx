@@ -1,11 +1,10 @@
-import {Fragment, isValidElement, useCallback, useEffect, useRef, useState} from 'react';
+import {Fragment, isValidElement, useCallback, useEffect, useState} from 'react';
+import {z} from 'zod';
 
 import type {ConfirmMessageRenderProps, OpenConfirmOptions} from '@sentry/scraps/confirm';
 import {Confirm, openConfirmModal} from '@sentry/scraps/confirm';
-import {Container} from '@sentry/scraps/layout';
-
-import {InputField} from 'sentry/components/forms/fields/inputField';
-import {TextareaField} from 'sentry/components/forms/fields/textareaField';
+import {defaultFormOptions, useScrapsForm, useStore} from '@sentry/scraps/form';
+import {Container, Stack} from '@sentry/scraps/layout';
 
 type ConfirmProps = React.ComponentProps<typeof Confirm>;
 
@@ -18,12 +17,14 @@ export type AdminConfirmParams = {
   ticketURL?: string;
 };
 
+type AdminConfirmCallback = (params: AdminConfirmParams) => void;
+
 export type AdminConfirmRenderProps = Omit<
   ConfirmMessageRenderProps,
   'setConfirmCallback'
 > & {
   onConfirm: Props['onConfirm'];
-  setConfirmCallback: (cb: (params: AdminConfirmParams) => void) => void;
+  setConfirmCallback: (cb: AdminConfirmCallback) => void;
 };
 
 type Props = Omit<ConfirmProps, 'onConfirm'> & {
@@ -33,6 +34,32 @@ type Props = Omit<ConfirmProps, 'onConfirm'> & {
   showAuditFields?: boolean;
   showTicketURL?: boolean;
 };
+
+const ticketURLSchema = z
+  .string()
+  .refine(value => value === '' || z.url().safeParse(value).success, {
+    message: 'Invalid ticket URL',
+  });
+
+const auditSchema = z.object({ticketURL: ticketURLSchema, notes: z.string()});
+
+const noAuditParams: AdminConfirmParams = {};
+
+/**
+ * Form options for an action body rendered inside the modal. The confirm
+ * button stays disabled while the values fail `schema`, and the action
+ * registers `params => form.handleSubmit(params)` as its confirm callback so
+ * `onSubmit` receives the audit params as `meta`.
+ */
+export function adminConfirmFormOptions(
+  schema: z.ZodType,
+  disableConfirmButton: (disable: boolean) => void
+) {
+  const sync = ({formApi}: {formApi: {state: {values: unknown}}}) =>
+    disableConfirmButton(!schema.safeParse(formApi.state.values).success);
+
+  return {listeners: {onMount: sync, onChange: sync}, onSubmitMeta: noAuditParams};
+}
 
 /**
  * A variant of the Confirm component that also includes audit trail
@@ -59,6 +86,7 @@ export function AdminConfirmationModal({
             showAuditFields,
             showTicketURL,
           }}
+          initiallyDisabled={props.disableConfirmButton ?? false}
           {...renderProps}
         />
       )}
@@ -94,6 +122,7 @@ export const openAdminConfirmModal = ({
           showAuditFields,
           showTicketURL,
         }}
+        initiallyDisabled={opts.disableConfirmButton ?? false}
         {...renderProps}
       />
     ),
@@ -108,7 +137,7 @@ type ConfirmMessageProps = ConfirmMessageRenderProps &
     | 'showAuditFields'
     | 'showTicketURL'
     | 'onConfirm'
-  >;
+  > & {initiallyDisabled: boolean};
 
 function AdminConfirmMessage({
   renderModalSpecificContent,
@@ -120,35 +149,45 @@ function AdminConfirmMessage({
   disableConfirmButton,
   setConfirmCallback,
   onConfirm,
+  initiallyDisabled,
 }: ConfirmMessageProps) {
-  const [invalidTicketURL, setInvalidTicketURL] = useState(false);
+  // Registered by the action body. It receives the audit params and decides
+  // whether to call onConfirm.
+  const [actionConfirm, setActionConfirm] = useState<AdminConfirmCallback | null>(null);
+  const [actionDisabled, setActionDisabled] = useState(initiallyDisabled);
 
-  // These values are only read when the user confirms, so they are kept in
-  // refs to ensure the registered confirm handler always sees the latest
-  // values without needing to re-render.
-  const notesRef = useRef<string | null>(null);
-  const ticketURLRef = useRef<string | null>(null);
-  const confirmCallbackRef = useRef<((params: AdminConfirmParams) => void) | null>(null);
+  const registerActionConfirm = useCallback(
+    (cb: AdminConfirmCallback) => setActionConfirm(() => cb),
+    []
+  );
 
-  const handleConfirm = useCallback(() => {
-    const notes = notesRef.current;
-    const ticketURL = ticketURLRef.current;
-    const confirmCallback = confirmCallbackRef.current;
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {ticketURL: '', notes: ''},
+    validators: {onDynamic: auditSchema},
+    onSubmit: ({value}) => {
+      const params = {
+        ...(value.notes && {notes: value.notes}),
+        ...(value.ticketURL && {ticketURL: value.ticketURL}),
+      };
 
-    const params = {...(notes && {notes}), ...(ticketURL && {ticketURL})};
+      if (actionConfirm === null) {
+        onConfirm?.(params);
+      } else {
+        actionConfirm(params);
+      }
+    },
+  });
 
-    // If a new confirm callback has been registered chain to that. The
-    // downstream callback may choose to trigger onConfirm.
-    if (confirmCallback === null) {
-      onConfirm?.(params);
-    } else {
-      confirmCallback(params);
-    }
-  }, [onConfirm]);
+  const auditInvalid = useStore(form.store, state => !state.isValid);
 
   useEffect(() => {
-    setConfirmCallback?.(handleConfirm);
-  }, [setConfirmCallback, handleConfirm]);
+    disableConfirmButton(auditInvalid || actionDisabled);
+  }, [disableConfirmButton, auditInvalid, actionDisabled]);
+
+  useEffect(() => {
+    setConfirmCallback(() => form.handleSubmit());
+  }, [setConfirmCallback, form]);
 
   const bodyTopHalf =
     renderModalSpecificContent === undefined ? (
@@ -160,21 +199,11 @@ function AdminConfirmMessage({
         </p>
       )
     ) : (
-      // Consumers register their confirm callback during render (class
-      // constructors), so it must live in a ref: setting state here would
-      // update this component while rendering a child.
-      // oxlint-disable-next-line react/refs
       renderModalSpecificContent({
         confirm,
         close,
-        disableConfirmButton,
-        // XXX(epurkhiser): This can bit a bit confusing. Since this component
-        // is already augmenting the Confirm component, we're actually
-        // accepting a different confirmCallback, which accepts the audit
-        // parameters.
-        setConfirmCallback: confirmCallback => {
-          confirmCallbackRef.current = confirmCallback;
-        },
+        disableConfirmButton: setActionDisabled,
+        setConfirmCallback: registerActionConfirm,
         onConfirm,
       })
     );
@@ -185,38 +214,34 @@ function AdminConfirmMessage({
 
       {showAuditFields && (
         <Container marginTop="xl">
-          {showTicketURL && (
-            <InputField
-              data-test-id="url-field"
-              name="ticket-url"
-              type="url"
-              label="TicketURL"
-              inline={false}
-              stacked
-              flexibleControlStateSize
-              onChange={(ticketURL: any) => {
-                ticketURLRef.current = ticketURL;
-              }}
-              error={invalidTicketURL ? 'Invalid ticket URL' : undefined}
-              onBlur={(_: any, e: any) => {
-                const isInvalid = !e.target.checkValidity() && e.target.value !== '';
-                setInvalidTicketURL(isInvalid);
-                disableConfirmButton(isInvalid);
-              }}
-            />
-          )}
-          <TextareaField
-            data-test-id="notes-field"
-            name="notes"
-            label="Notes"
-            inline={false}
-            stacked
-            autosize
-            flexibleControlStateSize
-            onChange={(notes: any) => {
-              notesRef.current = notes;
-            }}
-          />
+          <form.AppForm form={form}>
+            <Stack gap="lg">
+              {showTicketURL && (
+                <form.AppField name="ticketURL" validators={{onBlur: ticketURLSchema}}>
+                  {field => (
+                    <field.Layout.Stack label="TicketURL">
+                      <field.Input
+                        type="url"
+                        value={field.state.value}
+                        onChange={field.handleChange}
+                      />
+                    </field.Layout.Stack>
+                  )}
+                </form.AppField>
+              )}
+              <form.AppField name="notes">
+                {field => (
+                  <field.Layout.Stack label="Notes">
+                    <field.TextArea
+                      autosize
+                      value={field.state.value}
+                      onChange={field.handleChange}
+                    />
+                  </field.Layout.Stack>
+                )}
+              </form.AppField>
+            </Stack>
+          </form.AppForm>
         </Container>
       )}
     </Fragment>

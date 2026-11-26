@@ -1,7 +1,12 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
-import {renderGlobalModal, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import {DataCategory, DataCategoryExact} from 'sentry/types/core';
 
@@ -75,6 +80,45 @@ describe('AddGiftEventsAction', () => {
   it('disables confirm button when no number is entered', () => {
     triggerGiftModal();
     renderGlobalModal();
+    expect(screen.getByTestId('confirm-button')).toBeDisabled();
+  });
+
+  it('confirms the gifted total with the audit params', async () => {
+    const onConfirm = jest.fn();
+    openAdminConfirmModal({
+      onConfirm,
+      renderModalSpecificContent: deps => (
+        <AddGiftEventsAction
+          subscription={mockSub}
+          dataCategory={DataCategory.SPANS}
+          billedCategoryInfo={BILLED_DATA_CATEGORY_INFO[DataCategoryExact.SPAN]}
+          {...deps}
+        />
+      ),
+    });
+    renderGlobalModal();
+
+    await setNumEvents('5');
+    await userEvent.type(screen.getByRole('textbox', {name: 'Notes'}), 'gift');
+    await userEvent.click(screen.getByTestId('confirm-button'));
+
+    await waitFor(() =>
+      expect(onConfirm).toHaveBeenCalledWith({addFreeSpans: 500_000, notes: 'gift'})
+    );
+  });
+
+  it('keeps confirm disabled while the ticket URL is invalid', async () => {
+    triggerGiftModal();
+    renderGlobalModal();
+
+    await setNumEvents('5');
+    expect(screen.getByTestId('confirm-button')).toBeEnabled();
+
+    await userEvent.type(screen.getByRole('textbox', {name: 'TicketURL'}), '1invalid');
+    await userEvent.click(screen.getByRole('textbox', {name: 'Notes'}));
+    expect(screen.getByTestId('confirm-button')).toBeDisabled();
+
+    await setNumEvents('6');
     expect(screen.getByTestId('confirm-button')).toBeDisabled();
   });
 

@@ -1,9 +1,16 @@
 import moment from 'moment-timezone';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import {DataCategory} from 'sentry/types/core';
 
+import {openAdminConfirmModal} from 'admin/components/adminConfirmationModal';
 import {ExtendProductTrialAction} from 'admin/components/extendProductTrialAction';
 
 describe('ExtendProductTrialAction', () => {
@@ -103,55 +110,55 @@ describe('ExtendProductTrialAction', () => {
     expect(defaultProps.disableConfirmButton).toHaveBeenLastCalledWith(false);
   });
 
-  it('calls onConfirm with correct data', () => {
-    let confirmCallback: ((params: Record<string, unknown>) => void) | undefined;
-    const setConfirmCallback = jest.fn(
-      (cb: (params: Record<string, unknown>) => void) => {
-        confirmCallback = cb;
-      }
-    );
-
-    render(
-      <ExtendProductTrialAction
-        {...defaultProps}
-        setConfirmCallback={setConfirmCallback}
-      />
-    );
-
-    expect(setConfirmCallback).toHaveBeenCalled();
-
-    // Trigger the confirm callback
-    confirmCallback?.({notes: 'test notes'});
-
-    expect(defaultProps.onConfirm).toHaveBeenCalledWith({
-      extendTrialReplays: true,
-      extendTrialDays: 14,
-      notes: 'test notes',
+  it('calls onConfirm with correct data', async () => {
+    const onConfirm = jest.fn();
+    openAdminConfirmModal({
+      onConfirm,
+      renderModalSpecificContent: deps => (
+        <ExtendProductTrialAction
+          activeProductTrial={activeProductTrial}
+          apiName="replays"
+          trialName="Replays"
+          {...deps}
+        />
+      ),
     });
+    renderGlobalModal();
+
+    await userEvent.type(screen.getByRole('textbox', {name: 'Notes'}), 'test notes');
+    await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
+
+    await waitFor(() =>
+      expect(onConfirm).toHaveBeenCalledWith({
+        extendTrialReplays: true,
+        extendTrialDays: 14,
+        notes: 'test notes',
+      })
+    );
   });
 
-  it('formats API name correctly for multi-word categories', () => {
-    let confirmCallback: ((params: Record<string, unknown>) => void) | undefined;
-    const setConfirmCallback = jest.fn(
-      (cb: (params: Record<string, unknown>) => void) => {
-        confirmCallback = cb;
-      }
-    );
-
-    render(
-      <ExtendProductTrialAction
-        {...defaultProps}
-        apiName="profileDuration"
-        trialName="Continuous Profiling"
-        setConfirmCallback={setConfirmCallback}
-      />
-    );
-
-    confirmCallback?.({});
-
-    expect(defaultProps.onConfirm).toHaveBeenCalledWith({
-      extendTrialProfileDuration: true,
-      extendTrialDays: 14,
+  it('formats API name correctly for multi-word categories', async () => {
+    const onConfirm = jest.fn();
+    openAdminConfirmModal({
+      onConfirm,
+      renderModalSpecificContent: deps => (
+        <ExtendProductTrialAction
+          activeProductTrial={activeProductTrial}
+          apiName="profileDuration"
+          trialName="Continuous Profiling"
+          {...deps}
+        />
+      ),
     });
+    renderGlobalModal();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
+
+    await waitFor(() =>
+      expect(onConfirm).toHaveBeenCalledWith({
+        extendTrialProfileDuration: true,
+        extendTrialDays: 14,
+      })
+    );
   });
 });

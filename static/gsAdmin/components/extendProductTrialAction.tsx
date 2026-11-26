@@ -1,13 +1,12 @@
-import {Fragment, useEffect, useRef, useState} from 'react';
+import {Fragment, useEffect} from 'react';
 import upperFirst from 'lodash/upperFirst';
 import moment from 'moment-timezone';
+import {z} from 'zod';
 
-import {NumberField} from 'sentry/components/forms/fields/numberField';
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 
-import type {
-  AdminConfirmParams,
-  AdminConfirmRenderProps,
-} from 'admin/components/adminConfirmationModal';
+import type {AdminConfirmRenderProps} from 'admin/components/adminConfirmationModal';
+import {adminConfirmFormOptions} from 'admin/components/adminConfirmationModal';
 import type {ProductTrial} from 'getsentry/types';
 
 type Props = AdminConfirmRenderProps & {
@@ -15,6 +14,18 @@ type Props = AdminConfirmRenderProps & {
   apiName: string;
   trialName: string;
 };
+
+const schema = z.object({
+  extendDays: z
+    .number()
+    .int()
+    .min(1, 'Extend by at least 1 day')
+    .max(180, 'Extend by at most 180 days')
+    .nullable()
+    .refine(value => value !== null, 'Enter a number of days between 1 and 180'),
+});
+
+const defaultValues: z.input<typeof schema> = {extendDays: 14};
 
 /**
  * Rendered as part of an openAdminConfirmModal call for extending product trials
@@ -27,34 +38,25 @@ export function ExtendProductTrialAction({
   setConfirmCallback,
   disableConfirmButton,
 }: Props) {
-  const [extendDays, setExtendDays] = useState(14);
-
-  // Use a ref to access the latest extendDays value in the callback
-  // without causing re-renders when the callback is set
-  const extendDaysRef = useRef(extendDays);
-  extendDaysRef.current = extendDays;
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    ...adminConfirmFormOptions(schema, disableConfirmButton),
+    defaultValues,
+    validators: {onDynamic: schema},
+    onSubmit: ({value, meta}) => {
+      onConfirm?.({
+        [`extendTrial${upperFirst(apiName)}`]: true,
+        extendTrialDays: value.extendDays,
+        ...meta,
+      });
+    },
+  });
 
   useEffect(() => {
-    setConfirmCallback((params: AdminConfirmParams) => {
-      const formattedApiName = upperFirst(apiName);
-      onConfirm?.({
-        [`extendTrial${formattedApiName}`]: true,
-        extendTrialDays: extendDaysRef.current,
-        ...params,
-      });
-    });
-    // Only set up the callback once on mount, using ref for latest value
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const handleDaysChange = (value: string) => {
-    const days = parseInt(value, 10) || 0;
-    setExtendDays(days);
-    disableConfirmButton(days < 1 || days > 180);
-  };
+    setConfirmCallback(params => form.handleSubmit(params));
+  }, [setConfirmCallback, form]);
 
   const currentEndDate = moment.utc(activeProductTrial.endDate);
-  const newEndDate = currentEndDate.clone().add(extendDays, 'days');
 
   return (
     <Fragment>
@@ -64,22 +66,34 @@ export function ExtendProductTrialAction({
       <p>
         Current trial ends: <strong>{currentEndDate.format('MMMM Do YYYY')} UTC</strong>
       </p>
-      <NumberField
-        inline={false}
-        stacked
-        flexibleControlStateSize
-        label="Number of Days to Extend"
-        help={
-          <Fragment>
-            New trial end date: <strong>{newEndDate.format('MMMM Do YYYY')} UTC</strong>
-          </Fragment>
-        }
-        name="extendDays"
-        min={1}
-        max={180}
-        value={extendDays}
-        onChange={handleDaysChange}
-      />
+      <form.AppForm form={form}>
+        <form.AppField name="extendDays">
+          {field => (
+            <field.Layout.Stack
+              label="Number of Days to Extend"
+              hintText={
+                <Fragment>
+                  New trial end date:{' '}
+                  <strong>
+                    {currentEndDate
+                      .clone()
+                      .add(field.state.value ?? 0, 'days')
+                      .format('MMMM Do YYYY')}{' '}
+                    UTC
+                  </strong>
+                </Fragment>
+              }
+            >
+              <field.Number
+                min={1}
+                max={180}
+                value={field.state.value}
+                onChange={field.handleChange}
+              />
+            </field.Layout.Stack>
+          )}
+        </form.AppField>
+      </form.AppForm>
     </Fragment>
   );
 }
