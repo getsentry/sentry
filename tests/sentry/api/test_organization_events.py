@@ -387,7 +387,6 @@ class OrganizationEventsEndpointTest(APITestCase):
         assert attributes["api.deprecated.url_name"] == "sentry-api-0-organization-events"
         assert attributes["api.deprecated.legacy_dataset.requested_dataset"] == "transactions"
         assert attributes["api.deprecated.organization_id"] == self.organization.id
-        assert attributes["api.deprecated.organization_slug"] == self.organization.slug
         assert attributes["api.deprecated.brownout_key"] == "api.deprecation.legacy-datasets"
 
     @mock.patch("sentry.snuba.errors.query")

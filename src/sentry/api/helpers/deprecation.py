@@ -173,7 +173,6 @@ def _record_caller_in_sentry(
         "api.deprecated.token_id": getattr(auth, "entity_id", None) or getattr(auth, "id", None),
         "api.deprecated.application_id": getattr(auth, "application_id", None),
         "api.deprecated.organization_id": getattr(organization, "id", None),
-        "api.deprecated.organization_slug": getattr(organization, "slug", None),
     }
     sentry_sdk.metrics.count(
         "api.deprecated.request",
@@ -182,7 +181,6 @@ def _record_caller_in_sentry(
             **{name: value for name, value in optional.items() if value is not None},
             **attributes,
             ATTRIBUTE_NAMES.HTTP_REQUEST_METHOD: request.method,
-            ATTRIBUTE_NAMES.URL_PATH: request.path,
         },
     )
 

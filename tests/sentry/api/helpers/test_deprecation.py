@@ -470,5 +470,4 @@ class TestDeprecationDecorator(APITestCase):
             "user_agent.original": "my-script/1.0",
             "user.id": self.user.id,
             "http.request.method": "GET",
-            "url.path": "/old/",
         }
