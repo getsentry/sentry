@@ -662,6 +662,134 @@ describe('SpansTabContent', () => {
     });
   });
 
+  describe('search key intersection', () => {
+    const initialRouterConfig = {
+      location: {
+        pathname: `/organizations/${organization.slug}/explore/traces/`,
+        query: {query: 'span.op:db'},
+      },
+    };
+    const intersectionOrganization = {
+      ...organization,
+      features: [...organization.features, 'explore-search-attribute-intersection'],
+    };
+
+    function getSpansSearchInput() {
+      return screen
+        .getAllByTestId('query-builder-input')
+        .find(input => !input.closest('[data-test-id="explore-span-toolbar"]'))!;
+    }
+
+    function mockAttributes() {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/trace-items/attributes/',
+        body: [
+          {
+            attributeType: 'string',
+            key: 'http.method',
+            name: 'http.method',
+            attributeSource: {source_type: 'user'},
+          },
+        ],
+      });
+      return MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/trace-items/attributes/',
+        match: [MockApiClient.matchQuery({query: 'span.op:db'})],
+        body: [
+          {
+            attributeType: 'string',
+            key: 'db.system',
+            name: 'db.system',
+            attributeSource: {source_type: 'user'},
+          },
+        ],
+      });
+    }
+
+    it('only suggests keys on spans matching the search query', async () => {
+      mockAttributes();
+
+      render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
+        organization: intersectionOrganization,
+        additionalWrapper: Wrapper,
+        initialRouterConfig,
+      });
+
+      await userEvent.click(getSpansSearchInput());
+
+      expect(await screen.findByRole('option', {name: 'db.system'})).toBeInTheDocument();
+      expect(screen.queryByRole('option', {name: 'http.method'})).not.toBeInTheDocument();
+    });
+
+    it('suggests every key when the search query is invalid', async () => {
+      mockAttributes();
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/validate/',
+        body: {
+          dataset: [],
+          environment: [],
+          field: [],
+          orderby: [],
+          projects: [],
+          query: {error: 'Invalid query', fields: [], valid: false},
+          valid: false,
+        },
+      });
+
+      render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
+        organization: intersectionOrganization,
+        additionalWrapper: Wrapper,
+        initialRouterConfig,
+      });
+
+      await userEvent.click(getSpansSearchInput());
+
+      expect(
+        await screen.findByRole('option', {name: 'http.method'})
+      ).toBeInTheDocument();
+      expect(screen.queryByRole('option', {name: 'db.system'})).not.toBeInTheDocument();
+    });
+
+    it('suggests every key without the feature flag', async () => {
+      const matchingAttributesMock = mockAttributes();
+
+      render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
+        organization,
+        additionalWrapper: Wrapper,
+        initialRouterConfig,
+      });
+
+      await userEvent.click(getSpansSearchInput());
+
+      expect(
+        await screen.findByRole('option', {name: 'http.method'})
+      ).toBeInTheDocument();
+      expect(matchingAttributesMock).not.toHaveBeenCalled();
+    });
+
+    it('suggests every key while the search query is validating', async () => {
+      const matchingAttributesMock = mockAttributes();
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/validate/',
+        body: {},
+        asyncDelay: new Promise(() => {}),
+      });
+
+      render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
+        organization: intersectionOrganization,
+        additionalWrapper: Wrapper,
+        initialRouterConfig,
+      });
+
+      await userEvent.click(getSpansSearchInput());
+
+      expect(
+        await screen.findByRole('option', {name: 'http.method'})
+      ).toBeInTheDocument();
+      expect(matchingAttributesMock).not.toHaveBeenCalled();
+    });
+  });
+
   describe('Ask Seer', () => {
     describe('when the AI features are disabled', () => {
       afterEach(() => {

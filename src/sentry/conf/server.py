@@ -946,6 +946,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.issues.action_log.tasks",
     "sentry.issues.derived.tasks",
     "sentry.issues.escalating.forecasts",
+    "sentry.issues.impact.tasks",
     "sentry.middleware.integrations.tasks",
     "sentry.models.counter",
     "sentry.monitors.tasks.clock_pulse",
@@ -1239,6 +1240,11 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "seer:sentry.tasks.seer.night_shift.schedule_night_shift",
         # Run every 12 hours, at 10:00 and 22:00 UTC
         "schedule": crontab("0", "10,22", "*", "*", "*"),
+    },
+    "issues-scheduled-impact-assessments": {
+        "task": "seer:sentry.issues.impact.tasks.schedule_impact_assessments",
+        # Every hour, on the hour
+        "schedule": crontab("0", "*", "*", "*", "*"),
     },
     "seer-autofix-issue-data-judging": {
         "task": "seer:sentry.tasks.seer.autofix_issue_data.schedule_judging",

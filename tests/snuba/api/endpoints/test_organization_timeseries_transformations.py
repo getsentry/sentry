@@ -30,6 +30,7 @@ def build_expected_transformed_timeseries(
     smoothed: Sequence[bool] | None = None,
     comparison_filled: Sequence[bool] | None = None,
     comparison_smoothed: Sequence[bool] | None = None,
+    exceeds_query_range: Sequence[int] = (),
 ) -> list[dict[str, object]]:
     assert isinstance(expected_values, Sequence)
     assert expected_comparison is None or isinstance(expected_comparison, Sequence)
@@ -42,6 +43,7 @@ def build_expected_transformed_timeseries(
         sample_count,
         sample_rate,
         confidence,
+        exceeds_query_range=exceeds_query_range,
     )
     for index, point in enumerate(expected):
         point["filled"] = filled[index] if filled is not None else False
@@ -409,6 +411,7 @@ class OrganizationTimeseriesTransformationsTest(OrganizationEventsEndpointTestBa
                 15_000,
                 expected,
                 filled=filled,
+                exceeds_query_range=[6],
             )
 
     def test_transformations_preserve_output_bucket_boundaries(self) -> None:
@@ -479,7 +482,9 @@ class OrganizationTimeseriesTransformationsTest(OrganizationEventsEndpointTestBa
 
         assert response.status_code == 200, response.content
         (timeseries,) = response.data["timeSeries"]
-        expected = build_expected_transformed_timeseries(self.start, 15_000, [None] * 7)
+        expected = build_expected_transformed_timeseries(
+            self.start, 15_000, [None] * 7, exceeds_query_range=[6]
+        )
         for point, comparison, filled in zip(
             expected, [None, 2, 2, 2, 2, 2], [False, False, True, True, True, True]
         ):

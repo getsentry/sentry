@@ -59,4 +59,21 @@ describe('FrameRegisters', () => {
       screen.getAllByRole('button', {name: 'Copy register value to clipboard'})
     ).toHaveLength(1);
   });
+
+  it('starts collapsed behind a toggle when asked to', async () => {
+    const registers = {r10: '0x00007fff9300bf70'};
+
+    render(<FrameRegisters {...defaultProps} registers={registers} collapsedByDefault />);
+
+    const toggle = screen.getByRole('button', {name: 'Registers', expanded: false});
+    expect(screen.queryByText('r10')).not.toBeInTheDocument();
+    expect(screen.queryByRole('radio', {name: 'Decimal'})).not.toBeInTheDocument();
+
+    await userEvent.click(toggle);
+
+    expect(screen.getByText('r10')).toBeInTheDocument();
+    expect(screen.getByText('0x00007fff9300bf70')).toBeInTheDocument();
+    expect(screen.getByRole('radio', {name: 'Decimal'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Registers', expanded: true})).toBe(toggle);
+  });
 });

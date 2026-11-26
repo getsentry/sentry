@@ -1251,11 +1251,11 @@ describe('useExplorerAutofix - createPR', () => {
   it.each([
     [
       null,
-      "Seer couldn't push changes to org/repo#7 because your organization is out of credits.",
+      "Seer couldn't push changes to org/repo#7 because your organization does not have enough credits.",
     ],
     [
       'not_enough_credits',
-      "Seer couldn't push changes to org/repo#7 because your organization is out of credits.",
+      "Seer couldn't push changes to org/repo#7 because your organization does not have enough credits.",
     ],
     [
       'daily_cap_exceeded',
@@ -1484,7 +1484,7 @@ describe('useExplorerAutofix - startStep pr_iteration', () => {
     ).rejects.toThrow();
 
     expect(errorSpy).toHaveBeenCalledWith(
-      "Seer couldn't start on this feedback because your organization is out of credits. Seer continues the next time it iterates on the pull request."
+      "Seer couldn't start on this feedback because your organization does not have enough credits. Seer continues the next time it iterates on the pull request."
     );
     await waitFor(() =>
       expect(result.current.runState?.pr_iteration_out_of_credits).toBeTruthy()
@@ -1834,11 +1834,11 @@ describe('useExplorerAutofix - startStep errors', () => {
   it.each([
     [
       null,
-      "Seer couldn't start on the root cause because your organization is out of credits.",
+      "Seer couldn't start on the root cause because your organization does not have enough credits.",
     ],
     [
       'not_enough_credits',
-      "Seer couldn't start on the root cause because your organization is out of credits.",
+      "Seer couldn't start on the root cause because your organization does not have enough credits.",
     ],
     [
       'daily_cap_exceeded',

@@ -26,6 +26,13 @@ function getThresholdQuery(
   return `${getResultField(classifier.resultAttribute)}:${operator}${classifier.binaryThreshold}`;
 }
 
+function getCountIfYAxis(
+  classifier: TelemetryClassifier,
+  side: typeof MATCHES | typeof NON_MATCHES
+) {
+  return `count_if(\`${getThresholdQuery(classifier, side)}\`)`;
+}
+
 function BinaryResultCell({
   classifier,
   value,
@@ -54,36 +61,34 @@ function BinaryClassifierVisualization({
   const isGrouped = filter === ALL_RESULTS;
   const isNonMatches = filter === NON_MATCHES;
 
-  const primary = useClassifierTimeSeries(classifier, {
+  const matchesYAxis = getCountIfYAxis(classifier, MATCHES);
+  const nonMatchesYAxis = getCountIfYAxis(classifier, NON_MATCHES);
+
+  const {data, error, isPending} = useClassifierTimeSeries(classifier, {
     interval,
     pageFilters,
-    query: getThresholdQuery(classifier, isNonMatches ? NON_MATCHES : MATCHES),
+    query: getHasResultQuery(classifier.resultAttribute),
+    yAxis: [matchesYAxis, nonMatchesYAxis],
   });
-  const nonMatches = useClassifierTimeSeries(classifier, {
-    interval,
-    pageFilters,
-    query: getThresholdQuery(classifier, NON_MATCHES),
-    enabled: isGrouped,
-  });
+  const matches = data?.timeSeries.find(series => series.yAxis === matchesYAxis);
+  const nonMatches = data?.timeSeries.find(series => series.yAxis === nonMatchesYAxis);
 
   return (
     <BaseClassifierVisualization
-      error={primary.error ?? (isGrouped ? nonMatches.error : null)}
-      isPending={primary.isPending || (isGrouped && nonMatches.isPending)}
+      error={error}
+      isPending={isPending}
       pageFilters={pageFilters}
       plottables={
         isGrouped
           ? [
-              createPlottable(chartType, primary.data?.timeSeries[0], {
-                alias: t('Matches'),
-              }),
-              createPlottable(chartType, nonMatches.data?.timeSeries[0], {
+              createPlottable(chartType, matches, {alias: t('Matches')}),
+              createPlottable(chartType, nonMatches, {
                 alias: t('Non-matches'),
                 color: neutral,
               }),
             ]
           : [
-              createPlottable(chartType, primary.data?.timeSeries[0], {
+              createPlottable(chartType, isNonMatches ? nonMatches : matches, {
                 alias: t('Instances'),
                 color: isNonMatches ? neutral : undefined,
               }),

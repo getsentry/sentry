@@ -61,8 +61,8 @@ def out_of_credits_comment_body(organization: Organization, denial_reason: str |
             f"pick it back up now. You can change the limit in [billing settings]({billing_url})."
         )
     return (
-        "Seer stopped working on this pull request because your organization ran out of "
-        "credits. Seer continues the next time it iterates on the pull request.\n\n"
+        "Seer stopped working on this pull request because your organization does not have "
+        "enough credits. Seer continues the next time it iterates on the pull request.\n\n"
         "Once credits are added, comment `@sentry <instructions>` to have Seer pick it back up "
         f"now. Set up auto-reload in [billing settings]({billing_url}) to keep Seer running."
     )

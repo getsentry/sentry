@@ -70,6 +70,7 @@ from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.snuba.uptime_results import UptimeResults
 from sentry.snuba.utils import DATASET_LABELS, RPC_DATASETS
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.utils import json
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.sdk import sdk_logger
 from sentry.utils.snuba import SnubaTSResult
@@ -95,6 +96,42 @@ DATASET_TO_FORMULA_DATASET = {
 }
 
 logger = logging.getLogger(__name__)
+
+# Dashboard line/area/bar widgets use this prefix.
+_DASHBOARD_TIMESERIES_REFERRER_PREFIX = "api.dashboards.widget."
+
+
+def record_dashboard_timeseries_result_size(
+    referrer: str,
+    dataset_label: str,
+    result: SnubaTSResult,
+) -> None:
+    """Record the JSON size of a dashboard timeseries result's rows.
+
+    The serialized HTTP body adds meta and confidence fields that are not part
+    of this payload.
+    """
+    try:
+        if (
+            not referrer.startswith(_DASHBOARD_TIMESERIES_REFERRER_PREFIX)
+            or "-chart" not in referrer
+            or referrer.endswith(".row")
+        ):
+            return
+        sentry_sdk.metrics.distribution(
+            "events.timeseries.dashboard_widget.result_bytes",
+            len(json.dumps(result.data["data"]).encode()),
+            unit="byte",
+            attributes={
+                "dataset": dataset_label,
+                "widget": referrer.removeprefix(_DASHBOARD_TIMESERIES_REFERRER_PREFIX).split(
+                    ".", 1
+                )[0],
+            },
+        )
+    except Exception:
+        logger.exception("events.timeseries.dashboard_widget.result_bytes")
+
 
 INGESTION_DELAY_TIMEOUT = 1.0  # p99 returns in less than 1 second
 INCREMENTAL_CACHE_KEY = "timeseries:{dataset_label}:{query_string}:{columns}:{rollup}:{projects}"
@@ -374,6 +411,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
             self.validate_comparison_delta(comparison_delta, snuba_params, organization)
             rollup = self.get_rollup(request, snuba_params, top_events, use_rpc)
             snuba_params.granularity_secs = rollup
+            query_range = (snuba_params.start_date, snuba_params.end_date)
             axes = request.GET.getlist("yAxis", ["count()"])
             include_measured_ingestion_delay_metadata = features.has(
                 "organizations:measured-ingestion-delay-metadata",
@@ -422,6 +460,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                     rollup,
                     dataset,
                     organization,
+                    query_range,
                     ingestion_delay_status,
                 ),
                 status=200,
@@ -520,6 +559,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
             referrer = Referrer.API_AUTH_TOKEN_EVENTS.value
         else:
             referrer = resolve_client_referrer(referrer, Referrer.API_ORGANIZATION_EVENTS.value)
+        dataset_label = DATASET_LABELS.get(dataset, "unknown")
 
         sentry_sdk.set_tag("query.referrer", referrer)
         sentry_sdk.set_attribute("query.referrer", referrer)
@@ -676,6 +716,8 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                         query_columns[0],
                         merge_from=cache_merge_from,
                     )
+            else:
+                record_dashboard_timeseries_result_size(referrer, dataset_label, result)
             return result
 
         return dataset.timeseries_query(
@@ -701,6 +743,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         rollup: int,
         dataset: ModuleType,
         organization: Organization,
+        query_range: tuple[datetime, datetime],
         ingestion_delay_status: IngestionDelayStatus | None = None,
     ) -> StatsResponse:
         # We need the current timestamp for the Ingestion Delay incomplete reason
@@ -734,6 +777,8 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
             retention_start=now - timedelta(days=retention_days).total_seconds()
             if retention_days
             else None,
+            query_start=query_range[0].timestamp(),
+            query_end=query_range[1].timestamp(),
         )
 
         response = StatsResponse(

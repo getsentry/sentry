@@ -83,7 +83,7 @@ it('expands nested variables with the keyboard and the item summary', async () =
   await userEvent.click(screen.getByText('position'));
   await userEvent.click(screen.getByText('Vec3'));
   expect(screen.queryByText('1.5')).not.toBeInTheDocument();
-  await userEvent.click(screen.getByText('{ x, y, z }'));
+  await userEvent.click(screen.getByText('{ x: 1.5, y: -3.2, z: 0.0 }'));
   expect(screen.getByText('1.5')).toBeInTheDocument();
   await userEvent.click(screen.getByText('position'));
   expect(screen.getByText('1.5')).toBeInTheDocument();
@@ -99,19 +99,75 @@ it('expands nested variables with the keyboard and the item summary', async () =
   expect(screen.getByText('1.5')).toBeInTheDocument();
 });
 
-it('previews whole keys within the summary budget', () => {
+it('previews short scalar values next to their names within the summary budget', () => {
   render(
     <FrameVariablesTree
       defaultExpanded={[]}
-      variables={getJsonFrameVariables({
-        allocator: {capacity: 0, count: 0, allocated: 0, available: 0},
-      })}
+      variables={[
+        {
+          name: 'player',
+          type: 'Player*',
+          kind: 'object',
+          pointerAddresses: ['0x000000016b29a450'],
+          children: [
+            {name: 'id', type: 'int', kind: 'number', value: '1'},
+            {name: 'health', type: 'float', kind: 'number', value: '-5.5'},
+            {name: 'alive', type: 'bool', kind: 'boolean', value: 'false'},
+            {name: 'tag', type: 'char*', kind: 'string', value: 'Al'},
+            {name: 'target', type: 'Player*', kind: 'null'},
+            // Names only: no value, a long value, a nested structure.
+            {name: 'status', type: 'RequestStatus', kind: 'unavailable'},
+            {
+              name: 'map',
+              type: 'char*',
+              kind: 'unformatted',
+              value: '0x0000000104b64b33',
+            },
+            {
+              name: 'position',
+              type: 'Vec3',
+              kind: 'object',
+              children: [{name: 'x', type: 'double', kind: 'number', value: '102'}],
+            },
+            {name: 'inventory_count', type: 'size_t', kind: 'number', value: '5'},
+          ],
+        },
+      ]}
     />
   );
 
   expect(
-    screen.getByText('{ allocated, available, capacity, 1 more }')
+    screen.getByText(
+      '{ id: 1, health: -5.5, alive: false, tag: "Al", target: nullptr, +4 more }'
+    )
   ).toBeInTheDocument();
+});
+
+it('previews names without values that are long, redacted or trimmed', () => {
+  render(
+    <FrameVariablesTree
+      defaultExpanded={[]}
+      platform="node"
+      variables={getJsonFrameVariables(
+        {
+          request: {
+            id: 7,
+            token: '[Filtered]',
+            url: 'https://example.com/a/long/path',
+            message: 'Captured...',
+          },
+        },
+        {
+          request: {
+            token: {'': {rem: [['project:0', 's']]}},
+            message: {'': {len: 128, rem: [['!limit', 'x']]}},
+          },
+        }
+      )}
+    />
+  );
+
+  expect(screen.getByText('{ id: 7, message, token, url }')).toBeInTheDocument();
 });
 
 it('counts unshown keys, including truncated object entries', () => {
@@ -121,16 +177,25 @@ it('counts unshown keys, including truncated object entries', () => {
       variables={getJsonFrameVariables(
         {
           position: {x: 1, y: 2, z: 3},
-          allocator: {allocated: 0, available: 0, capacity: 0, count: 0, remaining: 0},
+          allocator: {
+            allocated: 0,
+            available: 0,
+            capacity: 0,
+            count: 0,
+            remaining: 0,
+            reserved: 0,
+          },
         },
         {position: {'': {len: 5}}}
       )}
     />
   );
 
-  expect(screen.getByText('{ x, y, z, 2 more }')).toBeInTheDocument();
+  expect(screen.getByText('{ x: 1, y: 2, z: 3, +2 more }')).toBeInTheDocument();
   expect(
-    screen.getByText('{ allocated, available, capacity, 2 more }')
+    screen.getByText(
+      '{ allocated: 0, available: 0, capacity: 0, count: 0, remaining: 0, +1 more }'
+    )
   ).toBeInTheDocument();
 });
 
@@ -245,6 +310,42 @@ it('displays and copies native scalars exactly without expanding collections', a
   );
   expect(screen.queryByText('[0]')).not.toBeInTheDocument();
   expect(screen.getByText('[ 2 items ]')).toBeInTheDocument();
+});
+
+it('shows the pointer chain next to the value and keeps it when a structure is expanded', async () => {
+  render(
+    <FrameVariablesTree
+      defaultExpanded={[]}
+      variables={[
+        {name: 'null_player', type: 'Player*', kind: 'null'},
+        {
+          name: 'health_ptr',
+          type: 'float*',
+          kind: 'number',
+          value: '-5.5',
+          pointerAddresses: ['0x000000016b29a4b0'],
+        },
+        {
+          name: 'player',
+          type: 'Player**',
+          kind: 'object',
+          pointerAddresses: ['0x000000016b29a430', '0x000000016b29a450'],
+          children: [{name: 'id', type: 'int', kind: 'number', value: '1'}],
+        },
+      ]}
+    />
+  );
+
+  expect(screen.getByText('nullptr')).toBeInTheDocument();
+  expect(screen.getByText('0x000000016b29a4b0 \u2192')).toBeInTheDocument();
+  expect(
+    screen.getByText('0x000000016b29a430 \u2192 0x000000016b29a450 \u2192')
+  ).toBeInTheDocument();
+  await userEvent.click(screen.getByText('{ id: 1 }'));
+  expect(
+    screen.getByText('0x000000016b29a430 \u2192 0x000000016b29a450')
+  ).toBeInTheDocument();
+  expect(screen.getByText('1')).toBeInTheDocument();
 });
 
 it('copies available collection values while preserving displayed annotations', async () => {

@@ -1446,13 +1446,13 @@ wheels = [
 
 [[package]]
 name = "openapi-pydantic"
-version = "0.4.0"
+version = "0.4.1"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "pydantic" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/openapi_pydantic-0.4.0-py3-none-any.whl", hash = "sha256:8f782be72a4792bf6b5bbc4cf694fda2ca0719c0354ee6a062179982544fb5c0" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/openapi_pydantic-0.4.1-py3-none-any.whl", hash = "sha256:4038612afd80b846a5e30758565dceb6b98a6ba5b7e98241452b0a2bc29bd78a" },
 ]
 
 [[package]]
@@ -2474,7 +2474,7 @@ dev = [
     { name = "mypy", specifier = ">=2.1.0" },
     { name = "mypy-extensions", specifier = ">=1.0.0" },
     { name = "openapi-core", specifier = ">=0.18.2" },
-    { name = "openapi-pydantic", specifier = ">=0.4.0" },
+    { name = "openapi-pydantic", specifier = ">=0.4.1" },
     { name = "prek", specifier = ">=0.3.6" },
     { name = "pytest", specifier = ">=9.1.1" },
     { name = "pytest-cov", specifier = ">=4.0.0" },
