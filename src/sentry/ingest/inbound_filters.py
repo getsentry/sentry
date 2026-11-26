@@ -607,8 +607,37 @@ class _ConditionMatcher:
     match: Callable[[ConditionOperator | None, list[str]], RuleCondition]
 
 
+@dataclass(frozen=True)
+class _KeyedMatcher:
+    """
+    Builds the matcher for a text field that the key of a condition names, such as one
+    tag or one attribute.
+
+    ``names`` holds the name of the field for each data type that carries it, with a
+    ``{key}`` placeholder. The key fills the placeholder as it is: Relay reads everything
+    in its place as the key, so a key cannot name a field outside of the tags or the
+    attributes.
+    """
+
+    names: Mapping[DataType, str]
+    operators = TEXT_OPERATORS
+
+    def for_data_type(self, data_type: DataType) -> _KeyedMatcher | None:
+        if data_type is DataType.ALL:
+            return self if set(self.names) == _SINGLE_DATA_TYPES else None
+        if data_type not in self.names:
+            return None
+        return _KeyedMatcher({data_type: self.names[data_type]})
+
+    def for_key(self, key: str) -> _ConditionMatcher:
+        matchers = [_field_matcher(name.format(key=key)) for name in self.names.values()]
+        return matchers[0] if len(matchers) == 1 else _any_condition_matcher(matchers)
+
+
 # The matcher for each condition type a data type supports.
-_ConditionMatchers = Mapping[ConditionType, _ConditionMatcher]
+_ConditionMatchers = Mapping[ConditionType, _ConditionMatcher | _KeyedMatcher]
+
+_SINGLE_DATA_TYPES = frozenset(DataType) - {DataType.ALL}
 
 
 # Relay reads `\\` as an escape for the character after it, special or not.
@@ -703,7 +732,7 @@ def _negation(
 
 _CONDITION_MATCHERS: Mapping[
     ConditionType,
-    _ConditionMatcher | Mapping[DataType, _ConditionMatcher],
+    _ConditionMatcher | _KeyedMatcher | Mapping[DataType, _ConditionMatcher],
 ] = {
     ConditionType.ERROR_TYPE: {
         DataType.ERROR: _text_matcher(_custom_error_type_condition),
@@ -750,9 +779,17 @@ _CONDITION_MATCHERS: Mapping[
         DataType.METRIC: _release_matcher("trace_metric.attributes.browser.version.value"),
         DataType.SPAN: _release_matcher("span.attributes.browser.version.value"),
     },
+    # Relay matches a text operator against a string only, so a condition never matches
+    # an attribute that holds a number or a boolean.
+    ConditionType.ATTRIBUTE: _KeyedMatcher(
+        {
+            DataType.ERROR: "event.tags.{key}",
+            DataType.LOG: "log.attributes.{key}.value",
+            DataType.METRIC: "trace_metric.attributes.{key}.value",
+            DataType.SPAN: "span.attributes.{key}.value",
+        }
+    ),
 }
-
-_SINGLE_DATA_TYPES = frozenset(DataType) - {DataType.ALL}
 
 
 def _any_condition_matcher(matchers: Sequence[_ConditionMatcher]) -> _ConditionMatcher:
@@ -765,10 +802,14 @@ def _any_condition_matcher(matchers: Sequence[_ConditionMatcher]) -> _ConditionM
     return _ConditionMatcher(operators, match)
 
 
-def _matcher(condition_type: ConditionType, data_type: DataType) -> _ConditionMatcher | None:
+def _matcher(
+    condition_type: ConditionType, data_type: DataType
+) -> _ConditionMatcher | _KeyedMatcher | None:
     spec = _CONDITION_MATCHERS[condition_type]
     if isinstance(spec, _ConditionMatcher):
         return spec
+    if isinstance(spec, _KeyedMatcher):
+        return spec.for_data_type(data_type)
     if data_type is not DataType.ALL:
         return spec.get(data_type)
     if set(spec) != _SINGLE_DATA_TYPES:
@@ -795,9 +836,14 @@ def get_supported_condition_types(
 def get_supported_operators(condition_type: ConditionType) -> list[ConditionOperator]:
     """The operators a condition type takes, the same on every data type that carries it."""
     spec = _CONDITION_MATCHERS[condition_type]
-    matchers = [spec] if isinstance(spec, _ConditionMatcher) else list(spec.values())
+    matchers = [spec] if isinstance(spec, (_ConditionMatcher, _KeyedMatcher)) else spec.values()
     operators = frozenset.intersection(*(matcher.operators for matcher in matchers))
     return [operator for operator in ConditionOperator if operator in operators]
+
+
+def takes_key(condition_type: ConditionType) -> bool:
+    """Whether a condition of the type names its field with a ``key``."""
+    return isinstance(_CONDITION_MATCHERS[condition_type], _KeyedMatcher)
 
 
 def _custom_filter_condition(
@@ -809,8 +855,9 @@ def _custom_filter_condition(
     Conditions are combined with AND. Returns None if the filter cannot be translated
     (a missing data type, a data type, condition type, operator, or value shape unknown
     to this revision, a condition type whose field the filter's data type does not
-    carry, an operator the field does not take, or a version comparison that does not
-    take exactly one value): since every condition narrows the match, dropping only the
+    carry, a missing key on a condition type that takes one, an operator the field does
+    not take, or a version comparison that does not take exactly one value): since
+    every condition narrows the match, dropping only the
     broken condition would filter more data than configured.
 
     A condition without an operator holds raw values, see ``ConditionOperator``.
@@ -838,6 +885,11 @@ def _custom_filter_condition(
         matcher = matchers.get(condition_type)
         if matcher is None or (operator is not None and operator not in matcher.operators):
             return None
+        if isinstance(matcher, _KeyedMatcher):
+            key = condition.get("key")
+            if not (isinstance(key, str) and key):
+                return None
+            matcher = matcher.for_key(key)
         if operator in COMPARISON_OPERATORS and len(values) != 1:
             return None
         negated = _NEGATED_OPERATORS.get(operator) if operator is not None else None

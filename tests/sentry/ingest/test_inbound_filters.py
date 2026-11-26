@@ -389,6 +389,15 @@ BROWSER_VERSION_FIELDS = [
 ]
 
 
+def attribute_fields(key: str) -> list[str]:
+    return [
+        f"event.tags.{key}",
+        f"log.attributes.{key}.value",
+        f"trace_metric.attributes.{key}.value",
+        f"span.attributes.{key}.value",
+    ]
+
+
 def release_rule_condition(values: list[str]) -> dict[str, object]:
     """The catch-all shape: the release field of every data type, combined with OR."""
     return {
@@ -783,6 +792,82 @@ def release_version_rule_condition(comparator: str, release: str) -> dict[str, o
                 ],
             },
             id="catch_all_browser",
+        ),
+        pytest.param(
+            "error",
+            [
+                {
+                    "type": "attribute",
+                    "key": "server_name",
+                    "operator": "starts_with",
+                    "value": ["canary-", "staging-"],
+                }
+            ],
+            {"op": "glob", "name": "event.tags.server_name", "value": ["canary-*", "staging-*"]},
+            id="attribute_is_a_tag_on_errors",
+        ),
+        pytest.param(
+            "log",
+            [{"type": "attribute", "key": "http.route", "operator": "glob", "value": ["/health*"]}],
+            {"op": "glob", "name": "log.attributes.http.route.value", "value": ["/health*"]},
+            id="attribute_on_logs",
+        ),
+        pytest.param(
+            "metric",
+            [{"type": "attribute", "key": "queue", "operator": "equals", "value": ["low"]}],
+            {"op": "glob", "name": "trace_metric.attributes.queue.value", "value": ["low"]},
+            id="attribute_on_metrics",
+        ),
+        pytest.param(
+            "span",
+            [
+                {"type": "attribute", "key": "db.system", "operator": "equals", "value": ["redis"]},
+                {
+                    "type": "attribute",
+                    "key": "peer",
+                    "operator": "does_not_contain",
+                    "value": ["x"],
+                },
+            ],
+            {
+                "op": "and",
+                "inner": [
+                    {"op": "glob", "name": "span.attributes.db.system.value", "value": ["redis"]},
+                    {
+                        "op": "and",
+                        "inner": [
+                            {"op": "glob", "name": "span.attributes.peer.value", "value": ["*"]},
+                            {
+                                "op": "not",
+                                "inner": {
+                                    "op": "glob",
+                                    "name": "span.attributes.peer.value",
+                                    "value": ["*x*"],
+                                },
+                            },
+                        ],
+                    },
+                ],
+            },
+            id="attributes_on_spans",
+        ),
+        pytest.param(
+            "all",
+            [{"type": "attribute", "key": "tenant", "operator": "equals", "value": ["acme"]}],
+            {
+                "op": "or",
+                "inner": [
+                    {"op": "glob", "name": name, "value": ["acme"]}
+                    for name in attribute_fields("tenant")
+                ],
+            },
+            id="catch_all_attribute",
+        ),
+        pytest.param(
+            "log",
+            [{"type": "attribute", "key": "a{0}.value*", "operator": "equals", "value": ["b"]}],
+            {"op": "glob", "name": "log.attributes.a{0}.value*.value", "value": ["b"]},
+            id="attribute_key_is_read_literally",
         ),
         pytest.param(
             "error",
@@ -1189,6 +1274,19 @@ def test_custom_inbound_filter_skips_untranslatable_filters(
     factories.create_project_custom_inbound_filter(
         default_project,
         conditions=[{"type": "release", "operator": "gt", "value": ["1.0", "2.0"]}],
+    )
+    # An attribute condition names its field with a key.
+    factories.create_project_custom_inbound_filter(
+        default_project,
+        conditions=[{"type": "attribute", "operator": "equals", "value": ["acme"]}],
+    )
+    factories.create_project_custom_inbound_filter(
+        default_project,
+        conditions=[{"type": "attribute", "key": "", "operator": "equals", "value": ["acme"]}],
+    )
+    factories.create_project_custom_inbound_filter(
+        default_project,
+        conditions=[{"type": "attribute", "key": "tenant", "operator": "gt", "value": ["1"]}],
     )
     factories.create_project_custom_inbound_filter(default_project, conditions=[])
     valid_filter = factories.create_project_custom_inbound_filter(

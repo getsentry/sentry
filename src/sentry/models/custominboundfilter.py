@@ -19,6 +19,9 @@ class ConditionType(StrEnum):
     GEO_COUNTRY_CODE = "geo_country_code"
     BROWSER_NAME = "browser_name"
     BROWSER_VERSION = "browser_version"
+    # One tag of an error, or one attribute of a log, metric or span. The `key` of the
+    # condition names it.
+    ATTRIBUTE = "attribute"
 
 
 class ConditionOperator(StrEnum):
