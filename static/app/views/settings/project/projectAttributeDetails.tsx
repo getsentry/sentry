@@ -98,6 +98,7 @@ function AttributeDetails({
   const {data: attribute, error, isPending, isError, refetch} = useQuery(detailsOptions);
 
   function handleSave(context: Attribute['context']) {
+    queryClient.cancelQueries({queryKey: detailsOptions.queryKey, exact: true});
     queryClient.setQueryData(
       detailsOptions.queryKey,
       previous => previous && {...previous, json: {...previous.json, context}}
