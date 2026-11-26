@@ -202,6 +202,7 @@ export interface OverviewRun {
   status: RunStatus | null;
   title: string;
   codeChanges?: OverviewCodeChangeFile[];
+  isSingleRun?: boolean;
 }
 
 export interface ProjectConfig {

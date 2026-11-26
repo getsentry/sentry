@@ -133,7 +133,7 @@ VALID_FIELD_PATTERN = re.compile(r"^[a-zA-Z0-9_.:-]*$")
 
 # The regex for alias here is to match any word, but exclude anything that is only digits
 # eg. 123 doesn't match, but test_123 will match
-ALIAS_REGEX = r"(\w+)?(?!\d+)\w+"
+ALIAS_REGEX = r"\d*[^\W\d]\w*"
 
 MISERY_ALPHA = 5.8875
 MISERY_BETA = 111.8625

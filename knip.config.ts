@@ -5,26 +5,11 @@ const isProductionMode = process.argv.includes('--production');
 const productionEntryPoints = [
   // scraps has all index.tsx file as separate entry points
   'components/core/*/index.tsx',
-  // Build entry points that are not package entry points.
-  'utils/setupStatics.tsx',
-  'serviceWorker/worker/worker.ts',
   // very dynamically imported
   'gettingStartedDocs/**/*.{js,ts,tsx}',
   // --- we should be able to get rid of those: ---
-  // TODO: Remove when wired into Seer Explorer
-  'components/core/chat/thinkingBlock.tsx',
-  'components/core/chat/toolCall.tsx',
   // todo find out how chartcuterie works
   'chartcuterie/**/*.{js,ts,tsx}',
-  // TODO: Remove when the autofixRef embed consumes it (#122099)
-  'components/seer/autofixChatContext.tsx',
-  // TODO: Remove when the Seer credit gates consume it (#129563, #129565)
-  'utils/seer/useSeerCreditCheck.tsx',
-  // TODO: Remove when the Seer credit gates render it (#129563, #129565)
-  'components/seer/outOfCredits/seerOutOfCreditsCta.tsx',
-  'components/brandPageLayout/**/*.{ts,tsx}',
-  // React authentication routes are discovered dynamically by the frontend route registry
-  'views/authV2/authLogin/**/*.{ts,tsx}',
 ];
 
 // Scoped configs reuse the test package's dependencies. Parse the shared config
@@ -87,7 +72,6 @@ const config: KnipConfig = {
       entry: [
         ...productionEntryPoints.map(entry => `${entry}!`),
         ...frontendWorkspace.entry,
-        'views/dashboards/widgetBuilder/components/visualize/traceMetrics/rowModel.ts!',
         '**/__mocks__/**/*.{js,ts,tsx}',
         '**/*.snapshots.tsx',
         '**/*.stories.{js,ts,tsx}',

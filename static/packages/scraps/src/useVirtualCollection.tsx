@@ -1,5 +1,5 @@
 import type * as React from 'react';
-import {Fragment, useEffect} from 'react';
+import {Fragment, useEffect, useLayoutEffect} from 'react';
 import {getInteractionModality} from '@react-aria/interactions';
 import type {Key, Node} from '@react-types/shared';
 import {
@@ -64,6 +64,55 @@ const observeViewportCappedRect: VirtualizerOptions<
       height: Math.min(rect.height, instance.targetWindow?.innerHeight ?? rect.height),
     })
   );
+
+/** Finds a width candidate by label length. Actual width is measured after it mounts. */
+export function getWidestMenuItemKey(
+  items: Iterable<Pick<Node<unknown>, 'key' | 'textValue'>>
+): Key | undefined {
+  let widest: Pick<Node<unknown>, 'key' | 'textValue'> | undefined;
+  for (const item of items) {
+    if (!widest || item.textValue.length > widest.textValue.length) {
+      widest = item;
+    }
+  }
+  return widest?.key;
+}
+
+/** Measures a virtualized menu once its width candidate is mounted. */
+export function useVirtualMenuWidth({
+  enabled,
+  isWidthCandidateMounted,
+  isWidthLocked,
+  menuRef,
+  onLockWidth,
+}: {
+  enabled: boolean;
+  isWidthCandidateMounted: boolean;
+  isWidthLocked: boolean;
+  menuRef: React.RefObject<HTMLElement | null>;
+  onLockWidth: (width: number) => void;
+}) {
+  // A virtualized menu only mounts some of its rows, so its natural width would
+  // change as rows scroll in and out. Measure it once, when the width candidate
+  // has mounted, and keep that width until the menu closes, including while a
+  // search filters the items. A label that does not fit is truncated.
+  //
+  // The virtualizer mounts no rows on its first render, so measuring earlier
+  // would lock the width of an empty list. Measure the rows' own width
+  // (`max-content`) rather than the menu's current one, which its container
+  // may still be squeezing before the overlay is positioned.
+  useLayoutEffect(() => {
+    const menu = menuRef.current;
+    if (!enabled || !isWidthCandidateMounted || isWidthLocked || !menu) {
+      return;
+    }
+    const {width} = menu.style;
+    menu.style.width = 'max-content';
+    // Round up, so a fractional width does not cut off the widest label.
+    onLockWidth(Math.ceil(menu.getBoundingClientRect().width));
+    menu.style.width = width;
+  }, [enabled, isWidthCandidateMounted, isWidthLocked, menuRef, onLockWidth]);
+}
 
 /** Props for the element that renders a row. Spread them onto the row's root element. */
 export interface VirtualRowProps {

@@ -1,8 +1,10 @@
+from datetime import timedelta
 from typing import Any
 from unittest import mock
 
 import pytest
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.request import Request
 
@@ -30,7 +32,10 @@ from sentry.service_accounts.models import (
     ServiceAccountProject,
     ServiceAccountProjectReplica,
     ServiceAccountReplica,
+    ServiceAccountToken,
+    ServiceAccountTokenReplica,
 )
+from sentry.service_accounts.tokens import stored_token_fields
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_no_organization_resource_hydration
 from sentry.testutils.cases import APITestCase
@@ -991,6 +996,90 @@ class OrganizationServiceAccountDetailsTest(APITestCase):
             "project_ids": [str(self.projects[0].id)],
             "all_projects": False,
         }
+
+    def test_delete_deactivates_tokens(self) -> None:
+        def create_token(name: str) -> ServiceAccountToken:
+            stored = stored_token_fields(f"plaintext-{name}")
+            return ServiceAccountToken.objects.create(
+                service_account=self.service_account,
+                organization_id=self.organization.id,
+                name=name,
+                token_hashed=stored.token_hashed,
+                token_last_characters=stored.token_last_characters,
+                scope_list=["project:read"],
+                created_by=self.user,
+            )
+
+        with outbox_runner():
+            active = create_token("deploys")
+            revoked = create_token("old")
+            revoked_at = timezone.now() - timedelta(days=1)
+            revoked.update(date_deactivated=revoked_at)
+
+        with self.feature(FEATURE_FLAG), outbox_runner():
+            self.get_success_response(
+                self.organization.slug, self.service_account.id, method="delete", status_code=204
+            )
+
+        active.refresh_from_db()
+        revoked.refresh_from_db()
+        assert active.date_deactivated is not None
+        assert revoked.date_deactivated == revoked_at
+
+        entries = AuditLogEntry.objects.filter(
+            event=audit_log.get_event_id("SERVICE_ACCOUNT_TOKEN_REMOVE")
+        )
+        assert [(entry.target_object, entry.actor_id, entry.data) for entry in entries] == [
+            (
+                active.id,
+                self.user.id,
+                {
+                    "name": "deploys",
+                    "scopes": ["project:read"],
+                    "service_account_id": self.service_account.id,
+                    "service_account_name": "seer-autofix",
+                    "reason": "service_account_deleted",
+                },
+            )
+        ]
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            replica = ServiceAccountTokenReplica.objects.get(token_id=active.id)
+            assert replica.date_deactivated == active.date_deactivated
+
+    def test_delete_writes_audit_log_when_outbox_flush_fails(self) -> None:
+        stored = stored_token_fields("plaintext-deploys")
+        with outbox_runner():
+            token = ServiceAccountToken.objects.create(
+                service_account=self.service_account,
+                organization_id=self.organization.id,
+                name="deploys",
+                token_hashed=stored.token_hashed,
+                token_last_characters=stored.token_last_characters,
+                scope_list=["project:read"],
+                created_by=self.user,
+            )
+
+        with (
+            self.feature(FEATURE_FLAG),
+            mock.patch(
+                "sentry.service_accounts.models.ServiceAccountToken.handle_async_replication",
+                side_effect=Exception("cell unavailable"),
+            ),
+        ):
+            self.get_success_response(
+                self.organization.slug, self.service_account.id, method="delete", status_code=204
+            )
+
+        token.refresh_from_db()
+        assert token.date_deactivated is not None
+        assert AuditLogEntry.objects.filter(
+            event=audit_log.get_event_id("SERVICE_ACCOUNT_REMOVE"),
+            target_object=self.service_account.id,
+        ).exists()
+        assert AuditLogEntry.objects.filter(
+            event=audit_log.get_event_id("SERVICE_ACCOUNT_TOKEN_REMOVE"), target_object=token.id
+        ).exists()
 
     def test_delete_clears_all_projects(self) -> None:
         self.service_account.update(all_projects=True)

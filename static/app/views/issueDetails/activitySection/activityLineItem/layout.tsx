@@ -12,8 +12,8 @@ interface ActivityLineHeadlineProps {
   timestamp: React.ReactNode;
   title: React.ReactNode;
   details?: React.ReactNode;
+  leadingItems?: React.ReactNode;
   source?: string;
-  trailingItems?: React.ReactNode;
 }
 
 export function ActivityLineHeadline({
@@ -21,18 +21,11 @@ export function ActivityLineHeadline({
   details,
   source,
   timestamp,
-  trailingItems,
+  leadingItems,
 }: ActivityLineHeadlineProps) {
   return (
-    <Flex
-      column={2}
-      row={1}
-      minWidth={0}
-      minHeight="22px"
-      align="baseline"
-      justify="between"
-      gap="xs"
-    >
+    <Flex column={2} row={1} minWidth={0} minHeight="22px" align="baseline" gap="md">
+      {leadingItems}
       <ActivityLineSentence>
         <ActivityLineTitleText
           as="span"
@@ -66,7 +59,6 @@ export function ActivityLineHeadline({
           </Flex>
         </Fragment>
       </ActivityLineSentence>
-      {trailingItems}
     </Flex>
   );
 }

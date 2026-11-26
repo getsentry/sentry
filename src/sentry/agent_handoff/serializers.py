@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Annotated, Any, TypedDict
+from typing import Annotated, Any, NotRequired, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 
@@ -16,7 +16,11 @@ class AgentHandoffClaimResponse(TypedDict):
     organizationName: Annotated[str, ApiDescription("Display name of the organization")]
     organizationSlug: Annotated[str, ApiDescription("Slug of the organization")]
     clientId: Annotated[str, ApiDescription("Client ID of the authorized OAuth application")]
-    setupCode: Annotated[str, ApiDescription("One-time code used to authenticate the CLI")]
+    setupCode: NotRequired[
+        Annotated[
+            str, ApiDescription("One-time code used to authenticate the CLI when the IPs match")
+        ]
+    ]
     flowInstructions: Annotated[
         str, ApiDescription("Instructions to display after authentication succeeds")
     ]
@@ -30,12 +34,15 @@ class AgentHandoffClaimSerializer(Serializer[AgentHandoffClaimResponse]):
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> AgentHandoffClaimResponse:
-        return {
+        response: AgentHandoffClaimResponse = {
             "sentryUrl": obj.sentry_url,
             "userEmail": obj.user_email,
             "organizationName": obj.organization_name,
             "organizationSlug": obj.organization_slug,
             "clientId": obj.client_id,
-            "setupCode": obj.setup_code,
             "flowInstructions": obj.flow_instructions,
         }
+        if obj.setup_code is not None:
+            response["setupCode"] = obj.setup_code
+
+        return response

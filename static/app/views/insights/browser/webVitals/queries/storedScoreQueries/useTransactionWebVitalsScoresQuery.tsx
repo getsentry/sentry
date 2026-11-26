@@ -7,6 +7,10 @@ import type {
   Score,
   WebVitals,
 } from 'sentry/views/insights/browser/webVitals/types';
+import {
+  addBrowserFilter,
+  type DeviceType,
+} from 'sentry/views/insights/browser/webVitals/utils/deviceType';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {useWebVitalsSort} from 'sentry/views/insights/browser/webVitals/utils/useWebVitalsSort';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
@@ -21,6 +25,7 @@ import {getWebVitalScoresFromTableDataRow} from './getWebVitalScoresFromTableDat
 type Props = {
   browserTypes?: BrowserType[];
   defaultSort?: Sort;
+  deviceType?: DeviceType;
   enabled?: boolean;
   limit?: number;
   query?: string;
@@ -37,6 +42,7 @@ export const useTransactionWebVitalsScoresQuery = ({
   enabled,
   query,
   browserTypes,
+  deviceType,
   subregions,
 }: Props) => {
   const sort = useWebVitalsSort({sortName, defaultSort});
@@ -55,9 +61,7 @@ export const useTransactionWebVitalsScoresQuery = ({
     'avg(measurements.score.total):>=0',
     ...(query ? [query] : []),
   ]);
-  if (browserTypes?.length) {
-    search.addFilterValueList(SpanFields.BROWSER_NAME, browserTypes);
-  }
+  addBrowserFilter(search, browserTypes, deviceType);
   if (subregions?.length) {
     search.addFilterValueList(SpanFields.USER_GEO_SUBREGION, subregions);
   }

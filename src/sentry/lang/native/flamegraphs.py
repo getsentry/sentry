@@ -1,5 +1,6 @@
 from collections.abc import Generator
-from typing import Any
+from dataclasses import dataclass
+from typing import Any, TypedDict
 
 import rapidjson
 import sentry_sdk
@@ -23,6 +24,17 @@ MAX_SYMBOLICATION_FRAMES = 2500
 MAX_SAMPLE_COUNT = 9007199254740991
 # Bound node allocations independently of the serialized attachment size.
 MAX_EXPANDED_NODES = 100_000
+
+
+class Stacktrace(TypedDict):
+    frames: list[dict[str, object]]
+
+
+@dataclass
+class FlamegraphSymbolicationInput:
+    modules: list[dict[str, object]]
+    frame_ids: list[int]
+    stacktraces: list[Stacktrace]
 
 
 class FlamegraphExpansionLimitExceeded(Exception):

@@ -12,7 +12,7 @@ from sentry.analytics.events.data_consent_org_creation import (
 )
 from sentry.analytics.events.organization_created import OrganizationCreatedEvent
 from sentry.hybridcloud.models.outbox import CellOutbox, outbox_context
-from sentry.hybridcloud.outbox.category import OutboxCategory
+from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.hybridcloud.services.cell_organization_provisioning import (
     cell_organization_provisioning_rpc_service,
 )
@@ -523,3 +523,61 @@ class TestRegionOrganizationProvisioningUpdateOrganizationSlug(TestCase):
         with assume_test_silo_mode(SiloMode.CELL):
             org = Organization.objects.get(id=self.provisioned_org.id)
         assert org.slug == self.provisioned_org.slug
+
+
+@control_silo_test(cells=create_test_cells("us"))
+class TestOrganizationProvisioningAsyncReplication(TestCase):
+    """Create and rename replicate right away even with org replication async."""
+
+    OPTION = "hybridcloud.outbox.organization_async_replication.enabled"
+
+    def _pending(self, organization_id: int) -> bool:
+        with assume_test_silo_mode(SiloMode.CELL):
+            return CellOutbox.objects.filter(
+                shard_scope=OutboxScope.ORGANIZATION_SCOPE,
+                shard_identifier=organization_id,
+                category=OutboxCategory.ORGANIZATION_UPDATE,
+                object_identifier=organization_id,
+            ).exists()
+
+    def test_create_is_sync(self) -> None:
+        rpc_user = serialize_generic_user(self.create_user())
+        assert rpc_user
+        payload = OrganizationProvisioningOptions(
+            provision_options=OrganizationOptions(
+                name="Santry", slug="santry", owner=rpc_user, create_default_team=True
+            ),
+            post_provision_options=PostProvisionOptions(),
+        )
+        with self.options({self.OPTION: True}), self.captureOnCommitCallbacks(execute=True):
+            assert cell_organization_provisioning_rpc_service.create_organization_in_cell(
+                organization_id=42, provision_payload=payload, cell_name="us"
+            )
+        assert not self._pending(42)
+
+    def test_rename_is_sync(self) -> None:
+        org = self.create_organization(slug="santry", owner=self.create_user())
+        with (
+            assume_test_silo_mode(SiloMode.CONTROL),
+            outbox_context(transaction.atomic(router.db_for_write(OrganizationSlugReservation))),
+        ):
+            OrganizationSlugReservation(
+                reservation_type=OrganizationSlugReservationType.TEMPORARY_RENAME_ALIAS,
+                slug="new-santry",
+                organization_id=org.id,
+                cell_name="us",
+                user_id=-1,
+            ).save(unsafe_write=True)
+        reservation = RpcOrganizationSlugReservation(
+            id=7,
+            slug="new-santry",
+            organization_id=org.id,
+            user_id=-1,
+            cell_name="us",
+            reservation_type=OrganizationSlugReservationType.TEMPORARY_RENAME_ALIAS.value,
+        )
+        with self.options({self.OPTION: True}), self.captureOnCommitCallbacks(execute=True):
+            assert cell_organization_provisioning_rpc_service.update_organization_slug_from_reservation(
+                cell_name="us", org_slug_temporary_alias_res=reservation
+            )
+        assert not self._pending(org.id)

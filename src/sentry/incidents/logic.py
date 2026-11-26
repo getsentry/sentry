@@ -82,24 +82,26 @@ def enable_disable_subscriptions(
         bulk_disable_snuba_subscriptions(query_subscriptions)
 
 
-def update_detector_status(detector: Detector, enabled: bool) -> None:
+def update_detector_status(detector: Detector, allowed: bool) -> None:
     """
-    Updates the status of a detector and the associated query subscriptions.
+    Sets whether the organization's plan allows this metric detector, and pauses or
+    resumes its query subscriptions to match.
 
-    This is used to toggle whether a metric Detector is allowed for the owning
-    organization, and manages the associated subscription state.
-
-    This is separate from Detector.enabled, which is for snoozing.
+    A metric detector has two on/off fields: `Detector.status`, which this function
+    sets from the plan, and `Detector.enabled`, which the user sets. Its query
+    subscriptions should run only when both are on. Disallowing a detector always
+    pauses them; allowing it resumes them only if the detector is also enabled.
     """
     with transaction.atomic(router.db_for_write(Detector)):
-        target_status = ObjectStatus.ACTIVE if enabled else ObjectStatus.DISABLED
-        detector.update(status=target_status)
+        detector.update(status=ObjectStatus.ACTIVE if allowed else ObjectStatus.DISABLED)
+        if allowed and not detector.enabled:
+            return
 
         query_subscriptions = QuerySubscription.objects.filter(
             id__in=[data_source.source_id for data_source in detector.data_sources.all()]
         )
         if query_subscriptions:
-            enable_disable_subscriptions(query_subscriptions, enabled)
+            enable_disable_subscriptions(query_subscriptions, allowed)
         # TODO: Determine whether there was work to be done, and return the result
         # as a boolean.
 
@@ -107,6 +109,7 @@ def update_detector_status(detector: Detector, enabled: bool) -> None:
 def update_detector(detector: Detector, enabled: bool) -> None:
     """
     Temporary alias for update_detector_status to ease cross-repo changes.
+    `enabled` here means allowed by the plan, not `Detector.enabled`
     """
     update_detector_status(detector, enabled)
 
