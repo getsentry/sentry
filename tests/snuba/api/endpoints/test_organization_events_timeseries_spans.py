@@ -1,22 +1,46 @@
-from collections.abc import Sequence
-from datetime import datetime, timedelta
+from collections.abc import Mapping, Sequence
+from datetime import datetime, timedelta, timezone
 from typing import Any
 from unittest import mock
 from unittest.mock import MagicMock
 
 import pytest
+from django.http import QueryDict
 from django.urls import reverse
 from rest_framework.response import Response
 from sentry_protos.snuba.v1.downsampled_storage_pb2 import DownsampledStorageConfig
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import ExtrapolationMode
 
+from sentry.api.helpers.timeseries_cache import (
+    TimeseriesCache,
+    add_cache_time_filter,
+    cache_candidate,
+    create_cache_key,
+    read_timeseries_cache,
+    update_result_with_cache,
+)
 from sentry.cache import default_cache
+from sentry.search.events.types import SnubaParams
+from sentry.snuba import discover
+from sentry.snuba.spans_rpc import Spans
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.utils.snuba_rpc import _make_rpc_requests
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 from tests.snuba.api.endpoints.test_organization_events_span_indexed import KNOWN_PREFLIGHT_ID
 
 pytestmark = pytest.mark.sentry_metrics
+
+
+def values_between(
+    values: Sequence[Mapping[str, Any]], start: datetime, end: datetime
+) -> list[Mapping[str, Any]]:
+    start_ms = start.timestamp() * 1000
+    end_ms = end.timestamp() * 1000
+    return [row for row in values if start_ms <= row["timestamp"] < end_ms]
+
+
+def series_points(values: Sequence[Mapping[str, Any]]) -> list[tuple[float, Any]]:
+    return [(float(row["timestamp"]), row["value"]) for row in values]
 
 
 def build_expected_timeseries(
@@ -68,6 +92,98 @@ class AnyConfidence:
 
 
 any_confidence = AnyConfidence()
+
+
+def test_legacy_dataset_is_not_cache_candidate() -> None:
+    query = QueryDict(mutable=True)
+    query["statsPeriod"] = "6h"
+    request = mock.Mock(GET=query)
+    assert not cache_candidate(
+        request,
+        discover,
+        "",
+        ["count()"],
+        3600,
+        0,
+        None,
+        "api.dashboards.widget.line-chart",
+    )
+    assert cache_candidate(
+        request,
+        Spans,
+        "",
+        ["count(span.duration)"],
+        1800,
+        0,
+        None,
+        "api.performance.homepage",
+    )
+
+
+@pytest.mark.parametrize(
+    ("query", "expected"),
+    [
+        ("", "timestamp:>=2024-01-01T00:00:00Z"),
+        (
+            "transaction:foo OR transaction:bar",
+            "(transaction:foo OR transaction:bar) timestamp:>=2024-01-01T00:00:00Z",
+        ),
+    ],
+)
+def test_cache_time_filter_parenthesizes_or_queries(query: str, expected: str) -> None:
+    start = datetime(2024, 1, 1, tzinfo=timezone.utc)
+    assert add_cache_time_filter(query, start) == expected
+
+
+@pytest.mark.parametrize(
+    ("left", "right", "same"),
+    [
+        pytest.param(
+            ({"query": 'span.description:"{foo}"'}, None, 60),
+            ({"query": "transaction:bar"}, None, 60),
+            False,
+            id="query",
+        ),
+        pytest.param(
+            ({"query": "", "start": "2024-01-01"}, None, 60),
+            ({"query": "", "start": "2024-02-01"}, None, 60),
+            True,
+            id="start",
+        ),
+        pytest.param(
+            ({"query": "", "start": "2024-01-01"}, None, 60),
+            ({"query": "", "start": "2024-01-01", "extrapolationMode": "server"}, None, 60),
+            False,
+            id="extra-param",
+        ),
+        pytest.param(
+            ({"query": ""}, "prod", 3600),
+            ({"query": ""}, "dev", 3600),
+            False,
+            id="environment",
+        ),
+    ],
+)
+def test_create_cache_key(
+    left: tuple[dict[str, str], str | None, int],
+    right: tuple[dict[str, str], str | None, int],
+    same: bool,
+) -> None:
+    def make_cache_key(query_params: dict[str, str], environment: str | None, rollup: int) -> str:
+        params = SnubaParams()
+        if environment is not None:
+            env = mock.Mock()
+            env.name = environment
+            params = SnubaParams(environments=[env])
+        query = QueryDict(mutable=True)
+        for key, value in query_params.items():
+            query[key] = value
+        return create_cache_key(mock.Mock(GET=query), params, rollup)
+
+    left_key = make_cache_key(*left)
+    right_key = make_cache_key(*right)
+    assert left_key.startswith("incremental_timeseries:")
+    assert (left_key == right_key) is same
 
 
 class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpointTestBase):
@@ -3018,6 +3134,83 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             {"key": "http.response_status_code", "value": 404}
         ]
 
+    def test_cache_trim_keeps_the_requested_window(self) -> None:
+        base = int(self.start.timestamp())
+        params = SnubaParams(start=self.start, end=self.start + timedelta(minutes=2))
+        cached = [{"time": base + 60 * minute, "count()": minute} for minute in range(3, 7)]
+        fresh_rows = [
+            {"time": base, "count()": 10},
+            {"time": base + 60, "count()": 11},
+        ]
+        result = mock.Mock()
+        result.data = {"data": fresh_rows}
+        stored: dict[str, Any] = {}
+
+        def record_set(key: str, value: Any, timeout: int | None = None) -> None:
+            stored["value"] = value
+
+        with (
+            mock.patch("sentry.api.helpers.timeseries_cache.MAX_CACHE_LENGTH", 2),
+            mock.patch(
+                "sentry.api.helpers.timeseries_cache.default_cache.set", side_effect=record_set
+            ),
+        ):
+            update_result_with_cache(
+                TimeseriesCache(
+                    candidate=True,
+                    cache_key="incremental_timeseries:test",
+                    cached=cached,
+                    cached_timestamps=[row["time"] for row in cached],
+                ),
+                result,
+                params,
+            )
+
+        assert [row["time"] for row in result.data["data"]] == [base, base + 60]
+        assert [row["count()"] for row in result.data["data"]] == [10, 11]
+        assert [row["time"] for row in stored["value"]] == [base + 60 * 5, base + 60 * 6]
+
+    def test_saved_formula_is_not_cache_candidate(self) -> None:
+        self.create_explore_saved_formula(organization=self.organization)
+        params = SnubaParams(
+            start=self.start,
+            end=self.end,
+            organization=self.organization,
+            projects=[self.project],
+        )
+        query = QueryDict(mutable=True)
+        query["statsPeriod"] = "6h"
+        request = mock.Mock(GET=query, user=self.user)
+
+        def load(columns: list[str]) -> TimeseriesCache:
+            return read_timeseries_cache(
+                enabled=True,
+                request=request,
+                dataset=Spans,
+                query="",
+                query_columns=columns,
+                rollup=3600,
+                top_events=0,
+                comparison_delta=None,
+                referrer="api.dashboards.widget.line-chart",
+                snuba_params=params,
+            )
+
+        with (
+            self.feature("organizations:explore-saved-formulas"),
+            mock.patch("sentry.api.helpers.timeseries_cache.default_cache.get") as cache_get,
+        ):
+            formula = load(["formula.custom_apdex()"])
+            assert formula.candidate is False
+            assert cache_get.call_count == 0
+            # The saved name is a suffix of this function, so it must still cache.
+            prefixed = load(["xformula.custom_apdex()"])
+            assert prefixed.candidate is True
+            assert cache_get.call_count == 1
+            counted = load(["count()"])
+            assert counted.candidate is True
+            assert cache_get.call_count == 2
+
     def test_incremental_cache(self) -> None:
         event_counts = [6, 0, 6, 3, 0, 3]
         spans = []
@@ -3037,49 +3230,49 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             )
         self.store_spans(spans)
 
-        response = self._do_request(
-            data={
-                "start": self.start,
-                "end": self.end,
-                "interval": "30m",
-                "yAxis": "count(span.duration)",
-                "project": self.project.id,
-                "dataset": "spans",
-            },
-            features={
-                "organizations:discover-basic": True,
-                "organizations:explore-incremental-timeseries": True,
-            },
-        )
-        assert response.status_code == 200, response.content
-        initial_data = response.data
+        with freeze_time(self.end):
+            response = self._do_request(
+                data={
+                    "statsPeriod": "6h",
+                    "interval": "30m",
+                    "yAxis": "count(span.duration)",
+                    "project": self.project.id,
+                    "dataset": "spans",
+                },
+                features={
+                    "organizations:discover-basic": True,
+                    "organizations:explore-incremental-timeseries": True,
+                },
+            )
+            assert response.status_code == 200, response.content
+            initial_data = response.data
 
-        response = self._do_request(
-            data={
-                "start": self.start,
-                "end": self.end,
-                "interval": "30m",
-                "yAxis": "count(span.duration)",
-                "project": self.project.id,
-                "dataset": "spans",
-            },
-            features={
-                "organizations:discover-basic": True,
-                "organizations:explore-incremental-timeseries": True,
-            },
-        )
+            response = self._do_request(
+                data={
+                    "statsPeriod": "6h",
+                    "interval": "30m",
+                    "yAxis": "count(span.duration)",
+                    "project": self.project.id,
+                    "dataset": "spans",
+                },
+                features={
+                    "organizations:discover-basic": True,
+                    "organizations:explore-incremental-timeseries": True,
+                },
+            )
         assert response.status_code == 200, response.content
         # assert response.data["meta"] == initial_data["meta"]
         assert len(response.data["timeSeries"]) == len(initial_data["timeSeries"])
 
         timeseries = response.data["timeSeries"][0]
         initial_timeseries = initial_data["timeSeries"][0]
-        assert len(timeseries["values"]) == len(initial_timeseries["values"])
         assert timeseries["yAxis"] == "count(span.duration)"
-        expected = [row["value"] for row in initial_timeseries["values"]]
-        assert timeseries["values"] == build_expected_timeseries(
-            self.start, 1_800_000, expected, ignore_accuracy=True
-        )
+        # statsPeriod rounds the window, so compare the buckets that hold the stored spans.
+        initial_values = values_between(initial_timeseries["values"], self.start, self.end)
+        assert values_between(timeseries["values"], self.start, self.end) == initial_values
+        assert [row["value"] for row in initial_values] == [
+            count * 10 if index % 2 == 0 else 0 for count in event_counts for index in range(2)
+        ]
 
     def test_cache_merge_keeps_buckets_before_refresh_window(self) -> None:
         event_counts = [6, 0, 6, 3, 0, 3]
@@ -3104,9 +3297,12 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         expected: list[int] = []
         for count in event_counts:
             expected.extend([count * 10, 0])
+        expected_points = [
+            (self.start.timestamp() * 1000 + 1_800_000 * index, value)
+            for index, value in enumerate(expected)
+        ]
         data = {
-            "start": self.start,
-            "end": self.end,
+            "statsPeriod": "6h",
             "interval": "30m",
             "yAxis": "count(span.duration)",
             "project": self.project.id,
@@ -3126,12 +3322,13 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             return value
 
         with (
+            freeze_time(self.end),
             mock.patch(
-                "sentry.api.endpoints.organization_events_timeseries.default_cache.get",
+                "sentry.api.helpers.timeseries_cache.default_cache.get",
                 side_effect=record_get,
             ) as cache_get,
             mock.patch(
-                "sentry.api.endpoints.organization_events_timeseries.default_cache.set",
+                "sentry.api.helpers.timeseries_cache.default_cache.set",
                 wraps=default_cache.set,
             ) as cache_set,
         ):
@@ -3141,8 +3338,11 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             assert cache_set.call_count == 1
             assert cache_reads == [None]
             assert len(response.data["timeSeries"]) == 1
-            assert response.data["timeSeries"][0]["values"] == build_expected_timeseries(
-                self.start, 1_800_000, expected, ignore_accuracy=True
+            assert (
+                series_points(
+                    values_between(response.data["timeSeries"][0]["values"], self.start, self.end)
+                )
+                == expected_points
             )
 
             response = self._do_request(data=data, features=features)
@@ -3153,18 +3353,15 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert len(response.data["timeSeries"]) == 1
         timeseries = response.data["timeSeries"][0]
         assert timeseries["yAxis"] == "count(span.duration)"
-        assert timeseries["values"] == build_expected_timeseries(
-            self.start, 1_800_000, expected, ignore_accuracy=True
+        assert (
+            series_points(values_between(timeseries["values"], self.start, self.end))
+            == expected_points
         )
 
     def test_comparison_delta_is_not_cache_candidate(self) -> None:
         with (
-            mock.patch(
-                "sentry.api.endpoints.organization_events_timeseries.default_cache.get"
-            ) as cache_get,
-            mock.patch(
-                "sentry.api.endpoints.organization_events_timeseries.default_cache.set"
-            ) as cache_set,
+            mock.patch("sentry.api.helpers.timeseries_cache.default_cache.get") as cache_get,
+            mock.patch("sentry.api.helpers.timeseries_cache.default_cache.set") as cache_set,
         ):
             response = self._do_request(
                 data={
@@ -3187,8 +3384,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
 
     def test_skip_cache_bypasses_incremental_cache(self) -> None:
         data = {
-            "start": self.start,
-            "end": self.end,
+            "statsPeriod": "6h",
             "interval": "30m",
             "yAxis": "count(span.duration)",
             "project": self.project.id,
@@ -3200,12 +3396,8 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             "organizations:explore-incremental-timeseries": True,
         }
         with (
-            mock.patch(
-                "sentry.api.endpoints.organization_events_timeseries.default_cache.get"
-            ) as cache_get,
-            mock.patch(
-                "sentry.api.endpoints.organization_events_timeseries.default_cache.set"
-            ) as cache_set,
+            mock.patch("sentry.api.helpers.timeseries_cache.default_cache.get") as cache_get,
+            mock.patch("sentry.api.helpers.timeseries_cache.default_cache.set") as cache_set,
         ):
             response = self._do_request(data=data, features=features)
         assert response.status_code == 200, response.content
@@ -3214,9 +3406,247 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
 
         data.pop("skipCache")
         with mock.patch(
-            "sentry.api.endpoints.organization_events_timeseries.default_cache.get",
+            "sentry.api.helpers.timeseries_cache.default_cache.get",
             return_value=None,
         ) as cache_get:
             response = self._do_request(data=data, features=features)
         assert response.status_code == 200, response.content
         cache_get.assert_called()
+
+    def test_dashboard_chart_cache_keeps_early_buckets(self) -> None:
+        event_counts = [6, 0, 6, 3, 0, 3]
+        spans = []
+        for hour, count in enumerate(event_counts):
+            spans.extend(
+                [
+                    self.create_span(
+                        {"sentry_tags": {"transaction": "foo", "status": "success"}},
+                        start_ts=self.start + timedelta(hours=hour, minutes=minute),
+                    )
+                    for minute in range(count)
+                ]
+            )
+        self.store_spans(spans)
+        data = {
+            "statsPeriod": "6h",
+            "interval": "1h",
+            "yAxis": "count()",
+            "query": "transaction:foo OR transaction:bar",
+            "project": self.project.id,
+            "dataset": "spans",
+            "referrer": "api.dashboards.widget.line-chart",
+        }
+        features = {
+            "organizations:discover-basic": True,
+            "organizations:explore-incremental-timeseries": True,
+        }
+        # An absolute window is not a statsPeriod query, so it stays uncached.
+        absolute = {key: value for key, value in data.items() if key != "statsPeriod"}
+        absolute["start"] = self.start
+        absolute["end"] = self.end
+        with (
+            mock.patch("sentry.api.helpers.timeseries_cache.default_cache.get") as cache_get,
+            mock.patch("sentry.api.helpers.timeseries_cache.default_cache.set") as cache_set,
+        ):
+            response = self._do_request(data=absolute, features=features)
+        assert response.status_code == 200, response.content
+        cache_get.assert_not_called()
+        cache_set.assert_not_called()
+
+        original_get = default_cache.get
+        cache_reads: list[Any] = []
+
+        def record_get(*args: Any, **kwargs: Any) -> Any:
+            value = original_get(*args, **kwargs)
+            cache_reads.append(value)
+            return value
+
+        with (
+            freeze_time(self.end),
+            mock.patch(
+                "sentry.api.helpers.timeseries_cache.default_cache.get",
+                side_effect=record_get,
+            ),
+            mock.patch(
+                "sentry.api.helpers.timeseries_cache.default_cache.set",
+                wraps=default_cache.set,
+            ) as cache_set,
+        ):
+            first = self._do_request(data=data, features=features)
+            assert first.status_code == 200, first.content
+            second = self._do_request(data=data, features=features)
+            assert second.status_code == 200, second.content
+        assert cache_reads[0] is None
+        assert cache_reads[1] is not None
+        assert cache_set.call_args.kwargs["timeout"] == 60 * 60
+        assert first.data["timeSeries"] == second.data["timeSeries"]
+        assert [
+            row["value"]
+            for row in values_between(first.data["timeSeries"][0]["values"], self.start, self.end)
+        ] == event_counts
+
+    def test_dashboard_comparison_is_not_cache_candidate(self) -> None:
+        features = {
+            "organizations:discover-basic": True,
+            "organizations:explore-incremental-timeseries": True,
+        }
+        with (
+            mock.patch("sentry.api.helpers.timeseries_cache.default_cache.get") as cache_get,
+            mock.patch("sentry.api.helpers.timeseries_cache.default_cache.set") as cache_set,
+        ):
+            response = self._do_request(
+                data={
+                    "start": self.start,
+                    "end": self.end,
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "project": self.project.id,
+                    "dataset": "spans",
+                    "comparisonDelta": 24 * 60 * 60,
+                    "referrer": "api.dashboards.widget.line-chart",
+                },
+                features=features,
+            )
+        assert response.status_code == 200, response.content
+        cache_get.assert_not_called()
+        cache_set.assert_not_called()
+
+    def test_dashboard_chart_cache_keeps_extra_axes(self) -> None:
+        event_counts = [6, 0, 6, 4, 0, 4]
+        spans = []
+        for hour, count in enumerate(event_counts):
+            spans.extend(
+                [
+                    self.create_span(
+                        {"description": "foo", "sentry_tags": {"status": "success"}},
+                        duration=1000,
+                        start_ts=self.start + timedelta(hours=hour, minutes=minute),
+                    )
+                    for minute in range(count)
+                ]
+            )
+        self.store_spans(spans)
+        features = {
+            "organizations:discover-basic": True,
+            "organizations:explore-incremental-timeseries": True,
+        }
+        with freeze_time(self.end):
+            multi_axis = self._do_request(
+                data={
+                    "statsPeriod": "6h",
+                    "interval": "1h",
+                    "yAxis": ["count()", "p95(span.duration)"],
+                    "project": self.project.id,
+                    "dataset": "spans",
+                    "referrer": "api.dashboards.widget.area-chart",
+                },
+                features=features,
+            )
+            assert multi_axis.status_code == 200, multi_axis.content
+            multi_axis_again = self._do_request(
+                data={
+                    "statsPeriod": "6h",
+                    "interval": "1h",
+                    "yAxis": ["count()", "p95(span.duration)"],
+                    "project": self.project.id,
+                    "dataset": "spans",
+                    "referrer": "api.dashboards.widget.area-chart",
+                },
+                features=features,
+            )
+        assert multi_axis_again.status_code == 200, multi_axis_again.content
+        assert multi_axis.data["timeSeries"] == multi_axis_again.data["timeSeries"]
+        assert [series["yAxis"] for series in multi_axis.data["timeSeries"]] == [
+            "count()",
+            "p95(span.duration)",
+        ]
+        count_series = values_between(
+            multi_axis.data["timeSeries"][0]["values"], self.start, self.end
+        )
+        assert [row["value"] for row in count_series] == event_counts
+        assert all(row["confidence"] in ("high", "low", None) for row in count_series)
+        assert count_series[0]["sampleCount"] == event_counts[0]
+
+    def test_dashboard_top_events_is_not_cache_candidate(self) -> None:
+        spans = []
+        for minute in range(5):
+            spans.append(
+                self.create_span(
+                    {"sentry_tags": {"transaction": "foo", "status": "success"}},
+                    start_ts=self.start + timedelta(minutes=minute),
+                )
+            )
+        for minute in range(4):
+            spans.append(
+                self.create_span(
+                    {"sentry_tags": {"transaction": "baz", "status": "success"}},
+                    start_ts=self.start + timedelta(minutes=minute),
+                )
+            )
+        for minute in range(6):
+            spans.append(
+                self.create_span(
+                    {"sentry_tags": {"transaction": "bar", "status": "success"}},
+                    start_ts=self.start + timedelta(hours=5, minutes=minute),
+                )
+            )
+        self.store_spans(spans)
+        data = {
+            "start": self.start,
+            "end": self.end,
+            "interval": "1h",
+            "yAxis": "count()",
+            "groupBy": ["transaction"],
+            "orderby": "-count()",
+            "topEvents": 2,
+            "project": self.project.id,
+            "dataset": "spans",
+            "referrer": "api.dashboards.widget.bar-chart",
+        }
+        features = {
+            "organizations:discover-basic": True,
+            "organizations:explore-incremental-timeseries": True,
+        }
+        with (
+            mock.patch("sentry.api.helpers.timeseries_cache.default_cache.get") as cache_get,
+            mock.patch("sentry.api.helpers.timeseries_cache.default_cache.set") as cache_set,
+        ):
+            first = self._do_request(data=data, features=features)
+        assert first.status_code == 200, first.content
+        cache_get.assert_not_called()
+        cache_set.assert_not_called()
+
+        series_by_group = {}
+        for series in first.data["timeSeries"]:
+            group = series["groupBy"]
+            key = None if group is None else group[0]["value"]
+            series_by_group[key] = [row["value"] for row in series["values"]]
+        assert series_by_group["bar"][0] == 0
+        assert series_by_group["bar"][-1] == 6
+        assert series_by_group["foo"][0] == 5
+        assert series_by_group["foo"][-1] == 0
+        assert series_by_group[None][0] == 4
+        assert series_by_group[None][-1] == 0
+
+    def test_dashboard_row_referrer_is_not_cached(self) -> None:
+        data = {
+            "start": self.start,
+            "end": self.end,
+            "interval": "1h",
+            "yAxis": "count()",
+            "project": self.project.id,
+            "dataset": "spans",
+            "referrer": "api.dashboards.widget.line-chart.row",
+        }
+        features = {
+            "organizations:discover-basic": True,
+            "organizations:explore-incremental-timeseries": True,
+        }
+        with (
+            mock.patch("sentry.api.helpers.timeseries_cache.default_cache.get") as cache_get,
+            mock.patch("sentry.api.helpers.timeseries_cache.default_cache.set") as cache_set,
+        ):
+            response = self._do_request(data=data, features=features)
+        assert response.status_code == 200, response.content
+        cache_get.assert_not_called()
+        cache_set.assert_not_called()
