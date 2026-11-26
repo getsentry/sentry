@@ -61,38 +61,52 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
     metricsEnabled,
   });
 
-  const isLoading =
-    props.metaResults.status === 'pending' || props.tree.type === 'loading';
-
-  const isError = props.metaResults.status === 'error' || props.tree.type === 'error';
-
+  const isTreeError = props.tree.type === 'error';
   const isRepresentativeLoading = props.overview.isRepresentativeLoading;
+  // A failed meta request doesn't hold the header: its counts fall back to the
+  // tree and the overview.
+  const isLoading =
+    props.tree.type === 'loading' ||
+    (props.metaResults.status === 'pending' && !isTreeError) ||
+    isRepresentativeLoading;
   const noEvents =
     props.tree.type === 'empty' &&
     !hasLogs &&
     !hasMetrics &&
-    !props.overview.isTabLoading &&
-    !isRepresentativeLoading;
+    !props.overview.isTabLoading;
 
-  // An error or an empty trace keeps the skeleton: the body below explains it.
-  if (isLoading || isError || noEvents) {
+  const skeleton = (
+    <Fragment>
+      <TraceBreadcrumbs organization={props.organization} traceSlug={props.traceSlug} />
+      <TopBar.Slot name="feedback" feedbackOptions={traceViewFeedbackOptions} />
+      <EntityHeader
+        isLoading
+        title={{type: 'text', label: t('Trace'), value: t('Trace')}}
+        stats={{
+          label: STATS_LABEL,
+          items: [
+            {label: t('Root Duration'), value: null},
+            {label: t('Spans'), value: null},
+            {label: t('Issues'), value: null},
+          ],
+        }}
+        metadata={{label: METADATA_LABEL, items: [null, null, null, null]}}
+      />
+    </Fragment>
+  );
+
+  if (isLoading) {
+    return skeleton;
+  }
+
+  // The waterfall below explains a failed or empty trace, so the header only
+  // names the page.
+  if (isTreeError || noEvents) {
     return (
       <Fragment>
         <TraceBreadcrumbs organization={props.organization} traceSlug={props.traceSlug} />
         <TopBar.Slot name="feedback" feedbackOptions={traceViewFeedbackOptions} />
-        <EntityHeader
-          isLoading
-          title={{type: 'text', label: t('Trace'), value: t('Trace')}}
-          stats={{
-            label: STATS_LABEL,
-            items: [
-              {label: t('Root Duration'), value: null},
-              {label: t('Spans'), value: null},
-              {label: t('Issues'), value: null},
-            ],
-          }}
-          metadata={{label: METADATA_LABEL, items: [null, null, null, null]}}
-        />
+        <EntityHeader title={{type: 'text', label: t('Trace'), value: t('Trace')}} />
       </Fragment>
     );
   }
@@ -133,6 +147,20 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
   const startTimestamp =
     traceNode?.space[0] ?? (timestamp ? timestamp * 1000 : undefined);
   const traceTitle = getTraceTitle(rep);
+  const metadataItems = getTraceMetadataItems({
+    operation: traceTitle.operation,
+    organization: props.organization,
+    project,
+    properties: getTraceProperties(props.rootEventResults.data, rep?.dataset ?? null),
+    replayId: getReplayId(props.rootEventResults.data),
+    startTimestamp,
+  });
+
+  // Until the root event lands, a row with nothing from the tree to show would
+  // disappear and come back, so the header holds its skeleton instead.
+  if (props.rootEventResults.isLoading && metadataItems.every(item => item === null)) {
+    return skeleton;
+  }
 
   return (
     <Fragment>
@@ -144,7 +172,6 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
       />
       <TopBar.Slot name="feedback" feedbackOptions={traceViewFeedbackOptions} />
       <EntityHeader
-        isLoading={isRepresentativeLoading}
         title={{
           type: 'text',
           label: t('Trace'),
@@ -164,20 +191,7 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
             tree: props.tree,
           }),
         }}
-        metadata={{
-          label: METADATA_LABEL,
-          items: getTraceMetadataItems({
-            operation: traceTitle.operation,
-            organization: props.organization,
-            project,
-            properties: getTraceProperties(
-              props.rootEventResults.data,
-              rep?.dataset ?? null
-            ),
-            replayId: getReplayId(props.rootEventResults.data),
-            startTimestamp,
-          }),
-        }}
+        metadata={{label: METADATA_LABEL, items: metadataItems}}
       />
     </Fragment>
   );
