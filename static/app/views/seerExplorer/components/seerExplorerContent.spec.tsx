@@ -1329,7 +1329,7 @@ describe('SeerExplorerContent', () => {
 
       expect(
         await screen.findByText(
-          'Seer stopped because your organization ran out of available credits.'
+          'Seer stopped because your organization does not have enough credits.'
         )
       ).toBeInTheDocument();
       expect(screen.queryByText(/so I stopped here/)).not.toBeInTheDocument();
@@ -1384,7 +1384,7 @@ describe('SeerExplorerContent', () => {
       expect(await screen.findByText(/so I stopped here/)).toBeInTheDocument();
       expect(
         screen.queryByText(
-          'Seer stopped because your organization ran out of available credits.'
+          'Seer stopped because your organization does not have enough credits.'
         )
       ).not.toBeInTheDocument();
     });

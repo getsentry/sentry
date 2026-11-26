@@ -204,7 +204,7 @@ class Migration(CheckedMigration):
     atomic = False
 
     dependencies = [
-        ("sentry", "1269_add_eventattachment_crash_report_index"),
+        ("sentry", "1270_set_explicit_db_defaults"),
     ]
 
     operations = [
@@ -288,7 +288,9 @@ class Migration(CheckedMigration):
                 migrations.AlterField(
                     model_name="group",
                     name="status",
-                    field=sentry.db.models.fields.bounded.BoundedPositiveIntegerField(default=0),
+                    field=sentry.db.models.fields.bounded.BoundedPositiveIntegerField(
+                        db_default=0, default=0
+                    ),
                 ),
                 migrations.AlterField(
                     model_name="groupbookmark",

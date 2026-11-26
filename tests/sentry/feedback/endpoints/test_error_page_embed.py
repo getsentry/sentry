@@ -95,6 +95,20 @@ class ErrorPageEmbedTest(TestCase):
         assert resp["Access-Control-Allow-Origin"] == "*"
         self.assertTemplateUsed(resp, "sentry/error-page-embed.html")
 
+    def test_does_not_use_trusted_types_sinks(self) -> None:
+        resp = self.client.get(
+            self.path_with_qs + "&title=" + quote("<b>Oops</b>"),
+            HTTP_REFERER="http://example.com",
+            HTTP_ACCEPT="text/html, text/javascript",
+        )
+        assert resp.status_code == 200, resp.content
+        body = resp.content.decode("utf8")
+        assert ".innerHTML" not in body
+        assert (
+            '["h2",{"id":"sentry-error-embed-heading"},["\\u003cb\\u003eOops\\u003c/b\\u003e"]]'
+            in body
+        )
+
     def test_endpoint_reflects_region_url_by_default(self) -> None:
         resp = self.client.get(
             self.path_with_qs,

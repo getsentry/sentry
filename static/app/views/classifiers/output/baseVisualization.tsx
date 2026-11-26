@@ -20,21 +20,20 @@ interface ClassifierTimeSeriesOptions {
   interval: string | undefined;
   pageFilters: PageFilters;
   query: string;
-  enabled?: boolean;
+  yAxis?: string[];
 }
 
 export function useClassifierTimeSeries(
   classifier: TelemetryClassifier,
-  {enabled, interval, pageFilters, query}: ClassifierTimeSeriesOptions
+  {interval, pageFilters, query, yAxis}: ClassifierTimeSeriesOptions
 ) {
   return useFetchEventsTimeSeries(
     DiscoverDatasets.ENRICHMENT_ATTRIBUTES,
     {
-      yAxis: `count(${getResultField(classifier.resultAttribute)})`,
+      yAxis: yAxis ?? `count(${getResultField(classifier.resultAttribute)})`,
       query,
       interval,
       pageFilters,
-      enabled,
     },
     Referrer.DETAIL_INSTANCES_CHART
   );

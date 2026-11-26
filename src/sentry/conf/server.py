@@ -186,6 +186,7 @@ SENTRY_DEBUG_FILES_REDIS_CLUSTER = "default"
 SENTRY_MONITORS_REDIS_CLUSTER = "default"
 SENTRY_STATISTICAL_DETECTORS_REDIS_CLUSTER = "default"
 SENTRY_ESCALATION_THRESHOLDS_REDIS_CLUSTER = "default"
+SENTRY_ANOMALY_DETECTION_REDIS_CLUSTER = "default"
 # Redis cluster for span buffer data and flush locks. Flush locks must remain
 # on this cluster because add-buffer.lua checks lock existence atomically.
 SENTRY_SPAN_BUFFER_CLUSTER = "default"
@@ -910,6 +911,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.demo_mode.tasks",
     "sentry.dynamic_sampling.per_org.feature_cache",
     "sentry.dynamic_sampling.per_org.scheduler",
+    "sentry.feedback.tasks.spam_shadow",
     "sentry.feedback.tasks.update_user_reports",
     "sentry.hybridcloud.tasks.deliver_from_outbox",
     "sentry.hybridcloud.tasks.deliver_webhooks",
@@ -944,6 +946,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.issues.action_log.tasks",
     "sentry.issues.derived.tasks",
     "sentry.issues.escalating.forecasts",
+    "sentry.issues.impact.tasks",
     "sentry.middleware.integrations.tasks",
     "sentry.models.counter",
     "sentry.monitors.tasks.clock_pulse",

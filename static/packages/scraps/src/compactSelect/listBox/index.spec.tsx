@@ -24,10 +24,7 @@ describe('ListBox', () => {
 
     await userEvent.click(screen.getByRole('button'));
 
-    const listBox = screen.getByRole('listbox');
-    // oxlint-disable-next-line testing-library/no-node-access -- Supply geometry on the unlabelled scroll viewport around the listbox.
-    const scrollContainer = listBox.parentElement?.parentElement;
-    expect(scrollContainer).toBeInTheDocument();
+    const scrollContainer = screen.getByTestId('compact-select-scroll-container');
 
     Object.defineProperty(scrollContainer, 'clientHeight', {
       value: 100,
@@ -60,10 +57,7 @@ describe('ListBox', () => {
 
     await userEvent.click(screen.getByRole('button'));
 
-    const listBox = screen.getByRole('listbox');
-    // oxlint-disable-next-line testing-library/no-node-access -- Supply geometry on the unlabelled scroll viewport around the listbox.
-    const scrollContainer = listBox.parentElement?.parentElement;
-    expect(scrollContainer).toBeInTheDocument();
+    const scrollContainer = screen.getByTestId('compact-select-scroll-container');
 
     Object.defineProperty(scrollContainer, 'clientHeight', {
       value: 60,

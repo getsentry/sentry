@@ -11,7 +11,6 @@ from sentry.hybridcloud.rpc.service import RpcService, cell_rpc_method
 from sentry.integrations.services.repository import RpcRepository
 from sentry.integrations.services.repository.model import (
     RpcCreateRepository,
-    RpcRepointIntegrationResult,
     RpcRepositoryRename,
 )
 from sentry.silo.base import SiloMode
@@ -162,22 +161,6 @@ class RepositoryService(RpcService):
 
         Returns False without changing anything if the repository no longer exists or is
         being deleted.
-        """
-
-    @cell_rpc_method(resolve=ByOrganizationId())
-    @abstractmethod
-    def repoint_organization_integration_data(
-        self,
-        *,
-        organization_id: int,
-        old_integration_id: int,
-        new_integration_id: int,
-    ) -> RpcRepointIntegrationResult:
-        """
-        Moves an organization's cell-silo references from one integration to another.
-
-        The operation is atomic and safe to retry. It preserves the existing
-        organization integration referenced by code mappings.
         """
 
     @cell_rpc_method(resolve=ByOrganizationId())

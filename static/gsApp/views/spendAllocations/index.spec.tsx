@@ -435,6 +435,30 @@ describe('POST Create spend allocation', () => {
     expect(screen.queryByTestId('spend-allocation-form')).not.toBeInTheDocument();
   });
 
+  it('creates an allocation without period timestamps', async () => {
+    render(<SpendAllocationsRoot subscription={subscription} />, {organization});
+    await screen.findByText('Un-Allocated Errors Pool');
+    await userEvent.click(screen.getByRole('button', {name: 'New Allocation'}));
+    renderGlobalModal();
+
+    await screen.findByTestId('spend-allocation-form');
+    await selectEvent.select(
+      screen.getByText('Select a project to continue'),
+      'Projfoo-transaction'
+    );
+    await userEvent.clear(screen.getByTestId('allocation-input'));
+    await userEvent.type(screen.getByTestId('allocation-input'), '35');
+    await userEvent.click(screen.getByTestId('spend-allocation-submit'));
+
+    expect(mockPost).toHaveBeenCalledTimes(1);
+    expect(mockPost.mock.calls[0][1].data).toEqual({
+      billing_metric: 'error',
+      target_id: '3',
+      target_type: 'Project',
+      desired_quantity: '35',
+    });
+  });
+
   it('filters target project list', async () => {
     // TODO: figure out how to write tests for SelectField component.
   });
@@ -561,6 +585,11 @@ describe('DELETE spend allocation', () => {
     await userEvent.click(within(tableRows[0]!).getByRole('button', {name: 'Delete'}));
 
     expect(mockDelete.mock.calls).toHaveLength(1);
+    expect(mockDelete.mock.calls[0][1].query).toEqual({
+      billing_metric: 'error',
+      target_id: 1,
+      target_type: 'Project',
+    });
     // Assert that it refetches allocations on success
     expect(mockGet.mock.calls).toHaveLength(4);
   });
@@ -642,6 +671,30 @@ describe('PUT edit spend allocation', () => {
     await userEvent.click(screen.getByText('Save Changes'));
 
     expect(mockPut.mock.calls).toHaveLength(1);
+  });
+
+  it('edits an allocation without period timestamps', async () => {
+    render(<SpendAllocationsRoot subscription={subscription} />, {organization});
+    await screen.findByRole('table', {name: 'Project allocations'});
+
+    await userEvent.click(
+      within(getAllocationRows()[1]!).getByRole('button', {name: 'Edit'})
+    );
+    renderGlobalModal();
+    await screen.findByTestId('spend-allocation-form');
+    expect(screen.getByTestId('allocation-input')).toHaveValue(50);
+
+    await userEvent.clear(screen.getByTestId('allocation-input'));
+    await userEvent.type(screen.getByTestId('allocation-input'), '80');
+    await userEvent.click(screen.getByText('Save Changes'));
+
+    expect(mockPut).toHaveBeenCalledTimes(1);
+    expect(mockPut.mock.calls[0][1].data).toEqual({
+      billing_metric: 'error',
+      target_id: '2',
+      target_type: 'Project',
+      desired_quantity: '80',
+    });
   });
 
   it('shows a fallback error when the save request fails without a response body', async () => {

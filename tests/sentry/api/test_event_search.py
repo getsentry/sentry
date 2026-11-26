@@ -1083,6 +1083,10 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
         assert isinstance(search_filter, SearchFilter)
         assert search_filter.value.value == 'a"b'
 
+    def test_unescaped_quote_after_escaped_quote_raises(self) -> None:
+        with pytest.raises(InvalidSearchQuery, match="Invalid quote"):
+            parse_search_query('title:a\\""\\')
+
     def test_has_in_filter(self) -> None:
         assert parse_search_query("release:['some_text', 'some_other_text']") == [
             SearchFilter(

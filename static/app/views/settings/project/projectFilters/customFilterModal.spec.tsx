@@ -1,11 +1,19 @@
 import {EventFixture} from 'sentry-fixture/event';
 import {EventEntryFixture} from 'sentry-fixture/eventEntry';
 import {ExceptionValueFixture} from 'sentry-fixture/exceptionValue';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 import {ReleaseFixture} from 'sentry-fixture/release';
+
+import {act, renderGlobalModal, screen} from 'sentry-test/reactTestingLibrary';
 
 import {EntryType} from 'sentry/types/event';
 
-import {getFilterDraftFromEvent} from './customFilterModal';
+import {
+  getFilterDraftFromEvent,
+  getFilterDraftFromRelease,
+  openCustomFilterModal,
+} from './customFilterModal';
 
 describe('getFilterDraftFromEvent', () => {
   it('fills one literal condition per property the event carries', () => {
@@ -92,5 +100,68 @@ describe('getFilterDraftFromEvent', () => {
 
   it('starts with no conditions when the event carries nothing to match', () => {
     expect(getFilterDraftFromEvent(EventFixture()).conditions).toBe('');
+  });
+});
+
+describe('getFilterDraftFromRelease', () => {
+  it('matches every data type from exactly the release', () => {
+    expect(getFilterDraftFromRelease('2.41.0')).toEqual({
+      name: 'Release 2.41.0',
+      dataType: 'all',
+      conditions: 'release:2.41.0',
+    });
+  });
+
+  it('names the filter after the formatted version but matches the raw one', () => {
+    expect(getFilterDraftFromRelease('com.example.app@2.41.0+123')).toEqual({
+      name: 'Release 2.41.0 (123)',
+      dataType: 'all',
+      conditions: 'release:com.example.app@2.41.0+123',
+    });
+  });
+
+  it('escapes characters that would otherwise widen or break the match', () => {
+    expect(getFilterDraftFromRelease('build *nightly* "rc"').conditions).toBe(
+      'release:"build \\*nightly\\* \\"rc\\""'
+    );
+  });
+});
+
+describe('openCustomFilterModal', () => {
+  const organization = OrganizationFixture();
+  const project = ProjectFixture({slug: 'backend'});
+
+  it('introduces a draft from an event', async () => {
+    renderGlobalModal({organization});
+    act(() =>
+      openCustomFilterModal({
+        project,
+        initialValues: getFilterDraftFromRelease('2.41.0'),
+        draftSource: 'event',
+      })
+    );
+
+    expect(
+      await screen.findByText(/The conditions below come from the event/)
+    ).toBeInTheDocument();
+  });
+
+  it('introduces a draft from a release, naming the project', async () => {
+    renderGlobalModal({organization});
+    act(() =>
+      openCustomFilterModal({
+        project,
+        initialValues: getFilterDraftFromRelease('2.41.0'),
+        draftSource: 'release',
+      })
+    );
+
+    expect(
+      await screen.findByText(
+        /The condition below matches the release you were looking at, in backend\./
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByRole('textbox', {name: 'Name'})).toHaveValue('Release 2.41.0');
+    expect(screen.getByRole('row', {name: 'release:2.41.0'})).toBeInTheDocument();
   });
 });

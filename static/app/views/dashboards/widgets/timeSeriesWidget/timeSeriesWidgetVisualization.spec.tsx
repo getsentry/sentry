@@ -1,3 +1,4 @@
+import type {LineSeriesOption} from 'echarts';
 import type {CallbackDataParams} from 'echarts/types/dist/shared';
 import {OutcomeRowFixture} from 'sentry-fixture/outcomeRow';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
@@ -13,8 +14,8 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 
 import {sampleDurationTimeSeries} from './fixtures/sampleDurationTimeSeries';
 import {sampleThroughputTimeSeries} from './fixtures/sampleThroughputTimeSeries';
+import {Area} from './plottables/area';
 import {Line} from './plottables/line';
-import {LOW_CONFIDENCE_OPACITY} from './settings';
 import {
   LOW_CONFIDENCE_AREAS_NAME,
   TimeSeriesWidgetVisualization,
@@ -170,20 +171,12 @@ describe('TimeSeriesWidgetVisualization', () => {
       return series?.find(({id}) => id === LOW_CONFIDENCE_AREAS_NAME);
     }
 
-    function plottedLineOpacities() {
+    function plottedLines() {
       const {series} = jest.mocked(BaseChart).mock.calls.at(-1)![0];
-      return series?.map(item =>
-        'lineStyle' in item ? item.lineStyle?.opacity : undefined
-      );
+      return series?.filter(item => item.type === 'line') as LineSeriesOption[];
     }
 
-    it('does not mark low-confidence buckets by default', () => {
-      render(<TimeSeriesWidgetVisualization plottables={lowConfidencePlottables} />);
-
-      expect(plottedLineOpacities()).not.toContain(LOW_CONFIDENCE_OPACITY);
-    });
-
-    it('marks low-confidence buckets with showConfidence', () => {
+    it('plots low-confidence buckets in the same series as the rest of the data', () => {
       render(
         <TimeSeriesWidgetVisualization
           plottables={lowConfidencePlottables}
@@ -191,7 +184,32 @@ describe('TimeSeriesWidgetVisualization', () => {
         />
       );
 
-      expect(plottedLineOpacities()).toContain(LOW_CONFIDENCE_OPACITY);
+      expect(plottedLines()).toHaveLength(1);
+      expect(plottedLines()[0]?.lineStyle?.opacity).toBeUndefined();
+    });
+
+    it('keeps stacked areas stacked when their low-confidence buckets differ', () => {
+      const timestamps = [1729796400000, 1729798200000, 1729800000000, 1729801800000];
+      const stackedAreas = [0, 2].map(
+        lowConfidenceIndex =>
+          new Area(
+            TimeSeriesFixture({
+              yAxis: `p${lowConfidenceIndex}(span.duration)`,
+              values: timestamps.map((timestamp, index) => ({
+                timestamp,
+                value: 10,
+                confidence: index === lowConfidenceIndex ? 'low' : 'high',
+              })),
+            })
+          )
+      );
+
+      render(<TimeSeriesWidgetVisualization plottables={stackedAreas} showConfidence />);
+
+      const stacks = plottedLines().map(item => item.stack);
+      expect(stacks).toHaveLength(2);
+      expect(stacks[0]).toBeTruthy();
+      expect(stacks[0]).toBe(stacks[1]);
     });
 
     it('does not hatch low-confidence buckets by default', () => {
@@ -209,6 +227,99 @@ describe('TimeSeriesWidgetVisualization', () => {
       );
 
       expect(lowConfidenceAreas()).toBeDefined();
+    });
+
+    function renderTooltipAt(timestamp: number) {
+      const {series, tooltip} = jest.mocked(BaseChart).mock.calls.at(-1)![0];
+      const params = (series ?? []).flatMap((item, seriesIndex) => {
+        const point = (Array.isArray(item.data) ? item.data : []).find(
+          (datum: any) => datum?.value?.[0] === timestamp
+        );
+        return point
+          ? [
+              {
+                seriesIndex,
+                seriesName: item.name,
+                seriesType: item.type,
+                data: point,
+                value: point.value,
+                marker: '',
+              } as CallbackDataParams,
+            ]
+          : [];
+      });
+      const formatter = tooltip?.formatter as (
+        params: CallbackDataParams[],
+        asyncTicket: string
+      ) => string;
+
+      let html = '';
+      act(() => {
+        html = formatter(params, '');
+      });
+      const container = document.createElement('div');
+      container.innerHTML = html;
+      return container;
+    }
+
+    it('shows a header and value icon for a low-confidence bucket', () => {
+      render(
+        <TimeSeriesWidgetVisualization
+          plottables={lowConfidencePlottables}
+          showConfidence
+        />
+      );
+
+      const tooltip = renderTooltipAt(1729798200000);
+
+      expect(tooltip.querySelector('.tooltip-header')).toHaveTextContent(
+        'Low confidence'
+      );
+      expect(tooltip.querySelectorAll('.tooltip-series svg')).toHaveLength(1);
+      expect(tooltip).not.toHaveTextContent('(Low confidence)');
+    });
+
+    it('leaves high-confidence buckets unmarked', () => {
+      render(
+        <TimeSeriesWidgetVisualization
+          plottables={lowConfidencePlottables}
+          showConfidence
+        />
+      );
+
+      const tooltip = renderTooltipAt(1729796400000);
+
+      expect(tooltip.querySelector('.tooltip-header')).toBeNull();
+      expect(tooltip.querySelector('svg')).toBeNull();
+    });
+
+    it('does not mark incomplete low-confidence buckets', () => {
+      render(
+        <TimeSeriesWidgetVisualization
+          plottables={[
+            new Line(
+              TimeSeriesFixture({
+                values: [
+                  {timestamp: 1729796400000, value: 10},
+                  {timestamp: 1729798200000, value: 20},
+                  {
+                    timestamp: 1729800000000,
+                    value: 30,
+                    confidence: 'low',
+                    incomplete: true,
+                  },
+                ],
+              })
+            ),
+          ]}
+          showConfidence
+        />
+      );
+
+      const tooltip = renderTooltipAt(1729800000000);
+
+      expect(tooltip.querySelector('.tooltip-header')).toBeNull();
+      expect(tooltip.querySelector('svg')).toBeNull();
     });
   });
 });

@@ -12,17 +12,19 @@ import {
 } from 'sentry/views/insights/browser/webVitals/settings';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 import {WEB_VITAL_TO_FIELD} from 'sentry/views/insights/browser/webVitals/types';
-import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {
-  PERFORMANCE_SCORE_MEDIANS,
-  PERFORMANCE_SCORE_P90S,
-} from 'sentry/views/insights/browser/webVitals/utils/scoreThresholds';
+  addBrowserFilter,
+  type DeviceType,
+} from 'sentry/views/insights/browser/webVitals/utils/deviceType';
+import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
+import {getWebVitalScoreThresholds} from 'sentry/views/insights/browser/webVitals/utils/scoreThresholds';
 // eslint-disable-next-line no-restricted-imports
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import type {SubregionCode} from 'sentry/views/insights/types';
 import {SpanFields} from 'sentry/views/insights/types';
 
 interface Props {
+  deviceType: DeviceType;
   webVital: WebVitals | null;
   browserTypes?: BrowserType[];
   subregions?: SubregionCode[];
@@ -33,20 +35,16 @@ export function WebVitalStatusLineChart({
   webVital,
   transaction,
   browserTypes,
+  deviceType,
   subregions,
 }: Props) {
-  const webVitalP90 = webVital ? PERFORMANCE_SCORE_P90S[webVital] : 0;
-  const webVitalMedian = webVital ? PERFORMANCE_SCORE_MEDIANS[webVital] : 0;
-
   const search = new MutableSearch(DEFAULT_QUERY_FILTER);
   const referrer = Referrer.WEB_VITAL_STATUS_LINE_CHART;
 
   if (transaction) {
     search.addFilterValue('transaction', transaction);
   }
-  if (browserTypes?.length) {
-    search.addFilterValueList(SpanFields.BROWSER_NAME, browserTypes);
-  }
+  addBrowserFilter(search, browserTypes, deviceType);
   if (subregions?.length) {
     search.addFilterValueList(SpanFields.USER_GEO_SUBREGION, subregions);
   }
@@ -69,25 +67,28 @@ export function WebVitalStatusLineChart({
     ? timeSeries.find(ts => ts.yAxis === `p75(${WEB_VITAL_TO_FIELD[webVital]})`)
     : undefined;
 
-  const includePoorThreshold = webVitalTimeSeries?.values.some(
-    ({value}) => (value || 0) > webVitalMedian
-  );
-  const includeMehThreshold = webVitalTimeSeries?.values.some(
-    ({value}) => (value || 0) >= webVitalP90
-  );
-
-  const thresholdsPlottable = new Thresholds({
-    thresholds: {
-      max_values: {
-        max1: includeMehThreshold ? webVitalP90 : undefined,
-        max2: includePoorThreshold ? webVitalMedian : undefined,
-      },
-      unit: 'ms',
-    },
-    showLabels: true,
-  });
-
-  const extraPlottables: Plottable[] = isTimeseriesLoading ? [] : [thresholdsPlottable];
+  const extraPlottables: Plottable[] = [];
+  if (!isTimeseriesLoading && webVital) {
+    const scoreThresholds = getWebVitalScoreThresholds(webVital, deviceType);
+    const includePoorThreshold = webVitalTimeSeries?.values.some(
+      ({value}) => (value || 0) > scoreThresholds.median
+    );
+    const includeMehThreshold = webVitalTimeSeries?.values.some(
+      ({value}) => (value || 0) >= scoreThresholds.p90
+    );
+    extraPlottables.push(
+      new Thresholds({
+        thresholds: {
+          max_values: {
+            max1: includeMehThreshold ? scoreThresholds.p90 : undefined,
+            max2: includePoorThreshold ? scoreThresholds.median : undefined,
+          },
+          unit: 'ms',
+        },
+        showLabels: true,
+      })
+    );
+  }
 
   return (
     <ChartContainer>

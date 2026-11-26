@@ -188,6 +188,13 @@ def _connection_method(run: OnboardingRun) -> str | None:
     return extra.method if extra is not None else None
 
 
+def _project_slugs(run: OnboardingRun) -> list[str]:
+    extra = get_stage_definition(Stage.CREATE_PROJECT).extra_from(
+        run.stages[STAGE_INDEX[Stage.CREATE_PROJECT]]
+    )
+    return list(extra.project_slugs) if extra is not None else []
+
+
 def _record_progress_analytics(
     *,
     user_id: int,
@@ -198,6 +205,7 @@ def _record_progress_analytics(
     stage_status_changed: bool,
 ) -> None:
     connection_method = _connection_method(run)
+    project_slugs = _project_slugs(run)
 
     if stage_status_changed:
         analytics.record(
@@ -209,6 +217,7 @@ def _record_progress_analytics(
                 stage=update.stage.value,
                 status=update.status.value,
                 connection_method=connection_method,
+                project_slugs=project_slugs,
             )
         )
 
@@ -222,6 +231,7 @@ def _record_progress_analytics(
                     stage=update.stage.value,
                     status=update.status.value,
                     connection_method=connection_method,
+                    project_slugs=project_slugs,
                 )
             )
 
@@ -234,6 +244,7 @@ def _record_progress_analytics(
                 origin=run.origin,
                 status=run.run_status.value,
                 connection_method=connection_method,
+                project_slugs=project_slugs,
             )
         )
 

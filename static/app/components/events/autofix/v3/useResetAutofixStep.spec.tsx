@@ -305,6 +305,64 @@ describe('useResetAutofixStep', () => {
     });
   });
 
+  describe('handleReset failures', () => {
+    const runState = {
+      run_id: 1,
+      status: 'completed' as const,
+      blocks: [],
+      updated_at: '2024-01-01T00:00:00Z',
+      repo_pr_states: {},
+      coding_agents: {},
+    };
+
+    it('keeps the reset prompt closed when a re-run from outside it fails', async () => {
+      const autofix = makeAutofix({
+        runState,
+        startStep: jest.fn().mockRejectedValue(new Error('402')),
+      });
+
+      const {result} = renderHookWithProviders(() =>
+        useResetAutofixStep({autofix, section: makeSection(), step: 'root_cause'})
+      );
+
+      await act(() => result.current.handleReset());
+
+      expect(result.current.shouldShowReset).toBe(false);
+    });
+
+    it('reopens the reset prompt when a re-run from it fails', async () => {
+      const autofix = makeAutofix({
+        runState,
+        startStep: jest.fn().mockRejectedValue(new Error('402')),
+      });
+
+      const {result} = renderHookWithProviders(() =>
+        useResetAutofixStep({autofix, section: makeSection(), step: 'root_cause'})
+      );
+
+      act(() => result.current.setShouldShowReset(true));
+      await act(() => result.current.handleReset('Look at the cache'));
+
+      expect(result.current.shouldShowReset).toBe(true);
+    });
+
+    it('closes the reset prompt when a re-run from it succeeds', async () => {
+      const autofix = makeAutofix({
+        runState,
+        startStep: jest.fn().mockResolvedValue({runId: 1, isSingleRun: false}),
+      });
+
+      const {result} = renderHookWithProviders(() =>
+        useResetAutofixStep({autofix, section: makeSection(), step: 'root_cause'})
+      );
+
+      act(() => result.current.setShouldShowReset(true));
+      await act(() => result.current.handleReset('Look at the cache'));
+
+      expect(result.current.shouldShowReset).toBe(false);
+    });
+  });
+
   describe('state management', () => {
     it('defaults shouldShowReset to false and allows toggling', () => {
       const autofix = makeAutofix();

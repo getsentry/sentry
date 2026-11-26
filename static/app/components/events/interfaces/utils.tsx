@@ -329,6 +329,12 @@ export function isStacktraceNewestFirst() {
   }
 }
 
+export function isAndroidAnrMechanism(mechanism: string | undefined): boolean {
+  return (
+    mechanism === 'ANR' || mechanism === 'AppExitInfo' || mechanism === 'NonFatalANR'
+  );
+}
+
 export function getCurrentThread(event: Event) {
   const threads = event.entries?.find(entry => entry.type === EntryType.THREADS) as
     | EntryThreads

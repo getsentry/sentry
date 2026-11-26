@@ -39,6 +39,7 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
         assert detector.config["environment"] == "uptime-prod"
         assert detector.owner_user_id == self.user.id
         assert detector.owner_team_id is None
+        assert detector.created_by_id == self.user.id
         assert detector.config["mode"] == UptimeMonitorMode.MANUAL
         assert detector.config["recovery_threshold"] == DEFAULT_RECOVERY_THRESHOLD
         assert detector.config["downtime_threshold"] == DEFAULT_DOWNTIME_THRESHOLD
