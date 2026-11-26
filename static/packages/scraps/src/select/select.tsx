@@ -44,6 +44,7 @@ import type {
   SelectValue,
   StylesConfig,
 } from './types';
+import {isRenderable} from './utils';
 
 export interface BaseSelectProps<
   TValue,
@@ -659,7 +660,7 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
           }
         }}
       >
-        {leadingItems != null && typeof leadingItems !== 'boolean' && (
+        {isRenderable(leadingItems) && (
           <Flex align="center" flexShrink={0} gap="xs" css={selectStyles.leadingItems}>
             {leadingItems}
           </Flex>

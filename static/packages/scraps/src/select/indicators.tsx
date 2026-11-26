@@ -9,6 +9,7 @@ import {Spinner} from '@sentry/scraps/spinner';
 import {useTranslation} from '@sentry/scraps/translation';
 
 import type {getSelectStyles} from './styles';
+import {isRenderable} from './utils';
 
 export function SelectIndicators({
   dropdownIndicator,
@@ -30,7 +31,7 @@ export function SelectIndicators({
     dropdownIndicator === null &&
     !showClearButton &&
     !isLoading &&
-    (trailingItems == null || typeof trailingItems === 'boolean')
+    !isRenderable(trailingItems)
   ) {
     return null;
   }
