@@ -225,14 +225,12 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
   );
 
   return (
-    <AggregatesSimpleTable style={tableStyle}>
+    <AggregatesSimpleTable header={header} style={tableStyle}>
       {isPending && (
         <LoadingMaskRow>
           <TransparentLoadingMask />
         </LoadingMaskRow>
       )}
-
-      {header}
 
       {result.isError ? (
         <SimpleTable.Error />
