@@ -42,6 +42,10 @@ SCRIPT = r"""#!/bin/sh
 #   INSTALL_DIR         Install directory; v4 uses it when SENTRY_INSTALL_DIR is unset
 #   INSTALL_PATH        Path of the legacy sentry-cli binary; v4 uses its directory
 #
+# With none of the install variables set, v4 installs to /usr/local/bin, as
+# v3 did, when that directory is writable or the script runs as root.
+# Otherwise it uses the v4 installer's default.
+#
 # v4 also reads the variables that https://cli.sentry.dev/install documents.
 set -eu
 
@@ -81,6 +85,12 @@ install_v4() {
     elif [ -n "${INSTALL_PATH:-}" ]; then
       SENTRY_INSTALL_DIR=$(dirname "$INSTALL_PATH")
       export SENTRY_INSTALL_DIR
+    else
+      uid=$(id -u)
+      if [ -w /usr/local/bin ] || [ "$uid" = "0" ]; then
+        SENTRY_INSTALL_DIR=/usr/local/bin
+        export SENTRY_INSTALL_DIR
+      fi
     fi
   fi
 
