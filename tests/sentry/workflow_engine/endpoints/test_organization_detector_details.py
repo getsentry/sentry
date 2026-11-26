@@ -48,7 +48,11 @@ from sentry.workflow_engine.models import (
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
 from sentry.workflow_engine.registry import condition_handler_registry
-from sentry.workflow_engine.types import DetectorAPIOperation, DetectorPriorityLevel, FeatureGate
+from sentry.workflow_engine.types import (
+    DetectorPriorityLevel,
+    FeatureGate,
+    WorkflowEngineAPIOperation,
+)
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 from tests.sentry.workflow_engine.endpoints.test_helpers import (
     GATE_FEATURE,
@@ -192,7 +196,7 @@ class OrganizationDetectorDetailsBaseTest(APITestCase):
 class OrganizationDetectorDetailsGetTest(OrganizationDetectorDetailsBaseTest):
     def test_discovery_exclusion_does_not_block_detail(self) -> None:
         with override_detector_api_availability(
-            MetricIssue.slug, {DetectorAPIOperation.DISCOVER: False}
+            MetricIssue.slug, {WorkflowEngineAPIOperation.DISCOVER: False}
         ):
             response = self.get_success_response(self.organization.slug, self.detector.id)
         assert response.data == serialize(self.detector)
@@ -203,7 +207,7 @@ class OrganizationDetectorDetailsGetTest(OrganizationDetectorDetailsBaseTest):
 
     def test_get_feature_gate(self) -> None:
         with override_detector_api_availability(
-            MetricIssue.slug, {DetectorAPIOperation.GET: FeatureGate(GATE_FEATURE)}
+            MetricIssue.slug, {WorkflowEngineAPIOperation.GET: FeatureGate(GATE_FEATURE)}
         ):
             with self.feature({GATE_FEATURE: False}):
                 self.get_error_response(self.organization.slug, self.detector.id, status_code=404)
@@ -214,7 +218,7 @@ class OrganizationDetectorDetailsGetTest(OrganizationDetectorDetailsBaseTest):
 
     def test_list_exclusion_does_not_affect_detail(self) -> None:
         with override_detector_api_availability(
-            MetricIssue.slug, {DetectorAPIOperation.LIST: False}
+            MetricIssue.slug, {WorkflowEngineAPIOperation.LIST: False}
         ):
             response = self.get_success_response(self.organization.slug, self.detector.id)
         assert response.data == serialize(self.detector)
@@ -242,7 +246,7 @@ class OrganizationDetectorDetailsGetTest(OrganizationDetectorDetailsBaseTest):
                 features.default_manager._handler_registry, {GATE_FEATURE: [ActorFeatureHandler()]}
             ),
             override_detector_api_availability(
-                MetricIssue.slug, {DetectorAPIOperation.GET: FeatureGate(GATE_FEATURE)}
+                MetricIssue.slug, {WorkflowEngineAPIOperation.GET: FeatureGate(GATE_FEATURE)}
             ),
         ):
             self.login_as(allowed_user)
@@ -439,8 +443,8 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         with override_detector_api_availability(
             MetricIssue.slug,
             {
-                DetectorAPIOperation.PUT: FeatureGate(GATE_FEATURE),
-                DetectorAPIOperation.LIST: False,
+                WorkflowEngineAPIOperation.PUT: FeatureGate(GATE_FEATURE),
+                WorkflowEngineAPIOperation.LIST: False,
             },
         ):
             with (
@@ -462,7 +466,7 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
     def test_put_excluded_target_type_is_rejected(self) -> None:
         with (
             override_detector_api_availability(
-                MonitorIncidentType.slug, {DetectorAPIOperation.PUT: False}
+                MonitorIncidentType.slug, {WorkflowEngineAPIOperation.PUT: False}
             ),
             assert_querysets_unchanged(**self.detector_querysets()),
         ):
@@ -1443,8 +1447,8 @@ class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest)
         with override_detector_api_availability(
             MetricIssue.slug,
             {
-                DetectorAPIOperation.DELETE: FeatureGate(GATE_FEATURE),
-                DetectorAPIOperation.LIST: False,
+                WorkflowEngineAPIOperation.DELETE: FeatureGate(GATE_FEATURE),
+                WorkflowEngineAPIOperation.LIST: False,
             },
         ):
             with (

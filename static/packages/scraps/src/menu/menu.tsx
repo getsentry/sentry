@@ -93,7 +93,7 @@ export function MenuSectionHeader({
       justify="between"
       align="center"
       minHeight="1.5em"
-      padding="2xs lg"
+      padding="md lg"
       {...props}
     >
       {children}

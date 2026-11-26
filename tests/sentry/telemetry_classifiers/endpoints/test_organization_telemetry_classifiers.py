@@ -62,6 +62,19 @@ class OrganizationTelemetryClassifiersTest(APITestCase):
         assert disabled_data["status"] == "disabled"
         assert disabled_data["createdBy"] is None
 
+    def test_hides_and_reports_classifiers_with_invalid_definition(self) -> None:
+        valid = self.create_telemetry_classifier()
+        invalid = self.create_telemetry_classifier(prebuilt_classifier_key="removed_classifier")
+
+        with (
+            self.feature(self.features),
+            self.assertLogs("sentry.telemetry_classifiers.definitions", "ERROR") as logs,
+        ):
+            response = self.get_success_response(self.organization.slug)
+
+        assert [c["id"] for c in response.data] == [str(valid.id)]
+        assert logs.records[0].__dict__["classifier_id"] == invalid.id
+
     def test_sorts_newest_first_with_disabled_last(self) -> None:
         oldest = self.create_telemetry_classifier()
         disabled = self.create_telemetry_classifier(status=TelemetryClassifierStatus.DISABLED)

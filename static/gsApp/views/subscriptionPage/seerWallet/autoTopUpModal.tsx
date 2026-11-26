@@ -146,7 +146,7 @@ function AutoTopUpHeader({Header}: Pick<ModalRenderProps, 'Header'>) {
 // Members can't read auto-reload, so the message says only what stopped Seer.
 const MEMBER_MESSAGE: Record<SeerCreditDenialReason | 'unknown', string> = {
   not_enough_credits: t(
-    'Your organization ran out of Seer credits. Only owners and billing members can manage auto-reload, so ask your admin to check it.'
+    'Your organization does not have enough Seer credits. Only owners and billing members can manage auto-reload, so ask your admin to check it.'
   ),
   daily_cap_exceeded: t(
     'Your organization hit its daily Seer usage limit. Only owners and billing members can change the limit, so ask your admin to raise it.'

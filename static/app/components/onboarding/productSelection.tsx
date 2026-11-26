@@ -619,12 +619,6 @@ export function ProductSelection({
   onChange,
   onLoad,
 }: ProductSelectionProps) {
-  const [params, setParams] = useOnboardingQueryParams();
-  const urlProducts = useMemo(
-    () => (params.product ?? []) as ProductSolution[],
-    [params.product]
-  );
-
   const products = platform ? platformProductAvailability[platform] : undefined;
 
   const disabledProducts = useMemo(
@@ -632,9 +626,13 @@ export function ProductSelection({
     [organization, disabledProductsProp]
   );
 
-  // Use useEffectEvent to pass urlProducts without adding it as a dependency
+  const [{product: selectedProducts}, setParams] = useOnboardingQueryParams({
+    disabledProducts,
+  });
+
+  // Use useEffectEvent to pass selectedProducts without adding it as a dependency
   const initializeProducts = useEffectEvent(() => {
-    onLoad?.(urlProducts);
+    onLoad?.(selectedProducts);
   });
 
   // Call onLoad once on mount
@@ -644,9 +642,9 @@ export function ProductSelection({
 
   const handleClickProduct = (product: ProductSolution) => {
     const newProduct = new Set(
-      urlProducts.includes(product)
-        ? urlProducts.filter(p => p !== product)
-        : [...urlProducts, product]
+      selectedProducts.includes(product)
+        ? selectedProducts.filter(p => p !== product)
+        : [...selectedProducts, product]
     );
 
     if (products?.includes(ProductSolution.PROFILING)) {
@@ -664,10 +662,10 @@ export function ProductSelection({
       }
     }
 
-    const selectedProducts = Array.from(newProduct);
+    const nextProducts = Array.from(newProduct);
 
-    onChange?.({previousProducts: urlProducts, products: selectedProducts});
-    setParams({product: selectedProducts});
+    onChange?.({previousProducts: selectedProducts, products: nextProducts});
+    setParams({product: nextProducts});
   };
 
   if (!products) {
@@ -691,7 +689,7 @@ export function ProductSelection({
           docLink="https://docs.sentry.io/product/logs/"
           onClick={() => handleClickProduct(ProductSolution.LOGS)}
           disabled={disabledProducts[ProductSolution.LOGS]}
-          checked={urlProducts.includes(ProductSolution.LOGS)}
+          checked={selectedProducts.includes(ProductSolution.LOGS)}
         />
       )}
       {products.includes(ProductSolution.METRICS) && (
@@ -703,7 +701,7 @@ export function ProductSelection({
           docLink="https://docs.sentry.io/product/metrics/"
           onClick={() => handleClickProduct(ProductSolution.METRICS)}
           disabled={disabledProducts[ProductSolution.METRICS]}
-          checked={urlProducts.includes(ProductSolution.METRICS)}
+          checked={selectedProducts.includes(ProductSolution.METRICS)}
         />
       )}
       {products.includes(ProductSolution.SESSION_REPLAY) && (
@@ -715,7 +713,7 @@ export function ProductSelection({
           docLink="https://docs.sentry.io/product/session-replay/"
           onClick={() => handleClickProduct(ProductSolution.SESSION_REPLAY)}
           disabled={disabledProducts[ProductSolution.SESSION_REPLAY]}
-          checked={urlProducts.includes(ProductSolution.SESSION_REPLAY)}
+          checked={selectedProducts.includes(ProductSolution.SESSION_REPLAY)}
         />
       )}
       {products.includes(ProductSolution.PERFORMANCE_MONITORING) && (
@@ -727,7 +725,7 @@ export function ProductSelection({
           docLink="https://docs.sentry.io/concepts/key-terms/tracing/"
           onClick={() => handleClickProduct(ProductSolution.PERFORMANCE_MONITORING)}
           disabled={disabledProducts[ProductSolution.PERFORMANCE_MONITORING]}
-          checked={urlProducts.includes(ProductSolution.PERFORMANCE_MONITORING)}
+          checked={selectedProducts.includes(ProductSolution.PERFORMANCE_MONITORING)}
         />
       )}
       {products.includes(ProductSolution.PROFILING) && (
@@ -740,7 +738,7 @@ export function ProductSelection({
           docLink="https://docs.sentry.io/product/profiling/getting-started/#continuous-profiling"
           onClick={() => handleClickProduct(ProductSolution.PROFILING)}
           disabled={disabledProducts[ProductSolution.PROFILING]}
-          checked={urlProducts.includes(ProductSolution.PROFILING)}
+          checked={selectedProducts.includes(ProductSolution.PROFILING)}
         />
       )}
     </Flex>

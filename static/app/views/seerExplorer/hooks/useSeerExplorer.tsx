@@ -624,7 +624,7 @@ export const useSeerExplorer = () => {
       ) {
         toast.error(
           isOutOfCreditsPRState(currentState)
-            ? getRefusedPRMessage(currentState, null)
+            ? getRefusedPRMessage(currentState, currentState.credit_denial_reason)
             : (currentState.pr_creation_error ?? 'Failed to create PR')
         );
       }

@@ -210,6 +210,7 @@ class Organization(ReplicatedCellModel):
         disable_member_invite: bool
 
         bitfield_default = 1
+        bitfield_db_default = 1
 
     objects: ClassVar[OrganizationManager] = OrganizationManager(cache_fields=("pk", "slug"))
 

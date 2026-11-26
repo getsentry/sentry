@@ -28,10 +28,14 @@ class RuleConfig:
     the same thing. The full messages are in tools/flake8_plugin.py
     `baselined` whether existing findings are kept in exceptions.json as legacy debt. Rules that are
     always enforced (S021-S023, S034) have no baseline
+    `title` a plain-words heading for the PR comment, which only lists baselined rules
+    `fix` one line on how to fix it, shown under `title`
     """
 
     summary: str
     baselined: bool = False
+    title: str = ""
+    fix: str = ""
 
 
 RULES: dict[ApiRule, RuleConfig] = {
@@ -40,13 +44,29 @@ RULES: dict[ApiRule, RuleConfig] = {
     ),
     ApiRule.S022: RuleConfig("a published method's response type is missing or a bare Response"),
     ApiRule.S023: RuleConfig("a field left out of the public schema has no reason"),
-    ApiRule.S025: RuleConfig("validated input isn't declared in @extend_schema", baselined=True),
-    ApiRule.S026: RuleConfig(
-        "query or body param read without a declared serializer", baselined=True
+    ApiRule.S025: RuleConfig(
+        "validated input isn't declared in @extend_schema",
+        baselined=True,
+        title="Validated input that isn't in the schema",
+        fix="Add the serializer to `@extend_schema(parameters=...)` or `request=`.",
     ),
-    ApiRule.S027: RuleConfig("query or body param read with a computed key", baselined=True),
+    ApiRule.S026: RuleConfig(
+        "query or body param read without a declared serializer",
+        baselined=True,
+        title="Params read straight off the request",
+        fix="Read them through a serializer declared in `@extend_schema` so they show up in the docs.",
+    ),
+    ApiRule.S027: RuleConfig(
+        "query or body param read with a computed key",
+        baselined=True,
+        title="Params read with a computed key",
+        fix="Read them through a serializer declared in `@extend_schema`, since no schema can document a computed key.",
+    ),
     ApiRule.S028: RuleConfig(
-        "the whole query string or body is handed to a helper", baselined=True
+        "the whole query string or body is passed into a call",
+        baselined=True,
+        title="The whole query string or body passed into a call",
+        fix="Validate it with a serializer declared in `@extend_schema` before passing it on.",
     ),
     ApiRule.S034: RuleConfig("a returned status code isn't declared in @extend_schema responses"),
 }

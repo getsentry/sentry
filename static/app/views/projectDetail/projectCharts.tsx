@@ -441,7 +441,10 @@ export function ProjectCharts({
               displayMode === DisplayModes.FOREGROUND_ANR_RATE && (
                 <ProjectBaseSessionsChart
                   title={t('Foreground ANR Rate')}
-                  help={getSessionTermDescription(SessionTerm.FOREGROUND_ANR_RATE, null)}
+                  help={getSessionTermDescription(
+                    SessionTerm.FOREGROUND_ANR_RATE,
+                    project?.platform || null
+                  )}
                   api={api}
                   organization={organization}
                   onTotalValuesChange={handleTotalValuesChange}

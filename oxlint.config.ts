@@ -138,7 +138,6 @@ const config = defineConfig({
       // Sentry application and assets.
       {type: 'sentry-images', pattern: 'static/images'},
       {type: 'sentry-logos', pattern: 'src/sentry/static/sentry/images/logos'},
-      {type: 'sentry-fonts', pattern: 'static/fonts'},
       {type: 'sentry', pattern: 'static/app'},
       // GetSentry application.
       {type: 'getsentry', pattern: 'static/gsApp'},

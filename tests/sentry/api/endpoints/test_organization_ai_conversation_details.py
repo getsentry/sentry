@@ -1584,6 +1584,65 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         ]
         assert len(response.data["spans"]) == 1
 
+    def test_returns_related_conversations_on_first_page(self) -> None:
+        now = before_now(days=5).replace(microsecond=0)
+        conversation_id = uuid4().hex
+        sub_conversation_id = uuid4().hex
+        trace_id = uuid4().hex
+        for i, span_conversation_id in enumerate(
+            [conversation_id, sub_conversation_id, conversation_id]
+        ):
+            self.store_ai_span(
+                conversation_id=span_conversation_id,
+                timestamp=now - timedelta(seconds=10 - i),
+                operation_type="ai_client",
+                trace_id=trace_id,
+            )
+        # A conversation in another trace is not related.
+        self._store_conversation_span(uuid4().hex, now)
+        query: dict[str, Any] = {
+            "project": [self.project.id],
+            "per_page": "1",
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+
+        assert "relatedConversationIds" not in self.do_request(conversation_id, query).data
+
+        with self.feature("organizations:gen-ai-related-conversations"):
+            response = self.do_request(conversation_id, query)
+            assert response.data["relatedConversationIds"] == [sub_conversation_id]
+            links = parse_link_header(response.headers["Link"])
+            # The sub-conversation finds its parent.
+            response = self.do_request(sub_conversation_id, query)
+            assert response.data["relatedConversationIds"] == [conversation_id]
+            # Only the first page carries related conversations.
+            query["cursor"] = next(
+                link["cursor"] for link in links.values() if link["rel"] == "next"
+            )
+            response = self.do_request(conversation_id, query)
+            assert "relatedConversationIds" not in response.data
+
+    def test_survives_a_failing_related_conversations_lookup(self) -> None:
+        now = before_now(days=5).replace(microsecond=0)
+        conversation_id = uuid4().hex
+        self._store_conversation_span(conversation_id, now)
+        query = {
+            "project": [self.project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+
+        with (
+            self.feature("organizations:gen-ai-related-conversations"),
+            patch.object(Spans, "run_table_query", side_effect=RuntimeError("boom")),
+        ):
+            response = self.do_request(conversation_id, query)
+
+        assert response.status_code == 200
+        assert response.data["relatedConversationIds"] == []
+        assert len(response.data["spans"]) == 1
+
     def test_returns_stored_title(self) -> None:
         now = before_now(days=5).replace(microsecond=0)
         conversation_id = uuid4().hex

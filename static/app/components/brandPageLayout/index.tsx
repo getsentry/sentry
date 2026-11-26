@@ -134,5 +134,3 @@ export const BrandPageLayout = Object.assign(BrandPageLayoutRoot, {
   HeaderEnd,
   HeaderStart,
 });
-
-export {AnimatedIllustration, BrandLayoutArt, BrandPageBackground};

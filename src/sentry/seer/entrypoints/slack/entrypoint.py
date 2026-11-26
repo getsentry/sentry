@@ -357,7 +357,8 @@ class SlackAutofixEntrypoint(
             data=SeerAutofixOutOfCredits(
                 organization_id=self.organization_id, denial_reason=denial_reason
             ),
-            ephemeral_user_id=self.slack_request.user_id,
+            # An alert without replies hides an ephemeral notice until its thread is opened.
+            ephemeral_user_id=self.slack_request.user_id if started else None,
         )
 
     def on_trigger_autofix_success(self, *, run_id: int) -> None:
