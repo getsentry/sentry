@@ -11,8 +11,6 @@ export function InstallWizardFixture(
         disabled: false,
         allowEmpty: true,
         isSet: true,
-        key: '',
-        label: '',
       },
     },
     'mail.use-ssl': {
@@ -22,8 +20,6 @@ export function InstallWizardFixture(
         disabled: false,
         allowEmpty: true,
         isSet: true,
-        key: '',
-        label: '',
       },
     },
     'mail.username': {
@@ -33,8 +29,6 @@ export function InstallWizardFixture(
         disabled: false,
         allowEmpty: true,
         isSet: true,
-        key: '',
-        label: '',
       },
     },
     'mail.port': {
@@ -44,8 +38,6 @@ export function InstallWizardFixture(
         disabled: false,
         allowEmpty: false,
         isSet: true,
-        key: '',
-        label: '',
       },
     },
     'system.admin-email': {
@@ -55,8 +47,6 @@ export function InstallWizardFixture(
         disabled: false,
         allowEmpty: false,
         isSet: true,
-        key: '',
-        label: '',
       },
     },
     'mail.password': {
@@ -66,8 +56,6 @@ export function InstallWizardFixture(
         disabled: false,
         allowEmpty: true,
         isSet: true,
-        key: '',
-        label: '',
       },
     },
     'mail.from': {
@@ -77,8 +65,6 @@ export function InstallWizardFixture(
         disabled: false,
         allowEmpty: false,
         isSet: true,
-        key: '',
-        label: '',
       },
     },
     'system.url-prefix': {
@@ -88,8 +74,6 @@ export function InstallWizardFixture(
         disabled: true,
         allowEmpty: false,
         isSet: true,
-        key: '',
-        label: '',
       },
     },
     'auth.allow-registration': {
@@ -99,8 +83,6 @@ export function InstallWizardFixture(
         disabled: false,
         allowEmpty: true,
         isSet: true,
-        key: '',
-        label: '',
       },
     },
     'beacon.anonymous': {
@@ -110,8 +92,6 @@ export function InstallWizardFixture(
         disabled: false,
         allowEmpty: true,
         isSet: true,
-        key: '',
-        label: '',
       },
     },
     'mail.host': {
@@ -121,8 +101,6 @@ export function InstallWizardFixture(
         disabled: false,
         allowEmpty: false,
         isSet: true,
-        key: '',
-        label: '',
       },
     },
     ...params,
