@@ -186,7 +186,6 @@ x-sentry-service-config:
 
   modes:
     default: [snuba, postgres, relay, spotlight, objectstore]
-    # Upgrade can create a default project that queues taskworker jobs.
     migrations: [postgres, redis, kafka]
     acceptance-ci: [postgres, snuba, chartcuterie]
     chartcuterie: [postgres, snuba, chartcuterie, spotlight]
