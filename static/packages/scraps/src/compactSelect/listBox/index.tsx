@@ -262,7 +262,15 @@ export function ListBox<T extends ListItemBase>({
         return;
       }
 
-      setHasEverOverflowed(scrollContainer.scrollHeight > scrollContainer.clientHeight);
+      // Measure on the next frame, once the overlay has been positioned and sized.
+      // Measuring on attach can see the list overflow while the menu is still
+      // opening, which would reserve the gutter for good. Allow 1px for sub-pixel
+      // rounding between scrollHeight and clientHeight.
+      requestAnimationFrame(() => {
+        const overflowed =
+          scrollContainer.scrollHeight - scrollContainer.clientHeight > 1;
+        setHasEverOverflowed(prev => prev || overflowed);
+      });
     };
     return mergeRefs(scrollElementRef, overflowTracker, scrollContainerRef);
     // oxlint-disable-next-line react/memo-dependencies
@@ -277,6 +285,7 @@ export function ListBox<T extends ListItemBase>({
         )}
         <Container
           ref={refs}
+          data-test-id="compact-select-scroll-container"
           height="100%"
           overflowY="auto"
           className={className}
