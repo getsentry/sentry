@@ -21,6 +21,7 @@ from sentry.dashboards.on_completion_hook import (
     _format_serializer_errors,
     _validate_with_serializer,
 )
+from sentry.search.events.constants import TIMEOUT_RPC_ERROR_MESSAGE
 from sentry.seer.agent.client_models import Artifact, MemoryBlock, Message, SeerRunState
 from sentry.seer.models.run import SeerRun
 from sentry.testutils.cases import SnubaTestCase, TestCase
@@ -372,6 +373,13 @@ class DryRunWidgetQueriesTest(TestCase, SnubaTestCase):
         with patch(
             "sentry.dashboards.on_completion_hook.ApiClient.get",
             side_effect=ApiError(500, {"detail": "Internal error"}),
+        ):
+            assert _dry_run_widget_queries(_make_artifact(), self.organization, self.owner) == []
+
+    def test_query_timeouts_are_skipped(self) -> None:
+        with patch(
+            "sentry.dashboards.on_completion_hook.ApiClient.get",
+            side_effect=ApiError(400, {"detail": TIMEOUT_RPC_ERROR_MESSAGE}),
         ):
             assert _dry_run_widget_queries(_make_artifact(), self.organization, self.owner) == []
 

@@ -18,6 +18,11 @@ from sentry.dashboards.models.generate_dashboard_artifact import (
 from sentry.models.apikey import ApiKey
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.search.events.constants import (
+    TIMEOUT_ERROR_MESSAGE,
+    TIMEOUT_RPC_ERROR_MESSAGE,
+    TIMEOUT_SPAN_ERROR_MESSAGE,
+)
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.client_utils import fetch_run_status
 from sentry.seer.agent.on_completion_hook import AgentOnCompletionHook
@@ -37,6 +42,10 @@ MAX_VALIDATION_RETRIES = 3
 DRY_RUN_STATS_PERIOD = "24h"
 DRY_RUN_INTERVAL = "1h"
 DRY_RUN_API_KEY_SCOPES = ["org:read", "project:read", "event:read"]
+# Some query timeouts come back as a 400 with one of these details.
+QUERY_TIMEOUT_DETAILS = frozenset(
+    (TIMEOUT_ERROR_MESSAGE, TIMEOUT_RPC_ERROR_MESSAGE, TIMEOUT_SPAN_ERROR_MESSAGE)
+)
 
 # Datasets the frontend queries for each widget type. Issue widgets query the issues endpoint.
 WIDGET_TYPE_DATASETS: dict[str, str] = {
@@ -209,13 +218,14 @@ def _dry_run_widget_queries(
     Running as that user applies their project access, as the dashboard page does.
     The serializer checks syntax and field names, but some queries only fail when
     they run, such as invalid issue search values or a sort on a column the query
-    doesn't select. Failures other than a 400 are logged and skipped: they do not
-    mean that the query is wrong.
+    doesn't select. Failures other than a 400, and query timeouts, are logged and
+    skipped: they do not mean that the query is wrong.
     """
     api_key = ApiKey(organization_id=organization.id, scope_list=DRY_RUN_API_KEY_SCOPES)
     shared_params: dict[str, Any] = {
         "statsPeriod": DRY_RUN_STATS_PERIOD,
-        "referrer": Referrer.API_DASHBOARDS_GENERATE_DRY_RUN.value,
+        # The events endpoint replaces token-auth referrers unless they start with "seer.".
+        "referrer": Referrer.SEER_DASHBOARDS_GENERATE_DRY_RUN.value,
     }
     # Without projects, the endpoints fall back to the user's projects, like the
     # page's "My Projects" default.
@@ -239,7 +249,8 @@ def _dry_run_widget_queries(
                     params={**shared_params, **params},
                 )
             except ApiError as error:
-                if error.status_code != 400:
+                detail = error.body.get("detail") if isinstance(error.body, dict) else None
+                if error.status_code != 400 or detail in QUERY_TIMEOUT_DETAILS:
                     logger.warning(
                         "dashboards.on_completion_hook.dry_run_request_failed",
                         extra={
@@ -249,7 +260,6 @@ def _dry_run_widget_queries(
                         },
                     )
                     continue
-                detail = error.body.get("detail") if isinstance(error.body, dict) else None
                 errors.append(
                     f"Widget {widget_idx} ({widget.title!r}), query {query_idx}: "
                     f"{detail if detail is not None else error.body}"

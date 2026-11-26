@@ -32,7 +32,6 @@ class Referrer(StrEnum):
 
     API_DASHBOARDS_RELEASE_SELECTOR = "api.dashboards-release-selector"
     API_DASHBOARDS_DETAILS_WIDGET_DOMAIN_STATUS = "api.dashboards.details-widget.domain-status"
-    API_DASHBOARDS_GENERATE_DRY_RUN = "api.dashboards.generate.dry-run"
     API_DASHBOARDS_BIGNUMBERWIDGET_METRICS_ENHANCED_PRIMARY = (
         "api.dashboards.bignumberwidget.metrics-enhanced.primary"
     )
@@ -805,6 +804,7 @@ class Referrer(StrEnum):
     SEER_EXPLORER_TOOLS = "seer.explorer_tools"
     SEER_AUTOFIX_GET_TRACE_EVENTS = "seer.autofix.trace.get-events"
     SEER_AGENT_IN_CHAT_LINK = "seer.agent.in-chat-link"
+    SEER_DASHBOARDS_GENERATE_DRY_RUN = "seer.dashboards.generate.dry-run"
     SUPERGROUPS_BACKFILL_LIGHTWEIGHT_GET_LATEST_EVENTS = (
         "supergroups_backfill_lightweight.get_latest_events"
     )
