@@ -31,6 +31,11 @@ from sentry.integrations.source_code_management.metrics import (
 )
 from sentry.integrations.source_code_management.repo_audit import log_repo_change
 from sentry.integrations.source_code_management.repo_rename import get_repo_rename
+from sentry.integrations.source_code_management.repo_sync_status import (
+    record_batch_finished,
+    record_sync_failed,
+    record_synced,
+)
 from sentry.integrations.source_code_management.repository import (
     RepositoryInfo,
     RepositoryIntegration,
@@ -218,6 +223,7 @@ def _sync_repos_for_org(organization_integration_id: int) -> None:
                 _halt_broken_integration(
                     lifecycle, e, integration.id, rpc_org.id, provider_key, halt_reason
                 )
+                record_sync_failed(rpc_org.id, integration.id, halt_reason)
                 return
             raise
         except Exception as e:
@@ -226,6 +232,7 @@ def _sync_repos_for_org(organization_integration_id: int) -> None:
                 _halt_broken_integration(
                     lifecycle, e, integration.id, rpc_org.id, provider_key, halt_reason
                 )
+                record_sync_failed(rpc_org.id, integration.id, halt_reason)
                 return
             raise
 
@@ -368,8 +375,15 @@ def _sync_repos_for_org(organization_integration_id: int) -> None:
             if repo["external_id"] in new_ids
         ]
         restored_id_list = list(restored_ids)
+        create_batches = list(chunked(new_repo_configs, SYNC_BATCH_SIZE))
+        restore_batches = list(chunked(restored_id_list, SYNC_BATCH_SIZE))
+        # Count these batches before queueing them, so the status stays "syncing" until they
+        # have added the repos.
+        record_synced(
+            rpc_org.id, integration.id, batches=len(create_batches) + len(restore_batches)
+        )
 
-        for config_batch in chunked(new_repo_configs, SYNC_BATCH_SIZE):
+        for config_batch in create_batches:
             create_repos_batch.apply_async(
                 kwargs={
                     "organization_integration_id": organization_integration_id,
@@ -385,7 +399,7 @@ def _sync_repos_for_org(organization_integration_id: int) -> None:
                 }
             )
 
-        for restored_batch in chunked(restored_id_list, SYNC_BATCH_SIZE):
+        for restored_batch in restore_batches:
             restore_repos_batch.apply_async(
                 kwargs={
                     "organization_integration_id": organization_integration_id,
@@ -529,6 +543,8 @@ def create_repos_batch(
             organization_id=rpc_org.id, repo_ids=[r.id for r in created_repos]
         )
 
+    record_batch_finished(rpc_org.id, integration.id)
+
 
 @instrumented_task(
     name="sentry.integrations.source_code_management.sync_repos.disable_repos_batch",
@@ -619,6 +635,8 @@ def restore_repos_batch(
                     "repository_id": repo.id,
                 },
             )
+
+    record_batch_finished(rpc_org.id, integration.id)
 
 
 @instrumented_task(

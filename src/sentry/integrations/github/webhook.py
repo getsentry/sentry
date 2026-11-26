@@ -48,6 +48,10 @@ from sentry.integrations.services.integration.model import (
 from sentry.integrations.services.integration.service import integration_service
 from sentry.integrations.services.repository.service import repository_service
 from sentry.integrations.source_code_management.repo_rename import get_repo_rename
+from sentry.integrations.source_code_management.repo_sync_status import (
+    RepoSyncTrigger,
+    record_sync_requested,
+)
 from sentry.integrations.source_code_management.webhook import SCMWebhook
 from sentry.integrations.types import (
     ExternalActorSource,
@@ -670,6 +674,11 @@ class InstallationRepositoriesEventWebhook(GitHubWebhook):
 
         from .tasks.sync_repos_on_install_change import sync_repos_on_install_change
 
+        if repos_added:
+            for org_integration in result.organization_integrations:
+                record_sync_requested(
+                    org_integration.organization_id, integration.id, RepoSyncTrigger.WEBHOOK
+                )
         sync_repos_on_install_change.apply_async(
             kwargs={
                 "integration_id": integration.id,

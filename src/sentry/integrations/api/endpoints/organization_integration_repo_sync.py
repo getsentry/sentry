@@ -9,6 +9,10 @@ from sentry.api.base import control_silo_endpoint
 from sentry.integrations.api.bases.organization_integrations import (
     OrganizationIntegrationBaseEndpoint,
 )
+from sentry.integrations.source_code_management.repo_sync_status import (
+    RepoSyncTrigger,
+    record_sync_requested,
+)
 from sentry.integrations.source_code_management.sync_repos import (
     SCM_SYNC_PROVIDERS,
     sync_repos_for_org,
@@ -39,6 +43,7 @@ class OrganizationIntegrationRepoSyncEndpoint(OrganizationIntegrationBaseEndpoin
 
         org_integration = self.get_organization_integration(organization.id, integration_id)
 
+        record_sync_requested(organization.id, integration.id, RepoSyncTrigger.MANUAL)
         sync_repos_for_org.apply_async(
             kwargs={"organization_integration_id": org_integration.id},
         )

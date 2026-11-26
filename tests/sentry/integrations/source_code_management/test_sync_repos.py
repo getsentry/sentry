@@ -18,7 +18,16 @@ from sentry.integrations.perforce.integration import PerforceIntegrationProvider
 from sentry.integrations.services.repository.impl import DatabaseBackedRepositoryService
 from sentry.integrations.source_code_management import sync_repos as sync_repos_module
 from sentry.integrations.source_code_management.repo_audit import log_repo_change
+from sentry.integrations.source_code_management.repo_sync_status import (
+    FEATURE,
+    RepoSyncFailed,
+    RepoSyncOk,
+    RepoSyncTrigger,
+    get_status,
+    record_sync_requested,
+)
 from sentry.integrations.source_code_management.sync_repos import (
+    create_repos_batch,
     sync_repos_for_org,
 )
 from sentry.locks import locks
@@ -840,6 +849,51 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
 
         with assume_test_silo_mode(SiloMode.CELL):
             assert Repository.objects.count() == 0
+
+    @with_feature(FEATURE)
+    @responses.activate
+    def test_requested_sync_is_done_once_its_batches_finish(self, _: MagicMock) -> None:
+        self._add_repos_response([{"id": 1, "full_name": "getsentry/sentry", "name": "sentry"}])
+        record_sync_requested(self.organization.id, self.integration.id, RepoSyncTrigger.MANUAL)
+
+        with patch.object(create_repos_batch, "apply_async") as mock_create_repos_batch:
+            sync_repos_for_org(self.oi.id)
+
+        assert get_status(self.organization.id, self.integration.id) == RepoSyncOk(
+            state="syncing", trigger=RepoSyncTrigger.MANUAL
+        )
+
+        create_repos_batch(**mock_create_repos_batch.call_args.kwargs["kwargs"])
+
+        assert get_status(self.organization.id, self.integration.id) == RepoSyncOk(
+            state="done", trigger=RepoSyncTrigger.MANUAL
+        )
+
+    @with_feature(FEATURE)
+    @responses.activate
+    def test_requested_sync_records_why_it_halted(self, _: MagicMock) -> None:
+        responses.add(
+            responses.GET,
+            self.base_url + "/installation/repositories?per_page=100",
+            status=403,
+            json={"message": "API rate limit exceeded"},
+        )
+        record_sync_requested(self.organization.id, self.integration.id, RepoSyncTrigger.MANUAL)
+
+        sync_repos_for_org(self.oi.id)
+
+        assert get_status(self.organization.id, self.integration.id) == RepoSyncFailed(
+            trigger=RepoSyncTrigger.MANUAL, reason="rate_limited"
+        )
+
+    @responses.activate
+    def test_daily_sync_has_no_status(self, _: MagicMock) -> None:
+        self._add_repos_response([{"id": 1, "full_name": "getsentry/sentry", "name": "sentry"}])
+
+        with self.tasks():
+            sync_repos_for_org(self.oi.id)
+
+        assert get_status(self.organization.id, self.integration.id) is None
 
     @responses.activate
     def test_rate_limited_halts_without_retry(self, _: MagicMock) -> None:
