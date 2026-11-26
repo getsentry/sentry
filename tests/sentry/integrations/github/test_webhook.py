@@ -27,6 +27,7 @@ from sentry.analytics.events.pr_iteration_events import (
     AiAutofixPrIterationMissingPermissionsEvent,
 )
 from sentry.constants import ObjectStatus
+from sentry.integrations.analytics import IntegrationInstallationReposAddedEvent
 from sentry.integrations.github.webhook import (
     CheckSuiteWebhook,
     GitHubIntegrationsWebhookEndpoint,
@@ -689,23 +690,57 @@ class InstallationRepositoriesEventWebhookTest(APITestCase):
         )
 
         handler = InstallationRepositoriesEventWebhook()
-        handler(
-            event={
-                "installation": {"id": 2},
-                "action": "removed",
-                "repositories_added": [],
-                "repositories_removed": [
-                    {"id": 20, "full_name": "getsentry/old-repo", "private": False}
-                ],
-                "repository_selection": "selected",
-                "sender": {"id": 1, "login": "octocat"},
-            }
-        )
+        # Only additions are recorded.
+        with assert_analytics_events([]):
+            handler(
+                event={
+                    "installation": {"id": 2},
+                    "action": "removed",
+                    "repositories_added": [],
+                    "repositories_removed": [
+                        {"id": 20, "full_name": "getsentry/old-repo", "private": False}
+                    ],
+                    "repository_selection": "selected",
+                    "sender": {"id": 1, "login": "octocat"},
+                }
+            )
 
         mock_apply_async.assert_called_once()
         kwargs = mock_apply_async.call_args[1]["kwargs"]
         assert kwargs["action"] == "removed"
         assert len(kwargs["repos_removed"]) == 1
+
+    @patch(
+        "sentry.integrations.github.tasks.sync_repos_on_install_change.sync_repos_on_install_change.apply_async"
+    )
+    def test_handler_records_repos_added(self, mock_apply_async: MagicMock) -> None:
+        integration = self.create_integration(
+            name="octocat", organization=self.organization, external_id="2", provider="github"
+        )
+
+        with assert_analytics_events(
+            [
+                IntegrationInstallationReposAddedEvent(
+                    provider="github",
+                    integration_id=integration.id,
+                    organization_id=self.organization.id,
+                    repos_added=2,
+                )
+            ]
+        ):
+            InstallationRepositoriesEventWebhook()(
+                event={
+                    "installation": {"id": 2},
+                    "action": "added",
+                    "repositories_added": [
+                        {"id": 10, "full_name": "getsentry/sentry", "private": False},
+                        {"id": 20, "full_name": "getsentry/snuba", "private": False},
+                    ],
+                    "repositories_removed": [],
+                    "repository_selection": "selected",
+                    "sender": {"id": 1, "login": "octocat"},
+                }
+            )
 
     @patch(
         "sentry.integrations.github.tasks.sync_repos_on_install_change.sync_repos_on_install_change.apply_async"
