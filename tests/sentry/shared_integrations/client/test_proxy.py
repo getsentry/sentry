@@ -14,7 +14,12 @@ from sentry.shared_integrations.client.proxy import (
     get_control_silo_ip_address,
     infer_org_integration,
 )
-from sentry.shared_integrations.exceptions import ApiError, ApiHostError, ApiTimeoutError
+from sentry.shared_integrations.exceptions import (
+    ApiError,
+    ApiHostError,
+    ApiTimeoutError,
+    ProxiedApiHostError,
+)
 from sentry.silo.base import SiloMode
 from sentry.silo.util import (
     PROXY_ERROR_HEADER,
@@ -291,7 +296,8 @@ class IntegrationProxyClientTest(TestCase):
         client = self.client_cls(org_integration_id=self.oi_id)
 
         with raises(
-            ApiHostError, match=r"^Unable to reach host: example.com \(via integration proxy\)$"
+            ProxiedApiHostError,
+            match=r"^Unable to reach host: example.com \(via integration proxy\)$",
         ):
             client.post("/some/endpoint")
 
@@ -338,6 +344,33 @@ class IntegrationProxyClientTest(TestCase):
             client.get("/some/endpoint")
 
         assert len(responses.calls) == 2
+
+    @responses.activate
+    def test_provider_timeout_is_not_retried_for_put(self) -> None:
+        proxy_url = "http://controlserver/api/0/internal/integration-proxy/"
+        responses.add(
+            responses.PUT, proxy_url, status=504, headers={PROXY_ERROR_HEADER: "host_timeout"}
+        )
+        client = self.client_cls(org_integration_id=self.oi_id)
+
+        with raises(ApiTimeoutError):
+            client.put("/some/endpoint")
+
+        assert len(responses.calls) == 1
+
+    @responses.activate
+    def test_provider_timeout_is_not_retried_when_retries_are_disabled(self) -> None:
+        proxy_url = "http://controlserver/api/0/internal/integration-proxy/"
+        responses.add(
+            responses.GET, proxy_url, status=504, headers={PROXY_ERROR_HEADER: "host_timeout"}
+        )
+        client = self.client_cls(org_integration_id=self.oi_id)
+        client.disable_proxy_retries = True
+
+        with raises(ApiTimeoutError):
+            client.get("/some/endpoint")
+
+        assert len(responses.calls) == 1
 
     @responses.activate
     def test_provider_gateway_timeout_is_not_retried(self) -> None:

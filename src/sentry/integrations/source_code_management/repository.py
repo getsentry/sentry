@@ -31,6 +31,7 @@ from sentry.shared_integrations.exceptions import (
     ApiUnauthorized,
     IntegrationConfigurationError,
     IntegrationError,
+    ProxiedApiHostError,
     UnsupportedResponseType,
 )
 from sentry.users.models.identity import Identity
@@ -287,8 +288,8 @@ class RepositoryIntegration(
                 return None
         except IdentityNotValid:
             return None
-        except ApiRetryError:
-            # Ignore retry errors for self-hosted GitLab.
+        except (ApiRetryError, ProxiedApiHostError):
+            # Ignore unreachable self-hosted GitLab instances.
             if (
                 self.integration_name == IntegrationProviderSlug.GITLAB.value
                 and client.base_url != GITLAB_CLOUD_BASE_URL

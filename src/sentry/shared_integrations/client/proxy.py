@@ -288,13 +288,13 @@ class IntegrationProxyClient(ApiClient):
     def request(self, *args: Any, **kwargs: Any) -> Any:
         """
         Try once more when control reports that the provider didn't answer in time. Only for
-        idempotent methods: the provider may have acted on a write it was too slow to answer.
+        reads: the provider may have acted on a write it was too slow to answer.
         """
         try:
             return super().request(*args, **kwargs)
         except ProxiedApiTimeoutError:
             method = kwargs["method"] if "method" in kwargs else args[0]
-            if method.upper() not in Retry.DEFAULT_ALLOWED_METHODS:
+            if self.disable_proxy_retries or method.upper() not in ("GET", "HEAD"):
                 raise
             return super().request(*args, **kwargs)
 

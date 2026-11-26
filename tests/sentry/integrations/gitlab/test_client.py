@@ -34,6 +34,7 @@ from sentry.shared_integrations.exceptions import (
     ApiPaginationTruncated,
     ApiRateLimitedError,
     ApiRetryError,
+    ProxiedApiHostError,
 )
 from sentry.shared_integrations.response import MappingApiResponse
 from sentry.testutils.helpers.datetime import freeze_time
@@ -501,6 +502,23 @@ class GitlabRefreshAuthTest(GitLabClientTest):
         )
 
         source_url = self.installation.get_stacktrace_link(self.repo, path, "master", None)
+        assert source_url is None
+        assert len(mock_record.mock_calls) == 2
+        assert mock_record.mock_calls[0].args[0] == EventLifecycleOutcome.STARTED
+        assert mock_record.mock_calls[1].args[0] == EventLifecycleOutcome.SUCCESS
+
+    @mock.patch(
+        "sentry.integrations.gitlab.client.GitLabApiClient.check_file",
+        side_effect=ProxiedApiHostError(text="Unable to reach host"),
+    )
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_get_stacktrace_link_unreachable_through_proxy(
+        self, mock_record: mock.MagicMock, mock_check_file: mock.MagicMock
+    ) -> None:
+        source_url = self.installation.get_stacktrace_link(
+            self.repo, "/src/file.py", "master", None
+        )
+
         assert source_url is None
         assert len(mock_record.mock_calls) == 2
         assert mock_record.mock_calls[0].args[0] == EventLifecycleOutcome.STARTED

@@ -92,7 +92,9 @@ class ApiError(Exception):
         proxy_error = response.headers.get(PROXY_ERROR_HEADER)
         host = urlparse(url or "").netloc
         if proxy_error == PROXY_ERROR_HOST_UNREACHABLE:
-            return ApiHostError(f"Unable to reach host: {host} (via integration proxy)", url=url)
+            return ProxiedApiHostError(
+                f"Unable to reach host: {host} (via integration proxy)", url=url
+            )
         elif proxy_error == PROXY_ERROR_HOST_TIMEOUT:
             return ProxiedApiTimeoutError(
                 f"Timed out attempting to reach host: {host} (via integration proxy)", url=url
@@ -131,6 +133,10 @@ class ApiHostError(ApiError):
     def from_request(cls, request: _RequestHasUrl) -> ApiHostError:
         host = urlparse(request.url).netloc
         return cls(f"Unable to reach host: {host}", url=request.url)
+
+
+class ProxiedApiHostError(ApiHostError):
+    """The integration proxy couldn't reach the provider."""
 
 
 class UnknownHostError(ApiError):
