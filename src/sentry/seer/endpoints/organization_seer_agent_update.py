@@ -133,6 +133,13 @@ class OrganizationSeerAgentUpdateEndpoint(OrganizationEndpoint):
             body,
         )
 
+        if response.status == 409 and payload_type == "user_input_response":
+            # Seer isn't waiting on that input any more. Usually another answer to it (say, from a
+            # second tab) got there first, so the chat can just reload the conversation.
+            return Response(
+                {"detail": "This input was already answered.", "code": "input_not_pending"},
+                status=409,
+            )
         if response.status >= 400:
             raise SeerApiError("Seer request failed", response.status)
 

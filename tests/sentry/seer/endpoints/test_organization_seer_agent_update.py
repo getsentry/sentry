@@ -189,6 +189,52 @@ class TestOrganizationSeerAgentUpdate(APITestCase):
 
     @patch("sentry.seer.endpoints.organization_seer_agent_update.has_seer_agent_access_with_detail")
     @patch("sentry.seer.endpoints.organization_seer_agent_update.make_signed_seer_api_request")
+    def test_answer_to_an_input_seer_is_not_waiting_on_returns_409(
+        self, mock_request: MagicMock, mock_has_access: MagicMock
+    ) -> None:
+        """Another answer (say, from a second tab) got to Seer first."""
+        mock_has_access.return_value = (True, None)
+        mock_request.return_value.status = 409
+
+        response = self.client.post(
+            self.url,
+            data={
+                "payload": {
+                    "type": "user_input_response",
+                    "input_id": "input-1",
+                    "response_data": {"decision": "retry"},
+                },
+            },
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_409_CONFLICT
+        assert response.data["code"] == "input_not_pending"
+
+    @patch("sentry.seer.endpoints.organization_seer_agent_update.has_seer_agent_access_with_detail")
+    @patch("sentry.seer.endpoints.organization_seer_agent_update.make_signed_seer_api_request")
+    def test_other_conflicts_from_seer_still_fail(
+        self, mock_request: MagicMock, mock_has_access: MagicMock
+    ) -> None:
+        mock_has_access.return_value = (True, None)
+        mock_request.return_value.status = 409
+
+        response = self.client.post(
+            self.url,
+            data={
+                "payload": {
+                    "type": "create_pr",
+                    "repo_name": "acme/app",
+                    "idempotency_key": "key-1",
+                },
+            },
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+
+    @patch("sentry.seer.endpoints.organization_seer_agent_update.has_seer_agent_access_with_detail")
+    @patch("sentry.seer.endpoints.organization_seer_agent_update.make_signed_seer_api_request")
     def test_explorer_update_uuid_run_mirror_failed_returns_422(
         self, mock_request: MagicMock, mock_has_access: MagicMock
     ) -> None:
