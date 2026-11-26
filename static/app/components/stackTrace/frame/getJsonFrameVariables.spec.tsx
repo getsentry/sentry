@@ -286,24 +286,71 @@ describe('native variables extracted by Symbolicator', () => {
     });
   });
 
-  it('shows pointers with a nested pointee as unavailable', () => {
+  it('flattens nested pointees sent before pointer chains were flattened', () => {
     expect(
       convert({
-        kind: 'local',
-        type: 'float*',
-        pointer_address: '0x000000016b29a4b0',
-        pointee: {type: 'float', value: -5.5},
+        kind: 'parameter',
+        type: 'GameState*',
+        pointer_address: '0x000000016b29a430',
+        pointee: {
+          type: 'GameState',
+          members: {
+            tick: {type: 'int', value: 1},
+            players: {
+              type: 'Player*',
+              pointer_address: '0x000000016b29a450',
+              pointee: {type: 'Player', members: {id: {type: 'int', value: 1}}},
+            },
+          },
+        },
       })
-    ).toEqual({name: 'variable', type: 'float*', kind: 'unavailable'});
+    ).toEqual({
+      name: 'variable',
+      type: 'GameState*',
+      kind: 'object',
+      pointerAddresses: ['0x000000016b29a430'],
+      children: [
+        {name: 'tick', type: 'int', kind: 'number', value: '1'},
+        {
+          name: 'players',
+          type: 'Player*',
+          kind: 'object',
+          pointerAddresses: ['0x000000016b29a450'],
+          children: [{name: 'id', type: 'int', kind: 'number', value: '1'}],
+        },
+      ],
+    });
   });
 
   it('shows values that Relay serialized at its depth limit verbatim', () => {
     const serialized = '{"type":"int","value":1}';
     expect(
-      convert({kind: 'local', type: 'GameState', members: {tick: serialized}})
+      convert({
+        kind: 'local',
+        type: 'GameState',
+        members: {
+          tick: serialized,
+          players: {
+            type: 'Player*',
+            pointer_address: '0x000000016b29a450',
+            pointee: serialized,
+          },
+          position: {type: 'Vec3', members: serialized},
+        },
+      })
     ).toMatchObject({
       kind: 'object',
-      children: [{name: 'tick', kind: 'unformatted', value: serialized}],
+      children: [
+        {name: 'tick', kind: 'unformatted', value: serialized},
+        {
+          name: 'players',
+          type: 'Player*',
+          kind: 'unformatted',
+          value: serialized,
+          pointerAddresses: ['0x000000016b29a450'],
+        },
+        {name: 'position', type: 'Vec3', kind: 'unformatted', value: serialized},
+      ],
     });
   });
 
@@ -357,6 +404,18 @@ describe('native variables extracted by Symbolicator', () => {
           children: [{name: 'x', type: 'double', kind: 'number', value: '102'}],
         },
       ],
+    });
+    // A value cut inside `pointee` loses the same keys, and its pointee loses `type`.
+    expect(
+      convert(
+        {kind: 'local', pointee: {members: {id: {type: 'int', value: 1}}}},
+        {'': {len: 4}, pointee: {'': {len: 2}, members: {'': {len: 7}}}}
+      )
+    ).toEqual({
+      name: 'variable',
+      kind: 'object',
+      meta: {len: 7},
+      children: [{name: 'id', type: 'int', kind: 'number', value: '1'}],
     });
   });
 

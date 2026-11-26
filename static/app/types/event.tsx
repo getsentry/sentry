@@ -833,14 +833,23 @@ export type EventIdResponse = {
 export interface NativeFrameVariableValue {
   /**
    * Structure members. For a pointer, the members of the final pointee. A member at
-   * Relay's depth limit is a JSON string.
+   * Relay's depth limit is a JSON string. Below a nested pointee the members as a whole
+   * can be at that limit.
+   * TODO: Remove the outer `| string` once
+   * https://github.com/getsentry/symbolicator/pull/2211 is deployed.
    */
-  members?: Record<string, NativeFrameVariableValue | string>;
+  members?: Record<string, NativeFrameVariableValue | string> | string;
+  /**
+   * Dereferenced value of a pointer, a JSON string at Relay's depth limit.
+   * TODO: Remove once https://github.com/getsentry/symbolicator/pull/2211 is deployed.
+   */
+  pointee?: NativeFrameVariableValue | string;
   /**
    * The pointer chain: one address per pointer level, outermost first, ending at the
-   * first address that cannot be dereferenced.
+   * first address that cannot be dereferenced. A single address until
+   * https://github.com/getsentry/symbolicator/pull/2211 is deployed.
    */
-  pointer_address?: string[];
+  pointer_address?: string | string[];
   /**
    * Type name, empty when Symbolicator does not support the type. Missing when Relay's
    * size limit cut the value.
