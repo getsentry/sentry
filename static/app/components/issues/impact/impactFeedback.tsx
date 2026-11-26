@@ -16,7 +16,7 @@ import {
   type ImpactAssessment,
   type ImpactLevel,
 } from 'sentry/types/group';
-import {useSessionStorage} from 'sentry/utils/useSessionStorage';
+import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 
 import {ImpactIcon} from './impactIcon';
 import {getImpactLevelLabel} from './utils';
@@ -36,7 +36,7 @@ export function ImpactFeedback({
 }) {
   const {level, score, runUuid, promptVersion, sourceEventId} = impact;
   // Shared by every surface showing this assessment, so it's only asked once.
-  const [submitted, setSubmitted] = useSessionStorage(
+  const [submitted, setSubmitted] = useSyncedLocalStorageState(
     `impact-assessment-feedback:${group.id}:${runUuid ?? sourceEventId}`,
     false
   );

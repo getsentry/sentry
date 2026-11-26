@@ -22,6 +22,26 @@ describe('ImpactFeedback', () => {
     };
   }
 
+  it('marks every instance of the same assessment as answered', async () => {
+    const impact = makeImpact('run-uuid-shared');
+    render(
+      <div>
+        <ImpactFeedback impact={impact} group={group} />
+        <ImpactFeedback impact={impact} group={group} />
+      </div>
+    );
+
+    const [first] = screen.getAllByRole('button', {
+      name: 'Yes, this assessment is correct',
+    });
+    await userEvent.click(first!);
+
+    expect(screen.getAllByText('Thanks for the feedback!')).toHaveLength(2);
+    expect(
+      screen.queryByRole('button', {name: 'Yes, this assessment is correct'})
+    ).not.toBeInTheDocument();
+  });
+
   it('sends positive feedback', async () => {
     render(<ImpactFeedback impact={makeImpact('run-uuid')} group={group} />);
 
