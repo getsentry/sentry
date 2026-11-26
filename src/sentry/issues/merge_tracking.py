@@ -120,49 +120,55 @@ def record_end_send(
         )
 
 
+def retained_event_conditions(project: Project, now: datetime) -> list[Condition]:
+    _, start = outside_retention_with_modified_start(
+        datetime(1970, 1, 1, tzinfo=UTC), now, project.organization
+    )
+    return [
+        Condition(Column("project_id"), Op.EQ, project.id),
+        Condition(Column("timestamp"), Op.GTE, start),
+        Condition(Column("timestamp"), Op.LT, now + ALLOWED_FUTURE_DELTA + timedelta(seconds=1)),
+    ]
+
+
+def get_sample_event_ids_by_group(project: Project, group_ids: Sequence[int]) -> dict[str, str]:
+    now = datetime.now(UTC)
+    # Query the stored group IDs directly. Issue queries that expand redirects would
+    # also include events already on the survivor.
+    group = Column("group_id")
+    request = Request(
+        dataset=Dataset.Events.value,
+        app_id="default",
+        query=Query(
+            match=Entity("events"),
+            select=[
+                group,
+                Function("argMax", [Column("event_id"), Column("timestamp")], alias="sample"),
+            ],
+            where=[
+                *retained_event_conditions(project, now),
+                Condition(group, Op.IN, group_ids),
+                Condition(Column("received"), Op.LTE, now),
+            ],
+            groupby=[group],
+            limit=Limit(len(group_ids)),
+        ),
+        tenant_ids={"organization_id": project.organization_id},
+    )
+    rows = raw_snql_query(
+        request,
+        referrer=Referrer.ISSUES_MERGE_EVENT_SAMPLES,
+        query_source=QuerySource.SENTRY_BACKEND,
+    )["data"]
+    return {str(row["group_id"]): row["sample"].replace("-", "") for row in rows}
+
+
 def record_merge_samples(
     project: Project, operation_id: int, eventstream_state: Mapping[str, Any]
 ) -> None:
     try:
         source_ids = eventstream_state["previous_group_ids"]
-        now = datetime.now(UTC)
-        _, start = outside_retention_with_modified_start(
-            datetime(1970, 1, 1, tzinfo=UTC), now, project.organization
-        )
-        # Query the stored group IDs directly. Issue queries that expand redirects would
-        # also include events already on the survivor.
-        group = Column("group_id")
-        request = Request(
-            dataset=Dataset.Events.value,
-            app_id="default",
-            query=Query(
-                match=Entity("events"),
-                select=[
-                    group,
-                    Function("argMax", [Column("event_id"), Column("timestamp")], alias="sample"),
-                ],
-                where=[
-                    Condition(Column("project_id"), Op.EQ, project.id),
-                    Condition(group, Op.IN, source_ids),
-                    Condition(Column("timestamp"), Op.GTE, start),
-                    Condition(
-                        Column("timestamp"),
-                        Op.LT,
-                        now + ALLOWED_FUTURE_DELTA + timedelta(seconds=1),
-                    ),
-                    Condition(Column("received"), Op.LTE, now),
-                ],
-                groupby=[group],
-                limit=Limit(len(source_ids)),
-            ),
-            tenant_ids={"organization_id": project.organization_id},
-        )
-        rows = raw_snql_query(
-            request,
-            referrer=Referrer.ISSUES_MERGE_EVENT_SAMPLES,
-            query_source=QuerySource.SENTRY_BACKEND,
-        )["data"]
-        samples = {str(row["group_id"]): row["sample"].replace("-", "") for row in rows}
+        samples = get_sample_event_ids_by_group(project, source_ids)
         if len(samples) != len(source_ids):
             logger.warning(
                 "merge.tracking.missing_samples",
