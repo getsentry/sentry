@@ -521,19 +521,6 @@ class ExhaustiveFixtures(Fixtures):
             sdk_version="2.41.0",
         )
         self.create_notification_action(organization=org, projects=[project])
-        CustomInboundFilter.objects.create(
-            project=project,
-            name=f"custom-inbound-filter-{slug}",
-            data_type=DataType.ALL,
-            conditions=[{"type": "release", "value": ["1.0.0"]}],
-        )
-        CustomInboundFilter.objects.create(
-            project=project,
-            name=f"legacy-releases-{slug}",
-            data_type=DataType.ALL,
-            conditions=[{"type": "release", "value": ["2.0.0"]}],
-            legacy_filter=LegacyFilter.RELEASE_VERSION,
-        )
         TelemetryClassifier.objects.create(
             project=project,
             name=f"conversation-classifier-{slug}",
@@ -557,6 +544,23 @@ class ExhaustiveFixtures(Fixtures):
 
         # Auth*
         service_account = self.create_exhaustive_organization_auth(owner, org, project)
+
+        # CustomInboundFilter: one edited by a user, one by a service account.
+        CustomInboundFilter.objects.create(
+            project=project,
+            name=f"custom-inbound-filter-{slug}",
+            data_type=DataType.ALL,
+            conditions=[{"type": "release", "value": ["1.0.0"]}],
+            updated_by_id=owner_id,
+        )
+        CustomInboundFilter.objects.create(
+            project=project,
+            name=f"legacy-releases-{slug}",
+            data_type=DataType.ALL,
+            conditions=[{"type": "release", "value": ["2.0.0"]}],
+            legacy_filter=LegacyFilter.RELEASE_VERSION,
+            updated_by_service_account_id=service_account.id,
+        )
 
         # Integration*
         org_integration = self.create_exhaustive_organization_integration(org)
