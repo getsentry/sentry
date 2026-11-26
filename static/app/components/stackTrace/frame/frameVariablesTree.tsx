@@ -5,7 +5,7 @@ import {Button} from '@sentry/scraps/button';
 import {CopyToClipboardButton} from '@sentry/scraps/clipboard';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {InfoText} from '@sentry/scraps/info';
-import {Container, Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -168,6 +168,26 @@ function Variable({
       </Text>
     ));
 
+  const showsValue = !isCollection || !hasChildren || !expanded;
+  const pointerChain = variable.pointerAddresses?.join(' → ');
+  const value = isCollection ? (
+    showsValue &&
+    (hasChildren ? (
+      <SummaryButton
+        variant="transparent"
+        size="zero"
+        aria-label={t('Expand %s', name)}
+        onClick={() => setExpanded(true)}
+      >
+        {summary}
+      </SummaryButton>
+    ) : (
+      summary
+    ))
+  ) : (
+    <ScalarValue variable={variable} platform={platform} />
+  );
+
   const row = (
     <VariableRow
       columns="minmax(0, 192px) minmax(0, 1fr)"
@@ -204,25 +224,19 @@ function Variable({
         padding={depth > 0 ? 'sm md' : 'md'}
         minWidth="0"
       >
-        <Stack minWidth="0" align="start">
-          {isCollection ? (
-            (!hasChildren || !expanded) &&
-            (hasChildren ? (
-              <SummaryButton
-                variant="transparent"
-                size="zero"
-                aria-label={t('Expand %s', name)}
-                onClick={() => setExpanded(true)}
-              >
-                {summary}
-              </SummaryButton>
-            ) : (
-              summary
-            ))
-          ) : (
-            <ScalarValue variable={variable} platform={platform} />
-          )}
-        </Stack>
+        {pointerChain ? (
+          <Flex minWidth="0" align="baseline" wrap="wrap" gap="0 sm">
+            <Text monospace size="sm" variant="muted" density="comfortable">
+              {/* The members of an expanded structure are listed below the row. */}
+              {showsValue ? `${pointerChain} →` : pointerChain}
+            </Text>
+            {value}
+          </Flex>
+        ) : (
+          <Stack minWidth="0" align="start">
+            {value}
+          </Stack>
+        )}
         {copyText !== undefined && (
           <VariableCopyButton
             text={copyText}
