@@ -38,7 +38,12 @@ def operation_kwargs(operation_id: int | None) -> OperationKwargs:
 
 
 def record_merge_request(
-    project: Project, source_ids: list[int], destination_id: int, actor_id: int | None
+    project: Project,
+    source_ids: list[int],
+    destination_id: int,
+    actor_id: int | None,
+    *,
+    service_account_id: int | None,
 ) -> int | None:
     if not features.has("organizations:issue-merge-operation-tracking", project.organization):
         return None
@@ -49,12 +54,13 @@ def record_merge_request(
         source_group_ids=source_ids,
         destination_group_id=destination_id,
         actor_id=actor_id,
+        service_account_id=service_account_id,
         source_hashes_at_acceptance=list(hashes.values_list("hash", flat=True)),
     ).id
 
 
 def record_unmerge_request(
-    source: Group, hashes: Sequence[str], actor_id: int | None
+    source: Group, hashes: Sequence[str], actor_id: int | None, *, service_account_id: int | None
 ) -> int | None:
     if source.issue_category != GroupCategory.ERROR or not features.has(
         "organizations:issue-merge-operation-tracking", source.project.organization
@@ -66,6 +72,7 @@ def record_unmerge_request(
         source_group_id=source.id,
         group_hashes=list(hashes),
         actor_id=actor_id,
+        service_account_id=service_account_id,
     ).id
 
 

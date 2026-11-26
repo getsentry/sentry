@@ -295,6 +295,7 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
         operation.refresh_from_db()
         group_hash.refresh_from_db()
         assert operation.actor_id == self.user.id
+        assert operation.service_account_id is None
         assert operation.group_hashes == [group_hash.hash]
         assert operation.source_group_id == event.group_id
         assert operation.destination_group_id == group_hash.group_id != event.group_id
@@ -304,7 +305,9 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
         assert operation.historical_cutoff is not None
 
     @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
-    @with_feature("organizations:service-accounts")
+    @with_feature(
+        ["organizations:service-accounts", "organizations:issue-merge-operation-tracking"]
+    )
     def test_unmerge_service_account(self) -> None:
         group = self.create_group(platform="javascript")
         GroupHash.objects.create(project=group.project, group=group, hash="a" * 32)
@@ -329,6 +332,11 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
 
         response = self.client.put(url, format="json", HTTP_X_VIEWER_CONTEXT=viewer_context)
         assert response.status_code == 202, response.content
+        operation = IssueUnmergeOperation.objects.get(
+            project=group.project, source_group_id=group.id
+        )
+        assert operation.actor_id is None
+        assert operation.service_account_id == service_account.id
 
     def test_unmerge_conflict(self) -> None:
         self.login_as(user=self.user)

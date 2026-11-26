@@ -24,7 +24,7 @@ from sentry.api.exceptions import UserRequired
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
 from sentry.api.serializers.models.groupactionlogentry import get_serialized_activity_items
-from sentry.auth.principal import has_user
+from sentry.auth.principal import RequestPrincipal, has_user
 from sentry.deletions.tasks.groups import discard_group
 from sentry.exceptions import InvalidSearchQuery
 from sentry.hybridcloud.rpc import coerce_id_from
@@ -322,7 +322,7 @@ def update_groups(
             groups,
             project_lookup,
             projects,
-            acting_user,
+            user,
             data,
             res_type,
             request.META.get("HTTP_REFERER", ""),
@@ -702,7 +702,7 @@ def process_group_resolution(
 def merge_groups(
     group_list: Sequence[Group],
     project_lookup: Mapping[int, Project],
-    acting_user: RpcUser | User | None,
+    principal: RequestPrincipal,
     referer: str,
 ) -> MergedGroup:
     issue_stream_regex = r"^(\/organizations\/[^/]+)?\/issues\/$"
@@ -727,7 +727,7 @@ def merge_groups(
             ),
         },
     )
-    return handle_merge(group_list, project_lookup, acting_user)
+    return handle_merge(group_list, project_lookup, principal)
 
 
 def handle_other_status_updates(
@@ -793,12 +793,13 @@ def prepare_response(
     group_list: Sequence[Group],
     project_lookup: Mapping[int, Project],
     projects: Sequence[Project],
-    acting_user: RpcUser | User | None,
+    principal: RequestPrincipal,
     data: Mapping[str, Any],
     res_type: int | None,
     referer: str,
     organization: Organization | None = None,
 ) -> Response:
+    acting_user = principal if has_user(principal) else None
     # XXX (ahmed): hack to get the activities to work properly on issues page. Not sure of
     # what performance impact this might have & this possibly should be moved else where
     try:
@@ -860,7 +861,7 @@ def prepare_response(
         result["merge"] = merge_groups(
             group_list,
             project_lookup,
-            acting_user,
+            principal,
             urlparse(referer).path,
         )
         ctx = get_action_context()

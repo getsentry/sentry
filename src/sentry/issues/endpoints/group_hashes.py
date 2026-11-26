@@ -175,7 +175,16 @@ class GroupHashesEndpoint(GroupEndpoint):
         )
 
         actor_id = acting_user_id(request.user)
-        operation_id = record_unmerge_request(group, grouphashes, actor_id)
+        operation_id = record_unmerge_request(
+            group,
+            grouphashes,
+            actor_id,
+            service_account_id=(
+                request.user.service_account_id
+                if isinstance(request.user, ServiceAccountPrincipal)
+                else None
+            ),
+        )
         start_unmerge.delay(
             group.project_id,
             group.id,

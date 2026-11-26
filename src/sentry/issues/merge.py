@@ -8,15 +8,15 @@ import rest_framework
 
 from sentry import eventstream
 from sentry.apidocs.descriptions import ApiDescription
+from sentry.auth.principal import RequestPrincipal, acting_user_id
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.merge_tracking import operation_kwargs, record_merge_request
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
+from sentry.service_accounts.principal import ServiceAccountPrincipal
 from sentry.tasks.merge import start_merge_groups
 from sentry.types.activity import ActivityType
-from sentry.users.models.user import User
-from sentry.users.services.user import RpcUser
 
 
 class MergedGroup(TypedDict):
@@ -29,7 +29,7 @@ class MergedGroup(TypedDict):
 def handle_merge(
     group_list: Sequence[Group],
     project_lookup: Mapping[int, Project],
-    acting_user: RpcUser | User | None,
+    acting_user: RequestPrincipal | None,
 ) -> MergedGroup:
     """
     Merge a list of groups into a single group.
@@ -54,11 +54,17 @@ def handle_merge(
         primary_group.project_id, group_ids_to_merge, primary_group.id, primary_group.first_seen
     )
 
+    user_id = acting_user_id(acting_user) if acting_user is not None else None
     operation_id = record_merge_request(
         project_lookup[primary_group.project_id],
         group_ids_to_merge,
         primary_group.id,
-        acting_user.id if acting_user else None,
+        user_id,
+        service_account_id=(
+            acting_user.service_account_id
+            if isinstance(acting_user, ServiceAccountPrincipal)
+            else None
+        ),
     )
     Group.objects.filter(id__in=group_ids_to_merge).update(
         status=GroupStatus.PENDING_MERGE, substatus=None
@@ -77,7 +83,7 @@ def handle_merge(
         project=project_lookup[primary_group.project_id],
         group=primary_group,
         type=ActivityType.MERGE.value,
-        user_id=acting_user.id if acting_user else None,
+        user_id=user_id,
         data={"issues": [{"id": c.id} for c in groups_to_merge]},
     )
 

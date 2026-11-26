@@ -33,6 +33,7 @@ from sentry.issues.grouptype import (
     PerformanceSlowDBQueryGroupType,
 )
 from sentry.issues.ingest import save_issue_occurrence
+from sentry.issues.models.issuemergeoperation import IssueMergeOperation
 from sentry.models.activity import Activity
 from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
@@ -4793,6 +4794,36 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         r4 = GroupSeen.objects.filter(group=group4, user_id=self.user.id)
         assert not r4.exists()
+
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature(
+        ["organizations:service-accounts", "organizations:issue-merge-operation-tracking"]
+    )
+    def test_merge_records_service_account(self) -> None:
+        groups = [self.create_group(), self.create_group()]
+        service_account = self.create_service_account(
+            organization=self.organization,
+            scope_list=["event:write"],
+            project_ids=[self.project.id],
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.organization.id,
+            ),
+            key="service-account-secret",
+        )
+        with patch("sentry.issues.merge.start_merge_groups.delay"):
+            response = self.get_success_response(
+                qs_params={"id": [group.id for group in groups]},
+                merge="1",
+                extra_headers={"HTTP_X_VIEWER_CONTEXT": viewer_context},
+            )
+        operation = IssueMergeOperation.objects.get(
+            project=self.project, destination_group_id=response.data["merge"]["parent"]
+        )
+        assert operation.actor_id is None
+        assert operation.service_account_id == service_account.id
 
     @patch("sentry.issues.merge.uuid4")
     @patch("sentry.issues.merge.start_merge_groups")
