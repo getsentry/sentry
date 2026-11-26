@@ -172,6 +172,10 @@ export function getSelectStyles(
       padding: `${theme.space.xs} ${theme.space.lg}`,
       ':empty': {display: 'none'},
     },
-    message: {padding: theme.space.md, color: theme.tokens.content.disabled},
+    message: {
+      padding: theme.space.md,
+      color: theme.tokens.content.disabled,
+      textAlign: 'center',
+    },
   } satisfies Record<string, CSSObject>;
 }

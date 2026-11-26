@@ -97,8 +97,10 @@ export function SelectMenu<TValue, TOption extends SelectValue<TValue>>({
     flexDirection: 'column',
     zIndex: isInsideModal ? theme.zIndex.modal + 1 : theme.zIndex.dropdown,
   };
+  const isEmpty = state.collection.size === 0;
   const menuListStyle = {
     ...selectStyles.menuList,
+    padding: isEmpty ? 0 : selectStyles.menuList.padding,
     maxHeight: maxMenuHeight,
     minHeight: minMenuHeight ?? 0,
   };
@@ -159,7 +161,7 @@ export function SelectMenu<TValue, TOption extends SelectValue<TValue>>({
               )}
             />
           </ul>
-          {state.collection.size === 0 && (
+          {isEmpty && (
             <div role="status" css={selectStyles.message}>
               {isLoading
                 ? loadingMessage

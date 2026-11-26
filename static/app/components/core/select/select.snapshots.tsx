@@ -38,6 +38,24 @@ function renderOpenMultiSelect(
 }
 
 describe('Select', () => {
+  it.snapshot.each(['empty', 'loading'] as const)(
+    'open menu in %s state',
+    state => (
+      <Stack padding="md" width="300px">
+        <Select
+          aria-label="Repository"
+          options={[]}
+          value={null}
+          isOpen
+          isLoading={state === 'loading'}
+          styles={{menu: base => ({...base, position: 'initial'})}}
+          onChange={() => {}}
+        />
+      </Stack>
+    ),
+    state => ({tags: {area: 'core', state}})
+  );
+
   it.snapshot.each(['xs', 'sm', 'md'] as const)(
     'saved indicator alignment at size %s',
     size => (
