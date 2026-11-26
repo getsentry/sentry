@@ -415,7 +415,6 @@ class PullRequest(Model):
         indexes = (
             models.Index(fields=("repository_id", "date_added")),
             models.Index(fields=("organization_id", "merge_commit_sha")),
-            models.Index(fields=("organization_id", "head_commit_sha")),
         )
         unique_together = (("repository_id", "key"),)
 

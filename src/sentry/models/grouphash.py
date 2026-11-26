@@ -74,7 +74,8 @@ class GroupHash(Model):
         UNLOCKED: None = None
         LOCKED_IN_MIGRATION = 1
 
-    project = FlexibleForeignKey("sentry.Project", null=True)
+    # The (project, hash) unique index covers lookups by project.
+    project = FlexibleForeignKey("sentry.Project", null=True, db_index=False)
     hash = models.CharField(max_length=32)
     group = FlexibleForeignKey("sentry.Group", null=True)
 
