@@ -1,9 +1,7 @@
-import type {ReactNode} from 'react';
-import {QueryObserver} from '@tanstack/react-query';
+import type {ComponentProps, ReactNode} from 'react';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {
   render,
   renderGlobalModal,
@@ -13,13 +11,9 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import type {ResponseMeta} from 'sentry/types/api';
-import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {downloadAsCsv} from 'sentry/views/discover/utils';
-import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
-import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import type {RawCounts} from 'sentry/views/explore/useRawCounts';
 
 import {SpansQueryParamsProvider} from './spansQueryParamsProvider';
@@ -34,34 +28,19 @@ function Wrapper({children}: {children: ReactNode}) {
   return <SpansQueryParamsProvider>{children}</SpansQueryParamsProvider>;
 }
 
+type ExportTableResult = ComponentProps<
+  typeof TracesExportModalButton
+>['spansTableResult'];
+
 function makeQueryResult(
   data: Array<Record<string, unknown>>,
   {error = null, pageLinks}: {error?: QueryError | null; pageLinks?: string} = {}
-): SpansTableResult['result'] {
-  const queryClient = makeTestQueryClient();
-  const queryKey = ['traces-export-modal-test'];
-
-  if (error) {
-    queryClient
-      .getQueryCache()
-      .build(queryClient, {queryKey})
-      .setState({status: 'error', error, fetchStatus: 'idle'});
-  } else {
-    queryClient.setQueryData(queryKey, [{data: []}, undefined, undefined]);
-  }
-
-  const base = new QueryObserver<
-    [TableData, string | undefined, ResponseMeta<TableData> | undefined],
-    QueryError
-  >(queryClient, {queryKey, enabled: false}).getCurrentResult();
-
+): ExportTableResult['result'] {
   return {
-    ...base,
     data: error ? undefined : data,
     error,
-    statusCode: undefined,
-    response: undefined,
-    meta: undefined,
+    isPending: false,
+    isPlaceholderData: false,
     pageLinks,
   };
 }
@@ -76,9 +55,8 @@ describe('TracesExportModalButton', () => {
     LocationFixture()
   );
 
-  const aggregatesTableResult: AggregatesTableResult = {
+  const aggregatesTableResult: ExportTableResult = {
     eventView,
-    fields: [],
     result: makeQueryResult([]),
   };
 
@@ -91,7 +69,7 @@ describe('TracesExportModalButton', () => {
     spanRows = [{id: '1', 'span.description': 'GET /'}],
     totalCount = 5000,
   }: {spanRows?: Array<Record<string, unknown>>; totalCount?: number | null} = {}) {
-    const spansTableResult: SpansTableResult = {
+    const spansTableResult: ExportTableResult = {
       eventView,
       result: makeQueryResult(spanRows),
     };
@@ -123,7 +101,7 @@ describe('TracesExportModalButton', () => {
   });
 
   it('disables export when viewing the Trace tab even though aggregate rows are loaded', () => {
-    const aggregatesWithRows: AggregatesTableResult = {
+    const aggregatesWithRows: ExportTableResult = {
       ...aggregatesTableResult,
       result: makeQueryResult([{id: 'a', 'span.description': 'GET /agg'}]),
     };
@@ -148,7 +126,7 @@ describe('TracesExportModalButton', () => {
   });
 
   it('does not surface the aggregates table state in the tooltip on a non-exportable tab', async () => {
-    const erroringAggregates: AggregatesTableResult = {
+    const erroringAggregates: ExportTableResult = {
       ...aggregatesTableResult,
       result: makeQueryResult([], {error: new QueryError('boom')}),
     };
@@ -186,7 +164,7 @@ describe('TracesExportModalButton', () => {
       body: {id: 9},
     });
 
-    const fullAggregatePage: AggregatesTableResult = {
+    const fullAggregatePage: ExportTableResult = {
       ...aggregatesTableResult,
       result: makeQueryResult(
         Array.from({length: 50}, (_, i) => ({
@@ -288,7 +266,7 @@ describe('TracesExportModalButton', () => {
   });
 
   it('downloads a full aggregate page locally when it is the entire result set', async () => {
-    const completeAggregatePage: AggregatesTableResult = {
+    const completeAggregatePage: ExportTableResult = {
       ...aggregatesTableResult,
       result: makeQueryResult(
         Array.from({length: 50}, (_, i) => ({id: String(i), 'span.description': 'GET /'}))
@@ -338,7 +316,6 @@ describe('TracesExportModalButton', () => {
         <TracesExportModalButton
           aggregatesTableResult={{
             eventView: aggregateEventView,
-            fields: [],
             result: makeQueryResult(
               [
                 {

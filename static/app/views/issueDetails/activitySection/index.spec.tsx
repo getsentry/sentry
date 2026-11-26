@@ -2653,13 +2653,45 @@ describe('ActivitySection', () => {
       <GroupDataContextProvider group={impactGroup} project={impactGroup.project}>
         <ActivitySection group={impactGroup} />
       </GroupDataContextProvider>,
-      {organization: OrganizationFixture()}
+      {organization: OrganizationFixture({features: ['seer-impact-assessment']})}
     );
 
     const timeline = await screen.findByTestId('activity-timeline');
     expect(timeline).toHaveTextContent('Impact assessed as High (73.5)');
     expect(timeline).toHaveTextContent('Users cannot submit an order.');
     expect(timeline).not.toHaveTextContent('Citations:');
+  });
+
+  it('hides Impact assessments without the impact assessment feature', async () => {
+    const impactGroup = GroupFixture({
+      activity: [
+        {
+          type: GroupActivityType.IMPACT_ASSESSMENT,
+          id: 'impact-1',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {
+            score: 73.5,
+            level: 'high',
+            description: 'Users cannot submit an order.',
+            citations: [],
+            sourceEventId: '7f4b9a95abc449a8a5afc3d1d2683a8b',
+          },
+          user: null,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={impactGroup} project={impactGroup.project}>
+        <ActivitySection group={impactGroup} />
+      </GroupDataContextProvider>,
+      {organization: OrganizationFixture()}
+    );
+
+    const timeline = await screen.findByTestId('activity-timeline');
+    expect(timeline).not.toHaveTextContent('Impact assessed');
+    expect(timeline).not.toHaveTextContent('Users cannot submit an order.');
   });
 
   it('renders Impact assessment citations with the citations flag', async () => {
@@ -2694,7 +2726,7 @@ describe('ActivitySection', () => {
       </GroupDataContextProvider>,
       {
         organization: OrganizationFixture({
-          features: ['seer-impact-assessment-citations'],
+          features: ['seer-impact-assessment', 'seer-impact-assessment-citations'],
         }),
       }
     );
@@ -2895,5 +2927,39 @@ describe('ActivitySection', () => {
       ).not.toBeInTheDocument();
       expect(request).not.toHaveBeenCalled();
     });
+  });
+
+  it('renders an investigation started by a Seer automation', async () => {
+    const captureMessage = jest.spyOn(Sentry, 'captureMessage');
+    const startedGroup = GroupFixture({
+      activity: [
+        {
+          type: GroupActivityType.INVESTIGATION_STARTED,
+          id: 'investigation-started-1',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {investigation: {id: '42', title: 'Checkout latency', status: 'active'}},
+          source: 'system',
+          user: null,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={startedGroup} project={startedGroup.project}>
+        <ActivitySection group={startedGroup} />
+      </GroupDataContextProvider>,
+      {organization: OrganizationFixture()}
+    );
+
+    const timeline = await screen.findByTestId('activity-timeline');
+    expect(timeline).toHaveTextContent('Started investigation Checkout latency');
+    expect(screen.getByRole('link', {name: 'Checkout latency'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/seer/investigations/42/'
+    );
+    expect(screen.getByLabelText('Seer activity')).toBeInTheDocument();
+    expect(screen.queryByTestId('user-activity-actor')).not.toBeInTheDocument();
+    expect(captureMessage).not.toHaveBeenCalled();
   });
 });

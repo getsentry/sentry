@@ -180,8 +180,7 @@ class OrganizationAgentHandoffEndpoint(ControlSiloOrganizationEndpoint):
             organization_id=organization.id,
             application_id=application.id,
             scope_list=HANDOFF_SCOPES,
-            ip_address=request.META["REMOTE_ADDR"],
-            disable_ip_pinning=serializer.validated_data["disable_ip_pinning"],
+            ip_address=request.META.get("REMOTE_ADDR"),
         )
         guide_url = absolute_uri(reverse("sentry-agent-handoff"))
         data: AgentHandoffResponse = {
@@ -203,7 +202,7 @@ class OrganizationAgentHandoffEndpoint(ControlSiloOrganizationEndpoint):
                 user_id=user.id,
                 organization_id=organization.id,
                 flow=flow.value,
-                ip_pinning=not values["disable_ip_pinning"],
+                ip_pinning=True,
             )
         )
         return Response(data, status=201)

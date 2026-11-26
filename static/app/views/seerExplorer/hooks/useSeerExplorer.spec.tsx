@@ -1307,7 +1307,35 @@ describe('useSeerExplorer', () => {
       await act(() => jest.advanceTimersByTimeAsync(500));
       await waitFor(() =>
         expect(errorSpy).toHaveBeenCalledWith(
-          "Seer couldn't open a pull request in acme/web because your organization is out of credits."
+          "Seer couldn't open a pull request in acme/web because your organization does not have enough credits."
+        )
+      );
+    });
+
+    it('toasts daily usage limit copy when the push hit the limit', async () => {
+      const errorSpy = jest.spyOn(toast, 'error');
+      mockPRState({pr_creation_status: 'creating'});
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+        additionalWrapper: SeerExplorerChatStateProvider,
+      });
+      act(() => {
+        result.current.switchToRun(runId);
+      });
+      await waitFor(() => expect(result.current.isPolling).toBe(true));
+
+      mockPRState({
+        pr_creation_status: 'error',
+        pr_creation_error: "Your organization doesn't have enough Seer credits for this.",
+        pr_creation_error_code: 'out_of_credits',
+        credit_denial_reason: 'daily_cap_exceeded',
+      });
+
+      await act(() => jest.advanceTimersByTimeAsync(500));
+      await waitFor(() =>
+        expect(errorSpy).toHaveBeenCalledWith(
+          "Seer couldn't open a pull request in acme/web because your organization hit its daily usage limit."
         )
       );
     });

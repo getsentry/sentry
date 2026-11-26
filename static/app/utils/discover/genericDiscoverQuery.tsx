@@ -1,12 +1,10 @@
 import {Component} from 'react';
-import {useQuery, type UseQueryOptions} from '@tanstack/react-query';
 import type {Location} from 'history';
 
 import type {EventQuery} from 'sentry/actionCreators/events';
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import type {ResponseMeta} from 'sentry/types/api';
-import {useApi} from 'sentry/utils/useApi';
 
 import type {EventView, ImmutableEventView, LocationQuery} from './eventView';
 import {isAPIPayloadSimilar} from './eventView';
@@ -69,10 +67,6 @@ type BaseDiscoverQueryProps = {
    * passed, but cursor will be ignored.
    */
   noPagination?: boolean;
-  options?: Omit<
-    UseQueryOptions<[any, string | undefined, ResponseMeta | undefined], QueryError>,
-    'queryKey' | 'queryFn'
-  > & {additionalQueryKey?: UseQueryOptions['queryKey']};
   /**
    * Extra query parameters to be added.
    */
@@ -86,11 +80,6 @@ type BaseDiscoverQueryProps = {
    * A callback to set an error so that the error can be rendered in parent components
    */
   setError?: (errObject: QueryError | undefined) => void;
-  /**
-   * A flag to skip aborting the request when api.clear() is called, which happens
-   * frequently on component unmounts.
-   */
-  skipAbort?: boolean;
 };
 
 export type DiscoverQueryProps = BaseDiscoverQueryProps & {
@@ -121,7 +110,6 @@ type ComponentProps<T, P> = {
    * Allows components to modify the payload before it is set.
    */
   getRequestPayload?: (props: Props<T, P>) => any;
-  options?: BaseDiscoverQueryProps['options'];
   /**
    * An external hook to parse errors in case there are differences for a specific api.
    */
@@ -285,52 +273,29 @@ export async function doDiscoverQuery<T>(
 }
 
 function getPayload<T, P>(props: Props<T, P>) {
-  const {cursor, limit, noPagination, referrer, getRequestPayload, eventView, location} =
-    props;
-  const payload = getRequestPayload
-    ? getRequestPayload(props)
-    : eventView.getEventsAPIPayload(location);
-
-  if (cursor !== undefined) {
-    payload.cursor = cursor;
-  }
-  if (limit) {
-    payload.per_page = limit;
-  }
-  if (noPagination) {
-    payload.noPagination = noPagination;
-  }
-  if (referrer) {
-    payload.referrer = referrer;
-  }
-
-  Object.assign(payload, props.queryExtras ?? {});
-
-  return payload;
+  return addPayloadParams(
+    props,
+    props.getRequestPayload
+      ? props.getRequestPayload(props)
+      : props.eventView.getEventsAPIPayload(props.location)
+  );
 }
 
-export function useGenericDiscoverQuery<T, P>(props: Props<T, P>) {
-  const api = useApi();
-  const {orgSlug, route, options} = props;
-  const url = `/organizations/${orgSlug}/${route}/`;
-  const apiPayload = getPayload<T, P>(props);
-  const additionalQueryKey = props.options?.additionalQueryKey ?? [];
+export function getDiscoverQueryPayload(props: DiscoverQueryProps) {
+  return addPayloadParams(props, props.eventView.getEventsAPIPayload(props.location));
+}
 
-  // eslint-disable-next-line @tanstack/query/exhaustive-deps
-  const res = useQuery<[T, string | undefined, ResponseMeta<T> | undefined], QueryError>({
-    queryKey: [...additionalQueryKey, route, apiPayload],
-    queryFn: ({signal: _signal}) =>
-      doDiscoverQuery<T>(api, url, apiPayload, {skipAbort: props.skipAbort}),
-    ...options,
-  });
-
+function addPayloadParams<TPayload extends Record<PropertyKey, unknown>>(
+  {cursor, limit, noPagination, referrer, queryExtras}: DiscoverQueryProps,
+  payload: TPayload
+) {
   return {
-    // eslint-disable-next-line @tanstack/query/no-rest-destructuring
-    ...res,
-    data: res.data?.[0] ?? undefined,
-    error: parseError(res.error),
-    statusCode: res.data?.[1] ?? undefined,
-    response: res.data?.[2] ?? undefined,
+    ...payload,
+    ...(cursor === undefined ? {} : {cursor}),
+    ...(limit ? {per_page: limit} : {}),
+    ...(noPagination ? {noPagination} : {}),
+    ...(referrer ? {referrer} : {}),
+    ...queryExtras,
   };
 }
 

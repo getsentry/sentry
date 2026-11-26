@@ -17,14 +17,27 @@ from sentry.flags.models import (
     FlagWebHookSigningSecretModel,
 )
 from sentry.silo.base import SiloLimit
+from sentry.timeseries_annotations.producers.feature_flag_change import (
+    record_feature_flag_change_as_annotation,
+)
 from sentry.utils.safe import get_path
 
 
 def write(rows: list["FlagAuditLogRow"]) -> None:
+    """Persist FlagAuditLog rows, then best-effort fan out timeseries annotations.
+
+    Annotation failures must never fail the FlagLog write (inbound-filter pattern).
+    """
+    if not rows:
+        return
+
     try:
-        FlagAuditLogModel.objects.bulk_create(FlagAuditLogModel(**row) for row in rows)
+        created = FlagAuditLogModel.objects.bulk_create([FlagAuditLogModel(**row) for row in rows])
     except SiloLimit.AvailabilityError:
-        pass
+        return
+
+    for flag_log in created:
+        record_feature_flag_change_as_annotation(flag_log)
 
 
 """Provider definitions.
@@ -101,6 +114,10 @@ class LaunchDarklyItemSerializer(serializers.Serializer):
     member = serializers.DictField(required=False, allow_null=True)
     name = serializers.CharField(max_length=256, required=True)
     description = serializers.CharField(allow_blank=True, required=True)
+    # Additive only — accept so LD payloads with these keys (including null) are not dropped.
+    comment = serializers.CharField(allow_blank=True, required=False, allow_null=True)
+    currentVersion = serializers.DictField(required=False, allow_null=True)
+    previousVersion = serializers.DictField(required=False, allow_null=True)
 
 
 SUPPORTED_LAUNCHDARKLY_ACTIONS = {
@@ -149,6 +166,23 @@ class LaunchDarklyProvider:
         else:
             created_by = None
 
+        # Keep FlagLog tags close to prior behavior: changelog `description` plus
+        # simple additive copies. Resource parsing / version-derived annotation
+        # enrichment lives in the timeseries annotation producer.
+        tags: dict[str, Any] = {"description": result["description"]}
+        tags["change_type"] = access["action"]
+        if resource := (access.get("resource") or "").strip():
+            tags["resource"] = resource
+        current = result.get("currentVersion") or {}
+        previous = result.get("previousVersion") or {}
+        if flag_description := current.get("description") or previous.get("description"):
+            tags["flag_description"] = flag_description
+        # Opaque validated blob for the producer (kind / targeting / etc.).
+        if current:
+            tags["current_version"] = current
+        if comment := (result.get("comment") or "").strip():
+            tags["comment"] = comment
+
         return [
             {
                 "action": _handle_launchdarkly_actions(access["action"]),
@@ -160,7 +194,7 @@ class LaunchDarklyProvider:
                 "flag": result["name"],
                 "organization_id": self.organization_id,
                 "provider": PROVIDER_MAP["launchdarkly"],
-                "tags": {"description": result["description"]},
+                "tags": tags,
             }
         ]
 
@@ -203,6 +237,14 @@ class GenericItemSerializer(serializers.Serializer):
     created_at = serializers.DateTimeField(required=True)
     created_by = GenericItemCreatedBySerializer(required=True)
     flag = serializers.CharField(required=True, max_length=256)
+    # Additive optional fields — accept so payloads with these keys (incl. null) are not dropped.
+    description = serializers.CharField(allow_blank=True, required=False, allow_null=True)
+    flag_description = serializers.CharField(allow_blank=True, required=False, allow_null=True)
+    tags = serializers.DictField(
+        child=serializers.CharField(allow_blank=True),
+        required=False,
+        allow_null=True,
+    )
 
 
 class GenericMetaSerializer(serializers.Serializer):
@@ -233,6 +275,12 @@ class GenericProvider:
         for item in serializer.validated_data["data"]:
             if item["change_id"] not in seen:
                 seen.add(item["change_id"])
+                # Simple additive copies onto FlagLog tags (no annotation helpers).
+                tags: dict[str, Any] = dict(item.get("tags") or {})
+                if description := (item.get("description") or "").strip():
+                    tags["description"] = description
+                if flag_description := (item.get("flag_description") or "").strip():
+                    tags["flag_description"] = flag_description
                 result.append(
                     {
                         "action": ACTION_MAP[item["action"]],
@@ -242,7 +290,7 @@ class GenericProvider:
                         "flag": item["flag"],
                         "organization_id": self.organization_id,
                         "provider": PROVIDER_MAP["generic"],
-                        "tags": {},
+                        "tags": tags,
                     }
                 )
 
@@ -293,6 +341,10 @@ class UnleashItemSerializer(serializers.Serializer):
     )
     project = serializers.CharField(required=False, allow_null=True)
     environment = serializers.CharField(required=False, allow_null=True)
+    # Official Unleash events put purpose text on data.description; top-level is rare.
+    # `data` shadows Serializer.data — same ignore as GenericRequestSerializer.
+    data = serializers.DictField(required=False, allow_null=True)  # type: ignore[assignment]
+    description = serializers.CharField(allow_blank=True, required=False, allow_null=True)
 
 
 def _get_user(validated_event: dict[str, Any]) -> tuple[str, int]:
@@ -338,6 +390,12 @@ class UnleashProvider:
 
         if result.get("environment"):
             tags["environment"] = result.get("environment")
+
+        # Purpose text: prefer top-level description, else Unleash data.description.
+        data = result.get("data") if isinstance(result.get("data"), dict) else {}
+        flag_description = (result.get("description") or data.get("description") or "").strip()
+        if flag_description:
+            tags["flag_description"] = flag_description
 
         return [
             {

@@ -25,7 +25,7 @@ import {ReleaseCard} from './releaseCard';
 import {ReleasesAdoptionChart} from './releasesAdoptionChart';
 import {ReleasesDisplayOption} from './releasesDisplayOptions';
 import {ReleasesPromo} from './releasesPromo';
-import ReleasesRequest from './releasesRequest';
+import {ReleasesRequest} from './releasesRequest';
 import {ReleasesStatusOption} from './releasesStatusOptions';
 import {useReleasesSdkVersions} from './useReleasesSdkVersions';
 
@@ -82,7 +82,6 @@ export function ReleaseListInner({
       releases={releases.map(({version}) => version)}
       organization={organization}
       selection={selection}
-      location={location}
       display={[getDisplay(location)]}
       releasesReloading={reloading}
       healthStatsPeriod={

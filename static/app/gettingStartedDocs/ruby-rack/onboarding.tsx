@@ -16,14 +16,13 @@ require 'sentry-ruby'
 Sentry.init do |config|
   config.dsn = '${params.dsn.public}'
 
-  # Add data like request headers and IP for users,
-  # see https://docs.sentry.io/platforms/ruby/data-management/data-collected/ for more info
-  config.send_default_pii = true${
+  # Add data like the user's IP address and HTTP request bodies,
+  # see https://docs.sentry.io/platforms/ruby/configuration/options/#data_collection for more info
+  config.data_collection.user_info = true
+  config.data_collection.http_bodies = [:incoming_request, :outgoing_request]${
     params.isLogsSelected
       ? `
 
-  # Enable sending logs to Sentry
-  config.enable_logs = true
   # Patch Ruby logger to forward logs
   config.enabled_patches = [:logger]`
       : ''

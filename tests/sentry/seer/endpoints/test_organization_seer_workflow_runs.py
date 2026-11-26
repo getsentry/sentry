@@ -26,6 +26,7 @@ from sentry.seer.models.workflow import (
     SeerWorkflowExecutionStatus,
     SeerWorkflowRun,
     SeerWorkflowRunExecution,
+    SeerWorkflowRunSource,
     SeerWorkflowRunStatus,
     SeerWorkflowStrategy,
 )
@@ -716,11 +717,44 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
 
     def test_returns_cron_trigger_for_scheduled_runs(self) -> None:
         self.config.update(strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION)
-        self.create_run(trigger_key="2026-11-09T03:00")
+        self.create_run(trigger_key="2026-11-09T03:00", source=SeerWorkflowRunSource.CRON)
 
         response = self.get_success_response(self.organization.slug)
 
         assert response.data["runs"][0]["trigger"] == {"type": "cron"}
+
+    def test_trigger_is_null_for_scheduled_runs_without_a_source(self) -> None:
+        self.config.update(strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION)
+        self.create_run(trigger_key="2026-11-09T03:00")
+
+        response = self.get_success_response(self.organization.slug)
+
+        assert response.data["runs"][0]["trigger"] is None
+
+    def test_returns_manual_trigger_for_manual_runs_of_scheduled_configs(self) -> None:
+        self.config.update(strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION)
+        self.create_run(
+            source=SeerWorkflowRunSource.MANUAL,
+            inputs={"source": "manual", "user_id": self.user.id},
+        )
+
+        response = self.get_success_response(self.organization.slug)
+
+        assert response.data["runs"][0]["trigger"] == {
+            "type": "manual",
+            "userId": str(self.user.id),
+        }
+
+    def test_returns_manual_trigger_for_manual_runs_of_monitor_configs(self) -> None:
+        detector = self.create_detector(project=self.project)
+        self.create_run(
+            inputs=self.monitor_inputs(detector.id, self.project.id),
+            source=SeerWorkflowRunSource.MANUAL,
+        )
+
+        response = self.get_success_response(self.organization.slug)
+
+        assert response.data["runs"][0]["trigger"] == {"type": "manual", "userId": None}
 
     def test_trigger_is_null_without_a_snapshot(self) -> None:
         self.create_run(extras={})

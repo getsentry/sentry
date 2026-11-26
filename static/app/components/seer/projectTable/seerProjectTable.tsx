@@ -39,6 +39,7 @@ import {ListItemSelectCheckbox} from 'sentry/utils/list/listItemSelectCheckbox';
 import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
 import {useProjectsById} from 'sentry/utils/project/useProjectsById';
 import {isTokenBilledSeerEnabled} from 'sentry/utils/seer/isTokenBilledSeerEnabled';
+import {useShowOpenPrs} from 'sentry/utils/seer/openPrs';
 import {
   seerAgentIntegrationsSelectQueryOptions,
   knownAgentIntegrationsQueryOptions,
@@ -46,10 +47,7 @@ import {
   NON_GITHUB_HANDOFF_WARNING,
   seerAgentProviderNameSelectQueryOptions,
 } from 'sentry/utils/seer/preferredAgent';
-import {
-  NON_GITHUB_PR_ITERATION_WARNING,
-  PR_ITERATION_OPTIONS,
-} from 'sentry/utils/seer/prIteration';
+import {NON_GITHUB_PR_ITERATION_WARNING} from 'sentry/utils/seer/prIteration';
 import {
   fetchProjectHasNonGithubRepo,
   isGitHubDotComProvider,
@@ -81,8 +79,14 @@ const TABLE_COLUMNS: TableColumnConfig[] = [
   {key: 'repos', width: '74px'},
   {key: 'fixes', width: '1fr'},
   {key: 'automation_steps', width: '1fr'},
-  {key: 'pr_iteration', width: '1fr'},
+  {key: 'pr_iteration', width: 'max-content'},
 ];
+
+const OPEN_PRS_TABLE_COLUMNS: TableColumnConfig[] = TABLE_COLUMNS.flatMap(column =>
+  column.key === 'automation_steps'
+    ? [column, {key: 'open_prs', width: 'max-content'}]
+    : [column]
+);
 
 export function SeerProjectTable() {
   const queryClient = useQueryClient();
@@ -128,6 +132,8 @@ export function SeerProjectTable() {
     seerAgentIntegrationsSelectQueryOptions({organization})
   );
   const stoppingPointOptions = useStoppingPointSelectOptions();
+  const showOpenPrs = useShowOpenPrs();
+  const columns = showOpenPrs ? OPEN_PRS_TABLE_COLUMNS : TABLE_COLUMNS;
 
   const bulkEdit = useMutation({
     ...getMutateSeerProjectsSettingsOptions({
@@ -233,7 +239,7 @@ export function SeerProjectTable() {
         knownIds={data?.map(item => String(item.projectId)) ?? []}
         endpointOptions={parseQueryKey(queryOptions.queryKey).options}
       >
-        <InfiniteTable.Table columns={TABLE_COLUMNS}>
+        <InfiniteTable.Table columns={columns}>
           <ProjectTableHeader
             settings={data ?? []}
             sort={sortBy}
@@ -343,9 +349,34 @@ export function SeerProjectTable() {
                         </AutoSaveForm>
                       </Stack>
                     </InfiniteTable.RowCell>
+                    {showOpenPrs && (
+                      <InfiniteTable.RowCell>
+                        <AutoSaveForm
+                          key={bulkEditVersion}
+                          name="openPrs"
+                          schema={seerProjectSettingsSchema}
+                          initialValue={item.openPrs}
+                          mutationOptions={getMutateSeerProjectSettingsOptions({
+                            organization,
+                            project: {slug: item.projectSlug},
+                            queryClient,
+                          })}
+                        >
+                          {field => (
+                            <field.Switch
+                              aria-label={t('Open PRs for %s', item.projectSlug)}
+                              checked={field.state.value}
+                              disabled={isRowDisabled}
+                              onChange={field.handleChange}
+                              size="sm"
+                            />
+                          )}
+                        </AutoSaveForm>
+                      </InfiniteTable.RowCell>
+                    )}
                     <InfiniteTable.RowCell>
                       <Stack align="stretch" flex="1">
-                        <PrIterationSelectCell
+                        <PrIterationSwitchCell
                           key={bulkEditVersion}
                           projectSlug={item.projectSlug}
                           initialValue={item.prIteration}
@@ -446,19 +477,19 @@ function AgentSelectCell({
   );
 }
 
-interface PrIterationSelectCellProps {
+interface PrIterationSwitchCellProps {
   disabled: boolean;
   initialValue: boolean;
   projectSlug: string;
   repoProviders: string[] | undefined;
 }
 
-function PrIterationSelectCell({
+function PrIterationSwitchCell({
   disabled,
   initialValue,
   projectSlug,
   repoProviders,
-}: PrIterationSelectCellProps) {
+}: PrIterationSwitchCellProps) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
   // Auto-Iterate only runs on github.com PRs. Older responses don't list the
@@ -478,14 +509,12 @@ function PrIterationSelectCell({
       })}
     >
       {field => (
-        <field.Select
+        <field.Switch
           aria-label={t('Auto-iterate on PRs for %s', projectSlug)}
+          checked={unavailable ? false : field.state.value}
           disabled={unavailable ? NON_GITHUB_PR_ITERATION_WARNING : disabled}
-          menuPortalTarget={document.body}
           onChange={field.handleChange}
-          options={PR_ITERATION_OPTIONS}
-          size="xs"
-          value={unavailable ? false : field.state.value}
+          size="sm"
         />
       )}
     </AutoSaveForm>

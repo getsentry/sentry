@@ -1,10 +1,18 @@
 #!/usr/bin/env python3
 """Per-file test durations, which the shard planners use to size and balance shards.
 
-Every full backend run uploads each shard's durations as a
-`backend-test-durations-*` artifact. A file's time can vary by 2x between runs,
-depending on which runner CPU its shard got, so refresh the checked-in file
-from several recent green master runs and keep each file's median:
+Each suite checks in its own file, because their per-test costs differ by
+more than 10x:
+
+| Suite      | Workflow         | Artifacts                     | Checked-in file                  |
+| ---------- | ---------------- | ----------------------------- | -------------------------------- |
+| backend    | `backend.yml`    | `backend-test-durations-*`    | `backend-test-durations.json`    |
+| acceptance | `acceptance.yml` | `acceptance-test-durations-*` | `acceptance-test-durations.json` |
+
+Every full run of a suite uploads each shard's durations as an artifact. A
+file's time can vary by 2x between runs, depending on which runner CPU its
+shard got, so refresh a suite's file from several recent green full master
+runs of its workflow and keep each file's median. For backend:
 
     for run in RUN_ID ...; do
         gh run download "$run" --repo getsentry/sentry \\
@@ -15,8 +23,11 @@ from several recent green master runs and keep each file's median:
     python3 .github/workflows/scripts/backend-test-durations.py median \\
         .github/workflows/scripts/backend-test-durations.json /tmp/durations/*.json
 
-The file sets how many shards a selective run gets and how evenly full-run
-shards are balanced, never which tests run.
+For acceptance, use the acceptance artifact pattern and file instead.
+
+The files set how evenly shards are balanced, and the backend file also sets
+how many shards a selective backend run gets. They never change which tests
+run.
 """
 
 from __future__ import annotations
@@ -26,9 +37,20 @@ import json
 import statistics
 from collections import defaultdict
 from pathlib import Path
+from typing import TypedDict
 
 
-def extract(pytest_json: Path) -> dict[str, object]:
+class ShardDurations(TypedDict):
+    files: dict[str, float]
+    tests: int
+
+
+class RunDurations(TypedDict):
+    seconds_per_test: float
+    files: dict[str, float]
+
+
+def extract(pytest_json: Path) -> ShardDurations:
     """Sum setup, call and teardown time per file from a pytest-json-report file."""
     files: dict[str, float] = defaultdict(float)
     tests = 0
@@ -40,12 +62,12 @@ def extract(pytest_json: Path) -> dict[str, object]:
     return {"files": dict(files), "tests": tests}
 
 
-def merge(shards: list[dict[str, object]]) -> dict[str, object]:
+def merge(shards: list[ShardDurations]) -> RunDurations:
     files: dict[str, float] = defaultdict(float)
     tests = 0
     for shard in shards:
-        tests += shard["tests"]  # type: ignore[operator]
-        for path, seconds in shard["files"].items():  # type: ignore[attr-defined]
+        tests += shard["tests"]
+        for path, seconds in shard["files"].items():
             files[path] += seconds
     total = sum(files.values())
     return {
@@ -55,11 +77,11 @@ def merge(shards: list[dict[str, object]]) -> dict[str, object]:
     }
 
 
-def median(runs: list[dict[str, object]]) -> dict[str, object]:
+def median(runs: list[RunDurations]) -> RunDurations:
     """Each file's median across merged runs, ignoring runs that didn't run it."""
     files: dict[str, list[float]] = defaultdict(list)
     for run in runs:
-        for path, seconds in run["files"].items():  # type: ignore[attr-defined]
+        for path, seconds in run["files"].items():
             files[path].append(seconds)
     per_test = statistics.median(run["seconds_per_test"] for run in runs)
     return {
@@ -83,10 +105,13 @@ def main() -> int:
     args = parser.parse_args()
 
     if args.command == "extract":
-        result = extract(args.pytest_json)
+        result: ShardDurations | RunDurations = extract(args.pytest_json)
+    elif args.command == "merge":
+        shards: list[ShardDurations] = [json.loads(path.read_text()) for path in args.inputs]
+        result = merge(shards)
     else:
-        inputs = [json.loads(path.read_text()) for path in args.inputs]
-        result = merge(inputs) if args.command == "merge" else median(inputs)
+        runs: list[RunDurations] = [json.loads(path.read_text()) for path in args.inputs]
+        result = median(runs)
     args.output.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n")
     return 0
 

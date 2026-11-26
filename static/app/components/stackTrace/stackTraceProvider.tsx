@@ -3,12 +3,14 @@ import {useCallback, useMemo, useState} from 'react';
 import {isExpandable as frameHasExpandableDetails} from 'sentry/components/events/interfaces/frame/utils';
 import {NoStackTraceMessage} from 'sentry/components/events/interfaces/noStackTraceMessage';
 import {getLastFrameIndex} from 'sentry/components/events/interfaces/utils';
+import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/platform';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {useProjects} from 'sentry/utils/useProjects';
 
 import {createInitialHiddenFrameToggleMap, getFrameCountMap, getRows} from './getRows';
+import {DEFAULT_STACK_TRACE_ROW_POLICY} from './rowPolicy';
 import {StackTraceContext, useStackTraceViewState} from './stackTraceContext';
 import type {StackTraceContextValue} from './stackTraceContext';
 import type {StackTraceProviderProps} from './types';
@@ -28,6 +30,8 @@ function getDefaultPlatform(stacktrace: StacktraceType, event: Event): PlatformK
 export function StackTraceProvider({
   children,
   collapseAll = false,
+  defaultExpandedFrameIndex,
+  emptySourceNotation = false,
   thread,
   lockAddress,
   exceptionIndex,
@@ -40,6 +44,7 @@ export function StackTraceProvider({
   maxDepth,
   meta,
   platform: platformProp,
+  rowPolicy = DEFAULT_STACK_TRACE_ROW_POLICY,
 }: StackTraceProviderProps) {
   const {isMinified, isNewestFirst, view} = useStackTraceViewState();
 
@@ -59,15 +64,15 @@ export function StackTraceProvider({
   );
 
   const [hiddenFrameToggleMap, setHiddenFrameToggleMap] = useState(() =>
-    createInitialHiddenFrameToggleMap(frames, view === 'full')
+    createInitialHiddenFrameToggleMap(frames, view === 'full', rowPolicy)
   );
 
   const platform = platformProp ?? getDefaultPlatform(activeStacktrace, event);
   const shouldIncludeSystemFrames = view === 'full';
 
   const frameCountMap = useMemo(
-    () => getFrameCountMap(frames, shouldIncludeSystemFrames),
-    [frames, shouldIncludeSystemFrames]
+    () => getFrameCountMap(frames, shouldIncludeSystemFrames, rowPolicy),
+    [frames, rowPolicy, shouldIncludeSystemFrames]
   );
 
   const allRows = useMemo(
@@ -79,8 +84,9 @@ export function StackTraceProvider({
         frameCountMap: {},
         newestFirst: isNewestFirst,
         framesOmitted: activeStacktrace.framesOmitted,
+        rowPolicy,
       }),
-    [frames, isNewestFirst, activeStacktrace.framesOmitted]
+    [frames, isNewestFirst, activeStacktrace.framesOmitted, rowPolicy]
   );
 
   const rows = useMemo(
@@ -93,6 +99,7 @@ export function StackTraceProvider({
         newestFirst: isNewestFirst,
         framesOmitted: activeStacktrace.framesOmitted,
         maxDepth,
+        rowPolicy,
       }),
     [
       frameCountMap,
@@ -102,6 +109,7 @@ export function StackTraceProvider({
       maxDepth,
       shouldIncludeSystemFrames,
       activeStacktrace.framesOmitted,
+      rowPolicy,
     ]
   );
 
@@ -120,9 +128,18 @@ export function StackTraceProvider({
           registers,
           platform,
           hasScmSourceContext,
+          emptySourceNotation:
+            emptySourceNotation && frames.length === 1 && row.frameIndex === 0,
         });
       }),
-    [rows, frames.length, activeStacktrace.registers, platform, hasScmSourceContext]
+    [
+      rows,
+      frames.length,
+      activeStacktrace.registers,
+      platform,
+      hasScmSourceContext,
+      emptySourceNotation,
+    ]
   );
 
   const toggleHiddenFrames = useCallback((frameIndex: number) => {
@@ -138,6 +155,8 @@ export function StackTraceProvider({
       thread,
       lockAddress,
       collapseAll,
+      defaultExpandedFrameIndex,
+      emptySourceNotation,
       exceptionIndex,
       event,
       hasAnyExpandableFrames,
@@ -159,6 +178,8 @@ export function StackTraceProvider({
       lockAddress,
       thread,
       collapseAll,
+      defaultExpandedFrameIndex,
+      emptySourceNotation,
       exceptionIndex,
       event,
       frameSourceMapDebuggerData,
@@ -178,10 +199,8 @@ export function StackTraceProvider({
   );
 
   if (!stacktrace) {
-    return <NoStackTraceMessage />;
+    return <NoStackTraceMessage message={t('No stack trace available')} />;
   }
 
-  return (
-    <StackTraceContext.Provider value={value}>{children}</StackTraceContext.Provider>
-  );
+  return <StackTraceContext value={value}>{children}</StackTraceContext>;
 }

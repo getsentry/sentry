@@ -43,6 +43,7 @@ from sentry.seer.autofix.pr_iteration.out_of_credits import (
     get_out_of_credits,
     mark_out_of_credits,
 )
+from sentry.seer.autofix.pr_iteration.out_of_credits_comment import queue_out_of_credits_comment
 from sentry.seer.autofix.pr_iteration.pause import PauseReason, pause_pr_iteration
 from sentry.seer.autofix.pr_iteration.pr_state import (
     iteration_prs_any_closed,
@@ -53,6 +54,7 @@ from sentry.seer.autofix.pr_iteration.tracing import set_pr_iteration_attributes
 from sentry.seer.autofix.pr_ready_for_review import format_pull_requests_payload
 from sentry.seer.autofix.single_run import is_single_run
 from sentry.seer.autofix.steps import AutofixStep
+from sentry.seer.credits import OUT_OF_CREDITS, get_pr_denial_reason, get_run_denial_reason
 from sentry.tasks.seer.pr_iteration import consume_queued_autofix_feedback
 from sentry.utils import metrics
 
@@ -113,7 +115,16 @@ def fail_pr_iteration(
 
     # Don't pause a run that ran out of credits, since the next feedback after a top-up resumes it.
     if state.failure_reason == "out_of_credits":
-        mark_out_of_credits(run_id=run_id, organization_id=organization.id)
+        denial_reason = get_run_denial_reason(state)
+        mark_out_of_credits(
+            run_id=run_id, organization_id=organization.id, denial_reason=denial_reason
+        )
+        queue_out_of_credits_comment(
+            run_id=run_id,
+            organization_id=organization.id,
+            state=state,
+            denial_reason=denial_reason,
+        )
         paused = False
     else:
         paused = pause_pr_iteration(
@@ -318,17 +329,27 @@ def continue_pr_iteration(
         return isinstance(outcome, Retrying)
 
     if outcome == PrIterationOutcome.PR_CREATION_ERRORED:
-        errored_codes = {
-            state.repo_pr_states[repo].pr_creation_error_code
-            for repo in iteration_terminal_errored_repos(state)
-        }
-        if "out_of_credits" in errored_codes:
+        errored_prs = [
+            state.repo_pr_states[repo] for repo in iteration_terminal_errored_repos(state)
+        ]
+        errored_codes = {pr.pr_creation_error_code for pr in errored_prs}
+        if OUT_OF_CREDITS in errored_codes:
+            denial_reason = get_pr_denial_reason(
+                pr for pr in errored_prs if pr.pr_creation_error_code == OUT_OF_CREDITS
+            )
             # Mark the run stopped on credits, with the push for the next drain to redo.
             mark_out_of_credits(
                 run_id=run_id,
                 organization_id=organization.id,
                 # A single run's agent pushes on its next turn, so it has no push to redo.
                 stranded_action=None if is_single_run(state) else StrandedAction.PUSH,
+                denial_reason=denial_reason,
+            )
+            queue_out_of_credits_comment(
+                run_id=run_id,
+                organization_id=organization.id,
+                state=state,
+                denial_reason=denial_reason,
             )
         elif (
             state.status == "completed"
@@ -575,6 +596,12 @@ def _push_iteration_changes(
             stranded_action=StrandedAction.PUSH,
             denial_reason=e.denial_reason,
         )
+        queue_out_of_credits_comment(
+            run_id=run_id,
+            organization_id=group.organization.id,
+            state=state,
+            denial_reason=e.denial_reason,
+        )
         return PrIterationOutcome.SENTRY_OUT_OF_CREDITS
     except Exception as e:
         log_ctx.error(
@@ -760,6 +787,12 @@ def _retry_push_on_moved_branch(
             run_id=run_id,
             organization_id=group.organization.id,
             stranded_action=StrandedAction.BRANCH_MOVED_RETRY,
+            denial_reason=e.denial_reason,
+        )
+        queue_out_of_credits_comment(
+            run_id=run_id,
+            organization_id=group.organization.id,
+            state=state,
             denial_reason=e.denial_reason,
         )
         return PrIterationOutcome.SENTRY_OUT_OF_CREDITS

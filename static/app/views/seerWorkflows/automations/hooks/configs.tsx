@@ -108,6 +108,30 @@ export function useUpdateConfig({configId}: {configId: string}) {
 }
 
 /**
+ * Triggers a manual run of an automation and refetches the organization's runs.
+ */
+export function useManualRun({configId}: {configId: string}) {
+  const organization = useOrganization();
+  const queryClient = useQueryClient();
+  const manualRunUrl = getApiUrl(
+    '/organizations/$organizationIdOrSlug/seer/workflows/manual-run/',
+    {path: {organizationIdOrSlug: organization.slug}}
+  );
+
+  return useMutation({
+    mutationFn: () =>
+      fetchMutation({url: manualRunUrl, method: 'POST', data: {configId}}),
+    onSuccess: () =>
+      queryClient.invalidateQueries(
+        apiOptions.queryFilter(
+          '/organizations/$organizationIdOrSlug/seer/workflows/runs/',
+          {path: {organizationIdOrSlug: organization.slug}}
+        )
+      ),
+  });
+}
+
+/**
  * Deletes an automation's config and refetches the organization's configs.
  */
 export function useDeleteConfig({configId}: {configId: string}) {

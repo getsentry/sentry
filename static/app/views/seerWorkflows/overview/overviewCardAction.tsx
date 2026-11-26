@@ -22,7 +22,11 @@ import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {useOpenSeerLink} from './openSeerButton';
-import {type ActionableSectionKey, useNextAction} from './overviewActions';
+import {
+  type ActionableSectionKey,
+  isSingleRunAtRootCause,
+  useNextAction,
+} from './overviewActions';
 import type {OverviewRun, ProjectConfig} from './types';
 
 export function OverviewCardAction({
@@ -40,6 +44,7 @@ export function OverviewCardAction({
 
   const {autofix, config, isDispatched, trigger} = useNextAction({run, sectionKey});
   const {to: openSeerTo, trackOpen} = useOpenSeerLink(run, sectionKey);
+  const singleRunAtRootCause = isSingleRunAtRootCause(run, sectionKey);
 
   const repoEligibility = projectConfig
     ? {
@@ -161,19 +166,30 @@ export function OverviewCardAction({
 
   return (
     <ActionButtonBar>
-      {permissionsButton ?? (
-        <Tooltip title={config.description} skipWrapper>
-          <Button
+      {permissionsButton ??
+        (singleRunAtRootCause ? (
+          <LinkButton
             size="sm"
             variant="secondary"
-            icon={<config.Icon />}
-            onClick={trigger}
-            disabled={isCreatePrGatePending}
+            icon={<IconSeer />}
+            to={openSeerTo}
+            onClick={trackOpen}
           >
-            {config.label}
-          </Button>
-        </Tooltip>
-      )}
+            {t('Open Autofix')}
+          </LinkButton>
+        ) : (
+          <Tooltip title={config.description} skipWrapper>
+            <Button
+              size="sm"
+              variant="secondary"
+              icon={<config.Icon />}
+              onClick={trigger}
+              disabled={isCreatePrGatePending}
+            >
+              {config.label}
+            </Button>
+          </Tooltip>
+        ))}
       <DropdownMenu
         items={menuItems}
         trigger={(triggerProps, isOpen) => (

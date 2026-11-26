@@ -47,7 +47,8 @@ def _fake_run_table_query_for(project_ids: list[int]) -> Any:
                         _PROJECT_COL: project_id,
                         _ENVIRONMENT_COL: "production",
                         _HASH_COL: "h1",
-                        _FIRST_SEEN_COL: 1_795_000_000.0,
+                        # EAP returns timestamp_precise in nanoseconds.
+                        _FIRST_SEEN_COL: 1_795_000_000.0 * 1e9,
                     }
                 )
                 rows.append(
@@ -55,7 +56,7 @@ def _fake_run_table_query_for(project_ids: list[int]) -> Any:
                         _PROJECT_COL: project_id,
                         _ENVIRONMENT_COL: "production",
                         _HASH_COL: "h2",
-                        _FIRST_SEEN_COL: 1_795_010_000.0,
+                        _FIRST_SEEN_COL: 1_795_010_000.0 * 1e9,
                     }
                 )
             return {"data": rows, "meta": {}, "confidence": []}
@@ -192,7 +193,7 @@ class SdkConfigAnnotationProducerTest(APITestCase):
                         {
                             _PROJECT_COL: self.project.id,
                             _HASH_COL: "h1",
-                            _FIRST_SEEN_COL: 1_795_000_000.0,
+                            _FIRST_SEEN_COL: 1_795_000_000.0 * 1e9,
                         }
                     ],
                     "meta": {},
@@ -223,13 +224,13 @@ class SdkConfigAnnotationProducerTest(APITestCase):
                             _PROJECT_COL: self.project.id,
                             _ENVIRONMENT_COL: "production",
                             _HASH_COL: "h1",
-                            _FIRST_SEEN_COL: 1_795_000_000.0,
+                            _FIRST_SEEN_COL: 1_795_000_000.0 * 1e9,
                         },
                         {
                             _PROJECT_COL: self.project.id,
                             _ENVIRONMENT_COL: "staging",
                             _HASH_COL: "h2",
-                            _FIRST_SEEN_COL: 1_795_010_000.0,
+                            _FIRST_SEEN_COL: 1_795_010_000.0 * 1e9,
                         },
                     ],
                     "meta": {},
