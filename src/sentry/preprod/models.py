@@ -515,7 +515,6 @@ class PreprodArtifact(DefaultFieldsModel):
         db_table = "sentry_preprodartifact"
         indexes = [
             models.Index(fields=["project", "date_added"]),
-            models.Index(fields=["date_expires"]),
         ]
 
 

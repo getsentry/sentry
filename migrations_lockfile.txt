@@ -31,7 +31,7 @@ notebooks: 0005_add_comment_mentions
 
 notifications: 0019_require_inbox_event_idempotency_key
 
-preprod: 0032_add_artifact_date_expires_index
+preprod: 0031_add_artifact_expiry
 
 releases: 0004_cleanup_failed_safe_deletes
 
