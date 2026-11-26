@@ -48,6 +48,7 @@ from sentry.seer.autofix.pr_iteration.completion_reactions import (
     react_to_completed_iteration,
 )
 from sentry.seer.autofix.pr_iteration.constants import REVIEW_REQUEST_FLAG
+from sentry.seer.autofix.pr_iteration.details_store import get_iteration
 from sentry.seer.autofix.pr_iteration.emit import (
     PrIterationOutcome,
     bootstrap_iteration,
@@ -1477,14 +1478,14 @@ class TestPrIterationCompletionHook(TestCase):
             run=run, source=LEGACY_FEATURE_ID, group=self.group, project=self.project
         )
         state = self._branch_moved()
+        error = SeerApiError("unavailable", 503)
 
         with (
             self.feature("organizations:autofix-pr-iteration-pin-to-pr-head"),
             patch("sentry.seer.autofix.feature.dispatch.SeerAgentClient") as mock_client_cls,
+            patch(f"{COMPLETION_PATH}.record_pr_iteration_push_error") as mock_record_push_error,
         ):
-            mock_client_cls.return_value.continue_feature_run.side_effect = SeerApiError(
-                "unavailable", 503
-            )
+            mock_client_cls.return_value.continue_feature_run.side_effect = error
             outcome = pr_iteration_push_outcome(
                 iteration_log_context(self.organization, self.group, state),
                 self.group,
@@ -1494,6 +1495,7 @@ class TestPrIterationCompletionHook(TestCase):
             )
 
         assert outcome == PrIterationOutcome.PR_CREATION_ERRORED
+        assert mock_record_push_error.call_args.kwargs["error"] is error
 
     @patch(
         "sentry.seer_credit.backend.check_seer_credits",
@@ -1620,6 +1622,39 @@ class TestPrIterationCompletionHook(TestCase):
         )
 
         assert mock_complete.call_args.kwargs["outcome"] == PrIterationOutcome.PUSH_FAILED.value
+
+    def test_a_failed_push_records_the_trigger_exception_on_the_iteration(self) -> None:
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        log_ctx = bootstrap_iteration(
+            logger=MagicMock(),
+            run_state=run_state(),
+            organization_id=self.organization.id,
+            group_id=self.group.id,
+        )
+        iteration_id = trigger_pr_iteration_details(
+            log_ctx=log_ctx,
+            run_id=123,
+            organization_id=self.organization.id,
+            trigger_source="feedback",
+        )
+        assert iteration_id is not None
+        state = self._unsynced()
+        state.blocks[0].message.metadata = {
+            **(state.blocks[0].message.metadata or {}),
+            "iteration_id": str(iteration_id),
+        }
+
+        with (
+            patch(f"{HOOK_PATH}.fetch_run_status", return_value=state),
+            patch(f"{COMPLETION_PATH}.trigger_push_changes", side_effect=ValueError("boom")),
+            # Keep the row so we can check what the hook wrote before emission removes it.
+            patch(f"{COMPLETION_PATH}.complete_pr_iteration_details"),
+        ):
+            AutofixOnCompletionHook.execute(self.organization, 123)
+
+        row = get_iteration(run, iteration_id)
+        assert row is not None
+        assert row.data["push_trigger_exception_type"] == "ValueError"
 
     @patch(f"{COMPLETION_PATH}.complete_pr_iteration_details")
     @patch(f"{COMPLETION_PATH}.consume_queued_feedback")
