@@ -3,7 +3,7 @@
 ## Status
 
 - **Goal:** every cast, `Any`, `type: ignore`, and fixed-name `getattr`/`setattr` that [#129614](https://github.com/getsentry/sentry/pull/129614) (merged as `ae29b66fe41a`) added has been replaced by a contract that matches runtime behavior, or is kept under a named exemption from **Decisions → Escape-hatch policy**. Each change ships as a small draft PR.
-- **Integration baseline:** `f5c759434c9` (`origin/master`, 2026-11-12). The combined draft [#130956](https://github.com/getsentry/sentry/pull/130956) integrates all 37 related open PRs, including the earlier typing fixes. Every source PR stays draft and is rebased onto this baseline.
+- **Integration baseline:** `0d74e59b9391` (`origin/master`, 2026-11-25). The combined draft [#130956](https://github.com/getsentry/sentry/pull/130956) integrates all 37 related open PRs, including the earlier typing fixes. Every still-open source PR stays draft and is rebased onto this baseline; see **Rebase onto latest master (2026-11-25)**.
 - **Last recorded sweep:** cast 1203, Any 3364, type-ignore 13, fixed-name-reflection 79, measured on `master` at `de37779b53f` on 2026-11-03. These historical counts do not describe the integration branch.
 - **Items:** C1 #129702 is merged. B1 #129704 is included in the integration draft (consolidated into #130968). Other seed items and all 159 sweep packages retain their ledger status; collecting open PRs does not complete the campaign.
 - **Verification:** refreshing the pinned dependencies cleared the eight baseline errors in the Seer credit-check files. Full-tree mypy passes on the baseline. Integration validation is recorded below.
@@ -73,6 +73,18 @@ Validation on the combined tree:
 - API schema generation and example validation pass. Repository hooks pass with formatters skipped; Ruff and whitespace checks pass separately.
 
 This integration retains escape hatches from the source drafts. In particular, checking that an artifact index is an object does not establish the nested `ArtifactIndex` shape promised by its cast. The contract-repair campaign remains open.
+
+## Rebase onto latest master (2026-11-25)
+
+All 14 still-open campaign drafts were rebased onto `origin/master` at `0d74e59b9391` from their prior bases (the integration from `f5c759434c9`, the source drafts from older bases) and force-pushed with lease. Draft status is unchanged; no PR was marked ready, closed, labeled, or commented on.
+
+| PR | Branch |
+| --- | --- |
+| #130956 | `ref/typing-campaign-integration` (combined draft) |
+| #130963–#130968 | `josh/typing-bundle/drf-validation`, `josh/typing-bundle/auth`, `josh/typing-bundle/integrations`, `josh/typing-bundle/monitors`, `josh/typing-bundle/releases`, `josh/typing-bundle/sourcemaps` |
+| #127794, #127795, #127800, #127844, #127886, #127906, #127922 | the seven remaining singles |
+
+Every rebase applied without conflicts and preserved all commits, including the integration's 44. Full-tree mypy on each rebased branch reports exactly the one error that plain `origin/master` reports in this checkout: `src/sentry/runner/commands/run.py:355`, `Unexpected keyword argument "health_port" for "PushTaskWorker"`. The locally installed `taskbroker-client` is 0.20.36 while `uv.lock` pins 0.20.33; no campaign-specific typing error was introduced by the rebase. The validation results above still describe the campaign's code and tests: this rebase changes only the base revision.
 
 ## Charter
 
