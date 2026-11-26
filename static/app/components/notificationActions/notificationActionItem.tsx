@@ -6,6 +6,7 @@ import {useMutation} from '@tanstack/react-query';
 
 import {Badge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
+import {openConfirmModal} from '@sentry/scraps/confirm';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex, Grid} from '@sentry/scraps/layout';
@@ -14,7 +15,6 @@ import {toast} from '@sentry/scraps/toast';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Card} from 'sentry/components/card';
-import {openConfirmModal} from 'sentry/components/confirm';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
 import type {
@@ -398,9 +398,7 @@ export function NotificationActionItem({
       apiMethod: 'POST' as const,
       apiEndpoint: getApiUrl(
         '/organizations/$organizationIdOrSlug/notifications/actions/',
-        {
-          path: {organizationIdOrSlug: organization.slug},
-        }
+        {path: {organizationIdOrSlug: organization.slug}}
       ),
       successMessage: t('Successfully added notification action'),
       errorMessage: t('Unable to add notification action'),

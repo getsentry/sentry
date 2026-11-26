@@ -1,29 +1,27 @@
 from __future__ import annotations
 
 from datetime import timedelta
-from functools import partial
 from typing import Any
 
 from django.db import IntegrityError, router, transaction
+from django.db.models import Func, JSONField, TextField, Value
+from django.db.models.functions import Cast, Coalesce, NullIf
 from django.utils import timezone
 
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.db.postgres.transactions import enforce_constraints
 from sentry.integrations.gitlab.tasks import update_all_project_webhooks
-from sentry.integrations.models.external_actor import ExternalActor
-from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.services.repository import RepositoryService, RpcRepository
 from sentry.integrations.services.repository.model import (
     RpcCreateRepository,
-    RpcRepointIntegrationResult,
+    RpcRepositoryRename,
 )
 from sentry.integrations.services.repository.serial import serialize_repository
 from sentry.integrations.source_code_management.auto_link_repos import auto_link_repos_by_name
 from sentry.models.code_review_event import CodeReviewEvent
 from sentry.models.commit import Commit
-from sentry.models.grouplink import GroupLink
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
 from sentry.models.projectcodeowners import ProjectCodeOwners
@@ -34,15 +32,6 @@ from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.users.services.user.model import RpcUser
 
 
-def _reload_project_option_caches(project_ids: tuple[int, ...], option_key: str) -> None:
-    for project_id in project_ids:
-        ProjectOption.objects.reload_cache(
-            project_id,
-            "repository_service.repoint_organization_integration_data",
-            option_key,
-        )
-
-
 class DatabaseBackedRepositoryService(RepositoryService):
     def serialize_repository(
         self,
@@ -51,7 +40,7 @@ class DatabaseBackedRepositoryService(RepositoryService):
         id: int,
         as_user: RpcUser | None = None,
     ) -> Any | None:
-        repository = Repository.objects.filter(organization_id=organization_id, id=id).first()
+        repository = Repository.objects.get_or_none(organization_id=organization_id, id=id)
         if repository is None:
             return None
         return serialize(repository, user=as_user)
@@ -89,7 +78,7 @@ class DatabaseBackedRepositoryService(RepositoryService):
         return [serialize_repository(repo) for repo in query]
 
     def get_repository(self, *, organization_id: int, id: int) -> RpcRepository | None:
-        repository = Repository.objects.filter(organization_id=organization_id, id=id).first()
+        repository = Repository.objects.get_or_none(organization_id=organization_id, id=id)
         if repository is None:
             return None
         return serialize_repository(repository)
@@ -111,7 +100,7 @@ class DatabaseBackedRepositoryService(RepositoryService):
             repository = (
                 Repository.objects.filter(organization_id=organization_id, id=update.id)
                 .select_for_update()
-                .first()
+                .get_or_none()
             )
             if repository is None:
                 return
@@ -138,7 +127,7 @@ class DatabaseBackedRepositoryService(RepositoryService):
             repository = (
                 Repository.objects.filter(organization_id=organization_id, id=id)
                 .select_for_update()
-                .first()
+                .get_or_none()
             )
             if repository is None or repository.status != ObjectStatus.ACTIVE:
                 return False
@@ -191,6 +180,88 @@ class DatabaseBackedRepositoryService(RepositoryService):
 
             Repository.objects.bulk_update(repositories, fields=list(fields_to_update))
 
+    def rename_repositories(
+        self,
+        *,
+        organization_id: int,
+        integration_id: int,
+        provider: str,
+        renames: list[RpcRepositoryRename],
+    ) -> list[int]:
+        # config is stored as text. Merge into the current document in the UPDATE
+        # so a concurrent change to an unrelated key is preserved.
+        config = Cast(
+            Coalesce(NullIf("config", Value("")), Value("{}"), output_field=TextField()),
+            JSONField(),
+        )
+        using = router.db_for_write(Repository)
+        repositories = (
+            Repository.objects.using(using)
+            .filter(
+                organization_id=organization_id,
+                integration_id=integration_id,
+                provider=provider,
+                status__in=(ObjectStatus.ACTIVE, ObjectStatus.DISABLED),
+            )
+            .alias(
+                config_name=Func(
+                    config,
+                    Value("name"),
+                    function="jsonb_extract_path_text",
+                    output_field=TextField(),
+                )
+            )
+        )
+
+        renamed: set[int] = set()
+        with transaction.atomic(using=using):
+            # Acquire locks in a consistent order across overlapping batches.
+            for rename in sorted(renames, key=lambda r: r.id):
+                if rename.id in renamed or (
+                    rename.expected_name == rename.name
+                    and rename.expected_url == rename.url
+                    and rename.expected_config_name == rename.name
+                ):
+                    continue
+                matching = repositories.filter(
+                    id=rename.id,
+                    external_id=rename.external_id,
+                    name=rename.expected_name,
+                    url=rename.expected_url,
+                    config_name=rename.expected_config_name,
+                )
+                name_patch = Value({"name": rename.name}, output_field=JSONField())
+                if matching.update(
+                    name=rename.name,
+                    url=rename.url,
+                    config=Cast(Func(config, name_patch, function="jsonb_concat"), TextField()),
+                ):
+                    renamed.add(rename.id)
+        return sorted(renamed)
+
+    def enable_repositories_by_external_ids(
+        self,
+        *,
+        organization_id: int,
+        integration_id: int,
+        provider: str,
+        external_ids: list[str],
+    ) -> list[RpcRepository]:
+        using = router.db_for_write(Repository)
+        repositories = Repository.objects.using(using).filter(
+            organization_id=organization_id,
+            integration_id=integration_id,
+            provider=provider,
+            external_id__in=external_ids,
+        )
+        # The UPDATE locks only the disabled rows it changes, so a writer that holds
+        # a lock on an already-active repo doesn't block the restore.
+        repositories.filter(status=ObjectStatus.DISABLED).update(status=ObjectStatus.ACTIVE)
+        return [
+            serialize_repository(repository)
+            for repository in repositories.filter(status=ObjectStatus.ACTIVE).order_by("id")
+        ]
+
     def transfer_repository_to_integration(
         self,
         *,
@@ -203,7 +274,7 @@ class DatabaseBackedRepositoryService(RepositoryService):
             repository = (
                 Repository.objects.filter(organization_id=organization_id, id=update.id)
                 .select_for_update()
-                .first()
+                .get_or_none()
             )
             if repository is None or repository.status not in (
                 ObjectStatus.ACTIVE,
@@ -226,113 +297,6 @@ class DatabaseBackedRepositoryService(RepositoryService):
                 organization_integration_id=organization_integration_id,
             )
         return True
-
-    def repoint_organization_integration_data(
-        self,
-        *,
-        organization_id: int,
-        old_integration_id: int,
-        new_integration_id: int,
-    ) -> RpcRepointIntegrationResult:
-        if old_integration_id == new_integration_id:
-            return RpcRepointIntegrationResult(
-                repositories=0,
-                code_mappings=0,
-                external_issues=0,
-                external_actors=0,
-                project_options=0,
-            )
-
-        option_key = "sentry:seer_automation_handoff_integration_id"
-        database = router.db_for_write(Repository)
-        with transaction.atomic(database):
-            repositories = Repository.objects.filter(
-                organization_id=organization_id,
-                integration_id=old_integration_id,
-            ).update(integration_id=new_integration_id)
-            code_mappings = RepositoryProjectPathConfig.objects.filter(
-                organization_id=organization_id,
-                integration_id=old_integration_id,
-            ).update(integration_id=new_integration_id)
-            old_issue_keys = ExternalIssue.objects.filter(
-                organization_id=organization_id,
-                integration_id=old_integration_id,
-            ).values_list("key", flat=True)
-            target_issue_ids = dict(
-                ExternalIssue.objects.filter(
-                    organization_id=organization_id,
-                    integration_id=new_integration_id,
-                    key__in=old_issue_keys,
-                ).values_list("key", "id")
-            )
-            conflicting_issue_ids = dict(
-                ExternalIssue.objects.filter(
-                    organization_id=organization_id,
-                    integration_id=old_integration_id,
-                    key__in=target_issue_ids.keys(),
-                ).values_list("id", "key")
-            )
-            issue_id_mapping = {
-                stale_id: target_issue_ids[key] for stale_id, key in conflicting_issue_ids.items()
-            }
-            if issue_id_mapping:
-                stale_links = list(
-                    GroupLink.objects.filter(
-                        linked_type=GroupLink.LinkedType.issue,
-                        linked_id__in=issue_id_mapping.keys(),
-                    ).values_list("id", "group_id", "linked_id")
-                )
-                survivor_links = set(
-                    GroupLink.objects.filter(
-                        linked_type=GroupLink.LinkedType.issue,
-                        linked_id__in=issue_id_mapping.values(),
-                    ).values_list("group_id", "linked_id")
-                )
-                duplicate_link_ids = []
-                links_to_update = []
-                for link_id, group_id, stale_issue_id in stale_links:
-                    survivor_id = issue_id_mapping[stale_issue_id]
-                    if (group_id, survivor_id) in survivor_links:
-                        duplicate_link_ids.append(link_id)
-                    else:
-                        links_to_update.append(GroupLink(id=link_id, linked_id=survivor_id))
-
-                GroupLink.objects.filter(id__in=duplicate_link_ids).delete()
-                GroupLink.objects.bulk_update(links_to_update, ["linked_id"])
-                ExternalIssue.objects.filter(id__in=issue_id_mapping.keys()).delete()
-
-            moved_external_issues = ExternalIssue.objects.filter(
-                organization_id=organization_id,
-                integration_id=old_integration_id,
-            ).update(integration_id=new_integration_id)
-            external_issues = len(issue_id_mapping) + moved_external_issues
-            external_actors = ExternalActor.objects.filter(
-                organization_id=organization_id,
-                integration_id=old_integration_id,
-            ).update(integration_id=new_integration_id)
-
-            affected_project_options = ProjectOption.objects.filter(
-                project__organization_id=organization_id,
-                key=option_key,
-                value__in=[old_integration_id, new_integration_id],
-            )
-            project_ids = tuple(affected_project_options.values_list("project_id", flat=True))
-            updated_project_options = affected_project_options.filter(
-                value=old_integration_id
-            ).update(value=new_integration_id)
-            if project_ids:
-                transaction.on_commit(
-                    partial(_reload_project_option_caches, project_ids, option_key),
-                    using=database,
-                )
-
-        return RpcRepointIntegrationResult(
-            repositories=repositories,
-            code_mappings=code_mappings,
-            external_issues=external_issues,
-            external_actors=external_actors,
-            project_options=updated_project_options,
-        )
 
     def disable_repositories_for_integration(
         self, *, organization_id: int, integration_id: int, provider: str

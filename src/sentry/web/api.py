@@ -9,6 +9,7 @@ from sentry.api.helpers.oauth_authorize.request import PROMPT_VALUES
 from sentry.conf.types.sentry_config import SentryMode
 from sentry.utils import json
 from sentry.web.client_config import get_client_config
+from sentry.web.decorators import ai_machine_readable
 from sentry.web.frontend.base import all_silo_view, control_silo_view
 
 # Paths to pages should not be added here, otherwise crawlers will
@@ -75,6 +76,7 @@ class ClientConfigView(BaseView):
 
 @all_silo_view
 @cache_control(max_age=3600, public=True)
+@ai_machine_readable
 def robots_txt(request: HttpRequest) -> HttpResponse:
     if settings.SENTRY_MODE == SentryMode.SAAS and not request.subdomain:
         return HttpResponse(ROBOTS_SENTRY_IO, content_type="text/plain")
@@ -84,6 +86,7 @@ def robots_txt(request: HttpRequest) -> HttpResponse:
 
 @all_silo_view
 @cache_control(max_age=3600, public=True)
+@ai_machine_readable
 def security_txt(request: HttpRequest) -> HttpResponse:
     if settings.SENTRY_MODE == SentryMode.SELF_HOSTED:
         return HttpResponse(status=404)
@@ -93,6 +96,7 @@ def security_txt(request: HttpRequest) -> HttpResponse:
 
 @control_silo_view
 @cache_control(max_age=3600, public=True)
+@ai_machine_readable
 def mcp_json(request: HttpRequest) -> HttpResponse:
     if settings.SENTRY_MODE == SentryMode.SELF_HOSTED:
         return HttpResponse(status=404)
@@ -116,8 +120,13 @@ OAUTH_AUTHORIZATION_SERVER = {
     "issuer": "https://sentry.io",
     "authorization_endpoint": "https://sentry.io/oauth/authorize/",
     "token_endpoint": "https://sentry.io/oauth/token/",
+    "device_authorization_endpoint": "https://sentry.io/oauth/device/code/",
     "response_types_supported": ["code"],
-    "grant_types_supported": ["authorization_code", "refresh_token"],
+    "grant_types_supported": [
+        "authorization_code",
+        "refresh_token",
+        "urn:ietf:params:oauth:grant-type:device_code",
+    ],
     "code_challenge_methods_supported": ["S256"],
     "prompt_values_supported": list(PROMPT_VALUES),
 }
@@ -160,11 +169,13 @@ def _saas_only_json_response(
 
 
 @control_silo_view
+@ai_machine_readable
 def api_catalog(request: HttpRequest) -> HttpResponse:
     return _saas_only_json_response(request, API_CATALOG, "application/linkset+json")
 
 
 @control_silo_view
+@ai_machine_readable
 def oauth_authorization_server(request: HttpRequest) -> HttpResponse:
     payload = {
         **OAUTH_AUTHORIZATION_SERVER,
@@ -174,6 +185,7 @@ def oauth_authorization_server(request: HttpRequest) -> HttpResponse:
 
 
 @control_silo_view
+@ai_machine_readable
 def oauth_protected_resource(request: HttpRequest) -> HttpResponse:
     payload = {
         **OAUTH_PROTECTED_RESOURCE,
@@ -183,11 +195,13 @@ def oauth_protected_resource(request: HttpRequest) -> HttpResponse:
 
 
 @control_silo_view
+@ai_machine_readable
 def mcp_server_card(request: HttpRequest) -> HttpResponse:
     return _saas_only_json_response(request, MCP_SERVER_CARD)
 
 
 @control_silo_view
+@ai_machine_readable
 def agent_skills_index(request: HttpRequest) -> HttpResponse:
     return _saas_only_json_response(request, AGENT_SKILLS_INDEX)
 

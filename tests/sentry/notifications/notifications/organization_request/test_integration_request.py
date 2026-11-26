@@ -69,6 +69,26 @@ class TestIntegrationRequestNotification(TestCase):
             in context["integration_link"]
         )
 
+    def test_get_context_links_to_provider(self) -> None:
+        owner = self.create_user("owner@example.com")
+        org = self.create_organization(owner=owner)
+        requester = self.create_user()
+        self.create_member(user=requester, organization=org)
+
+        notification = IntegrationRequestNotification(
+            org,
+            requester,
+            provider_type="first_party",
+            provider_slug="github",
+            provider_name="GitHub",
+        )
+        context = notification.get_context()
+        assert context["requested"] == "the installation of GitHub"
+        assert context["install_label"] == "Install GitHub"
+        assert context["integration_link"] == org.absolute_url(
+            f"/settings/{org.slug}/integrations/github/", query="referrer=request_email"
+        )
+
     def test_sanitizes_periods_in_requester_name(self) -> None:
         owner = self.create_user("owner@example.com")
         org = self.create_organization(owner=owner)

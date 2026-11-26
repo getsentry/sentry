@@ -18,6 +18,7 @@ import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {decodeList} from 'sentry/utils/queryString';
 import {useApi} from 'sentry/utils/useApi';
@@ -63,14 +64,8 @@ function getTimelineSubtitle(eventView: EventView) {
   );
 }
 
-function isDeprecatedTransactionQuery(
-  organization: Organization,
-  queryDataset: SavedQueryDatasets | undefined
-) {
-  return (
-    organization.features.includes('discover-saved-queries-deprecation') &&
-    queryDataset === SavedQueryDatasets.TRANSACTIONS
-  );
+function isDeprecatedTransactionQuery(queryDataset: SavedQueryDatasets | undefined) {
+  return queryDataset === SavedQueryDatasets.TRANSACTIONS;
 }
 
 function getWidgetType(
@@ -119,10 +114,7 @@ function useSavedQueryActions({
 
     handleCreateQuery(api, organization, copy, yAxis).then(() => {
       refetchSavedQueries();
-      navigate({
-        pathname: location.pathname,
-        query: {},
-      });
+      navigate({pathname: location.pathname, query: {}});
     });
   };
 
@@ -192,7 +184,7 @@ function PrebuiltQueryCard({
           widgetType: getWidgetType(organization, location, newQuery),
           source: DashboardWidgetSource.DISCOVERV2,
         }),
-      disabled: isDeprecatedTransactionQuery(organization, view.queryDataset),
+      disabled: isDeprecatedTransactionQuery(view.queryDataset),
     },
     {
       key: 'set-as-default',
@@ -240,10 +232,7 @@ function SavedQueryCard({
 }) {
   const savedQuery = getSavedQueryWithDataset(query)!;
   const eventView = EventView.fromSavedQuery(savedQuery);
-  const deprecateTransactionQuery = isDeprecatedTransactionQuery(
-    organization,
-    savedQuery.queryDataset
-  );
+  const deprecateTransactionQuery = isDeprecatedTransactionQuery(savedQuery.queryDataset);
 
   const menuItems: MenuItemProps[] = [
     {
@@ -379,8 +368,9 @@ export function QueryList({
         )}
       </Grid>
       <PaginationRow
-        pageLinks={pageLinks}
-        onCursor={(cursor, path, query, direction) => {
+        {...getPaginationProps(pageLinks)}
+        onCursor={(cursor, direction) => {
+          const {pathname: path, query} = location;
           const offset = Number(cursor?.split(':')?.[1] ?? 0);
 
           const newQuery: Query & {cursor?: string} = {...query, cursor};
@@ -390,10 +380,7 @@ export function QueryList({
             delete newQuery.cursor;
           }
 
-          navigate({
-            pathname: path,
-            query: newQuery,
-          });
+          navigate({pathname: path, query: newQuery});
         }}
       />
     </Fragment>

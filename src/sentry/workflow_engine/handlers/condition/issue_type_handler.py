@@ -58,7 +58,7 @@ class IssueTypeConditionHandler(ActionFilterDataConditionHandler[WorkflowEventDa
 
     @staticmethod
     def evaluate_value(event_data: WorkflowEventData, comparison: Any) -> bool:
-        group = event_data.group
+        group = event_data.require_group()
         try:
             comparison_value = comparison["value"]
             if not isinstance(comparison_value, str):

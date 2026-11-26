@@ -5,7 +5,11 @@ import type {Organization} from 'sentry/types/organization';
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 
 import type {Subscription} from 'getsentry/types';
-import {hasBillingAccess, isDeveloperPlan, supportsPayg} from 'getsentry/utils/billing';
+import {
+  hasBillingAccess,
+  shouldShowBillingInformation,
+  supportsPayg,
+} from 'getsentry/utils/billing';
 import {BillingInfoCard} from 'getsentry/views/subscriptionPage/headerCards/billingInfoCard';
 import {LinksCard} from 'getsentry/views/subscriptionPage/headerCards/linksCard';
 import {NextBillCard} from 'getsentry/views/subscriptionPage/headerCards/nextBillCard';
@@ -18,19 +22,16 @@ interface HeaderCardsProps {
   subscription: Subscription;
 }
 
+const SEER_WALLET_CARD_KEY = 'seer-wallet';
+
 function getCards(organization: Organization, subscription: Subscription) {
   const hasBillingPerms = hasBillingAccess(organization);
-  const cards: React.ReactNode[] = [];
-  const isTrialOrFreePlan =
-    subscription.onTrialPlan || isDeveloperPlan(subscription.planDetails);
+  const cards: React.ReactElement[] = [];
 
   const isPaidPlan = subscription.planDetails.totalPrice > 0;
 
   // the organization can use PAYG
   const canUsePayg = supportsPayg(subscription);
-
-  // the user can update the PAYG budget
-  const canUpdatePayg = canUsePayg && hasBillingPerms;
 
   if (subscription.canSelfServe && isPaidPlan && hasBillingPerms) {
     cards.push(
@@ -49,17 +50,10 @@ function getCards(organization: Organization, subscription: Subscription) {
   }
 
   if (hasBillingPerms && organization.features.includes('token-billed-seer-enabled')) {
-    cards.push(<SeerWalletCard key="seer-wallet" organization={organization} />);
+    cards.push(<SeerWalletCard key={SEER_WALLET_CARD_KEY} organization={organization} />);
   }
 
-  if (
-    hasBillingPerms &&
-    (canUpdatePayg ||
-      (subscription.canSelfServe &&
-        isTrialOrFreePlan &&
-        !subscription.isEnterpriseTrial)) &&
-    !subscription.isSelfServePartner
-  ) {
+  if (shouldShowBillingInformation(subscription, organization)) {
     cards.push(
       <BillingInfoCard
         key="billing-info"
@@ -78,6 +72,11 @@ export function HeaderCards({organization, subscription}: HeaderCardsProps) {
   const cards = getCards(organization, subscription);
   const {view} = useSecondaryNavigation();
   const navIsCollapsed = view !== 'expanded';
+  // The Seer card keeps the design's fixed width when the cards share a row, so
+  // its auto-reload footer doesn't wrap; the other cards split what's left.
+  const singleRowColumns = cards
+    .map(card => (card.key === SEER_WALLET_CARD_KEY ? '320px' : 'minmax(0, 1fr)'))
+    .join(' ');
 
   return (
     <ErrorBoundary mini>
@@ -86,8 +85,8 @@ export function HeaderCards({organization, subscription}: HeaderCardsProps) {
         columns={{
           zero: '1fr',
           xl: `repeat(min(${cards.length}, 2), minmax(0, 1fr))`,
-          '3xl': navIsCollapsed ? `repeat(${cards.length}, minmax(0, 1fr))` : undefined,
-          '4xl': `repeat(${cards.length}, minmax(0, 1fr))`,
+          '3xl': navIsCollapsed ? singleRowColumns : undefined,
+          '4xl': singleRowColumns,
         }}
         gap="lg"
         data-test-id="subscription-header-cards"

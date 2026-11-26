@@ -1,4 +1,5 @@
-import {DateTime} from 'sentry/components/dateTime';
+import {DateTime} from '@sentry/scraps/dateTime';
+
 import {Duration} from 'sentry/components/duration';
 import {t, tct, tn} from 'sentry/locale';
 import type {GroupActivitySetIgnored, IssueCategory} from 'sentry/types/group';
@@ -45,9 +46,7 @@ export function getArchiveDetails(
   }
 
   if (data.ignoreUntil) {
-    return tct('until [date]', {
-      date: <DateTime date={data.ignoreUntil} />,
-    });
+    return tct('until [date]', {date: <DateTime date={data.ignoreUntil} />});
   }
 
   if (data.ignoreUntilEscalating) {

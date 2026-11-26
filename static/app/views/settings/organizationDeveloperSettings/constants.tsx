@@ -29,8 +29,11 @@ export const RESOURCE_EVENTS = {
     'seer.coding_started',
     'seer.coding_completed',
     'seer.pr_created',
+    'seer.pr_ready_for_review',
     'seer.iteration_started',
     'seer.iteration_completed',
+    'seer.stopped',
+    'seer.errored',
   ],
   preprod_artifact: [
     'preprod_artifact.size_analysis_completed',
@@ -71,6 +74,7 @@ const EVENT_LABEL_OVERRIDES: Partial<Record<WebhookSubscription, string>> = {
   'issue.ignored': 'Archived', // the product renamed ignore → archive
   'comment.updated': 'Edited', // the product renamed update → edit
   'seer.pr_created': 'PR created', // the transform below would render "Pr created"
+  'seer.pr_ready_for_review': 'PR ready for review',
 };
 
 export function webhookEventLabel(event: WebhookSubscription): string {

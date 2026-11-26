@@ -265,6 +265,32 @@ class PrIterationDetailsTest(TestCase):
 
         assert mock_record.call_args.args[0].head_shas == []
 
+    def test_completion_emits_the_push_error_code_and_trigger_exception_type(self) -> None:
+        self._open()
+        iteration_id = self._trigger()
+        assert iteration_id is not None
+        (row,) = self._open_rows()
+        update_iteration(row, push_trigger_exception_type="SeerApiError")
+        state = _run_state(blocks=[_iteration_block(iteration_id, repos=["owner/repo"])])
+        state.repo_pr_states["owner/repo"] = RepoPRState(
+            repo_name="owner/repo",
+            pr_creation_status="error",
+            pr_creation_error_code="branch_moved",
+        )
+
+        with patch("sentry.analytics.record") as mock_record:
+            complete_pr_iteration_details(
+                log_ctx=self.log_ctx,
+                run_state=state,
+                organization_id=self.organization.id,
+                outcome=PrIterationOutcome.PR_CREATION_ERRORED.value,
+            )
+
+        event = mock_record.call_args.args[0]
+        assert isinstance(event, AiAutofixPrIterationFeedbackBatchCompletedEvent)
+        assert event.push_error_codes == ["branch_moved"]
+        assert event.push_trigger_exception_type == "SeerApiError"
+
     @freeze_time("2024-01-01 00:00:00")
     def test_the_iteration_it_opened_is_emitted_when_it_completes(self) -> None:
         self._open()

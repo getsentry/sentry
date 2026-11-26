@@ -1,16 +1,12 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
-import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 
 import {MetricAlertQuotaMessage} from './metricAlertQuotaMessage';
 
-jest.mock('getsentry/actionCreators/modal', () => ({
-  openUpsellModal: jest.fn(),
-}));
+jest.mock('getsentry/actionCreators/modal', () => ({openUpsellModal: jest.fn()}));
 
 describe('MetricAlertQuotaMessage', () => {
   const organization = OrganizationFixture({
@@ -19,24 +15,16 @@ describe('MetricAlertQuotaMessage', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    MockApiClient.clearMockResponses();
   });
 
-  it('renders nothing when subscription has unlimited quota', async () => {
-    const subscription = SubscriptionFixture({
-      organization,
-      planDetails: {
-        ...SubscriptionFixture({
-          organization,
-        }).planDetails,
-        metricDetectorLimit: -1,
-      },
+  it('renders nothing when the plan has no limit', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/detectors/metric-detector-quota/',
+      body: {count: -1, limit: -1, hasReachedLimit: false},
     });
 
-    SubscriptionStore.set(organization.slug, subscription);
-
-    const {container} = render(<MetricAlertQuotaMessage />, {
-      organization,
-    });
+    const {container} = render(<MetricAlertQuotaMessage />, {organization});
 
     await waitFor(() => {
       expect(container).toBeEmptyDOMElement();
@@ -44,22 +32,9 @@ describe('MetricAlertQuotaMessage', () => {
   });
 
   it('renders approaching detectorLimit message with upgrade action', async () => {
-    const subscription = SubscriptionFixture({
-      organization,
-      planDetails: {
-        ...SubscriptionFixture({
-          organization,
-        }).planDetails,
-        metricDetectorLimit: 10,
-      },
-    });
-
-    SubscriptionStore.set(organization.slug, subscription);
-
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/detectors/',
-      headers: {'X-Hits': '9'},
-      body: [],
+      url: '/organizations/org-slug/detectors/metric-detector-quota/',
+      body: {count: 9, limit: 10, hasReachedLimit: false},
     });
 
     render(<MetricAlertQuotaMessage />, {organization});
@@ -75,30 +50,10 @@ describe('MetricAlertQuotaMessage', () => {
     });
   });
 
-  it('renders reached detectorLimit message with remove and upgrade actions when at detectorLimit', async () => {
-    const subscription = SubscriptionFixture({
-      organization,
-      planDetails: {
-        ...SubscriptionFixture({
-          organization,
-        }).planDetails,
-        metricDetectorLimit: 10,
-      },
-    });
-
-    SubscriptionStore.set(organization.slug, subscription);
-
+  it('renders reached detectorLimit message with disable or remove and upgrade actions when at detectorLimit', async () => {
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/detectors/',
-      headers: {'X-Hits': '10'},
-      body: [],
-    });
-
-    // Mock alert-rules endpoint to prevent console errors
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/alert-rules/',
-      headers: {'X-Hits': '0'},
-      body: [],
+      url: '/organizations/org-slug/detectors/metric-detector-quota/',
+      body: {count: 10, limit: 10, hasReachedLimit: true},
     });
 
     render(<MetricAlertQuotaMessage />, {organization});
@@ -107,9 +62,8 @@ describe('MetricAlertQuotaMessage', () => {
       await screen.findByText(/reached your plan's limit on metric monitors/i)
     ).toBeInTheDocument();
 
-    // Remove link and upgrade button are present
     expect(
-      screen.getByRole('link', {name: /remove existing monitors/i})
+      screen.getByRole('link', {name: /disable or remove existing monitors/i})
     ).toBeInTheDocument();
 
     const upgrade = screen.getByRole('button', {name: /upgrade your plan/i});

@@ -20,7 +20,8 @@ class UsageService(BillingService):
     @service_method
     def get_usage(self, request: GetUsageRequest) -> GetUsageResponse:
         """
-        Get daily usage data for an organization within a date range.
+        Get daily usage data for an organization from ``start`` up to, but not
+        including, ``end``.
 
         Returns usage broken down by day, with per-category totals for
         accepted, dropped, filtered, over_quota, spike_protection, and
@@ -30,5 +31,5 @@ class UsageService(BillingService):
 
     @service_method
     def get_usage_by_project(self, request: GetUsageByProjectRequest) -> GetUsageByProjectResponse:
-        """Similar to get_usage, but grouped by project."""
+        """Similar to get_usage, including its exclusive ``end``, but grouped by project."""
         return query_project_outcomes_usage(request)

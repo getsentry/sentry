@@ -16,6 +16,7 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
 
 from sentry import audit_log, quotas
 from sentry.api.fields.actor import OwnerActorField
+from sentry.api.helpers.creator import get_creator_reference
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ObjectStatus
@@ -50,7 +51,7 @@ from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.db import atomic_transaction
-from sentry.utils.not_set import NOT_SET
+from sentry.utils.not_set import NOT_SET, NotSet
 from sentry.workflow_engine.endpoints.validators.base import (
     BaseDataSourceValidator,
     BaseDetectorTypeValidator,
@@ -391,6 +392,7 @@ class UptimeMonitorValidator(UptimeValidatorBase):
             downtime_threshold=validated_data["downtime_threshold"],
             assertion=validated_data.get("assertion", None),
             response_capture_enabled=validated_data.get("response_capture_enabled", True),
+            creator=get_creator_reference(self.context["request"]),
             **method_headers_body,
         )
 
@@ -446,15 +448,11 @@ class UptimeMonitorValidator(UptimeValidatorBase):
             else instance.config["downtime_threshold"]
         )
 
+        environment: Environment | NotSet = NOT_SET
         if "environment" in data:
             environment = Environment.get_or_create(
                 project=self.context["project"],
                 name=data["environment"],
-            )
-        else:
-            environment = Environment.objects.get(
-                projects=self.context["project"],
-                name=instance.config["environment"],
             )
 
         if "mode" in data:

@@ -50,7 +50,7 @@ from sentry.auth.store import FLOW_LOGIN, FLOW_SETUP_PROVIDER, AuthHelperSession
 from sentry.auth.superuser import is_active_superuser
 from sentry.auth.view import AuthView
 from sentry.demo_mode.utils import is_demo_mode_enabled, is_demo_org, is_demo_user
-from sentry.hybridcloud.models.outbox import outbox_context
+from sentry.hybridcloud.models.outbox import OutboxDatabaseError, OutboxFlushError, outbox_context
 from sentry.locks import locks
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
@@ -65,6 +65,7 @@ from sentry.organizations.services.organization import (
 )
 from sentry.pipeline.base import Pipeline
 from sentry.pipeline.constants import PIPELINE_STATE_TTL
+from sentry.pipeline.store import PipelineSessionStore
 from sentry.signals import sso_enabled, user_signup
 from sentry.tasks.auth.auth import email_missing_links_control
 from sentry.users.models.user import User
@@ -214,7 +215,7 @@ class AuthIdentityHandler:
 
     def handle_existing_identity(
         self,
-        state: AuthHelperSessionStore,
+        state: PipelineSessionStore,
         auth_identity: AuthIdentity,
     ) -> HttpResponseRedirect:
         # TODO(dcramer): this is very similar to attach
@@ -434,58 +435,80 @@ class AuthIdentityHandler:
             # self.user is resolved to request.user earlier in the flow.
             raise AuthIdentityUserMismatch
 
-        # prioritize identifying by the SSO provider's user ID
-        with transaction.atomic(router.db_for_write(AuthIdentity)):
-            auth_identity = self._get_auth_identity(ident=self.identity["id"])
-            if auth_identity is None:
-                # otherwise look for an already attached identity
-                # this can happen if the SSO provider's internal ID changes
-                auth_identity = self._get_auth_identity(user_id=self.user.id)
+        auth_identity: AuthIdentity | None = None
+        try:
+            # This transaction is required to bind the identity to a variable
+            # when replication fails. The outbox_context is just to flag
+            # that this is an outbox-producing operation.
+            with outbox_context(transaction.atomic(router.db_for_write(AuthIdentity))):
+                # prioritize identifying by the SSO provider's user ID
+                auth_identity = self._get_auth_identity(ident=self.identity["id"])
+                if auth_identity is None:
+                    # otherwise look for an already attached identity
+                    # this can happen if the SSO provider's internal ID changes
+                    auth_identity = self._get_auth_identity(user_id=self.user.id)
 
-            if auth_identity is None:
-                assert self.user.is_authenticated
-                auth_is_new = True
-                auth_identity = AuthIdentity.objects.create(
-                    auth_provider=self.auth_provider,
-                    user_id=self.user.id,
-                    ident=self.identity["id"],
-                    data=self.identity.get("data", {}),
-                )
-            else:
-                auth_is_new = False
-
-                # TODO(dcramer): this might leave the user with duplicate accounts,
-                # and in that kind of situation its very reasonable that we could
-                # test email addresses + is_managed to determine if we can auto
-                # merge
-                if auth_identity.user_id != self.user.id:
-                    wipe = self._wipe_existing_identity(auth_identity)
+                if auth_identity is None:
+                    assert self.user.is_authenticated
+                    auth_is_new = True
+                    auth_identity = AuthIdentity.objects.create(
+                        auth_provider=self.auth_provider,
+                        user_id=self.user.id,
+                        ident=self.identity["id"],
+                        data=self.identity.get("data", {}),
+                    )
                 else:
-                    wipe = None
+                    auth_is_new = False
 
-                now = timezone.now()
-                auth_identity.update(
-                    user_id=self.user.id,
-                    ident=self.identity["id"],
-                    data=self.provider.update_identity(
-                        new_data=self.identity.get("data", {}), current_data=auth_identity.data
-                    ),
-                    last_verified=now,
-                    last_synced=now,
-                )
+                    # TODO(dcramer): this might leave the user with duplicate accounts,
+                    # and in that kind of situation its very reasonable that we could
+                    # test email addresses + is_managed to determine if we can auto
+                    # merge
+                    if auth_identity.user_id != self.user.id:
+                        wipe = self._wipe_existing_identity(auth_identity)
+                    else:
+                        wipe = None
 
-                logger.info(
-                    "sso.login-pipeline.attach-existing-identity",
-                    extra={
-                        "wipe_result": repr(wipe),
-                        "organization_id": self.organization.id,
-                        "user_id": self.user.id,
-                        "auth_identity_user_id": auth_identity.user.id,
-                        "auth_provider_id": self.auth_provider.id,
-                        "idp_identity_id": self.identity["id"],
-                        "idp_identity_email": self.identity.get("email"),
-                    },
-                )
+                    now = timezone.now()
+                    auth_identity.update(
+                        user_id=self.user.id,
+                        ident=self.identity["id"],
+                        data=self.provider.update_identity(
+                            new_data=self.identity.get("data", {}),
+                            current_data=auth_identity.data,
+                        ),
+                        last_verified=now,
+                        last_synced=now,
+                    )
+
+                    logger.info(
+                        "sso.login-pipeline.attach-existing-identity",
+                        extra={
+                            "wipe_result": repr(wipe),
+                            "organization_id": self.organization.id,
+                            "user_id": self.user.id,
+                            "auth_identity_user_id": auth_identity.user.id,
+                            "auth_provider_id": self.auth_provider.id,
+                            "idp_identity_id": self.identity["id"],
+                            "idp_identity_email": self.identity.get("email"),
+                        },
+                    )
+        except (OutboxDatabaseError, OutboxFlushError):
+            if auth_identity is None:
+                raise
+
+            # Guard against replication fanout failures. The identity has been
+            # attached, and its outbox has been committed alongside it,
+            # guaranteeing that it will eventually be valid in all regions.
+            logger.warning(
+                "sso.login-pipeline.attach-identity.outbox-flush-failure",
+                extra={
+                    "organization_id": self.organization.id,
+                    "auth_identity_id": auth_identity.id,
+                    "auth_provider_id": self.auth_provider.id,
+                },
+                exc_info=True,
+            )
 
         if member is None:
             member = self._get_organization_member(auth_identity)
@@ -624,19 +647,19 @@ class AuthIdentityHandler:
             context["login_form"] = self._login_form
         return self._respond(f"sentry/{template}.html", context)
 
-    def _has_verified_signup_email(self, state: AuthHelperSessionStore) -> bool:
+    def _has_verified_signup_email(self, state: PipelineSessionStore) -> bool:
         """Check if the pipeline has a verified email from the verification flow.
 
         Consumes the marker on read so it can only be used once.
         """
         verified = getattr(state, "verified_email", None)
-        if not verified:
+        if not verified or not isinstance(state, AuthHelperSessionStore):
             return False
         state.verified_email = None
         return verified.lower() == self.identity["email"].lower()
 
     def _send_sso_verification_email_and_redirect(
-        self, email: str, state: AuthHelperSessionStore
+        self, email: str, state: PipelineSessionStore
     ) -> HttpResponse:
         """Send the SSO signup verification email (unless already sent for
         this pipeline) and redirect to the pending-verification page.
@@ -668,12 +691,13 @@ class AuthIdentityHandler:
             self.request.session[PENDING_EXPIRY_TEXT_SESSION_KEY] = max_age_minutes
             # Setting this refreshes the pipeline's TTL to match the link's max_age,
             # and stops a resubmit from re-sending or re-extending the TTL.
-            state.verification_email_sent = True
+            if isinstance(state, AuthHelperSessionStore):
+                state.verification_email_sent = True
         return HttpResponseRedirect(reverse("sentry-signup-verify-email-pending"))
 
     def handle_unknown_identity(
         self,
-        state: AuthHelperSessionStore,
+        state: PipelineSessionStore,
     ) -> HttpResponse:
         """Handle an SSO login where no AuthIdentity exists yet for this IdP identity.
 
@@ -794,7 +818,8 @@ class AuthIdentityHandler:
                     # email instead of being stuck: otherwise
                     # verification_email_sent stays True forever for this
                     # pipeline and the retry silently bounces to signup.
-                    state.verification_email_sent = False
+                    if isinstance(state, AuthHelperSessionStore):
+                        state.verification_email_sent = False
                     raise
                 created_new_user = True
             elif op == "login" and not self._logged_in_user:
@@ -865,7 +890,7 @@ class AuthIdentityHandler:
     def complete_and_login(
         self,
         auth_identity: AuthIdentity,
-        state: AuthHelperSessionStore,
+        state: PipelineSessionStore,
         is_new_user: bool = False,
     ) -> HttpResponseRedirect:
         """Log in a user after identity resolution and clean up pipeline state."""
@@ -911,8 +936,12 @@ class AuthIdentityHandler:
         return None if is_new_account else self.user, "auth-confirm-identity"
 
     def handle_new_user(self, email_verified: bool = False) -> AuthIdentity:
+        auth_identity: AuthIdentity | None = None
         try:
-            with transaction.atomic(router.db_for_write(User)):
+            # This transaction is required to bind the identity to a variable
+            # when replication fails. The outbox_context is just to flag
+            # that this is an outbox-producing operation.
+            with outbox_context(transaction.atomic(router.db_for_write(User))):
                 user = User.objects.create(
                     username=uuid4().hex,
                     email=self.identity["email"],
@@ -956,6 +985,22 @@ class AuthIdentityHandler:
                         ident=self.identity["id"],
                         data=self.identity.get("data", {}),
                     )
+        except (OutboxDatabaseError, OutboxFlushError) as e:
+            if auth_identity is None:
+                raise NewUserTransactionFailed from e
+
+            # Guard against replication fanout failures. The user and identity
+            # have been created, and their outboxes have been committed alongside
+            # them, guaranteeing that they will eventually be valid in all regions.
+            logger.warning(
+                "auth.handle_new_user.outbox-flush-failure",
+                extra={
+                    "organization_id": self.organization.id,
+                    "user_id": user.id,
+                    "auth_identity_id": auth_identity.id,
+                },
+                exc_info=True,
+            )
         except Exception as e:
             raise NewUserTransactionFailed from e
 

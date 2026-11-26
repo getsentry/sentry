@@ -7,11 +7,12 @@ from unittest.mock import MagicMock, patch
 import pytest
 from django.http.response import HttpResponse
 
+from sentry.integrations.base import IntegrationData
 from sentry.integrations.example import AliasedIntegrationProvider, ExampleIntegrationProvider
 from sentry.integrations.gitlab.integration import GitlabIntegrationProvider
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
-from sentry.integrations.pipeline import IntegrationPipeline
+from sentry.integrations.pipeline import IntegrationPipeline, ensure_integration
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.organizationmember import OrganizationMember
 from sentry.organizations.absolute_url import generate_organization_url
@@ -155,6 +156,28 @@ class FinishPipelineTestCase(IntegrationTestCase):
         assert OrganizationIntegration.objects.filter(
             organization_id=self.organization.id, integration_id=integration.id
         ).exists()
+
+    def test_reinstall_bumps_date_updated(self, *args: Any) -> None:
+        old_integration = self.create_provider_integration(
+            provider=self.provider.key,
+            external_id=self.external_id,
+            name="Tester",
+            metadata={"access_token": "old-token"},
+        )
+        original_date_updated = old_integration.date_updated
+
+        data: IntegrationData = {
+            "external_id": self.external_id,
+            "name": "Tester",
+            "metadata": {"access_token": "new-token"},
+        }
+        integration = ensure_integration(self.provider.key, data)
+
+        # Token-refresh code uses date_updated as a version stamp to detect concurrent
+        # reauthorizations, so a reinstall that overwrites credentials must bump it.
+        assert integration.id == old_integration.id
+        assert integration.metadata == {"access_token": "new-token"}
+        assert integration.date_updated > original_date_updated
 
     def test_with_default_id(self, *args: Any) -> None:
         self.provider.needs_default_identity = True

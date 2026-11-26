@@ -9,7 +9,6 @@ import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
 import {CreditCardForm} from 'getsentry/components/creditCardEdit/form';
-import {paymentIntentOptions} from 'getsentry/hooks/useIntentData';
 import type {Invoice} from 'getsentry/types';
 import {displayPriceWithCents} from 'getsentry/utils/billing';
 
@@ -28,7 +27,6 @@ export default function InvoiceDetailsPaymentForm({
   reloadInvoice,
 }: Props) {
   const [referrer] = useQueryState('referrer');
-  const endpoint = paymentIntentOptions(organization.slug, invoice.id).queryKey;
 
   return (
     <Fragment>
@@ -55,7 +53,6 @@ export default function InvoiceDetailsPaymentForm({
               closeModal();
             }}
             organization={organization}
-            intentDataQueryKey={endpoint}
             referrer={referrer || undefined}
             buttonText={t('Pay Now')}
           />

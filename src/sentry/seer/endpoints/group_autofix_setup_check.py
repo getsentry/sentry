@@ -17,6 +17,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
+from sentry.seer.autofix.feature.models import SINGLE_RUN_FEATURE_ID
 from sentry.seer.autofix.utils import (
     has_project_connected_repos,
     is_free_cohort_org,
@@ -101,6 +102,7 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
             has_autofix_quota = (
                 runs_for_group(group.id, "autofix").exists()
                 or runs_for_group(group.id, "autofix_rca").exists()
+                or runs_for_group(group.id, SINGLE_RUN_FEATURE_ID).exists()
             )
         else:
             has_autofix_quota = quotas.backend.check_seer_quota(

@@ -4,6 +4,8 @@ import styled from '@emotion/styled';
 import {useQueryState} from 'nuqs';
 
 import {DrawerHeader} from '@sentry/scraps/drawer';
+import {getDuration} from '@sentry/scraps/duration';
+import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 
@@ -16,7 +18,6 @@ import {
 } from 'sentry/components/tables/dataGrid';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getDuration} from 'sentry/utils/duration/getDuration';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
@@ -37,6 +38,7 @@ import type {
   RowWithScoreAndOpportunity,
   WebVitals,
 } from 'sentry/views/insights/browser/webVitals/types';
+import {getBrowserTypesFromDashboardFilters} from 'sentry/views/insights/browser/webVitals/utils/getBrowserTypesFromDashboardFilters';
 import {decode as decodeBrowserTypes} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {
   SampleDrawerBody,
@@ -46,6 +48,7 @@ import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {ModuleName, SpanFields, type SubregionCode} from 'sentry/views/insights/types';
 
 import {WebVitalStatusLineChart} from './charts/webVitalStatusLineChart';
+import {DeviceTypeSelector, useDeviceType} from './deviceTypeSelector';
 import {PerformanceBadge} from './performanceBadge';
 import {WebVitalDescription} from './webVitalDescription';
 
@@ -78,17 +81,29 @@ export function WebVitalsDetailPanel({
     SpanFields.USER_GEO_SUBREGION,
     parseAsStringArray
   );
-  const browserTypes = decodeBrowserTypes(browserNames);
+  const browserTypesFromDashboard = useMemo(
+    () => getBrowserTypesFromDashboardFilters(dashboardFilters),
+    [dashboardFilters]
+  );
+  const browserTypes = browserTypesFromDashboard.length
+    ? browserTypesFromDashboard
+    : decodeBrowserTypes(browserNames);
   const subregions = subregionCodes as SubregionCode[];
+  const {deviceType, setDeviceType, canSelectDeviceType} = useDeviceType(browserTypes);
 
   const {dashboard: linkedWebVitalsSummaryDashboard} = useGetPrebuiltDashboard(
     dashboardFilters === undefined ? undefined : PrebuiltDashboardId.WEB_VITALS_SUMMARY
   );
 
-  const {data: projectData} = useProjectRawWebVitalsQuery({browserTypes, subregions});
+  const {data: projectData} = useProjectRawWebVitalsQuery({
+    browserTypes,
+    deviceType,
+    subregions,
+  });
   const {data: projectScoresData} = useProjectWebVitalsScoresQuery({
     weightWebVital: webVital ?? 'total',
     browserTypes,
+    deviceType,
     subregions,
   });
 
@@ -108,6 +123,7 @@ export function WebVitalsDetailPanel({
     enabled: webVital !== null,
     sortName: 'webVitalsDetailPanelSort',
     browserTypes,
+    deviceType,
     subregions,
   });
 
@@ -187,9 +203,9 @@ export function WebVitalsDetailPanel({
 
   const getFormattedDuration = (value: number) => {
     if (value < 1000) {
-      return getDuration(value / 1000, 0, true);
+      return getDuration(value / 1000, {style: 'short'});
     }
-    return getDuration(value / 1000, 2, true);
+    return getDuration(value / 1000, {precision: 2, style: 'short'});
   };
 
   const renderBodyCell = (col: Column, row: RowWithScoreAndOpportunity) => {
@@ -270,6 +286,11 @@ export function WebVitalsDetailPanel({
         <DrawerHeader />
 
         <SampleDrawerBody>
+          {canSelectDeviceType && (
+            <Flex justify="end">
+              <DeviceTypeSelector value={deviceType} onChange={setDeviceType} />
+            </Flex>
+          )}
           {webVital && (
             <WebVitalDescription
               value={
@@ -277,7 +298,7 @@ export function WebVitalsDetailPanel({
                   ? undefined
                   : webVital === 'cls'
                     ? webVitalValue?.toFixed(2)
-                    : getDuration(webVitalValue / 1000, 2, true)
+                    : getDuration(webVitalValue / 1000, {precision: 2, style: 'short'})
               }
               webVital={webVital}
               score={webVitalScore}
@@ -288,6 +309,7 @@ export function WebVitalsDetailPanel({
               <WebVitalStatusLineChart
                 webVital={webVital}
                 browserTypes={browserTypes}
+                deviceType={deviceType}
                 subregions={subregions}
               />
             )}

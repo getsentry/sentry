@@ -26,9 +26,7 @@ describe('IssueSeerBadge', () => {
 
   it('links to the autofix tab with the feature', () => {
     render(<IssueSeerBadge group={group} />, {
-      organization: OrganizationFixture({
-        features: ['autofix-page'],
-      }),
+      organization: OrganizationFixture({features: ['autofix-page']}),
     });
 
     expect(screen.getByRole('link')).toHaveAttribute(

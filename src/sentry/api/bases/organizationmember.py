@@ -9,6 +9,7 @@ from rest_framework.views import APIView
 
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import StaffPermissionMixin
+from sentry.auth.access import has_member_scope
 from sentry.auth.principal import has_user
 from sentry.db.models.fields.bounded import BoundedAutoField
 from sentry.models.organization import Organization
@@ -26,10 +27,10 @@ from .organization import OrganizationEndpoint, OrganizationPermission
 
 class MemberPermission(OrganizationPermission):
     scope_map = {
-        "GET": ["member:read", "member:write", "member:admin"],
-        "POST": ["member:write", "member:admin", "member:invite"],
-        "PUT": ["member:write", "member:admin"],
-        "DELETE": ["member:admin"],
+        "GET": ["member:read", "member:write", "member:admin", "membership:read"],
+        "POST": ["member:write", "member:admin", "member:invite", "membership:invite"],
+        "PUT": ["member:write", "member:admin", "membership:write"],
+        "DELETE": ["member:admin", "membership:admin"],
     }
 
     def has_object_permission(
@@ -44,8 +45,9 @@ class MemberPermission(OrganizationPermission):
         if request.method != "POST":
             return True
 
-        scopes = request.access.scopes
-        is_role_above_member = "member:admin" in scopes or "member:write" in scopes
+        is_role_above_member = has_member_scope(request.access, "member:admin") or has_member_scope(
+            request.access, "member:write"
+        )
         if isinstance(organization, RpcUserOrganizationContext):
             organization = organization.organization
         return is_role_above_member or not organization.flags.disable_member_invite
@@ -134,7 +136,7 @@ class OrganizationMemberEndpoint(OrganizationEndpoint):
 
         om_id = kwargs.get("id")
         if isinstance(om_id, int):
-            invite = OrganizationMemberInvite.objects.filter(organization_member_id=om_id).first()
+            invite = OrganizationMemberInvite.objects.filter(organization_member_id=om_id).first()  # noqa: S035
             if invite is not None:
                 raise ResourceDoesNotExist
 

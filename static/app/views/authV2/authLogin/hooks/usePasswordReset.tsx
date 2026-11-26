@@ -5,14 +5,12 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
 
-export interface PasswordResetResult {
+interface PasswordResetResult {
   message: string;
   status: 'accepted';
 }
 
-type PasswordResetResponse = {
-  detail: string;
-};
+type PasswordResetResponse = {detail: string};
 
 export function usePasswordReset() {
   const mutation = useMutation({
@@ -23,10 +21,7 @@ export function usePasswordReset() {
         data: {user: email},
       });
 
-      return {
-        status: 'accepted',
-        message: response.detail,
-      } satisfies PasswordResetResult;
+      return {status: 'accepted', message: response.detail} satisfies PasswordResetResult;
     },
   });
 

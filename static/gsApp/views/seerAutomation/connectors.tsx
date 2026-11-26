@@ -18,6 +18,8 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {IntegrationRow} from 'sentry/views/settings/organizationIntegrations/integrationRow';
 
+import {SeerPricingChangeAlert} from 'getsentry/components/ai/seerPricingChangeAlert';
+
 // The IntegrationFeatures.SEER_CONTEXT marker. Providers carrying it expose
 // telemetry Seer can read; the connectors page lists exactly those.
 const SEER_CONTEXT_FEATURE = 'seer-context';
@@ -26,10 +28,7 @@ const SEER_CONTEXT_FEATURE = 'seer-context';
 function configIntegrationsQueryOptions(orgSlug: string) {
   return apiOptions.as<{providers: IntegrationProvider[]}>()(
     '/organizations/$organizationIdOrSlug/config/integrations/',
-    {
-      path: {organizationIdOrSlug: orgSlug},
-      staleTime: 0,
-    }
+    {path: {organizationIdOrSlug: orgSlug}, staleTime: 0}
   );
 }
 
@@ -88,6 +87,7 @@ function SeerConnectorsContent() {
         )}
       />
       <Stack gap="lg">
+        <SeerPricingChangeAlert />
         {isPending ? (
           <LoadingIndicator />
         ) : isError ? (

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import NotRequired, TypedDict
+from typing import NotRequired, TypedDict, get_args
 from urllib import parse
 
 from django.urls import reverse
@@ -9,28 +9,118 @@ from django.utils.translation import gettext as _
 
 from sentry import features
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
+from sentry.discover.arithmetic import (
+    ArithmeticError,
+    is_equation,
+    parse_arithmetic,
+    strip_equation,
+)
 from sentry.incidents.endpoints.serializers.utils import get_fake_id_from_object_id
-from sentry.incidents.models.alert_rule import AlertRuleThresholdType
 from sentry.incidents.models.incident import INCIDENT_STATUS, IncidentStatus
 from sentry.incidents.typings.metric_detector import AlertContext, MetricIssueContext
 from sentry.incidents.utils.format_duration import format_duration_idiomatic
 from sentry.models.organization import Organization
 from sentry.notifications.utils.links import create_link_to_workflow
-from sentry.seer.anomaly_detection.types import AnomalyDetectionThresholdType
+from sentry.search.eap.trace_metrics.definitions import TRACE_METRICS_DEFINITIONS
+from sentry.search.eap.trace_metrics.types import TraceMetricType
+from sentry.search.events.fields import is_function, parse_arguments
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics import format_mri_field, format_mri_field_value, is_mri_field
-from sentry.snuba.models import SnubaQuery
+from sentry.snuba.metrics.naming_layer.mri import parse_mri_field
+from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri
 from sentry.workflow_engine.models.alertrule_detector import AlertRuleDetector
 from sentry.workflow_engine.models.incident_groupopenperiod import IncidentGroupOpenPeriod
 
-QUERY_AGGREGATION_DISPLAY = {
-    "count()": "events",
-    "count_unique(tags[sentry:user])": "users affected",
-    "percentage(sessions_crashed, sessions)": "% sessions crash free rate",
-    "percentage(users_crashed, users)": "% users crash free rate",
-    "failure_rate()": "% failure rate",
+# Stored forms of aggregates that users never see. The monitor form shows the key instead.
+_CRASH_FREE_RATE_AGGREGATES = {
+    "percentage(sessions_crashed, sessions)": "crash_free_rate(session)",
+    "percentage(users_crashed, users)": "crash_free_rate(user)",
 }
+_PERCENT_AGGREGATES = {"failure_rate()", *_CRASH_FREE_RATE_AGGREGATES.values()}
+
+
+def _format_trace_metric_function(function_call: str) -> str:
+    # Trace metric functions end with (value, metric name, metric type, metric unit), after any
+    # leading arguments such as count_if's filter. Users know the metric by its name alone.
+    match = is_function(function_call)
+    if match is None:
+        return function_call
+    function = match.group("function")
+    arguments = parse_arguments(function, match.group("columns"))
+    if len(arguments) < 4 or arguments[-2] not in get_args(TraceMetricType):
+        return function_call
+    return f"{function}({','.join([*arguments[:-4], arguments[-3]])})"
+
+
+def _format_trace_metric_aggregate(aggregate: str) -> str:
+    if not is_equation(aggregate):
+        return _format_trace_metric_function(aggregate)
+    equation = strip_equation(aggregate)
+    try:
+        _, _, function_calls = parse_arithmetic(equation, definitions=TRACE_METRICS_DEFINITIONS)
+    except ArithmeticError:
+        return equation
+    for function_call in function_calls:
+        equation = equation.replace(function_call, _format_trace_metric_function(function_call))
+    return equation
+
+
+def format_aggregate(aggregate: str, *, trace_metric: bool = False) -> str:
+    """The aggregate as the monitor form shows it, e.g. `count_unique(user)`."""
+    aggregate = aggregate.split(f"AS {CRASH_RATE_ALERT_AGGREGATE_ALIAS}")[0].strip()
+    if is_mri_field(aggregate):
+        return format_mri_field(aggregate)
+    if trace_metric:
+        return _format_trace_metric_aggregate(aggregate)
+    if is_equation(aggregate):
+        return strip_equation(aggregate)
+    aggregate = _CRASH_FREE_RATE_AGGREGATES.get(aggregate, aggregate)
+    return aggregate.replace("(tags[sentry:user])", "(user)")
+
+
+# Release health datasets hold session data; crash rate aggregates are computed from sessions.
+_DATASET_TELEMETRY = {
+    Dataset.Events: "errors",
+    Dataset.IssuePlatform: "issue occurrences",
+    Dataset.Transactions: "transactions",
+    Dataset.PerformanceMetrics: "transactions",
+    Dataset.Metrics: "sessions",
+    Dataset.Sessions: "sessions",
+}
+
+
+_TRACE_METRIC_TELEMETRY = "application metrics"
+
+
+def get_query_telemetry(snuba_query: SnubaQuery) -> str:
+    """The kind of telemetry a query measures, e.g. "logs" or "errors"."""
+    # An MRI names its own namespace, and one metrics dataset holds several.
+    if parsed_mri := parse_mri_field(snuba_query.aggregate):
+        namespace = parsed_mri.mri.namespace
+        return "custom metrics" if namespace == "custom" else namespace
+
+    dataset = Dataset(snuba_query.dataset)
+    if dataset == Dataset.EventsAnalyticsPlatform:
+        event_types = snuba_query.event_types
+        if SnubaQueryEventType.EventType.TRACE_ITEM_LOG in event_types:
+            return "logs"
+        if SnubaQueryEventType.EventType.TRACE_ITEM_METRIC in event_types:
+            return _TRACE_METRIC_TELEMETRY
+        return "spans"
+    return _DATASET_TELEMETRY.get(dataset, "events")
+
+
+def describe_query_metric(snuba_query: SnubaQuery) -> str:
+    """What a query measures, e.g. `count(message) of logs`."""
+    telemetry = get_query_telemetry(snuba_query)
+    aggregate = format_aggregate(
+        snuba_query.aggregate, trace_metric=telemetry == _TRACE_METRIC_TELEMETRY
+    )
+    return f"{aggregate} of {telemetry}"
+
+
 # These should be the same as the options in the frontend
 # COMPARISON_DELTA_OPTIONS
 TEXT_COMPARISON_DELTA = {
@@ -66,55 +156,40 @@ def logo_url() -> str:
 
 def get_incident_status_text(
     snuba_query: SnubaQuery,
-    threshold_type: AlertRuleThresholdType | AnomalyDetectionThresholdType | None,
     comparison_delta: int | None,
     metric_value: str,
 ) -> str:
     """Returns a human readable current status of an incident"""
-    agg_display_key = snuba_query.aggregate
-
-    if CRASH_RATE_ALERT_AGGREGATE_ALIAS in snuba_query.aggregate:
-        agg_display_key = agg_display_key.split(f"AS {CRASH_RATE_ALERT_AGGREGATE_ALIAS}")[0].strip()
-
-    if is_mri_field(agg_display_key):
-        metric_value = format_mri_field_value(agg_display_key, metric_value)
-        agg_text = format_mri_field(agg_display_key)
-    else:
-        agg_text = QUERY_AGGREGATION_DISPLAY.get(agg_display_key, snuba_query.aggregate)
-
-    if agg_display_key == "failure_rate()" and not comparison_delta:
-        metric_value = f"{float(metric_value) * 100:.2f}"
-
-    if agg_text.startswith("%"):
-        metric_and_agg_text = f"{metric_value}{agg_text}"
-    else:
-        metric_and_agg_text = f"{metric_value} {agg_text}"
+    aggregate = format_aggregate(snuba_query.aggregate)
+    metric = describe_query_metric(snuba_query)
 
     time_window = snuba_query.time_window // 60
-    # % change alerts have a comparison delta
+    # % change alerts have a comparison delta, and their values are the current value as a
+    # percentage of the comparison value (150 is 50% higher), not values in the aggregate's unit.
     if comparison_delta:
-        if agg_display_key == "failure_rate()":
-            metric_and_agg_text = f"Failure rate {float(metric_value):.2f}%"
+        change = float(metric_value) - 100
+        higher_or_lower = "higher" if change >= 0 else "lower"
+        if aggregate == "failure_rate()":
+            metric_value = f"{abs(change):.2f}%"
         else:
-            metric_and_agg_text = f"{agg_text.capitalize()} {int(float(metric_value))}%"
-        higher_or_lower = (
-            "higher"
-            if (
-                threshold_type == AlertRuleThresholdType.ABOVE
-                or threshold_type == AnomalyDetectionThresholdType.ABOVE
-            )
-            else "lower"
-        )
+            metric_value = f"{round(abs(change))}%"
         comparison_delta_minutes = comparison_delta // 60
         comparison_string = TEXT_COMPARISON_DELTA.get(
             comparison_delta_minutes, f"same time {comparison_delta_minutes} minutes ago"
         )
         return _(
-            f"{metric_and_agg_text} {higher_or_lower} in the last {format_duration_idiomatic(time_window)} "
+            f"{metric} was {metric_value} {higher_or_lower} in the last {format_duration_idiomatic(time_window)} "
             f"compared to the {comparison_string}"
         )
 
-    return _(f"{metric_and_agg_text} in the last {format_duration_idiomatic(time_window)}")
+    if is_mri_field(snuba_query.aggregate):
+        metric_value = format_mri_field_value(snuba_query.aggregate, metric_value)
+    elif aggregate == "failure_rate()":
+        metric_value = f"{float(metric_value) * 100:.2f}"
+    if aggregate in _PERCENT_AGGREGATES:
+        metric_value = f"{metric_value}%"
+
+    return _(f"{metric} was {metric_value} in the last {format_duration_idiomatic(time_window)}")
 
 
 def get_status_text(status: IncidentStatus) -> str:
@@ -158,7 +233,6 @@ def incident_attachment_info(
     if metric_issue_context.metric_value is not None:
         text = get_incident_status_text(
             metric_issue_context.snuba_query,
-            alert_context.threshold_type,
             alert_context.comparison_delta,
             str(metric_issue_context.metric_value),
         )

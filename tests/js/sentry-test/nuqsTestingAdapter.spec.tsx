@@ -30,9 +30,7 @@ describe('SentryNuqsTestingAdapter', () => {
     }
 
     const {router} = render(<QueryStateButton />, {
-      initialRouterConfig: {
-        location: {pathname: '/test', query: {query: 'initial'}},
-      },
+      initialRouterConfig: {location: {pathname: '/test', query: {query: 'initial'}}},
     });
 
     await userEvent.click(screen.getByRole('button', {name: 'initial'}));
@@ -47,12 +45,7 @@ describe('SentryNuqsTestingAdapter', () => {
     }
 
     const {router} = render(<TestComponent />, {
-      initialRouterConfig: {
-        location: {
-          pathname: '/test',
-          query: {query: 'hello'},
-        },
-      },
+      initialRouterConfig: {location: {pathname: '/test', query: {query: 'hello'}}},
     });
 
     expect(screen.getByText('Search: hello')).toBeInTheDocument();
@@ -75,12 +68,7 @@ describe('SentryNuqsTestingAdapter', () => {
     }
 
     const {router} = render(<TestComponent />, {
-      initialRouterConfig: {
-        location: {
-          pathname: '/test',
-          query: {query: 'initial'},
-        },
-      },
+      initialRouterConfig: {location: {pathname: '/test', query: {query: 'initial'}}},
     });
 
     expect(screen.getByText('Search: initial')).toBeInTheDocument();
@@ -145,10 +133,7 @@ describe('SentryNuqsTestingAdapter', () => {
 
     render(<TestComponent />, {
       initialRouterConfig: {
-        location: {
-          pathname: '/test',
-          query: {foo: 'value1', bar: 'value2'},
-        },
+        location: {pathname: '/test', query: {foo: 'value1', bar: 'value2'}},
       },
     });
 
@@ -162,13 +147,7 @@ describe('SentryNuqsTestingAdapter', () => {
       return <div>Search: {search ?? 'empty'}</div>;
     }
 
-    render(<TestComponent />, {
-      initialRouterConfig: {
-        location: {
-          pathname: '/test',
-        },
-      },
-    });
+    render(<TestComponent />, {initialRouterConfig: {location: {pathname: '/test'}}});
 
     expect(screen.getByText('Search: empty')).toBeInTheDocument();
   });
@@ -199,9 +178,7 @@ describe('SentryNuqsTestingAdapter', () => {
     }
 
     render(<TestComponent />, {
-      initialRouterConfig: {
-        location: {pathname: '/test', query: {query: 'initial'}},
-      },
+      initialRouterConfig: {location: {pathname: '/test', query: {query: 'initial'}}},
     });
 
     await userEvent.click(screen.getByRole('button', {name: 'initial'}));
@@ -240,9 +217,7 @@ describe('SentryNuqsTestingAdapter', () => {
       );
     }
 
-    render(<TestComponent />, {
-      initialRouterConfig: {location: {pathname: '/test'}},
-    });
+    render(<TestComponent />, {initialRouterConfig: {location: {pathname: '/test'}}});
 
     await userEvent.click(screen.getByRole('button', {name: 'Forced renders: 0'}));
     await screen.findByRole('button', {name: 'Forced renders: 1'});
@@ -262,9 +237,7 @@ describe('SentryNuqsTestingAdapter', () => {
     }
 
     const {router} = render(<TestComponent />, {
-      initialRouterConfig: {
-        location: {pathname: '/test', query: {query: 'initial'}},
-      },
+      initialRouterConfig: {location: {pathname: '/test', query: {query: 'initial'}}},
     });
 
     await userEvent.click(screen.getByRole('button', {name: 'initial'}));
@@ -283,9 +256,7 @@ describe('SentryNuqsTestingAdapter', () => {
     }
 
     const {router} = render(<TestComponent />, {
-      initialRouterConfig: {
-        location: {pathname: '/test', query: {query: 'initial'}},
-      },
+      initialRouterConfig: {location: {pathname: '/test', query: {query: 'initial'}}},
     });
 
     await userEvent.click(screen.getByRole('button', {name: 'initial'}));
@@ -306,9 +277,7 @@ describe('SentryNuqsTestingAdapter', () => {
     }
 
     const {router} = render(<TestComponent />, {
-      initialRouterConfig: {
-        location: {pathname: '/test', query: {tab: 'a'}},
-      },
+      initialRouterConfig: {location: {pathname: '/test', query: {tab: 'a'}}},
     });
 
     await userEvent.click(screen.getByRole('button', {name: 'Tab: a'}));
@@ -341,9 +310,7 @@ describe('SentryNuqsTestingAdapter', () => {
     }
 
     render(<TestComponent />, {
-      initialRouterConfig: {
-        location: {pathname: '/test', query: {query: 'initial'}},
-      },
+      initialRouterConfig: {location: {pathname: '/test', query: {query: 'initial'}}},
     });
 
     await userEvent.click(screen.getByRole('button', {name: 'Forced renders: 0'}));
@@ -383,9 +350,7 @@ describe('SentryNuqsTestingAdapter', () => {
     }
 
     const {router} = render(<TestComponent />, {
-      initialRouterConfig: {
-        location: {pathname: '/test', query: {query: 'initial'}},
-      },
+      initialRouterConfig: {location: {pathname: '/test', query: {query: 'initial'}}},
     });
 
     await userEvent.click(screen.getByRole('button', {name: 'Write'}));
@@ -410,9 +375,7 @@ describe('SentryNuqsTestingAdapter', () => {
     }
 
     const {router} = render(<TestComponent />, {
-      initialRouterConfig: {
-        location: {pathname: '/test'},
-      },
+      initialRouterConfig: {location: {pathname: '/test'}},
     });
     router.navigate('/test?query=initial#details', {state: {from: 'list'}});
 
@@ -447,9 +410,7 @@ describe('SentryNuqsTestingAdapter', () => {
     it('keeps setters stable when the router query changes', () => {
       const parsers = {query: parseAsString};
       const {result, router} = renderHookWithProviders(() => useQueryStates(parsers), {
-        initialRouterConfig: {
-          location: {pathname: '/test', query: {query: 'initial'}},
-        },
+        initialRouterConfig: {location: {pathname: '/test', query: {query: 'initial'}}},
       });
       const setQuery = result.current[1];
 

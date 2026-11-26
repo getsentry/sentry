@@ -4,6 +4,7 @@ import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import {Confirm} from '@sentry/scraps/confirm';
 import {
   defaultFormOptions,
   FieldGroup,
@@ -16,7 +17,6 @@ import {toast} from '@sentry/scraps/toast';
 import {removeTeam, updateTeamSuccess} from 'sentry/actionCreators/teams';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {AvatarChooser} from 'sentry/components/avatarChooser';
-import {Confirm} from 'sentry/components/confirm';
 import {FieldGroup as LegacyFieldGroup} from 'sentry/components/forms/fieldGroup';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
@@ -49,10 +49,7 @@ export default function TeamSettings() {
       fetchMutation<Team>({
         method: 'PUT',
         url: getApiUrl('/teams/$organizationIdOrSlug/$teamIdOrSlug/', {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            teamIdOrSlug: team.slug,
-          },
+          path: {organizationIdOrSlug: organization.slug, teamIdOrSlug: team.slug},
         }),
         data,
       }),

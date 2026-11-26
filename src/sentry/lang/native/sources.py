@@ -5,6 +5,7 @@ import logging
 import os
 from collections.abc import Callable, Iterator
 from copy import deepcopy
+from functools import cache
 from typing import Any
 
 import google.auth
@@ -16,13 +17,14 @@ from django.conf import settings
 from django.urls import reverse
 from google.auth import impersonated_credentials
 from google.auth.transport.requests import Request
+from jsonschema.protocols import Validator
 from sentry_redis_tools.clients import RedisCluster
 
 from sentry import features, options
 from sentry.auth.system import get_system_token
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.utils import redis, safe
+from sentry.utils import redis
 from sentry.utils.dates import deprecated_utcnow
 from sentry.utils.http import get_origins
 
@@ -425,7 +427,7 @@ def get_internal_url_prefix() -> str:
     Returns the `internal-url-prefix` normalized in such a way that it works in local
     development environments.
     """
-    internal_url_prefix = options.get("system.internal-url-prefix")
+    internal_url_prefix = settings.SENTRY_SYSTEM_INTERNAL_URL_PREFIX
     if not internal_url_prefix:
         internal_url_prefix = options.get("system.url-prefix")
 
@@ -583,6 +585,19 @@ def secret_fields(source_type: str) -> Iterator[str]:
     yield from []
 
 
+@cache
+def _sources_validator() -> Validator:
+    # `parse_sources` runs for every symbolication request of a project with custom sources, and
+    # `jsonschema.validate` checks the schema against its metaschema on every call, which is slow.
+    # So build the validator once: the class `jsonschema.validate` would pick, with no format
+    # checker. An invalid schema raises `SchemaError` on every call, since `cache` doesn't store
+    # exceptions.
+    schema = SOURCES_WITHOUT_APPSTORE_CONNECT
+    validator_cls: type[Validator] = jsonschema.validators.validator_for(schema)
+    validator_cls.check_schema(schema)
+    return validator_cls(schema)
+
+
 def validate_sources(
     sources: list[dict[str, Any]], schema: dict[str, Any] = SOURCES_WITHOUT_APPSTORE_CONNECT
 ) -> None:
@@ -591,7 +606,15 @@ def validate_sources(
     their IDs are ok.
     """
     try:
-        jsonschema.validate(sources, schema)
+        if schema is SOURCES_WITHOUT_APPSTORE_CONNECT:
+            # The stubs type instances as dicts, but any JSON value works.
+            instance: Any = sources
+            # Raise the error `jsonschema.validate` would: the most relevant, not the first.
+            error = jsonschema.exceptions.best_match(_sources_validator().iter_errors(instance))
+            if error is not None:
+                raise error
+        else:
+            jsonschema.validate(sources, schema)
     except jsonschema.ValidationError:
         raise InvalidSourcesError(f"Failed to validate source {redact_source_secrets(sources)}")
 
@@ -645,33 +668,67 @@ def parse_backfill_sources(
     orig_by_id = {src["id"]: src for src in original_sources}
 
     for source in sources:
-        backfill_source(source, orig_by_id)
+        backfill_source(source, orig_by_id.get(source.get("id")))
 
     validate_sources(sources, schema=SOURCES_SCHEMA)
 
     return sources
 
 
-def backfill_source(
-    source: dict[str, Any], original_sources_by_id: dict[str, dict[str, Any]]
-) -> None:
+def secret_binding_fields(source_type: str) -> Iterator[str]:
     """
-    Backfills redacted secrets in a source by
-    finding their previous values stored in original_sources_by_id.
+    Returns the fields of a source that determine where its secrets are sent.
+
+    A redacted secret may only be backfilled if none of these fields differ from the stored
+    source. Otherwise a client that can write, but not read, the secret could redirect it to a
+    destination of its choosing.
     """
-    for secret in secret_fields(source["type"]):
-        if secret in source and source[secret] == {"hidden-secret": True}:
-            secret_value = safe.get_path(original_sources_by_id, source["id"], secret)
-            if secret_value is None:
-                with sentry_sdk.isolation_scope():
-                    sentry_sdk.set_tag("missing_secret", secret)
-                    sentry_sdk.set_tag("source_id", source["id"])
-                    sentry_sdk.capture_message(
-                        "Obfuscated symbol source secret does not have a corresponding saved value in project options"
-                    )
-                raise InvalidSourcesError("Hidden symbol source secret is missing a value")
-            else:
-                source[secret] = secret_value
+    yield "type"
+    if source_type == "http":
+        yield from ["url", "username"]
+    elif source_type == "s3":
+        yield from ["bucket", "region", "access_key"]
+    elif source_type == "gcs":
+        yield from ["bucket", "client_email"]
+    elif source_type == "azure":
+        yield from ["account", "container", "tenant_id", "client_id"]
+    elif source_type == "appStoreConnect":
+        yield from ["appconnectIssuer", "appconnectKey"]
+
+
+def backfill_source(source: dict[str, Any], original_source: dict[str, Any] | None) -> None:
+    """
+    Backfills redacted secrets in a source by finding their previous values
+    stored in original_sources_by_id.
+
+    Raises InvalidSourcesError if a secret is redacted but has no stored value, or if a
+    destination-related field is changed.
+    """
+    redacted = [
+        secret
+        for secret in secret_fields(source["type"])
+        if source.get(secret) == {"hidden-secret": True}
+    ]
+    if not redacted:
+        return
+
+    for field in secret_binding_fields(source["type"]):
+        if original_source is not None and source.get(field) != original_source.get(field):
+            raise InvalidSourcesError(
+                f"Hidden symbol source secret must be provided again when changing `{field}`"
+            )
+
+    for secret in redacted:
+        secret_value = original_source.get(secret) if original_source is not None else None
+        if secret_value is None:
+            with sentry_sdk.isolation_scope():
+                sentry_sdk.set_tag("missing_secret", secret)
+                sentry_sdk.set_tag("source_id", source.get("id"))
+                sentry_sdk.capture_message(
+                    "Obfuscated symbol source secret does not have a corresponding saved value in project options"
+                )
+            raise InvalidSourcesError("Hidden symbol source secret is missing a value")
+        source[secret] = secret_value
 
 
 def redact_source_secrets(config_sources: Any) -> Any:

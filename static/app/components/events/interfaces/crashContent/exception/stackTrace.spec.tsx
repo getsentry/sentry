@@ -47,12 +47,7 @@ const frames = [
 ];
 
 const stacktrace: React.ComponentProps<typeof ExceptionStacktraceContent>['stacktrace'] =
-  {
-    framesOmitted: null,
-    hasSystemFrames: false,
-    registers: {},
-    frames,
-  };
+  {framesOmitted: null, hasSystemFrames: false, registers: {}, frames};
 
 const props: React.ComponentProps<typeof ExceptionStacktraceContent> = {
   platform: 'node',

@@ -419,6 +419,36 @@ class RecordErrorTest(TestCase):
                 extra={"current_state": current_state},
             )
 
+    @patch("sentry.utils.circuit_breaker2.logger")
+    def test_does_not_raise_if_redis_call_recording_error_fails(
+        self, mock_logger: MagicMock
+    ) -> None:
+        breaker = self.breaker
+
+        with patch.object(breaker.limiter, "use_quotas", side_effect=Exception):
+            breaker.record_error()
+
+        assert breaker._get_state_and_remaining_time() == (CircuitBreakerState.OK, None)
+        mock_logger.exception.assert_called_with(
+            "Couldn't record error in redis for circuit breaker '%s'", breaker.key
+        )
+
+    @patch("sentry.utils.circuit_breaker2.logger")
+    def test_trips_if_redis_call_for_trip_log_context_fails(self, mock_logger: MagicMock) -> None:
+        breaker = self.breaker
+        breaker._add_quota_usage(breaker.primary_quota, breaker.primary_quota.limit - 1)
+
+        with patch.object(breaker.trip_strategy, "get_trip_log_context", side_effect=Exception):
+            breaker.record_error()
+
+        assert breaker._get_state_and_remaining_time() == (
+            CircuitBreakerState.BROKEN,
+            breaker.broken_state_duration,
+        )
+        mock_logger.exception.assert_called_with(
+            "Couldn't get trip log context from redis for circuit breaker '%s'", breaker.key
+        )
+
 
 @freeze_time()
 class ShouldAllowRequestTest(TestCase):
@@ -485,6 +515,16 @@ class ShouldAllowRequestTest(TestCase):
             assert breaker.should_allow_request() is True
             mock_logger.exception.assert_called_with(
                 "Couldn't get state from redis for circuit breaker '%s'", breaker.key
+            )
+
+    @patch("sentry.utils.circuit_breaker2.logger")
+    def test_allows_request_if_quota_check_fails(self, mock_logger: MagicMock) -> None:
+        breaker = self.breaker
+
+        with patch.object(breaker.limiter, "check_within_quotas", side_effect=Exception):
+            assert breaker.should_allow_request() is True
+            mock_logger.exception.assert_called_with(
+                "Couldn't check quota in redis for circuit breaker '%s'", breaker.key
             )
 
     @patch("sentry.utils.circuit_breaker2.logger")
@@ -700,6 +740,19 @@ class RateBasedCircuitBreakerTest(TestCase):
         )
         total_used = total_requests_quota.limit - grants[0].granted
         assert total_used == 0
+
+    @patch("sentry.utils.circuit_breaker2.logger")
+    def test_record_success_does_not_raise_if_redis_call_fails(
+        self, mock_logger: MagicMock
+    ) -> None:
+        breaker = self.breaker
+
+        with patch.object(breaker.limiter, "use_quotas", side_effect=Exception):
+            breaker.record_success()
+
+        mock_logger.exception.assert_called_with(
+            "Couldn't record success in redis for circuit breaker '%s'", breaker.key
+        )
 
     def test_record_success_noop_when_not_rate_based(self) -> None:
         """record_success() should be a no-op for count-based breakers."""

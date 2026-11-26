@@ -6,6 +6,7 @@ import responses
 from django.test import override_settings
 
 from sentry.api.serializers.models.groupactionlogentry import get_serialized_activity_items
+from sentry.auth.access import from_user
 from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.issues.action_log.types import GroupActionLogPayload, GroupActionType
@@ -358,7 +359,12 @@ class GroupNotesDetailsTest(APITestCase):
             process_group_action_log_event(payload)
             process_group_action_log_event(payload)
         assert GroupActionLogEntry.objects.filter(group_id=group.id).count() == 4
-        items = get_serialized_activity_items(group, self.user, endpoint="test")
+        items = get_serialized_activity_items(
+            group,
+            self.user,
+            access=from_user(self.user, self.organization),
+            endpoint="test",
+        )
         assert items is not None
         assert str(comment_id) not in [item["commentId"] for item in items]
         assert not Activity.objects.filter(id=comment_id).exists()

@@ -58,9 +58,7 @@ function createThresholdSeries(lineColor: string, threshold: number): AreaChartS
       silent: true,
       lineStyle: {color: lineColor, type: 'dashed', width: 1},
       data: [{yAxis: threshold}],
-      label: {
-        show: false,
-      },
+      label: {show: false},
     }),
     data: [],
   };
@@ -101,30 +99,13 @@ function createIncidentSeries(
     markLine: markLine({
       silent: false,
       lineStyle: {color: lineColor, type: 'solid'},
-      data: [
-        {
-          xAxis: incidentTimestamp,
-        },
-      ],
-      label: {
-        silent: true,
-        show: !!openPeriod.id,
-        position: 'insideEndBottom',
-        formatter: openPeriod.id,
-        color: lineColor,
-        fontSize: 10,
-        fontFamily: 'Rubik',
-      },
-      tooltip: {
-        formatter,
-      },
+      data: [{xAxis: incidentTimestamp}],
+      // Match the metric detector UI, which doesn't label open period lines
+      label: {show: false},
+      tooltip: {formatter},
     }),
     data: [],
-    tooltip: {
-      trigger: 'item',
-      alwaysShowContent: true,
-      formatter,
-    },
+    tooltip: {trigger: 'item', alwaysShowContent: true, formatter},
   };
 }
 
@@ -345,9 +326,7 @@ export function getMetricDetectorChartOption(
             type: 'line',
             markArea: MarkArea({
               silent: true,
-              itemStyle: {
-                color: color(selectedIncidentColor).alpha(0.42).rgb().string(),
-              },
+              itemStyle: {color: color(selectedIncidentColor).alpha(0.42).rgb().string()},
               data: [[{xAxis: incidentStartDate}, {xAxis: incidentCloseDate}]],
             }),
             data: [],
@@ -454,10 +433,7 @@ export function transformSessionResponseToSeries(
     {
       seriesName:
         AlertWizardAlertNames[
-          getAlertTypeFromAggregateDataset({
-            aggregate,
-            dataset: Dataset.SESSIONS,
-          })
+          getAlertTypeFromAggregateDataset({aggregate, dataset: Dataset.SESSIONS})
         ],
       data: getCrashFreeRateSeries(
         response?.groups,

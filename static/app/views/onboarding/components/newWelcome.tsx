@@ -1,6 +1,7 @@
 import {useEffect} from 'react';
 import {IconBot} from '@sentry/icons/bot';
 import {IconGraph} from '@sentry/icons/graph';
+import {IconNext} from '@sentry/icons/next';
 import {IconProfiling} from '@sentry/icons/profiling';
 import {IconSeer} from '@sentry/icons/seer';
 import {IconSpan} from '@sentry/icons/span';
@@ -10,11 +11,12 @@ import {IconWarning} from '@sentry/icons/warning';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
-import {Button} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {SCM_STEP_CONTENT_WIDTH} from 'sentry/components/onboarding/consts';
+import {PeekingBug} from 'sentry/components/peekingBug/peekingBug';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -131,7 +133,6 @@ export function NewWelcomeUI(props: StepProps) {
   const showAgentSetup = organization.features.includes('onboarding-agentic-setup');
   const {
     run,
-    onboardingCode,
     isAgentConnected,
     isSetupComplete,
     hasRunFailed,
@@ -145,8 +146,8 @@ export function NewWelcomeUI(props: StepProps) {
   const scmHeading = showAgentHeading
     ? getAgentHeading({hasRunFailed, isSetupComplete})
     : {
-        title: t("Code breaks.\nWe'll help you fix it faster"),
-        description: t('Monitor, debug, and fix your code, all in one place.'),
+        title: t('Code breaks. Fix it faster'),
+        description: t('Detect, diagnose, and debug, all in one place'),
       };
 
   useWelcomeAnalyticsEffect({showAgentSetup});
@@ -161,14 +162,20 @@ export function NewWelcomeUI(props: StepProps) {
 
   const handleComplete = useWelcomeHandleComplete(props.onComplete);
 
-  const handleCopyCommand = (source: 'install_command' | 'prompt') => {
-    trackAnalytics('onboarding.scm_welcome_agent_command_copied', {organization, source});
+  const handleCopyCommand = (source: 'install_command' | 'prompt', handoffId: string) => {
+    trackAnalytics('onboarding.scm_welcome_agent_command_copied', {
+      organization,
+      source,
+      handoff_id: handoffId,
+      run_id: run?.runId,
+    });
   };
 
   const handleSelectSnippet = (source: 'install_command' | 'prompt') => {
     trackAnalytics('onboarding.scm_welcome_agent_snippet_selected', {
       organization,
       source,
+      run_id: run?.runId,
     });
   };
 
@@ -182,14 +189,14 @@ export function NewWelcomeUI(props: StepProps) {
       <MotionFlex direction="column" align="center" {...ONBOARDING_STAGGER}>
         <Stack gap="3xl" align="center" width="100%">
           <MotionStack gap="md" width="100%" {...ONBOARDING_STAGGER}>
-            <Stack gap="lg" paddingBottom="xl">
+            <Stack gap="md" paddingBottom="2xl">
               <MotionContainer {...ONBOARDING_ENTER}>
                 <Heading as="h2" size="3xl" align="center" wrap="pre-line">
                   {scmHeading.title}
                 </Heading>
               </MotionContainer>
               <MotionContainer {...ONBOARDING_ENTER}>
-                <Text align="center" variant="muted" size="lg" density="comfortable">
+                <Text align="center" variant="secondary" size="xl" density="comfortable">
                   {scmHeading.description}
                 </Text>
               </MotionContainer>
@@ -212,14 +219,26 @@ export function NewWelcomeUI(props: StepProps) {
                 <WelcomeAgentSetup
                   hasInitFailed={hasInitFailed}
                   hasProgressFailed={hasProgressFailed}
+                  hasRunFailed={hasRunFailed}
                   onRefresh={() => void refreshRun()}
                   isAgentConnected={isAgentConnected}
-                  onboardingCode={onboardingCode}
                   onCopyCommand={handleCopyCommand}
                   onRetry={restartRun}
                   onSelectSnippet={handleSelectSnippet}
                   onSetupInBrowser={handleComplete}
                   run={run}
+                  metaAction={
+                    isSetupComplete ? undefined : (
+                      <LinkButton
+                        variant="transparent"
+                        size="xs"
+                        icon={<IconNext size="xs" />}
+                        to={`/organizations/${organization.slug}/issues/`}
+                      >
+                        {t("I'm finished")}
+                      </LinkButton>
+                    )
+                  }
                 />
               </MotionContainer>
             ) : (
@@ -240,13 +259,15 @@ export function NewWelcomeUI(props: StepProps) {
                 </MotionGrid>
 
                 <MotionFlex {...ONBOARDING_ENTER} width="100%" justify="center">
-                  <Button
-                    variant="primary"
-                    onClick={handleComplete}
-                    data-test-id="onboarding-welcome-start"
-                  >
-                    {t('Let’s get started')}
-                  </Button>
+                  <PeekingBug>
+                    <Button
+                      variant="primary"
+                      onClick={handleComplete}
+                      data-test-id="onboarding-welcome-start"
+                    >
+                      {t('Let’s get started')}
+                    </Button>
+                  </PeekingBug>
                 </MotionFlex>
               </MotionStack>
             )}

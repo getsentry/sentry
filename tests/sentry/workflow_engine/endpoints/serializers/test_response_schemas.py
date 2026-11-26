@@ -15,6 +15,7 @@ from sentry.workflow_engine.registry import action_handler_registry
     [
         response_schemas.condition_comparison_schema,
         response_schemas.action_config_schema,
+        response_schemas.action_data_schema,
         response_schemas.detector_config_schema,
         response_schemas.workflow_config_schema,
     ],
@@ -35,7 +36,7 @@ def _keyword_nodes(schema: dict[str, Any] | bool) -> Iterator[dict[str, Any]]:
                 yield from _keyword_nodes(prop)
         elif name in ("items", "if", "then") and isinstance(value, dict):
             yield from _keyword_nodes(value)
-        elif name == "allOf":
+        elif name in ("allOf", "oneOf"):
             for branch in value:
                 yield from _keyword_nodes(branch)
 

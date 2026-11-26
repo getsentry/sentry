@@ -21,6 +21,8 @@ class NotebookStatus(models.TextChoices):
 class NotebookSourceType(models.TextChoices):
     MANUAL = "manual", "Manual"
     METRIC_OPEN_PERIOD = "metric_open_period", "Metric open period"
+    # A detector trigger. The source carries a manual prompt; the key is the occurrence's UUID.
+    DETECTOR = "detector", "Detector"
 
 
 @cell_silo_model
@@ -72,6 +74,9 @@ class Notebook(DefaultFieldsModel):
     created_by_service_account_id = HybridCloudForeignKey(
         "service_accounts.ServiceAccount", null=True, on_delete="SET_NULL"
     )
+    created_by_org_auth_token_id = HybridCloudForeignKey(
+        "sentry.OrgAuthToken", null=True, on_delete="SET_NULL"
+    )
 
     title = models.CharField(max_length=255)
     status = models.CharField(
@@ -115,10 +120,14 @@ class Notebook(DefaultFieldsModel):
         app_label = "notebooks"
         db_table = "notebooks_notebook"
         constraints = [
+            # At most one creator column is set.
             models.CheckConstraint(
                 condition=(
-                    Q(created_by_id__isnull=True) | Q(created_by_service_account_id__isnull=True)
-                ),
+                    Q(created_by_service_account_id__isnull=True)
+                    & Q(created_by_org_auth_token_id__isnull=True)
+                )
+                | (Q(created_by_id__isnull=True) & Q(created_by_org_auth_token_id__isnull=True))
+                | (Q(created_by_id__isnull=True) & Q(created_by_service_account_id__isnull=True)),
                 name="notebook_creator_reference_shape",
             ),
             models.CheckConstraint(

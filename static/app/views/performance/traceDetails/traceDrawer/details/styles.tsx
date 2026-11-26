@@ -12,9 +12,15 @@ import {IconTerminal} from '@sentry/icons/terminal';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {CopyToClipboardButton} from '@sentry/scraps/clipboard';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
+import {getDuration} from '@sentry/scraps/duration';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
-import {Markdown, markdownRendersVisibleContent} from '@sentry/scraps/markdown';
+import {
+  Markdown,
+  markdownRendersVisibleContent,
+  stripAnnotations,
+  type MarkdownProps,
+} from '@sentry/scraps/markdown';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Separator} from '@sentry/scraps/separator';
@@ -38,7 +44,7 @@ import type {KeyValueListData} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getDuration} from 'sentry/utils/duration/getDuration';
+import {resolveHostname} from 'sentry/utils/api/resolveHostname';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -210,7 +216,7 @@ function Highlights({
             </Text>
             <Flex align="center" gap="md">
               <Text as="div" size="xl">
-                {getDuration(durationInSeconds, 2, true)}
+                {getDuration(durationInSeconds, {precision: 2, style: 'short'})}
               </Text>
               {comparison && comparison.deltaPct >= MIN_PCT_DURATION_DIFFERENCE ? (
                 <HiglightsDurationComparison status={comparison.status}>
@@ -245,10 +251,7 @@ function Highlights({
                   }}
                   to={{
                     ...location,
-                    query: {
-                      ...location.query,
-                      tab: TraceLayoutTabKeys.AI_SPANS,
-                    },
+                    query: {...location.query, tab: TraceLayoutTabKeys.AI_SPANS},
                   }}
                 >
                   {t('Open Agent Activity')}
@@ -277,7 +280,7 @@ function Highlights({
           </Stack>
         </Stack>
       </Flex>
-      <Separator orientation="horizontal" border="muted" />
+      <Separator orientation="horizontal" border="secondary" />
     </Stack>
   );
 }
@@ -299,17 +302,13 @@ function HighLightEAPOpsBreakdown({node}: {node: EapSpanNode}) {
   const totalCount = sortedBreakdown.reduce((acc, curr) => acc + curr.count, 0);
 
   const TOP_N = 3;
-  const displayOps = sortedBreakdown.slice(0, TOP_N).map(op => ({
-    op: op.op,
-    percentage: (op.count / totalCount) * 100,
-  }));
+  const displayOps = sortedBreakdown
+    .slice(0, TOP_N)
+    .map(op => ({op: op.op, percentage: (op.count / totalCount) * 100}));
 
   if (sortedBreakdown.length > TOP_N) {
     const topNPercentage = displayOps.reduce((acc, curr) => acc + curr.percentage, 0);
-    displayOps.push({
-      op: t('Other'),
-      percentage: 100 - topNPercentage,
-    });
+    displayOps.push({op: t('Other'), percentage: 100 - topNPercentage});
   }
 
   return (
@@ -389,27 +388,35 @@ function IssuesLink({
   const params = useParams<{traceSlug?: string}>();
   const traceSlug = (traceSlugProp || params.traceSlug || '').trim();
 
+  return (
+    <Link to={getTraceIssuesTarget({node, organization, traceSlug})}>{children}</Link>
+  );
+}
+
+export function getTraceIssuesTarget({
+  node,
+  organization,
+  traceSlug,
+}: {
+  node: BaseNode;
+  organization: Organization;
+  traceSlug: string;
+}) {
   // Adding a buffer of 15mins for errors only traces, where there is no concept of
   // trace duration and start equals end timestamps.
   const buffer = node.space[1] > 0 ? 0 : 15 * 60 * 1000;
 
-  return (
-    <Link
-      to={{
-        pathname: `/organizations/${organization.slug}/issues/`,
-        query: {
-          query: `trace:${traceSlug}`,
-          start: new Date(node.space[0] - buffer).toISOString(),
-          end: new Date(node.space[0] + node.space[1] + buffer).toISOString(),
-          // If we don't pass the project param, the issues page will filter by the last selected project.
-          // Traces can have multiple projects, so we query issues by all projects and rely on our search query to filter the results.
-          project: -1,
-        },
-      }}
-    >
-      {children}
-    </Link>
-  );
+  return {
+    pathname: `/organizations/${organization.slug}/issues/`,
+    query: {
+      query: `trace:${traceSlug.trim()}`,
+      start: new Date(node.space[0] - buffer).toISOString(),
+      end: new Date(node.space[0] + node.space[1] + buffer).toISOString(),
+      // If we don't pass the project param, the issues page will filter by the last selected project.
+      // Traces can have multiple projects, so we query issues by all projects and rely on our search query to filter the results.
+      project: -1,
+    },
+  };
 }
 
 function PanelPositionDropDown({organization}: {organization: Organization}) {
@@ -532,7 +539,9 @@ function NodeActions(props: {
         <Tooltip title={t('JSON')} skipWrapper>
           <ActionLinkButton
             onClick={() => traceAnalytics.trackViewEventJSON(props.organization)}
-            href={`/api/0/projects/${props.organization.slug}/${props.node.projectSlug}/trace-items/${props.node.id}/?item_type=spans&trace_id=${params.traceSlug}`}
+            href={resolveHostname(
+              `/api/0/projects/${props.organization.slug}/${props.node.projectSlug}/trace-items/${props.node.id}/?item_type=spans&trace_id=${params.traceSlug}`
+            )}
             size="zero"
             aria-label={t('JSON')}
             icon={<IconJson />}
@@ -542,7 +551,9 @@ function NodeActions(props: {
       {user.isSuperuser && isEAPSpanNode(props.node) && params.traceSlug ? (
         <Tooltip title={t('Span JSON (Superuser Only)')} skipWrapper>
           <ActionLinkButton
-            href={`/api/0/projects/${props.organization.slug}/${props.node.projectSlug}/trace-items/${props.node.id}/?item_type=spans&trace_id=${params.traceSlug}&debug=true`}
+            href={resolveHostname(
+              `/api/0/projects/${props.organization.slug}/${props.node.projectSlug}/trace-items/${props.node.id}/?item_type=spans&trace_id=${params.traceSlug}&debug=true`
+            )}
             size="zero"
             aria-label={t('Span JSON (Superuser Only)')}
             icon={<IconTerminal />}
@@ -633,6 +644,7 @@ function SectionCard({
 function MultilineText({
   children,
   renderFormatted,
+  markdownComponents,
   clip = true,
   mode,
 }: {
@@ -642,6 +654,8 @@ function MultilineText({
    * scrolls on its own, so content flows instead of being clipped and hidden.
    */
   clip?: boolean;
+  /** Overrides how the default markdown rendering renders tokens, like annotations. */
+  markdownComponents?: MarkdownProps['components'];
   /**
    * Forces the pretty or raw view and hides the hover toggle, for callers that
    * control the format themselves.
@@ -677,8 +691,10 @@ function MultilineText({
         )}
       </Container>
       {showRaw || defaultFormattingIsBlank
-        ? children.trim()
-        : (renderFormatted?.(children) ?? <Markdown raw={children} />)}
+        ? stripAnnotations(children.trim())
+        : (renderFormatted?.(children) ?? (
+            <Markdown raw={children} components={markdownComponents} />
+          ))}
     </MultilineTextWrapper>
   );
 
@@ -723,6 +739,7 @@ function MultilineJSON({
   maxDefaultDepth = 2,
   autoCollapseLimit,
   clip = false,
+  meta,
   mode,
 }: {
   value: any;
@@ -733,6 +750,11 @@ function MultilineJSON({
    */
   clip?: boolean;
   maxDefaultDepth?: number;
+  /**
+   * Meta of the parsed value, in the shape Relay reports for events. The pretty
+   * (tree) view highlights the values it marks as redacted.
+   */
+  meta?: Record<string, any>;
   /**
    * Forces the pretty (tree) or raw (JSON text) view and hides the hover toggle,
    * for callers that control the format themselves.
@@ -786,6 +808,7 @@ function MultilineJSON({
             isNumber: v => typeof v === 'number',
           }}
           value={json}
+          meta={meta}
           maxDefaultDepth={maxDefaultDepth}
           autoCollapseLimit={autoCollapseLimit}
           initialExpandedPaths={computedExpandedPaths}

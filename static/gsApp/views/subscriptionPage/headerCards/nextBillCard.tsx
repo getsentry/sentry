@@ -71,11 +71,7 @@ export function NextBillCard({
   const fees = getFees({invoiceItems});
   const credits = getCredits({invoiceItems}); // these should all be negative already
   const creditApplied =
-    -1 *
-    getCreditApplied({
-      creditApplied: nextBill?.creditApplied ?? 0,
-      invoiceItems,
-    });
+    -1 * getCreditApplied({creditApplied: nextBill?.creditApplied ?? 0, invoiceItems});
   const creditTotal = credits.reduce((acc, item) => acc + item.amount, 0) + creditApplied;
 
   // fallback to next on-demand period start

@@ -141,6 +141,44 @@ class TestGetAttributeNames(TestCase):
         assert result.custom_fields == []
 
     @patch("sentry.seer.assisted_query.traces_tools.ApiClient")
+    def test_unit_only_context_is_not_forwarded(self, mock_client_cls: MagicMock) -> None:
+        self._mock_responses(
+            mock_client_cls,
+            [],
+            [
+                _attribute(
+                    "payload_size",
+                    "number",
+                    source="sentry",
+                    context={"unit": "byte"},
+                ),
+                _attribute(
+                    "cache.item_size",
+                    "number",
+                    source="sentry",
+                    context={"isConvention": True, "brief": "Cache item size", "unit": "byte"},
+                ),
+            ],
+        )
+
+        result = get_attribute_names(
+            org_id=self.org.id,
+            project_ids=[self.project.id],
+            stats_period="7d",
+            include_context=True,
+        )
+
+        contexts_by_key = {field.key: field.context for field in result.built_in_fields}
+        assert "payload_size" not in contexts_by_key
+        assert contexts_by_key["cache.item_size"] == {
+            "isConvention": True,
+            "brief": "Cache item size",
+            "unit": "byte",
+        }
+        assert result.custom_fields == []
+        assert result.fields["number"] == ["payload_size", "cache.item_size"]
+
+    @patch("sentry.seer.assisted_query.traces_tools.ApiClient")
     def test_no_context_requested(self, mock_client_cls: MagicMock) -> None:
         mock_client = self._mock_responses(mock_client_cls, [_attribute("my_custom_attr")])
 

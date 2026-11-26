@@ -3,9 +3,9 @@ import * as Sentry from '@sentry/react';
 import {useMutation} from '@tanstack/react-query';
 import {parseAsString, useQueryState} from 'nuqs';
 
+import {openConfirmModal} from '@sentry/scraps/confirm';
 import {toast} from '@sentry/scraps/toast';
 
-import {openConfirmModal} from 'sentry/components/confirm';
 import {t} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
@@ -32,9 +32,7 @@ export function useDeleteReplay({projectSlug, replayId}: DeleteButtonProps) {
       fetchMutation({
         url: getApiUrl(
           '/projects/$organizationIdOrSlug/$projectIdOrSlug/replays/$replayId/',
-          {
-            path: {organizationIdOrSlug: organization.slug, ...path},
-          }
+          {path: {organizationIdOrSlug: organization.slug, ...path}}
         ),
         method: 'DELETE',
       }),
@@ -50,10 +48,7 @@ export function useDeleteReplay({projectSlug, replayId}: DeleteButtonProps) {
       navigate(
         issueReferrer
           ? {pathname: `/organizations/${organization.slug}/issues/${groupId}/replays/`}
-          : makeReplaysPathname({
-              path: '/',
-              organization,
-            }),
+          : makeReplaysPathname({path: '/', organization}),
         {replace: true}
       );
     } catch (err) {

@@ -1,0 +1,73 @@
+import {useMemo} from 'react';
+
+import {Stack} from '@sentry/scraps/layout';
+
+import {t, tn} from 'sentry/locale';
+import type {EntryThreads, Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
+import {SectionKey} from 'sentry/views/issueDetails/context';
+import {FoldSection} from 'sentry/views/issueDetails/foldSection';
+
+import {IssueThreadStackTraceActions} from './actions';
+import {
+  ActiveThreadStackTrace,
+  IssueThreadStackTraceSuspectCommits,
+} from './activeThreadStackTrace';
+import {IssueThreadStackTraceProviders} from './context';
+import {ThreadSummary} from './threadSummary';
+
+type Props = {
+  data: EntryThreads['data'];
+  event: Event;
+  group: Group | undefined;
+  groupingCurrentLevel: Group['metadata']['current_level'];
+  projectSlug: Project['slug'];
+  /** Use a local initial section state instead of saved collapse preferences. */
+  initialCollapse?: boolean;
+};
+
+export function IssueThreadStackTrace({
+  initialCollapse,
+  data,
+  event,
+  projectSlug,
+  groupingCurrentLevel,
+  group,
+}: Props) {
+  const threads = useMemo(
+    () => (data.values ?? []).toSorted((a, b) => Number(b.crashed) - Number(a.crashed)),
+    [data.values]
+  );
+  const hasMoreThanOneThread = threads.length > 1;
+
+  return (
+    <IssueThreadStackTraceProviders
+      key={event.id}
+      event={event}
+      group={group}
+      groupingCurrentLevel={groupingCurrentLevel}
+      projectSlug={projectSlug}
+      threads={threads}
+    >
+      <FoldSection
+        // Same keys as the legacy Threads section so anchors and Jump To links keep working.
+        sectionKey={hasMoreThanOneThread ? SectionKey.STACKTRACE : SectionKey.THREADS}
+        title={
+          hasMoreThanOneThread
+            ? tn('Stack Trace', 'Stack Traces', threads.length)
+            : t('Stack Trace')
+        }
+        actions={<IssueThreadStackTraceActions />}
+        initialCollapse={initialCollapse}
+        disableCollapsePersistence
+      >
+        <Stack gap="lg">
+          <ThreadSummary />
+          <ActiveThreadStackTrace />
+          <IssueThreadStackTraceSuspectCommits />
+        </Stack>
+      </FoldSection>
+    </IssueThreadStackTraceProviders>
+  );
+}

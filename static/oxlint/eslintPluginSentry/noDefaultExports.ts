@@ -172,12 +172,10 @@ function collectAllowedFiles(configPath: string): AllowedFilesCache | undefined 
     if (/\.d\.[cm]?ts$/u.test(fileName)) {
       continue;
     }
-    const source = ts.sys.readFile(fileName);
-    if (!source || !mayContainDynamicImport(source)) {
-      continue;
-    }
-
-    const specifiers = collectLazyImportSpecifiers(source, fileName);
+    const specifiers = collectLazyImportSpecifiers(
+      ts.sys.readFile(fileName) ?? '',
+      fileName
+    );
     if (specifiers.length > 0) {
       const resolvedFileName = ts.sys.resolvePath(fileName);
       cache.importTargetsByFile.set(
@@ -274,9 +272,7 @@ function getAllowedFiles(fileName: string): Set<string> | undefined {
 export const noDefaultExports = defineRule({
   meta: {
     type: 'problem',
-    docs: {
-      description: 'Disallow default exports in files that are not lazy-imported',
-    },
+    docs: {description: 'Disallow default exports in files that are not lazy-imported'},
     fixable: 'code',
     schema: [],
     messages: {
@@ -353,20 +349,36 @@ export const noDefaultExports = defineRule({
         }
 
         default:
-          context.report({
-            node: declaration,
-            messageId: 'forbidden',
-          });
+          context.report({node: declaration, messageId: 'forbidden'});
+      }
+    }
+
+    function isExempt() {
+      const allowedFiles = getAllowedFiles(currentFileName);
+      return !allowedFiles || allowedFiles.has(currentFileName);
+    }
+
+    function reportExportedDefault(
+      node: ESTree.ExportAllDeclaration | ESTree.ExportSpecifier,
+      exported: ESTree.ModuleExportName | null
+    ) {
+      const exportedName = exported?.type === 'Literal' ? exported.value : exported?.name;
+      if (exportedName === 'default' && !isExempt()) {
+        context.report({node, messageId: 'forbidden'});
       }
     }
 
     return {
+      ExportAllDeclaration(node) {
+        reportExportedDefault(node, node.exported);
+      },
       ExportDefaultDeclaration(node) {
-        const allowedFiles = getAllowedFiles(currentFileName);
-        if (!allowedFiles || allowedFiles.has(currentFileName)) {
-          return;
+        if (!isExempt()) {
+          visitDeclaration(node.declaration, node);
         }
-        visitDeclaration(node.declaration, node);
+      },
+      ExportSpecifier(node) {
+        reportExportedDefault(node, node.exported);
       },
     };
   },

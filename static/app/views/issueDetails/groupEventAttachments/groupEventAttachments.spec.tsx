@@ -1,3 +1,4 @@
+import {ConfigFixture} from 'sentry-fixture/config';
 import {EnvironmentsFixture} from 'sentry-fixture/environments';
 import {EventAttachmentFixture} from 'sentry-fixture/eventAttachment';
 import {GroupFixture} from 'sentry-fixture/group';
@@ -7,7 +8,6 @@ import {TagsFixture} from 'sentry-fixture/tags';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {
-  act,
   render,
   renderGlobalModal,
   screen,
@@ -83,12 +83,7 @@ describe('GroupEventAttachments', () => {
     await userEvent.click(screen.getByRole('radio', {name: 'Screenshots'}));
     expect(getAttachmentsMock).toHaveBeenCalledWith(
       '/organizations/org-slug/issues/group-id/attachments/',
-      expect.objectContaining({
-        query: {
-          screenshot: '1',
-          environment: [],
-        },
-      })
+      expect.objectContaining({query: {screenshot: '1', environment: []}})
     );
   });
 
@@ -102,11 +97,7 @@ describe('GroupEventAttachments', () => {
   ])(
     'restarts pagination when switching to $label',
     async ({label, filter, filterQuery}) => {
-      const query = {
-        environment: 'production',
-        statsPeriod: '7d',
-        query: 'release:1.0',
-      };
+      const query = {environment: 'production', statsPeriod: '7d', query: 'release:1.0'};
       const {router} = render(<GroupEventAttachments project={project} group={group} />, {
         organization,
         initialRouterConfig: {
@@ -259,9 +250,7 @@ describe('GroupEventAttachments', () => {
   });
 
   it('filters by date/query on issue details', () => {
-    ConfigStore.init();
-    const user = UserFixture();
-    act(() => ConfigStore.set('user', user));
+    ConfigStore.loadInitialData(ConfigFixture({user: UserFixture()}));
 
     render(<GroupEventAttachments project={project} group={group} />, {
       initialRouterConfig: {

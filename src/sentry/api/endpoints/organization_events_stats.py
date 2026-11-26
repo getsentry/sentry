@@ -19,6 +19,7 @@ from sentry.api.helpers.error_upsampling import (
     transform_query_columns_for_error_upsampling,
 )
 from sentry.api.serializers.snuba import StatsTimeSeriesResult
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.principal import acting_user
 from sentry.constants import MAX_TOP_EVENTS
@@ -46,7 +47,7 @@ from sentry.snuba.preprod_size import PreprodSize
 from sentry.snuba.processing_errors_rpc import ProcessingErrors
 from sentry.snuba.profile_functions import ProfileFunctions
 from sentry.snuba.query_sources import QuerySource
-from sentry.snuba.referrer import Referrer, is_valid_referrer
+from sentry.snuba.referrer import Referrer, resolve_client_referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.snuba.utils import RPC_DATASETS
@@ -123,7 +124,8 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
             200: inline_sentry_response_serializer(
                 "OrganizationEventsStatsResponse",
                 StatsTimeSeriesResult | dict[str, StatsTimeSeriesResult],
-            )
+            ),
+            400: RESPONSE_BAD_REQUEST,
         },
     )
     def get(self, request: Request, organization: Organization) -> Response:
@@ -179,10 +181,8 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
             # Force the referrer to "api.auth-token.events" for events requests authorized through a bearer token
             if request.auth:
                 referrer = Referrer.API_AUTH_TOKEN_EVENTS.value
-            elif referrer is None or not referrer:
-                referrer = Referrer.API_ORGANIZATION_EVENTS.value
-            elif not is_valid_referrer(referrer):
-                referrer = Referrer.API_ORGANIZATION_EVENTS.value
+            else:
+                referrer = resolve_client_referrer(referrer, Referrer.API_ORGANIZATION_EVENTS.value)
             if referrer in SENTRY_BACKEND_REFERRERS:
                 query_source = QuerySource.SENTRY_BACKEND
 

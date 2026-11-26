@@ -1,6 +1,6 @@
 import type {CallbackDataParams} from 'echarts/types/dist/shared';
 
-import {getFormatter} from './tooltip';
+import {defaultFormatAxisLabel, getFormatter} from './tooltip';
 
 const TIMESTAMP = 1_700_000_000_000;
 
@@ -84,4 +84,40 @@ describe('getFormatter', () => {
     expect(nameFormatter.mock.calls.map(([name]) => name)).toEqual(['high']);
     expect(valueFormatter).toHaveBeenCalledTimes(1);
   });
+
+  it('renders the header above the series with the visible series', () => {
+    const renderHeader = jest.fn(
+      (_seriesParams: CallbackDataParams[]) => '<div class="tooltip-header">Header</div>'
+    );
+    const formatter = getFormatter({
+      isGroupedByDate: true,
+      showTimeInTooltip: true,
+      limit: 2,
+      renderHeader,
+    });
+    const container = document.createElement('div');
+    container.innerHTML = formatter(params, '') as string;
+
+    expect(container.firstElementChild).toHaveClass('tooltip-header');
+    expect(renderHeader.mock.calls[0]![0].map(param => param.seriesName)).toEqual([
+      'high',
+      'mid',
+    ]);
+  });
+});
+
+it('keeps the end date when a bucket spans matching days in different months', () => {
+  const year = new Date().getUTCFullYear();
+  const start = Date.UTC(year, 0, 1);
+  const end = Date.UTC(year, 1, 1);
+  expect(defaultFormatAxisLabel(start, true, true, true, false, end - start)).toBe(
+    'Jan 1 12:00 AM — Feb 1 12:00 AM (UTC)'
+  );
+});
+
+it('formats the timezone when the bucket size is not a number', () => {
+  const start = Date.UTC(2025, 0, 1);
+  expect(defaultFormatAxisLabel(start, true, true, true, false, NaN)).toBe(
+    'Jan 1, 2025 12:00 AM UTC'
+  );
 });

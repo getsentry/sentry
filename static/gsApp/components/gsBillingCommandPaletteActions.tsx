@@ -10,14 +10,19 @@ import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {useSubscription} from 'getsentry/hooks/useSubscription';
+import {
+  hasAccessToSubscriptionOverview,
+  shouldShowBillingInformation,
+} from 'getsentry/utils/billing';
 
 export function GsBillingCommandPaletteActions() {
   const organization = useOrganization();
   const subscription = useSubscription();
 
   const prefix = `/settings/${organization.slug}`;
-  const canViewSubscription =
-    organization.access.includes('org:billing') || (subscription?.canSelfServe ?? false);
+  const canViewSubscription = hasAccessToSubscriptionOverview(subscription, organization);
+  const showBillingInformation =
+    subscription !== null && shouldShowBillingInformation(subscription, organization);
 
   return (
     <Fragment>
@@ -37,6 +42,28 @@ export function GsBillingCommandPaletteActions() {
             'receipts',
           ]}
           to={`${prefix}/billing/`}
+        />
+      )}
+      {showBillingInformation && (
+        <CMDKAction
+          display={{label: t('Billing Information'), icon: <IconCreditCard />}}
+          keywords={[
+            'billing',
+            'credit card',
+            'card',
+            'payment method',
+            'update credit card',
+            'change credit card',
+            'update payment method',
+            'change payment method',
+            'billing details',
+            'edit billing information',
+            'billing address',
+            'billing email',
+            'tax',
+            'vat',
+          ]}
+          to={`${prefix}/billing/details/`}
         />
       )}
       {organization.features.includes('spend-allocations') && (

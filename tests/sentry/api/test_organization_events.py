@@ -46,23 +46,19 @@ class OrganizationEventsEndpointTest(APITestCase):
         with self.feature(features):
             return self.client_get(self.reverse_url(), query, format="json", **kwargs)
 
-    def test_missing_discover_feature_returns_forbidden(self) -> None:
+    def test_events_available_without_discover_or_explore(self) -> None:
         query = {
             "field": ["user"],
             "project": [self.project.id],
         }
         features = {
             "organizations:discover-basic": False,
-            "organizations:performance-view": False,
             "organizations:visibility-explore-view": False,
         }
 
         response = self.do_request(query, features=features)
 
-        assert response.status_code == 403
-        assert response.data == {
-            "detail": "Discover, Performance, or Explore is required to access this endpoint."
-        }
+        assert response.status_code == 200
 
     def test_api_key_request(self) -> None:
         self.store_event(
@@ -122,6 +118,58 @@ class OrganizationEventsEndpointTest(APITestCase):
 
         _, kwargs = mock.call_args
         self.assertEqual(kwargs["referrer"], "api.auth-token.events")
+
+    def _api_token_referrer(self, referrer: str) -> str:
+        api_key = self.create_api_key(organization=self.organization, scope_list=["org:read"])
+        query = {"field": ["user"], "project": [self.project.id], "referrer": referrer}
+        with (
+            mock.patch(
+                "sentry.snuba.discover.query", return_value={"data": [], "meta": {"fields": {}}}
+            ) as mock_query,
+            self.feature({"organizations:discover-basic": True, **self.features}),
+        ):
+            response = self.client_get(
+                self.reverse_url(),
+                query,
+                format="json",
+                HTTP_AUTHORIZATION=self.create_basic_auth_header(api_key.key),
+            )
+        assert response.status_code == 200, response.content
+        _, kwargs = mock_query.call_args
+        return kwargs["referrer"]
+
+    def test_api_token_referrer_forced_when_client_supplies_valid_referrer(self) -> None:
+        referrer = self._api_token_referrer("api.insights.transaction-summary")
+
+        assert referrer == "api.auth-token.events"
+
+    def test_api_token_referrer_forced_when_client_supplies_server_only_referrer(self) -> None:
+        referrer = self._api_token_referrer("subscriptions_executor")
+
+        assert referrer == "api.auth-token.events"
+
+    def test_api_token_referrer_kept_when_client_supplies_seer_referrer(self) -> None:
+        referrer = self._api_token_referrer("seer.rpc")
+
+        assert referrer == "seer.rpc"
+
+    def test_api_token_referrer_kept_when_client_supplies_mcp_referrer(self) -> None:
+        referrer = self._api_token_referrer("api.mcp.search-events")
+
+        assert referrer == "api.mcp.search-events"
+
+    @mock.patch("sentry.snuba.discover.query")
+    def test_server_only_referrer(self, mock: mock.MagicMock) -> None:
+        mock.return_value = {}
+
+        query = {
+            "field": ["user"],
+            "referrer": "subscriptions_executor",
+            "project": [self.project.id],
+        }
+        self.do_request(query)
+        _, kwargs = mock.call_args
+        self.assertEqual(kwargs["referrer"], self.referrer)
 
     @mock.patch("sentry.snuba.discover.query")
     def test_invalid_referrer(self, mock: mock.MagicMock) -> None:

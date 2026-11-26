@@ -73,8 +73,13 @@ export type TimeSeriesItem = {
  * - `NOT_ELAPSED`: the bucket's time window hasn't finished yet
  * - `INGESTION_PENDING`: the window has elapsed, but events for it may still be arriving
  * - `OUTSIDE_RETENTION`: the bucket starts before the project's retention window
+ * - `EXCEEDS_QUERY_RANGE`: the bucket extends past the requested time range
  */
-type IncompleteReason = 'NOT_ELAPSED' | 'INGESTION_PENDING' | 'OUTSIDE_RETENTION';
+type IncompleteReason =
+  | 'NOT_ELAPSED'
+  | 'INGESTION_PENDING'
+  | 'OUTSIDE_RETENTION'
+  | 'EXCEEDS_QUERY_RANGE';
 
 /**
  * Shared base type for grouping information.
@@ -145,10 +150,7 @@ export interface StateProps {
 
 export type Thresholds = ThresholdsConfig;
 
-export type Release = {
-  timestamp: string;
-  version: string;
-};
+export type Release = {timestamp: string; version: string};
 
 export type LegendSelection = Record<string, boolean>;
 

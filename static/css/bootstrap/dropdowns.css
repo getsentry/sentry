@@ -1,0 +1,113 @@
+/* Dropdown menus */
+/* -------------------------------------------------- */
+
+/* The dropdown wrapper (div) */
+.dropdown {
+  position: relative;
+}
+
+/* The dropdown menu (ul) */
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 1000;
+  display: none; /* none by default, but block on "open" of the menu */
+  float: left;
+  min-width: 160px;
+  padding: 0;
+  margin: 2px 0 0; /* override default ul */
+  font-size: 14px;
+  text-align: left; /* Ensures proper alignment if parent has it changed (e.g., modal footer) */
+  list-style: none;
+  background-color: #fff;
+  background-clip: padding-box;
+  border: 1px solid #ccc; /* IE8 fallback */
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 4px;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.175);
+
+  /* Aligns the dropdown menu to right */
+  /* Deprecated as of 3.1.0 in favor of `.dropdown-menu-[dir]` */
+  &.pull-right {
+    right: 0;
+    left: auto;
+  }
+
+  /* Dividers (basically an hr) within the dropdown */
+  .divider {
+    height: 1px;
+    margin: 9px 0;
+    overflow: hidden;
+    background-color: #e5e5e5;
+  }
+
+  /* Links within the dropdown menu */
+  > li > a {
+    display: block;
+    padding: 3px 20px;
+    clear: both;
+    font-weight: 400;
+    line-height: 1.42857143;
+    color: #493e54;
+    white-space: nowrap; /* prevent links from randomly breaking onto new lines */
+
+    &:hover,
+    &:focus {
+      color: #3c3345;
+      text-decoration: none;
+      background-color: #f5f5f5;
+    }
+  }
+}
+
+/* Active state */
+.dropdown-menu > .active > a {
+  &,
+  &:hover,
+  &:focus {
+    color: #fff;
+    text-decoration: none;
+    background-color: #337ab7;
+    outline: 0;
+  }
+}
+
+/* Disabled state */
+/* Gray out text and ensure the hover/focus state remains gray */
+.dropdown-menu > .disabled > a {
+  &,
+  &:hover,
+  &:focus {
+    color: #968ba0;
+  }
+
+  /* Nuke hover/focus effects */
+  &:hover,
+  &:focus {
+    text-decoration: none;
+    cursor: not-allowed;
+    background-color: transparent;
+    background-image: none; /* Remove CSS gradient */
+    filter: progid:DXImageTransform.Microsoft.gradient(enabled = false);
+  }
+}
+
+/* Open state for the dropdown */
+.open {
+  /* Show the menu */
+  > .dropdown-menu {
+    display: block;
+  }
+
+  /* Remove the outline when :focus is triggered */
+  > a {
+    outline: 0;
+  }
+}
+
+/* Right aligned dropdowns */
+.pull-right > .dropdown-menu {
+  right: 0;
+  left: auto;
+}

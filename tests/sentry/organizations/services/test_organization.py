@@ -14,6 +14,7 @@ from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.project import Project
 from sentry.models.team import Team, TeamStatus
+from sentry.onboarding.agentic_progress.service import get_onboarding_progress_service
 from sentry.organizations.services.organization import RpcOrganizationMappingFlags
 from sentry.organizations.services.organization.serial import (
     serialize_rpc_organization,
@@ -97,6 +98,34 @@ class OrganizationResourceSerializationTest(TestCase):
 
 @all_silo_test
 class ActiveOrganizationResourcesTest(TestCase):
+    def test_onboarding_reporting_code(self) -> None:
+        org = self.create_organization(owner=self.user)
+        service = get_onboarding_progress_service()
+        run, _ = service.create_or_resume(
+            user_id=self.user.id, organization_id=org.id, client_run_id="browser"
+        )
+        assert organization_service.has_active_onboarding_run(
+            organization_id=org.id, user_id=self.user.id, run_id=run.run_id
+        )
+        issued = organization_service.issue_onboarding_reporting_code(
+            organization_id=org.id, user_id=self.user.id, run_id=run.run_id
+        )
+        assert issued is not None
+        assert issued.code not in repr(issued)
+        retried = organization_service.issue_onboarding_reporting_code(
+            organization_id=org.id, user_id=self.user.id, run_id=run.run_id
+        )
+        assert retried == issued
+        assert (
+            organization_service.issue_onboarding_reporting_code(
+                organization_id=org.id, user_id=self.create_user().id, run_id=run.run_id
+            )
+            is None
+        )
+        assert not organization_service.has_active_onboarding_run(
+            organization_id=self.create_organization().id, user_id=self.user.id, run_id=run.run_id
+        )
+
     def test_active_resource_ids(self) -> None:
         org = self.create_organization()
         other_org = self.create_organization()

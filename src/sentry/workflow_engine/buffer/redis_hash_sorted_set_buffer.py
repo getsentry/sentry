@@ -17,16 +17,10 @@ from sentry.db import models
 from sentry.utils import metrics
 from sentry.utils.redis import (
     get_dynamic_cluster_from_options,
-    is_instance_standalone_redis,
     load_redis_script,
 )
 
 logger = logging.getLogger(__name__)
-
-
-def _decode_redis_value(value: Any) -> str:
-    """Helper to decode Redis values that might be bytes or strings."""
-    return value.decode("utf-8") if isinstance(value, bytes) else str(value)
 
 
 T = TypeVar("T")
@@ -72,21 +66,19 @@ class RedisHashSortedSetBuffer:
     ):
         """Initialize with Redis cluster configuration."""
         self.is_redis_cluster, self.cluster, _ = get_dynamic_cluster_from_options(
-            cfg_key_name, config or {}
+            cfg_key_name, config or {}, decode_responses=True
         )
         self.now_fn = now_fn
 
-    def _get_redis_connection(
-        self, key: str | None, transaction: bool = True
-    ) -> ClusterPipeline | Pipeline[str]:
-        """Get a Redis connection pipeline for the given key."""
+    def _get_redis_connection(self, transaction: bool = True) -> ClusterPipeline | Pipeline[str]:
+        """Get a Redis pipeline."""
         return self.cluster.pipeline(transaction=transaction)
 
     def _execute_redis_operation(
         self, key: str, operation_name: str, *args: Any, **kwargs: Any
     ) -> Any:
         """Execute a Redis operation on the given key."""
-        pipe = self._get_redis_connection(key, transaction=False)
+        pipe = self._get_redis_connection(transaction=False)
         operation = getattr(pipe, operation_name)
         operation(key, *args, **kwargs)
         if _NEED_EXPIRE[operation_name]:
@@ -100,7 +92,7 @@ class RedisHashSortedSetBuffer:
     ) -> Any:
         """Execute a Redis operation on multiple keys."""
         assert keys
-        pipe = self._get_redis_connection("UNUSED", transaction=False)
+        pipe = self._get_redis_connection(transaction=False)
         for key in keys:
             operation = getattr(pipe, operation_name)
             operation(key, *args, **kwargs)
@@ -138,12 +130,7 @@ class RedisHashSortedSetBuffer:
         """Get all field-value pairs from a Redis hash."""
         key = make_key(model, filters)
         redis_hash = self._execute_redis_operation(key, "hgetall")
-        decoded_hash = {}
-        for k, v in redis_hash.items():
-            k = _decode_redis_value(k)
-            v = _decode_redis_value(v)
-            decoded_hash[k] = v
-        return decoded_hash
+        return redis_hash
 
     def get_hash_length(self, model: type[models.Model], filters: Mapping[str, BufferField]) -> int:
         """Get the number of fields in a Redis hash."""
@@ -159,7 +146,7 @@ class RedisHashSortedSetBuffer:
     ) -> None:
         """Delete specific fields from a Redis hash."""
         key = make_key(model, filters)
-        pipe = self._get_redis_connection(key, transaction=False)
+        pipe = self._get_redis_connection(transaction=False)
         for field in fields:
             pipe.hdel(key, field)
         pipe.expire(key, self.key_expire)
@@ -187,7 +174,6 @@ class RedisHashSortedSetBuffer:
         decoded_set = []
         for items in redis_set:
             item = items[0]
-            item = _decode_redis_value(item)
             data_and_timestamp = (int(item), items[1])
             decoded_set.append(data_and_timestamp)
         return decoded_set
@@ -199,13 +185,6 @@ class RedisHashSortedSetBuffer:
         data_to_timestamps: dict[int, list[float]] = defaultdict(list)
 
         if not keys:
-            return data_to_timestamps
-
-        if not self.is_redis_cluster:
-            # Slow path for a single Redis host that is not in cluster mode.
-            for key in keys:
-                for member, score in self.get_sorted_set(key, min, max):
-                    data_to_timestamps[int(member)].append(score)
             return data_to_timestamps
 
         redis_set = self._execute_sharded_redis_operation(
@@ -227,7 +206,6 @@ class RedisHashSortedSetBuffer:
             if result:  # Skip empty results
                 for items in result:
                     item = items[0]
-                    item = _decode_redis_value(item)
                     data_to_timestamps[int(item)].append(items[1])
 
         return data_to_timestamps
@@ -238,11 +216,9 @@ class RedisHashSortedSetBuffer:
 
     def delete_keys(self, keys: Sequence[str], min: float, max: float) -> None:
         """Delete values from multiple Redis sorted sets within a score range."""
-        if not self.is_redis_cluster:
-            for key in keys:
-                self.delete_key(key, min, max)
-        else:
-            self._execute_sharded_redis_operation(keys, "zremrangebyscore", min=min, max=max)
+        if not keys:
+            return
+        self._execute_sharded_redis_operation(keys, "zremrangebyscore", min=min, max=max)
 
     # Lua script for conditional sorted set member removal
     _conditional_zrem_script = load_redis_script("alerts/conditional_zrem.lua")
@@ -277,10 +253,8 @@ class RedisHashSortedSetBuffer:
         """Parse flat array result from Lua script and return results dict."""
         # Parse flat array result: [key1, member1, key1, member2, key2, member3, ...]
         slot_results_dict = defaultdict(list)
-        for key_raw, member_raw in _by_pairs(slot_result):
-            key = _decode_redis_value(key_raw)
-            member_int = int(_decode_redis_value(member_raw))
-            slot_results_dict[key].append(member_int)
+        for key, member in _by_pairs(slot_result):
+            slot_results_dict[key].append(int(member))
 
         # Ensure all slot keys have entries in results
         return {key: slot_results_dict.get(key, []) for key in slot_keys}
@@ -327,7 +301,7 @@ class RedisHashSortedSetBuffer:
             return {key: [] for key in keys}
 
         cluster = self.cluster
-        if is_instance_standalone_redis(cluster, self.is_redis_cluster):
+        if not self.is_redis_cluster:
             return self._conditional_delete_standalone(cluster, keys, members_and_scores)
 
         # Fast path for RedisCluster - group keys by slot for optimal batching
@@ -370,7 +344,7 @@ class RedisHashSortedSetBuffer:
 
     def _conditional_delete_standalone(
         self,
-        cluster: StrictRedis[bytes],
+        cluster: StrictRedis[str],
         keys: Sequence[str],
         members_and_scores: list[tuple[int, float]],
     ) -> dict[str, list[int]]:

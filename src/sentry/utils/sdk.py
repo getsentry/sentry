@@ -90,6 +90,7 @@ SAMPLED_TASKS = {
     "sentry.profiles.task.process_profile_from_kafka_raw": 0.1
     * settings.SENTRY_BACKEND_APM_SAMPLING,
     "sentry.monitors.tasks.clock_pulse": 1.0,
+    "sentry.cadence.tasks.cadence_tick": 0.5,
     # The scheduler's decision propagates to every per-org run, and each run
     # fans out into many snuba queries. Keep both rates equal.
     "sentry.dynamic_sampling.per_org.run_calculations_per_org": 0.001,
@@ -358,9 +359,7 @@ def configure_sdk() -> None:
         # but none are captured as events (that's handled by the `internal`
         # logger defined in `server.py`, which ignores the levels set
         # in the integration and goes straight to the underlying handler class).
-        LoggingIntegration(
-            event_level=None, sentry_logs_level=logging.INFO, capture_sentry_logs=True
-        ),
+        LoggingIntegration(event_level=None, level=logging.INFO),
         RustInfoIntegration(),
         RedisIntegration(),
     ]

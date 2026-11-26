@@ -22,7 +22,7 @@ export const domainViews: DomainView[] = [
   MCP_LANDING_SUB_PATH,
 ];
 
-export type DomainViewFilters = {
+type DomainViewFilters = {
   isInDomainView?: boolean;
   isInOverviewPage?: boolean;
   view?: DomainView;
@@ -41,11 +41,7 @@ export const useDomainViewFilters = () => {
   }
 
   if (isInDomainView) {
-    return {
-      view,
-      isInDomainView,
-      isInOverviewPage,
-    };
+    return {view, isInDomainView, isInOverviewPage};
   }
 
   return {isInDomainView};

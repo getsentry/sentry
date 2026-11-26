@@ -10,7 +10,14 @@
 /* eslint-disable import/no-nodejs-modules */
 import path from 'node:path';
 
-import {defineRule, type ESTree, type Fix, type Fixer} from '@oxlint/plugins';
+import {
+  defineRule,
+  type Definition,
+  type ESTree,
+  type Fix,
+  type Fixer,
+  type Scope,
+} from '@oxlint/plugins';
 
 const IGNORED_NAMES = new Set(['OverrideOrDefault']);
 
@@ -18,6 +25,8 @@ const IGNORED_NAMES = new Set(['OverrideOrDefault']);
 // - SCREAMING_SNAKE prefix: DO_NOT_USE_foo, DANGEROUS_SET_FOO
 // - All-caps constants: BREAKPOINTS, MOBILE
 const NOT_PASCAL_CASE_RE = /^[A-Z][A-Z0-9]*_|^[A-Z][A-Z0-9_]*$/;
+
+const JSX_ATTRIBUTE_NAME_RE = /^[a-z_$][\w$-]*$/iu;
 
 function shouldSkip(name: string): boolean {
   if (IGNORED_NAMES.has(name)) {
@@ -76,44 +85,41 @@ export const noCallingComponentsAsFunctions = defineRule({
     },
   },
   create(context) {
-    const knownComponents = new Set<string>();
+    function isTrackedDefinition(definition: Definition): boolean {
+      switch (definition.type) {
+        case 'ImportBinding':
+          return (
+            definition.parent?.type === 'ImportDeclaration' &&
+            !isIgnoredImportSource(definition.parent.source.value, context.filename)
+          );
+        case 'FunctionName':
+          return definition.node.type === 'FunctionDeclaration';
+        case 'Variable':
+          return (
+            definition.node.type === 'VariableDeclarator' &&
+            (definition.node.init?.type === 'ArrowFunctionExpression' ||
+              definition.node.init?.type === 'FunctionExpression')
+          );
+        default:
+          return false;
+      }
+    }
+
+    function isKnownComponent(node: ESTree.IdentifierReference): boolean {
+      for (
+        let scope: Scope | null = context.sourceCode.getScope(node);
+        scope;
+        scope = scope.upper
+      ) {
+        const variable = scope.set.get(node.name);
+        if (variable) {
+          return variable.defs.some(isTrackedDefinition);
+        }
+      }
+      return false;
+    }
 
     return {
-      // Track imports: import {Foo} from '...', import Foo from '...'
-      ImportDeclaration(node) {
-        const source = typeof node.source.value === 'string' ? node.source.value : '';
-
-        if (isIgnoredImportSource(source, context.filename)) {
-          return;
-        }
-
-        for (const specifier of node.specifiers) {
-          if (/^[A-Z]/.test(specifier.local.name)) {
-            knownComponents.add(specifier.local.name);
-          }
-        }
-      },
-
-      // Track function declarations: function Foo() {}
-      FunctionDeclaration(node) {
-        if (node.id && /^[A-Z]/.test(node.id.name)) {
-          knownComponents.add(node.id.name);
-        }
-      },
-
-      // Track variable declarations: const Foo = () => {}, const Foo = function() {}
-      VariableDeclarator(node) {
-        if (
-          node.id.type === 'Identifier' &&
-          /^[A-Z]/.test(node.id.name) &&
-          node.init &&
-          (node.init.type === 'ArrowFunctionExpression' ||
-            node.init.type === 'FunctionExpression')
-        ) {
-          knownComponents.add(node.id.name);
-        }
-      },
-
       CallExpression(node) {
         if (node.callee.type !== 'Identifier') {
           return;
@@ -121,11 +127,7 @@ export const noCallingComponentsAsFunctions = defineRule({
 
         const name = node.callee.name;
 
-        if (!knownComponents.has(name)) {
-          return;
-        }
-
-        if (shouldSkip(name)) {
+        if (!/^[A-Z]/.test(name) || shouldSkip(name)) {
           return;
         }
 
@@ -136,6 +138,10 @@ export const noCallingComponentsAsFunctions = defineRule({
         const arg = node.arguments[0];
 
         if (arg && arg.type !== 'ObjectExpression' && arg.type !== 'Identifier') {
+          return;
+        }
+
+        if (!isKnownComponent(node.callee)) {
           return;
         }
 
@@ -154,9 +160,17 @@ export const noCallingComponentsAsFunctions = defineRule({
       fixer: Fixer,
       node: ESTree.CallExpression,
       name: string,
-      arg: ESTree.Argument | undefined
+      arg: ESTree.ObjectExpression | ESTree.IdentifierReference | undefined
     ): Fix | null {
       const sourceCode = context.sourceCode;
+
+      if (
+        node.optional ||
+        node.typeArguments ||
+        sourceCode.getCommentsInside(node).length
+      ) {
+        return null;
+      }
 
       if (!arg) {
         return fixer.replaceText(node, `<${name} />`);
@@ -166,44 +180,42 @@ export const noCallingComponentsAsFunctions = defineRule({
         return fixer.replaceText(node, `<${name} {...${arg.name}} />`);
       }
 
-      if (arg.type !== 'ObjectExpression') {
-        return null;
-      }
-
-      if (arg.properties.length === 0) {
-        return fixer.replaceText(node, `<${name} />`);
-      }
-
       const attrs: string[] = [];
+      const keyNames = new Set<string>();
       for (const prop of arg.properties) {
         if (prop.type === 'SpreadElement') {
+          if (prop.argument.type === 'SequenceExpression') {
+            return null;
+          }
           attrs.push(`{...${sourceCode.getText(prop.argument)}}`);
-        } else if (prop.type === 'Property') {
-          if (prop.computed) {
-            return null;
-          }
-
-          const keyName =
-            prop.key.type === 'Identifier'
-              ? prop.key.name
-              : prop.key.type === 'Literal'
-                ? String(prop.key.value)
-                : null;
-
-          if (keyName === null) {
-            return null;
-          }
-
-          if (prop.shorthand) {
-            attrs.push(`${keyName}={${keyName}}`);
-          } else {
-            const valueText = sourceCode.getText(prop.value);
-            attrs.push(`${keyName}={${valueText}}`);
-          }
+          continue;
         }
+
+        const keyName =
+          prop.key.type === 'Identifier'
+            ? prop.key.name
+            : prop.key.type === 'Literal'
+              ? String(prop.key.value)
+              : '';
+
+        if (
+          prop.computed ||
+          prop.kind !== 'init' ||
+          prop.method ||
+          keyName === 'key' ||
+          keyName === '__proto__' ||
+          keyNames.has(keyName) ||
+          !JSX_ATTRIBUTE_NAME_RE.test(keyName) ||
+          prop.value.type === 'SequenceExpression'
+        ) {
+          return null;
+        }
+
+        keyNames.add(keyName);
+        attrs.push(`${keyName}={${sourceCode.getText(prop.value)}}`);
       }
 
-      return fixer.replaceText(node, `<${name} ${attrs.join(' ')} />`);
+      return fixer.replaceText(node, [`<${name}`, ...attrs, '/>'].join(' '));
     }
   },
 });

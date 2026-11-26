@@ -4,14 +4,15 @@ import {z} from 'zod';
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
 import {Container, Stack} from '@sentry/scraps/layout';
 
-import {getRepositoryWithSettingsQueryKey} from 'sentry/components/repositories/useRepositoryWithSettings';
+import {repositoryWithSettingsApiOptions} from 'sentry/components/repositories/repositoryWithSettingsApiOptions';
 import {t, tct} from 'sentry/locale';
 import type {RepositoryWithSettings} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {CodeReviewTrigger} from 'sentry/types/seer';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getSeerOnboardingCheckQueryOptions} from 'sentry/utils/getSeerOnboardingCheckQueryOptions';
-import {fetchMutation, getApiQueryData, setApiQueryData} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useCanWriteSettings} from 'sentry/utils/seer/useCanWriteSettings';
 import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
 
@@ -29,17 +30,14 @@ export function RepoDetailsForm({organization, repoWithSettings}: Props) {
   const canWrite = useCanWriteSettings();
   const queryClient = useQueryClient();
 
-  const repoQueryKey = getRepositoryWithSettingsQueryKey(
+  const repoQueryKey = repositoryWithSettingsApiOptions(
     organization,
     repoWithSettings.id
-  );
+  ).queryKey;
 
   const repoMutationOpts = mutationOptions({
     mutationFn: (
-      data: Partial<{
-        codeReviewTriggers: CodeReviewTrigger[];
-        enabledCodeReview: boolean;
-      }>
+      data: Partial<{codeReviewTriggers: CodeReviewTrigger[]; enabledCodeReview: boolean}>
     ) => {
       return fetchMutation<RepositoryWithSettings[]>({
         method: 'PUT',
@@ -50,15 +48,18 @@ export function RepoDetailsForm({organization, repoWithSettings}: Props) {
       });
     },
     onMutate: data => {
-      const previous = getApiQueryData<RepositoryWithSettings>(queryClient, repoQueryKey);
+      const previous = queryClient.getQueryData(repoQueryKey);
       if (previous) {
-        setApiQueryData<RepositoryWithSettings>(queryClient, repoQueryKey, {
+        queryClient.setQueryData(repoQueryKey, {
           ...previous,
-          settings: {
-            codeReviewTriggers: [],
-            enabledCodeReview: false,
-            ...previous.settings,
-            ...data,
+          json: {
+            ...previous.json,
+            settings: {
+              codeReviewTriggers: [],
+              enabledCodeReview: false,
+              ...previous.json.settings,
+              ...data,
+            },
           },
         });
       }
@@ -66,17 +67,15 @@ export function RepoDetailsForm({organization, repoWithSettings}: Props) {
     },
     onError: (_error, _data, context) => {
       if (context?.previous) {
-        setApiQueryData<RepositoryWithSettings>(
-          queryClient,
-          repoQueryKey,
-          context.previous
-        );
+        queryClient.setQueryData(repoQueryKey, context.previous);
       }
     },
     onSettled: () => {
-      queryClient.invalidateQueries({
-        queryKey: [`/organizations/${organization.slug}/repos/`],
-      });
+      queryClient.invalidateQueries(
+        apiOptions.queryFilter('/organizations/$organizationIdOrSlug/repos/', {
+          path: {organizationIdOrSlug: organization.slug},
+        })
+      );
       queryClient.invalidateQueries({
         queryKey: getSeerOnboardingCheckQueryOptions({organization}).queryKey,
       });

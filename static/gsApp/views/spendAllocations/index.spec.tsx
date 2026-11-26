@@ -33,14 +33,9 @@ describe('SpendAllocations feature enable flow', () => {
   let organization: any, subscription: any, mockGet: any, dateTs: number;
   beforeEach(() => {
     organization = initializeOrg({
-      organization: {
-        features: ['spend-allocations'],
-      },
+      organization: {features: ['spend-allocations']},
     }).organization;
-    subscription = SubscriptionFixture({
-      organization,
-      plan: 'am1_f',
-    });
+    subscription = SubscriptionFixture({organization, plan: 'am1_f'});
     MockApiClient.clearMockResponses();
     dateTs = Math.max(
       Date.now() / 1000,
@@ -66,15 +61,9 @@ describe('SpendAllocations feature enable flow', () => {
       'project:admin',
     ];
     render(<SpendAllocationsRoot subscription={subscription} />, {organization});
-    await waitFor(() =>
-      screen.findByRole('button', {
-        name: 'Get started',
-      })
-    );
+    await waitFor(() => screen.findByRole('button', {name: 'Get started'}));
 
-    const enableSpendAllocations = screen.getByRole('button', {
-      name: 'Get started',
-    });
+    const enableSpendAllocations = screen.getByRole('button', {name: 'Get started'});
     expect(enableSpendAllocations).toBeInTheDocument();
     expect(enableSpendAllocations).toBeEnabled();
   });
@@ -85,11 +74,7 @@ describe('SpendAllocations feature enable flow', () => {
       partner: {
         externalId: 'x123x',
         name: 'YY Org',
-        partnership: {
-          id: 'YY',
-          displayName: 'YY',
-          supportNote: 'foo',
-        },
+        partnership: {id: 'YY', displayName: 'YY', supportNote: 'foo'},
         isActive: true,
       },
       organization,
@@ -152,9 +137,7 @@ describe('enabled Spend Allocations page', () => {
   let organization: any, subscription: any, dateTs: any;
   beforeEach(() => {
     organization = initializeOrg({
-      organization: {
-        features: ['spend-allocations'],
-      },
+      organization: {features: ['spend-allocations']},
     }).organization;
     organization.access = [
       'org:read',
@@ -164,10 +147,7 @@ describe('enabled Spend Allocations page', () => {
       'project:read',
       'project:admin',
     ];
-    subscription = SubscriptionFixture({
-      organization,
-      plan: 'am1_f',
-    });
+    subscription = SubscriptionFixture({organization, plan: 'am1_f'});
     MockApiClient.clearMockResponses();
     dateTs = Math.max(
       Date.now() / 1000,
@@ -237,10 +217,7 @@ describe('enabled Spend Allocations page', () => {
   });
 
   it('only renders allocation-supported categories that are on the subscription', async () => {
-    const am3Sub = SubscriptionFixture({
-      organization,
-      plan: 'am3_f',
-    });
+    const am3Sub = SubscriptionFixture({organization, plan: 'am3_f'});
     render(<SpendAllocationsRoot subscription={am3Sub} />, {organization});
 
     const dropdown = await screen.findByRole('button', {name: 'Category Errors'});
@@ -270,11 +247,7 @@ describe('enabled Spend Allocations page', () => {
       body: mockRootAllocations,
       status: 200,
       statusCode: 200,
-      match: [
-        MockApiClient.matchQuery({
-          timestamp: nextTs,
-        }),
-      ],
+      match: [MockApiClient.matchQuery({timestamp: nextTs})],
     });
     await userEvent.click(screen.getByTestId('nextPeriod'));
     expect(await screen.findByText('No allocations set')).toBeInTheDocument();
@@ -285,9 +258,7 @@ describe('enabled Spend Allocations page', () => {
     render(<SpendAllocationsRoot subscription={subscription} />, {organization});
     await screen.findByRole('table', {name: 'Project allocations'});
     expect(
-      screen.queryByRole('button', {
-        name: 'Create Organization-Level Allocation',
-      })
+      screen.queryByRole('button', {name: 'Create Organization-Level Allocation'})
     ).not.toBeInTheDocument();
 
     MockApiClient.clearMockResponses();
@@ -305,16 +276,10 @@ describe('enabled Spend Allocations page', () => {
     });
 
     await userEvent.click(
-      screen.getByRole('button', {
-        name: 'Disable Spend Allocations',
-      })
+      screen.getByRole('button', {name: 'Disable Spend Allocations'})
     );
     renderGlobalModal();
-    await userEvent.click(
-      screen.getByRole('button', {
-        name: 'Confirm',
-      })
-    );
+    await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
     expect(mockDelete).toHaveBeenCalledTimes(1);
     expect(mockGet).toHaveBeenCalledTimes(2);
   });
@@ -324,9 +289,7 @@ describe('enabled Spend Allocations page without root', () => {
   let organization: any, subscription: any, dateTs: any, mockGet: any;
   beforeEach(() => {
     organization = initializeOrg({
-      organization: {
-        features: ['spend-allocations'],
-      },
+      organization: {features: ['spend-allocations']},
     }).organization;
     organization.access = [
       'org:read',
@@ -336,10 +299,7 @@ describe('enabled Spend Allocations page without root', () => {
       'project:read',
       'project:admin',
     ];
-    subscription = SubscriptionFixture({
-      organization,
-      plan: 'am1_f',
-    });
+    subscription = SubscriptionFixture({organization, plan: 'am1_f'});
     MockApiClient.clearMockResponses();
     dateTs = Math.max(
       Date.now() / 1000,
@@ -364,9 +324,7 @@ describe('enabled Spend Allocations page without root', () => {
   it('creates root allocation for billing metric', async () => {
     render(<SpendAllocationsRoot subscription={subscription} />, {organization});
 
-    await screen.findByRole('button', {
-      name: 'Create Organization-Level Allocation',
-    });
+    await screen.findByRole('button', {name: 'Create Organization-Level Allocation'});
     expect(mockGet).toHaveBeenCalledTimes(2);
     const enableSpendAllocation = screen.getByRole('button', {
       name: 'Create Organization-Level Allocation',
@@ -432,14 +390,9 @@ describe('POST Create spend allocation', () => {
       }),
     ];
     organization = initializeOrg({
-      organization: {
-        features: ['spend-allocations'],
-      },
+      organization: {features: ['spend-allocations']},
     }).organization;
-    subscription = SubscriptionFixture({
-      organization,
-      plan: 'am1_f',
-    });
+    subscription = SubscriptionFixture({organization, plan: 'am1_f'});
     MockApiClient.clearMockResponses();
     dateTs = Math.max(
       Date.now() / 1000,
@@ -482,6 +435,30 @@ describe('POST Create spend allocation', () => {
     expect(screen.queryByTestId('spend-allocation-form')).not.toBeInTheDocument();
   });
 
+  it('creates an allocation without period timestamps', async () => {
+    render(<SpendAllocationsRoot subscription={subscription} />, {organization});
+    await screen.findByText('Un-Allocated Errors Pool');
+    await userEvent.click(screen.getByRole('button', {name: 'New Allocation'}));
+    renderGlobalModal();
+
+    await screen.findByTestId('spend-allocation-form');
+    await selectEvent.select(
+      screen.getByText('Select a project to continue'),
+      'Projfoo-transaction'
+    );
+    await userEvent.clear(screen.getByTestId('allocation-input'));
+    await userEvent.type(screen.getByTestId('allocation-input'), '35');
+    await userEvent.click(screen.getByTestId('spend-allocation-submit'));
+
+    expect(mockPost).toHaveBeenCalledTimes(1);
+    expect(mockPost.mock.calls[0][1].data).toEqual({
+      billing_metric: 'error',
+      target_id: '3',
+      target_type: 'Project',
+      desired_quantity: '35',
+    });
+  });
+
   it('filters target project list', async () => {
     // TODO: figure out how to write tests for SelectField component.
   });
@@ -519,14 +496,9 @@ describe('Disable Submit button in Spend Allocation', () => {
       }),
     ];
     organization = initializeOrg({
-      organization: {
-        features: ['spend-allocations'],
-      },
+      organization: {features: ['spend-allocations']},
     }).organization;
-    subscription = SubscriptionFixture({
-      organization,
-      plan: 'am1_f',
-    });
+    subscription = SubscriptionFixture({organization, plan: 'am1_f'});
     MockApiClient.clearMockResponses();
     dateTs = Math.max(
       Date.now() / 1000,
@@ -563,14 +535,9 @@ describe('DELETE spend allocation', () => {
   let organization: any, subscription: any, mockDelete: any, mockGet: any, dateTs: number;
   beforeEach(() => {
     organization = initializeOrg({
-      organization: {
-        features: ['spend-allocations'],
-      },
+      organization: {features: ['spend-allocations']},
     }).organization;
-    subscription = SubscriptionFixture({
-      organization,
-      plan: 'am1_f',
-    });
+    subscription = SubscriptionFixture({organization, plan: 'am1_f'});
     MockApiClient.clearMockResponses();
     dateTs = Math.max(
       Date.now() / 1000,
@@ -618,6 +585,11 @@ describe('DELETE spend allocation', () => {
     await userEvent.click(within(tableRows[0]!).getByRole('button', {name: 'Delete'}));
 
     expect(mockDelete.mock.calls).toHaveLength(1);
+    expect(mockDelete.mock.calls[0][1].query).toEqual({
+      billing_metric: 'error',
+      target_id: 1,
+      target_type: 'Project',
+    });
     // Assert that it refetches allocations on success
     expect(mockGet.mock.calls).toHaveLength(4);
   });
@@ -642,14 +614,9 @@ describe('PUT edit spend allocation', () => {
       }),
     ];
     organization = initializeOrg({
-      organization: {
-        features: ['spend-allocations'],
-      },
+      organization: {features: ['spend-allocations']},
     }).organization;
-    subscription = SubscriptionFixture({
-      organization,
-      plan: 'am1_f',
-    });
+    subscription = SubscriptionFixture({organization, plan: 'am1_f'});
     MockApiClient.clearMockResponses();
     dateTs = Math.max(
       Date.now() / 1000,
@@ -704,6 +671,30 @@ describe('PUT edit spend allocation', () => {
     await userEvent.click(screen.getByText('Save Changes'));
 
     expect(mockPut.mock.calls).toHaveLength(1);
+  });
+
+  it('edits an allocation without period timestamps', async () => {
+    render(<SpendAllocationsRoot subscription={subscription} />, {organization});
+    await screen.findByRole('table', {name: 'Project allocations'});
+
+    await userEvent.click(
+      within(getAllocationRows()[1]!).getByRole('button', {name: 'Edit'})
+    );
+    renderGlobalModal();
+    await screen.findByTestId('spend-allocation-form');
+    expect(screen.getByTestId('allocation-input')).toHaveValue(50);
+
+    await userEvent.clear(screen.getByTestId('allocation-input'));
+    await userEvent.type(screen.getByTestId('allocation-input'), '80');
+    await userEvent.click(screen.getByText('Save Changes'));
+
+    expect(mockPut).toHaveBeenCalledTimes(1);
+    expect(mockPut.mock.calls[0][1].data).toEqual({
+      billing_metric: 'error',
+      target_id: '2',
+      target_type: 'Project',
+      desired_quantity: '80',
+    });
   });
 
   it('shows a fallback error when the save request fails without a response body', async () => {

@@ -5,13 +5,16 @@ import {IconCheckmark} from '@sentry/icons/checkmark';
 import {IconClock} from '@sentry/icons/clock';
 import {IconCopy} from '@sentry/icons/copy';
 import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconFilter} from '@sentry/icons/filter';
 import {IconSubscribed} from '@sentry/icons/subscribed';
 import {IconUnsubscribed} from '@sentry/icons/unsubscribed';
 import {IconUpload} from '@sentry/icons/upload';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {parseAsString, useQueryStates} from 'nuqs';
 
+import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
+import {openConfirmModal} from '@sentry/scraps/confirm';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
@@ -27,12 +30,12 @@ import {ArchiveActions} from 'sentry/components/actions/archive';
 import {ResolveActions} from 'sentry/components/actions/resolve';
 import {CMDKAction} from 'sentry/components/commandPalette/ui/cmdk';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
-import {openConfirmModal} from 'sentry/components/confirm';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {t} from 'sentry/locale';
 import {IssueListCacheStore} from 'sentry/stores/IssueListCacheStore';
 import type {Event} from 'sentry/types/event';
-import type {Group, GroupStatusResolution, MarkReviewed} from 'sentry/types/group';
+import {EventOrGroupType} from 'sentry/types/event';
+import type {Group, GroupStatusResolution} from 'sentry/types/group';
 import {GroupStatus, GroupSubstatus} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -50,14 +53,19 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {isVersionInfoSemver} from 'sentry/views/explore/releases/utils';
 import {discardIssueMutationOptions} from 'sentry/views/issueDetails/discardIssueMutationOptions';
 import {Divider} from 'sentry/views/issueDetails/divider';
+import {
+  useAssessImpact,
+  useHasImpactAssessment,
+} from 'sentry/views/issueDetails/groupImpact';
 import {GroupPriorityCommandPaletteAction} from 'sentry/views/issueDetails/groupPriority';
 import {GroupHeaderAssigneeCommandPaletteAction} from 'sentry/views/issueDetails/header/assigneeSelector';
-import {groupQueryKey} from 'sentry/views/issueDetails/useGroup';
+import {groupQueryFilter} from 'sentry/views/issueDetails/useGroup';
 import {useProjectReleaseVersionIsSemver} from 'sentry/views/issueDetails/useProjectReleaseVersionIsSemver';
 import {
   getGroupReprocessingStatus,
   ReprocessingStatus,
 } from 'sentry/views/issueDetails/utils';
+import {getAddInboundFilterAvailability} from 'sentry/views/settings/project/projectFilters/addInboundFilterAvailability';
 
 import {SeerCommandPaletteActions} from './seerCommandPaletteActions';
 import {ShareIssueModal} from './shareModal';
@@ -65,9 +73,8 @@ import {StatusBanner} from './statusBanner';
 import {SubscribeAction} from './subscribeAction';
 
 type UpdateData =
-  | {isBookmarked: boolean; inbox?: boolean}
-  | {isSubscribed: boolean; inbox?: boolean}
-  | MarkReviewed
+  | {isBookmarked: boolean}
+  | {isSubscribed: boolean}
   | GroupStatusResolution;
 
 const isResolutionStatus = (data: UpdateData): data is GroupStatusResolution => {
@@ -88,10 +95,6 @@ const getUpdateSuccessMessage = (group: Group, data: UpdateData) => {
       default:
         return;
     }
-  }
-
-  if (data.inbox === false) {
-    return t('Issue marked reviewed');
   }
 
   return;
@@ -185,6 +188,18 @@ export function GroupResolutionActions({
   );
 }
 
+// The modal and its form live with the project settings, so the issue page only
+// loads them once the action runs.
+async function openCustomFilterModalFromEvent(project: Project, event: Event) {
+  const {getFilterDraftFromEvent, openCustomFilterModal} =
+    await import('sentry/views/settings/project/projectFilters/customFilterModal');
+  openCustomFilterModal({
+    project,
+    initialValues: getFilterDraftFromEvent(event),
+    draftSource: 'event',
+  });
+}
+
 export function GroupActions({
   group,
   project,
@@ -212,6 +227,8 @@ export function GroupActions({
   });
   const queryClient = useQueryClient();
   const {mutate: discardIssue} = useMutation(discardIssueMutationOptions({navigate}));
+  const {mutate: assessImpact, isPending: isAssessingImpact} = useAssessImpact(group);
+  const hasImpactAssessment = useHasImpactAssessment();
 
   const bookmarkKey = group.isBookmarked ? 'unbookmark' : 'bookmark';
   const bookmarkTitle = group.isBookmarked ? t('Remove bookmark') : t('Bookmark');
@@ -251,8 +268,8 @@ export function GroupActions({
       | 'deleted'
       | 'bookmarked'
       | 'subscribed'
-      | 'mark_reviewed'
       | 'discarded'
+      | 'add_inbound_filter'
       | GroupStatus,
     substatus?: GroupSubstatus | null,
     statusDetailsKey?: string
@@ -305,9 +322,6 @@ export function GroupActions({
         Object.keys(data.statusDetails || {})[0]
       );
     }
-    if ((data as {inbox: boolean}).inbox !== undefined) {
-      trackIssueAction('mark_reviewed');
-    }
     IssueListCacheStore.reset();
 
     try {
@@ -327,12 +341,9 @@ export function GroupActions({
       // GroupStore already shows the error
       // oxlint-disable-next-line react/todo
     } finally {
-      queryClient.invalidateQueries({
-        queryKey: groupQueryKey({
-          organizationSlug: organization.slug,
-          groupId: group.id,
-        }),
-      });
+      queryClient.invalidateQueries(
+        groupQueryFilter({organizationSlug: organization.slug, groupId: group.id})
+      );
     }
   };
 
@@ -340,12 +351,30 @@ export function GroupActions({
     openReprocessEventModal({organization, groupId: group.id});
   };
 
+  // The "Add Inbound Filter" menu item drafts a filter from the fields of the
+  // error event on screen, so it needs one.
+  const addInboundFilterAvailability = getAddInboundFilterAvailability(
+    organization,
+    project
+  );
+  const canAddInboundFilter =
+    addInboundFilterAvailability.isVisible &&
+    (event?.type === EventOrGroupType.ERROR || event?.type === EventOrGroupType.DEFAULT);
+  const addInboundFilterDisabledReason = addInboundFilterAvailability.disabledReason;
+  const isInboundFilterAllowed = addInboundFilterDisabledReason === undefined;
+
+  const onAddInboundFilter = () => {
+    if (!event) {
+      return;
+    }
+    trackIssueAction('add_inbound_filter');
+    openCustomFilterModalFromEvent(project, event);
+  };
+
   const onTogglePublicShare = () => {
     const newIsPublic = !group.isPublic;
     if (newIsPublic) {
-      trackAnalytics('issue.shared_publicly', {
-        organization,
-      });
+      trackAnalytics('issue.shared_publicly', {organization});
     }
     trackIssueAction('shared');
   };
@@ -370,11 +399,7 @@ export function GroupActions({
 
   const onDiscard = () => {
     trackIssueAction('discarded');
-    discardIssue({
-      groupId: group.id,
-      orgSlug: organization.slug,
-      projectId: project.id,
-    });
+    discardIssue({groupId: group.id, orgSlug: organization.slug, projectId: project.id});
   };
 
   const renderDiscardModal = ({Body, Footer, closeModal}: ModalRenderProps) => {
@@ -478,10 +503,7 @@ export function GroupActions({
           >
             {resolveCap.enabled && !isResolved && !isIgnored && (
               <CMDKAction
-                display={{
-                  label: t('Resolve'),
-                  icon: <IconCheckmark />,
-                }}
+                display={{label: t('Resolve'), icon: <IconCheckmark />}}
                 onAction={() =>
                   onUpdate({
                     status: GroupStatus.RESOLVED,
@@ -527,12 +549,16 @@ export function GroupActions({
                 }
               />
             )}
+            {canAddInboundFilter && isInboundFilterAllowed && (
+              <CMDKAction
+                display={{label: t('Add Inbound Filter'), icon: <IconFilter />}}
+                keywords={['inbound', 'filter', 'drop', 'custom filter', 'data filter']}
+                onAction={onAddInboundFilter}
+              />
+            )}
             {stacktraceBody && (
               <CMDKAction
-                display={{
-                  label: t('Copy Stack Trace'),
-                  icon: <IconCopy />,
-                }}
+                display={{label: t('Copy Stack Trace'), icon: <IconCopy />}}
                 keywords={['stacktrace', 'exception', 'error', 'trace', 'copy']}
                 onAction={() => copyToClipboard(stacktraceBody)}
               />
@@ -614,23 +640,30 @@ export function GroupActions({
           )}
           items={[
             {
-              key: 'mark-review',
-              label: t('Mark reviewed'),
-              disabled: !group.inbox || disabled,
-              details:
-                !group.inbox || disabled ? t('Issue has been reviewed') : undefined,
-              onAction: () => onUpdate({inbox: false}),
+              key: 'impact-assessment',
+              label: t('Assess impact'),
+              trailingItems: <FeatureBadge type="alpha" />,
+              hidden: !hasImpactAssessment,
+              disabled: disabled || isAssessingImpact,
+              details: isAssessingImpact
+                ? t('Impact assessment is being started')
+                : undefined,
+              onAction: () => assessImpact(),
             },
-            {
-              key: bookmarkKey,
-              label: bookmarkTitle,
-              onAction: onToggleBookmark,
-            },
+            {key: bookmarkKey, label: bookmarkTitle, onAction: onToggleBookmark},
             {
               key: 'reprocess',
               label: t('Reprocess events'),
               hidden: !displayReprocessEventAction(event),
               onAction: onReprocessEvent,
+            },
+            {
+              key: 'add-inbound-filter',
+              label: t('Add Inbound Filter'),
+              hidden: !canAddInboundFilter,
+              disabled: !isInboundFilterAllowed,
+              details: addInboundFilterDisabledReason,
+              onAction: onAddInboundFilter,
             },
             {
               key: 'delete-issue',

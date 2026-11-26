@@ -12,9 +12,7 @@ import type {Subscription} from 'getsentry/types';
 import {isTrial} from 'getsentry/utils/billing';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
-type Props = {
-  subscription: Subscription;
-};
+type Props = {subscription: Subscription};
 
 export function TrialEnded({subscription}: Props) {
   const organization = useOrganization();
@@ -28,10 +26,7 @@ export function TrialEnded({subscription}: Props) {
 
   useEffect(() => {
     if (shouldRender) {
-      trackGetsentryAnalytics('intercom_link.viewed', {
-        organization,
-        source: 'trial',
-      });
+      trackGetsentryAnalytics('intercom_link.viewed', {organization, source: 'trial'});
     }
   }, [shouldRender, organization]);
 
@@ -40,10 +35,7 @@ export function TrialEnded({subscription}: Props) {
   }
 
   async function handleIntercomClick() {
-    trackGetsentryAnalytics('intercom_link.clicked', {
-      organization,
-      source: 'trial',
-    });
+    trackGetsentryAnalytics('intercom_link.clicked', {organization, source: 'trial'});
     try {
       await showIntercom(organization.slug);
     } catch {

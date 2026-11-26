@@ -1,8 +1,9 @@
 import {Flex, type FlexProps} from '@sentry/scraps/layout';
-import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {Tabs} from '@sentry/scraps/tabs';
+
+import {Placeholder} from 'sentry/components/placeholder';
 
 import type {TraceRootEventQueryResults} from './traceApi/useTraceRootEvent';
-import {TraceHeaderComponents} from './traceHeader/styles';
 import type {TraceTree} from './traceModels/traceTree';
 import {TraceContextVitals} from './traceContextVitals';
 import type {TraceLayoutTabsConfig} from './useTraceLayoutTabs';
@@ -28,27 +29,18 @@ function ToolbarLayout(props: FlexProps) {
   );
 }
 
-function Placeholder() {
+function TabsAndVitalsPlaceholder() {
   return (
     <ToolbarLayout>
       <Flex align="center" gap="md">
-        <TraceHeaderComponents.StyledPlaceholder
-          _width={75}
-          _height={CONTAINER_MIN_HEIGHT}
-        />
-        <TraceHeaderComponents.StyledPlaceholder
-          _width={75}
-          _height={CONTAINER_MIN_HEIGHT}
-        />
-        <TraceHeaderComponents.StyledPlaceholder
-          _width={75}
-          _height={CONTAINER_MIN_HEIGHT}
-        />
+        <Placeholder width="75px" height={`${CONTAINER_MIN_HEIGHT}px`} />
+        <Placeholder width="75px" height={`${CONTAINER_MIN_HEIGHT}px`} />
+        <Placeholder width="75px" height={`${CONTAINER_MIN_HEIGHT}px`} />
       </Flex>
       <Flex align="center" gap="md">
-        <TraceHeaderComponents.StyledPlaceholder _width={100} _height={24} />
-        <TraceHeaderComponents.StyledPlaceholder _width={100} _height={24} />
-        <TraceHeaderComponents.StyledPlaceholder _width={100} _height={24} />
+        <Placeholder width="100px" height="24px" />
+        <Placeholder width="100px" height="24px" />
+        <Placeholder width="100px" height="24px" />
       </Flex>
     </ToolbarLayout>
   );
@@ -62,17 +54,19 @@ export function TraceTabsAndVitals({
   const {tabOptions, currentTab, isLoading, onTabChange} = tabsConfig;
 
   if (isLoading || tree.type === 'loading') {
-    return <Placeholder />;
+    return <TabsAndVitalsPlaceholder />;
   }
 
   return (
     <ToolbarLayout>
       <Tabs value={currentTab} onChange={onTabChange}>
-        <TabList variant="floating">
-          {tabOptions.map(tab => (
-            <TabList.Item key={tab.slug}>{tab.label}</TabList.Item>
-          ))}
-        </TabList>
+        {({TabList}) => (
+          <TabList variant="floating">
+            {tabOptions.map(tab => (
+              <TabList.Item key={tab.slug}>{tab.label}</TabList.Item>
+            ))}
+          </TabList>
+        )}
       </Tabs>
       <TraceContextVitals rootEventResults={rootEventResults} tree={tree} />
     </ToolbarLayout>

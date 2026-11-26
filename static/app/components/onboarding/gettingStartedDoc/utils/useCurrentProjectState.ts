@@ -1,10 +1,10 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import partition from 'lodash/partition';
 import {parseAsString, useQueryState} from 'nuqs';
+import {useStore} from 'zustand';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import type {OnboardingDrawerKey} from 'sentry/stores/onboardingDrawerStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {PlatformKey} from 'sentry/types/platform';
 import type {Project} from 'sentry/types/project';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
@@ -24,7 +24,11 @@ export function useCurrentProjectState({
   allPlatforms,
 }: Props) {
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
-  const {selection, isReady} = useLegacyStore(PageFiltersStore);
+  const pageFilterProjectIds = useStore(
+    PageFiltersStore,
+    state => state.selection.projects
+  );
+  const isReady = useStore(PageFiltersStore, state => state.isReady);
   const [projectId] = useQueryState('project', parseAsString);
   const isActive = currentPanel === targetPanel;
 
@@ -89,7 +93,7 @@ export function useCurrentProjectState({
       return projects.find(p => p.id === projectId);
     }
 
-    const selectedProjects = getSelectedProjectList(selection.projects, projects);
+    const selectedProjects = getSelectedProjectList(pageFilterProjectIds, projects);
 
     return getDefaultCurrentProjectFromSelection(selectedProjects);
   }, [
@@ -100,7 +104,7 @@ export function useCurrentProjectState({
     projects,
     projectsLoaded,
     projectsWithOnboarding,
-    selection.projects,
+    pageFilterProjectIds,
     supportedProjects,
   ]);
 
@@ -119,13 +123,13 @@ export function useCurrentProjectState({
 
   // Update the current project when the page filters store changes
   useEffect(() => {
-    const selectedProjects = getSelectedProjectList(selection.projects, projects);
+    const selectedProjects = getSelectedProjectList(pageFilterProjectIds, projects);
     const newSelectionProject = getDefaultCurrentProjectFromSelection(selectedProjects);
     if (newSelectionProject) {
       // oxlint-disable-next-line react/set-state-in-effect
       setCurrentProject(newSelectionProject);
     }
-  }, [selection.projects, getDefaultCurrentProjectFromSelection, projects]);
+  }, [pageFilterProjectIds, getDefaultCurrentProjectFromSelection, projects]);
 
   return {
     projects: supportedProjects,

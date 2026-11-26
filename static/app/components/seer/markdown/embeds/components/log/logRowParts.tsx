@@ -1,8 +1,8 @@
 import {useTheme} from '@emotion/react';
 
+import {DateTime} from '@sentry/scraps/dateTime';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {ColoredLogCircle, getLogColors, LogDate} from 'sentry/views/explore/logs/styles';
 import {
   getLogSeverityLevel,
@@ -82,7 +82,7 @@ export function LogTimestamp({
 
   return (
     <LogDate>
-      <DateTime seconds milliseconds date={date} />
+      <DateTime date={date} precision="millisecond" />
     </LogDate>
   );
 }

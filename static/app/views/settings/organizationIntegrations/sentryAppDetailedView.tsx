@@ -6,6 +6,7 @@ import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {SentryAppAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
+import {Confirm} from '@sentry/scraps/confirm';
 import {Flex} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 import {toast} from '@sentry/scraps/toast';
@@ -16,20 +17,16 @@ import {
 } from 'sentry/actionCreators/sentryAppInstallations';
 import {sentryAppApiOptions} from 'sentry/actionCreators/sentryApps';
 import {CircleIndicator} from 'sentry/components/circleIndicator';
-import {Confirm} from 'sentry/components/confirm';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
 import type {IntegrationFeature, SentryAppInstallation} from 'sentry/types/integrations';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getSpecialPermissions, toPermissions} from 'sentry/utils/consolidatedScopes';
 import {
   getSentryAppInstallStatus,
   trackIntegrationAnalytics,
 } from 'sentry/utils/integrationUtil';
-import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useApi} from 'sentry/utils/useApi';
@@ -38,24 +35,21 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {sentryAppComponentsApiOptions} from 'sentry/utils/useSentryAppComponents';
 
-import type {IntegrationTab} from './detailedView/integrationLayout';
 import {IntegrationLayout} from './detailedView/integrationLayout';
 import {RequestIntegrationButton} from './integrationRequest/RequestIntegrationButton';
 import {SplitInstallationIdModal} from './SplitInstallationIdModal';
 
-function makeSentryAppInstallationsQueryKey({orgSlug}: {orgSlug: string}): ApiQueryKey {
-  return [
-    getApiUrl('/organizations/$organizationIdOrSlug/sentry-app-installations/', {
-      path: {organizationIdOrSlug: orgSlug},
-    }),
-  ];
+function makeSentryAppInstallationsApiOptions({orgSlug}: {orgSlug: string}) {
+  return apiOptions.as<SentryAppInstallation[]>()(
+    '/organizations/$organizationIdOrSlug/sentry-app-installations/',
+    {path: {organizationIdOrSlug: orgSlug}, staleTime: Infinity}
+  );
 }
 
 export default function SentryAppDetailedView() {
   const {openModal} = useModal();
 
   const theme = useTheme();
-  const tabs: IntegrationTab[] = ['overview'];
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -79,10 +73,7 @@ export default function SentryAppDetailedView() {
   } = useQuery({
     ...apiOptions.as<IntegrationFeature[]>()(
       '/sentry-apps/$sentryAppIdOrSlug/features/',
-      {
-        path: {sentryAppIdOrSlug: integrationSlug},
-        staleTime: Infinity,
-      }
+      {path: {sentryAppIdOrSlug: integrationSlug}, staleTime: Infinity}
     ),
     retry: false,
   });
@@ -91,13 +82,10 @@ export default function SentryAppDetailedView() {
     data: appInstalls = [],
     isPending: isAppInstallsPending,
     isError: isAppInstallsError,
-  } = useApiQuery<SentryAppInstallation[]>(
-    makeSentryAppInstallationsQueryKey({orgSlug: organization.slug}),
-    {
-      staleTime: Infinity,
-      retry: false,
-    }
-  );
+  } = useQuery({
+    ...makeSentryAppInstallationsApiOptions({orgSlug: organization.slug}),
+    retry: false,
+  });
 
   const integrationType = 'sentry_app';
   const integrationName = sentryApp?.name ?? '';
@@ -209,10 +197,16 @@ export default function SentryAppDetailedView() {
       redirectUser(newInstall);
     } else {
       toast.success(t('%s successfully installed.', sentryApp.slug));
-      setApiQueryData<SentryAppInstallation[]>(
-        queryClient,
-        makeSentryAppInstallationsQueryKey({orgSlug: organization.slug}),
-        (existingData = []) => [newInstall, ...existingData]
+      queryClient.setQueryData(
+        makeSentryAppInstallationsApiOptions({orgSlug: organization.slug}).queryKey,
+        previous => {
+          const existingData = previous?.json ?? [];
+          return {
+            ...previous,
+            headers: previous?.headers ?? {},
+            json: [newInstall, ...existingData],
+          };
+        }
       );
 
       // hack for split so we can show the install ID to users for them to copy
@@ -256,13 +250,18 @@ export default function SentryAppDetailedView() {
           organization,
           integration_status: sentryApp.status,
         });
-        setApiQueryData<SentryAppInstallation[]>(
-          queryClient,
-          makeSentryAppInstallationsQueryKey({orgSlug: organization.slug}),
-          (existingData = []) =>
-            existingData.map(i =>
-              i.app.slug === sentryApp.slug ? {...i, status: 'pending_deletion'} : i
-            )
+        queryClient.setQueryData(
+          makeSentryAppInstallationsApiOptions({orgSlug: organization.slug}).queryKey,
+          previous => {
+            const existingData = previous?.json ?? [];
+            return {
+              ...previous,
+              headers: previous?.headers ?? {},
+              json: existingData.map((i): SentryAppInstallation =>
+                i.app.slug === sentryApp.slug ? {...i, status: 'pending_deletion'} : i
+              ),
+            };
+          }
         );
       } catch (error) {
         toast.error(t('Unable to uninstall %s', sentryApp.name));
@@ -449,7 +448,7 @@ export default function SentryAppDetailedView() {
           additionalCTA={null}
         />
       }
-      tabs={<IntegrationLayout.Tabs tabs={tabs} activeTab="overview" />}
+      tabs={null}
       content={
         <IntegrationLayout.InformationCard
           integrationSlug={integrationSlug}

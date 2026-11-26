@@ -1,9 +1,9 @@
 import {useState} from 'react';
 
 import {Button} from '@sentry/scraps/button';
+import {Confirm} from '@sentry/scraps/confirm';
 import {toast} from '@sentry/scraps/toast';
 
-import {Confirm} from 'sentry/components/confirm';
 import {t, tct} from 'sentry/locale';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
@@ -97,10 +97,7 @@ function UpsellProvider({
 
   const canTrial = subscription.canTrial && !isTrial(subscription);
   const handleRequest = () => {
-    const args = {
-      api,
-      organization,
-    };
+    const args = {api, organization};
     if (canTrial) {
       return sendTrialRequest(args);
     }
@@ -155,9 +152,7 @@ function UpsellProvider({
         <div data-test-id="confirm-content">
           {tct(
             'Your organization is about to start a [trialLength]-day free trial. Click confirm to start your trial.',
-            {
-              trialLength,
-            }
+            {trialLength}
           )}
         </div>
       );
@@ -218,10 +213,7 @@ function UpsellProvider({
               if (triggerMemberRequests) {
                 handleRequest();
               } else {
-                openUpsellModal({
-                  organization,
-                  source,
-                });
+                openUpsellModal({organization, source});
               }
             }
           },

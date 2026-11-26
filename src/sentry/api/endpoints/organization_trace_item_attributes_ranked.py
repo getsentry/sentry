@@ -1,5 +1,6 @@
 import logging
 from collections import defaultdict
+from datetime import datetime, timedelta
 from typing import Any, TypedDict, cast
 
 from drf_spectacular.utils import OpenApiParameter, extend_schema
@@ -22,7 +23,10 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
-from sentry.api.endpoints.organization_trace_item_attributes import adjust_start_end_window
+from sentry.api.endpoints.organization_trace_item_attributes import (
+    adjust_start_end_window,
+    full_retention_window,
+)
 from sentry.api.endpoints.organization_trace_item_attributes_types import (
     AttributeBucket,
     RankedAttribute,
@@ -45,7 +49,11 @@ from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.attributes import SPANS_STATS_EXCLUDED_ATTRIBUTES
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import EAPResponse, SearchResolverConfig, SupportedTraceItemType
-from sentry.search.eap.utils import can_expose_attribute, translate_internal_to_public_alias
+from sentry.search.eap.utils import (
+    can_expose_attribute,
+    get_stats_chunk_count,
+    translate_internal_to_public_alias,
+)
 from sentry.search.events import fields
 from sentry.search.events.types import SnubaParams
 from sentry.seer.endpoints.compare import compare_distributions
@@ -245,6 +253,15 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsEndpointB
         return Response(ranked_distribution)
 
 
+def get_attribute_names_window(start: datetime, end: datetime) -> tuple[datetime, datetime]:
+    adjusted_start, adjusted_end = adjust_start_end_window(start, end)
+    retention_start, retention_end = full_retention_window(SupportedTraceItemType.SPANS)
+    # Snuba expires weekly names buckets a retention period after their Monday, before downsampled spans
+    if adjusted_start - timedelta(days=adjusted_start.weekday()) <= retention_start:
+        return retention_start, retention_end
+    return adjusted_start, adjusted_end
+
+
 class AttributeDistributionsResponse(TypedDict):
     """
     Response structure for query_attribute_distributions.
@@ -360,7 +377,7 @@ def query_attribute_distributions(
         cohort_2, _, _ = resolver.resolve_query(query_2)
 
     # Fetch attribute names for parallelization
-    adjusted_start_date, adjusted_end_date = adjust_start_end_window(
+    adjusted_start_date, adjusted_end_date = get_attribute_names_window(
         snuba_params.start_date, snuba_params.end_date
     )
     attrs_snuba_params = snuba_params.copy()
@@ -383,13 +400,13 @@ def query_attribute_distributions(
         )
         attrs_response = snuba_rpc.attribute_names_rpc(attrs_request)
 
-    # Chunk attributes for parallel processing
+    chunk_count = get_stats_chunk_count(max_attributes, PARALLELIZATION_FACTOR)
     chunked_attributes: defaultdict[int, list[AttributeKey]] = defaultdict(list)
     for i, attr_proto in enumerate(attrs_response.attributes):
         if attr_proto.name in SPANS_STATS_EXCLUDED_ATTRIBUTES:
             continue
 
-        chunked_attributes[i % PARALLELIZATION_FACTOR].append(
+        chunked_attributes[i % chunk_count].append(
             AttributeKey(name=attr_proto.name, type=AttributeKey.TYPE_STRING)
         )
 
@@ -427,7 +444,7 @@ def query_attribute_distributions(
 
     with ContextPropagatingThreadPoolExecutor(
         thread_name_prefix=__name__,
-        max_workers=PARALLELIZATION_FACTOR * 2 + 2,  # 2 cohorts * threads + 2 totals queries
+        max_workers=chunk_count * 2 + 2,  # 2 cohorts * chunks + 2 totals queries
     ) as query_thread_pool:
         cohort_1_futures = [
             query_thread_pool.submit(run_stats_request_with_error_handling, cohort_1, attributes)

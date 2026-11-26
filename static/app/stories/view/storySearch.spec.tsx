@@ -8,13 +8,13 @@ jest.mock('sentry/stories/view', () => ({}));
 jest.mock('sentry/stories/storyManifest.generated', () => ({
   storyFiles: [
     'app/components/core/badge/badge.mdx',
-    'app/components/core/badge/tag.mdx',
+    'packages/scraps/src/badge/tag.mdx',
     'app/components/core/principles/tokens/tokens.mdx',
     'app/components/example.stories.tsx',
   ],
   storyFrontmatterIndex: {
     'app/components/core/badge/badge.mdx': {category: 'status', title: 'Badge'},
-    'app/components/core/badge/tag.mdx': {category: 'status', title: 'Tag'},
+    'packages/scraps/src/badge/tag.mdx': {category: 'status', title: 'Tag'},
     'app/components/core/principles/tokens/tokens.mdx': {
       keywords: ['colors', 'palette'],
       title: 'Tokens',
@@ -32,15 +32,20 @@ jest.mock('sentry/stories/storyManifest.generated', () => ({
       {id: 'tag', title: 'Tag', parents: []},
       {id: 'tag-accessibility', title: 'Accessibility', parents: ['Tag']},
     ],
-    'app/components/core/badge/tag.mdx': [],
+    'packages/scraps/src/badge/tag.mdx': [],
     'app/components/core/principles/tokens/tokens.mdx': [],
   },
 }));
 
 describe('StorySearch', () => {
   beforeEach(() => {
-    // jsdom has no layout; give the real virtualized list a visible viewport.
-    jest.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(320);
+    // jsdom has no layout; give the real virtualized list a visible viewport
+    // that fits several rows.
+    jest.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockImplementation(function (
+      this: HTMLElement
+    ) {
+      return this.hasAttribute('data-index') ? 32 : 320;
+    });
     jest.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(320);
   });
   it('finds a nested component and navigates to its section by keyboard', async () => {

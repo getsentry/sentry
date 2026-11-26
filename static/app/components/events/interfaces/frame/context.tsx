@@ -75,12 +75,7 @@ export function Context({
     hasPotentialSourceContext(frame);
 
   const {data: sourceContextData, isPending: isLoadingSourceContext} = useSourceContext(
-    {
-      event,
-      frame,
-      orgSlug: organization?.slug || '',
-      projectSlug: project?.slug,
-    },
+    {event, frame, orgSlug: organization?.slug || '', projectSlug: project?.slug},
     {enabled: shouldFetchSourceContext}
   );
 
@@ -186,6 +181,11 @@ export function Context({
       {hasContextRegisters && (
         <FrameRegisters
           registers={registers!}
+          // Extracted variables answer most of what the registers are read for.
+          collapsedByDefault={
+            hasContextVars &&
+            !!organization?.features.includes('native-variable-extraction')
+          }
           meta={registersMeta}
           deviceArch={event.contexts?.device?.arch}
         />

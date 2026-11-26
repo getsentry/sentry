@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
-import type {LocationDescriptor} from 'history';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
@@ -12,161 +11,85 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
-import type {Organization} from 'sentry/types/organization';
-import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-type RelatedIssuesResponse = {
-  data: number[];
-  meta: {
-    event_id: string;
-    trace_id: string;
-  };
-  type: string;
-};
+import {relatedIssuesApiOptions, type SameTraceMeta} from './relatedIssuesApiOptions';
+
+// The endpoint's maximum. The trace lookup reads up to 100 error events.
+const SAME_TRACE_LIMIT = 100;
 
 function GroupRelatedIssues({group}: {group: Group}) {
-  return (
-    <Fragment>
-      <RelatedIssuesSection group={group} relationType="same_root_cause" />
-      <RelatedIssuesSection group={group} relationType="trace_connected" />
-    </Fragment>
-  );
-}
-
-interface RelatedIssuesSectionProps {
-  group: Group;
-  relationType: string;
-}
-
-function RelatedIssuesSection({group, relationType}: RelatedIssuesSectionProps) {
   const organization = useOrganization();
-  // Fetch the list of related issues
-  const {
-    isPending,
-    isError,
-    data: relatedIssues,
-    refetch,
-  } = useQuery(
-    apiOptions.as<RelatedIssuesResponse>()(
-      '/organizations/$organizationIdOrSlug/issues/$issueId/related-issues/',
-      {
-        path: {organizationIdOrSlug: organization.slug, issueId: group.id},
-        query: {
-          type: relationType,
-        },
-        staleTime: 0,
-      }
-    )
+  const {isPending, isError, data, refetch} = useQuery(
+    relatedIssuesApiOptions({
+      organization,
+      groupId: group.id,
+      types: ['same_trace'],
+      limit: SAME_TRACE_LIMIT,
+    })
   );
 
-  const traceMeta = relationType === 'trace_connected' ? relatedIssues?.meta : undefined;
-  const issues = relatedIssues?.data ?? [];
-  const query = `issue.id:[${issues}]`;
-  let title: React.ReactNode = null;
-  let extraInfo: React.ReactNode = null;
-  let openIssuesButton: React.ReactNode = null;
-  if (relationType === 'trace_connected' && traceMeta) {
-    ({title, extraInfo, openIssuesButton} = getTraceConnectedContent(
-      traceMeta,
-      organization
-    ));
-  } else {
-    title = t('Issues with similar titles');
-    extraInfo = t(
-      'These issues have the same title and may have been caused by the same root cause.'
-    );
-    openIssuesButton = getLinkButton(
-      {
-        pathname: `/organizations/${organization.slug}/issues/`,
-        query: {
-          // project=-1 allows ensuring that the query will show issues from any projects for the org
-          // This is important for traces since issues can be for any project in the org
-          project: '-1',
-          query: `issue.id:[${group.id},${issues}]`,
-        },
-      },
-      'Clicked Open Issues from same-root related issues',
-      'similar_issues.same_root_cause_clicked_open_issues'
+  if (isPending) {
+    return <LoadingIndicator />;
+  }
+  if (isError) {
+    return (
+      <LoadingError
+        message={t('Unable to load related issues, please try again later')}
+        onRetry={refetch}
+      />
     );
   }
 
+  const sameTrace = data.meta.types.find(
+    (entry): entry is SameTraceMeta => entry.type === 'same_trace'
+  );
+  const issueIds = data.data.map(({issue}) => issue.id);
+  if (!sameTrace?.traceId || !sameTrace.eventId || issueIds.length === 0) {
+    return null;
+  }
+
+  const traceUrl = `/organizations/${organization.slug}/performance/trace/${sameTrace.traceId}/?node=error-${sameTrace.eventId}`;
   return (
     <Fragment>
-      {isPending ? (
-        <LoadingIndicator />
-      ) : isError ? (
-        <LoadingError
-          message={t('Unable to load related issues, please try again later')}
-          onRetry={refetch}
-        />
-      ) : issues.length > 0 ? (
-        <Fragment>
-          <HeaderWrapper>
-            <Title>{title}</Title>
-            <Flex justify="between" align="center" marginBottom="md" width="100%">
-              <span>{extraInfo}</span>
-              {openIssuesButton}
-            </Flex>
-          </HeaderWrapper>
-          <GroupList
-            queryParams={{
-              query,
+      <HeaderWrapper>
+        <Title>{t('Issues in the same trace')}</Title>
+        <Flex justify="between" align="center" marginBottom="md" width="100%">
+          <span>
+            <small>
+              {tct('These issues were all found within [traceLink:this trace]', {
+                traceLink: <Link to={traceUrl}>{t('this trace')}</Link>,
+              })}
+            </small>
+          </span>
+          <LinkButton
+            to={{
+              pathname: `/organizations/${organization.slug}/issues/`,
+              query: {
+                // project=-1 shows issues from every project, since a trace can cross projects
+                project: '-1',
+                query: `trace:${sameTrace.traceId}`,
+              },
             }}
-            source="similar-issues-tab"
-            canSelectGroups={false}
-            withChart={false}
-            withColumns={['event', 'firstSeen', 'lastSeen']}
-            numPlaceholderRows={4}
-          />
-        </Fragment>
-      ) : null}
+            size="xs"
+            analyticsEventName="Clicked Open Issues from trace-connected related issues"
+            analyticsEventKey="similar_issues.trace_connected_issues_clicked_open_issues"
+          >
+            {t('Open in Issues')}
+          </LinkButton>
+        </Flex>
+      </HeaderWrapper>
+      <GroupList
+        queryParams={{query: `issue.id:[${issueIds}]`}}
+        source="similar-issues-tab"
+        canSelectGroups={false}
+        withChart={false}
+        withColumns={['event', 'firstSeen', 'lastSeen']}
+        numPlaceholderRows={4}
+      />
     </Fragment>
   );
 }
-
-const getTraceConnectedContent = (
-  traceMeta: RelatedIssuesResponse['meta'],
-  organization: Organization
-) => {
-  const title = t('Issues in the same trace');
-  const url = `/organizations/${organization.slug}/performance/trace/${traceMeta.trace_id}/?node=error-${traceMeta.event_id}`;
-  const extraInfo = (
-    <small>
-      {tct('These issues were all found within [traceLink:this trace]', {
-        traceLink: <Link to={url}>{t('this trace')}</Link>,
-      })}
-    </small>
-  );
-  const openIssuesButton = getLinkButton(
-    {
-      pathname: `/organizations/${organization.slug}/issues/`,
-      query: {
-        // project=-1 allows ensuring that the query will show issues from any projects for the org
-        // This is important for traces since issues can be for any project in the org
-        project: '-1',
-        query: `trace:${traceMeta.trace_id}`,
-      },
-    },
-    'Clicked Open Issues from trace-connected related issues',
-    'similar_issues.trace_connected_issues_clicked_open_issues'
-  );
-
-  return {title, extraInfo, openIssuesButton};
-};
-
-const getLinkButton = (to: LocationDescriptor, eventName: string, eventKey: string) => {
-  return (
-    <LinkButton
-      to={to}
-      size="xs"
-      analyticsEventName={eventName}
-      analyticsEventKey={eventKey}
-    >
-      {t('Open in Issues')}
-    </LinkButton>
-  );
-};
 
 // Export the component without feature flag controls
 export {GroupRelatedIssues};

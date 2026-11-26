@@ -1,6 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TelemetryClassifierFixture} from 'sentry-fixture/telemetryClassifier';
+import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {
   render,
@@ -9,6 +10,8 @@ import {
   waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
+
+import {ContainerQueryContext} from '@sentry/scraps/layout';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 
@@ -22,16 +25,22 @@ const NEXT_PAGE_LINKS =
 describe('ClassifiersList', () => {
   const organization = OrganizationFixture({features: ['classifiers-ui']});
   const classifiersUrl = `/organizations/${organization.slug}/classifiers/`;
+  const timeSeriesUrl = `/organizations/${organization.slug}/events-timeseries/`;
   const path = `/organizations/${organization.slug}/seer/classifiers/`;
 
   function renderList(query: Record<string, string> = {}) {
-    return render(<ClassifiersList />, {
-      organization,
-      initialRouterConfig: {
-        location: {pathname: path, query},
-        route: '/organizations/:orgId/seer/classifiers/',
-      },
-    });
+    return render(
+      <ContainerQueryContext value="2xl">
+        <ClassifiersList />
+      </ContainerQueryContext>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {pathname: path, query},
+          route: '/organizations/:orgId/seer/classifiers/',
+        },
+      }
+    );
   }
 
   function mockClassifiers(classifiers: TelemetryClassifier[], headers = {}) {
@@ -48,6 +57,7 @@ describe('ClassifiersList', () => {
       url: `/organizations/${organization.slug}/projects/`,
       body: [],
     });
+    MockApiClient.addMockResponse({url: timeSeriesUrl, body: {timeSeries: []}});
     ProjectsStore.loadInitialData([
       ProjectFixture({id: '1', slug: 'frontend', isMember: true}),
       ProjectFixture({id: '2', slug: 'backend', isMember: true}),
@@ -61,7 +71,7 @@ describe('ClassifiersList', () => {
         id: '11',
         projectId: '2',
         name: 'Slow spans',
-        resultAttribute: 'sentry.classifier.slow_spans',
+        resultAttribute: 'slow_spans',
         dataset: 'trace_spans',
       }),
     ]);
@@ -73,14 +83,86 @@ describe('ClassifiersList', () => {
     ).closest('tr')!;
     expect(within(conversationRow).getByText('frontend')).toBeInTheDocument();
     expect(
-      within(conversationRow).getByText('sentry.classifier.user_frustration')
+      within(conversationRow).getByText('sentry.enrichment.user_frustration')
     ).toBeInTheDocument();
     expect(within(conversationRow).getByText('Conversations')).toBeInTheDocument();
 
     const spanRow = screen.getByRole('link', {name: 'Slow spans'}).closest('tr')!;
     expect(within(spanRow).getByText('backend')).toBeInTheDocument();
-    expect(within(spanRow).getByText('sentry.classifier.slow_spans')).toBeInTheDocument();
+    expect(within(spanRow).getByText('sentry.enrichment.slow_spans')).toBeInTheDocument();
     expect(within(spanRow).getByText('Spans')).toBeInTheDocument();
+  });
+
+  it('shows matches out of the classified volume in the last 24 hours', async () => {
+    const yAxis = 'count(tags[sentry.enrichment.user_frustration,number])';
+    mockClassifiers([TelemetryClassifierFixture({id: '10'})]);
+    MockApiClient.addMockResponse({
+      url: timeSeriesUrl,
+      body: {
+        timeSeries: [
+          TimeSeriesFixture({
+            yAxis,
+            values: [
+              {value: 5, timestamp: 1_800_000_000_000},
+              {value: 7, timestamp: 1_800_003_600_000},
+            ],
+          }),
+        ],
+      },
+      match: [MockApiClient.matchQuery({referrer: 'api.classifiers.list.matches-chart'})],
+    });
+    MockApiClient.addMockResponse({
+      url: timeSeriesUrl,
+      body: {
+        timeSeries: [
+          TimeSeriesFixture({
+            yAxis,
+            values: [
+              {value: 600, timestamp: 1_800_000_000_000},
+              {value: 85, timestamp: 1_800_003_600_000},
+            ],
+          }),
+        ],
+      },
+      match: [
+        MockApiClient.matchQuery({referrer: 'api.classifiers.list.classified-chart'}),
+      ],
+    });
+
+    renderList();
+
+    expect(
+      await screen.findByRole('columnheader', {name: 'Activity (24h)'})
+    ).toBeInTheDocument();
+    const count = await screen.findByText('12');
+    expect(count).toHaveTextContent('12/685');
+
+    await userEvent.hover(count);
+
+    expect(
+      await screen.findByText('Last 24 hours: 12 of 685 classifications matched (1.8%)')
+    ).toBeInTheDocument();
+  });
+
+  it('shows the classified volume for classifiers without matches', async () => {
+    mockClassifiers([
+      TelemetryClassifierFixture({id: '10', outputType: 'score', binaryThreshold: null}),
+    ]);
+    MockApiClient.addMockResponse({
+      url: timeSeriesUrl,
+      body: {
+        timeSeries: [
+          TimeSeriesFixture({
+            yAxis: 'count(tags[sentry.enrichment.user_frustration,number])',
+            values: [{value: 42, timestamp: 1_800_000_000_000}],
+          }),
+        ],
+      },
+    });
+
+    renderList();
+
+    expect(await screen.findByText('42 classified')).toBeInTheDocument();
   });
 
   it('links each classifier to its detail page', async () => {
@@ -133,6 +215,41 @@ describe('ClassifiersList', () => {
       expect.objectContaining({
         query: expect.objectContaining({project: [2], cursor: '0:25:0', per_page: 25}),
       })
+    );
+  });
+
+  it('searches classifiers and resets the cursor', async () => {
+    mockClassifiers([TelemetryClassifierFixture()]);
+    const searchRequest = MockApiClient.addMockResponse({
+      url: classifiersUrl,
+      body: [TelemetryClassifierFixture({id: '11', name: 'Tool failure'})],
+      match: [MockApiClient.matchQuery({query: 'status:enabled'})],
+    });
+
+    const {router} = renderList({cursor: '0:25:0'});
+
+    await userEvent.type(
+      await screen.findByRole('combobox', {name: 'Add a search term'}),
+      'status:enabled{enter}'
+    );
+
+    expect(await screen.findByRole('link', {name: 'Tool failure'})).toBeInTheDocument();
+    expect(searchRequest).toHaveBeenCalled();
+    expect(router.location.query).toEqual({query: 'status:enabled'});
+    expect(router.historyAction).toBe('PUSH');
+  });
+
+  it('shows an empty state when no classifiers match the search', async () => {
+    const request = mockClassifiers([]);
+
+    renderList({query: 'frustr'});
+
+    expect(
+      await screen.findByText('No classifiers match your search.')
+    ).toBeInTheDocument();
+    expect(request).toHaveBeenCalledWith(
+      classifiersUrl,
+      expect.objectContaining({query: expect.objectContaining({query: 'frustr'})})
     );
   });
 

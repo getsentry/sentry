@@ -23,9 +23,7 @@ describe('TableView > CellActions', () => {
   let rows: TableData;
   let onChangeShowTags: jest.Mock;
 
-  const organization = OrganizationFixture({
-    features: ['discover-basic'],
-  });
+  const organization = OrganizationFixture({features: ['discover-basic']});
 
   const projects = [ProjectFixture()];
 
@@ -57,12 +55,7 @@ describe('TableView > CellActions', () => {
 
   const renderOptions = {
     organization,
-    initialRouterConfig: {
-      location: {
-        pathname: location.pathname,
-        query: locationQuery,
-      },
-    },
+    initialRouterConfig: {location: {pathname: location.pathname, query: locationQuery}},
   };
 
   function ExampleTableView({
@@ -142,10 +135,6 @@ describe('TableView > CellActions', () => {
     });
   });
 
-  afterEach(() => {
-    ProjectsStore.reset();
-  });
-
   it('updates sort order on equation fields', () => {
     const view = eventView.clone();
     render(<ExampleTableView tableData={rows} view={view} />, renderOptions);
@@ -186,9 +175,7 @@ describe('TableView > CellActions', () => {
       expect(router.location).toEqual(
         expect.objectContaining({
           pathname: location.pathname,
-          query: expect.objectContaining({
-            query: '!has:title',
-          }),
+          query: expect.objectContaining({query: '!has:title'}),
         })
       );
     });
@@ -210,9 +197,7 @@ describe('TableView > CellActions', () => {
       expect(router.location).toEqual(
         expect.objectContaining({
           pathname: location.pathname,
-          query: expect.objectContaining({
-            query: 'tag:value !has:title',
-          }),
+          query: expect.objectContaining({query: 'tag:value !has:title'}),
         })
       );
     });
@@ -233,9 +218,7 @@ describe('TableView > CellActions', () => {
       expect(router.location).toEqual(
         expect.objectContaining({
           pathname: location.pathname,
-          query: expect.objectContaining({
-            query: 'tag:value title:"some title"',
-          }),
+          query: expect.objectContaining({query: 'tag:value title:"some title"'}),
         })
       );
     });
@@ -267,10 +250,7 @@ describe('TableView > CellActions', () => {
       {
         organization,
         initialRouterConfig: {
-          location: {
-            pathname: location.pathname,
-            query: multiYAxisQuery,
-          },
+          location: {pathname: location.pathname, query: multiYAxisQuery},
         },
       }
     );
@@ -305,9 +285,7 @@ describe('TableView > CellActions', () => {
       expect(router.location).toEqual(
         expect.objectContaining({
           pathname: location.pathname,
-          query: expect.objectContaining({
-            query: '!title:"some title"',
-          }),
+          query: expect.objectContaining({query: '!title:"some title"'}),
         })
       );
     });
@@ -354,9 +332,7 @@ describe('TableView > CellActions', () => {
       expect(router.location).toEqual(
         expect.objectContaining({
           pathname: location.pathname,
-          query: expect.objectContaining({
-            query: 'has:title',
-          }),
+          query: expect.objectContaining({query: 'has:title'}),
         })
       );
     });
@@ -380,9 +356,7 @@ describe('TableView > CellActions', () => {
       expect(router.location).toEqual(
         expect.objectContaining({
           pathname: location.pathname,
-          query: expect.objectContaining({
-            query: 'tag:value has:title',
-          }),
+          query: expect.objectContaining({query: 'tag:value has:title'}),
         })
       );
     });
@@ -402,9 +376,7 @@ describe('TableView > CellActions', () => {
       expect(router.location).toEqual(
         expect.objectContaining({
           pathname: location.pathname,
-          query: expect.objectContaining({
-            query: 'count():>9',
-          }),
+          query: expect.objectContaining({query: 'count():>9'}),
         })
       );
     });
@@ -424,9 +396,7 @@ describe('TableView > CellActions', () => {
       expect(router.location).toEqual(
         expect.objectContaining({
           pathname: location.pathname,
-          query: expect.objectContaining({
-            query: 'count():<9',
-          }),
+          query: expect.objectContaining({query: 'count():<9'}),
         })
       );
     });
@@ -452,9 +422,7 @@ describe('TableView > CellActions', () => {
 
   it('renders issue event id links directly to the issue event', () => {
     const view = EventView.fromLocation(
-      LocationFixture({
-        query: {...locationQuery, field: ['id', 'title']},
-      })
+      LocationFixture({query: {...locationQuery, field: ['id', 'title']}})
     );
     rows.meta = {...rows.meta, id: 'string', 'issue.id': 'integer'};
     rows.data[0] = {
@@ -497,9 +465,7 @@ describe('TableView > CellActions', () => {
       expect(router.location).toEqual(
         expect.objectContaining({
           pathname: '/organizations/org-slug/explore/releases/v1.0.2/',
-          query: expect.objectContaining({
-            environment: eventView.environment[0],
-          }),
+          query: expect.objectContaining({environment: eventView.environment[0]}),
         })
       );
     });
@@ -524,10 +490,7 @@ describe('TableView > CellActions', () => {
         'p99(measurements.custom.kilobyte)',
       ],
     };
-    const sizeLocation = LocationFixture({
-      pathname: location.pathname,
-      query: sizeQuery,
-    });
+    const sizeLocation = LocationFixture({pathname: location.pathname, query: sizeQuery});
 
     render(
       <TableView
@@ -563,12 +526,7 @@ describe('TableView > CellActions', () => {
       />,
       {
         organization,
-        initialRouterConfig: {
-          location: {
-            pathname: location.pathname,
-            query: sizeQuery,
-          },
-        },
+        initialRouterConfig: {location: {pathname: location.pathname, query: sizeQuery}},
       }
     );
     expect(screen.getByText('222.3 KiB')).toBeInTheDocument();
@@ -615,10 +573,7 @@ describe('TableView > CellActions', () => {
       {
         organization,
         initialRouterConfig: {
-          location: {
-            pathname: location.pathname,
-            query: metricQuery,
-          },
+          location: {pathname: location.pathname, query: metricQuery},
         },
       }
     );

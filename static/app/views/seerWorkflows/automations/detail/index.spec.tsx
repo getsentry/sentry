@@ -60,7 +60,7 @@ describe('AutomationDetail', () => {
     await findLoadedPage();
 
     // Breadcrumb title and page header
-    expect(screen.getAllByRole('heading', {name: 'Agentic triage'})).toHaveLength(2);
+    expect(screen.getAllByRole('heading', {name: 'Agentic Triage'})).toHaveLength(2);
     expect(
       screen.getByText('Automatically triage and fix the most fixable Issues.')
     ).toBeInTheDocument();
@@ -84,11 +84,7 @@ describe('AutomationDetail', () => {
 
   it('shows the next run for daily schedules', async () => {
     mockConfig(
-      SeerWorkflowConfigFixture({
-        id: '42',
-        strategy: 'daily_strategy',
-        schedule: 'daily',
-      })
+      SeerWorkflowConfigFixture({id: '42', strategy: 'daily_strategy', schedule: 'daily'})
     );
     renderDetail();
     expect(await screen.findByText(/Next run/)).toBeInTheDocument();
@@ -150,12 +146,14 @@ describe('AutomationDetail', () => {
     renderDetail();
     await findLoadedPage();
 
-    expect(
-      within(screen.getByRole('tab', {name: 'Configuration'})).getByRole('link')
-    ).toHaveAttribute('href', '/organizations/org-slug/seer/automations/42/');
-    expect(
-      within(screen.getByRole('tab', {name: 'Runs'})).getByRole('link')
-    ).toHaveAttribute('href', '/organizations/org-slug/seer/automations/42/runs/');
+    expect(screen.getByRole('tab', {name: 'Configuration'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/seer/automations/42/'
+    );
+    expect(screen.getByRole('tab', {name: 'Runs'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/seer/automations/42/runs/'
+    );
   });
 
   it.each([
@@ -230,23 +228,58 @@ describe('AutomationDetail', () => {
 
     // The refetch after pausing returns the paused config
     mockConfig(SeerWorkflowConfigFixture({id: '42', enabled: false}));
-    await userEvent.click(screen.getByRole('button', {name: 'Pause'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Disable'}));
 
     expect(updateRequest).toHaveBeenCalledWith(
       configUrl,
       expect.objectContaining({method: 'PUT', data: {enabled: false}})
     );
-    expect(await screen.findByRole('button', {name: 'Resume'})).toBeInTheDocument();
+    expect(await screen.findByRole('button', {name: 'Enable'})).toBeInTheDocument();
     expect(screen.getByText('Paused')).toBeInTheDocument();
 
     mockConfig(SeerWorkflowConfigFixture({id: '42', enabled: true}));
-    await userEvent.click(screen.getByRole('button', {name: 'Resume'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Enable'}));
 
     expect(updateRequest).toHaveBeenLastCalledWith(
       configUrl,
       expect.objectContaining({method: 'PUT', data: {enabled: true}})
     );
-    expect(await screen.findByRole('button', {name: 'Pause'})).toBeInTheDocument();
+    expect(await screen.findByRole('button', {name: 'Disable'})).toBeInTheDocument();
+  });
+
+  it('runs the automation now', async () => {
+    mockConfig(
+      SeerWorkflowConfigFixture({id: '42', strategy: 'scheduled_investigation'})
+    );
+    const manualRunUrl = `/organizations/${organization.slug}/seer/workflows/manual-run/`;
+    const manualRunRequest = MockApiClient.addMockResponse({
+      url: manualRunUrl,
+      method: 'POST',
+      body: {},
+    });
+    renderDetail();
+    await findLoadedPage();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Run now'}));
+
+    await waitFor(() =>
+      expect(manualRunRequest).toHaveBeenCalledWith(
+        manualRunUrl,
+        expect.objectContaining({method: 'POST', data: {configId: '42'}})
+      )
+    );
+    expect(manualRunRequest).toHaveBeenCalledTimes(1);
+  });
+
+  it('hides run now for breached metric automations', async () => {
+    mockConfig(
+      SeerWorkflowConfigFixture({id: '42', strategy: 'breached_metric_investigation'})
+    );
+    renderDetail();
+    await findLoadedPage();
+
+    expect(screen.getByRole('button', {name: 'Edit'})).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Run now'})).not.toBeInTheDocument();
   });
 
   it('deletes the automation after confirming and returns to the list', async () => {

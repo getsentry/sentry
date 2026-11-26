@@ -4,14 +4,19 @@ import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import type {TooltipComponentFormatterCallback} from 'echarts';
 import type {CallbackDataParams} from 'echarts/types/dist/shared';
-import moment from 'moment-timezone';
+
+import {formatDateTime} from '@sentry/scraps/dateTime';
 
 import type {BaseChart, BaseChartProps} from 'sentry/components/charts/baseChart';
+import {
+  formatChartDateTime,
+  parseChartDateTime,
+} from 'sentry/components/charts/formatChartDateTime';
 import {truncationFormatter} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
 import type {DataPoint} from 'sentry/types/echarts';
 import {toArray} from 'sentry/utils/array/toArray';
-import {getFormattedDate, getTimeFormat} from 'sentry/utils/dates';
+import {getUserTimezone} from 'sentry/utils/dates';
 
 export const CHART_TOOLTIP_VIEWPORT_OFFSET = 20;
 
@@ -29,34 +34,40 @@ export function defaultFormatAxisLabel(
     return value;
   }
 
-  const formatOptions = {local: !utc};
-
-  const timeFormat = showTimeInTooltip
-    ? getTimeFormat({seconds: addSecondsToTimeFormat})
-    : '';
+  const timezone = utc
+    ? 'UTC'
+    : (getUserTimezone() ?? Intl.DateTimeFormat().resolvedOptions().timeZone);
+  const precision = addSecondsToTimeFormat ? 'second' : 'minute';
+  const formatDate = (timestamp: number, year: 'always' | 'never') =>
+    formatDateTime(timestamp, {mode: 'date', year, timezone, showTimezone: false});
+  const formatTime = (timestamp: number) =>
+    formatDateTime(timestamp, {mode: 'time', precision, timezone, showTimezone: false});
+  // BaseChart passes NaN when series data are objects rather than tuples.
+  const zone = formatChartDateTime(bucketSize ? value + bucketSize : value, 'timezone', {
+    timezone,
+  });
 
   if (!bucketSize) {
-    const format = `MMM D, YYYY ${timeFormat} z`.trim();
-    return getFormattedDate(value, format, formatOptions);
+    return `${formatDate(value, 'always')}${showTimeInTooltip ? ` ${formatTime(value)}` : ''} ${zone}`;
   }
 
-  const now = moment();
-  const bucketStart = moment(value);
-  const bucketEnd = moment(value + bucketSize);
-
-  const showYear = now.year() !== bucketStart.year() || now.year() !== bucketEnd.year();
-  const showEndDate = bucketStart.date() !== bucketEnd.date();
-
-  const formatStart = `MMM D${showYear ? ', YYYY' : ''} ${timeFormat}`.trim();
-
-  const formatEndDate = showEndDate ? `MMM D${showYear ? ', YYYY' : ''} ` : '';
-  const formatEnd = `${formatEndDate} ${timeFormat}`.trim();
-
-  const start = getFormattedDate(bucketStart, formatStart, formatOptions);
-  const end = getFormattedDate(bucketEnd, formatEnd, formatOptions);
-  const timezone = getFormattedDate(bucketEnd, 'z', formatOptions);
-
-  return `${start} — ${end} (${timezone})`;
+  const now = parseChartDateTime(Date.now(), timezone);
+  const bucketStart = parseChartDateTime(value, timezone);
+  const bucketEnd = parseChartDateTime(value + bucketSize, timezone);
+  if (!now || !bucketStart || !bucketEnd) {
+    return 'Invalid date';
+  }
+  const year =
+    now.year !== bucketStart.year || now.year !== bucketEnd.year ? 'always' : 'never';
+  const showEndDate = !bucketStart.toPlainDate().equals(bucketEnd.toPlainDate());
+  const start = `${formatDate(value, year)}${showTimeInTooltip ? ` ${formatTime(value)}` : ''}`;
+  const end = [
+    showEndDate ? formatDate(value + bucketSize, year) : '',
+    showTimeInTooltip ? formatTime(value + bucketSize) : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+  return `${start} — ${end} (${zone})`;
 }
 
 function defaultValueFormatter(value: string | number) {
@@ -100,7 +111,7 @@ function sortSeriesParamsByValue(
   const rank = (value: unknown) =>
     typeof value !== 'number' || Number.isNaN(value) ? 2 : value === 0 ? 1 : 0;
 
-  return [...seriesParams].sort((a, b) => {
+  return seriesParams.toSorted((a, b) => {
     const aValue = getSeriesValue(a, 1);
     const bValue = getSeriesValue(b, 1);
     const rankDifference = rank(aValue) - rank(bValue);
@@ -121,11 +132,7 @@ type TooltipFormatters =
   | 'nameFormatter'
   | 'markerFormatter';
 
-export type TooltipSubLabel = {
-  data: DataPoint[];
-  label: string;
-  parentLabel: string;
-};
+export type TooltipSubLabel = {data: DataPoint[]; label: string; parentLabel: string};
 
 export type FormatterOptions = Pick<
   NonNullable<ChartProps['tooltip']>,
@@ -142,6 +149,11 @@ export type FormatterOptions = Pick<
      * last, so the limit drops zeros before anything else.
      */
     limit?: number;
+    /**
+     * HTML rendered above the series block, e.g. a banner that describes the
+     * data at this point. Receives the series shown in the tooltip.
+     */
+    renderHeader?: (seriesParams: CallbackDataParams[]) => string;
     /**
      * Extra HTML appended to the series block, e.g. a legend for abbreviated series
      * names. Receives the names of the series in the tooltip. Called on each tooltip
@@ -172,6 +184,7 @@ export function getFormatter({
   subLabels = [],
   addSecondsToTimeFormat = false,
   limit,
+  renderHeader,
   renderSeriesDetails,
   skipZeroValuedSubLabels,
 }: FormatterOptions): TooltipComponentFormatterCallback<any> {
@@ -320,10 +333,7 @@ export function getFormatter({
 
         return acc;
       },
-      {
-        series: [],
-        total: 0,
-      }
+      {series: [], total: 0}
     );
 
     if (hiddenSeriesCount > 0) {
@@ -340,8 +350,11 @@ export function getFormatter({
         timestamp
       ) ?? '';
 
+    const header = renderHeader?.(visibleSeriesParams) ?? '';
+
     if (subLabels.length > 0) {
       return [
+        header,
         `<div class="tooltip-series">${series.join('')}${seriesDetails}</div>`,
         '<div class="tooltip-footer">',
         `<div><strong>${t('Date')}:</strong> ${date}</div>`,
@@ -352,6 +365,7 @@ export function getFormatter({
     }
 
     return [
+      header,
       `<div class="tooltip-series">${series.join('')}${seriesDetails}</div>`,
       '<div class="tooltip-footer tooltip-footer-centered">',
       date,
@@ -510,10 +524,7 @@ export function computeChartTooltip(
         arrow.classList.toggle('arrow-top', arrowOnTop);
       }
 
-      return {
-        left: leftPos,
-        top: topPos,
-      };
+      return {left: leftPos, top: topPos};
     },
     formatter,
     ...props,

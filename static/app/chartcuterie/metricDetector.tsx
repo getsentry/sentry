@@ -20,13 +20,8 @@ function transformAreaSeries(series: AreaChartSeries[]): LineSeriesOption[] {
     const areaSeries = createAreaSeries({
       name: seriesName,
       data: data.map(({name, value}) => [name, value]),
-      lineStyle: {
-        opacity: 1,
-        width: 0.4,
-      },
-      areaStyle: {
-        opacity: 1,
-      },
+      lineStyle: {opacity: 1, width: 0.4},
+      areaStyle: {opacity: 1},
       animation: false,
       animationThreshold: 1,
       animationDuration: 0,
@@ -56,12 +51,7 @@ export function makeMetricDetectorCharts(
   });
   const metricDetectorYaxis: YAXisComponentOption = {
     axisLabel: {fontSize: 11, fontFamily: DEFAULT_FONT_FAMILY},
-    splitLine: {
-      lineStyle: {
-        color: theme.colors.gray300,
-        opacity: 0.3,
-      },
-    },
+    splitLine: {lineStyle: {color: theme.colors.gray300, opacity: 0.3}},
   };
 
   metricDetectorCharts.push({
@@ -77,10 +67,7 @@ export function makeMetricDetectorCharts(
         yAxis: {
           ...chartOption.yAxis,
           ...metricDetectorYaxis,
-          axisLabel: {
-            ...chartOption.yAxis!.axisLabel,
-            ...metricDetectorYaxis.axisLabel,
-          },
+          axisLabel: {...chartOption.yAxis!.axisLabel, ...metricDetectorYaxis.axisLabel},
         },
         grid: slackChartDefaults.grid,
       };
@@ -116,10 +103,7 @@ export function makeMetricDetectorCharts(
         yAxis: {
           ...chartOption.yAxis,
           ...metricDetectorYaxis,
-          axisLabel: {
-            ...chartOption.yAxis!.axisLabel,
-            ...metricDetectorYaxis.axisLabel,
-          },
+          axisLabel: {...chartOption.yAxis!.axisLabel, ...metricDetectorYaxis.axisLabel},
         },
         grid: slackChartDefaults.grid,
       };

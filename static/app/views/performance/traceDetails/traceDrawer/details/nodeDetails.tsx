@@ -8,6 +8,7 @@ import {EapSpanNode} from 'sentry/views/performance/traceDetails/traceModels/tra
 import {ErrorNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/errorNode';
 import {NoInstrumentationNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/noInstrumentationNode';
 import {ParentAutogroupNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/parentAutogroupNode';
+import {ServerRenderNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/serverRenderNode';
 import {SiblingAutogroupNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/siblingAutogroupNode';
 import {UptimeCheckNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/uptimeCheckNode';
 import {UptimeCheckTimingNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/uptimeCheckTimingNode';
@@ -33,6 +34,11 @@ const LazyErrorNodeDetails = lazy(() =>
 const LazyMissingInstrumentationNodeDetails = lazy(() =>
   import('sentry/views/performance/traceDetails/traceDrawer/details/missingInstrumentation').then(
     module => ({default: module.MissingInstrumentationNodeDetails})
+  )
+);
+const LazyServerRenderNodeDetails = lazy(() =>
+  import('sentry/views/performance/traceDetails/traceDrawer/details/serverRender').then(
+    module => ({default: module.ServerRenderNodeDetails})
   )
 );
 const LazyAutogroupNodeDetails = lazy(() =>
@@ -83,6 +89,11 @@ export function NodeDetails(props: TraceTreeNodeDetailsProps<BaseNode>) {
         {...props}
         node={node}
       />
+    );
+  }
+  if (node instanceof ServerRenderNode) {
+    return (
+      <LazyLoad LazyComponent={LazyServerRenderNodeDetails} {...props} node={node} />
     );
   }
   if (node instanceof ParentAutogroupNode || node instanceof SiblingAutogroupNode) {

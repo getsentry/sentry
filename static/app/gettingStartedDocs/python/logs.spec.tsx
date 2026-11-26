@@ -8,14 +8,10 @@ import {docs} from '.';
 
 describe('python logs onboarding docs', () => {
   it('renders logs onboarding docs correctly', async () => {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [ProductSolution.LOGS],
-    });
+    renderWithOnboardingLayout(docs, {selectedProducts: [ProductSolution.LOGS]});
 
     expect(
-      await screen.findByText(
-        textWithMarkupMatcher(/LoggingIntegration\(capture_sentry_logs=True\)/)
-      )
+      await screen.findByText(textWithMarkupMatcher(/LoggingIntegration\(\),/))
     ).toBeInTheDocument();
     expect(
       screen.getByText(textWithMarkupMatcher(/sentry_sdk\.logger\.info/))
@@ -29,16 +25,12 @@ describe('python logs onboarding docs', () => {
   });
 
   it('does not render logs configuration when logs is not enabled', async () => {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [],
-    });
+    renderWithOnboardingLayout(docs, {selectedProducts: []});
 
     expect(await screen.findByRole('heading', {name: /Configure/})).toBeInTheDocument();
 
     expect(
-      screen.queryByText(
-        textWithMarkupMatcher(/LoggingIntegration\(capture_sentry_logs=True\)/)
-      )
+      screen.queryByText(textWithMarkupMatcher(/LoggingIntegration\(\),/))
     ).not.toBeInTheDocument();
     expect(
       screen.queryByText(textWithMarkupMatcher(/sentry_sdk\.logger\.info/))

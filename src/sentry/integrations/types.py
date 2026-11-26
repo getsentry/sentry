@@ -108,6 +108,8 @@ class IntegrationProviderSlug(StrEnum):
     DATADOG_PAT = "datadog_pat"
     GCP = "gcp"
     GRAFANA = "grafana"
+    LINEAR = "linear"
+    SUPABASE = "supabase"
 
 
 MONITORING_PROVIDERS: frozenset[str] = frozenset(
@@ -227,6 +229,7 @@ HaltReason = Literal[
     "host_unreachable",
     "identity_not_found",
     "identity_not_valid",
+    "installation_not_found",
     "installation_suspended",
     "rate_limited",
     "too_many_redirects",

@@ -8,6 +8,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
+import {isAndroidAnrMechanism} from 'sentry/components/events/interfaces/utils';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {FlamegraphPreview} from 'sentry/components/profiling/flamegraph/flamegraphPreview';
 import {allPlatforms as platforms} from 'sentry/data/platforms';
@@ -59,8 +60,7 @@ export function ProfilePreviewSection({
     project.platform === 'apple-macos';
 
   const mechanism = event.tags?.find(({key}) => key === 'mechanism')?.value;
-  const isAnrOrAppHang =
-    mechanism === 'ANR' || mechanism === 'AppExitInfo' || mechanism === 'AppHang';
+  const isAnrOrAppHang = isAndroidAnrMechanism(mechanism) || mechanism === 'AppHang';
   const sectionTitle = isAnrOrAppHang
     ? isApplePlatform
       ? t('App Hang Profile')
@@ -233,11 +233,7 @@ function getProfileMetaForEvent(event: Event) {
     return null;
   }
 
-  return {
-    profiler_id: profilerId,
-    start: timeWindow.start,
-    end: timeWindow.end,
-  };
+  return {profiler_id: profilerId, start: timeWindow.start, end: timeWindow.end};
 }
 
 function getProfileTimeWindow(event: Event): {end: string; start: string} | null {

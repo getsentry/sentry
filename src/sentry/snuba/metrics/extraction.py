@@ -115,6 +115,8 @@ _SEARCH_TO_PROTOCOL_FIELDS = {
     # Top-level structures ("interfaces")
     # sentry_user is a special field added for on-demand metrics
     # https://github.com/getsentry/relay/pull/3122
+    # No longer emitted by Relay but kept here see:
+    # https://github.com/getsentry/sentry/pull/130901
     "user": "sentry_user",
     "user.email": "user.email",
     "user.id": "user.id",
@@ -955,33 +957,6 @@ def _deep_sorted(value: Any | dict[Any, Any]) -> Any | dict[Any, Any]:
         return value
 
 
-def are_specs_equal(spec_1: MetricSpec, spec_2: MetricSpec) -> bool:
-    equal = True
-    if spec_1.keys() != spec_2.keys():
-        equal = False
-
-    if equal:
-        for key, value in spec_1.items():
-            if key == "tags":
-                return _compare_lists(spec_1["tags"], spec_2["tags"])
-
-            elif spec_2.get(key) != value:
-                equal = False
-
-    return equal
-
-
-def _compare_lists(list_1: Sequence[Any], list_2: Sequence[Any]) -> bool:
-    if len(list_1) != len(list_2):
-        return False
-
-    for _, value in enumerate(list_1):
-        if value not in list_2:
-            return False
-
-    return True
-
-
 TagsSpecsGenerator = Callable[[Project, Optional[Sequence[str]]], list[TagSpec]]
 
 
@@ -1395,7 +1370,7 @@ class OnDemandMetricSpec:
         return rule_condition
 
     def _extend_parsed_query(self, parsed_query_result: QueryParsingResult) -> QueryParsingResult:
-        conditions = cast(list[QueryToken], parsed_query_result.conditions)
+        conditions = parsed_query_result.conditions
 
         new_conditions: list[QueryToken] = []
         if self.environment is not None:

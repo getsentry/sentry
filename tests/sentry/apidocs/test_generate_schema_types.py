@@ -43,7 +43,6 @@ SCHEMA = {
         },
         "extra": {"type": "object"},
         "counts": {"type": "object", "additionalProperties": {"type": "integer"}},
-        "additionalProperties": False,
     },
     "required": ["kind", "target"],
     "oneOf": [{"required": ["tags"]}, {"required": ["pair"]}],
@@ -79,8 +78,6 @@ class ExampleConfigFilter1(TypedDict):
 
 
 # An example
-# Leaves out `additionalProperties`: the schema puts it inside `properties`,
-# where it declares a property with that name instead of closing the object.
 # The schema allows keys that aren't listed here.
 class ExampleConfig(TypedDict):
     """An example config"""
@@ -102,8 +99,6 @@ class TargetResponse(TypedDict):
 
 
 # An example
-# Leaves out `additionalProperties`: the schema puts it inside `properties`,
-# where it declares a property with that name instead of closing the object.
 # The schema allows keys that aren't listed here.
 class ExampleConfigResponse(TypedDict):
     """An example config"""
@@ -147,6 +142,13 @@ AnyConfig: TypeAlias = ExampleConfigResponse | Flag
 def test_rejects_unsupported_keywords() -> None:
     with pytest.raises(UnsupportedSchemaError, match="patternProperties"):
         generate(_file(Root("Bad", {"type": "object", "patternProperties": {}}, "Bad")))
+
+
+def test_rejects_additional_properties_inside_properties() -> None:
+    # It would declare a property named additionalProperties instead of closing the object.
+    schema = {"type": "object", "properties": {"additionalProperties": False}}
+    with pytest.raises(UnsupportedSchemaError, match="unsupported schema False"):
+        generate(_file(Root("Misplaced", schema, "Misplaced")))
 
 
 def test_generated_files_are_up_to_date() -> None:

@@ -33,19 +33,12 @@ function makeStackTraceData(): {
   const entry = EventEntryStacktraceFixture();
 
   return {
-    event: EventFixture({
-      platform: 'python',
-      projectID: '1',
-      entries: [entry],
-    }),
+    event: EventFixture({platform: 'python', projectID: '1', entries: [entry]}),
     stacktrace: {
       ...entry.data,
       hasSystemFrames: true,
       frames:
-        entry.data.frames?.map((frame, index) => ({
-          ...frame,
-          inApp: index >= 2,
-        })) ?? [],
+        entry.data.frames?.map((frame, index) => ({...frame, inApp: index >= 2})) ?? [],
     },
   };
 }
@@ -98,16 +91,112 @@ describe('IssueStackTrace', () => {
     });
   });
 
+  it('loads the Apple crash report for a native exception without threads', async () => {
+    const {stacktrace} = makeCopyTestData();
+    stacktrace.frames = [
+      FrameFixture({
+        platform: 'cocoa',
+        function: 'causeCrash',
+        rawFunction: null,
+        module: null,
+      }),
+    ];
+    const exception = {
+      type: 'EXC_BAD_ACCESS',
+      value: 'invalid address',
+      module: null,
+      mechanism: null,
+      threadId: null,
+      rawStacktrace: null,
+      stacktrace,
+    };
+    const event = EventFixture({
+      platform: 'cocoa',
+      entries: [{type: 'exception', data: {values: [exception]}}],
+    });
+    const report = MockApiClient.addMockResponse({
+      url: `/projects/org-slug/project-slug/events/${event.id}/apple-crash-report`,
+      match: [MockApiClient.matchQuery({minified: 'false'})],
+      body: 'Thread 0 Crashed: causeCrash',
+    });
+
+    render(
+      <IssueStackTrace event={event} values={[exception]} projectSlug="project-slug" />
+    );
+
+    expect(await screen.findByText('causeCrash')).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'EXC_BAD_ACCESS'})).toBeInTheDocument();
+    expect(report).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Display options'}));
+    await userEvent.click(screen.getByRole('option', {name: 'Raw Stack Trace'}));
+    await userEvent.keyboard('{Escape}');
+
+    expect(await screen.findByText('Thread 0 Crashed: causeCrash')).toBeInTheDocument();
+    expect(report).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('button', {name: 'Download'})).toHaveAttribute(
+      'href',
+      `/api/0/projects/org-slug/project-slug/events/${event.id}/apple-crash-report?minified=false&download=1`
+    );
+  });
+
+  it.each(['cocoa', 'c'] as const)(
+    'formats standalone %s raw traces without requesting an Apple report',
+    async platform => {
+      const {stacktrace} = makeCopyTestData();
+      stacktrace.frames = [
+        FrameFixture({platform, function: 'logMessage', rawFunction: null, module: null}),
+      ];
+      const event = EventFixture({
+        platform,
+        entries: [{type: 'stacktrace', data: stacktrace}],
+      });
+      const report = MockApiClient.addMockResponse({
+        url: `/projects/org-slug/project-slug/events/${event.id}/apple-crash-report`,
+        body: 'Unexpected Apple report',
+      });
+      render(
+        <IssueStackTrace
+          event={event}
+          stacktrace={stacktrace}
+          projectSlug="project-slug"
+        />
+      );
+
+      expect(
+        await screen.findByTestId('native-stack-trace-frame-title')
+      ).toHaveTextContent('logMessage');
+      await userEvent.click(screen.getByRole('button', {name: 'Display options'}));
+      expect(
+        screen.getByRole('option', {name: 'Absolute Addresses'})
+      ).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('option', {name: 'Raw Stack Trace'}));
+      await userEvent.keyboard('{Escape}');
+      expect(screen.getByText(/logMessage/, {selector: 'pre'})).toBeInTheDocument();
+      expect(report).not.toHaveBeenCalled();
+    }
+  );
+
+  it('renders native frames in a non-native event as regular rows without the native flag', async () => {
+    const {stacktrace} = makeCopyTestData();
+    stacktrace.frames = [FrameFixture({platform: 'cocoa', function: 'nativeCrash'})];
+    const exception = ExceptionValueFixture({stacktrace});
+    const event = EventFixture({platform: 'javascript'});
+
+    render(<IssueStackTrace event={event} values={[exception]} />);
+
+    expect(await screen.findByTestId('core-stacktrace-frame-title')).toHaveTextContent(
+      'nativeCrash'
+    );
+  });
+
   it('does not render when event has threads', () => {
     const {event, stacktrace} = makeStackTraceData();
     const eventWithThreads = EventFixture({
       ...event,
       entries: [
         ...event.entries,
-        {
-          type: 'threads' as const,
-          data: {values: [{id: 0, current: true}]},
-        },
+        {type: 'threads' as const, data: {values: [{id: 0, current: true}]}},
       ],
     });
 
@@ -158,7 +247,7 @@ describe('IssueStackTrace', () => {
     expect(await screen.findByText('Stack Trace')).toBeInTheDocument();
     expect(screen.getByText('ValueError')).toBeInTheDocument();
     expect(screen.getByText('bad value')).toBeInTheDocument();
-    expect(screen.getByText('No stacktrace found.')).toBeInTheDocument();
+    expect(screen.getByText('No stack trace available')).toBeInTheDocument();
   });
 
   it('persists raw and minified display selections per project', async () => {
@@ -411,16 +500,7 @@ describe('IssueStackTrace', () => {
         entries: {
           [entryIndex]: {
             data: {
-              values: {
-                0: {
-                  value: {
-                    '': {
-                      rem: [['project:0', 's', 0, 0]],
-                      len: 18,
-                    },
-                  },
-                },
-              },
+              values: {0: {value: {'': {rem: [['project:0', 's', 0, 0]], len: 18}}}},
             },
           },
         },
@@ -798,6 +878,40 @@ describe('IssueStackTrace', () => {
       });
     });
 
+    it('collapses the registers of a frame that shows extracted variables', async () => {
+      const {event, stacktrace} = makeCopyTestData();
+      stacktrace.registers = {x0: '0x0000000000000001'};
+      stacktrace.frames = [
+        FrameFixture({
+          filename: 'variables_crash.c',
+          function: 'crash',
+          lineNo: 45,
+          platform: undefined,
+          context: [[45, 'null_player->id = 999;']],
+          vars: {crash_float: {kind: 'local', type: 'float', value: 25.5}},
+        }),
+      ];
+
+      render(
+        <IssueStackTrace
+          event={{...event, platform: 'native'}}
+          stacktrace={stacktrace}
+          projectSlug="project-slug"
+        />,
+        {organization: OrganizationFixture({features: ['native-variable-extraction']})}
+      );
+
+      const toggle = await screen.findByRole('button', {
+        name: 'Registers',
+        expanded: false,
+      });
+      expect(screen.getByText('crash_float')).toBeInTheDocument();
+      expect(screen.queryByText('x0')).not.toBeInTheDocument();
+
+      await userEvent.click(toggle);
+      expect(screen.getByText('x0')).toBeInTheDocument();
+    });
+
     it('does not include spurious exception header when copying as text', async () => {
       const {event, stacktrace} = makeCopyTestData();
 
@@ -915,12 +1029,7 @@ describe('IssueStackTrace', () => {
             type: 'ValueError',
             value: 'value error',
             module: null,
-            mechanism: {
-              handled: true,
-              type: 'chained',
-              exception_id: 1,
-              parent_id: 0,
-            },
+            mechanism: {handled: true, type: 'chained', exception_id: 1, parent_id: 0},
             stacktrace: minimalStacktrace,
             threadId: null,
             rawStacktrace: null,
@@ -944,12 +1053,7 @@ describe('IssueStackTrace', () => {
             type: 'TypeError',
             value: 'type error',
             module: null,
-            mechanism: {
-              handled: true,
-              type: 'chained',
-              exception_id: 3,
-              parent_id: 2,
-            },
+            mechanism: {handled: true, type: 'chained', exception_id: 3, parent_id: 2},
             stacktrace: minimalStacktrace,
             threadId: null,
             rawStacktrace: null,
@@ -958,12 +1062,7 @@ describe('IssueStackTrace', () => {
             type: 'KeyError',
             value: 'key error',
             module: null,
-            mechanism: {
-              handled: true,
-              type: 'chained',
-              exception_id: 4,
-              parent_id: 2,
-            },
+            mechanism: {handled: true, type: 'chained', exception_id: 4, parent_id: 2},
             stacktrace: minimalStacktrace,
             threadId: null,
             rawStacktrace: null,

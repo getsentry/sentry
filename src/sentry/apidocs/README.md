@@ -3,12 +3,7 @@
 The public OpenAPI output includes `x-sentry-routing` on each operation:
 
 ```json
-{
-  "x-sentry-routing": {
-    "silo": "cell",
-    "organizationParameter": "organization_id_or_slug"
-  }
-}
+{"x-sentry-routing": {"silo": "cell", "organizationParameter": "organization_id_or_slug"}}
 ```
 
 `silo` describes the endpoint class's declared availability:
@@ -104,6 +99,11 @@ without properties, or a list of those. Replace it with a TypedDict or a
 concrete type that matches what the endpoint returns. A TypedDict without any
 fields gets `maxProperties: 0`, so it counts as typed: use one for a response
 that is always `{}`.
+
+A few fields hold data whose shape Sentry doesn't define, such as the contexts
+an SDK sent. Type those as `JsonValue` from `sentry.apidocs.formats`: the schema
+lists every JSON type, and the check counts it as typed. Don't use it for a
+field you can type.
 
 When another schema already pins a field down, such as a JSON Schema the code
 validates the data against, build the field's schema from it with

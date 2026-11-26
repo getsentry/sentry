@@ -6,6 +6,7 @@ import type {
   IntegrationType,
   OrganizationIntegration,
 } from 'sentry/types/integrations';
+import type {AddIntegrationParams} from 'sentry/utils/integrations/useAddIntegration';
 
 type IntegrationContextProps = {
   analyticsParams: {
@@ -17,7 +18,6 @@ type IntegrationContextProps = {
       | 'onboarding'
       | 'project_creation'
       | 'seer_onboarding_github'
-      | 'seer_onboarding_code_review'
       | 'test_analytics_onboarding'
       | 'test_analytics_org_selector';
     referrer?: string;
@@ -29,6 +29,8 @@ type IntegrationContextProps = {
   type: IntegrationType;
   /** Loaded workspaces for choosing a single upgrade on a deep link. */
   configurations?: OrganizationIntegration[];
+  /** Passed to the install flow, e.g. to open it inside a modal that's already open. */
+  modalParams?: AddIntegrationParams['modalParams'];
   onAddIntegration?: () => void;
   /**
    * When true, the "%s added" success toast is not shown on install.

@@ -66,7 +66,8 @@ export interface FieldGroupProps {
   /**
    * Display the field control container in "inline" fashion. The label and
    * description will be aligned to the left, while the control itself will be
-   * aligned to the right.
+   * aligned to the right. Inline fields stack in narrow query containers, like
+   * `FieldLayout.Row`, where an `alignRight` control is left-aligned instead.
    *
    * @default true
    */

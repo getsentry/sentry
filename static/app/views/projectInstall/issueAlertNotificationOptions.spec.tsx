@@ -34,29 +34,17 @@ describe('buildIntegrationAction', () => {
     [
       'slack',
       '#alerts',
-      {
-        id: IssueAlertActionType.SLACK,
-        workspace: '15',
-        channel: '#alerts',
-      },
+      {id: IssueAlertActionType.SLACK, workspace: '15', channel: '#alerts'},
     ],
     [
       'discord',
       '123456789',
-      {
-        id: IssueAlertActionType.DISCORD,
-        server: '15',
-        channel_id: '123456789',
-      },
+      {id: IssueAlertActionType.DISCORD, server: '15', channel_id: '123456789'},
     ],
     [
       'msteams',
       'General',
-      {
-        id: IssueAlertActionType.MS_TEAMS,
-        team: '15',
-        channel: 'General',
-      },
+      {id: IssueAlertActionType.MS_TEAMS, team: '15', channel: 'General'},
     ],
   ])('serializes a %s destination', (provider, channel, expectedAction) => {
     expect(buildIntegrationAction({provider, integrationId: '15', channel})).toEqual(
@@ -120,10 +108,7 @@ describe('MessagingIntegrationAlertRule', () => {
 
   const notificationProps: IssueAlertNotificationProps = {
     actions: [],
-    channel: {
-      label: 'channel',
-      value: 'channel',
-    },
+    channel: {label: 'channel', value: 'channel'},
     integration: undefined,
     provider: 'slack',
     providersToIntegrations: {},
@@ -220,11 +205,15 @@ describe('useCreateNotificationAction', () => {
     },
   });
 
-  function addIntegrationsResponse(body: OrganizationIntegration[]) {
+  function addIntegrationsResponse(
+    body: OrganizationIntegration[],
+    asyncDelay?: Promise<unknown>
+  ) {
     return MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/`,
       body,
       match: [MockApiClient.matchQuery({integrationType: 'messaging'})],
+      asyncDelay,
     });
   }
 
@@ -352,11 +341,7 @@ describe('useCreateNotificationAction', () => {
     addIntegrationsResponse([]);
 
     const defaultActions = [
-      {
-        id: IssueAlertActionType.SLACK,
-        workspace: slackIntegration.id,
-        channel: '#eng',
-      },
+      {id: IssueAlertActionType.SLACK, workspace: slackIntegration.id, channel: '#eng'},
     ];
 
     const {result} = renderHookWithProviders(
@@ -374,14 +359,23 @@ describe('useCreateNotificationAction', () => {
     expect(result.current.notificationProps.actions).not.toContain(
       MultipleCheckboxOptions.INTEGRATION
     );
+    // Fresh data confirms the integration is missing, so the selection is settled.
+    expect(result.current.isSelectionSettled).toBe(true);
 
     // Regaining focus refetches and delivers the newly connected Slack integration.
     MockApiClient.clearMockResponses();
-    const refetchRequest = addIntegrationsResponse([slackIntegration]);
+    let releaseRefetch!: () => void;
+    const refetchRequest = addIntegrationsResponse(
+      [slackIntegration],
+      new Promise<void>(resolve => (releaseRefetch = resolve))
+    );
     act(() => {
       focusManager.setFocused(true);
     });
     await waitFor(() => expect(refetchRequest).toHaveBeenCalledTimes(1));
+    // While the refetch is in flight, the missing integration is only stale data.
+    await waitFor(() => expect(result.current.isSelectionSettled).toBe(false));
+    act(() => releaseRefetch());
 
     // Full restore completes: provider, integration, channel, and actions are set.
     await waitFor(() => expect(result.current.notificationProps.provider).toBe('slack'));
@@ -391,6 +385,7 @@ describe('useCreateNotificationAction', () => {
       MultipleCheckboxOptions.INTEGRATION
     );
     expect(result.current.notificationProps.shouldRenderSetupButton).toBe(false);
+    expect(result.current.isSelectionSettled).toBe(true);
   });
 
   it('restores an integration action from a combined workflow on mount', async () => {
@@ -404,11 +399,7 @@ describe('useCreateNotificationAction', () => {
         targetType: 'IssueOwners',
         fallthroughType: 'ActiveMembers',
       },
-      {
-        id: IssueAlertActionType.SLACK,
-        workspace: slackIntegration.id,
-        channel: '#eng',
-      },
+      {id: IssueAlertActionType.SLACK, workspace: slackIntegration.id, channel: '#eng'},
     ];
 
     const {result} = renderHookWithProviders(
@@ -436,11 +427,7 @@ describe('useCreateNotificationAction', () => {
     addIntegrationsResponse([slackIntegration, secondSlack]);
 
     const defaultActions = [
-      {
-        id: IssueAlertActionType.SLACK,
-        workspace: secondSlack.id,
-        channel: '#team',
-      },
+      {id: IssueAlertActionType.SLACK, workspace: secondSlack.id, channel: '#team'},
     ];
 
     const {result} = renderHookWithProviders(
@@ -474,11 +461,7 @@ describe('useCreateNotificationAction', () => {
 
     // Stable reference; see comment in the preceding test.
     const defaultActions = [
-      {
-        id: IssueAlertActionType.DISCORD,
-        server: discordIntegration.id,
-        channel_id: '2',
-      },
+      {id: IssueAlertActionType.DISCORD, server: discordIntegration.id, channel_id: '2'},
     ];
 
     const {result} = renderHookWithProviders(
@@ -683,11 +666,7 @@ describe('buildNotificationSelection', () => {
   it('returns undefined when provider and integration are set but channel is absent', () => {
     const integration = OrganizationIntegrationsFixture({id: '5'});
     expect(
-      buildNotificationSelection({
-        provider: 'slack',
-        integration,
-        channel: undefined,
-      })
+      buildNotificationSelection({provider: 'slack', integration, channel: undefined})
     ).toBeUndefined();
   });
 

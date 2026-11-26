@@ -26,6 +26,7 @@ import {
   SettingsNavigationBackButton,
   SettingsPrimaryNavigationItems,
 } from './navigation';
+import {hasSecondaryNavigation, usePrimaryNavigation} from './primaryNavigationContext';
 import {SearchButton} from './searchButton';
 import {useSecondaryNavigation} from './secondaryNavigationContext';
 import {useSettingsNavigation} from './useSettingsNavigation';
@@ -66,6 +67,7 @@ function MobilePrimaryNavigation() {
   const organization = useOrganization({allowNull: true});
   const isSettingsNavigation = useSettingsNavigation();
   const {view} = useSecondaryNavigation();
+  const {activeGroup} = usePrimaryNavigation();
 
   return (
     <SizeProvider size="sm">
@@ -86,7 +88,7 @@ function MobilePrimaryNavigation() {
           )}
         </PrimaryNavigation.List>
       </PrimaryNavigation.Sidebar>
-      {view === 'expanded' && (
+      {view === 'expanded' && hasSecondaryNavigation(activeGroup) && (
         <SecondaryNavigation.Sidebar>
           <SecondaryNavigationContent />
         </SecondaryNavigation.Sidebar>
@@ -102,7 +104,10 @@ export function MobileNavigation() {
   const navPanelRef = useRef<HTMLDivElement>(null);
   const toggleButtonRef = useRef<HTMLButtonElement>(null);
   const {view, setView} = useSecondaryNavigation();
-  const scrollLock = useScrollLock(document.getElementById('main') ?? document.body);
+  // Lock the document, not #main. `overflow: hidden` on #main drops its flex
+  // min-height to 0, so inside the Seer Explorer content pane it collapses to
+  // the pane height and squeezes the TopBar.
+  const scrollLock = useScrollLock(document.body);
 
   useEffect(() => {
     const main = document.getElementById('main');

@@ -8,6 +8,7 @@ import type {Guide} from 'sentry/components/assistant/types';
 import type {ProductSelectionProps} from 'sentry/components/onboarding/productSelection';
 import type {UseScmFeatureMetaResult} from 'sentry/components/onboarding/scm/useScmFeatureMeta';
 import type {InstallationInfo} from 'sentry/components/pipeline/integrationGitHub';
+import type {SeerCreditUsageMeterProps} from 'sentry/components/seer/outOfCredits/seerCreditUsageMeter';
 import type {SeerOutOfCreditsCtaProps} from 'sentry/components/seer/outOfCredits/seerOutOfCreditsCta';
 import type {DateRange} from 'sentry/components/timeRangeSelector/dateRange';
 import type {SelectorItems} from 'sentry/components/timeRangeSelector/selectorItems';
@@ -50,7 +51,6 @@ export interface Overrides
     AnalyticsOverrides,
     FeatureDisabledOverrides,
     InterfaceChromeOverrides,
-    OnboardingOverrides,
     FeatureSpecificOverrides,
     ReactHookOverrides,
     CallbackOverrides {
@@ -67,12 +67,11 @@ type RouteOverrides = {
   'routes:org-settings': RouteObjectOverride;
   'routes:project-settings': RouteObjectOverride;
   'routes:root': RouteObjectOverride;
+  'routes:stats': RouteObjectOverride;
   'routes:subscription-settings': RouteObjectOverride;
 };
 
-type AiSetupDataConsentProps = {
-  groupId: string;
-};
+type AiSetupDataConsentProps = {groupId: string};
 
 /**
  * Component specific overrides for DateRange and SelectorItems
@@ -82,10 +81,7 @@ type DateRangeProps = React.ComponentProps<typeof DateRange>;
 
 type SelectorItemsProps = React.ComponentProps<typeof SelectorItems>;
 
-type MemberListHeaderProps = {
-  members: Member[];
-  organization: Organization;
-};
+type MemberListHeaderProps = {members: Member[]; organization: Organization};
 
 type DisabledCustomSymbolSources = {
   children: React.ReactNode;
@@ -103,29 +99,20 @@ export type SuperuserAccessCategoryProps = {
   RadioItem: React.ComponentType<{children: React.ReactNode; value: string}>;
 };
 
-type ContinuousProfilingBillingRequirementBannerProps = {
-  project: Project;
-};
+type ContinuousProfilingBillingRequirementBannerProps = {project: Project};
 
-type CronsBillingBannerProps = {
-  organization: Organization;
-};
+type CronsBillingBannerProps = {organization: Organization};
 
 type ExploreQuotaExceededAlertProps = {
   referrer: string;
   traceItemDataset: 'logs' | 'spans';
 };
 
-type OrganizationHeaderProps = {
-  organization: Organization;
-};
+type OrganizationHeaderProps = {organization: Organization};
 
 type ProductSelectionAvailabilityProps = Omit<ProductSelectionProps, 'disabledProducts'>;
 
-type DateRangeQueryLimitFooterProps = {
-  description: string;
-  source: string;
-};
+type DateRangeQueryLimitFooterProps = {description: string; source: string};
 
 type FirstPartyIntegrationAlertProps = {
   integrations: Integration[];
@@ -142,9 +129,7 @@ export type ScmGithubMultiOrgInstallProps = {
   popupBlockedNotice?: React.ReactNode;
 };
 
-type FirstPartyIntegrationAdditionalCTAProps = {
-  integrations: Integration[];
-};
+type FirstPartyIntegrationAdditionalCTAProps = {integrations: Integration[]};
 
 type AttemptCloseAttemptProps = {
   handleRemoveAccount: () => void;
@@ -190,9 +175,7 @@ type ComponentOverrides = {
   'component:continuous-profiling-billing-requirement-banner': () => React.ComponentType<ContinuousProfilingBillingRequirementBannerProps>;
   'component:crons-list-page-header': () => React.ComponentType<CronsBillingBannerProps>;
   'component:dashboards-limit-provider': () => React.ComponentType<DashboardLimitProviderProps>;
-  'component:data-consent-banner': () => React.ComponentType<{
-    source: string;
-  }> | null;
+  'component:data-consent-banner': () => React.ComponentType<{source: string}> | null;
   'component:data-consent-priority-learn-more': () => React.ComponentType | null;
   'component:disabled-custom-symbol-sources': () => React.ComponentType<DisabledCustomSymbolSources>;
   'component:disabled-member': () => React.ComponentType;
@@ -219,6 +202,7 @@ type ComponentOverrides = {
   'component:replay-list-page-header': () => React.ComponentType<ReplayListPageHeaderProps> | null;
   'component:replay-settings-alert': () => React.ComponentType | null;
   'component:scm-github-multi-org-install': () => React.ComponentType<ScmGithubMultiOrgInstallProps>;
+  'component:seer-credit-usage-meter': () => React.ComponentType<SeerCreditUsageMeterProps>;
   'component:seer-out-of-credits-cta': () => React.ComponentType<SeerOutOfCreditsCtaProps>;
   'component:seer-trial-cta': () => React.ComponentType | null;
   'component:superuser-access-category': React.ComponentType<SuperuserAccessCategoryProps>;
@@ -264,7 +248,6 @@ export type FeatureDisabledOverrides = {
   'feature-disabled:issue-views': FeatureDisabledOverride;
   'feature-disabled:open-discover': FeatureDisabledOverride;
   'feature-disabled:performance-new-project': FeatureDisabledOverride;
-  'feature-disabled:performance-page': FeatureDisabledOverride;
   'feature-disabled:profiling-page': FeatureDisabledOverride;
   'feature-disabled:profiling-sidebar-item': FeatureDisabledOverride;
   'feature-disabled:project-performance-score-card': FeatureDisabledOverride;
@@ -284,13 +267,6 @@ type InterfaceChromeOverrides = {
   'sidebar:item-label': SidebarItemLabelOverride;
   'sidebar:seer-config-reminder': GenericOrganizationComponentOverride;
   'sidebar:try-business': SidebarTryBusinessOverride;
-};
-
-/**
- * Onboarding experience overrides
- */
-type OnboardingOverrides = {
-  'onboarding:targeted-onboarding-header': (opts: {source: string}) => React.ReactNode;
 };
 
 /**

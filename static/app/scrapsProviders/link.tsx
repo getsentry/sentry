@@ -7,6 +7,7 @@ import {legacyLocationDescriptorToTo} from 'sentry/router/legacy/location';
 import {preload} from 'sentry/router/preload';
 import {useRouteConfig} from 'sentry/router/routeConfigContext';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import * as qs from 'sentry/utils/url/qs';
 
 export function SentryLinkBehaviorProvider({children}: {children: React.ReactNode}) {
   const routeConfig = useRouteConfig();
@@ -16,6 +17,8 @@ export function SentryLinkBehaviorProvider({children}: {children: React.ReactNod
       value={useMemo(
         () => ({
           component: RouterLink,
+          parse: qs.parse,
+          stringify: qs.stringify,
           behavior: ({to, onMouseEnter, onFocus, ...props}: LinkProps) => {
             const normalizedTo = legacyLocationDescriptorToTo(normalizeUrl(to));
 

@@ -15,6 +15,7 @@ from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.eap.utils import (
     attribute_name_exists,
     check_attribute_names_exist,
+    get_stats_chunk_count,
     resolve_and_parse_formula,
     serialize_search_type,
 )
@@ -37,6 +38,23 @@ def test_serialize_search_type_maps_to_the_public_type_name(
     search_type: SearchType, expected: str
 ) -> None:
     assert serialize_search_type(search_type) == expected
+
+
+@pytest.mark.parametrize(
+    ("attribute_count", "min_chunks", "expected"),
+    [
+        (0, 2, 2),
+        (140, 1, 1),
+        (141, 1, 2),
+        (1120, 2, 8),
+        (1121, 2, 9),
+        (3360, 2, 24),
+        (3361, 2, 25),
+        (2800, 4, 20),
+    ],
+)
+def test_get_stats_chunk_count(attribute_count: int, min_chunks: int, expected: int) -> None:
+    assert get_stats_chunk_count(attribute_count, min_chunks) == expected
 
 
 def test_attribute_name_exists_gives_up_past_the_page_bound() -> None:

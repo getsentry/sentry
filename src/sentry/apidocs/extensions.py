@@ -32,9 +32,7 @@ def _json_schema_to_openapi(schema: dict[str, Any]) -> dict[str, Any]:
         }
         if isinstance(properties := value.get("properties"), dict):
             result["properties"] = {
-                snake_to_camel_case(name): convert(spec)
-                for name, spec in properties.items()
-                if not (name == "additionalProperties" and spec is False)
+                snake_to_camel_case(name): convert(spec) for name, spec in properties.items()
             }
         if "const" in result:
             result["enum"] = [result.pop("const")]
@@ -82,7 +80,7 @@ def _condition_schema(group: Any) -> dict[str, Any]:
     variants = []
     for registered_type, handler in sorted(condition_handler_registry.registrations.items()):
         condition_type = Condition(registered_type)
-        if condition_type in LEGACY_CONDITIONS or handler.group != group:
+        if condition_type in LEGACY_CONDITIONS or handler.is_internal or handler.group != group:
             continue
         variants.append(
             {
@@ -274,7 +272,7 @@ class _TypedExtension:
         cast("Callable[..., None]", super().__init__)(target)
 
     def __init_subclass__(cls, **kwargs: object) -> None:
-        cast("Callable[..., None]", super().__init_subclass__)(**kwargs)
+        super().__init_subclass__(**kwargs)
 
 
 class TokenAuthExtension(_TypedExtension, OpenApiAuthenticationExtension):

@@ -14,7 +14,7 @@ from datetime import UTC, datetime, timedelta
 from enum import Enum
 from hashlib import sha1
 from importlib import import_module
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any
 from unittest import mock
 from uuid import uuid4
 
@@ -32,6 +32,7 @@ from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
+from sentry import features
 from sentry.ai_monitoring.conversation_titles import (
     clamp_conversation_id_for_storage,
     conversation_id_hash,
@@ -200,13 +201,15 @@ from sentry.seer.models.run import (
     SeerRunType,
 )
 from sentry.seer.models.workflow import (
+    SEER_CONFIGURABLE_WORKFLOW_STRATEGIES,
     SeerWorkflowConfig,
     SeerWorkflowConfigProject,
     SeerWorkflowRun,
     SeerWorkflowRunExecution,
-    SeerWorkflowTriggerBinding,
 )
-from sentry.seer.workflows.breached_metrics import BreachedMetricWorkflow
+from sentry.seer.workflows.base import ConfigUpdate, LockedConfig, SelectedMonitors
+from sentry.seer.workflows.definitions import get_definition
+from sentry.seer.workflows.workflow import SeerWorkflow
 from sentry.seer_workflow_outputs.models import SeerWorkflowOutputLink
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
@@ -230,11 +233,8 @@ from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscriptionDataSourceHandler, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.subscriptions import bulk_create_snuba_subscriptions, create_snuba_query
-from sentry.telemetry_classifiers.models import (
-    TelemetryClassifier,
-    TelemetryClassifierDataset,
-    TelemetryClassifierOutputType,
-)
+from sentry.telemetry_classifiers import types as telemetry_classifier_types
+from sentry.telemetry_classifiers.models import TelemetryClassifier
 from sentry.tempest.models import MessageType as TempestMessageType
 from sentry.tempest.models import TempestCredentials
 from sentry.testutils.outbox import outbox_runner
@@ -1150,24 +1150,37 @@ class Factories:
         date_uploaded: datetime | None = None,
         date_last_modified: datetime | None = None,
         indexing_state: int | None = None,
+        use_objectstore: bool | None = None,
+        payload: bytes | None = None,
     ) -> ArtifactBundle:
         if date_uploaded is None:
             date_uploaded = timezone.now()
 
-        bundle = cls.create_artifact_bundle_zip(org.slug, fixture_path=fixture_path)
-        file_ = File.objects.create(name="artifact-bundle.zip")
-        file_.putfile(ContentFile(bundle))
-        # The 'artifact_count' should correspond to the 'bundle' contents but for the purpose of tests we can also
-        # mock it with an arbitrary value.
-        artifact_bundle = ArtifactBundle.objects.create(
+        if payload is None:
+            payload = cls.create_artifact_bundle_zip(org.slug, fixture_path=fixture_path)
+        if use_objectstore is None:
+            use_objectstore = features.has(
+                "organizations:objectstore-artifact-bundles-exclusive-write", org
+            )
+        artifact_bundle = ArtifactBundle(
             organization_id=org.id,
             bundle_id=bundle_id or uuid4(),
-            file=file_,
             artifact_count=artifact_count,
             date_uploaded=date_uploaded,
             date_last_modified=date_last_modified,
             indexing_state=indexing_state,
         )
+        if use_objectstore:
+            artifact_bundle.checksum = sha1(payload).hexdigest()
+            artifact_bundle.file_size = len(payload)
+            artifact_bundle.storage_path = artifact_bundle.get_objectstore_session().put(
+                payload, content_type="application/octet-stream"
+            )
+        else:
+            file = File.objects.create(name="artifact-bundle.zip")
+            file.putfile(ContentFile(payload))
+            artifact_bundle.file = file
+        artifact_bundle.save()
         return artifact_bundle
 
     @staticmethod
@@ -2140,7 +2153,7 @@ class Factories:
     def create_session() -> SessionBase:
         engine = import_module(settings.SESSION_ENGINE)
 
-        session = cast("SessionBase", engine.SessionStore())
+        session = engine.SessionStore()
         session.save()
         return session
 
@@ -2621,6 +2634,7 @@ class Factories:
         actor: User | RpcUser | None = None,
         **kwargs: Any,
     ) -> InboxItemEvent:
+        kwargs.setdefault("idempotency_key", uuid4().hex)
         return InboxItemEvent.objects.create(
             inbox_item=inbox_item,
             type=type,
@@ -2743,12 +2757,10 @@ class Factories:
             project = Factories.create_project()
         defaults: dict[str, Any] = {
             "name": petname.generate(2, " ", letters=10).title(),
-            "result_attribute": "sentry.classifier.result",
-            "dataset": TelemetryClassifierDataset.CONVERSATION,
+            "result_attribute": "result",
+            "dataset": telemetry_classifier_types.Dataset.CONVERSATION,
             "filter_query": "",
-            "natural_language_prompt": "Is the user frustrated?",
-            "compiled_prompt": "Return yes when the user is frustrated.",
-            "output_type": TelemetryClassifierOutputType.BINARY,
+            "prebuilt_classifier_key": "conversation_user_frustration",
         }
         return TelemetryClassifier.objects.create(project=project, **{**defaults, **kwargs})
 
@@ -3114,7 +3126,9 @@ class Factories:
         import uuid
 
         return ActionInvocation(
-            event_data=WorkflowEventData(event=event, group=group),
+            event_data=WorkflowEventData(
+                event=event, group=group, organization=event.project.organization
+            ),
             action=action,
             detector=detector,
             notification_uuid=notification_uuid or str(uuid.uuid4()),
@@ -3625,30 +3639,20 @@ class Factories:
     def create_seer_workflow_config(
         organization: Organization,
         *,
-        trigger_actions: Sequence[Action] = (),
         monitors: Sequence[Detector] = (),
         **kwargs: Any,
     ) -> SeerWorkflowConfig:
         config = SeerWorkflowConfig.objects.create(organization=organization, **kwargs)
-        for action in trigger_actions:
-            Factories.create_seer_workflow_trigger_binding(config, action)
+        if config.strategy in SEER_CONFIGURABLE_WORKFLOW_STRATEGIES:
+            update = ConfigUpdate(LockedConfig(config), get_definition(config.strategy))
+            update.setup_backing_workflow(name=None, created_by_id=None, enabled=config.enabled)
+            config.save(update_fields=["backing_workflow"])
         if monitors:
-            workflow = BreachedMetricWorkflow(
-                config_id=config.id, organization_id=config.organization_id
-            )
+            workflow = SeerWorkflow(config_id=config.id, organization_id=config.organization_id)
             with workflow.update_config() as update:
-                update.set_monitor_selection([monitor.id for monitor in monitors])
+                update.set_scope(SelectedMonitors(tuple(monitor.id for monitor in monitors)))
             config.refresh_from_db()
         return config
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.CELL)
-    def create_seer_workflow_trigger_binding(
-        config: SeerWorkflowConfig, action: Action
-    ) -> SeerWorkflowTriggerBinding:
-        return SeerWorkflowTriggerBinding.objects.create(
-            workflow_config=config, trigger_action=action
-        )
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)

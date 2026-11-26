@@ -7,24 +7,24 @@ Each entry shows the function signature, the rounding/precision logic, and concr
 
 ## Duration
 
-### `getDuration(seconds, fixedDigits?, abbreviation?, extraShort?, absolute?, minimumUnit?)`
+### `getDuration(seconds, {precision?, style?, absolute?, minimumUnit?})`
 
-[getDuration.tsx](../duration/getDuration.tsx) · Picks the largest fitting unit (year → microsecond) and formats using `value.toFixed(fixedDigits)`. `fixedDigits` defaults to **0** (whole numbers). Supports three label modes: long (`"3 seconds"`), abbreviated (`"3s"`/`"3sec"`), and extra-short (`"3s"`). Negative values are preserved unless `absolute=true`. `minimumUnit` forces a floor unit (e.g. 55 s with `minimumUnit=MINUTE` → `"1 minute"`).
+[getDuration.ts](../../../packages/scraps/src/duration/getDuration.ts) · Imported from `@sentry/scraps/duration`. Picks the largest fitting unit (year → `minimumUnit`, which defaults to `'millisecond'`) and formats using `value.toFixed(precision)`. `precision` defaults to **0** (whole numbers). `style` picks the label: `'long'` (`"3 seconds"`, the default), `'short'` (`"3s"`/`"3sec"`), or `'narrow'` (`"3s"`). Negative values are preserved unless `absolute: true`. `minimumUnit` forces a floor unit (e.g. 55 s with `minimumUnit: 'minute'` → `"1 minute"`).
 
-| Input (seconds) | `fixedDigits` | Options              | Output            |
-| --------------- | ------------- | -------------------- | ----------------- |
-| `0.001`         | `0`           | —                    | `"1 millisecond"` |
-| `0.001`         | `0`           | `abbreviation=true`  | `"1ms"`           |
-| `1.5`           | `0`           | —                    | `"2 seconds"`     |
-| `1.5`           | `1`           | —                    | `"1.5 seconds"`   |
-| `65`            | `0`           | —                    | `"1 minute"`      |
-| `65`            | `1`           | —                    | `"1.1 minutes"`   |
-| `3601`          | `0`           | —                    | `"1 hour"`        |
-| `3601`          | `2`           | —                    | `"1.00 hours"`    |
-| `86400`         | `0`           | `extraShort=true`    | `"1d"`            |
-| `-60`           | `0`           | —                    | `"-1 minute"`     |
-| `-60`           | `0`           | `absolute=true`      | `"1 minute"`      |
-| `55`            | `0`           | `minimumUnit=MINUTE` | `"1 minute"`      |
+| Input (seconds) | `precision` | Options                 | Output            |
+| --------------- | ----------- | ----------------------- | ----------------- |
+| `0.001`         | `0`         | —                       | `"1 millisecond"` |
+| `0.001`         | `0`         | `style: 'short'`        | `"1ms"`           |
+| `1.5`           | `0`         | —                       | `"2 seconds"`     |
+| `1.5`           | `1`         | —                       | `"1.5 seconds"`   |
+| `65`            | `0`         | —                       | `"1 minute"`      |
+| `65`            | `1`         | —                       | `"1.1 minutes"`   |
+| `3601`          | `0`         | —                       | `"1 hour"`        |
+| `3601`          | `2`         | —                       | `"1.00 hours"`    |
+| `86400`         | `0`         | `style: 'narrow'`       | `"1d"`            |
+| `-60`           | `0`         | —                       | `"-1 minute"`     |
+| `-60`           | `0`         | `absolute: true`        | `"1 minute"`      |
+| `55`            | `0`         | `minimumUnit: 'minute'` | `"1 minute"`      |
 
 ---
 
@@ -348,26 +348,26 @@ Audit of call-site patterns across `static/`. Numbers are approximate (test/spec
 
 ## `getDuration` — ~74 call sites, 10+ distinct patterns
 
-The most overloaded formatter in the codebase. The signature is `getDuration(seconds, fixedDigits?, abbreviation?, extraShort?, absolute?, minimumUnit?)` — 6 positional booleans/numbers — which leads to a lot of variation.
+The most overloaded formatter in the codebase. The signature is `getDuration(seconds, {precision?, style?, absolute?, minimumUnit?})`, and callers combine those options in many ways.
 
-| Pattern                                   | Count  | What it produces                              | Where                                                                                                                                                           |
-| ----------------------------------------- | ------ | --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `getDuration(x)`                          | **36** | `"5 minutes"`, `"1 hour"` (0 dp, long labels) | Alert rules (`Every %s`, `over %s`), detector config, automation frequency, uptime sidebar, timeSince delta text, archive action options                        |
-| `getDuration(x / 1000, 2, true)`          | **17** | `"1.50s"` (2 dp, abbreviated)                 | Trace view rows & headers, insights tables (MCP, slow queries, Next.js SSR), web vitals detail panels, transaction summary, trace indicators, span general info |
-| `getDuration(x, 0, true)`                 | **5**  | `"1s"`, `"5m"` (0 dp, abbreviated)            | Regression summary (before/after), web vitals panels when `value < 1`, timeline dateNavigation                                                                  |
-| `getDuration(x, value < 1 ? 0 : 2, true)` | **3**  | `"0s"` / `"1.23s"`                            | Web vitals tables and meters — avoids `"0.00s"` for sub-1 values                                                                                                |
-| `getDuration(x / 1000, 2)`                | **3**  | `"1.50 seconds"` (long)                       | Percentile chart tooltip, duration tooltip, discover cellAction                                                                                                 |
-| `getDuration(x / 1000, 2, true, true)`    | **2**  | `"1.5s"` (extra-short)                        | AI span list, insights samples table                                                                                                                            |
-| `getDuration(interval, 0, false, true)`   | **2**  | `"5m"` (extra-short, long labels fallthrough) | Release series interval labels in detectors                                                                                                                     |
-| `getDuration(ms > 1000 ? 2 : 0, true)`    | **1**  | `"500ms"` or `"1.50s"`                        | `getPerformanceDuration` wrapper                                                                                                                                |
-| `getDuration(x, 1)`                       | **1**  | `"5.0 minutes"`                               | Team resolution time chart tooltip                                                                                                                              |
-| `getDuration(x, 1, true)`                 | **1**  | `"5.0m"`                                      | Team resolution time axis                                                                                                                                       |
+| Pattern                                                          | Count  | What it produces                              | Where                                                                                                                                                           |
+| ---------------------------------------------------------------- | ------ | --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `getDuration(x)`                                                 | **36** | `"5 minutes"`, `"1 hour"` (0 dp, long labels) | Alert rules (`Every %s`, `over %s`), detector config, automation frequency, uptime sidebar, timeSince delta text, archive action options                        |
+| `getDuration(x / 1000, {precision: 2, style: 'short'})`          | **17** | `"1.50s"` (2 dp, short)                       | Trace view rows & headers, insights tables (MCP, slow queries, Next.js SSR), web vitals detail panels, transaction summary, trace indicators, span general info |
+| `getDuration(x, {style: 'short'})`                               | **5**  | `"1s"`, `"5m"` (0 dp, short)                  | Regression summary (before/after), web vitals panels when `value < 1`, timeline dateNavigation                                                                  |
+| `getDuration(x, {precision: value < 1 ? 0 : 2, style: 'short'})` | **3**  | `"0s"` / `"1.23s"`                            | Web vitals tables and meters — avoids `"0.00s"` for sub-1 values                                                                                                |
+| `getDuration(x / 1000, {precision: 2})`                          | **3**  | `"1.50 seconds"` (long)                       | Percentile chart tooltip, duration tooltip, discover cellAction                                                                                                 |
+| `getDuration(x / 1000, {precision: 2, style: 'narrow'})`         | **2**  | `"1.5s"` (narrow)                             | AI span list, insights samples table                                                                                                                            |
+| `getDuration(interval, {style: 'narrow'})`                       | **2**  | `"5m"` (narrow)                               | Release series interval labels in detectors                                                                                                                     |
+| `getDuration(x, {precision: ms > 1000 ? 2 : 0, style: 'short'})` | **1**  | `"500ms"` or `"1.50s"`                        | `getPerformanceDuration` wrapper                                                                                                                                |
+| `getDuration(x, {precision: 1})`                                 | **1**  | `"5.0 minutes"`                               | Team resolution time chart tooltip                                                                                                                              |
+| `getDuration(x, {precision: 1, style: 'short'})`                 | **1**  | `"5.0m"`                                      | Team resolution time axis                                                                                                                                       |
 
 **Observations:**
 
 - The same underlying data (span duration in ms) is formatted **four different ways** across the app: `"1.50s"` (trace view), `"1.5s"` (AI span list), `"1.50 seconds"` (discover), `"1 second"` (alerts).
 - The `value < 1 ? 0 : 2` conditional in web vitals is solving a real UX problem (avoiding `"0.00s"` for fractional seconds) that no other caller handles.
-- Nobody uses `absolute` or `minimumUnit` in production code paths besides alert config (which sometimes passes `MONTH` as `minimumUnit` via test fixtures — no real usage).
+- Nobody uses `absolute` or `minimumUnit` in production code paths besides alert config (which sometimes passes `'month'` as `minimumUnit` via test fixtures — no real usage).
 
 ---
 

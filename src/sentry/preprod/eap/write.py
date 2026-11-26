@@ -13,7 +13,6 @@ from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem as EAPTraceItem
 
-from sentry import quotas
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.constants import DataCategory
 from sentry.models.organization import Organization
@@ -23,6 +22,7 @@ from sentry.preprod.models import (
     PreprodArtifact,
     PreprodArtifactSizeMetrics,
 )
+from sentry.preprod.retention import get_retention_days
 from sentry.search.eap.rpc_utils import anyvalue
 from sentry.utils.arroyo_producer import (
     get_arroyo_producer,
@@ -133,10 +133,7 @@ def produce_preprod_size_metric_to_eap(
         timestamp=proto_timestamp,
         trace_id=trace_id,
         received=received,
-        retention_days=quotas.backend.get_event_retention(
-            organization=organization, category=DataCategory.SIZE_ANALYSIS
-        )
-        or 90,
+        retention_days=get_retention_days(organization, DataCategory.SIZE_ANALYSIS),
         attributes={k: anyvalue(v) for k, v in attributes.items() if v is not None},
         client_sample_rate=1.0,
         server_sample_rate=1.0,
@@ -249,10 +246,7 @@ def produce_preprod_build_distribution_to_eap(
         timestamp=proto_timestamp,
         trace_id=trace_id,
         received=received,
-        retention_days=quotas.backend.get_event_retention(
-            organization=organization, category=DataCategory.INSTALLABLE_BUILD
-        )
-        or 90,
+        retention_days=get_retention_days(organization, DataCategory.INSTALLABLE_BUILD),
         attributes={k: anyvalue(v) for k, v in attributes.items() if v is not None},
         client_sample_rate=1.0,
         server_sample_rate=1.0,

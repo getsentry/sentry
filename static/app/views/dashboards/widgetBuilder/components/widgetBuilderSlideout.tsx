@@ -14,6 +14,7 @@ import {createSerializer, useQueryStates} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import {openConfirmModal} from '@sentry/scraps/confirm';
 import {useHotkeys} from '@sentry/scraps/hotkey';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
@@ -22,7 +23,6 @@ import {SlideOverPanel} from '@sentry/scraps/slideOverPanel';
 import {Heading} from '@sentry/scraps/text';
 import {useMedia} from '@sentry/scraps/useMedia';
 
-import {openConfirmModal} from 'sentry/components/confirm';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
@@ -51,6 +51,7 @@ import {useIsEditingWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/us
 import {useSegmentSpanWidgetState} from 'sentry/views/dashboards/widgetBuilder/hooks/useSegmentSpanWidgetState';
 import {useTraceMetricsVisualizeModeState} from 'sentry/views/dashboards/widgetBuilder/hooks/useTraceMetricsVisualizeModeState';
 import {convertWidgetToBuilderState} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
+import {hasUnifiedTraceMetricsVisualize} from 'sentry/views/dashboards/widgetBuilder/utils/hasUnifiedTraceMetricsVisualize';
 import type {OnDataFetchedParams} from 'sentry/views/dashboards/widgetCard';
 import {readableConditions} from 'sentry/views/dashboards/widgetCard/widgetLLMContext';
 import {getDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
@@ -146,7 +147,9 @@ function WidgetBuilderSlideoutInner({
     useState(
       organization.features.includes('performance-transaction-deprecation-banner')
     );
-  const traceMetricsVisualizeMode = useTraceMetricsVisualizeModeState();
+  const traceMetricsVisualizeMode = useTraceMetricsVisualizeModeState({
+    disabled: hasUnifiedTraceMetricsVisualize(organization),
+  });
 
   // Tracks whether the user has entered the metrics equation mode since we
   // do not render the filter bar. The metrics equations UI has filters built in.
@@ -551,9 +554,7 @@ function Section({children}: {children: React.ReactNode}) {
   );
 }
 
-type DisableModeProps = {
-  children: React.ReactNode;
-};
+type DisableModeProps = {children: React.ReactNode};
 
 function DisableTransactionWidget({children}: DisableModeProps) {
   const disableTransactionWidget = useDisableTransactionWidget();
@@ -565,18 +566,9 @@ function DisableTransactionWidget({children}: DisableModeProps) {
   return (
     <div
       data-test-id="transaction-widget-disabled-wrapper"
-      style={{
-        opacity: 0.6,
-        cursor: 'not-allowed',
-      }}
+      style={{opacity: 0.6, cursor: 'not-allowed'}}
     >
-      <div
-        style={{
-          pointerEvents: 'none',
-        }}
-      >
-        {children}
-      </div>
+      <div style={{pointerEvents: 'none'}}>{children}</div>
     </div>
   );
 }

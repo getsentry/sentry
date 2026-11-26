@@ -58,12 +58,7 @@ export default function GettingStarted() {
       ) : project ? (
         <ProjectInstallPlatform project={project} platform={currentPlatform} />
       ) : (
-        <Redirect
-          to={makeProjectsPathname({
-            path: '/new/',
-            organization,
-          })}
-        />
+        <Redirect to={makeProjectsPathname({path: '/new/', organization})} />
       )}
     </GettingStartedLayout>
   );

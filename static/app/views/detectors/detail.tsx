@@ -5,6 +5,7 @@ import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils/defined';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
 
@@ -35,7 +36,11 @@ function DetectorDetailsLoadingStates({
   if (isError) {
     return (
       <LoadingError
-        message={error.status === 404 ? t('The monitor could not be found.') : undefined}
+        message={
+          error instanceof RequestError && error.status === 404
+            ? t('The monitor could not be found.')
+            : undefined
+        }
         onRetry={refetch}
       />
     );

@@ -6,8 +6,8 @@ from django.test.utils import CaptureQueriesContext
 from sentry.api.serializers import serialize
 from sentry.models.project import Project
 from sentry.notebooks.endpoints.serializers import (
-    InvestigationBlockSerializer,
-    InvestigationBlockSerializerResponse,
+    NotebookBlockSerializer,
+    NotebookBlockSerializerResponse,
 )
 from sentry.notebooks.models import (
     NotebookBlock,
@@ -17,21 +17,19 @@ from sentry.notebooks.models import (
 from sentry.testutils.cases import TestCase
 
 
-class InvestigationBlockSerializerTest(TestCase):
+class NotebookBlockSerializerTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
-        self.investigation = self.create_notebook(
+        self.notebook = self.create_notebook(
             organization=self.organization, created_by=self.user, title="Investigation"
         )
-        self.block = self.create_notebook_block(
-            notebook=self.investigation, position=0, kind="query"
-        )
+        self.block = self.create_notebook_block(notebook=self.notebook, position=0, kind="query")
 
-    def serialize_block(self) -> InvestigationBlockSerializerResponse:
+    def serialize_block(self) -> NotebookBlockSerializerResponse:
         return serialize(
             self.block,
             self.user,
-            InvestigationBlockSerializer(),
+            NotebookBlockSerializer(),
         )
 
     def completed_execution(self, project: Project | None = None) -> NotebookBlockExecution:
@@ -143,12 +141,12 @@ class InvestigationBlockSerializerTest(TestCase):
 
     def test_query_count_does_not_grow_with_the_number_of_blocks(self) -> None:
         for position in range(1, 10):
-            self.create_notebook_block(notebook=self.investigation, position=position)
+            self.create_notebook_block(notebook=self.notebook, position=position)
 
         from sentry.notebooks.models import NotebookBlock
 
-        all_blocks = list(NotebookBlock.objects.filter(notebook=self.investigation).order_by("id"))
-        serializer = InvestigationBlockSerializer()
+        all_blocks = list(NotebookBlock.objects.filter(notebook=self.notebook).order_by("id"))
+        serializer = NotebookBlockSerializer()
 
         with CaptureQueriesContext(connection) as few_queries:
             serialize(all_blocks[:2], self.user, serializer)
@@ -196,7 +194,7 @@ class InvestigationBlockSerializerTest(TestCase):
     def test_query_count_is_constant_for_a_bare_queryset(self) -> None:
         for position in range(1, 6):
             block = self.create_notebook_block(
-                notebook=self.investigation, position=position, kind="query"
+                notebook=self.notebook, position=position, kind="query"
             )
             execution = self.create_notebook_block_execution(
                 block=block,
@@ -214,10 +212,10 @@ class InvestigationBlockSerializerTest(TestCase):
             )
         self.completed_execution()
 
-        serializer = InvestigationBlockSerializer()
+        serializer = NotebookBlockSerializer()
 
         def block_queryset() -> list[NotebookBlock]:
-            return list(NotebookBlock.objects.filter(notebook=self.investigation).order_by("id"))
+            return list(NotebookBlock.objects.filter(notebook=self.notebook).order_by("id"))
 
         with CaptureQueriesContext(connection) as one_block:
             serialize(block_queryset()[:1], self.user, serializer)

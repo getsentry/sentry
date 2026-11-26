@@ -28,8 +28,9 @@ export function navigateTo(
   const projectIds = location
     ? loadQueryParamsFromLocation(pageFilterParsers, location).project
     : [];
+  const [projectId] = projectIds;
   const projectById =
-    projectIds.length === 1 ? ProjectsStore.getById(projectIds[0]) : undefined;
+    projectIds.length === 1 && projectId ? ProjectsStore.getById(projectId) : undefined;
 
   if (needOrg || needTeam || (needProject && !projectById)) {
     openModal(

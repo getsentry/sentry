@@ -1,18 +1,14 @@
-import {useEffect, useMemo, useState} from 'react';
+import {useEffect, useState} from 'react';
 
 import {InfoText, type InfoTextProps} from '@sentry/scraps/info';
 import {
   getDateObj,
-  getRelativeDate,
+  useRelativeTimeFormatter,
   type RelaxedDateType,
   RELATIVE_TIME_MAX_WIDTH,
   RelativeTime,
-  type UnitStyle,
+  type RelativeTimeOptions,
 } from '@sentry/scraps/relativeTime';
-
-import {t} from 'sentry/locale';
-
-export {getRelativeDate};
 
 interface Props extends Omit<
   React.TimeHTMLAttributes<HTMLTimeElement>,
@@ -41,6 +37,7 @@ interface Props extends Omit<
    * Max width of the tooltip
    */
   maxWidth?: InfoTextProps<'time'>['maxWidth'];
+  rounding?: RelativeTimeOptions['rounding'];
   /**
    * Suffix after elapsed time e.g. "ago" in "5 minutes ago"
    *
@@ -67,9 +64,9 @@ interface Props extends Omit<
   /**
    * How much text should be used for the suffix.
    *
-   * @default human
+   * @default long
    */
-  unitStyle?: UnitStyle;
+  unitStyle?: RelativeTimeOptions['style'];
   /**
    * Change the color of the underline
    */
@@ -85,18 +82,15 @@ export function TimeSince({
   variant = 'inherit',
   maxWidth,
   unitStyle,
-  suffix = t('ago'),
+  rounding = unitStyle ? 'unit' : 'fuzzy',
+  suffix,
   liveUpdateInterval = 'minute',
   ...props
 }: Props) {
   // Counter to trigger periodic re-computation of relative time
-  const [tick, setTick] = useState(0);
-
-  const relative = useMemo(() => {
-    void tick; // Ensure recomputation when tick changes
-    return getRelativeDate(date, suffix, t('in'), unitStyle);
-    // oxlint-disable-next-line react/memo-dependencies
-  }, [date, suffix, unitStyle, tick]);
+  const [, setTick] = useState(0);
+  const formatRelativeTime = useRelativeTimeFormatter();
+  const relative = formatRelativeTime(date, {suffix, style: unitStyle, rounding});
 
   useEffect(() => {
     const interval =
@@ -131,9 +125,9 @@ export function TimeSince({
               <RelativeTime
                 date={date}
                 label={tooltipPrefix}
-                prefix={t('in')}
                 suffix={suffix}
-                unitStyle={unitStyle}
+                style={unitStyle}
+                rounding={rounding}
                 showSeconds={tooltipShowSeconds}
               />
             ))

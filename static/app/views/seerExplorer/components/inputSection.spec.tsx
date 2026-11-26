@@ -2,7 +2,7 @@ import {createRef} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import type {RepoPRState} from 'sentry/views/seerExplorer/types';
 
@@ -41,6 +41,43 @@ function makeProps(
 }
 
 describe('InputSection', () => {
+  it('focuses the composer when clicking empty toolbar space', async () => {
+    const composerRef = createRef<HTMLDivElement>();
+    render(
+      <InputSection
+        {...makeProps({composerRef, onInputClick: () => composerRef.current?.focus()})}
+      />
+    );
+
+    await userEvent.click(screen.getByTestId('seer-composer-toolbar'));
+
+    expect(screen.getByRole('combobox', {name: 'Ask Seer a question'})).toHaveFocus();
+  });
+
+  it('moves keyboard focus from the composer to the first toolbar button', async () => {
+    render(
+      <InputSection
+        {...makeProps({leadingToolbarItems: <button type="button">Commands</button>})}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('combobox', {name: 'Ask Seer a question'}));
+    await userEvent.tab();
+
+    expect(screen.getByRole('button', {name: 'Commands'})).toHaveFocus();
+  });
+
+  it('does not focus the composer when clicking a toolbar control', async () => {
+    const onInputClick = jest.fn();
+    const onSend = jest.fn();
+    render(<InputSection {...makeProps({onInputClick, onSend, canSendMessage: true})} />);
+
+    await userEvent.click(screen.getByRole('button', {name: 'Send message'}));
+
+    expect(onSend).toHaveBeenCalledTimes(1);
+    expect(onInputClick).not.toHaveBeenCalled();
+  });
+
   it('styles the interrupted placeholder with the warning color', () => {
     render(
       <InputSection
@@ -73,6 +110,71 @@ describe('InputSection', () => {
     const expectedStyle = document.createElement('div').style;
     expectedStyle.color = ThemeFixture().tokens.content.warning;
     expect(placeholderRules.at(-1)?.style.color).toBe(expectedStyle.color);
+  });
+
+  it('shows a notice above the composer', () => {
+    render(<InputSection {...makeProps({notice: 'Out of credits'})} />);
+
+    const notice = screen.getByText('Out of credits');
+    expect(
+      notice.compareDocumentPosition(screen.getByTestId('seer-explorer-input')) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+  });
+
+  it('leaves the notice out while a question replaces the composer', () => {
+    render(
+      <InputSection
+        {...makeProps({
+          notice: 'Out of credits',
+          questionActions: {
+            canSubmit: true,
+            currentIndex: 0,
+            onBack: jest.fn(),
+            onMoveDown: jest.fn(),
+            onMoveUp: jest.fn(),
+            onNext: jest.fn(),
+            totalQuestions: 1,
+          },
+        })}
+      />
+    );
+
+    expect(screen.getByText('Asking some questions...')).toBeInTheDocument();
+    expect(screen.queryByText('Out of credits')).not.toBeInTheDocument();
+  });
+
+  it('shows toolbar items between the composer and the send button', () => {
+    render(<InputSection {...makeProps({toolbarItems: 'Toolbar item'})} />);
+
+    const item = screen.getByText('Toolbar item');
+    expect(
+      screen.getByTestId('seer-explorer-input').compareDocumentPosition(item) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+    expect(
+      item.compareDocumentPosition(screen.getByRole('button', {name: 'Send message'})) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+  });
+
+  it('keeps toolbar items while Seer is responding', () => {
+    render(
+      <InputSection
+        {...makeProps({toolbarItems: 'Toolbar item', interruptState: 'can-interrupt'})}
+      />
+    );
+
+    expect(screen.getByText('Toolbar item')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Interrupt button'})).toBeInTheDocument();
+  });
+
+  it('leaves toolbar items out of a read-only conversation', () => {
+    render(
+      <InputSection {...makeProps({toolbarItems: 'Toolbar item', enabled: false})} />
+    );
+
+    expect(screen.queryByText('Toolbar item')).not.toBeInTheDocument();
   });
 
   describe('with ask-seer-create-pr', () => {

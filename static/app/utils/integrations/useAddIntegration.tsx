@@ -3,7 +3,10 @@ import {useCallback, useState} from 'react';
 import {toast} from '@sentry/scraps/toast';
 
 import type {MessagingIntegrationAnalyticsView} from 'sentry/components/messagingIntegrations/setupMessagingIntegrationButton';
-import {openPipelineModal} from 'sentry/components/pipeline/modal';
+import {
+  openPipelineModal,
+  type OpenPipelineModalOptions,
+} from 'sentry/components/pipeline/modal';
 import type {ProvidersByType} from 'sentry/components/pipeline/registry';
 import {t} from 'sentry/locale';
 import type {IntegrationProvider, IntegrationWithConfig} from 'sentry/types/integrations';
@@ -23,7 +26,6 @@ export interface AddIntegrationParams {
       | 'onboarding'
       | 'project_creation'
       | 'seer_onboarding_github'
-      | 'seer_onboarding_code_review'
       | 'test_analytics_onboarding'
       | 'test_analytics_org_selector';
     referrer?: string;
@@ -31,11 +33,16 @@ export interface AddIntegrationParams {
     variant?: 'scm' | 'legacy';
   };
   /**
-   * Overrides for the install modal's copy. Passed straight through to
-   * `openPipelineModal`; this hook does not read them.
+   * Overrides for the install modal: its copy, which is passed straight through,
+   * and where it opens.
    */
   modalParams?: {
     description?: React.ReactNode;
+    /**
+     * Opens the install flow somewhere other than a modal of its own, such as
+     * inside a modal that's already open. Defaults to `openPipelineModal`.
+     */
+    openPipeline?: (options: OpenPipelineModalOptions<'integration'>) => void;
     title?: string;
   };
   onCancel?: () => void;
@@ -61,7 +68,8 @@ export type AddIntegrationState =
  * provider.
  *
  * Every first-party provider is API-driven: `startFlow` resolves the provider
- * to its registered pipeline and opens the API-driven pipeline modal. Invalid
+ * to its registered pipeline and opens the API-driven pipeline modal, or hands
+ * the flow to `modalParams.openPipeline` when the caller passes one. Invalid
  * flows are surfaced by `openPipelineModal`/the registry.
  */
 export function useAddIntegration() {
@@ -77,7 +85,7 @@ export function useAddIntegration() {
       analyticsParams,
       suppressSuccessMessage,
       urlParams,
-      modalParams,
+      modalParams: {openPipeline = openPipelineModal, ...modalCopy} = {},
     } = params;
 
     const is_scm = isScmProvider(provider);
@@ -100,11 +108,11 @@ export function useAddIntegration() {
       ...analyticsParams,
     });
 
-    openPipelineModal({
+    openPipeline({
       type: 'integration',
       provider: provider.key as ProvidersByType['integration'],
       initialData: urlParams,
-      ...modalParams,
+      ...modalCopy,
       onComplete: data => {
         completed = true;
         trackIntegrationAnalytics('integrations.installation_complete', {

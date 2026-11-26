@@ -15,6 +15,7 @@ from django.views.generic import View
 from rest_framework.request import Request
 
 from sentry import options as sentry_options
+from sentry.feedback.lib.html_tree import html_to_tree
 from sentry.feedback.lib.utils import FeedbackCreationSource
 from sentry.feedback.usecases.ingest.shim_to_feedback import shim_to_feedback
 from sentry.hybridcloud.apigateway.cell_request_resolvers import CellRequestResolver
@@ -305,7 +306,7 @@ class ErrorPageEmbedView(View):
 
         context = {
             "endpoint": mark_safe("*/" + json.dumps(endpoint) + ";/*"),
-            "template": mark_safe("*/" + json.dumps(template) + ";/*"),
+            "template": mark_safe("*/" + json.dumps_htmlsafe(html_to_tree(template)) + ";/*"),
             "strings": mark_safe(
                 "*/"
                 + json.dumps_htmlsafe(

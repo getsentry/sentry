@@ -15,7 +15,7 @@ from sentry.options.manager import (
     FLAG_SCALAR,
 )
 from sentry.quotas.base import build_metric_abuse_quotas
-from sentry.utils.types import Any, Bool, Dict, Float, Int, Sequence, String
+from sentry.utils.types import Any, Bool, Dict, Float, Int, NonNegativeInt, Sequence, String
 
 # Cache
 # register('cache.backend', flags=FLAG_NOSTORE)
@@ -93,38 +93,6 @@ register(
     type=Dict,
     default={"default": {"hosts": {0: {"host": "127.0.0.1", "port": 6379}}}},
     flags=FLAG_NOSTORE | FLAG_IMMUTABLE,
-)
-
-# Share of lock keys (0.0 to 1.0) that MigrationLockBackend sends to its new backend.
-# Only used when a lock manager is configured with the matching selector in
-# sentry.utils.locking.backends.migration.
-register(
-    "locks.default.migration-rollout-rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "locks.post-process.migration-rollout-rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-# When on, MigrationLockBackend also checks the new backend for keys that go to the old
-# backend. Turn it on before the matching rollout rate goes above 0, and turn it off only
-# after the rate is back at 0 and all locks on the new backend have expired. See the
-# MigrationLockBackend docstring for the full sequence.
-register(
-    "locks.default.migration-check-new",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "locks.post-process.migration-check-new",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Processing worker caches
@@ -486,6 +454,24 @@ register(
     type=Bool,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "cleanup.inbox-items.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "cleanup.inbox-events.sample-rate",
+    default=0.0,
+    type=Float,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "cleanup.inbox-items.sample-rate",
+    default=0.0,
+    type=Float,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Notification Platform thread retention, run by `sentry cleanup`. Dry-run is on by
 # default so deletion volume can be measured before anything is removed.
 register(
@@ -660,6 +646,15 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Maximum number of bytes a single recording segment may decompress to at ingest. Segments
+# which inflate past this limit are dropped instead of stored. Negative values are rejected
+# because zlib treats a `max_length` of 0 as unlimited.
+register(
+    "replay.consumer.max-segment-decompressed-size",
+    type=NonNegativeInt,
+    default=100 * 1024 * 1024,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Enable new database query caching.
 register(
     "replay.consumer.enable_new_query_caching_system",
@@ -690,6 +685,21 @@ register(
     "feedback.message.max-size",
     type=Int,
     default=4096,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Fraction of LLM-classified feedbacks that are also scored by the shadow spam classifier in Seer.
+register(
+    "feedback.spam-shadow.sample-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Organizations whose feedback message text may be logged by Seer on a shadow classifier mismatch.
+# Messages can contain PII, so this should only ever include internal (Sentry) organizations.
+register(
+    "feedback.spam-shadow.message-log-org-ids",
+    type=Sequence,
+    default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -788,11 +798,11 @@ register(
 )
 
 # Bound GitLab project webhook reconciliation independently in each cell region. Each
-# repository consumes three capacity tokens to leave room for repairs that make multiple
+# repository consumes five capacity tokens to leave room for repairs that make multiple
 # GitLab API requests.
 register(
     "gitlab.webhook-reconcile.rate-limit.burst",
-    default=3,
+    default=5,
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -812,15 +822,8 @@ register(
 )
 
 register(
-    "gitlab.webhook-reconcile.rate-limit.retry-after-jitter-seconds",
-    default=300,
-    type=Int,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
     "gitlab.webhook-reconcile.forced-fanout-jitter-max-seconds",
-    default=1801,
+    default=601,
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -1028,6 +1031,23 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Forge apps with no Connect predecessor, such as the staging app. Their installs get a
+# Forge-only integration. Installs of any other trusted Forge app are linked to the
+# site's Connect integration, so a missing entry fails safely instead of creating one.
+register(
+    "jira.forge.native-app-ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Jira integrations whose outbound API calls use their Forge system token instead
+# of the Connect JWT. Forge-only integrations have no Connect secret and always do.
+register(
+    "jira.forge.integration-ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # MsTeams Integration
 register("msteams.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
@@ -1059,6 +1079,7 @@ register("discord.debug-channel", flags=FLAG_AUTOMATOR_MODIFIABLE)
 # GCP MCP Integration
 register("gcp.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("gcp.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
+
 
 # AWS Lambda Integration
 register("aws-lambda.access-key-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
@@ -1244,16 +1265,6 @@ register(
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# When none of an event's debug IDs were uploaded, the source map debugger checks whether the
-# project has uploaded any file with a debug ID. With this set, it only checks the project's
-# newest bundles, up to this many, instead of reading the organization's debug-ID rows until one
-# is in a bundle of the project. 0 keeps the unbounded check. Capped at 10,000.
-register(
-    "sourcemaps.source-map-debug.debug-id-check-max-bundles",
-    type=Int,
-    default=0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # TODO(INFRENG-460): unregister once the sentry-options-automator entries are gone
 register(
@@ -1345,14 +1356,14 @@ register(
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# When a bundle is uploaded again, update its debug-ID rows by bundle alone instead of by bundle
-# and organization, so that Postgres doesn't also read the organization's slice of that table's
+# When a bundle is uploaded again, update its debug-ID rows by bundle alone. False filters them by
+# organization as well, which lets Postgres also read the organization's slice of that table's
 # organization index. Has no effect with `sourcemaps.artifact-bundles.date-only-on-bundle`,
 # which skips the update.
 register(
     "sourcemaps.artifact-bundles.assemble.redate-debug-ids-by-bundle",
     type=Bool,
-    default=False,
+    default=True,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -1379,6 +1390,13 @@ register(
     "store.transactions.check-pending-attachments",
     type=Bool,
     default=True,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Killswitch for bounding Bigtable (nodestore) operations while saving events.
+register(
+    "store.save-event.bigtable-operation-timeout.disabled",
+    type=Bool,
+    default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -1646,19 +1664,28 @@ register(
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Conversation classifiers PoC.
+# Enables telemetry classifier enrichment writes to snuba-items.
 register(
-    "classifiers.conversations.project-ids",
-    type=Sequence,
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
+    "telemetry-classifiers.eap-write.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Maximum conversations fetched from each project per scan.
+
+# Most entities one telemetry classifier selection enqueues, and its page size.
 register(
-    "classifiers.conversations.telemetry-limit",
+    "telemetry-classifiers.select-limit",
     type=Int,
     default=100,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Organizations whose telemetry classifiers aren't processed.
+register(
+    "telemetry-classifiers.killswitch-organization-ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Kill switch for sentry.cadence: when False, no triggers are claimed or fired.
@@ -1666,6 +1693,24 @@ register(
     "cadence.tick.enabled",
     type=Bool,
     default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# How many sweep workers each cadence sweep enqueues. Raise it to catch up a large backlog of
+# triggers that came due before the tick's window.
+register(
+    "cadence.sweep.workers",
+    type=Int,
+    default=1,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# When True, firings whose targets their trigger type reports missing are dropped and their
+# triggers deleted. When False, every firing is dispatched.
+register(
+    "cadence.missing_target_check.enabled",
+    type=Bool,
+    default=True,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -1726,6 +1771,42 @@ register(
     default=0.10,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Scheduled Seer impact assessments. See sentry.issues.impact.tasks.
+register(
+    "issues.impact.scheduled.enable",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Opted-in scope: every active project in a listed org, plus each listed project.
+# Nothing runs for projects in neither list.
+register(
+    "issues.impact.scheduled.organization_ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "issues.impact.scheduled.project_ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Max issues assessed per project per hourly run.
+register(
+    "issues.impact.scheduled.issues_per_project",
+    type=Int,
+    default=5,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Hard per-org daily dispatch ceiling across all of the org's projects (fixed UTC-day
+# window). 0 pauses dispatching.
+register(
+    "issues.impact.scheduled.max_dispatches_per_org_per_day",
+    type=Int,
+    default=500,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Spread child run_auto_transition_issues_* tasks across this many seconds
 # after each schedule tick, to smooth burst load (DB/signals/queues).
 register(
@@ -1761,6 +1842,13 @@ register(
 # Stops logging FIRST_SEEN when ingest creates a group.
 register(
     "issues.action_log.first_seen_on_create.killswitch",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Stops rate-limiting VIEW actions from group details; every view is published.
+register(
+    "issues.action_log.view_rate_limit.killswitch",
     type=Bool,
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
@@ -2955,6 +3043,28 @@ register(
     default=10_000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Outbox category names (e.g. ORGANIZATION_MEMBER_UPDATE) whose synchronous
+# drains are tagged with the calling endpoint or task. Opt-in to bound cardinality.
+register(
+    "hybridcloud.outbox.sync_drain_caller_tag.categories",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Replicate Organization writes to control asynchronously, except where control needs
+# the change right away.
+register(
+    "hybridcloud.outbox.organization_async_replication.enabled",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Replicate OrganizationMember writes to control asynchronously, except where control
+# needs the change right away.
+register(
+    "hybridcloud.outbox.organization_member_async_replication.enabled",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Break glass controls
 register(
     "hybrid_cloud.rpc.disabled-service-methods",
@@ -4050,13 +4160,6 @@ register(
     default=1000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Skip workflows that don't belong to the event's organization.
-register(
-    "workflow_engine.filter_cross_org_workflows",
-    type=Bool,
-    default=True,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 # Higher opt-in limit for workflows; intended for orgs we know are hitting limits legitimately,
 # generally set to 'as high as we think we can safely handle for a handful of orgs'.
 register(
@@ -4568,6 +4671,21 @@ register(
     type=Int,
     default=5,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "autofix.pr-iteration.check-suite-local-prefilter.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Kill switch for the PR comment that says PR iteration stopped for Seer credits.
+register(
+    "autofix.pr-iteration.out-of-credits-comment.enabled",
+    type=Bool,
+    default=True,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # TODO(telkins): Remove once we no longer need integration_id on SLO metrics

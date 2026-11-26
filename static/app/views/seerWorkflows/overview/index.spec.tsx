@@ -8,6 +8,7 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {
   act,
+  cleanup,
   render,
   screen,
   userEvent,
@@ -40,9 +41,7 @@ import {SCM_WINDOW_SIZE} from './types';
 import {useOverviewSeerDrawer} from './useOverviewSeerDrawer';
 
 describe('AutofixOverview', () => {
-  const organization = OrganizationFixture({
-    features: ['seer-night-shift-ui'],
-  });
+  const organization = OrganizationFixture({features: ['seer-night-shift-ui']});
   const basePath = `/organizations/${organization.slug}/issues/autofix/`;
 
   const emptyMilestones = {
@@ -107,9 +106,7 @@ describe('AutofixOverview', () => {
       headline: null,
       oneLineDescription: 'The Authorization header is dropped.',
     },
-    proposedFix: {
-      oneLineSummary: 'Restore the Authorization header as a fallback.',
-    },
+    proposedFix: {oneLineSummary: 'Restore the Authorization header as a fallback.'},
     seerRunId: 'run-2',
     lastTriggeredAt: '2026-07-14T10:00:00Z',
     pullRequests: [],
@@ -161,10 +158,7 @@ describe('AutofixOverview', () => {
       url: `/organizations/${organization.slug}/seer/autofix-overview/`,
       match: [MockApiClient.matchQuery({expand: ['projectConfig']})],
       asyncDelay: projectConfigAsyncDelay,
-      body: {
-        ...overviewBody,
-        ...(projectConfig ? {projectConfig} : {}),
-      },
+      body: {...overviewBody, ...(projectConfig ? {projectConfig} : {})},
     });
     const scmInfoRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/autofix-scm-info/`,
@@ -295,16 +289,13 @@ describe('AutofixOverview', () => {
 
   it('renders only populated sections with counts from the single endpoint', async () => {
     mockOverview({
-      base: {
-        autofix_root_cause: [rootCauseRun],
-        autofix_solution: [solutionRun],
-      },
+      base: {autofix_root_cause: [rootCauseRun], autofix_solution: [solutionRun]},
     });
 
     renderPage();
 
     expect(
-      await screen.findByRole('button', {name: 'Create Plan 1'})
+      await screen.findByRole('button', {name: 'Confirm Root Cause 1'})
     ).toBeInTheDocument();
     expect(
       screen.getByRole('button', {name: 'Generate code changes 1'})
@@ -447,9 +438,7 @@ describe('AutofixOverview', () => {
 
       const {router} = render(<AutofixOverview />, {
         organization: OrganizationFixture({features: ['seer-night-shift-ui']}),
-        initialRouterConfig: {
-          location: {pathname: basePath, query: {seerDrawer: '2'}},
-        },
+        initialRouterConfig: {location: {pathname: basePath, query: {seerDrawer: '2'}}},
       });
 
       expect(
@@ -555,7 +544,7 @@ describe('AutofixOverview', () => {
     renderPage();
 
     expect(
-      await screen.findByRole('button', {name: 'Create Plan 1'})
+      await screen.findByRole('button', {name: 'Confirm Root Cause 1'})
     ).toBeInTheDocument();
     expect(
       screen.getByRole('button', {name: 'Generate code changes 1'})
@@ -563,7 +552,9 @@ describe('AutofixOverview', () => {
 
     await userEvent.click(screen.getByRole('tab', {name: 'In Progress (1)'}));
 
-    expect(screen.getByRole('button', {name: 'Create Plan 1'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {name: 'Confirm Root Cause 1'})
+    ).toBeInTheDocument();
     expect(
       screen.queryByRole('button', {name: 'Generate code changes 1'})
     ).not.toBeInTheDocument();
@@ -610,9 +601,7 @@ describe('AutofixOverview', () => {
     ).toBeInTheDocument();
     expect(statusPollRequest).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/seer/autofix-overview/`,
-      expect.objectContaining({
-        query: expect.objectContaining({statsPeriod: '7d'}),
-      })
+      expect.objectContaining({query: expect.objectContaining({statsPeriod: '7d'})})
     );
   });
 
@@ -640,7 +629,7 @@ describe('AutofixOverview', () => {
     renderPage();
 
     expect(
-      await screen.findByRole('button', {name: 'Create Plan 1'})
+      await screen.findByRole('button', {name: 'Confirm Root Cause 1'})
     ).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('tab', {name: 'In Progress (0)'}));
@@ -648,7 +637,9 @@ describe('AutofixOverview', () => {
     expect(
       screen.getByText('No Autofix runs are currently in progress.')
     ).toBeInTheDocument();
-    expect(screen.queryByRole('button', {name: 'Create Plan 1'})).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Confirm Root Cause 1'})
+    ).not.toBeInTheDocument();
   });
 
   it('persists the selected tab in the URL', async () => {
@@ -679,7 +670,7 @@ describe('AutofixOverview', () => {
     renderPage({view: 'in_progress'});
 
     expect(
-      await screen.findByRole('button', {name: 'Create Plan 1'})
+      await screen.findByRole('button', {name: 'Confirm Root Cause 1'})
     ).toBeInTheDocument();
     expect(
       screen.queryByRole('button', {name: 'Generate code changes 1'})
@@ -735,10 +726,7 @@ describe('AutofixOverview', () => {
 
   it('renders card prose and links from the endpoint payload', async () => {
     mockOverview({
-      base: {
-        autofix_root_cause: [rootCauseRun],
-        autofix_solution: [solutionRun],
-      },
+      base: {autofix_root_cause: [rootCauseRun], autofix_solution: [solutionRun]},
     });
 
     renderPage();
@@ -860,6 +848,7 @@ describe('AutofixOverview', () => {
 
     afterEach(async () => {
       try {
+        cleanup();
         await act(() => jest.runOnlyPendingTimersAsync());
       } finally {
         jest.useRealTimers();
@@ -905,9 +894,7 @@ describe('AutofixOverview', () => {
               headline: null,
               oneLineDescription: 'The request is passed to `dateutil.parse()`.',
             },
-            proposedFix: {
-              oneLineSummary: 'Wrap `parse_date()` in a try/catch.',
-            },
+            proposedFix: {oneLineSummary: 'Wrap `parse_date()` in a try/catch.'},
           },
         ],
       },
@@ -933,9 +920,7 @@ describe('AutofixOverview', () => {
     ).toBeInTheDocument();
     expect(statusPollRequest).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/seer/autofix-overview/`,
-      expect.objectContaining({
-        query: expect.objectContaining({project: [2]}),
-      })
+      expect.objectContaining({query: expect.objectContaining({project: [2]})})
     );
   });
 
@@ -956,9 +941,7 @@ describe('AutofixOverview', () => {
     ).toBeInTheDocument();
     expect(statusPollRequest).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/seer/autofix-overview/`,
-      expect.objectContaining({
-        query: expect.objectContaining({statsPeriod: '24h'}),
-      })
+      expect.objectContaining({query: expect.objectContaining({statsPeriod: '24h'})})
     );
   });
 
@@ -1020,15 +1003,11 @@ describe('AutofixOverview', () => {
     ).toBeInTheDocument();
     expect(statusPollRequest).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/seer/autofix-overview/`,
-      expect.objectContaining({
-        query: expect.objectContaining({expand: ['status']}),
-      })
+      expect.objectContaining({query: expect.objectContaining({expand: ['status']})})
     );
     expect(issueStatsRequest).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/seer/autofix-overview/`,
-      expect.objectContaining({
-        query: expect.objectContaining({expand: ['issueStats']}),
-      })
+      expect.objectContaining({query: expect.objectContaining({expand: ['issueStats']})})
     );
     expect(statusPollRequest).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/seer/autofix-overview/`,
@@ -1451,12 +1430,7 @@ describe('AutofixOverview', () => {
       checksStatus: 'success',
       reviewStatus: 'approved',
       files: [
-        {
-          path: 'src/sentry/foo.py',
-          additions: 10,
-          deletions: 2,
-          changeType: 'MODIFIED',
-        },
+        {path: 'src/sentry/foo.py', additions: 10, deletions: 2, changeType: 'MODIFIED'},
       ],
     };
     mockOverview({
@@ -2015,6 +1989,26 @@ describe('AutofixOverview', () => {
     );
   });
 
+  it('shows an error on an errored single run that stopped at its root cause', async () => {
+    mockOverview({
+      base: {
+        autofix_root_cause: [
+          {...rootCauseRun, isSingleRun: true, status: 'error' as const},
+        ],
+      },
+    });
+
+    renderPage();
+
+    expect(
+      await screen.findByText(
+        'Seer ran into an error on the latest attempt. Open Seer to retry.'
+      )
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Open Autofix'})).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Open Seer'})).toBeInTheDocument();
+  });
+
   it('renders code changes for a completed run', async () => {
     mockOverview({
       base: {autofix_code_changes: [{...codeChangesRun, status: 'completed' as const}]},
@@ -2047,9 +2041,7 @@ describe('AutofixOverview', () => {
     expect(screen.getByRole('button', {name: /Sort/})).toHaveTextContent('Recommended');
     expect(statusPollRequest).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/seer/autofix-overview/`,
-      expect.objectContaining({
-        query: expect.objectContaining({sort: 'recommended'}),
-      })
+      expect.objectContaining({query: expect.objectContaining({sort: 'recommended'})})
     );
     expect(router.location.query.sort).toBeUndefined();
   });
@@ -2100,9 +2092,7 @@ describe('AutofixOverview', () => {
     await waitFor(() =>
       expect(statusPollRequest).toHaveBeenCalledWith(
         `/organizations/${organization.slug}/seer/autofix-overview/`,
-        expect.objectContaining({
-          query: expect.objectContaining({sort}),
-        })
+        expect.objectContaining({query: expect.objectContaining({sort})})
       )
     );
     expect(router.location.query.sort).toBe(sort);
@@ -2133,7 +2123,7 @@ describe('AutofixOverview', () => {
       await userEvent.click(janeOption);
 
       expect(
-        await screen.findByRole('button', {name: 'Create Plan 1'})
+        await screen.findByRole('button', {name: 'Confirm Root Cause 1'})
       ).toBeInTheDocument();
       expect(
         screen.queryByRole('button', {name: /Generate code changes/})
@@ -2205,7 +2195,7 @@ describe('AutofixOverview', () => {
       });
 
       renderPage();
-      await screen.findByRole('button', {name: 'Create Plan 1'});
+      await screen.findByRole('button', {name: 'Confirm Root Cause 1'});
 
       await userEvent.click(screen.getByRole('button', {name: /Assignee/}));
 
@@ -2303,7 +2293,7 @@ describe('AutofixOverview', () => {
       });
 
       const {router} = renderPage({assignee: 'user:7'});
-      await screen.findByRole('button', {name: 'Create Plan 1'});
+      await screen.findByRole('button', {name: 'Confirm Root Cause 1'});
       expect(
         screen.queryByRole('button', {name: /Generate code changes/})
       ).not.toBeInTheDocument();
@@ -2334,7 +2324,7 @@ describe('AutofixOverview', () => {
       });
 
       renderPage();
-      await screen.findByRole('button', {name: 'Create Plan 1'});
+      await screen.findByRole('button', {name: 'Confirm Root Cause 1'});
 
       await userEvent.click(screen.getByRole('button', {name: 'Modify issue assignee'}));
       await userEvent.click(await screen.findByRole('option', {name: /Next Assignee/}));
@@ -2410,7 +2400,7 @@ describe('AutofixOverview', () => {
     });
 
     expect(
-      await screen.findByRole('button', {name: 'Create Plan 1'})
+      await screen.findByRole('button', {name: 'Confirm Root Cause 1'})
     ).toBeInTheDocument();
   });
 
@@ -2563,7 +2553,7 @@ describe('AutofixOverview', () => {
     renderPage();
 
     expect(
-      await screen.findByRole('button', {name: 'Create Plan 1'})
+      await screen.findByRole('button', {name: 'Confirm Root Cause 1'})
     ).toBeInTheDocument();
     expect(screen.queryByLabelText('Seer setup warning')).not.toBeInTheDocument();
     expect(

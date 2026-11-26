@@ -1,4 +1,3 @@
-import type * as React from 'react';
 //
 // Styled components used by both ListBox and GridList
 //
@@ -13,10 +12,6 @@ export const ListWrap = styled('ul')`
   margin: 0;
   padding: ${p => p.theme.space.xs} 0;
 
-  > [data-section-separator]:first-of-type {
-    display: none;
-  }
-
   /* Add 1px to top padding if preceded by menu header, to account for the header's
   shadow border */
   [data-menu-has-header='true'] > div > &:first-of-type {
@@ -27,13 +22,6 @@ export const ListWrap = styled('ul')`
   shadow border */
   [data-menu-has-footer='true'] > div > &:last-of-type {
     padding-bottom: calc(${p => p.theme.space.xs} + 1px);
-  }
-
-  /* Remove top padding if preceded by search input, since search input already has
-  vertical padding. Account for InputGroup wrapper div. */
-  div:has(input) ~ &&:first-of-type,
-  div:has(input) ~ div > &&:first-of-type {
-    padding-top: 0;
   }
 
   &:empty {
@@ -48,14 +36,6 @@ export const ListWrap = styled('ul')`
 
   :focus-visible {
     outline: none;
-  }
-
-  /* The first section follows a hidden separator in a headerless menu. */
-  [data-menu-has-header='false']
-    &:first-of-type
-    li[role='presentation']:nth-of-type(2)
-    > [data-section-header] {
-    padding-top: 0;
   }
 `;
 
@@ -116,17 +96,9 @@ export const SectionToggleButton = styled(Button)<{visible: boolean}>`
   }
 `;
 
-export function SectionSeparator(props: React.HTMLAttributes<HTMLLIElement>) {
+export function SectionSeparator() {
   return (
-    <Stack
-      as="li"
-      data-section-separator
-      justify="center"
-      height="8px"
-      padding="0 lg 0 xl"
-      {...props}
-      role="presentation"
-    >
+    <Stack justify="center" height="8px" padding="0 lg 0 xl" role="presentation">
       <MenuSectionSeparator />
     </Stack>
   );

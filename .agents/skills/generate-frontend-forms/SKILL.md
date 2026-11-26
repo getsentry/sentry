@@ -52,13 +52,8 @@ const schema = z.object({
 function MyForm() {
   const form = useScrapsForm({
     ...defaultFormOptions,
-    defaultValues: {
-      email: '',
-      name: '',
-    },
-    validators: {
-      onDynamic: schema,
-    },
+    defaultValues: {email: '', name: ''},
+    validators: {onDynamic: schema},
     onSubmit: ({value, formApi}) => {
       // Handle submission
       console.log(value);
@@ -191,7 +186,7 @@ Use `field.Select` for form choices. Do not compose a form select from bare `Men
 
 ### Checkbox Group (Multiple Selections)
 
-Use `field.Checkbox.Group` and `field.Checkbox.Item` for multiple selections stored as one string array. Read the [checkbox group docs](../../../static/app/components/core/form/fields.mdx#checkbox-group) for the example, layout, validation, disabled state, and auto-save behavior.
+Use `field.CheckboxGroup` with a render callback `{({Item}) => ...}` for multiple selections stored as one string array. Pass `field.state.value` as `value` and `field.handleChange` as `onChange` so that item values use the array's element type. Read the [checkbox group docs](../../../static/app/components/core/form/fields.mdx#checkbox-group) for the example, layout, validation, disabled state, and auto-save behavior.
 
 ### TextArea Field
 
@@ -228,42 +223,11 @@ Use `field.Checkbox.Group` and `field.Checkbox.Item` for multiple selections sto
 </form.AppField>
 ```
 
-### Radio Field
+### Radio Group
 
-Radio fields use a composable API with `Radio.Group` and `Radio.Item`. `Radio.Group` provides group context that changes how the label is rendered for proper accessibility semantics.
+Use `field.RadioGroup` with a render callback `{({Item}) => ...}`. Pass `field.state.value` as `value` and `field.handleChange` as `onChange` so that item values and changes use the field's value type.
 
-> **Important**: The layout (and its label) **must** be rendered _inside_ `Radio.Group`. The group context is provided by `Radio.Group`, so placing the layout outside will result in incorrect accessibility semantics.
-
-```tsx
-<form.AppField name="priority">
-  {field => (
-    <field.Radio.Group value={field.state.value} onChange={field.handleChange}>
-      <field.Layout.Stack label="Priority">
-        <field.Radio.Item value="low">Low</field.Radio.Item>
-        <field.Radio.Item value="medium">Medium</field.Radio.Item>
-        <field.Radio.Item value="high" description="Urgent issues">
-          High
-        </field.Radio.Item>
-      </field.Layout.Stack>
-    </field.Radio.Group>
-  )}
-</form.AppField>
-```
-
-For horizontal arrangement of radio items, use a `Flex` or `Stack` wrapper inside the layout:
-
-```tsx
-import {Flex} from '@sentry/scraps/layout';
-
-<field.Radio.Group value={field.state.value} onChange={field.handleChange}>
-  <field.Layout.Row label="Priority">
-    <Flex gap="lg">
-      <field.Radio.Item value="low">Low</field.Radio.Item>
-      <field.Radio.Item value="high">High</field.Radio.Item>
-    </Flex>
-  </field.Layout.Row>
-</field.Radio.Group>;
-```
+Render the layout and its label inside the callback to preserve the group's accessibility semantics. Read the [radio group docs](../../../static/app/components/core/form/fields.mdx#radio) for vertical and horizontal examples.
 
 ### Custom Fields with BaseField
 
@@ -495,10 +459,7 @@ const schema = z.object({
 });
 
 // z.input allows null for the provider field
-const defaultValues: z.input<typeof schema> = {
-  provider: null,
-  name: '',
-};
+const defaultValues: z.input<typeof schema> = {provider: null, name: ''};
 
 // z.output<typeof schema> has provider as non-null after refine
 type FormOutput = z.output<typeof schema>;
@@ -524,10 +485,7 @@ only while it is displayed; put that validator on the conditional field instead.
 
 ```tsx
 const schema = z
-  .object({
-    password: z.string(),
-    confirmPassword: z.string(),
-  })
+  .object({password: z.string(), confirmPassword: z.string()})
   .refine(data => data.password === data.confirmPassword, {
     message: 'Passwords do not match',
     path: ['confirmPassword'],
@@ -551,9 +509,7 @@ const schema = z.object({
     showBilling ? (
       <form.AppField
         name="billingEmail"
-        validators={{
-          onDynamic: z.email('Enter a valid billing email'),
-        }}
+        validators={{onDynamic: z.email('Enter a valid billing email')}}
       >
         {field => (
           <field.Layout.Stack label="Billing Email" required>
@@ -591,11 +547,7 @@ import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorT
 function MyForm() {
   const mutation = useMutation({
     mutationFn: (data: {email: string; username: string}) => {
-      return fetchMutation({
-        url: '/users/',
-        method: 'POST',
-        data,
-      });
+      return fetchMutation({url: '/users/', method: 'POST', data});
     },
   });
 
@@ -667,9 +619,7 @@ import {AutoSaveForm} from '@sentry/scraps/form';
 
 import {fetchMutation} from 'sentry/utils/queryClient';
 
-const schema = z.object({
-  displayName: z.string().min(1, 'Display name is required'),
-});
+const schema = z.object({displayName: z.string().min(1, 'Display name is required')});
 
 function SettingsForm() {
   return (
@@ -679,11 +629,7 @@ function SettingsForm() {
       initialValue={user.displayName}
       mutationOptions={{
         mutationFn: data => {
-          return fetchMutation({
-            url: '/user/',
-            method: 'PUT',
-            data,
-          });
+          return fetchMutation({url: '/user/', method: 'PUT', data});
         },
         onSuccess: data => {
           // Update React Query cache
@@ -886,15 +832,10 @@ const form = useScrapsForm({
 
 ```tsx
 // ❌ Don't forget defaultFormOptions
-const form = useScrapsForm({
-  defaultValues: {name: ''},
-});
+const form = useScrapsForm({defaultValues: {name: ''}});
 
 // ✅ Always spread defaultFormOptions first
-const form = useScrapsForm({
-  ...defaultFormOptions,
-  defaultValues: {name: ''},
-});
+const form = useScrapsForm({...defaultFormOptions, defaultValues: {name: ''}});
 ```
 
 ### Nullable Default Values
@@ -1113,13 +1054,13 @@ When creating auto-save fields:
 
 ## File References
 
-| File                                                   | Purpose                     |
-| ------------------------------------------------------ | --------------------------- |
-| `static/app/components/core/form/scrapsForm.tsx`       | Main form hook              |
-| `static/app/components/core/form/autoSaveForm.tsx`     | Auto-save wrapper           |
-| `static/app/components/core/form/formErrorContext.tsx` | Host error-mapper contract  |
-| `static/app/scrapsProviders/formError.tsx`             | Sentry request-error mapper |
-| `static/app/components/core/form/field/*.tsx`          | Individual field components |
-| `static/app/components/core/form/layout/index.tsx`     | Layout components           |
-| `static/app/components/core/form/displayField.tsx`     | Display-only layouts        |
-| `static/app/components/core/form/form.stories.tsx`     | Usage examples              |
+| File                                                         | Purpose                     |
+| ------------------------------------------------------------ | --------------------------- |
+| `static/packages/scraps/src/form/scrapsForm.tsx`             | Main form hook              |
+| `static/packages/scraps/src/form/autoSaveForm.tsx`           | Auto-save wrapper           |
+| `static/packages/scraps/src/form/formErrorContext/index.tsx` | Host error-mapper contract  |
+| `static/app/scrapsProviders/formError.tsx`                   | Sentry request-error mapper |
+| `static/packages/scraps/src/form/field/*.tsx`                | Individual field components |
+| `static/packages/scraps/src/form/layout/index.tsx`           | Layout components           |
+| `static/packages/scraps/src/form/displayField.tsx`           | Display-only layouts        |
+| `static/app/components/core/form/form.mdx`                   | Usage examples              |

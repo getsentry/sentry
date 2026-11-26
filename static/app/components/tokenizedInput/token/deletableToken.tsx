@@ -5,7 +5,7 @@ import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 import {IconClose} from '@sentry/icons/close';
 
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import {InteractionStateLayer} from 'sentry/components/interactionStateLayer';
 import {useGridListItem} from 'sentry/components/tokenizedInput/grid/useGridListItem';
 import {focusTarget} from 'sentry/components/tokenizedInput/grid/utils';
 import {t} from 'sentry/locale';
@@ -28,12 +28,7 @@ export function DeletableToken<T>({
   state,
 }: DeletableTokenProps<T>) {
   const ref = useRef<HTMLDivElement>(null);
-  const {rowProps, gridCellProps} = useGridListItem({
-    item,
-    ref,
-    state,
-    focusable: true,
-  });
+  const {rowProps, gridCellProps} = useGridListItem({item, ref, state, focusable: true});
 
   const onKeyDownCapture = useCallback(
     (evt: KeyboardEvent<HTMLInputElement>) => {

@@ -4,9 +4,9 @@ import {useMutation} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
 import {Button} from '@sentry/scraps/button';
+import {Confirm} from '@sentry/scraps/confirm';
 import {toast} from '@sentry/scraps/toast';
 
-import {Confirm} from 'sentry/components/confirm';
 import {ResultGrid, type ResultGridColumn} from 'sentry/components/resultGrid';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';

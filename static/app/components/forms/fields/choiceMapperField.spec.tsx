@@ -24,10 +24,7 @@ describe('ChoiceMapperField', () => {
       value: undefined,
     },
     mappedColumnLabel: 'Item',
-    columnLabels: {
-      column1: 'Column 1',
-      column2: 'Column 2',
-    },
+    columnLabels: {column1: 'Column 1', column2: 'Column 2'},
     mappedSelectors: {
       column1: {
         choices: [
@@ -73,9 +70,7 @@ describe('ChoiceMapperField', () => {
 
     // Verify onChange was called with new value
     expect(mockOnChange).toHaveBeenCalledWith(
-      {
-        item1: {column1: null, column2: null},
-      },
+      {item1: {column1: null, column2: null}},
       {}
     );
   });
@@ -96,9 +91,7 @@ describe('ChoiceMapperField', () => {
 
     // Verify onChange was called with item1 removed
     expect(mockOnChange).toHaveBeenCalledWith(
-      {
-        item2: {column1: 'value2', column2: 'valueB'},
-      },
+      {item2: {column1: 'value2', column2: 'valueB'}},
       {}
     );
   });
@@ -107,9 +100,7 @@ describe('ChoiceMapperField', () => {
     render(
       <ChoiceMapperField
         {...defaultProps}
-        value={{
-          item1: {column1: 'value1', column2: 'valueA'},
-        }}
+        value={{item1: {column1: 'value1', column2: 'valueA'}}}
       />
     );
 
@@ -155,7 +146,7 @@ describe('ChoiceMapperField', () => {
       await userEvent.click(screen.getByRole('button', {name: /Add Item/i}));
 
       // Type in the search box
-      const searchInput = screen.getByRole('textbox');
+      const searchInput = screen.getByRole('searchbox');
       await userEvent.type(searchInput, 'test');
 
       // Wait for results to appear
@@ -178,7 +169,7 @@ describe('ChoiceMapperField', () => {
       await userEvent.click(screen.getByRole('button', {name: /Add Item/i}));
 
       // Search and select
-      const searchInput = screen.getByRole('textbox');
+      const searchInput = screen.getByRole('searchbox');
       await userEvent.type(searchInput, 'repo');
 
       await waitFor(() => {
@@ -189,9 +180,7 @@ describe('ChoiceMapperField', () => {
 
       // Verify onChange was called with label included
       expect(mockOnChange).toHaveBeenCalledWith(
-        {
-          repo123: {column1: null, column2: null, __label: 'my-org/my-repo'},
-        },
+        {repo123: {column1: null, column2: null, __label: 'my-org/my-repo'}},
         {}
       );
     });
@@ -201,11 +190,7 @@ describe('ChoiceMapperField', () => {
         <ChoiceMapperField
           {...asyncProps}
           value={{
-            repo123: {
-              column1: 'value1',
-              column2: 'valueA',
-              __label: 'my-org/my-repo',
-            },
+            repo123: {column1: 'value1', column2: 'valueA', __label: 'my-org/my-repo'},
           }}
         />
       );
@@ -218,16 +203,13 @@ describe('ChoiceMapperField', () => {
     });
 
     it('shows no results message when search returns empty', async () => {
-      MockApiClient.addMockResponse({
-        url: '/test/search',
-        body: [],
-      });
+      MockApiClient.addMockResponse({url: '/test/search', body: []});
 
       render(<ChoiceMapperField {...asyncProps} />);
 
       await userEvent.click(screen.getByRole('button', {name: /Add Item/i}));
 
-      const searchInput = screen.getByRole('textbox');
+      const searchInput = screen.getByRole('searchbox');
       await userEvent.type(searchInput, 'nonexistent');
 
       await waitFor(() => {
@@ -248,11 +230,7 @@ describe('ChoiceMapperField', () => {
         <ChoiceMapperField
           {...asyncProps}
           value={{
-            repo123: {
-              column1: 'value1',
-              column2: 'valueA',
-              __label: 'my-org/my-repo',
-            },
+            repo123: {column1: 'value1', column2: 'valueA', __label: 'my-org/my-repo'},
           }}
         />
       );
@@ -283,7 +261,7 @@ describe('ChoiceMapperField', () => {
 
       await userEvent.click(screen.getByRole('button', {name: /Add Item/i}));
 
-      const searchInput = screen.getByRole('textbox');
+      const searchInput = screen.getByRole('searchbox');
 
       await userEvent.type(searchInput, 'test', {delay: 10});
 

@@ -30,9 +30,7 @@ export function transformDiscoverToList<T extends WidgetDataConstraint>(
 ) {
   const {start, end, utc, interval, statsPeriod} = normalizeDateTimeParams(
     widgetProps.location.query,
-    {
-      defaultStatsPeriod: DEFAULT_STATS_PERIOD,
-    }
+    {defaultStatsPeriod: DEFAULT_STATS_PERIOD}
   );
 
   const _data = results.tableData?.data ?? [];

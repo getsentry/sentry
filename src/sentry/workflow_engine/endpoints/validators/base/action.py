@@ -76,6 +76,11 @@ class BaseActionValidator(CamelSnakeSerializer[Any]):
         return value
 
     def _check_action_type(self, action_type: Action.Type) -> None:
+        if action_type == Action.Type.SEER_INVESTIGATION:
+            # Alert-write access does not grant the Seer service account's authority.
+            raise serializers.ValidationError(
+                "Manage investigation actions through Seer automation settings."
+            )
         organization = self.context.get("organization")
         if not organization:
             # ¯\_(ツ)_/¯

@@ -45,6 +45,7 @@ from sentry.seer.autofix.pr_iteration.iterations import (
 )
 from sentry.seer.autofix.pr_iteration.logs import LogCtxIteration, PrIterationLogContext
 from sentry.seer.autofix.pr_iteration.pause import PauseReason
+from sentry.seer.autofix.pr_iteration.run_markers import get_seer_run
 from sentry.seer.autofix.pr_iteration.tracing import set_pr_iteration_attributes
 from sentry.seer.models.run import SeerRun, SeerRunPrIteration
 
@@ -56,6 +57,8 @@ BLOCKED_OUTCOMES_DATA_KEY = "blocked_outcomes"
 
 # The latest reason a gate refused this batch. Cleared when the batch is triggered.
 FAILURE_REASON_DATA_KEY = "failure_reason"
+
+PUSH_TRIGGER_EXCEPTION_TYPE_DATA_KEY = "push_trigger_exception_type"
 
 
 class PrIterationOutcome(StrEnum):
@@ -80,6 +83,11 @@ class PrIterationOutcome(StrEnum):
     PR_CLOSED = "pr_closed"
     PR_CREATION_ERRORED = "pr_creation_errored"
     PUSH_FAILED = "push_failed"
+    NOT_PUSHED = "not_pushed"
+    # Seer ran out of credits mid-step. Matches Seer's failure_reason.
+    SEER_OUT_OF_CREDITS = "out_of_credits"
+    # Sentry's credit check refused a step.
+    SENTRY_OUT_OF_CREDITS = "sentry_out_of_credits"
     TIMEOUT = "timeout"
     STALLED = "stalled"
     ERRORED = "errored"
@@ -140,10 +148,6 @@ def outcome_for_failed_run(run_state: SeerRunState) -> str:
     return run_state.failure_reason or PrIterationOutcome.ERRORED.value
 
 
-def _seer_run(*, run_id: int, organization_id: int) -> SeerRun | None:
-    return SeerRun.objects.filter(seer_run_state_id=run_id, organization_id=organization_id).first()
-
-
 def _claim_untriggered(seer_run: SeerRun) -> SeerRunPrIteration | None:
     """The run's waiting iteration, claimed. None when another caller won it.
 
@@ -171,7 +175,7 @@ def bootstrap_iteration(
     Raises rather than logging a failure: the identity to log under is what this
     returns, so anything that goes wrong goes to Sentry instead.
     """
-    seer_run = _seer_run(run_id=run_state.run_id, organization_id=organization_id)
+    seer_run = get_seer_run(run_id=run_state.run_id, organization_id=organization_id)
     if seer_run is None:
         raise ValueError(f"No SeerRun for run {run_state.run_id} in organization {organization_id}")
 
@@ -179,7 +183,7 @@ def bootstrap_iteration(
         project_id = (
             Group.objects.filter(id=group_id, project__organization_id=organization_id)
             .values_list("project_id", flat=True)
-            .first()
+            .get_or_none()
         )
         if project_id is None:
             raise ValueError(f"No group {group_id} in organization {organization_id}")
@@ -229,7 +233,7 @@ def trigger_pr_iteration_details(
     id travels with the agent request, so the completion hook finds this row.
     """
     try:
-        seer_run = _seer_run(run_id=run_id, organization_id=organization_id)
+        seer_run = get_seer_run(run_id=run_id, organization_id=organization_id)
         if seer_run is None:
             return None
 
@@ -263,7 +267,7 @@ def record_pr_iteration_counts(
 ) -> None:
     """Write what the drain saw onto the row it claimed."""
     try:
-        seer_run = _seer_run(run_id=run_id, organization_id=organization_id)
+        seer_run = get_seer_run(run_id=run_id, organization_id=organization_id)
         if seer_run is None:
             return
 
@@ -290,7 +294,7 @@ def discard_pr_iteration_details(
 ) -> None:
     """Drop the row of an iteration that will never reach the agent."""
     try:
-        seer_run = _seer_run(run_id=run_id, organization_id=organization_id)
+        seer_run = get_seer_run(run_id=run_id, organization_id=organization_id)
         if seer_run is None:
             return
 
@@ -321,6 +325,24 @@ def _pushed_head_shas(run_state: SeerRunState) -> list[str]:
     return sorted(shas)
 
 
+def _push_error_codes(run_state: SeerRunState) -> list[str]:
+    try:
+        iterations = get_iterations(run_state)
+    except Exception:
+        return []
+
+    if not iterations:
+        return []
+
+    codes = {
+        pr_state.pr_creation_error_code or "unknown"
+        for repo in iteration_repos(iterations[-1])
+        if (pr_state := run_state.repo_pr_states.get(repo))
+        and pr_state.pr_creation_status == "error"
+    }
+    return sorted(codes)
+
+
 def build_iteration_event(
     log_ctx: PrIterationLogContext,
     iteration: SeerRunPrIteration,
@@ -328,6 +350,7 @@ def build_iteration_event(
     *,
     outcome: str,
     head_shas: list[str] | None = None,
+    push_error_codes: list[str] | None = None,
 ) -> EventT | None:
     """An event filled from an iteration's row. None when that row is incomplete.
 
@@ -345,6 +368,8 @@ def build_iteration_event(
         payload["duration_ms"] = int((timezone.now() - iteration.date_added).total_seconds() * 1000)
     if head_shas is not None and "head_shas" in known:
         payload["head_shas"] = head_shas
+    if push_error_codes is not None and "push_error_codes" in known:
+        payload["push_error_codes"] = push_error_codes
 
     try:
         return event_cls(
@@ -389,7 +414,7 @@ def record_pr_iteration_blocked(
     re-checks on every failing check suite still says each one once.
     """
     try:
-        seer_run = _seer_run(run_id=run_id, organization_id=organization_id)
+        seer_run = get_seer_run(run_id=run_id, organization_id=organization_id)
         if seer_run is None:
             return
 
@@ -438,7 +463,7 @@ def record_pr_iteration_failure_reason(
     since a later trigger can still run the batch.
     """
     try:
-        seer_run = _seer_run(run_id=run_id, organization_id=organization_id)
+        seer_run = get_seer_run(run_id=run_id, organization_id=organization_id)
         if seer_run is None:
             return
 
@@ -453,6 +478,31 @@ def record_pr_iteration_failure_reason(
         update_iteration(iteration, **{FAILURE_REASON_DATA_KEY: reason})
     except Exception:
         log_ctx.error("autofix.pr_iteration.details.failure_reason_failed")
+
+
+def record_pr_iteration_push_error(
+    *,
+    log_ctx: PrIterationLogContext,
+    run_state: SeerRunState,
+    organization_id: int,
+    error: BaseException,
+) -> None:
+    try:
+        iteration_id = triggered_iteration_id(run_state)
+        if iteration_id is None:
+            return
+
+        seer_run = get_seer_run(run_id=run_state.run_id, organization_id=organization_id)
+        if seer_run is None:
+            return
+
+        iteration = get_iteration(seer_run, iteration_id)
+        if iteration is None:
+            return
+
+        update_iteration(iteration, **{PUSH_TRIGGER_EXCEPTION_TYPE_DATA_KEY: type(error).__name__})
+    except Exception:
+        log_ctx.error("autofix.pr_iteration.details.push_error_failed")
 
 
 @traces.trace
@@ -516,7 +566,7 @@ def _complete_iteration(
     outcome: str,
 ) -> None:
     try:
-        seer_run = _seer_run(run_id=run_state.run_id, organization_id=organization_id)
+        seer_run = get_seer_run(run_id=run_state.run_id, organization_id=organization_id)
         if seer_run is None:
             log_ctx.error(
                 "autofix.pr_iteration.details.unresolved", exc_info=False, reason="no_seer_run"
@@ -533,12 +583,19 @@ def _complete_iteration(
             if outcome == PrIterationOutcome.ALREADY_PUSHED.value
             else []
         )
+        # Seer keeps a repo's previous error until its next push.
+        push_error_codes = (
+            _push_error_codes(run_state)
+            if outcome == PrIterationOutcome.PR_CREATION_ERRORED.value
+            else []
+        )
         event = build_iteration_event(
             log_ctx,
             iteration,
             AiAutofixPrIterationFeedbackBatchCompletedEvent,
             outcome=outcome,
             head_shas=head_shas,
+            push_error_codes=push_error_codes,
         )
         if event is None:
             return

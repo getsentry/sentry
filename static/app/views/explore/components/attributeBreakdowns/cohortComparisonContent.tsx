@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {useDebouncedValue} from '@tanstack/react-pacer';
 import moment from 'moment-timezone';
 
+import {getDuration} from '@sentry/scraps/duration';
 import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -32,11 +33,15 @@ interface CohortComparisonProps {
   yAxis: string;
   dataset?: DiscoverDatasets;
   extrapolate?: string;
+  yAttribute?: string;
+  yRange?: [number, number];
 }
 
 export function CohortComparison({
   selection,
   yAxis,
+  yAttribute,
+  yRange,
   query,
   dataset,
   extrapolate,
@@ -52,6 +57,8 @@ export function CohortComparison({
   const {data, isLoading, error} = useAttributeBreakdownComparison({
     aggregateFunction: yAxis,
     range: selection.range,
+    yAttribute,
+    yRange,
     query,
     dataset,
     extrapolate,
@@ -85,10 +92,7 @@ export function CohortComparison({
     const start = moment.tz(startTimestamp, userTimezone).format('MMM D YYYY h:mm A z');
     const end = moment.tz(endTimestamp, userTimezone).format('MMM D YYYY h:mm A z');
 
-    return {
-      start,
-      end,
-    };
+    return {start, end};
   }, [selection]);
 
   return (
@@ -98,9 +102,7 @@ export function CohortComparison({
           <AttributeBreakdownsComponent.StyledBaseSearchBar
             placeholder={t('Search keys')}
             onChange={value => {
-              setQueryParams({
-                breakdownQuery: value,
-              });
+              setQueryParams({breakdownQuery: value});
             }}
             query={searchQuery}
             size="sm"
@@ -116,11 +118,20 @@ export function CohortComparison({
             {selectedRangeToDates && (
               <Stack gap="xs">
                 <SelectionHint backgroundColor={theme.chart.getColorPalette(0)?.[0]}>
-                  {t(
-                    'Selection is data between %s - %s',
-                    selectedRangeToDates.start,
-                    selectedRangeToDates.end
-                  )}
+                  {yAttribute && yRange
+                    ? t(
+                        'Selection is data between %s - %s where %s is between %s - %s',
+                        selectedRangeToDates.start,
+                        selectedRangeToDates.end,
+                        yAttribute,
+                        getDuration(yRange[0] / 1000, {precision: 2, style: 'short'}),
+                        getDuration(yRange[1] / 1000, {precision: 2, style: 'short'})
+                      )
+                    : t(
+                        'Selection is data between %s - %s',
+                        selectedRangeToDates.start,
+                        selectedRangeToDates.end
+                      )}
                 </SelectionHint>
                 <SelectionHint backgroundColor="#A29FAA">
                   {t('Baseline is all other spans from your query')}

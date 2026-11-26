@@ -1,9 +1,9 @@
 import {useEffect} from 'react';
-import * as qs from 'query-string';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {NotFound} from 'sentry/components/errors/notFound';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {NoAccess} from 'sentry/components/noAccess';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {DATE_TIME_KEYS, URL_PARAM} from 'sentry/components/pageFilters/constants';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
@@ -12,6 +12,7 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {useRouteAnalyticsHookSetup} from 'sentry/utils/routeAnalytics/useRouteAnalyticsHookSetup';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import * as qs from 'sentry/utils/url/qs';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -22,10 +23,7 @@ import {getIssueViewQueryParams} from './issueViews/getIssueViewQueryParams';
 import {useSelectedGroupSearchView} from './issueViews/useSelectedGroupSeachView';
 import type {GroupSearchView} from './types';
 
-type Props = {
-  children: React.ReactNode;
-  title?: string;
-};
+type Props = {children: React.ReactNode; title?: string};
 
 function useUpdateViewLastVisited({view}: {view: GroupSearchView | undefined}) {
   const {mutate: updateViewLastVisited} = useUpdateGroupSearchViewLastVisited();
@@ -58,10 +56,7 @@ function useHydrateIssueViewQueryParams({view}: {view: GroupSearchView | undefin
       navigate(
         normalizeUrl({
           pathname: `/organizations/${organization.slug}/issues/views/${view.id}/`,
-          query: {
-            ...getIssueViewQueryParams({view}),
-            ...query,
-          },
+          query: {...getIssueViewQueryParams({view}), ...query},
         }),
         {replace: true}
       );
@@ -114,14 +109,21 @@ function IssueViewWrapper({children}: Props) {
 
 export function IssueListContainer({children, title = t('Issues')}: Props) {
   const organization = useOrganization();
+  const canReadIssues = organization.access.some(scope =>
+    ['event:read', 'event:write', 'event:admin'].includes(scope)
+  );
 
   return (
     <SentryDocumentTitle title={title} orgSlug={organization.slug}>
-      <AnalyticsArea name="issue_list">
-        <AiQueryProvider strategy="Issues">
-          <IssueViewWrapper>{children}</IssueViewWrapper>
-        </AiQueryProvider>
-      </AnalyticsArea>
+      {canReadIssues ? (
+        <AnalyticsArea name="issue_list">
+          <AiQueryProvider strategy="Issues">
+            <IssueViewWrapper>{children}</IssueViewWrapper>
+          </AiQueryProvider>
+        </AnalyticsArea>
+      ) : (
+        <NoAccess />
+      )}
     </SentryDocumentTitle>
   );
 }

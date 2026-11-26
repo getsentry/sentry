@@ -26,8 +26,9 @@ ruleTester.run('no-core-import', noCoreImport, {
       code: 'import {Flex} from "@sentry/scraps/layout";',
       filename: '/project/src/foo/file.ts',
     },
+    {code: 'import x from "other-package";', filename: '/project/src/foo/file.ts'},
     {
-      code: 'import x from "other-package";',
+      code: 'import x from "sentry/components/coreLike/button";',
       filename: '/project/src/foo/file.ts',
     },
   ],

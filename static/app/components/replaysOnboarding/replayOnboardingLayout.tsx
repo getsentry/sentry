@@ -1,5 +1,7 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {useStore} from 'zustand';
+import {useShallow} from 'zustand/react/shallow';
 
 import {Stack} from '@sentry/scraps/layout';
 
@@ -13,7 +15,6 @@ import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOptionsControl';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -36,7 +37,10 @@ export function ReplayOnboardingLayout({
   const selectedOptions = useUrlPlatformOptions(docsConfig.platformOptions);
   const [mask, setMask] = useState(true);
   const [block, setBlock] = useState(true);
-  const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
+  const {isSelfHosted, urlPrefix} = useStore(
+    ConfigStore,
+    useShallow(state => ({isSelfHosted: state.isSelfHosted, urlPrefix: state.urlPrefix}))
+  );
 
   const {introduction, steps} = useMemo(() => {
     const doc = docsConfig[configType] ?? docsConfig.onboarding;
@@ -54,16 +58,10 @@ export function ReplayOnboardingLayout({
       isPerformanceSelected: false,
       isProfilingSelected: false,
       isReplaySelected: true,
-      sourcePackageRegistries: {
-        isLoading: isLoadingRegistry,
-        data: registryData,
-      },
+      sourcePackageRegistries: {isLoading: isLoadingRegistry, data: registryData},
       platformOptions: selectedOptions,
       docsFlow,
-      replayOptions: {
-        mask,
-        block,
-      },
+      replayOptions: {mask, block},
       isSelfHosted,
       urlPrefix,
     };
@@ -125,16 +123,10 @@ export function ReplayOnboardingLayout({
           content: replayConfigToggle,
         });
       }
-      return {
-        ...step,
-        content: newContent,
-      };
+      return {...step, content: newContent};
     }
 
-    return {
-      ...step,
-      codeHeader: replayConfigToggle,
-    };
+    return {...step, codeHeader: replayConfigToggle};
   });
 
   return (

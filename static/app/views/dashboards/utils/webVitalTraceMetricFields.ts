@@ -1,6 +1,6 @@
 import isEqual from 'lodash/isEqual';
 
-import {DurationUnit, FractionUnit, type DataUnit} from 'sentry/utils/discover/fields';
+import {DurationUnit, type DataUnit} from 'sentry/utils/discover/fields';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
 import {
   ORDER,
@@ -19,10 +19,14 @@ const WEB_VITAL_METRIC_UNITS: Record<WebVitals, DataUnit> = {
   cls: null,
 };
 
+export function webVitalMetricName(vital: WebVitals): string {
+  return `browser.web_vital.${vital}`;
+}
+
 function webVitalMetricField(aggregation: 'count' | 'p75', vital: WebVitals): string {
   return traceMetricField(
     aggregation,
-    `browser.web_vital.${vital}`,
+    webVitalMetricName(vital),
     'distribution',
     WEB_VITAL_METRIC_UNITS[vital]
   );
@@ -32,15 +36,24 @@ export function webVitalP75Field(vital: WebVitals): string {
   return webVitalMetricField('p75', vital);
 }
 
+/**
+ * Each web vital metric carries its score ratio (0 to 1) as a numeric
+ * attribute, so scores come from the vital's own metric.
+ */
+function webVitalScoreRatioAttribute(vital: WebVitals): string {
+  return `tags[score.ratio.${vital},number]`;
+}
+
 function webVitalScoreMetricField(
   aggregation: 'avg' | 'count',
   vital: WebVitals
 ): string {
   return traceMetricField(
     aggregation,
-    `browser.web_vital.${vital}.score`,
+    webVitalMetricName(vital),
     'distribution',
-    FractionUnit.RATIO
+    WEB_VITAL_METRIC_UNITS[vital],
+    webVitalScoreRatioAttribute(vital)
   );
 }
 
@@ -59,8 +72,8 @@ export function webVitalCountField(vital: WebVitals): string {
 export const WEB_VITAL_SCORE_FIELDS = ORDER.map(webVitalScoreField);
 export const WEB_VITAL_SCORE_COUNT_FIELDS = ORDER.map(webVitalScoreCountField);
 
-export const PERFORMANCE_SCORE_FIELD = 'performance_score(measurements.score.total)';
-export const OPPORTUNITY_SCORE_FIELD = 'opportunity_score(measurements.score.total)';
+export const PERFORMANCE_SCORE_FIELD = 'performance_score()';
+export const OPPORTUNITY_SCORE_FIELD = 'opportunity_score()';
 
 export function isWebVitalScoreFormula(field: string): boolean {
   return field === PERFORMANCE_SCORE_FIELD || field === OPPORTUNITY_SCORE_FIELD;

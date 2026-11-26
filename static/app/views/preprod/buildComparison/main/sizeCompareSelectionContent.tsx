@@ -14,6 +14,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {parseApiError} from 'sentry/utils/parseApiError';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {fetchMutation} from 'sentry/utils/queryClient';
@@ -199,7 +200,7 @@ export function SizeCompareSelectionContent({
               );
             })}
 
-            {hasPagination && <Pagination pageLinks={pageLinks} />}
+            {hasPagination && <Pagination {...getPaginationProps(pageLinks)} />}
           </Stack>
         )}
       </Stack>

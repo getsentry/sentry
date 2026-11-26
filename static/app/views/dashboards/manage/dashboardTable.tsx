@@ -11,6 +11,7 @@ import cloneDeep from 'lodash/cloneDeep';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
+import {openConfirmModal} from '@sentry/scraps/confirm';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
@@ -22,7 +23,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {showDashboardPermissionsError} from 'sentry/actionCreators/dashboards';
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
-import {openConfirmModal} from 'sentry/components/confirm';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {
   DataGrid,
@@ -76,10 +76,7 @@ const SortKeys = {
   createdBy: {asc: 'mydashboards', desc: 'mydashboards'},
 };
 
-type FavoriteButtonProps = {
-  dashboard: DashboardListItem;
-  isFavorited: boolean;
-};
+type FavoriteButtonProps = {dashboard: DashboardListItem; isFavorited: boolean};
 
 function FavoriteButton({isFavorited, dashboard}: FavoriteButtonProps) {
   const toggleFavorite = useToggleDashboardFavorite();
@@ -236,12 +233,8 @@ export function DashboardTable({
     },
     onError: showDashboardPermissionsError,
   });
-  const handleDuplicateDashboard = useDuplicateDashboard({
-    onSuccess: onDashboardsChange,
-  });
-  const handleDeleteDashboard = useDeleteDashboard({
-    onSuccess: onDashboardsChange,
-  });
+  const handleDuplicateDashboard = useDuplicateDashboard({onSuccess: onDashboardsChange});
+  const handleDeleteDashboard = useDeleteDashboard({onSuccess: onDashboardsChange});
   const handleChangeEditAccess =
     (dashboard: DashboardListItem) => (newDashboardPermissions: DashboardPermissions) => {
       const dashboardCopy = cloneDeep(dashboard);
@@ -430,10 +423,7 @@ export function DashboardTable({
         getColumnSort,
         // favorite column
         renderPrependColumns: (isHeader: boolean, dataRow?: any) => {
-          const favoriteColumn = {
-            key: ResponseKeys.FAVORITE,
-            name: t('Favorite'),
-          };
+          const favoriteColumn = {key: ResponseKeys.FAVORITE, name: t('Favorite')};
 
           if (isHeader) {
             return [

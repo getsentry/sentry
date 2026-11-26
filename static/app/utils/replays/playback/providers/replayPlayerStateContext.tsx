@@ -98,10 +98,7 @@ function stateReducer(state: State, replayerAction: ReplayerAction): State {
       );
       applyStateToReplayer(state, replayerAction.replayer, state.replayers.at(0));
 
-      return {
-        ...state,
-        replayers: uniq([...state.replayers, replayerAction.replayer]),
-      };
+      return {...state, replayers: uniq([...state.replayers, replayerAction.replayer])};
     }
     case 'didUnmountPlayer': {
       state.replayerCleanup.get(replayerAction.replayer)?.();
@@ -164,14 +161,10 @@ function invokeUserAction(replayer: Replayer, userAction: UserAction): void {
       replayer.pause(replayer.getCurrentTime());
       return;
     case 'setConfigIsSkippingInactive':
-      replayer.setConfig({
-        skipInactive: userAction.isSkippingInactive,
-      });
+      replayer.setConfig({skipInactive: userAction.isSkippingInactive});
       return;
     case 'setConfigPlaybackSpeed':
-      replayer.setConfig({
-        speed: userAction.playbackSpeed,
-      });
+      replayer.setConfig({speed: userAction.playbackSpeed});
       return;
 
     case 'jumpToOffset': {

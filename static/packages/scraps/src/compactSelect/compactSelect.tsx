@@ -27,8 +27,8 @@ interface BaseSelectProps<Value extends SelectKey> extends Omit<
 > {
   options: Array<SelectOptionOrSection<Value>>;
   /**
-   * Number of options above which virtualization will be enabled.
-   * Note that virtualization is always disabled if there are sections in the options.
+   * Number of options, including those inside sections, above which
+   * virtualization will be enabled.
    * @default 150
    */
   virtualizeThreshold?: number;
@@ -89,35 +89,14 @@ export function CompactSelect<Value extends SelectKey>({
   // also multiple:false must be split into clearable true/false to satisfy TS
   const listProps = useMemo(() => {
     if (multiple) {
-      return {
-        clearable,
-        multiple,
-        value,
-        onChange,
-        closeOnSelect,
-        mode,
-      };
+      return {clearable, multiple, value, onChange, closeOnSelect, mode};
     }
 
     if (clearable) {
-      return {
-        clearable,
-        multiple,
-        value,
-        onChange,
-        closeOnSelect,
-        mode,
-      };
+      return {clearable, multiple, value, onChange, closeOnSelect, mode};
     }
 
-    return {
-      clearable,
-      multiple,
-      value,
-      onChange,
-      closeOnSelect,
-      mode,
-    };
+    return {clearable, multiple, value, onChange, closeOnSelect, mode};
   }, [multiple, clearable, value, onChange, closeOnSelect, mode]);
 
   const [measuredMenuWidth, setMeasuredMenuWidth] = useState<number>();
@@ -140,28 +119,10 @@ export function CompactSelect<Value extends SelectKey>({
   const controlDisabled = disabled ?? options?.length === 0;
   const allItemsWithKey = useMemo(() => getItemsWithKeys(options), [options]);
 
-  const longestOptionItemsWithKey = useMemo(() => {
-    if (needsMeasuring) {
-      let longestOption: (typeof options)[number] | undefined;
-      let longestLength = -1;
-      for (const option of options) {
-        const length =
-          'options' in option
-            ? 0
-            : option.textValue
-              ? option.textValue.length
-              : typeof option.label === 'string'
-                ? option.label.length
-                : 0;
-        if (length > longestLength) {
-          longestOption = option;
-          longestLength = length;
-        }
-      }
-      return longestOption ? getItemsWithKeys([longestOption]) : [];
-    }
-    return [];
-  }, [needsMeasuring, options]);
+  const longestOptionItemsWithKey = useMemo(
+    () => (needsMeasuring ? getItemsWithKeys(getLongestOptionItems(options)) : []),
+    [needsMeasuring, options]
+  );
   const itemsWithKey = needsMeasuring ? longestOptionItemsWithKey : allItemsWithKey;
 
   const componentTitle = useMemo(
@@ -209,18 +170,6 @@ export function CompactSelect<Value extends SelectKey>({
       isOptionDisabled={isOptionDisabled}
       value={value}
       clearable={clearable}
-      onOpenChange={newOpenState => {
-        controlProps.onOpenChange?.(newOpenState);
-        if (newOpenState) {
-          queueMicrotask(() => {
-            trackVirtualizationMetrics(
-              allItemsWithKey,
-              virtualizeThreshold,
-              componentTitle
-            );
-          });
-        }
-      }}
       onClear={({overlayState}) => {
         if (clearable) {
           if (multiple) {
@@ -276,41 +225,38 @@ function shouldVirtualize<Value extends SelectKey>(
   items: Array<SelectOptionOrSection<Value>>,
   virtualizeThreshold = 150
 ) {
-  const hasSections = items.some(item => 'options' in item);
-  if (hasSections) {
-    return false;
-  }
-
-  return items.length > virtualizeThreshold;
+  const optionCount = items.reduce(
+    (count, item) => count + ('options' in item ? item.options.length : 1),
+    0
+  );
+  return optionCount > virtualizeThreshold;
 }
 
-function trackVirtualizationMetrics<Value extends SelectKey>(
-  items: Array<SelectOptionOrSectionWithKey<Value>>,
-  virtualizeThreshold = 150,
-  title = 'unknown'
-) {
-  const hasSections = items.some(item => 'options' in item);
-  const optionCount = items.reduce((sum, item) => {
-    return 'options' in item ? sum + item.options.length : sum + 1;
-  }, 0);
-
-  const threshold = virtualizeThreshold ?? 150;
-
-  if (optionCount > threshold) {
-    Sentry.metrics.count('scraps.compactSelect.virtualize_over_threshold', 1, {
-      attributes: {
-        has_sections: hasSections,
-        component_title: title,
-        count: optionCount,
-        threshold,
-      },
-    });
+function getLabelLength<Value extends SelectKey>(option: SelectOption<Value>) {
+  if (option.textValue) {
+    return option.textValue.length;
   }
+  return typeof option.label === 'string' ? option.label.length : 0;
+}
 
-  Sentry.metrics.distribution('scraps.compactSelect.option_count', optionCount, {
-    attributes: {
-      has_sections: hasSections,
-      component_title: title,
-    },
-  });
+/**
+ * The option with the longest label, to measure the menu's width with. An
+ * option inside a section is returned inside it, so its header is measured too.
+ */
+function getLongestOptionItems<Value extends SelectKey>(
+  items: Array<SelectOptionOrSection<Value>>
+): Array<SelectOptionOrSection<Value>> {
+  let longest: SelectOptionOrSection<Value> | undefined;
+  let longestLength = -1;
+  for (const item of items) {
+    const options = 'options' in item ? item.options : [item];
+    for (const option of options) {
+      const length = getLabelLength(option);
+      if (length > longestLength) {
+        longestLength = length;
+        longest = 'options' in item ? {...item, options: [option]} : option;
+      }
+    }
+  }
+  return longest ? [longest] : [];
 }

@@ -5,7 +5,7 @@ import {parseAsString, parseAsStringEnum, useQueryState} from 'nuqs';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
-import {Pagination} from '@sentry/scraps/pagination';
+import {Pagination, type CursorHandler} from '@sentry/scraps/pagination';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
 import {GroupList} from 'sentry/components/issues/groupList';
@@ -15,6 +15,7 @@ import {t, tct} from 'sentry/locale';
 import {escapeDoubleQuotes} from 'sentry/utils';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -40,11 +41,7 @@ const issuesQuery: Record<IssuesType, string> = {
   [IssuesType.ALL]: 'release',
 };
 
-type IssuesQueryParams = {
-  limit: number;
-  query: string;
-  sort: string;
-};
+type IssuesQueryParams = {limit: number; query: string; sort: string};
 
 interface Props {
   releaseBounds: ReleaseBounds;
@@ -57,10 +54,7 @@ const parseAsIssuesType = parseAsStringEnum(Object.values(IssuesType)).withDefau
   IssuesType.NEW
 );
 
-const releasePeriodParsers = {
-  pageStart: parseAsString,
-  pageStatsPeriod: parseAsString,
-};
+const releasePeriodParsers = {pageStart: parseAsString, pageStatsPeriod: parseAsString};
 
 function getIssuesEndpoint(
   version: string,
@@ -72,10 +66,7 @@ function getIssuesEndpoint(
   queryParams: IssuesQueryParams;
 } {
   const queryParams = {
-    ...getReleaseParams({
-      location,
-      releaseBounds,
-    }),
+    ...getReleaseParams({location, releaseBounds}),
     limit: 10,
     sort: IssueSortOptions.FREQ,
     groupStatsPeriod: 'auto',
@@ -84,9 +75,7 @@ function getIssuesEndpoint(
   switch (issuesType) {
     case IssuesType.ALL:
       return {
-        endpoint: {
-          path: '/organizations/$organizationIdOrSlug/issues/',
-        },
+        endpoint: {path: '/organizations/$organizationIdOrSlug/issues/'},
         queryParams: {
           ...queryParams,
           query: new MutableSearch([
@@ -105,9 +94,7 @@ function getIssuesEndpoint(
       };
     case IssuesType.UNHANDLED:
       return {
-        endpoint: {
-          path: '/organizations/$organizationIdOrSlug/issues/',
-        },
+        endpoint: {path: '/organizations/$organizationIdOrSlug/issues/'},
         queryParams: {
           ...queryParams,
           query: new MutableSearch([
@@ -119,9 +106,7 @@ function getIssuesEndpoint(
       };
     case IssuesType.REGRESSED:
       return {
-        endpoint: {
-          path: '/organizations/$organizationIdOrSlug/issues/',
-        },
+        endpoint: {path: '/organizations/$organizationIdOrSlug/issues/'},
         queryParams: {
           ...queryParams,
           query: new MutableSearch([
@@ -132,9 +117,7 @@ function getIssuesEndpoint(
     case IssuesType.NEW:
     default:
       return {
-        endpoint: {
-          path: '/organizations/$organizationIdOrSlug/issues/',
-        },
+        endpoint: {path: '/organizations/$organizationIdOrSlug/issues/'},
         queryParams: {
           ...queryParams,
           query: new MutableSearch([
@@ -194,7 +177,7 @@ export function ReleaseIssues({
   const organization = useOrganization();
 
   const [pageLinks, setPageLinks] = useState<string | null>(null);
-  const [onCursor, setOnCursor] = useState<(() => void) | undefined>();
+  const [onCursor, setOnCursor] = useState<CursorHandler | undefined>();
 
   const [issuesType, setIssuesType] = useQueryState(
     'issuesType',
@@ -227,10 +210,7 @@ export function ReleaseIssues({
       ),
       apiOptions.as<unknown[]>()(
         '/organizations/$organizationIdOrSlug/releases/$version/resolved/',
-        {
-          path: {organizationIdOrSlug: organization.slug, version},
-          staleTime: 0,
-        }
+        {path: {organizationIdOrSlug: organization.slug, version}, staleTime: 0}
       ),
     ],
     combine: ([issueCountResult, resolvedResult]) => ({
@@ -262,10 +242,7 @@ export function ReleaseIssues({
     );
     const isEntireReleasePeriod = !pageStatsPeriod && !pageStart;
 
-    const {statsPeriod} = getReleaseParams({
-      location,
-      releaseBounds,
-    });
+    const {statsPeriod} = getReleaseParams({location, releaseBounds});
 
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     const selectedTimePeriod = statsPeriod ? DEFAULT_RELATIVE_PERIODS[statsPeriod] : null;
@@ -278,9 +255,7 @@ export function ReleaseIssues({
         {issuesType === IssuesType.NEW
           ? isEntireReleasePeriod
             ? t('No new issues in this release.')
-            : tct('No new issues for the [timePeriod].', {
-                timePeriod: displayedPeriod,
-              })
+            : tct('No new issues for the [timePeriod].', {timePeriod: displayedPeriod})
           : null}
         {issuesType === IssuesType.UNHANDLED
           ? isEntireReleasePeriod
@@ -300,9 +275,7 @@ export function ReleaseIssues({
         {issuesType === IssuesType.ALL
           ? isEntireReleasePeriod
             ? t('No issues in this release')
-            : tct('No issues for the [timePeriod].', {
-                timePeriod: displayedPeriod,
-              })
+            : tct('No issues for the [timePeriod].', {timePeriod: displayedPeriod})
           : null}
       </EmptyState>
     );
@@ -311,21 +284,9 @@ export function ReleaseIssues({
   const issuesTypes = [
     {value: IssuesType.ALL, label: t('All Issues'), issueCount: count.all},
     {value: IssuesType.NEW, label: t('New Issues'), issueCount: count.new},
-    {
-      value: IssuesType.UNHANDLED,
-      label: t('Unhandled'),
-      issueCount: count.unhandled,
-    },
-    {
-      value: IssuesType.REGRESSED,
-      label: t('Regressed'),
-      issueCount: count.regressed,
-    },
-    {
-      value: IssuesType.RESOLVED,
-      label: t('Resolved'),
-      issueCount: count.resolved,
-    },
+    {value: IssuesType.UNHANDLED, label: t('Unhandled'), issueCount: count.unhandled},
+    {value: IssuesType.REGRESSED, label: t('Regressed'), issueCount: count.regressed},
+    {value: IssuesType.RESOLVED, label: t('Resolved'), issueCount: count.resolved},
   ];
 
   return (
@@ -397,7 +358,11 @@ export function ReleaseIssues({
           </Container>
 
           <Container justifySelf="end">
-            <StyledPagination pageLinks={pageLinks} onCursor={onCursor} size="xs" />
+            <StyledPagination
+              {...getPaginationProps(pageLinks)}
+              onCursor={onCursor}
+              size="xs"
+            />
           </Container>
         </Grid>
       </Flex>

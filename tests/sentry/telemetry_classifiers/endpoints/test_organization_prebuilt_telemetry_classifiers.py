@@ -21,11 +21,13 @@ class OrganizationPrebuiltTelemetryClassifiersTest(APITestCase):
 
         assert [c["key"] for c in response.data] == list(PREBUILT_CLASSIFIERS)
         assert response.data[0] == {
-            "key": "user_frustration",
+            "key": "conversation_user_frustration",
             "dataset": "conversation",
-            "name": "User frustration",
-            "description": "When your users become frustrated with the agent they are speaking with.",
-            "resultAttribute": "sentry.classifier.user_frustration",
+            "outputType": "binary",
+            "binaryThreshold": 0.8,
+            "name": "Agent not helpful",
+            "description": "When your agent fails to give users what they asked for.",
+            "resultAttribute": "agent_not_helpful",
         }
 
     def test_filters_by_dataset(self) -> None:
@@ -33,13 +35,8 @@ class OrganizationPrebuiltTelemetryClassifiersTest(APITestCase):
             conversation = self.get_success_response(self.organization.slug, dataset="conversation")
             trace_spans = self.get_success_response(self.organization.slug, dataset="trace_spans")
 
-        assert [c["key"] for c in conversation.data] == [
-            "user_frustration",
-            "tool_failure",
-            "task_failure",
-            "stuck_in_loop",
-        ]
-        assert [c["key"] for c in trace_spans.data] == ["failed_operation"]
+        assert [c["key"] for c in conversation.data] == ["conversation_user_frustration"]
+        assert trace_spans.data == []
 
     def test_rejects_unknown_dataset(self) -> None:
         with self.feature(self.features):

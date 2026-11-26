@@ -97,6 +97,9 @@ class Cell:
     api_gateway_address: str | None = None
     """optional address for API gateway traffic."""
 
+    api_gateway_h2_address: str | None = None
+    """optional address for API gateway traffic over HTTP/2."""
+
     visible: bool = True
     """Whether the cell is visible in API responses"""
 
@@ -235,6 +238,7 @@ def _parse_raw_config(cell_config: list[CellConfig]) -> Iterable[Cell]:
             snowflake_id=config_value["snowflake_id"],
             address=config_value["address"],
             api_gateway_address=config_value.get("api_gateway_address", None),
+            api_gateway_h2_address=config_value.get("api_gateway_h2_address", None),
             visible=config_value.get("visible", True),
         )
 
@@ -365,11 +369,9 @@ def get_cell_for_organization(organization_id_or_slug: str) -> Cell:
     from sentry.models.organizationmapping import OrganizationMapping
 
     if organization_id_or_slug.isdecimal():
-        mapping = OrganizationMapping.objects.filter(
-            organization_id=organization_id_or_slug
-        ).first()
+        mapping = OrganizationMapping.objects.get_or_none(organization_id=organization_id_or_slug)
     else:
-        mapping = OrganizationMapping.objects.filter(slug=organization_id_or_slug).first()
+        mapping = OrganizationMapping.objects.get_or_none(slug=organization_id_or_slug)
 
     if not mapping:
         raise CellResolutionError(

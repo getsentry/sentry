@@ -22,6 +22,7 @@ from sentry.seer.agent.client_utils import (
     agent_connection_pool,
     has_seer_agent_access_with_detail,
 )
+from sentry.seer.agent.scm_connect_analytics import record_scm_connect_answered
 from sentry.seer.autofix.commit_author import commit_author_for_user
 from sentry.seer.autofix.constants import CODING_PAYLOAD_TYPES
 from sentry.seer.endpoints.utils import resolve_seer_run
@@ -91,7 +92,14 @@ class OrganizationSeerAgentUpdateEndpoint(OrganizationEndpoint):
                     data={"detail": "Code generation is disabled for this organization"},
                 )
 
-        resolved = resolve_seer_run(run_id, organization, for_continue=True, user_id=user_id)
+        resolved = resolve_seer_run(
+            run_id,
+            organization,
+            for_continue=True,
+            user_id=user_id,
+            access=request.access,
+            publish=payload_type in CODING_PAYLOAD_TYPES,
+        )
         if isinstance(resolved, Response):
             return resolved
 
@@ -125,7 +133,17 @@ class OrganizationSeerAgentUpdateEndpoint(OrganizationEndpoint):
             body,
         )
 
+        if response.status == 409 and payload_type == "user_input_response":
+            # Seer isn't waiting on that input any more. Usually another answer to it (say, from a
+            # second tab) got there first, so the chat can just reload the conversation.
+            return Response(
+                {"detail": "This input was already answered.", "code": "input_not_pending"},
+                status=409,
+            )
         if response.status >= 400:
             raise SeerApiError("Seer request failed", response.status)
+
+        if payload_type == "user_input_response":
+            record_scm_connect_answered(organization, user_id, resolved.seer_run_state_id, payload)
 
         return Response(status=202, data=response.json())

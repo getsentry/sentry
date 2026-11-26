@@ -4,20 +4,28 @@ import {useQuery, useQueryClient} from '@tanstack/react-query';
 import {useModal} from '@sentry/scraps/modal';
 import {toast} from '@sentry/scraps/toast';
 
+import {
+  getRefusedPRMessage,
+  getRefusedStepMessage,
+} from 'sentry/components/seer/outOfCredits/messages';
 import {useServiceWorker} from 'sentry/serviceWorker/client/serviceWorkerContext';
 import type {Group} from 'sentry/types/group';
-import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {isArrayOf, isString} from 'sentry/types/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
+import {
+  seerCreditChecksFilter,
+  type SeerCreditDenialReason,
+} from 'sentry/utils/seer/useSeerCreditCheck';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {makeSeerPathname, makeSeerQuery} from 'sentry/views/issueDetails/autofix/utils';
-import {groupQueryKey} from 'sentry/views/issueDetails/useGroup';
+import {groupQueryFilter} from 'sentry/views/issueDetails/useGroup';
 import {
   isArtifact,
   isExplorerCodingAgentState,
@@ -26,6 +34,7 @@ import {
   type Artifact,
   type Block,
   type ExplorerCodingAgentState,
+  type ExplorerFailureReason,
   type ExplorerFilePatch,
   type RepoPRState,
   type SeerExplorerRunId,
@@ -78,6 +87,24 @@ export function isRootCauseArtifact(
     isArrayOf(data.five_whys, isString) &&
     (!defined(data.reproduction_steps) || isArrayOf(data.reproduction_steps, isString))
   );
+}
+
+export interface SingleRunStop {
+  reason: string;
+  suggestion: string;
+}
+
+function isSingleRunStopArtifact(value: unknown): value is Artifact<SingleRunStop> {
+  return (
+    isArtifact(value) &&
+    value.key === SINGLE_RUN_STOP_KEY &&
+    isString(value.data?.reason) &&
+    isString(value.data?.suggestion)
+  );
+}
+
+export function getSingleRunStop(section: AutofixSection): SingleRunStop | null {
+  return section.artifacts.findLast(isSingleRunStopArtifact)?.data ?? null;
 }
 
 export interface SolutionStep {
@@ -172,10 +199,7 @@ interface GithubPrReviewBodyFeedbackSource {
 
 interface CheckSuiteFeedbackSource {
   app_name: string;
-  event: {
-    check_suite: {head_sha: string; id: number};
-    repository: {html_url: string};
-  };
+  event: {check_suite: {head_sha: string; id: number}; repository: {html_url: string}};
   type: 'check-suite';
 }
 
@@ -198,22 +222,31 @@ export interface ExplorerAutofixState {
   run_id: number;
   status: 'processing' | 'completed' | 'error' | 'awaiting_user_input';
   updated_at: string;
+  /** The saved SeerBillingFeature. Null means the run has no attribution. */
+  billing_feature?: number | null;
   coding_agents?: Record<string, ExplorerCodingAgentState>;
+  credit_denial_reason?: SeerCreditDenialReason | null;
+  failure_reason?: ExplorerFailureReason | null;
   feature_id?: string | null;
   pending_user_input?: {
     data: Record<string, unknown>;
     id: string;
     input_type: 'file_change_approval' | 'ask_user_question';
   } | null;
+  // Credits refused the run's next step, so its queued feedback waits. Null while a turn
+  // runs or iteration is paused.
+  pr_iteration_out_of_credits?: PrIterationOutOfCredits | null;
   pr_iteration_paused?: boolean;
   queued_feedback?: RawFeedback[];
   repo_pr_states?: Record<string, RepoPRState>;
   sentry_run_id?: string | null;
-  warnings?: Array<{
-    warning_type: string;
-    installation_id?: string;
-    repo_name?: string;
-  }>;
+  warnings?: Array<{warning_type: string; installation_id?: string; repo_name?: string}>;
+}
+
+interface PrIterationOutOfCredits {
+  denial_reason: SeerCreditDenialReason | null;
+  // What the latest PR iteration left unfinished.
+  unfinished_action: 'agent_turn' | 'push' | 'branch_moved_retry' | null;
 }
 
 /**
@@ -248,9 +281,7 @@ export function explorerAutofixApiOptions(orgSlug: string, groupId: string) {
   );
 }
 
-const makeInitialExplorerAutofixData = (): ExplorerAutofixResponse => ({
-  autofix: null,
-});
+const makeInitialExplorerAutofixData = (): ExplorerAutofixResponse => ({autofix: null});
 
 /**
  * Pulls a readable message out of an API error, falling back to `fallback`.
@@ -309,16 +340,37 @@ function isAutofixSetupRequiredError(
   );
 }
 
+interface OutOfCreditsError {
+  responseJSON: {
+    code: 'seer_out_of_credits';
+    /**
+     * Null when billing doesn't say why. Missing from backends that predate it.
+     */
+    denialReason?: SeerCreditDenialReason | null;
+  };
+  status: 402;
+}
+
+/**
+ * A step or PR the backend refused because the organization can't afford it in
+ * Seer credits. The triggers' credit checks fail open and can be out of date, so
+ * the backend has the final say.
+ */
+export function isOutOfCreditsError(e: unknown): e is OutOfCreditsError {
+  const error = e as
+    | {responseJSON?: {code?: unknown}; status?: number}
+    | null
+    | undefined;
+  return error?.status === 402 && error.responseJSON?.code === 'seer_out_of_credits';
+}
+
 const makeErrorExplorerAutofixData = (errorMessage: string): ExplorerAutofixResponse => ({
   autofix: {
     run_id: 0,
     blocks: [
       {
         id: 'error',
-        message: {
-          role: 'assistant',
-          content: `Error: ${errorMessage}`,
-        },
+        message: {role: 'assistant', content: `Error: ${errorMessage}`},
         timestamp: new Date().toISOString(),
         loading: false,
       },
@@ -398,6 +450,14 @@ export interface AutofixSection {
   blocks: Block[];
   status: 'processing' | 'completed' | 'error';
   step: string;
+  /**
+   * Why billing refused credit, on the section a credit stop ended.
+   */
+  creditDenialReason?: SeerCreditDenialReason | null;
+  /**
+   * Why the run stopped, on the section it stopped in.
+   */
+  failureReason?: ExplorerFailureReason | null;
   index?: number;
 }
 
@@ -433,16 +493,12 @@ function buildSection(
   // (codemode-structured-content-only).
   const artifacts: AutofixArtifact[] = collectArtifacts(blocks);
 
-  const section: AutofixSection = {
-    index,
-    step,
-    blocks,
-    artifacts,
-    status: 'processing',
-  };
+  const section: AutofixSection = {index, step, blocks, artifacts, status: 'processing'};
 
   if (currentStep && runState?.status === 'error') {
     section.status = 'error';
+    section.failureReason = runState.failure_reason;
+    section.creditDenialReason = runState.credit_denial_reason;
   } else if (
     (!currentStep && runState?.status !== 'processing') ||
     isLastBlockOfSection(blocks[blocks.length - 1]) ||
@@ -475,6 +531,7 @@ function buildSection(
  */
 export const SINGLE_RUN_FEATURE_ID = 'autofix_single_run';
 const SINGLE_RUN_ROOT_CAUSE_KEY = 'single_run_root_cause';
+const SINGLE_RUN_STOP_KEY = 'stop';
 
 export function isSingleRunAutofix(runState: ExplorerAutofixState | null): boolean {
   return runState?.feature_id === SINGLE_RUN_FEATURE_ID;
@@ -484,25 +541,37 @@ function getSingleRunSections(
   blocks: Block[],
   runState: ExplorerAutofixState
 ): AutofixSection[] {
-  const rootCauses: Array<Artifact<RootCauseArtifact>> = collectArtifacts(blocks)
-    .filter(artifact => artifact.key === SINGLE_RUN_ROOT_CAUSE_KEY)
-    .flatMap(artifact => {
+  const rootCauses: Array<Artifact<RootCauseArtifact>> = collectArtifacts(blocks).flatMap(
+    artifact => {
+      if (artifact.key !== 'root_cause' && artifact.key !== SINGLE_RUN_ROOT_CAUSE_KEY) {
+        return [];
+      }
       const headline = artifact.data?.headline;
       const cause = artifact.data?.cause;
       if (!isString(headline) || !isString(cause)) {
         return [];
       }
       return [
-        {...artifact, data: {one_line_description: headline, cause, five_whys: []}},
+        {
+          ...artifact,
+          key: 'root_cause',
+          data: {one_line_description: headline, cause, five_whys: []},
+        },
       ];
-    });
+    }
+  );
+
+  const patches = mergeFilePatches(blocks);
+  const stops = patches.length
+    ? []
+    : collectArtifacts(blocks).filter(isSingleRunStopArtifact);
 
   const sections: AutofixSection[] = [
     {
       index: 0,
       step: 'root_cause',
       blocks,
-      artifacts: rootCauses,
+      artifacts: [...rootCauses, ...stops],
       status: rootCauses.length
         ? 'completed'
         : runState.status === 'error'
@@ -513,22 +582,36 @@ function getSingleRunSections(
     },
   ];
 
-  const patches = mergeFilePatches(blocks);
+  const failed = runState.status === 'error';
   if (patches.length) {
     sections.push({
       index: 0,
       step: 'code_changes',
       blocks,
       artifacts: [patches],
-      status:
-        runState.status === 'processing' &&
-        !Object.keys(runState.repo_pr_states ?? {}).length
+      status: failed
+        ? 'error'
+        : runState.status === 'processing' &&
+            !Object.keys(runState.repo_pr_states ?? {}).length
           ? 'processing'
           : 'completed',
     });
+  } else if (failed && rootCauses.length) {
+    sections.push({
+      index: 0,
+      step: 'code_changes',
+      blocks: [],
+      artifacts: [],
+      status: 'error',
+    });
   }
-  if (runState.status === 'error') {
-    sections[sections.length - 1]!.status = 'error';
+
+  // Why the run stopped, on the sections it stopped in.
+  for (const section of sections) {
+    if (section.status === 'error') {
+      section.failureReason = runState.failure_reason;
+      section.creditDenialReason = runState.credit_denial_reason;
+    }
   }
   return sections;
 }
@@ -636,12 +719,49 @@ export function isCodingAgentsSection(section: AutofixSection): boolean {
   return section.step === 'coding_agents';
 }
 
-export function isRunValidForPrIteration(organization: Organization): boolean {
-  return organization.features.includes('autofix-pr-iteration-manual');
+/**
+ * The step stopped because the organization ran out of Seer credits. Running it
+ * again fails the same way until someone adds credits, and the blocks it wrote
+ * before stopping are still worth showing.
+ */
+export function isOutOfCreditsSection(section: AutofixSection): boolean {
+  return section.status === 'error' && section.failureReason === 'out_of_credits';
+}
+
+/**
+ * The step a section stopped in for credits, or null if it didn't. A
+ * code_changes section also holds every PR iteration, so the latest step
+ * marker says whether the code changes or an iteration on the PR stopped.
+ */
+export function getOutOfCreditsStep(section: AutofixSection): AutofixExplorerStep | null {
+  if (!isOutOfCreditsSection(section)) {
+    return null;
+  }
+  if (isRootCauseSection(section)) {
+    return 'root_cause';
+  }
+  if (isSolutionSection(section)) {
+    return 'solution';
+  }
+  if (!isCodeChangesSection(section)) {
+    return null;
+  }
+  const marker = section.blocks.findLast(block => defined(block.message.metadata?.step));
+  return marker && isPrIterationBlock(marker) ? 'pr_iteration' : 'code_changes';
 }
 
 export function isPrIterationPaused(runState: ExplorerAutofixState | null): boolean {
   return runState?.pr_iteration_paused === true;
+}
+
+/**
+ * The latest PR iteration's push or retry, when it's waiting for credits.
+ */
+export function getPrIterationWaitingAction(
+  runState: ExplorerAutofixState | null
+): 'push' | 'branch_moved_retry' | null {
+  const action = runState?.pr_iteration_out_of_credits?.unfinished_action;
+  return action === 'push' || action === 'branch_moved_retry' ? action : null;
 }
 
 export function isLastStepPrIteration(runState: ExplorerAutofixState | null): boolean {
@@ -889,29 +1009,24 @@ export function useExplorerAutofix(
           getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/autofix/', {
             path: {organizationIdOrSlug: orgSlug, issueId: groupId},
           }),
-          {
-            method: 'POST',
-            query: {mode: 'explorer'},
-            data,
-          }
+          {method: 'POST', query: {mode: 'explorer'}, data}
         );
 
         // Invalidate to fetch fresh data
         const invalidation = queryClient.invalidateQueries({
           queryKey: explorerAutofixApiOptions(orgSlug, groupId).queryKey,
         });
-        queryClient.invalidateQueries({
-          queryKey: groupQueryKey({organizationSlug: orgSlug, groupId}),
-        });
+        queryClient.invalidateQueries(
+          groupQueryFilter({organizationSlug: orgSlug, groupId})
+        );
 
         if (step === 'pr_iteration') {
           await invalidation;
         }
 
-        if (
-          organization.features.includes('autofix-browser-notifications') &&
-          serviceWorker.isServiceWorkerSupported
-        ) {
+        // The sandbox can start Seer runs to showcase AI, but announcing them
+        // to a demo visitor's OS is not part of that pitch.
+        if (!isDemoModeActive() && serviceWorker.isServiceWorkerSupported) {
           serviceWorker.controller
             .postMessage({
               type: 'event',
@@ -949,7 +1064,7 @@ export function useExplorerAutofix(
           runId: getAutofixRunId(response)!,
           isSingleRun: response?.feature_id === SINGLE_RUN_FEATURE_ID,
         };
-      } catch (e: any) {
+      } catch (e) {
         setWaitingForResponse(false);
         const queryKey = explorerAutofixApiOptions(orgSlug, groupId).queryKey;
 
@@ -960,10 +1075,24 @@ export function useExplorerAutofix(
         // undoing the UI they just put into a loading state.
         if (isRunInFlightError(e)) {
           await queryClient.invalidateQueries({queryKey});
-          queryClient.invalidateQueries({
-            queryKey: groupQueryKey({organizationSlug: orgSlug, groupId}),
-          });
+          queryClient.invalidateQueries(
+            groupQueryFilter({organizationSlug: orgSlug, groupId})
+          );
           return {runId: getAutofixRunId(e.responseJSON)!, isSingleRun: false};
+        }
+
+        // Recheck every credit check, so the credit gates bring up the
+        // out-of-credits CTA and hold their buttons back, and say why the step
+        // didn't start. A refused kickoff paints no failed run: the start card
+        // offers the CTA instead.
+        if (isOutOfCreditsError(e)) {
+          queryClient.invalidateQueries(seerCreditChecksFilter(organization));
+          // A refused PR iteration waits on the queue, so show it.
+          if (step === 'pr_iteration') {
+            queryClient.invalidateQueries({queryKey});
+          }
+          toast.error(getRefusedStepMessage(step, e.responseJSON.denialReason ?? null));
+          throw e;
         }
 
         // The kickoff was refused because Seer setup is incomplete. There is no
@@ -1019,23 +1148,37 @@ export function useExplorerAutofix(
           getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/autofix/', {
             path: {organizationIdOrSlug: orgSlug, issueId: groupId},
           }),
-          {
-            method: 'POST',
-            query: {mode: 'explorer'},
-            data,
-          }
+          {method: 'POST', query: {mode: 'explorer'}, data}
         );
 
         // Invalidate to trigger polling for status updates
         queryClient.invalidateQueries({
           queryKey: explorerAutofixApiOptions(orgSlug, groupId).queryKey,
         });
-      } catch (e: any) {
-        toast.error(getApiErrorMessage(e, 'Failed to create PR'));
+      } catch (e) {
+        if (!isOutOfCreditsError(e)) {
+          toast.error(getApiErrorMessage(e, 'Failed to create PR'));
+          throw e;
+        }
+
+        // Recheck every credit check, so the credit gates bring up the
+        // out-of-credits CTA and hold their buttons back.
+        queryClient.invalidateQueries(seerCreditChecksFilter(organization));
+        // A retry for a repo whose PR exists pushes to it rather than opening one.
+        const repoState = repoName
+          ? queryClient.getQueryData(explorerAutofixApiOptions(orgSlug, groupId).queryKey)
+              ?.json?.autofix?.repo_pr_states?.[repoName]
+          : undefined;
+        toast.error(
+          getRefusedPRMessage(
+            repoName ? (repoState ?? {repo_name: repoName, pr_number: null}) : undefined,
+            e.responseJSON.denialReason ?? null
+          )
+        );
         throw e;
       }
     },
-    [api, orgSlug, groupId, queryClient]
+    [api, orgSlug, groupId, organization, queryClient]
   );
 
   /**
@@ -1092,11 +1235,7 @@ export function useExplorerAutofix(
           getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/autofix/', {
             path: {organizationIdOrSlug: orgSlug, issueId: groupId},
           }),
-          {
-            method: 'POST',
-            query: {mode: 'explorer'},
-            data,
-          }
+          {method: 'POST', query: {mode: 'explorer'}, data}
         );
 
         // Check for failures in the response
@@ -1146,7 +1285,7 @@ export function useExplorerAutofix(
         queryClient.invalidateQueries({
           queryKey: explorerAutofixApiOptions(orgSlug, groupId).queryKey,
         });
-      } catch (e: any) {
+      } catch (e) {
         if (needsGitHubAuth(e)) {
           const currentUrl = window.location.href;
           window.location.href = `/remote/github-copilot/oauth/?next=${encodeURIComponent(currentUrl)}`;

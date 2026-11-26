@@ -31,7 +31,7 @@ class RobotsTxtTest(TestCase):
         return reverse("sentry-robots-txt")
 
     def test_robots(self) -> None:
-        resp = self.client.get(self.path)
+        resp = self.client.get(self.path, HTTP_ACCEPT="text/markdown")
         assert resp.status_code == 200
         assert resp["Content-Type"] == "text/plain"
 
@@ -686,7 +686,7 @@ class McpJsonTest(TestCase):
 
     def test_mcp_json_saas_mode(self) -> None:
         with override_settings(SENTRY_MODE="saas"):
-            response = self.client.get("/.well-known/mcp.json")
+            response = self.client.get("/.well-known/mcp.json", HTTP_ACCEPT="text/markdown")
 
         assert response.status_code == 200
         assert response["Content-Type"] == "application/json"
@@ -715,7 +715,7 @@ class McpJsonTest(TestCase):
 class ApiCatalogTest(TestCase):
     def test_saas_mode(self) -> None:
         with override_settings(SENTRY_MODE="saas"):
-            response = self.client.get("/.well-known/api-catalog")
+            response = self.client.get("/.well-known/api-catalog", HTTP_ACCEPT="text/markdown")
 
         assert response.status_code == 200
         assert response["Content-Type"] == "application/linkset+json"
@@ -753,7 +753,9 @@ class ApiCatalogTest(TestCase):
 class OauthAuthorizationServerTest(TestCase):
     def test_saas_mode(self) -> None:
         with override_settings(SENTRY_MODE="saas"):
-            response = self.client.get("/.well-known/oauth-authorization-server")
+            response = self.client.get(
+                "/.well-known/oauth-authorization-server", HTTP_ACCEPT="text/markdown"
+            )
 
         assert response.status_code == 200
         assert response["Content-Type"] == "application/json"
@@ -765,6 +767,8 @@ class OauthAuthorizationServerTest(TestCase):
         assert data["authorization_endpoint"] == "https://sentry.io/oauth/authorize/"
         assert data["token_endpoint"] == "https://sentry.io/oauth/token/"
         assert data["prompt_values_supported"] == ["none", "login", "consent", "select_account"]
+        assert data["device_authorization_endpoint"] == "https://sentry.io/oauth/device/code/"
+        assert "urn:ietf:params:oauth:grant-type:device_code" in data["grant_types_supported"]
         assert isinstance(data["scopes_supported"], list)
         assert "org:read" in data["scopes_supported"]
 
@@ -789,7 +793,9 @@ class OauthAuthorizationServerTest(TestCase):
 class OauthProtectedResourceTest(TestCase):
     def test_saas_mode(self) -> None:
         with override_settings(SENTRY_MODE="saas"):
-            response = self.client.get("/.well-known/oauth-protected-resource")
+            response = self.client.get(
+                "/.well-known/oauth-protected-resource", HTTP_ACCEPT="text/markdown"
+            )
 
         assert response.status_code == 200
         assert response["Content-Type"] == "application/json"
@@ -822,7 +828,9 @@ class OauthProtectedResourceTest(TestCase):
 class McpServerCardTest(TestCase):
     def test_saas_mode(self) -> None:
         with override_settings(SENTRY_MODE="saas"):
-            response = self.client.get("/.well-known/mcp/server-card.json")
+            response = self.client.get(
+                "/.well-known/mcp/server-card.json", HTTP_ACCEPT="text/markdown"
+            )
 
         assert response.status_code == 200
         assert response["Content-Type"] == "application/json"
@@ -854,7 +862,9 @@ class McpServerCardTest(TestCase):
 class AgentSkillsIndexTest(TestCase):
     def test_saas_mode(self) -> None:
         with override_settings(SENTRY_MODE="saas"):
-            response = self.client.get("/.well-known/agent-skills/index.json")
+            response = self.client.get(
+                "/.well-known/agent-skills/index.json", HTTP_ACCEPT="text/markdown"
+            )
 
         assert response.status_code == 200
         assert response["Content-Type"] == "application/json"
