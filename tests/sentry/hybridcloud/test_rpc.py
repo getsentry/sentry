@@ -19,6 +19,8 @@ from sentry.hybridcloud.rpc.service import (
     RpcDisabledException,
     RpcRemoteException,
     RpcResponseException,
+    _connections,
+    _get_connection,
     _RemoteSiloCall,
     dispatch_remote_call,
     dispatch_to_local_service,
@@ -340,6 +342,69 @@ class DispatchRemoteCallTest(TestCase):
         timeout_override_setting = {"organization_service.some_other_method": 20}
         with override_options({"hybridcloud.rpc.method_retry_overrides": timeout_override_setting}):
             assert test_class.get_method_retry_count() == default_value
+
+
+class GetConnectionTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        _connections.lookup = {}
+
+    def tearDown(self) -> None:
+        _connections.lookup = {}
+        super().tearDown()
+
+    @mock.patch("sentry.hybridcloud.rpc.service.time.monotonic")
+    def test_reuses_session_when_disabled(self, mock_monotonic: mock.MagicMock) -> None:
+        mock_monotonic.return_value = 1000.0
+        first = _get_connection(5)
+
+        mock_monotonic.return_value = 1_000_000.0
+        assert _get_connection(5) is first
+
+    @override_options({"hybridcloud.rpc.connection_max_idle_seconds": 300})
+    @mock.patch("sentry.hybridcloud.rpc.service.time.monotonic")
+    def test_reuses_session_within_idle_limit(self, mock_monotonic: mock.MagicMock) -> None:
+        mock_monotonic.return_value = 1000.0
+        first = _get_connection(5)
+
+        # Each use refreshes the idle clock, so steady traffic keeps the session.
+        mock_monotonic.return_value = 1250.0
+        assert _get_connection(5) is first
+        mock_monotonic.return_value = 1500.0
+        assert _get_connection(5) is first
+
+    @override_options({"hybridcloud.rpc.connection_max_idle_seconds": 300})
+    @mock.patch("sentry.hybridcloud.rpc.service.metrics.incr")
+    @mock.patch("sentry.hybridcloud.rpc.service.time.monotonic")
+    def test_replaces_idle_session(
+        self, mock_monotonic: mock.MagicMock, mock_incr: mock.MagicMock
+    ) -> None:
+        mock_monotonic.return_value = 1000.0
+        first = _get_connection(5)
+
+        mock_monotonic.return_value = 1301.0
+        with mock.patch.object(first, "close") as mock_close:
+            second = _get_connection(5)
+
+        assert second is not first
+        mock_close.assert_called_once_with()
+        mock_incr.assert_called_once_with("hybrid_cloud.dispatch_rpc.idle_session_reset")
+        assert _get_connection(5) is second
+
+    @override_options({"hybridcloud.rpc.connection_max_idle_seconds": 300})
+    @mock.patch("sentry.hybridcloud.rpc.service.time.monotonic")
+    def test_idle_limit_is_per_retry_count(self, mock_monotonic: mock.MagicMock) -> None:
+        mock_monotonic.return_value = 1000.0
+        five = _get_connection(5)
+        two = _get_connection(2)
+        assert five is not two
+
+        # Only the retry-count-2 session stays in use.
+        mock_monotonic.return_value = 1200.0
+        assert _get_connection(2) is two
+        mock_monotonic.return_value = 1400.0
+        assert _get_connection(2) is two
+        assert _get_connection(5) is not five
 
 
 _BREAKER_CONFIG = {
