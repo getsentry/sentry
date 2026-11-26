@@ -1,3 +1,5 @@
+import partition from 'lodash/partition';
+
 import type {
   FrameVariable,
   NativeFrameVariable,
@@ -118,9 +120,16 @@ export function getJsonFrameVariables(
   meta?: Record<string, unknown>,
   platform?: PlatformKey
 ): FrameVariable[] {
-  return Object.keys(data)
-    .sort()
-    .map(name => toVariable(name, data[name], meta?.[name], platform));
+  let names = Object.keys(data).sort();
+  if (platform === 'native') {
+    // List what was passed to the function before what it declared. Relay sorts the
+    // variables of a stored event by name, which mixes the two.
+    names = partition(names, name => {
+      const variable = data[name];
+      return isNativeVariable(variable) && variable.kind === 'parameter';
+    }).flat();
+  }
+  return names.map(name => toVariable(name, data[name], meta?.[name], platform));
 }
 
 function toVariable(

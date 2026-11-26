@@ -419,6 +419,25 @@ describe('native variables extracted by Symbolicator', () => {
     });
   });
 
+  it('lists parameters before locals and sorts each group by name', () => {
+    const data = {
+      damage: {kind: 'local', type: 'float', value: 25.5},
+      player: {kind: 'parameter', type: 'Player*'},
+      // Legacy strings and variables that are not Symbolicator's are listed with locals.
+      legacy: '0x1 (int)',
+      frame_number: {kind: 'parameter', type: 'int', value: 1},
+      velocity: {kind: 'local', type: 'Vec3'},
+    };
+
+    expect(
+      getJsonFrameVariables(data, undefined, 'native').map(variable => variable.name)
+    ).toEqual(['frame_number', 'player', 'damage', 'legacy', 'velocity']);
+    // `kind` only describes the scope of a variable in Symbolicator's schema.
+    expect(
+      getJsonFrameVariables(data, undefined, 'node').map(variable => variable.name)
+    ).toEqual(['damage', 'frame_number', 'legacy', 'player', 'velocity']);
+  });
+
   it('leaves variables of other platforms and legacy native strings untouched', () => {
     expect(convert('0x2a (int)')).toMatchObject({kind: 'unformatted'});
     expect(convert({kind: 'circle', radius: 2})).toMatchObject({
