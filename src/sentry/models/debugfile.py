@@ -899,8 +899,8 @@ def _wasm_source_map_debug_id(data: dict[str, Any], debug_id: str | None) -> str
         raise BadDif("Invalid debugId in wasmsourcemap: %s" % e)
 
     if debug_id is not None and _try_normalize_debug_id(debug_id) != embedded:
-        # Symbolicator finds the map by the module's build id. A map stamped with another id is
-        # stored, but never paired with its module.
+        # Symbolicator looks up the map by the module's build id. A map stamped with another id is
+        # stored under its own id, so it is never paired with the module it was uploaded next to.
         logger.warning(
             "wasmsourcemap.debug_id_mismatch",
             extra={"embedded_debug_id": embedded, "debug_id": debug_id},
