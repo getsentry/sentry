@@ -4,6 +4,7 @@ import {
   type ApiTransportOptions,
   type CachedRequest,
   createApiTransport,
+  type RetryableFailure,
   getValidatedResponseSource,
   type TransportCache,
   type TransportCredential,
@@ -119,7 +120,7 @@ describe("credential selection", () => {
   });
 });
 
-describe("sends once", () => {
+describe("without a retry policy", () => {
   it.each([
     ["a 503", () => new Response("", { status: 503 }), 503],
     ["a rate-limited 429", () => windowLimited(0), 429],
@@ -143,6 +144,161 @@ describe("sends once", () => {
       .catch((error: unknown) => error);
 
     expect(result).toEqual(new TypeError("fetch failed"));
+    expect(sent).toHaveLength(1);
+  });
+});
+
+describe("retry policy", () => {
+  /** Retry every failure at once, up to `limit` retries. */
+  const retryUpTo = (limit: number) =>
+    vi.fn((failure: RetryableFailure) =>
+      failure.attempt < limit ? 0 : undefined,
+    );
+
+  it("asks the policy about a failed response and sends again", async () => {
+    const { fetch, sent } = scriptedFetch([
+      new Response("", { status: 503 }),
+      Response.json({ ok: true }),
+    ]);
+    const retry = retryUpTo(1);
+
+    const response = await transport(fetch, { retry }).request(ISSUES_URL);
+
+    expect(await response.json()).toEqual({ ok: true });
+    expect(sent).toHaveLength(2);
+    expect(retry).toHaveBeenCalledExactlyOnceWith({
+      method: "GET",
+      url: ISSUES_URL,
+      idempotent: false,
+      attempt: 0,
+      waitedMs: 0,
+      status: 503,
+      serverDelayMs: undefined,
+    });
+  });
+
+  it("counts attempts and waits, and reports a 429 once the policy stops", async () => {
+    const { fetch, sent } = scriptedFetch([() => windowLimited(30_000)]);
+    const retry = vi.fn((failure: RetryableFailure) =>
+      failure.attempt < 2 ? 1 : undefined,
+    );
+    const rateLimited = vi.fn(async () => new Error("rate limited"));
+
+    const result = await transport(fetch, { retry, errors: { rateLimited } })
+      .request(ISSUES_URL)
+      .catch((error: unknown) => error);
+
+    expect(result).toEqual(new Error("rate limited"));
+    expect(sent).toHaveLength(3);
+    expect(retry.mock.calls.map(([failure]) => failure.attempt)).toEqual([
+      0, 1, 2,
+    ]);
+    expect(retry.mock.calls.map(([failure]) => failure.waitedMs)).toEqual([
+      0, 1, 2,
+    ]);
+    expect(retry.mock.calls[0]?.[0].serverDelayMs).toBeGreaterThan(28_000);
+    expect(rateLimited).toHaveBeenCalledTimes(1);
+  });
+
+  it("retries a network error and a timeout, passing the error", async () => {
+    const hang = (init?: RequestInit) =>
+      new Promise<Response>((_, reject) => {
+        init?.signal?.addEventListener("abort", () =>
+          reject(new DOMException("aborted", "AbortError")),
+        );
+      });
+    let calls = 0;
+    const fetch = vi.fn(
+      async (_input: Request | string | URL, init?: RequestInit) => {
+        calls++;
+        if (calls === 1) {
+          throw new TypeError("fetch failed");
+        }
+        return calls === 2 ? await hang(init) : Response.json({});
+      },
+    );
+    const retry = retryUpTo(2);
+
+    const response = await transport(fetch, { retry, timeoutMs: 5 }).request(
+      ISSUES_URL,
+      { method: "PUT" },
+      { idempotent: true },
+    );
+
+    expect(response.status).toBe(200);
+    expect(retry.mock.calls.map(([failure]) => failure.error)).toEqual([
+      new TypeError("fetch failed"),
+      new ApiTimeoutError(5, true),
+    ]);
+    expect(retry.mock.calls[0]?.[0]).toMatchObject({
+      method: "PUT",
+      idempotent: true,
+      status: undefined,
+    });
+  });
+
+  it("replays a stream body on each attempt", async () => {
+    const { fetch, sent } = scriptedFetch([
+      new Response("", { status: 502 }),
+      Response.json({}),
+    ]);
+    const body = new ReadableStream({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('{"name":"x"}'));
+        controller.close();
+      },
+    });
+
+    await transport(fetch, { retry: retryUpTo(1) }).request(ISSUES_URL, {
+      method: "POST",
+      body,
+      duplex: "half",
+    } as RequestInit);
+
+    expect(sent.map((request) => request.body)).toEqual([
+      '{"name":"x"}',
+      '{"name":"x"}',
+    ]);
+  });
+
+  it("is not asked about a success, a refreshed 401, or a fatal error", async () => {
+    const retry = retryUpTo(5);
+    const { fetch, sent } = scriptedFetch([
+      new Response("", { status: 401 }),
+      Response.json({}),
+    ]);
+
+    await transport(fetch, {
+      retry,
+      credentials: {
+        current: () => credential,
+        refresh: async () => ({ ...credential, token: "token-b" }),
+      },
+    }).request(ISSUES_URL);
+    const fatal = await transport(
+      scriptedFetch([new Error("bad certificate")]).fetch,
+      { retry, errors: { fatal: () => new Error("tls") } },
+    )
+      .request(ISSUES_URL)
+      .catch((error: unknown) => error);
+
+    expect(sent).toHaveLength(2);
+    expect(fatal).toEqual(new Error("tls"));
+    expect(retry).not.toHaveBeenCalled();
+  });
+
+  it("stops waiting when the caller aborts", async () => {
+    const { fetch, sent } = scriptedFetch([new Response("", { status: 503 })]);
+    const controller = new AbortController();
+    const reason = new Error("tool call cancelled");
+
+    const pending = transport(fetch, { retry: () => 60_000 })
+      .request(ISSUES_URL, { signal: controller.signal })
+      .catch((error: unknown) => error);
+    await waitFor(() => expect(sent).toHaveLength(1));
+    controller.abort(reason);
+
+    expect(await pending).toBe(reason);
     expect(sent).toHaveLength(1);
   });
 });
