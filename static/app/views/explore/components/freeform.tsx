@@ -62,8 +62,10 @@ export function getFreeformName(
   if (!trimmedName) {
     return null;
   }
+
+  const lowerName = trimmedName.toLowerCase();
   for (const existing of existingNames) {
-    if (existing === trimmedName) {
+    if (existing.toLowerCase() === lowerName) {
       return null;
     }
   }

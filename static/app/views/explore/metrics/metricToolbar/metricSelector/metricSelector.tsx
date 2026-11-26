@@ -149,10 +149,15 @@ export function MetricSelector({
   const [debouncedSearch] = useDebouncedValue(searchInputValue, {
     wait: DEFAULT_DEBOUNCE_DURATION,
   });
+  const [pendingFreeformName, setPendingFreeformName] = useState<string | null>(null);
+  const [pendingFreeformType, setPendingFreeformType] =
+    useState<TraceMetricTypeValue | null>(null);
+
   const {data: metricOptionsData, isFetching} = useMetricOptions({
     search: debouncedSearch,
     projectIds,
     environments,
+    enabled: !pendingFreeformName,
   });
 
   // Looked up separately from the search results so the "Awaiting data" state
@@ -302,7 +307,18 @@ export function MetricSelector({
     );
     const fallbackOption =
       optionFromTraceMetric && isAwaitingData
-        ? {...optionFromTraceMetric, trailingItems: () => <AwaitingDataTag />}
+        ? {
+            ...optionFromTraceMetric,
+            trailingItems: () => (
+              <Fragment>
+                <MetricOptionTrailingItems
+                  metricType={optionFromTraceMetric.metricType}
+                  metricUnit={traceMetricDisplayUnit}
+                />
+                <AwaitingDataTag />
+              </Fragment>
+            ),
+          }
         : optionFromTraceMetric;
     const selectedOption = traceMetric.name
       ? (selectedApiOption ?? fallbackOption)
@@ -330,6 +346,7 @@ export function MetricSelector({
     ];
   }, [
     isAwaitingData,
+    traceMetricDisplayUnit,
     fieldOption,
     metricOptionsData,
     optionFromTraceMetric,
@@ -380,11 +397,17 @@ export function MetricSelector({
   // Show the previous options while a new search is loading so the list
   // doesn't flash empty during debounced re-fetches.
   const previousOptions = usePrevious(metricOptions);
-  // Set after "Add freeform metric" is picked; the list then asks for a metric
-  // type, and once that's picked, a unit.
-  const [pendingFreeformName, setPendingFreeformName] = useState<string | null>(null);
-  const [pendingFreeformType, setPendingFreeformType] =
-    useState<TraceMetricTypeValue | null>(null);
+
+  // Only show freeform once the search has settled
+  const areOptionsCurrent = !isFetching && searchInputValue === debouncedSearch;
+  const freeformName =
+    allowFreeformMetric && areOptionsCurrent
+      ? getFreeformName(
+          searchInputValue,
+          metricOptions.filter(isMetricSelectorOption).map(option => option.metricName)
+        )
+      : null;
+
   const displayedOptions = useMemo((): MetricSelectorItem[] => {
     if (pendingFreeformName && pendingFreeformType) {
       const unitSearch = searchInputValue.trim().toLowerCase();
@@ -417,12 +440,6 @@ export function MetricSelector({
       }));
     }
     const options = isFetching ? previousOptions : metricOptions;
-    const freeformName = allowFreeformMetric
-      ? getFreeformName(
-          searchInputValue,
-          options.filter(isMetricSelectorOption).map(option => option.metricName)
-        )
-      : null;
     if (!freeformName) {
       return options;
     }
@@ -444,7 +461,7 @@ export function MetricSelector({
       ...options,
     ];
   }, [
-    allowFreeformMetric,
+    freeformName,
     isFetching,
     searchInputValue,
     pendingFreeformName,
@@ -470,36 +487,52 @@ export function MetricSelector({
     }, null);
   }, [displayedOptions]);
 
+  // Some freeform metric types are invalid, e.g., heatmaps don't support counters
+  const getOptionDisabledReason = useCallback(
+    (option: MetricSelectorItem): string | undefined => {
+      if (!getDisabledOptionReason) {
+        return undefined;
+      }
+      if (isMetricSelectorOption(option)) {
+        return getDisabledOptionReason(option);
+      }
+      if (option.kind === 'freeformMetricType' && pendingFreeformName) {
+        return getDisabledOptionReason({
+          kind: 'metric',
+          label: pendingFreeformName,
+          value: option.value,
+          metricName: pendingFreeformName,
+          metricType: option.metricType,
+        });
+      }
+      return undefined;
+    },
+    [getDisabledOptionReason, pendingFreeformName]
+  );
+
   // Attach a tooltip to options the caller disables, and collect their keys so
   // the combobox renders them disabled. Both no-op without getDisabledOptionReason.
   const displayedOptionsWithDisabledState = useMemo(() => {
     return displayedOptions.map(option => {
-      if (!isMetricSelectorOption(option)) {
+      if (option.kind === 'field') {
         return option;
       }
-      if (!getDisabledOptionReason) {
-        return option;
-      }
-      const reason = getDisabledOptionReason(option);
+      const reason = getOptionDisabledReason(option);
       return reason ? {...option, tooltip: reason} : option;
     });
-  }, [displayedOptions, getDisabledOptionReason]);
+  }, [displayedOptions, getOptionDisabledReason]);
 
   const disabledOptionKeys = useMemo(() => {
     return new Set(
       displayedOptions
-        .filter(option => {
-          if (option.kind === 'field') {
-            return Boolean(fieldOption?.disabledReason);
-          }
-          if (!isMetricSelectorOption(option)) {
-            return false;
-          }
-          return Boolean(getDisabledOptionReason?.(option));
-        })
+        .filter(option =>
+          option.kind === 'field'
+            ? Boolean(fieldOption?.disabledReason)
+            : Boolean(getOptionDisabledReason(option))
+        )
         .map(option => option.value)
     );
-  }, [displayedOptions, fieldOption?.disabledReason, getDisabledOptionReason]);
+  }, [displayedOptions, fieldOption?.disabledReason, getOptionDisabledReason]);
 
   const displayedOptionsMap = useMemo(
     () =>
@@ -645,6 +678,25 @@ export function MetricSelector({
     },
     comboBoxState
   );
+
+  // Go back a step when adding a freeform metric.
+  // Backspace works when the input is empty, escape always works
+  function handleSearchInputKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    const isStepBack =
+      e.key === 'Escape' || (e.key === 'Backspace' && searchInputValue === '');
+    if (!isStepBack || !pendingFreeformName) {
+      comboBoxInputProps.onKeyDown?.(e);
+      return;
+    }
+    e.preventDefault();
+    if (pendingFreeformType) {
+      setPendingFreeformType(null);
+      setSearchInputValue('');
+    } else {
+      setSearchInputValue(pendingFreeformName);
+      setPendingFreeformName(null);
+    }
+  }
 
   const collectionItems = useMemo(
     () => [...comboBoxState.collection],
@@ -825,6 +877,7 @@ export function MetricSelector({
                         </InputGroup.LeadingItems>
                         <InputGroup.Input
                           {...comboBoxInputProps}
+                          onKeyDown={handleSearchInputKeyDown}
                           placeholder={
                             pendingFreeformName && pendingFreeformType
                               ? t('Search units\u2026')
@@ -871,7 +924,11 @@ export function MetricSelector({
                       {collectionItems.length === 0 ? (
                         <Flex align="center" justify="center" padding="xl">
                           <Text variant="muted" size="sm">
-                            {t('No application metrics found')}
+                            {pendingFreeformName && pendingFreeformType
+                              ? t('No units found')
+                              : pendingFreeformName
+                                ? t('No metric types found')
+                                : t('No application metrics found')}
                           </Text>
                         </Flex>
                       ) : (
