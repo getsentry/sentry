@@ -7,14 +7,21 @@ from typing import Any
 import sentry_sdk
 from pydantic import ValidationError
 
+from sentry.api.client import ApiClient, ApiError
 from sentry.api.serializers.rest_framework import DashboardSerializer
-from sentry.constants import ObjectStatus
-from sentry.dashboards.models.generate_dashboard_artifact import GeneratedDashboard
+from sentry.constants import ALL_ACCESS_PROJECT_ID, ObjectStatus
+from sentry.dashboards.models.generate_dashboard_artifact import (
+    GeneratedDashboard,
+    GeneratedWidget,
+    GeneratedWidgetQuery,
+)
+from sentry.models.apikey import ApiKey
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.client_utils import fetch_run_status
 from sentry.seer.agent.on_completion_hook import AgentOnCompletionHook
+from sentry.snuba.referrer import Referrer
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +29,24 @@ FIX_PROMPT = "The generated dashboard artifact has validation errors."
 FIX_PROMPT_SECONDARY = "Please fix the following issues and regenerate the dashboard artifact:"
 
 MAX_VALIDATION_RETRIES = 3
+
+# The dashboard page's default period, so the dry run sends what the UI sends.
+DRY_RUN_STATS_PERIOD = "24h"
+DRY_RUN_INTERVAL = "1h"
+DRY_RUN_API_KEY_SCOPES = ["org:read", "project:read", "event:read"]
+
+# Datasets the frontend queries for each widget type. Issue widgets query the issues endpoint.
+WIDGET_TYPE_DATASETS: dict[str, str] = {
+    "error-events": "errors",
+    "spans": "spans",
+    "logs": "logs",
+    "tracemetrics": "tracemetrics",
+}
+
+# Mirrors usesTimeSeriesData in static/app/views/dashboards/utils.tsx: chart widgets
+# query events-timeseries, and table-style widgets query events.
+TIMESERIES_DISPLAY_TYPES = frozenset({"line", "area", "bar"})
+TABLE_DISPLAY_TYPES = frozenset({"table", "big_number", "categorical_bar"})
 
 
 def _format_serializer_errors(errors: dict[str, Any]) -> str:
@@ -106,6 +131,108 @@ def _validate_with_serializer(
     return None
 
 
+def _build_events_request(
+    widget: GeneratedWidget, query: GeneratedWidgetQuery, dataset: str
+) -> tuple[str, dict[str, Any]] | None:
+    """
+    Build the events or events-timeseries request the frontend sends for one widget query.
+    Returns None for display types the dry run does not cover, such as heatmaps.
+    """
+    params: dict[str, Any] = {"dataset": dataset, "query": query.conditions}
+    if dataset == "spans":
+        params["sampling"] = "NORMAL"
+
+    if widget.display_type in TABLE_DISPLAY_TYPES:
+        params["field"] = [*query.columns, *query.aggregates]
+        params["per_page"] = 1
+        if query.orderby:
+            params["sort"] = query.orderby
+        return "events", params
+
+    if widget.display_type in TIMESERIES_DISPLAY_TYPES:
+        params["yAxis"] = query.aggregates
+        params["interval"] = DRY_RUN_INTERVAL
+        if query.columns:
+            fields = [*query.columns, *query.aggregates]
+            params["field"] = fields
+            params["groupBy"] = fields
+            params["topEvents"] = widget.limit
+        if query.orderby:
+            params["sort"] = query.orderby
+        return "events-timeseries", params
+
+    return None
+
+
+def _build_widget_request(
+    widget: GeneratedWidget, query: GeneratedWidgetQuery
+) -> tuple[str, dict[str, Any]] | None:
+    if widget.widget_type == "issue":
+        # Issue charts only take count(new_issues) and count(resolved_issues), which
+        # Pydantic already checks, so only the search conditions can still fail.
+        params: dict[str, Any] = {"query": query.conditions, "limit": 1}
+        if widget.display_type == "table" and query.orderby:
+            params["sort"] = query.orderby
+        return "issues", params
+
+    dataset = WIDGET_TYPE_DATASETS.get(widget.widget_type or "")
+    if dataset is None:
+        return None
+    return _build_events_request(widget, query, dataset)
+
+
+def _dry_run_widget_queries(artifact: GeneratedDashboard, organization: Organization) -> list[str]:
+    """
+    Run each widget query against the endpoint the dashboard page uses for it, and
+    return one line per query the endpoint rejects with a 400.
+
+    The serializer checks syntax and field names, but some queries only fail when
+    they run, such as numeric tag aggregates on the errors dataset, or aggregates
+    in a group-by. Failures other than a 400 are logged and skipped: they do not
+    mean that the query is wrong.
+    """
+    api_key = ApiKey(organization_id=organization.id, scope_list=DRY_RUN_API_KEY_SCOPES)
+    shared_params: dict[str, Any] = {
+        "project": artifact.projects or [ALL_ACCESS_PROJECT_ID],
+        "statsPeriod": DRY_RUN_STATS_PERIOD,
+        "referrer": Referrer.API_DASHBOARDS_GENERATE_DRY_RUN.value,
+    }
+    if artifact.environment:
+        shared_params["environment"] = artifact.environment
+
+    errors: list[str] = []
+    for widget_idx, widget in enumerate(artifact.widgets):
+        for query_idx, query in enumerate(widget.queries):
+            request = _build_widget_request(widget, query)
+            if request is None:
+                continue
+            endpoint, params = request
+            try:
+                ApiClient().get(
+                    auth=api_key,
+                    user=None,
+                    path=f"/organizations/{organization.slug}/{endpoint}/",
+                    params={**shared_params, **params},
+                )
+            except ApiError as error:
+                if error.status_code != 400:
+                    logger.warning(
+                        "dashboards.on_completion_hook.dry_run_request_failed",
+                        extra={
+                            "organization_id": organization.id,
+                            "endpoint": endpoint,
+                            "status_code": error.status_code,
+                        },
+                    )
+                    continue
+                detail = error.body.get("detail") if isinstance(error.body, dict) else None
+                errors.append(
+                    f"Widget {widget_idx} ({widget.title!r}), query {query_idx}: "
+                    f"{detail if detail is not None else error.body}"
+                )
+    return errors
+
+
 class DashboardOnCompletionHook(AgentOnCompletionHook):
     """
     Hook called when a dashboard generation agent run completes.
@@ -114,8 +241,8 @@ class DashboardOnCompletionHook(AgentOnCompletionHook):
     GeneratedDashboard Pydantic model (schema-level: blocklisted functions,
     field types, layout constraints), then against the DRF DashboardSerializer
     (semantic-level: search syntax, aggregate/column validity, dataset
-    compatibility). If either validation fails, asks Seer to regenerate with
-    the error details.
+    compatibility), then by running each widget query. If any of these fail,
+    asks Seer to regenerate with the error details.
 
     The hook is limited to MAX_VALIDATION_RETRIES retry attempts to prevent
     infinite loops, since on_completion_hooks persist across continue_run calls.
@@ -206,6 +333,36 @@ class DashboardOnCompletionHook(AgentOnCompletionHook):
                     result="max_retries",
                     retry_count=retry_count,
                     last_layer="serializer",
+                )
+            return
+
+        query_errors = _dry_run_widget_queries(artifact, organization)
+        if query_errors:
+            logger.info(
+                "dashboards.on_completion_hook.query_dry_run_failed",
+                extra={
+                    "run_id": run_id,
+                    "organization_id": organization.id,
+                    "errors": query_errors,
+                },
+            )
+
+            if retry_count < MAX_VALIDATION_RETRIES:
+                cls._request_fix(organization, run_id, "\n".join(query_errors))
+            else:
+                logger.info(
+                    "dashboards.on_completion_hook.max_retries_reached",
+                    extra={
+                        "organization_id": organization.id,
+                        "run_id": run_id,
+                        "retry_count": retry_count,
+                    },
+                )
+                cls._emit_generation_attempts_metric(
+                    status="fail",
+                    result="max_retries",
+                    retry_count=retry_count,
+                    last_layer="query",
                 )
             return
 

@@ -32,6 +32,7 @@ class Referrer(StrEnum):
 
     API_DASHBOARDS_RELEASE_SELECTOR = "api.dashboards-release-selector"
     API_DASHBOARDS_DETAILS_WIDGET_DOMAIN_STATUS = "api.dashboards.details-widget.domain-status"
+    API_DASHBOARDS_GENERATE_DRY_RUN = "api.dashboards.generate.dry-run"
     API_DASHBOARDS_BIGNUMBERWIDGET_METRICS_ENHANCED_PRIMARY = (
         "api.dashboards.bignumberwidget.metrics-enhanced.primary"
     )
