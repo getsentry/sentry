@@ -11,6 +11,7 @@ import {
   type Column,
   type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/useWidgetBuilderContext';
 import {
@@ -105,6 +106,7 @@ export function MetricSelectRow({
   onFieldChange?: (field: QueryFieldValue) => void;
 }) {
   const {state, dispatch} = useWidgetBuilderContext();
+  const organization = useOrganization();
   const [shouldAutoSelectFirstColumn, setShouldAutoSelectFirstColumn] = useState(false);
 
   const displayFields = getTraceMetricDisplayFields(
@@ -230,6 +232,7 @@ export function MetricSelectRow({
           traceMetric={traceMetric}
           usePortal
           skipDefaultOption={excludeDefaultAggregates ? skipDefaultOption : undefined}
+          allowFreeformMetric={organization.features.includes('attribute-management')}
           getDisabledOptionReason={
             state.displayType === DisplayType.HEATMAP
               ? getDisabledOptionReason

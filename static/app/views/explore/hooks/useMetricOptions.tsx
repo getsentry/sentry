@@ -18,6 +18,7 @@ interface UseMetricOptionsProps {
   datetime?: PageFilterDatetime;
   enabled?: boolean;
   environments?: PageFilters['environments'];
+  exactName?: string;
   orgSlug?: string;
   projectIds?: PageFilters['projects'];
   search?: string;
@@ -28,6 +29,7 @@ function metricOptionsQueryKey({
   projectIds,
   datetime,
   search,
+  exactName,
   environments,
 }: UseMetricOptionsProps = {}) {
   const queryFields = [
@@ -39,7 +41,10 @@ function metricOptionsQueryKey({
   ];
 
   let searchValue: MutableSearch | undefined;
-  if (search) {
+  if (exactName) {
+    searchValue = new MutableSearch('');
+    searchValue.addFilterValue(TraceMetricKnownFieldKey.METRIC_NAME, exactName);
+  } else if (search) {
     searchValue = new MutableSearch('');
     searchValue.addContainsFilterValue(TraceMetricKnownFieldKey.METRIC_NAME, search);
   }
@@ -49,7 +54,7 @@ function metricOptionsQueryKey({
     field: queryFields,
     referrer: 'api.explore.metric-options',
     query: defined(searchValue) ? searchValue.formatString() : undefined,
-    caseInsensitive: defined(searchValue) ? '1' : undefined,
+    caseInsensitive: !exactName && defined(searchValue) ? '1' : undefined,
     project: projectIds?.length ? projectIds?.map(String) : undefined,
     environment: environments?.length ? environments : undefined,
   };
@@ -74,6 +79,7 @@ function metricOptionsQueryKey({
  */
 export function useMetricOptions({
   search,
+  exactName,
   projectIds,
   datetime,
   environments,
@@ -89,6 +95,7 @@ export function useMetricOptions({
   } = useQuery({
     ...metricOptionsQueryKey({
       search,
+      exactName,
       orgSlug: organization.slug,
       projectIds: projectIds ?? selection.projects,
       datetime: datetime ?? selection.datetime,

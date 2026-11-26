@@ -717,4 +717,415 @@ describe('MetricSelector', () => {
       });
     });
   });
+
+  describe('freeform metrics', () => {
+    it('adds a freeform metric after choosing its metric type and unit', async () => {
+      const onChange = jest.fn();
+      render(
+        <MetricSelector
+          traceMetric={DEFAULT_TRACE_METRIC}
+          onChange={onChange}
+          allowFreeformMetric
+        />,
+        {organization}
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'bar'}));
+      await userEvent.type(
+        await screen.findByPlaceholderText('Search application metrics\u2026'),
+        'checkout.latency'
+      );
+      // The option is named by the typed metric name and labelled as an add.
+      const freeformOption = await screen.findByRole('option', {
+        name: 'checkout.latency',
+      });
+      expect(freeformOption).toHaveTextContent('Use freeform metric "checkout.latency"');
+      expect(within(freeformOption).queryByText('New')).not.toBeInTheDocument();
+      await userEvent.click(freeformOption);
+
+      // The second step asks for a metric type before anything is selected.
+      expect(onChange).not.toHaveBeenCalled();
+      expect(screen.getByText(/Choose a metric type for/)).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: /Counter/})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: /Gauge/})).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('option', {name: /Distribution/}));
+
+      // The third step asks for the unit the app will send the metric with.
+      expect(onChange).not.toHaveBeenCalled();
+      expect(screen.getByText(/Choose a unit for/)).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'none'})).toBeInTheDocument();
+      await userEvent.type(screen.getByPlaceholderText('Search units\u2026'), 'milli');
+      await userEvent.click(screen.getByRole('option', {name: 'millisecond'}));
+
+      expect(onChange).toHaveBeenCalledWith({
+        name: 'checkout.latency',
+        type: 'distribution',
+        unit: 'millisecond',
+      });
+    });
+
+    it('goes back a step on Backspace in an empty search', async () => {
+      const onChange = jest.fn();
+      render(
+        <MetricSelector
+          traceMetric={DEFAULT_TRACE_METRIC}
+          onChange={onChange}
+          allowFreeformMetric
+        />,
+        {organization}
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'bar'}));
+      await userEvent.type(
+        await screen.findByPlaceholderText('Search application metrics…'),
+        'checkout.latency'
+      );
+      await userEvent.click(
+        await screen.findByRole('option', {name: 'checkout.latency'})
+      );
+      await userEvent.click(screen.getByRole('option', {name: /Gauge/}));
+      expect(screen.getByText(/Choose a unit for/)).toBeInTheDocument();
+
+      // Backspace with text in the search only deletes text.
+      const unitSearch = screen.getByPlaceholderText('Search units…');
+      await userEvent.type(unitSearch, 'm');
+      await userEvent.keyboard('{Backspace}');
+      expect(unitSearch).toHaveValue('');
+      expect(screen.getByText(/Choose a unit for/)).toBeInTheDocument();
+
+      // Unit step → metric type step, to fix the wrong type.
+      await userEvent.keyboard('{Backspace}');
+      expect(screen.getByText(/Choose a metric type for/)).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('option', {name: /Distribution/}));
+      expect(screen.getByText(/Choose a unit for/)).toBeInTheDocument();
+
+      // Unit step → metric type step → search, with the typed name restored.
+      await userEvent.click(screen.getByPlaceholderText('Search units…'));
+      await userEvent.keyboard('{Backspace}');
+      await userEvent.keyboard('{Backspace}');
+      expect(screen.getByPlaceholderText('Search application metrics…')).toHaveValue(
+        'checkout.latency'
+      );
+      expect(
+        await screen.findByRole('option', {name: 'checkout.latency'})
+      ).toBeInTheDocument();
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
+    it('adds a freeform metric using only the keyboard', async () => {
+      const onChange = jest.fn();
+      render(
+        <MetricSelector
+          traceMetric={DEFAULT_TRACE_METRIC}
+          onChange={onChange}
+          allowFreeformMetric
+        />,
+        {organization}
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'bar'}));
+      await userEvent.type(
+        await screen.findByPlaceholderText('Search application metrics…'),
+        'checkout.latency'
+      );
+      // The freeform row is first in the list.
+      await screen.findByRole('option', {name: 'checkout.latency'});
+      await userEvent.keyboard('{ArrowDown}{Enter}');
+
+      expect(screen.getByText(/Choose a metric type for/)).toBeInTheDocument();
+      await userEvent.type(screen.getByPlaceholderText('Search metric types…'), 'dist');
+      await userEvent.keyboard('{ArrowDown}{Enter}');
+
+      expect(screen.getByText(/Choose a unit for/)).toBeInTheDocument();
+      await userEvent.type(screen.getByPlaceholderText('Search units…'), 'milli');
+      await userEvent.keyboard('{ArrowDown}{Enter}');
+
+      expect(onChange).toHaveBeenCalledWith({
+        name: 'checkout.latency',
+        type: 'distribution',
+        unit: 'millisecond',
+      });
+    });
+
+    it('goes back a step on Escape, then closes from the metric search', async () => {
+      const onChange = jest.fn();
+      render(
+        <MetricSelector
+          traceMetric={DEFAULT_TRACE_METRIC}
+          onChange={onChange}
+          allowFreeformMetric
+        />,
+        {organization}
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'bar'}));
+      const search = await screen.findByPlaceholderText('Search application metrics…');
+      await userEvent.type(search, 'checkout.latency');
+      await userEvent.click(
+        await screen.findByRole('option', {name: 'checkout.latency'})
+      );
+      await userEvent.click(screen.getByRole('option', {name: /Gauge/}));
+      await userEvent.keyboard('milli');
+
+      // Steps back even with text in the search
+      await userEvent.keyboard('{Escape}');
+      expect(screen.getByText(/Choose a metric type for/)).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('Search metric types…')).toHaveValue('');
+
+      await userEvent.keyboard('{Escape}');
+      expect(screen.getByPlaceholderText('Search application metrics…')).toHaveValue(
+        'checkout.latency'
+      );
+      expect(screen.getByRole('listbox')).toBeInTheDocument();
+
+      await userEvent.keyboard('{Escape}');
+      await waitFor(() => {
+        expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+      });
+      expect(onChange).not.toHaveBeenCalledWith(
+        expect.objectContaining({name: 'checkout.latency'})
+      );
+    });
+
+    it('starts over from the metric search when reopened after closing', async () => {
+      render(
+        <MetricSelector
+          traceMetric={DEFAULT_TRACE_METRIC}
+          onChange={jest.fn()}
+          allowFreeformMetric
+        />,
+        {organization}
+      );
+
+      const trigger = screen.getByRole('button', {name: 'bar'});
+      await userEvent.click(trigger);
+      await userEvent.type(
+        await screen.findByPlaceholderText('Search application metrics…'),
+        'checkout.latency'
+      );
+      await userEvent.click(
+        await screen.findByRole('option', {name: 'checkout.latency'})
+      );
+      await userEvent.click(screen.getByRole('option', {name: /Gauge/}));
+      expect(screen.getByText(/Choose a unit for/)).toBeInTheDocument();
+
+      await userEvent.click(document.body);
+      await waitFor(() => {
+        expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+      });
+
+      await userEvent.click(trigger);
+      expect(
+        await screen.findByPlaceholderText('Search application metrics…')
+      ).toHaveValue('');
+      expect(screen.queryByText(/Choose a unit for/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Choose a metric type for/)).not.toBeInTheDocument();
+    });
+
+    it('marks a selected metric with no data as having no recent data, keeping its badges', async () => {
+      render(
+        <MetricSelector
+          traceMetric={{name: 'checkout.latency', type: 'counter', unit: 'millisecond'}}
+          onChange={jest.fn()}
+          allowFreeformMetric
+        />,
+        {organization}
+      );
+
+      const trigger = screen.getByRole('button', {name: /checkout\.latency/});
+      expect(await within(trigger).findByText('No recent data')).toBeInTheDocument();
+
+      await userEvent.click(trigger);
+      const option = await screen.findByRole('option', {name: /checkout\.latency/});
+      expect(within(option).getByText('No recent data')).toBeInTheDocument();
+      expect(within(option).getByText('counter')).toBeInTheDocument();
+      expect(within(option).getByText('millisecond')).toBeInTheDocument();
+    });
+
+    it('does not mark a selected metric that has data as having no recent data', async () => {
+      render(
+        <MetricSelector
+          traceMetric={DEFAULT_TRACE_METRIC}
+          onChange={jest.fn()}
+          allowFreeformMetric
+        />,
+        {organization}
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'bar'}));
+      await screen.findByRole('option', {name: 'bar'});
+      expect(screen.queryByText('No recent data')).not.toBeInTheDocument();
+    });
+
+    it('does not offer a name that exists but is missing from the search results', async () => {
+      // Search results match substrings and are capped, so only the exact-name
+      // lookup returns this metric.
+      const exactNameMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events/`,
+        body: {
+          data: [
+            {
+              'metric.name': 'checkout.latency',
+              'metric.type': 'counter',
+              'metric.unit': 'none',
+              'count(metric.name)': 1,
+            },
+          ],
+        },
+        match: [MockApiClient.matchQuery({query: 'metric.name:checkout.latency'})],
+      });
+      render(
+        <MetricSelector
+          traceMetric={DEFAULT_TRACE_METRIC}
+          onChange={jest.fn()}
+          allowFreeformMetric
+        />,
+        {organization}
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'bar'}));
+      await userEvent.type(
+        await screen.findByPlaceholderText('Search application metrics\u2026'),
+        'checkout.latency'
+      );
+      await waitFor(() => expect(exactNameMock).toHaveBeenCalled());
+      await screen.findByRole('option', {name: 'bar'});
+      expect(screen.queryByText(/Use freeform metric/)).not.toBeInTheDocument();
+    });
+
+    it('checks for the selected metric by exact name over the last 30 days', async () => {
+      const exactNameMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events/`,
+        body: {data: []},
+        match: [MockApiClient.matchQuery({query: 'metric.name:checkout.latency'})],
+      });
+      render(
+        <MetricSelector
+          traceMetric={{name: 'checkout.latency', type: 'counter', unit: 'millisecond'}}
+          onChange={jest.fn()}
+          allowFreeformMetric
+        />,
+        {organization}
+      );
+
+      await waitFor(() => {
+        expect(exactNameMock).toHaveBeenCalledWith(
+          `/organizations/${organization.slug}/events/`,
+          expect.objectContaining({
+            query: expect.objectContaining({
+              query: 'metric.name:checkout.latency',
+              statsPeriod: '30d',
+            }),
+          })
+        );
+      });
+      const [, request] = exactNameMock.mock.calls[0];
+      expect(request.query.caseInsensitive).toBeUndefined();
+    });
+
+    it.each([
+      {sentType: 'gauge', hasNoRecentData: true},
+      {sentType: 'counter', hasNoRecentData: false},
+    ])(
+      'marks no recent data by name and type (sent as $sentType)',
+      async ({sentType, hasNoRecentData}) => {
+        const exactNameMock = MockApiClient.addMockResponse({
+          url: `/organizations/${organization.slug}/events/`,
+          body: {
+            data: [
+              {
+                'metric.name': 'checkout.latency',
+                'metric.type': sentType,
+                'metric.unit': 'millisecond',
+                'count(metric.name)': 1,
+              },
+            ],
+          },
+          match: [MockApiClient.matchQuery({query: 'metric.name:checkout.latency'})],
+        });
+        render(
+          <MetricSelector
+            traceMetric={{name: 'checkout.latency', type: 'counter', unit: 'millisecond'}}
+            onChange={jest.fn()}
+            allowFreeformMetric
+          />,
+          {organization}
+        );
+
+        const trigger = screen.getByRole('button', {name: /checkout\.latency/});
+        await waitFor(() => expect(exactNameMock).toHaveBeenCalled());
+        if (hasNoRecentData) {
+          expect(await within(trigger).findByText('No recent data')).toBeInTheDocument();
+        } else {
+          // Let the lookup's response render before checking for the tag.
+          await waitFor(() => expect(exactNameMock).toHaveBeenCalledTimes(1));
+          await act(() => Promise.resolve());
+          expect(within(trigger).queryByText('No recent data')).not.toBeInTheDocument();
+        }
+      }
+    );
+
+    it('disables freeform metric types that getDisabledOptionReason rejects', async () => {
+      const onChange = jest.fn();
+      render(
+        <MetricSelector
+          traceMetric={DEFAULT_TRACE_METRIC}
+          onChange={onChange}
+          allowFreeformMetric
+          getDisabledOptionReason={option =>
+            option.metricType === 'distribution'
+              ? undefined
+              : 'Heatmaps can only visualize distribution metrics.'
+          }
+        />,
+        {organization}
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'bar'}));
+      await userEvent.type(
+        await screen.findByPlaceholderText('Search application metrics…'),
+        'checkout.latency'
+      );
+      await userEvent.click(
+        await screen.findByRole('option', {name: 'checkout.latency'})
+      );
+
+      expect(screen.getByRole('option', {name: /Counter/})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+      expect(screen.getByRole('option', {name: /Gauge/})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+      expect(screen.getByRole('option', {name: /Distribution/})).not.toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+
+      // Picking a disabled type does nothing.
+      await userEvent.click(screen.getByRole('option', {name: /Counter/}));
+      expect(screen.getByText(/Choose a metric type for/)).toBeInTheDocument();
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
+    it('does not offer a freeform metric unless allowFreeformMetric is set', async () => {
+      render(<MetricSelector traceMetric={DEFAULT_TRACE_METRIC} onChange={jest.fn()} />, {
+        organization,
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'bar'}));
+      await userEvent.type(
+        await screen.findByPlaceholderText('Search application metrics\u2026'),
+        'checkout.latency'
+      );
+
+      await screen.findByRole('listbox');
+      expect(
+        screen.queryByRole('option', {name: 'checkout.latency'})
+      ).not.toBeInTheDocument();
+      expect(screen.queryByText(/Use freeform metric/)).not.toBeInTheDocument();
+    });
+  });
 });
