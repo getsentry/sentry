@@ -284,6 +284,12 @@ const ATTRIBUTE: ConditionSpec = {
   },
 };
 
+// The catch-all takes no attribute condition: a key names a different thing on each
+// data type.
+function takesAttributes(dataType: FilterDataType): boolean {
+  return dataType !== 'all';
+}
+
 const CONDITION_TYPES = Object.keys(CONDITIONS) as [ConditionType, ...ConditionType[]];
 const FILTER_DATA_TYPES = Object.keys(DATA_TYPES) as [
   FilterDataType,
@@ -403,11 +409,14 @@ function getFieldDefinitionGetter(dataType: FilterDataType): FieldDefinitionGett
   let getter = FIELD_DEFINITION_GETTERS.get(dataType);
   if (!getter) {
     getter = key => {
-      const spec = CONDITION_SPECS.get(key) ?? ATTRIBUTE;
+      const property = CONDITION_SPECS.get(key);
+      const spec = property ?? ATTRIBUTE;
       return {
         kind: FieldKind.FIELD,
         valueType: FieldValueType.STRING,
-        desc: getMatchDescription(spec, dataType),
+        // The builder marks a key that has a description as added by Sentry, which
+        // an attribute the user sends is not.
+        desc: property ? getMatchDescription(spec, dataType) : undefined,
         allowComparisonOperators: spec.comparable,
         comparisonOperatorsFirst: spec.comparable,
         allowWildcard: !spec.exact,
@@ -592,11 +601,12 @@ function parseConditionQuery(
   dataType: FilterDataType,
   allowAttributes: boolean
 ): ConditionsTranslation {
+  const readsAttributes = allowAttributes && takesAttributes(dataType);
   const parsed = parseQueryBuilderValue(query, getFieldDefinitionGetter(dataType), {
     filterKeys: getFilterKeys(dataType),
     disallowFreeText: true,
     disallowLogicalOperators: true,
-    disallowUnsupportedFilters: !allowAttributes,
+    disallowUnsupportedFilters: !readsAttributes,
   });
   if (!queryIsValid(parsed)) {
     return {problem: t('Every condition must be valid.')};
@@ -606,7 +616,7 @@ function parseConditionQuery(
     if (token.type !== Token.FILTER) {
       continue;
     }
-    const translation = tokenToCondition(token, allowAttributes);
+    const translation = tokenToCondition(token, readsAttributes);
     if (translation.condition === undefined) {
       return translation;
     }
@@ -830,7 +840,7 @@ function getConditionsHint(
       )
     );
   }
-  if (allowAttributes) {
+  if (allowAttributes && takesAttributes(dataType)) {
     hints.push(
       dataType === 'error'
         ? t('To match a tag, type its name as the property, e.g. server_name:web-*.')
@@ -1295,7 +1305,9 @@ function CustomFilterModal({
                               invalidMessages={CONDITION_QUERY_MESSAGES}
                               disallowFreeText
                               disallowLogicalOperators
-                              disallowUnsupportedFilters={!allowAttributes}
+                              disallowUnsupportedFilters={
+                                !allowAttributes || !takesAttributes(dataType)
+                              }
                               keepOperatorOnValueSelect
                               showAllFilterValues
                               showSearchIcon={false}
