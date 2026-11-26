@@ -174,6 +174,56 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
   const isEmptyEquation = isVisualizeEquation(visualize) && !visualize.expression.text;
   const isPending = result.isPending && !isMetricOptionsEmpty && !isEmptyEquation;
 
+  const header = (
+    <AggregatesStyledHeader>
+      {displayFields.map((field, i) => {
+        let label = field;
+        const tag =
+          data?.stringAttributes?.[field] ??
+          data?.numberAttributes?.[field] ??
+          data?.booleanAttributes?.[field] ??
+          null;
+        const func = parseFunction(field);
+        if (field === TraceMetricKnownFieldKey.METRIC_NAME) {
+          label = t('Application Metric');
+        } else if (func) {
+          label = `${func.name}(…)`;
+        } else if (tag) {
+          label = tag.name;
+        } else if (isEquation(field)) {
+          // TODO: This should say the reference format of equations
+          label = t('Result');
+        } else {
+          label = prettifyTagKey(field);
+        }
+
+        const direction = sorts.find(s => s.field === field)?.kind;
+        const canSort = field !== TraceMetricKnownFieldKey.METRIC_NAME;
+
+        function updateSort() {
+          setSorts([{field, kind: getNextDirection(direction)}]);
+        }
+
+        return (
+          <AggregatesStyledHeaderCell
+            key={i}
+            divider={shouldShowDivider(i)}
+            isAggregate={
+              Boolean(func) || (isVisualizeEquation(visualize) && isEquation(field))
+            }
+            source="metricsPage"
+            sort={direction}
+            handleSortClick={canSort ? updateSort : undefined}
+          >
+            <Tooltip showOnlyOnOverflow title={label}>
+              {label}
+            </Tooltip>
+          </AggregatesStyledHeaderCell>
+        );
+      })}
+    </AggregatesStyledHeader>
+  );
+
   return (
     <AggregatesSimpleTable style={tableStyle}>
       {isPending && (
@@ -182,53 +232,7 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
         </LoadingMaskRow>
       )}
 
-      <AggregatesStyledHeader>
-        {displayFields.map((field, i) => {
-          let label = field;
-          const tag =
-            data?.stringAttributes?.[field] ??
-            data?.numberAttributes?.[field] ??
-            data?.booleanAttributes?.[field] ??
-            null;
-          const func = parseFunction(field);
-          if (field === TraceMetricKnownFieldKey.METRIC_NAME) {
-            label = t('Application Metric');
-          } else if (func) {
-            label = `${func.name}(…)`;
-          } else if (tag) {
-            label = tag.name;
-          } else if (isEquation(field)) {
-            // TODO: This should say the reference format of equations
-            label = t('Result');
-          } else {
-            label = prettifyTagKey(field);
-          }
-
-          const direction = sorts.find(s => s.field === field)?.kind;
-          const canSort = field !== TraceMetricKnownFieldKey.METRIC_NAME;
-
-          function updateSort() {
-            setSorts([{field, kind: getNextDirection(direction)}]);
-          }
-
-          return (
-            <AggregatesStyledHeaderCell
-              key={i}
-              divider={shouldShowDivider(i)}
-              isAggregate={
-                Boolean(func) || (isVisualizeEquation(visualize) && isEquation(field))
-              }
-              source="metricsPage"
-              sort={direction}
-              handleSortClick={canSort ? updateSort : undefined}
-            >
-              <Tooltip showOnlyOnOverflow title={label}>
-                {label}
-              </Tooltip>
-            </AggregatesStyledHeaderCell>
-          );
-        })}
-      </AggregatesStyledHeader>
+      {header}
 
       {result.isError ? (
         <SimpleTable.Error />
