@@ -3,6 +3,10 @@
  * that the latest release on npm has, which breaks code written against that
  * release. A renamed export shows up as the old name going missing.
  *
+ * A breaking change releases as a major, which may remove exports, so the
+ * removals are listed but allowed when CHANGE_MESSAGE, the PR title or the
+ * commit message CI checks, marks one (see breaking-change.mjs).
+ *
  *   node test/consumers/exports.mjs path/to/sentry-api-x.y.z.tgz
  */
 import { execFileSync } from "node:child_process";
@@ -10,6 +14,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import ts from "typescript";
+import { isBreakingChange } from "./breaking-change.mjs";
 
 const [tarball] = process.argv.slice(2);
 if (!tarball) throw new Error("Usage: exports.mjs <packed @sentry/api tarball>");
@@ -52,8 +57,11 @@ try {
     }
     for (const name of names) if (!now.has(name)) missing.push(`${name} from "${subpath}"`);
   }
-  if (missing.length > 0) {
-    console.error(`Compared with @sentry/api ${version}, this package no longer exports:\n${missing.map(item => `  ${item}`).join("\n")}`);
+  const report = `Compared with @sentry/api ${version}, this package no longer exports:\n${missing.map(item => `  ${item}`).join("\n")}`;
+  if (missing.length > 0 && isBreakingChange(process.env.CHANGE_MESSAGE)) {
+    console.log(`${report}\nThis is a breaking change, so it releases as a major and may remove them.`);
+  } else if (missing.length > 0) {
+    console.error(`${report}\nMark the change breaking (\`type(scope)!:\`) if it should release as a major.`);
     process.exitCode = 1;
   } else {
     console.log(`Every entry point and export of @sentry/api ${version} is still there.`);
