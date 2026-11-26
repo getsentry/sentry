@@ -10,7 +10,7 @@ import {parseChartDateTime} from 'sentry/components/charts/formatChartDateTime';
 
 import type {BandBucket} from './bandShapes';
 
-function formatBucketRange(start: number, end: number, timezone: string): string {
+export function formatTimeRange(start: number, end: number, timezone: string): string {
   const startDate = parseChartDateTime(start, timezone);
   const endDate = parseChartDateTime(end, timezone);
   const now = parseChartDateTime(Date.now(), timezone);
@@ -48,9 +48,9 @@ export function ChartBandTooltipHeading({
 }
 
 interface ChartBandTooltipProps {
-  bucket: BandBucket;
   sections: React.ReactElement[];
   timezone: string;
+  bucket?: BandBucket;
 }
 
 export function ChartBandTooltip({bucket, sections, timezone}: ChartBandTooltipProps) {
@@ -64,11 +64,13 @@ export function ChartBandTooltip({bucket, sections, timezone}: ChartBandTooltipP
           </Fragment>
         ))}
       </TooltipBody>
-      <Container className="tooltip-footer tooltip-footer-centered">
-        <Text size="xs" variant="muted">
-          {formatBucketRange(bucket.start, bucket.end, timezone)}
-        </Text>
-      </Container>
+      {bucket ? (
+        <Container className="tooltip-footer tooltip-footer-centered">
+          <Text size="xs" variant="muted">
+            {formatTimeRange(bucket.start, bucket.end, timezone)}
+          </Text>
+        </Container>
+      ) : null}
       <div className="tooltip-arrow arrow-top" />
     </Fragment>
   );

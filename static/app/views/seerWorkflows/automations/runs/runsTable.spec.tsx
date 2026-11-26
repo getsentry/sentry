@@ -1,4 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {
   act,
@@ -19,7 +20,7 @@ function makeRun(overrides: Partial<SeerAutomationRun> = {}): SeerAutomationRun 
     id: '1',
     configId: '1',
     configName: null,
-    strategy: 'agentic_triage_v2',
+    strategy: 'scheduled_investigation',
     dateAdded: '2026-04-20T00:00:00Z',
     dateUpdated: '2026-04-20T00:01:00Z',
     dateCompleted: '2026-04-20T00:01:00Z',
@@ -115,7 +116,7 @@ describe('RunsTable', () => {
       'href',
       `/organizations/${organization.slug}/seer/automations/7/`
     );
-    expect(screen.getByRole('link', {name: 'Agentic triage'})).toHaveAttribute(
+    expect(screen.getByRole('link', {name: 'Scheduled Investigation'})).toHaveAttribute(
       'href',
       `/organizations/${organization.slug}/seer/automations/8/`
     );
@@ -290,6 +291,40 @@ describe('RunsTable', () => {
     expect(screen.queryByRole('link', {name: /issue:/})).not.toBeInTheDocument();
   });
 
+  it('shows who manually triggered a run', async () => {
+    MockApiClient.addMockResponse({
+      url: runsUrl,
+      body: {runs: [makeRun({trigger: {type: 'manual', userId: '7'}})]},
+    });
+    const userRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/users/7/`,
+      body: UserFixture({id: '7', name: 'Jane Doe'}),
+    });
+
+    render(<RunsTable />, {organization});
+
+    expect(await screen.findByText('Manually triggered by')).toBeInTheDocument();
+    expect(await screen.findByText('Jane Doe')).toBeInTheDocument();
+    expect(userRequest).toHaveBeenCalled();
+  });
+
+  it('shows a manually triggered run without a user', async () => {
+    MockApiClient.addMockResponse({
+      url: runsUrl,
+      body: {runs: [makeRun({trigger: {type: 'manual'}})]},
+    });
+    const userRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/users/7/`,
+      body: UserFixture({id: '7', name: 'Jane Doe'}),
+    });
+
+    render(<RunsTable />, {organization});
+
+    expect(await screen.findByText('Manually triggered')).toBeInTheDocument();
+    expect(screen.queryByText('Jane Doe')).not.toBeInTheDocument();
+    expect(userRequest).not.toHaveBeenCalled();
+  });
+
   it('leaves the automation out when showStrategy is false', async () => {
     MockApiClient.addMockResponse({
       url: runsUrl,
@@ -301,7 +336,7 @@ describe('RunsTable', () => {
     expect(await screen.findByText('Succeeded')).toBeInTheDocument();
     expect(screen.queryByText('Automation')).not.toBeInTheDocument();
     expect(
-      screen.queryByRole('link', {name: 'Breached metrics'})
+      screen.queryByRole('link', {name: 'Breached Metrics'})
     ).not.toBeInTheDocument();
     // Status, result, trigger, started
     const cells = screen.getAllByRole('cell');

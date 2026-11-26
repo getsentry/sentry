@@ -1,8 +1,8 @@
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 
 import orjson
 from django.conf import settings
-from urllib3 import BaseHTTPResponse, Retry
+from urllib3 import BaseHTTPResponse, Retry, Timeout
 
 from sentry.net.http import connection_from_url
 from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
@@ -14,6 +14,20 @@ seer_summarization_connection_pool = connection_from_url(
     retries=0,
     maxsize=10,  # Max persisted connections. If the number of concurrent requests exceeds this, temporary connections are created.
 )
+
+# Spam shadow requests get a total budget (not a per-phase float, which applies to connect and
+# read separately) so they always end before the task's processing deadline: a deadline kill
+# would report an error event whose frames hold the message text.
+SEER_FEEDBACK_SPAM_TIMEOUT = Timeout(total=15)
+
+
+class SpamShadowScoreRequest(TypedDict):
+    organization_id: int
+    project_id: int
+    feedback_event_id: str
+    feedback_message: str
+    llm_is_spam: bool
+    log_mismatch_message: NotRequired[bool]
 
 
 class SpamDetectionRequest(TypedDict):
@@ -122,4 +136,17 @@ def make_summarize_feedbacks_request(
         timeout=timeout,
         retries=retries,
         viewer_context=viewer_context,
+    )
+
+
+def make_spam_shadow_score_request(
+    body: SpamShadowScoreRequest,
+    retries: int | None | Retry = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        seer_summarization_connection_pool,
+        "/v0/feedback/spam-score",
+        body=orjson.dumps(body),
+        timeout=SEER_FEEDBACK_SPAM_TIMEOUT,
+        retries=retries,
     )

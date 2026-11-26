@@ -12,12 +12,14 @@ import {
   extractMessagesFromNodes,
   getInputMessageStats,
   getNodeTimestamp,
+  hasCapturedMessageContent,
   type ConversationMessage,
   memorySpansToMessages,
   mergeEmptyTurns,
   messagesToMarkdown,
   NOT_REPORTED,
   parseAssistantContent,
+  parseSystemPrompt,
   parseUserContent,
   partitionSpansByType,
   someMessageDeep,
@@ -430,6 +432,21 @@ describe('conversationMessages utilities', () => {
           {role: 'user', content: 'Hello'},
         ]),
         expected: {totalMessageCount: 1, userMessageCount: 1},
+      },
+      {
+        name: 'counts tool requests as history but not tool results as user turns',
+        input: JSON.stringify([
+          {role: 'user', content: 'Hello'},
+          {
+            role: 'assistant',
+            content: [{type: 'tool_use', id: 'toolu_1', name: 'search', input: {}}],
+          },
+          {
+            role: 'user',
+            content: [{type: 'tool_result', tool_use_id: 'toolu_1', content: 'Found it'}],
+          },
+        ]),
+        expected: {totalMessageCount: 3, userMessageCount: 1},
       },
       {
         name: 'returns zeroes when input is scrubbed',
@@ -2404,7 +2421,6 @@ describe('conversationMessages utilities', () => {
         viaNodeId: 't1',
         preview: 'find c2pa',
         duration: 27,
-        llmCallCount: 2,
       });
       // The task is the sub-agent's user message, and the tool's result is
       // what it returned to the parent.
@@ -2628,5 +2644,98 @@ describe('conversationMessages utilities', () => {
       expect(markdown).toContain('> > ### assisted_query\n> > \n> > Finalized query');
       expect(markdown).not.toContain('`Execute Sentry Data Query`');
     });
+  });
+});
+
+describe('parseSystemPrompt', () => {
+  it('reads the system message of the input', () => {
+    const node = createMockNode({
+      id: 'span-1',
+      attributes: {
+        [SpanFields.GEN_AI_INPUT_MESSAGES]: JSON.stringify([
+          {role: 'system', content: 'Sort emails.'},
+          {role: 'user', content: 'Hi'},
+        ]),
+      },
+    });
+    expect(parseSystemPrompt(node as any)).toBe('Sort emails.');
+  });
+
+  it('reads gen_ai.system_instructions', () => {
+    const node = createMockNode({
+      id: 'span-1',
+      attributes: {
+        [SpanFields.GEN_AI_SYSTEM_INSTRUCTIONS]: JSON.stringify([
+          {type: 'text', content: 'Be concise.'},
+        ]),
+      },
+    });
+    expect(parseSystemPrompt(node as any)).toBe('Be concise.');
+  });
+
+  it('returns null without a system prompt', () => {
+    const node = createMockNode({
+      id: 'span-1',
+      attributes: {
+        [SpanFields.GEN_AI_INPUT_MESSAGES]: JSON.stringify([
+          {role: 'user', content: 'Hi'},
+        ]),
+      },
+    });
+    expect(parseSystemPrompt(node as any)).toBeNull();
+  });
+});
+
+describe('hasCapturedMessageContent', () => {
+  it('is true when an LLM call captured its messages', () => {
+    const node = createMockNode({
+      id: 'span-1',
+      attributes: {
+        [SpanFields.GEN_AI_INPUT_MESSAGES]: JSON.stringify([
+          {role: 'user', content: 'Hi'},
+        ]),
+        [SpanFields.GEN_AI_RESPONSE_TEXT]: 'Hello',
+      },
+    });
+    expect(hasCapturedMessageContent(extractMessagesFromNodes([node] as any))).toBe(true);
+  });
+
+  it('is false for a transcript of placeholders', () => {
+    const node = createMockNode({
+      id: 'span-1',
+      attributes: {[SpanFields.GEN_AI_USAGE_INPUT_TOKENS]: 10},
+    });
+    const messages = extractMessagesFromNodes([node] as any);
+    expect(messages.some(message => message.content === NOT_REPORTED)).toBe(true);
+    expect(hasCapturedMessageContent(messages)).toBe(false);
+  });
+
+  it('is false without any messages', () => {
+    expect(hasCapturedMessageContent([])).toBe(false);
+  });
+
+  it('is false when only embeddings were captured', () => {
+    const messages = extractMessagesFromNodes([
+      createMockEmbeddingNode({id: 'embed-1'}),
+    ] as any);
+    expect(messages.some(message => message.role === 'embedding')).toBe(true);
+    expect(hasCapturedMessageContent(messages)).toBe(false);
+  });
+
+  it('is true when an LLM call captured its messages alongside embeddings', () => {
+    const llmCall = createMockNode({
+      id: 'span-1',
+      attributes: {
+        [SpanFields.GEN_AI_INPUT_MESSAGES]: JSON.stringify([
+          {role: 'user', content: 'Hi'},
+        ]),
+        [SpanFields.GEN_AI_RESPONSE_TEXT]: 'Hello',
+      },
+    });
+    const messages = extractMessagesFromNodes([
+      createMockEmbeddingNode({id: 'embed-1'}),
+      llmCall,
+    ] as any);
+    expect(hasCapturedMessageContent(messages)).toBe(true);
   });
 });

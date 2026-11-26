@@ -1,5 +1,3 @@
-import {useState} from 'react';
-
 import {toast} from '@sentry/scraps/toast';
 
 import {t} from 'sentry/locale';
@@ -18,16 +16,17 @@ export function useHandoffPromptCopy<Flow extends AgentHandoffFlow>({
   context,
   onCopySuccess,
 }: UseHandoffPromptCopyOptions<Flow>) {
-  const [useIpPinning, setUseIpPinning] = useState(true);
   const handoff = useAgentHandoff(flow, context);
-  const copyDisabled = !context || handoff.isPending;
+  // Minting the code is near-instant, so a busy or disabled state while it runs
+  // only flashes. copyPrompt ignores clicks until the request settles.
+  const copyDisabled = !context;
 
   function copyPrompt() {
     if (handoff.isPending) {
       return;
     }
     void handoff
-      .copyPrompt({disableIpPinning: !useIpPinning})
+      .copyPrompt()
       .then(handoffId => {
         toast.success(t('Agent prompt copied to clipboard'));
         onCopySuccess?.(handoffId);
@@ -35,10 +34,5 @@ export function useHandoffPromptCopy<Flow extends AgentHandoffFlow>({
       .catch(() => null);
   }
 
-  function toggleIpPinning() {
-    setUseIpPinning(enabled => !enabled);
-    handoff.reset();
-  }
-
-  return {copyPrompt, copyDisabled, handoff, useIpPinning, toggleIpPinning};
+  return {copyPrompt, copyDisabled, handoff};
 }

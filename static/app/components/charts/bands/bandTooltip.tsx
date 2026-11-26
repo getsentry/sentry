@@ -1,4 +1,5 @@
 import type {CustomSeriesOption} from 'echarts';
+import type {TooltipPositionCallback} from 'echarts/types/dist/shared';
 
 import {useTimezone} from '@sentry/scraps/dateTime';
 import {useRenderToString} from '@sentry/scraps/renderToString';
@@ -14,24 +15,33 @@ import type {ChartBand} from './mergeChartBands';
 
 const TOOLTIP_GAP = 8;
 
+interface TooltipAnchor {
+  bottom: number;
+  x: number;
+}
+
+type TooltipAnchorGetter = (
+  point: [number, number],
+  rect: Parameters<TooltipPositionCallback>[3]
+) => TooltipAnchor;
+
 /**
- * An item tooltip that opens below the hovered bucket, with its arrow kept on
- * the bucket when the tooltip is pinned inside the viewport.
+ * An item tooltip that opens below its anchor, with its arrow kept on the
+ * anchor when the tooltip is pinned inside the viewport.
  */
-function bandTooltipOption(
+export function itemTooltipBelowAnchor(
   chartRef: React.RefObject<ReactEchartsRef | null>,
-  buckets: BandBucket[],
-  renderTooltip: (bucket: BandBucket) => string
+  getAnchor: TooltipAnchorGetter,
+  renderTooltip: (dataIndex: number) => string
 ): CustomSeriesOption['tooltip'] {
   return {
     trigger: 'item',
     position(point, _params, dom, rect, size) {
       const [tipWidth] = size.contentSize;
-      const anchorX = rect ? rect.x + rect.width / 2 : point[0];
-      const anchorBottom = rect ? rect.y + rect.height : point[1];
+      const anchor = getAnchor(point, rect);
 
       const {left, arrowLeft} = horizontalTooltipPosition({
-        anchorX,
+        anchorX: anchor.x,
         chartLeft: chartRef.current?.ele?.getBoundingClientRect().left ?? 0,
         tipWidth,
       });
@@ -43,17 +53,27 @@ function bandTooltipOption(
         }
       }
 
-      return {left, top: anchorBottom + TOOLTIP_GAP};
+      return {left, top: anchor.bottom + TOOLTIP_GAP};
     },
-    formatter: params => {
-      const bucket = buckets[params.dataIndex];
-      if (!bucket || !isChartHovered(chartRef.current)) {
-        return '';
-      }
-
-      return renderTooltip(bucket);
-    },
+    formatter: params =>
+      isChartHovered(chartRef.current) ? renderTooltip(params.dataIndex) : '',
   };
+}
+
+const bucketAnchor: TooltipAnchorGetter = (point, rect) =>
+  rect
+    ? {x: rect.x + rect.width / 2, bottom: rect.y + rect.height}
+    : {x: point[0], bottom: point[1]};
+
+function bandTooltipOption(
+  chartRef: React.RefObject<ReactEchartsRef | null>,
+  buckets: BandBucket[],
+  renderTooltip: (bucket: BandBucket) => string
+): CustomSeriesOption['tooltip'] {
+  return itemTooltipBelowAnchor(chartRef, bucketAnchor, dataIndex => {
+    const bucket = buckets[dataIndex];
+    return bucket ? renderTooltip(bucket) : '';
+  });
 }
 
 interface UseBandTooltipsParams {
@@ -72,7 +92,7 @@ export function useBandTooltips(
 
   function renderTooltip(bucket: BandBucket): string {
     const sections = visibleBands
-      .map(band => band.tooltipSection?.(bucket.start))
+      .map(band => band.tooltipSection?.(bucket))
       .filter(defined);
     if (sections.length === 0) {
       return '';

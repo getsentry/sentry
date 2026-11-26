@@ -1,9 +1,11 @@
 import {useQuery} from '@tanstack/react-query';
 
 import type {Group} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
+import {hasImpactAssessment} from './groupImpact';
 import {useEnvironmentsFromUrl} from './utils';
 
 type GroupApiOptionsParameters = {
@@ -12,6 +14,16 @@ type GroupApiOptionsParameters = {
   organizationSlug: string;
   expandDerivedData?: boolean;
 };
+
+/**
+ * Whether group requests should expand derived data. Every query for a group must
+ * agree on this, since it is part of the query key.
+ */
+export function shouldExpandDerivedData(organization: Organization) {
+  return (
+    organization.features.includes('issue-inbox') || hasImpactAssessment(organization)
+  );
+}
 
 export function groupApiOptions({
   groupId,
@@ -23,20 +35,22 @@ export function groupApiOptions({
     path: {organizationIdOrSlug: organizationSlug, issueId: groupId},
     query: {
       ...(environments.length > 0 ? {environment: environments} : {}),
-      expand: ['inbox', 'owners', ...(expandDerivedData ? ['derivedData'] : [])],
+      expand: ['owners', ...(expandDerivedData ? ['derivedData'] : [])],
       collapse: ['release', 'tags', 'stats'],
     },
     staleTime: 30_000,
   });
 }
 
-type GroupQueryKeyParameters = Pick<
+type GroupQueryFilterParameters = Pick<
   GroupApiOptionsParameters,
   'groupId' | 'organizationSlug'
 >;
 
-export function groupQueryKey(params: GroupQueryKeyParameters) {
-  return [groupApiOptions({...params, environments: []}).queryKey[0]] as const;
+export function groupQueryFilter(params: GroupQueryFilterParameters) {
+  return apiOptions.queryFilter('/organizations/$organizationIdOrSlug/issues/$issueId/', {
+    path: {organizationIdOrSlug: params.organizationSlug, issueId: params.groupId},
+  });
 }
 
 interface UseGroupOptions {
@@ -57,7 +71,7 @@ export function useGroup({groupId, options}: UseGroupOptions) {
       organizationSlug: organization.slug,
       groupId,
       environments,
-      expandDerivedData: organization.features.includes('issue-inbox'),
+      expandDerivedData: shouldExpandDerivedData(organization),
     }),
     gcTime: 30_000,
     retry: false,

@@ -20,7 +20,7 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useResizable} from 'sentry/utils/useResizable';
@@ -34,7 +34,7 @@ import {
   INBOX_SUBJECT_TYPES,
   type InboxFilters,
   type InboxItem,
-  type InboxSubject,
+  type InboxSubjectRef,
 } from './types';
 import {useInboxFilters, type SetInboxFilters} from './useInboxFilters';
 import {hasInboxFilters} from './utils';
@@ -47,7 +47,7 @@ const INBOX_LIST_MAX_SIZE = 640;
 interface UseMarkInboxItemReadOnViewOptions {
   isPending: boolean;
   item: InboxItem | undefined;
-  subject: InboxSubject | null;
+  subject: InboxSubjectRef | null;
 }
 
 function useMarkInboxItemReadOnView({
@@ -71,7 +71,7 @@ function useMarkInboxItemReadOnView({
   const lastActivityAt = item?.lastActivityAt;
 
   useEffect(() => {
-    const subjectKey = subject ? `${subject.subjectType}:${subject.subjectId}` : null;
+    const subjectKey = subject ? `${subject.type}:${subject.id}` : null;
     if (attemptedRef.current?.subjectKey !== subjectKey) {
       attemptedRef.current = null;
     }
@@ -94,7 +94,7 @@ function useMarkInboxItemReadOnView({
 
 interface InboxListProps {
   filters: InboxFilters;
-  selectedSubject: InboxSubject | null;
+  selectedSubject: InboxSubjectRef | null;
   setFilters: SetInboxFilters;
 }
 
@@ -107,8 +107,8 @@ function InboxList({filters, setFilters, selectedSubject}: InboxListProps) {
   const selectedItem = selectedSubject
     ? items.find(
         item =>
-          item.subjectType === selectedSubject.subjectType &&
-          item.subjectId === selectedSubject.subjectId
+          item.subject.type === selectedSubject.type &&
+          item.subject.id === selectedSubject.id
       )
     : undefined;
   useMarkInboxItemReadOnView({
@@ -121,7 +121,7 @@ function InboxList({filters, setFilters, selectedSubject}: InboxListProps) {
     <ListItemCheckboxProvider
       hits={items.length}
       knownIds={items.map(item => item.id)}
-      endpointOptions={safeParseQueryKey(queryOptions.queryKey)?.options}
+      endpointOptions={parseQueryKey(queryOptions.queryKey).options}
     >
       <InboxListHeader filters={filters} setFilters={setFilters} />
       <Container flex={1} overflowY="auto" minHeight={0}>
@@ -214,7 +214,8 @@ function InboxContent() {
       ? INBOX_SUBJECT_TYPES.find(type => type === handle.inboxSubjectType)
       : undefined;
   const subjectId = previewMatch?.params.id;
-  const selectedSubject = subjectType && subjectId ? {subjectType, subjectId} : null;
+  const selectedSubject =
+    subjectType && subjectId ? {type: subjectType, id: subjectId} : null;
   const listContainerRef = useRef<HTMLDivElement>(null);
   const [storedSize, setStoredSize] = useSyncedLocalStorageState(
     INBOX_LIST_SIZE_STORAGE_KEY,

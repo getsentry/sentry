@@ -183,7 +183,7 @@ describe('FeedbackList', () => {
     await userEvent.hover(screen.getByRole('img', {name: 'Feedback failed'}));
     expect(
       await screen.findByText(
-        "This feedback couldn't finish because your organization is out of credits"
+        "This feedback couldn't finish because your organization does not have enough credits"
       )
     ).toBeInTheDocument();
   });
@@ -212,7 +212,48 @@ describe('FeedbackList', () => {
     await userEvent.hover(screen.getByRole('img', {name: 'Feedback failed'}));
     expect(
       await screen.findByText(
-        "This feedback couldn't finish because your organization is out of credits"
+        "This feedback couldn't finish because your organization does not have enough credits"
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('says the iteration stopped at the daily usage limit', async () => {
+    const state = ExplorerAutofixStateFixture({
+      status: 'error',
+      failure_reason: 'out_of_credits',
+      credit_denial_reason: 'daily_cap_exceeded',
+      blocks: iterationBlocks(),
+    });
+
+    render(<IterationFeedback state={state} />);
+
+    await userEvent.hover(screen.getByRole('img', {name: 'Feedback failed'}));
+    expect(
+      await screen.findByText(
+        "This feedback couldn't finish because your organization hit its daily usage limit"
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('says the iteration push stopped at the daily usage limit', async () => {
+    const state = ExplorerAutofixStateFixture({
+      status: 'completed',
+      blocks: [...iterationBlocks(), completedBlock()],
+      repo_pr_states: {
+        'org/repo': AutofixRepoPRStateFixture({
+          pr_creation_status: 'error',
+          pr_creation_error_code: 'out_of_credits',
+          credit_denial_reason: 'daily_cap_exceeded',
+        }),
+      },
+    });
+
+    render(<IterationFeedback state={state} />);
+
+    await userEvent.hover(screen.getByRole('img', {name: 'Feedback failed'}));
+    expect(
+      await screen.findByText(
+        "This feedback couldn't finish because your organization hit its daily usage limit"
       )
     ).toBeInTheDocument();
   });

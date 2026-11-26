@@ -1,21 +1,23 @@
 import {useMemo} from 'react';
 import {useTheme, type Theme} from '@emotion/react';
 import type {CustomSeriesRenderItem} from 'echarts';
+import sortedLastIndex from 'lodash/sortedLastIndex';
 
 import {Stack} from '@sentry/scraps/layout';
 
-import type {
-  AnnotationItem,
-  AnnotationKind,
-} from 'sentry/components/charts/annotations/types';
-import {t} from 'sentry/locale';
+import {
+  ANNOTATION_KIND_LABELS,
+  ANNOTATION_KINDS,
+} from 'sentry/components/charts/annotations/kinds';
+import type {AnnotationItem} from 'sentry/components/charts/annotations/types';
+import {defined} from 'sentry/utils/defined';
 
+import {groupBars} from './annotationBucketSize';
 import {
   BAND_HEIGHT,
   bandHoverTarget,
   bandLayout,
-  bandRect,
-  bandTrack,
+  bandPill,
   bucketHighlight,
   bucketSlot,
   clampRange,
@@ -28,14 +30,6 @@ import type {ChartBand} from './mergeChartBands';
 
 export const ANNOTATION_BAND_SERIES_ID = '__annotation_band__';
 
-const ANNOTATION_KINDS: AnnotationKind[] = ['release', 'flag', 'timeseriesAnnotation'];
-
-const ANNOTATION_KIND_LABELS: Record<AnnotationKind, string> = {
-  release: t('Releases'),
-  flag: t('Flags'),
-  timeseriesAnnotation: t('Changes'),
-};
-
 interface AnnotationBandItem extends AnnotationBucket {
   opacity: number;
   value: [start: number, y: number];
@@ -47,6 +41,7 @@ function markerOpacity(count: number, averageCount: number): number {
 
 function annotationBandRenderItem(
   data: AnnotationBandItem[],
+  barInterval: number,
   bandOffset: number,
   theme: Theme
 ): CustomSeriesRenderItem {
@@ -56,24 +51,18 @@ function annotationBandRenderItem(
       return null;
     }
 
-    const slot = bucketSlot(bucket, api);
+    const slot = bucketSlot(bucket, api, barInterval);
     const layout = bandLayout(bucket, bandOffset, params, api);
     if (!slot || !layout) {
       return null;
     }
 
     const {track, y} = layout;
-    const children: BandElement[] = [];
-
-    if (params.dataIndexInside === 0) {
-      children.push(bandTrack(track, y, theme));
-    }
-
     const range = clampRange(slot, track);
-    children.push(...bucketHighlight(slot, params, theme));
+    const children: BandElement[] = [...bucketHighlight(slot, params, theme)];
     if (bucket.items.length > 0) {
       children.push(
-        bandRect(range, y, track, theme.tokens.graphics.accent.vibrant, {
+        bandPill(range, y, theme.tokens.graphics.accent.vibrant, {
           opacity: bucket.opacity,
         })
       );
@@ -84,25 +73,71 @@ function annotationBandRenderItem(
   };
 }
 
+function withEarlierRanges(
+  annotationBuckets: AnnotationBucket[],
+  items: readonly AnnotationItem[]
+): AnnotationBucket[] {
+  const [firstBucket, ...otherBuckets] = annotationBuckets;
+  if (!firstBucket) {
+    return annotationBuckets;
+  }
+
+  const earlierRanges = items.filter(
+    ({start, end}) =>
+      start < firstBucket.start &&
+      (end === 'ongoing' || (defined(end) && end >= firstBucket.start))
+  );
+  return earlierRanges.length > 0
+    ? [{...firstBucket, items: [...earlierRanges, ...firstBucket.items]}, ...otherBuckets]
+    : annotationBuckets;
+}
+
+/**
+ * The annotations of the bucket holding `hovered` that start within it.
+ * Ranges carried in from before the bucket count from the bucket's start.
+ */
+function itemsInRange(
+  annotationBuckets: AnnotationBucket[],
+  starts: number[],
+  hovered: BandBucket
+): AnnotationItem[] | null {
+  const bucket = annotationBuckets[sortedLastIndex(starts, hovered.start) - 1];
+  if (!bucket || hovered.start >= bucket.end) {
+    return null;
+  }
+
+  return bucket.items.filter(
+    item =>
+      item.start < hovered.end &&
+      (item.start >= hovered.start || hovered.start === bucket.start)
+  );
+}
+
 interface UseAnnotationBandParams {
   buckets: BandBucket[];
+  barsPerBucket?: number;
   items?: readonly AnnotationItem[];
   onClick?: (items: AnnotationItem[]) => void;
 }
 
 /**
- * A band with a marker for every chart bucket that has annotations, shaded by
- * how many it has. Buckets without annotations can still be hovered.
+ * A band with a pill for every group of `barsPerBucket` bars that has
+ * annotations, shaded by how many it has. Groups without annotations can
+ * still be hovered.
  */
 export function useAnnotationBand({
   buckets,
+  barsPerBucket = 1,
   items,
   onClick,
 }: UseAnnotationBandParams): ChartBand | null {
   const theme = useTheme();
 
   return useMemo(() => {
-    const annotationBuckets = bucketAnnotations(items ?? [], buckets);
+    const annotationBuckets = withEarlierRanges(
+      bucketAnnotations(items ?? [], groupBars(buckets, barsPerBucket)),
+      items ?? []
+    );
     const bucketsWithItems = annotationBuckets.filter(bucket => bucket.items.length > 0);
     if (bucketsWithItems.length === 0) {
       return null;
@@ -122,9 +157,12 @@ export function useAnnotationBand({
     const kindsInBand = ANNOTATION_KINDS.filter(kind =>
       bucketsWithItems.some(bucket => bucket.items.some(item => item.kind === kind))
     );
+    const starts = annotationBuckets.map(bucket => bucket.start);
     const bucketsByStart = new Map(
       annotationBuckets.map(bucket => [bucket.start, bucket])
     );
+    const firstBar = buckets[0];
+    const barInterval = firstBar ? firstBar.end - firstBar.start : 0;
 
     return {
       id: ANNOTATION_BAND_SERIES_ID,
@@ -132,19 +170,19 @@ export function useAnnotationBand({
       height: BAND_HEIGHT,
       onClick: start => {
         const bucket = bucketsByStart.get(start);
-        if (bucket && bucket.items.length > 0) {
+        if (bucket) {
           onClick?.(bucket.items);
         }
       },
-      tooltipSection: start => {
-        const bucket = bucketsByStart.get(start);
-        return bucket ? (
+      tooltipSection: hovered => {
+        const itemsInHovered = itemsInRange(annotationBuckets, starts, hovered);
+        return itemsInHovered ? (
           <Stack as="section" gap="md" padding="lg 0">
             {kindsInBand.map(kind => (
               <ChartBandTooltipHeading
                 key={kind}
                 label={ANNOTATION_KIND_LABELS[kind]}
-                value={bucket.items.filter(item => item.kind === kind).length}
+                value={itemsInHovered.filter(item => item.kind === kind).length}
                 padding="0 xl"
               />
             ))}
@@ -153,7 +191,7 @@ export function useAnnotationBand({
       },
       series: bandOffset => ({
         type: 'custom',
-        renderItem: annotationBandRenderItem(data, bandOffset, theme),
+        renderItem: annotationBandRenderItem(data, barInterval, bandOffset, theme),
         name: ANNOTATION_BAND_SERIES_ID,
         data,
         color: theme.tokens.graphics.accent.vibrant,
@@ -161,5 +199,5 @@ export function useAnnotationBand({
         legendHoverLink: false,
       }),
     };
-  }, [buckets, items, onClick, theme]);
+  }, [barsPerBucket, buckets, items, onClick, theme]);
 }

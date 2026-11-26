@@ -1256,7 +1256,7 @@ describe('ScmCreateProject', () => {
         await screen.findByRole('textbox', {name: 'Project name'})
       ).toBeInTheDocument();
       expect(
-        screen.queryByRole('heading', {name: 'Let your agent set up Sentry'})
+        screen.queryByRole('heading', {name: 'Set up Sentry using your coding agent'})
       ).not.toBeInTheDocument();
       expect(request).not.toHaveBeenCalled();
     });
@@ -1272,7 +1272,9 @@ describe('ScmCreateProject', () => {
       render(<ScmCreateProject />, {organization: agentOrganization});
 
       expect(
-        await screen.findByRole('heading', {name: 'Let your agent set up Sentry'})
+        await screen.findByRole('heading', {
+          name: 'Set up Sentry using your coding agent',
+        })
       ).toBeInTheDocument();
       await waitFor(() => expect(request).toHaveBeenCalledTimes(1));
       const session = request.mock.calls[0]?.[1]?.data;
@@ -1280,7 +1282,7 @@ describe('ScmCreateProject', () => {
       expect(session.clientRunId).not.toBe(onboardingSession.agenticProgressClientRunId);
       expect(session.onboardingCode).toBeUndefined();
       expect(
-        screen.getByText('Detects your stack and installs the Sentry CLI')
+        screen.getByText('Detects your stack and adds the right SDK')
       ).toBeInTheDocument();
       expect(JSON.parse(sessionStorage.getItem('onboarding') ?? '{}')).toEqual(
         onboardingSession
@@ -1301,7 +1303,9 @@ describe('ScmCreateProject', () => {
       );
 
       expect(
-        await screen.findByRole('heading', {name: 'Let your agent set up Sentry'})
+        await screen.findByRole('heading', {
+          name: 'Set up Sentry using your coding agent',
+        })
       ).toBeInTheDocument();
       expect(request).toHaveBeenCalledTimes(1);
       await userEvent.click(screen.getByRole('button', {name: /Set up manually/}));
@@ -1347,16 +1351,12 @@ describe('ScmCreateProject', () => {
         origin: 'project_creation',
       });
 
-      await user.click(screen.getByRole('button', {name: 'Copy agent prompt'}));
+      await user.click(screen.getByRole('button', {name: 'Copy prompt'}));
       await waitFor(() =>
         expect(handoffRequest).toHaveBeenCalledWith(
           `/organizations/${agentOrganization.slug}/agent-handoff/prompts/`,
           expect.objectContaining({
-            data: {
-              context: {runId: run.runId},
-              disableIpPinning: false,
-              flow: 'create_project',
-            },
+            data: {context: {runId: run.runId}, flow: 'create_project'},
           })
         )
       );
@@ -1539,7 +1539,7 @@ describe('ScmCreateProject', () => {
         await screen.findByRole('textbox', {name: 'Project name'})
       ).toBeInTheDocument();
       expect(
-        screen.queryByRole('heading', {name: 'Let your agent set up Sentry'})
+        screen.queryByRole('heading', {name: 'Set up Sentry using your coding agent'})
       ).not.toBeInTheDocument();
       expect(request).not.toHaveBeenCalled();
     });

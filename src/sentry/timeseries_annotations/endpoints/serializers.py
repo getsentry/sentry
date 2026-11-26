@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from django.contrib.auth.models import AnonymousUser
+from rest_framework import serializers
 
 from sentry.api.serializers import Serializer, register
 from sentry.timeseries_annotations.models import (
@@ -13,6 +14,7 @@ from sentry.timeseries_annotations.models import (
     Severity,
     TimeseriesAnnotation,
 )
+from sentry.timeseries_annotations.rarity import rarity_score
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.viewer_context import ActorType
@@ -21,6 +23,10 @@ _INTERVAL_LABELS = dict(IntervalType.as_choices())
 _SCOPE_LABELS = dict(AnnotationScope.as_choices())
 _TYPE_LABELS = dict(AnnotationType.as_choices())
 _SEVERITY_LABELS = dict(Severity.as_choices())
+
+_SCOPE_BY_LABEL = {label: value for value, label in AnnotationScope.as_choices()}
+_TYPE_BY_LABEL = {label: value for value, label in AnnotationType.as_choices()}
+_SEVERITY_BY_LABEL = {label: value for value, label in Severity.as_choices()}
 
 
 @register(TimeseriesAnnotation)
@@ -42,7 +48,7 @@ class TimeseriesAnnotationSerializer(Serializer):
         else:
             created_by = None
 
-        return {
+        result: dict[str, Any] = {
             "id": str(obj.id),
             "organizationId": str(obj.organization_id),
             "projectId": str(obj.project_id) if obj.project_id is not None else None,
@@ -53,6 +59,7 @@ class TimeseriesAnnotationSerializer(Serializer):
             "annotationType": _TYPE_LABELS[obj.annotation_type],
             "scope": _SCOPE_LABELS[obj.scope],
             "severity": _SEVERITY_LABELS[obj.severity],
+            "pinned": obj.pinned,
             "description": obj.description,
             "tags": obj.tags,
             "createdBy": created_by,
@@ -60,3 +67,68 @@ class TimeseriesAnnotationSerializer(Serializer):
             "dateAdded": obj.date_added,
             "dateUpdated": obj.date_updated,
         }
+
+        # Read-time rarity on GET list. Missing types score as count 0.
+        rarity_counts = kwargs.get("rarity_counts")
+        if rarity_counts is not None:
+            result["rarityScore"] = rarity_score(rarity_counts.get(obj.annotation_type, 0))
+            result["rarityWindowDays"] = kwargs["rarity_window_days"]
+
+        return result
+
+
+class TimeseriesAnnotationPostSerializer(serializers.Serializer):
+    annotationType = serializers.ChoiceField(choices=sorted(_TYPE_BY_LABEL))
+    description = serializers.CharField()
+    startTimestamp = serializers.DateTimeField()
+    endTimestamp = serializers.DateTimeField(required=False, allow_null=True)
+    scope = serializers.ChoiceField(choices=sorted(_SCOPE_BY_LABEL), default="global")
+    severity = serializers.ChoiceField(choices=sorted(_SEVERITY_BY_LABEL), default="low")
+    pinned = serializers.BooleanField(required=False, default=False)
+    projectId = serializers.IntegerField(required=False, allow_null=True)
+    tags = serializers.DictField(required=False, allow_null=True)
+
+    def validate_annotationType(self, value: str) -> AnnotationType:
+        return AnnotationType(_TYPE_BY_LABEL[value])
+
+    def validate_scope(self, value: str) -> AnnotationScope:
+        return AnnotationScope(_SCOPE_BY_LABEL[value])
+
+    def validate_severity(self, value: str) -> Severity:
+        return Severity(_SEVERITY_BY_LABEL[value])
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        end = attrs.get("endTimestamp")
+        if end is not None and end < attrs["startTimestamp"]:
+            raise serializers.ValidationError("endTimestamp must be at or after startTimestamp")
+        return attrs
+
+
+class TimeseriesAnnotationFilterSerializer(serializers.Serializer):
+    id = serializers.IntegerField(required=False)
+    tags = serializers.DictField(required=False)
+
+    def validate_tags(self, value: dict[str, Any]) -> dict[str, Any]:
+        if not value:
+            raise serializers.ValidationError("must be non-empty")
+        return value
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        if "id" not in attrs and "tags" not in attrs:
+            raise serializers.ValidationError("must include id or tags")
+        return attrs
+
+
+class TimeseriesAnnotationPutSerializer(serializers.Serializer):
+    filters = TimeseriesAnnotationFilterSerializer()
+    description = serializers.CharField(required=False)
+    severity = serializers.ChoiceField(choices=sorted(_SEVERITY_BY_LABEL), required=False)
+    endTimestamp = serializers.DateTimeField(required=False, allow_null=True)
+
+    def validate_severity(self, value: str) -> Severity:
+        return Severity(_SEVERITY_BY_LABEL[value])
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        if not any(field in attrs for field in ("description", "severity", "endTimestamp")):
+            raise serializers.ValidationError("must include description, severity, or endTimestamp")
+        return attrs

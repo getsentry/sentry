@@ -1,10 +1,9 @@
 import {useCallback} from 'react';
 import {mutationOptions} from '@tanstack/react-query';
 import type {Location} from 'history';
-import omit from 'lodash/omit';
+import {parseAsString} from 'nuqs';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
-import {ALL_DATE_TIME_QUERY_KEYS} from 'sentry/components/pageFilters/constants';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useAiQueryContext} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
@@ -31,7 +30,7 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
-import {updateNullableLocation} from 'sentry/utils/url/updateNullableLocation';
+import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -44,6 +43,7 @@ import {
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {useQueryParams} from 'sentry/views/explore/queryParams/context';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
+import {applyQueryParamsUpdates} from 'sentry/views/explore/queryParams/parsers';
 import {
   getSeerExploreQuery,
   getSeerWritableAggregateFields,
@@ -53,7 +53,23 @@ import {
   defaultVisualizes,
   getTargetWithReadableQueryParams,
   LOGS_AGGREGATE_FIELD_KEY,
+  LOGS_QUERY_PARSERS,
 } from './logsQueryParams';
+
+const LOGS_SEER_QUERY_PARSERS = {
+  ...LOGS_QUERY_PARSERS,
+  project: parseAsStringArray,
+  interval: parseAsString,
+  start: parseAsString,
+  end: parseAsString,
+  period: parseAsString,
+  utc: parseAsString,
+  statsPeriod: parseAsString,
+  pageStart: parseAsString,
+  pageEnd: parseAsString,
+  pageUtc: parseAsString,
+  pageStatsPeriod: parseAsString,
+};
 
 interface LogsSeerLocationQueryResult {
   query: Location['query'];
@@ -81,74 +97,52 @@ export function getLogsSeerLocationQuery({
     projects,
     result.expandedProjectIds
   );
-  let targetLocation: Location = {
-    ...currentLocation,
-    query: omit(currentLocation.query, ALL_DATE_TIME_QUERY_KEYS),
-  };
-
-  if (projectIds?.length) {
-    targetLocation.query.project = projectIds.map(String);
-  }
-
-  targetLocation = getTargetWithReadableQueryParams(targetLocation, {
-    query: cleanedQuery,
-    mode: seerQuery.mode,
-    cursor: null,
-    aggregateCursor: null,
-  });
-  updateNullableLocation(
-    targetLocation,
-    'start',
-    seerQuery.datetime.start?.toString() ?? null
-  );
-  updateNullableLocation(
-    targetLocation,
-    'end',
-    seerQuery.datetime.end?.toString() ?? null
-  );
-  updateNullableLocation(targetLocation, 'statsPeriod', seerQuery.datetime.period);
-  updateNullableLocation(
-    targetLocation,
-    'utc',
-    seerQuery.datetime.utc?.toString() ?? null
-  );
-  // Only override the interval when Seer suggested one, otherwise leave
-  // the user's current interval untouched.
-  if (seerQuery.interval) {
-    targetLocation.query.interval = seerQuery.interval;
-  }
-
   // Only touch the samples columns when Seer asked for extra fields, otherwise
   // leave the user's current columns alone.
   const newFields =
     (result.extraFields ?? []).length > 0
       ? mergeSeerExtraFields(currentFields, result.extraFields)
       : [];
-  if (newFields.length > 0) {
-    targetLocation.query[LOGS_FIELDS_KEY] = newFields;
-  }
+  const isAggregate = seerQuery.mode === Mode.AGGREGATE;
+  const seerSortBys = seerQuery.sort ? [seerQuery.sort] : undefined;
 
-  if (seerQuery.mode === Mode.AGGREGATE) {
-    const aggregateFields = getSeerWritableAggregateFields({
-      currentAggregateFields,
-      groupBys: seerQuery.groupBys,
-      visualizes: seerQuery.visualizes,
-      fallbackVisualizes: defaultVisualizes().map(visualize => visualize.serialize()),
-    });
-    targetLocation.query[LOGS_AGGREGATE_FIELD_KEY] = aggregateFields.map(field =>
-      JSON.stringify(field)
-    );
-    if (seerQuery.sort) {
-      targetLocation.query[LOGS_AGGREGATE_SORT_BYS_KEY] = [seerQuery.sort];
+  const targetLocation = applyQueryParamsUpdates(
+    LOGS_SEER_QUERY_PARSERS,
+    getTargetWithReadableQueryParams(currentLocation, {
+      query: cleanedQuery,
+      mode: seerQuery.mode,
+      cursor: null,
+      aggregateCursor: null,
+    }),
+    {
+      project: projectIds?.length ? projectIds.map(String) : undefined,
+      start: seerQuery.datetime.start?.toString() ?? null,
+      end: seerQuery.datetime.end?.toString() ?? null,
+      period: null,
+      utc: seerQuery.datetime.utc?.toString() ?? null,
+      statsPeriod: seerQuery.datetime.period ?? null,
+      pageStart: null,
+      pageEnd: null,
+      pageUtc: null,
+      pageStatsPeriod: null,
+      // Only override the interval when Seer suggested one, otherwise leave the
+      // user's current interval untouched.
+      interval: seerQuery.interval || undefined,
+      [LOGS_FIELDS_KEY]: newFields.length > 0 ? newFields : undefined,
+      [LOGS_AGGREGATE_FIELD_KEY]: isAggregate
+        ? getSeerWritableAggregateFields({
+            currentAggregateFields,
+            groupBys: seerQuery.groupBys,
+            visualizes: seerQuery.visualizes,
+            fallbackVisualizes: defaultVisualizes().map(visualize =>
+              visualize.serialize()
+            ),
+          }).map(field => JSON.stringify(field))
+        : null,
+      [LOGS_AGGREGATE_SORT_BYS_KEY]: isAggregate ? seerSortBys : null,
+      [LOGS_SORT_BYS_KEY]: isAggregate ? null : seerSortBys,
     }
-    delete targetLocation.query[LOGS_SORT_BYS_KEY];
-  } else {
-    if (seerQuery.sort) {
-      targetLocation.query[LOGS_SORT_BYS_KEY] = [seerQuery.sort];
-    }
-    delete targetLocation.query[LOGS_AGGREGATE_SORT_BYS_KEY];
-    delete targetLocation.query[LOGS_AGGREGATE_FIELD_KEY];
-  }
+  );
 
   return {
     query: targetLocation.query,

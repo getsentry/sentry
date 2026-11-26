@@ -9,7 +9,10 @@ import {docs} from './index';
 describe('aspnet onboarding docs', () => {
   it('renders errors onboarding docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
-      releaseRegistry: {'sentry.dotnet.aspnet': {version: '1.99.9'}},
+      releaseRegistry: {
+        'sentry.dotnet.aspnet': {version: '1.99.9'},
+        'sentry.dotnet.ef': {version: '2.88.8'},
+      },
       selectedProducts: [
         ProductSolution.PERFORMANCE_MONITORING,
         ProductSolution.LOGS,
@@ -29,6 +32,14 @@ describe('aspnet onboarding docs', () => {
         textWithMarkupMatcher(/Install-Package Sentry.AspNet -Version 1\.99\.9/)
       )
     ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher(/Install-Package Sentry\.EntityFramework -Version 2\.88\.8/)
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher(/using System\.Web;/))
+    ).toBeInTheDocument();
   });
 
   it('renders performance onboarding docs correctly', async () => {
@@ -45,7 +56,49 @@ describe('aspnet onboarding docs', () => {
     renderWithOnboardingLayout(docs, {selectedProducts: [ProductSolution.LOGS]});
 
     expect(
-      await screen.findByText(textWithMarkupMatcher(/o.EnableLogs/))
+      await screen.findByText(textWithMarkupMatcher(/SentrySdk\.Logger\.LogInfo/))
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/EnableLogs/))
+    ).not.toBeInTheDocument();
+  });
+
+  it('renders the logs onboarding for this platform', async () => {
+    renderWithOnboardingLayout(
+      {onboarding: docs.logsOnboarding!},
+      {
+        releaseRegistry: {'sentry.dotnet.aspnet': {version: '1.99.9'}},
+        selectedProducts: [ProductSolution.LOGS],
+      }
+    );
+
+    expect(
+      await screen.findByText(
+        textWithMarkupMatcher(/Install-Package Sentry\.AspNet -Version 1\.99\.9/)
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher(/SentrySdk\.Logger\.LogInfo/))
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'logs documentation'})).toHaveAttribute(
+      'href',
+      'https://docs.sentry.io/platforms/dotnet/guides/aspnet/logs/'
+    );
+  });
+
+  it('renders the metrics onboarding for this platform', async () => {
+    renderWithOnboardingLayout(
+      {onboarding: docs.metricsOnboarding!},
+      {selectedProducts: [ProductSolution.METRICS]}
+    );
+
+    expect(
+      await screen.findByText(
+        textWithMarkupMatcher(/Install-Package Sentry\.AspNet -Version/)
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher(/SentrySdk\.Init\(/))
     ).toBeInTheDocument();
   });
 });

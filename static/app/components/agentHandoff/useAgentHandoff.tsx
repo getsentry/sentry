@@ -1,4 +1,4 @@
-import {useRef} from 'react';
+import {useEffect, useRef} from 'react';
 import {useMutation} from '@tanstack/react-query';
 import isEqual from 'lodash/isEqual';
 
@@ -21,23 +21,15 @@ interface PreparedPrompt {
   text: string;
 }
 
-interface HandoffPromptOptions<Flow extends AgentHandoffFlow> {
+interface PromptContext<Flow extends AgentHandoffFlow> {
   context: AgentHandoffContext<Flow>;
-  disableIpPinning: boolean;
-}
-
-interface PromptContext<
-  Flow extends AgentHandoffFlow,
-> extends HandoffPromptOptions<Flow> {
   flow: Flow;
   organizationSlug: string;
 }
 
 interface CachedHandoff<Flow extends AgentHandoffFlow>
-  extends PromptContext<Flow>, Handoff {}
-
-interface CopyPromptOptions {
-  disableIpPinning: boolean;
+  extends PromptContext<Flow>, Handoff {
+  copied?: boolean;
 }
 
 const PROMPT_EXPIRATION_BUFFER_MS = 60_000;
@@ -50,7 +42,6 @@ function isHandoffStale<Flow extends AgentHandoffFlow>(
     handoff.organizationSlug !== context.organizationSlug ||
     handoff.flow !== context.flow ||
     !isEqual(handoff.context, context.context) ||
-    handoff.disableIpPinning !== context.disableIpPinning ||
     Date.parse(handoff.expiresAt) <= Date.now() + PROMPT_EXPIRATION_BUFFER_MS
   );
 }
@@ -63,9 +54,13 @@ function clipboardError() {
 
 /**
  * Mints short-lived handoff codes and copies a prompt containing them without exposing
- * the code in the UI. Valid codes are cached until their context changes or they approach
- * expiration, and concurrent copy requests share the same operation. Call copyPrompt
+ * the code in the UI. Concurrent copy requests share the same operation. Call copyPrompt
  * directly from the user gesture that authorizes clipboard access.
+ *
+ * Codes are single-use. Once a copied code could have been pasted into an agent, which
+ * means the page was hidden after the copy, the next copy mints a fresh code. Repeated
+ * copies while the page stays visible reuse the code, so mashing the button does not
+ * mint a pile of unused codes.
  */
 export function useAgentHandoff<Flow extends AgentHandoffFlow>(
   flow: Flow,
@@ -80,9 +75,21 @@ export function useAgentHandoff<Flow extends AgentHandoffFlow>(
     mutationFn: (operation: Promise<string>) => operation,
   });
 
-  async function getPrompt(options: HandoffPromptOptions<Flow>): Promise<PreparedPrompt> {
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      if (document.hidden && handoff.current?.copied) {
+        handoff.current = null;
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange);
+  }, []);
+
+  async function getPrompt(
+    promptTarget: AgentHandoffContext<Flow>
+  ): Promise<PreparedPrompt> {
     const promptContext: PromptContext<Flow> = {
-      ...options,
+      context: promptTarget,
       flow,
       organizationSlug: organization.slug,
     };
@@ -91,7 +98,7 @@ export function useAgentHandoff<Flow extends AgentHandoffFlow>(
     if (cachedHandoff && !isHandoffStale(cachedHandoff, promptContext)) {
       return {
         handoffId: cachedHandoff.handoffId,
-        text: formatHandoffPrompt(cachedHandoff.code, flow, options.context),
+        text: formatHandoffPrompt(cachedHandoff.code, flow, promptTarget),
       };
     }
 
@@ -101,29 +108,25 @@ export function useAgentHandoff<Flow extends AgentHandoffFlow>(
         url: getApiUrl('/organizations/$organizationIdOrSlug/agent-handoff/prompts/', {
           path: {organizationIdOrSlug: organization.slug},
         }),
-        data: {
-          flow,
-          context: options.context,
-          disableIpPinning: options.disableIpPinning,
-        },
+        data: {flow, context: promptTarget},
       });
       handoff.current = {...minted, ...promptContext};
 
       return {
         handoffId: minted.handoffId,
-        text: formatHandoffPrompt(minted.code, flow, options.context),
+        text: formatHandoffPrompt(minted.code, flow, promptTarget),
       };
     } catch {
       throw new Error(t('Unable to create your agent prompt. Try again.'));
     }
   }
 
-  function beginCopy(options: CopyPromptOptions) {
+  function beginCopy() {
     if (!context) {
       return Promise.reject(new Error(t('Your agent prompt is still being prepared.')));
     }
 
-    const preparedPrompt = getPrompt({...options, context});
+    const preparedPrompt = getPrompt(context);
     const clipboardPayload = preparedPrompt.then(
       ({text}) => new Blob([text], {type: 'text/plain'})
     );
@@ -148,17 +151,23 @@ export function useAgentHandoff<Flow extends AgentHandoffFlow>(
           throw clipboardResult.reason;
         }
 
+        const cachedHandoff = handoff.current;
+        if (cachedHandoff?.handoffId === promptResult.value.handoffId) {
+          // The page can be hidden before the clipboard write settles, and then no
+          // visibilitychange will follow to retire the code.
+          handoff.current = document.hidden ? null : {...cachedHandoff, copied: true};
+        }
         return promptResult.value.handoffId;
       }
     );
   }
 
-  function copyPrompt(options: CopyPromptOptions) {
+  function copyPrompt() {
     if (copyOperation.current) {
       return copyOperation.current;
     }
 
-    const operation = mutation.mutateAsync(beginCopy(options));
+    const operation = mutation.mutateAsync(beginCopy());
     copyOperation.current = operation;
 
     const clearOperation = () => {
@@ -176,6 +185,5 @@ export function useAgentHandoff<Flow extends AgentHandoffFlow>(
     error: mutation.error,
     isPending: mutation.isPending,
     isSuccess: mutation.isSuccess,
-    reset: mutation.reset,
   };
 }

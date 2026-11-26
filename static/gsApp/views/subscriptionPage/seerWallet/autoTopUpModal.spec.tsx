@@ -1,7 +1,17 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {act, renderGlobalModal, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
+import {
+  act,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
+import type {SeerCreditDenialReason} from 'sentry/utils/seer/useSeerCreditCheck';
+
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {openSeerAutoTopUpModal} from 'getsentry/views/subscriptionPage/seerWallet/autoTopUpModal';
 import type {SeerWalletAutoTopUp} from 'getsentry/views/subscriptionPage/seerWallet/seerWalletOptions';
 
@@ -72,6 +82,12 @@ describe('openSeerAutoTopUpModal', () => {
     act(() => openSeerAutoTopUpModal({organization}));
   }
 
+  async function toggleAutoReload() {
+    await userEvent.click(
+      await screen.findByRole('checkbox', {name: 'Auto-reload enabled'})
+    );
+  }
+
   beforeEach(() => {
     MockApiClient.clearMockResponses();
   });
@@ -84,10 +100,9 @@ describe('openSeerAutoTopUpModal', () => {
     });
     openAutoTopUpModal();
 
+    await toggleAutoReload();
     expect(
-      await screen.findByText(
-        'Whenever your credits are at or below $5, purchase this amount'
-      )
+      screen.getByText('Whenever your credits are at or below $5, purchase this amount')
     ).toBeInTheDocument();
     expect(screen.getByRole('radio', {name: '$15 1,500 credits'})).toBeChecked();
     expect(
@@ -101,7 +116,7 @@ describe('openSeerAutoTopUpModal', () => {
     expect(screen.getByText('$25.00')).toBeInTheDocument();
 
     await userEvent.click(
-      screen.getByRole('button', {name: 'Turn on and pay $25.00 + tax'})
+      screen.getByRole('button', {name: 'Save and pay $25.00 + tax'})
     );
 
     expect(saveMock).toHaveBeenCalledWith(
@@ -120,9 +135,10 @@ describe('openSeerAutoTopUpModal', () => {
   it('charges right away when the balance is at the threshold', async () => {
     openAutoTopUpModal({balance: 500});
 
-    expect(await screen.findByText('Due now')).toBeInTheDocument();
+    await toggleAutoReload();
+    expect(screen.getByText('Due now')).toBeInTheDocument();
     expect(
-      screen.getByRole('button', {name: 'Turn on and pay $15.00 + tax'})
+      screen.getByRole('button', {name: 'Save and pay $15.00 + tax'})
     ).toBeInTheDocument();
   });
 
@@ -134,10 +150,10 @@ describe('openSeerAutoTopUpModal', () => {
     });
     openAutoTopUpModal({balance: 501});
 
-    const turnOn = await screen.findByRole('button', {name: 'Turn on'});
+    await toggleAutoReload();
     expect(screen.queryByText('Due now')).not.toBeInTheDocument();
 
-    await userEvent.click(turnOn);
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
     expect(saveMock).toHaveBeenCalledWith(
       url,
       expect.objectContaining({
@@ -154,7 +170,8 @@ describe('openSeerAutoTopUpModal', () => {
     });
     openAutoTopUpModal();
 
-    await userEvent.click(await screen.findByRole('radio', {name: 'Custom'}));
+    await toggleAutoReload();
+    await userEvent.click(screen.getByRole('radio', {name: 'Custom'}));
     const customAmount = screen.getByRole('textbox', {name: 'Custom credit amount'});
     expect(customAmount).toHaveValue('15');
 
@@ -167,7 +184,7 @@ describe('openSeerAutoTopUpModal', () => {
     await userEvent.type(dailyLimit, '15');
 
     await userEvent.click(
-      screen.getByRole('button', {name: 'Turn on and pay $175.00 + tax'})
+      screen.getByRole('button', {name: 'Save and pay $175.00 + tax'})
     );
 
     expect(saveMock).toHaveBeenCalledWith(
@@ -227,10 +244,11 @@ describe('openSeerAutoTopUpModal', () => {
       autoTopUp: AutoTopUpFixture({enabled: false, topUpCredits: 2000}),
     });
 
-    expect(await screen.findByRole('radio', {name: 'Custom'})).toBeChecked();
+    await toggleAutoReload();
+    expect(screen.getByRole('radio', {name: 'Custom'})).toBeChecked();
     expect(screen.getByRole('textbox', {name: 'Custom credit amount'})).toHaveValue('20');
     expect(
-      screen.getByRole('button', {name: 'Turn on and pay $20.00 + tax'})
+      screen.getByRole('button', {name: 'Save and pay $20.00 + tax'})
     ).toBeInTheDocument();
   });
 
@@ -359,6 +377,39 @@ describe('openSeerAutoTopUpModal', () => {
     );
   });
 
+  it('saves the daily usage limit without turning on auto-reload', async () => {
+    const saveMock = MockApiClient.addMockResponse({
+      url,
+      method: 'PUT',
+      body: AutoTopUpFixture({dailySpendCapCents: 2000}),
+    });
+    openAutoTopUpModal();
+
+    const dailyLimit = await screen.findByRole('textbox', {name: 'Daily usage limit'});
+    expect(screen.getByRole('checkbox', {name: 'Auto-reload enabled'})).not.toBeChecked();
+    expect(
+      screen.queryByRole('radiogroup', {name: 'Credit amount'})
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Due now')).not.toBeInTheDocument();
+
+    await userEvent.clear(dailyLimit);
+    await userEvent.type(dailyLimit, '20');
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+
+    expect(saveMock).toHaveBeenCalledWith(
+      url,
+      expect.objectContaining({
+        data: {
+          enabled: false,
+          thresholdCredits: 500,
+          topUpCredits: 1500,
+          dailySpendCapCents: 2000,
+        },
+      })
+    );
+    expect(await screen.findByText('Settings saved')).toBeInTheDocument();
+  });
+
   it('confirms before turning off auto-reload', async () => {
     const autoTopUp = AutoTopUpFixture({enabled: true, topUpCredits: 2500});
     const saveMock = MockApiClient.addMockResponse({
@@ -372,9 +423,13 @@ describe('openSeerAutoTopUpModal', () => {
       purchasedRemaining: 1200,
     });
 
-    await userEvent.click(
-      await screen.findByRole('button', {name: 'Turn off auto-reload'})
-    );
+    // An amount picked before switching off is hidden, so it isn't saved.
+    await userEvent.click(await screen.findByRole('radio', {name: '$50 5,000 credits'}));
+    await toggleAutoReload();
+    expect(
+      screen.queryByRole('radiogroup', {name: 'Credit amount'})
+    ).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
     expect(
       screen.getByText(
         'Your 1,200 purchased credits will remain, and expire on Oct 1, 2027. When they run out, Seer pauses until your included credits reset.'
@@ -383,8 +438,10 @@ describe('openSeerAutoTopUpModal', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Keep it on'}));
     expect(saveMock).not.toHaveBeenCalled();
+    expect(screen.getByRole('checkbox', {name: 'Auto-reload enabled'})).toBeChecked();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Turn off auto-reload'}));
+    await toggleAutoReload();
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
     await userEvent.click(screen.getByRole('button', {name: 'Turn off'}));
 
     expect(saveMock).toHaveBeenCalledWith(
@@ -399,9 +456,8 @@ describe('openSeerAutoTopUpModal', () => {
       purchasedRemaining: 1200,
     });
 
-    await userEvent.click(
-      await screen.findByRole('button', {name: 'Turn off auto-reload'})
-    );
+    await toggleAutoReload();
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
     expect(
       screen.getByText(
@@ -413,9 +469,8 @@ describe('openSeerAutoTopUpModal', () => {
   it('leaves out purchased credits when none remain', async () => {
     openAutoTopUpModal({autoTopUp: AutoTopUpFixture({enabled: true})});
 
-    await userEvent.click(
-      await screen.findByRole('button', {name: 'Turn off auto-reload'})
-    );
+    await toggleAutoReload();
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
     expect(
       screen.getByText(
@@ -433,8 +488,9 @@ describe('openSeerAutoTopUpModal', () => {
     });
     openAutoTopUpModal();
 
+    await toggleAutoReload();
     await userEvent.click(
-      await screen.findByRole('button', {name: 'Turn on and pay $15.00 + tax'})
+      screen.getByRole('button', {name: 'Save and pay $15.00 + tax'})
     );
 
     expect(
@@ -475,8 +531,9 @@ describe('openSeerAutoTopUpModal', () => {
     renderGlobalModal({organization});
     act(() => openSeerAutoTopUpModal({organization}));
 
+    await toggleAutoReload();
     await userEvent.click(
-      await screen.findByRole('button', {name: 'Turn on and pay $15.00 + tax'})
+      screen.getByRole('button', {name: 'Save and pay $15.00 + tax'})
     );
     // Auto-reload stays off until the refill is paid, so the settings go again.
     const resendMock = MockApiClient.addMockResponse({
@@ -532,8 +589,9 @@ describe('openSeerAutoTopUpModal', () => {
     });
     openAutoTopUpModal();
 
+    await toggleAutoReload();
     await userEvent.click(
-      await screen.findByRole('button', {name: 'Turn on and pay $15.00 + tax'})
+      screen.getByRole('button', {name: 'Save and pay $15.00 + tax'})
     );
 
     expect(
@@ -575,9 +633,10 @@ describe('openSeerAutoTopUpModal', () => {
     });
     openAutoTopUpModal();
 
-    await userEvent.click(await screen.findByRole('radio', {name: '$25 2,500 credits'}));
+    await toggleAutoReload();
+    await userEvent.click(screen.getByRole('radio', {name: '$25 2,500 credits'}));
     await userEvent.click(
-      screen.getByRole('button', {name: 'Turn on and pay $25.00 + tax'})
+      screen.getByRole('button', {name: 'Save and pay $25.00 + tax'})
     );
 
     expect(await screen.findByText('No payment method on file.')).toBeInTheDocument();
@@ -611,8 +670,9 @@ describe('openSeerAutoTopUpModal', () => {
     });
     openAutoTopUpModal();
 
+    await toggleAutoReload();
     await userEvent.click(
-      await screen.findByRole('button', {name: 'Turn on and pay $15.00 + tax'})
+      screen.getByRole('button', {name: 'Save and pay $15.00 + tax'})
     );
     const conflictMock = MockApiClient.addMockResponse({
       url: intentUrl,
@@ -642,7 +702,7 @@ describe('openSeerAutoTopUpModal', () => {
       },
     });
     await userEvent.click(
-      screen.getByRole('button', {name: 'Turn on and pay $15.00 + tax'})
+      screen.getByRole('button', {name: 'Save and pay $15.00 + tax'})
     );
 
     expect(
@@ -666,9 +726,10 @@ describe('openSeerAutoTopUpModal', () => {
     });
     openAutoTopUpModal();
 
-    await userEvent.click(await screen.findByRole('radio', {name: '$25 2,500 credits'}));
+    await toggleAutoReload();
+    await userEvent.click(screen.getByRole('radio', {name: '$25 2,500 credits'}));
     await userEvent.click(
-      screen.getByRole('button', {name: 'Turn on and pay $25.00 + tax'})
+      screen.getByRole('button', {name: 'Save and pay $25.00 + tax'})
     );
     await userEvent.click(
       await screen.findByRole('button', {name: 'Verify with your bank'})
@@ -677,7 +738,7 @@ describe('openSeerAutoTopUpModal', () => {
     expect(await screen.findByText(/authentication failed/)).toBeInTheDocument();
     expect(screen.getByRole('radio', {name: '$25 2,500 credits'})).toBeChecked();
     expect(
-      screen.getByRole('button', {name: 'Turn on and pay $25.00 + tax'})
+      screen.getByRole('button', {name: 'Save and pay $25.00 + tax'})
     ).toBeInTheDocument();
   });
 
@@ -697,15 +758,16 @@ describe('openSeerAutoTopUpModal', () => {
     });
     openAutoTopUpModal();
 
-    await userEvent.click(await screen.findByRole('radio', {name: '$25 2,500 credits'}));
+    await toggleAutoReload();
+    await userEvent.click(screen.getByRole('radio', {name: '$25 2,500 credits'}));
     await userEvent.click(
-      screen.getByRole('button', {name: 'Turn on and pay $25.00 + tax'})
+      screen.getByRole('button', {name: 'Save and pay $25.00 + tax'})
     );
     await userEvent.click(await screen.findByRole('button', {name: 'Cancel'}));
 
     expect(screen.getByRole('radio', {name: '$25 2,500 credits'})).toBeChecked();
     expect(
-      screen.getByRole('button', {name: 'Turn on and pay $25.00 + tax'})
+      screen.getByRole('button', {name: 'Save and pay $25.00 + tax'})
     ).toBeInTheDocument();
   });
 
@@ -719,5 +781,282 @@ describe('openSeerAutoTopUpModal', () => {
       await screen.findByText('Unable to load your Seer credits.')
     ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Retry'})).toBeInTheDocument();
+  });
+
+  describe('without billing access', () => {
+    const member = OrganizationFixture({access: ['org:read']});
+
+    function openForMember({
+      canSelfServe,
+      denialReason,
+    }: {
+      canSelfServe: boolean;
+      denialReason: SeerCreditDenialReason | null;
+    }) {
+      act(() =>
+        SubscriptionStore.set(
+          member.slug,
+          // Tests run with the clock frozen at 2017-10-17, inside this period.
+          SubscriptionFixture({
+            organization: member,
+            canSelfServe,
+            onDemandPeriodStart: '2017-10-01',
+          })
+        )
+      );
+      MockApiClient.addMockResponse({
+        url: `/organizations/${member.slug}/prompts-activity/`,
+        body: {},
+      });
+      renderGlobalModal({organization: member});
+      act(() => openSeerAutoTopUpModal({organization: member, denialReason}));
+    }
+
+    it('lets members of self-serve orgs ask their admins about what stopped Seer', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${member.slug}/prompts-activity/`,
+        method: 'PUT',
+      });
+      const request = MockApiClient.addMockResponse({
+        url: `/organizations/${member.slug}/seer-top-up-request/`,
+        method: 'POST',
+      });
+      openForMember({canSelfServe: true, denialReason: 'daily_cap_exceeded'});
+
+      expect(
+        await screen.findByText(
+          'Your organization hit its daily Seer usage limit. Only owners and billing members can change the limit, so ask your admin to raise it.'
+        )
+      ).toBeInTheDocument();
+      await userEvent.click(await screen.findByRole('button', {name: 'Contact Admin'}));
+
+      await waitFor(() =>
+        expect(request).toHaveBeenCalledWith(
+          `/organizations/${member.slug}/seer-top-up-request/`,
+          expect.objectContaining({data: {denialReason: 'daily_cap_exceeded'}})
+        )
+      );
+      expect(await screen.findByRole('button', {name: 'Admins emailed'})).toBeDisabled();
+    });
+
+    it('lets members email their admins when the link does not say why Seer stopped', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${member.slug}/prompts-activity/`,
+        method: 'PUT',
+      });
+      const request = MockApiClient.addMockResponse({
+        url: `/organizations/${member.slug}/seer-top-up-request/`,
+        method: 'POST',
+      });
+      openForMember({canSelfServe: true, denialReason: null});
+
+      expect(
+        screen.getByText(
+          'Only owners and billing members can manage auto-reload. Ask your admin to turn it on or raise the daily usage limit.'
+        )
+      ).toBeInTheDocument();
+      await userEvent.click(await screen.findByRole('button', {name: 'Contact Admin'}));
+
+      await waitFor(() =>
+        expect(request).toHaveBeenCalledWith(
+          `/organizations/${member.slug}/seer-top-up-request/`,
+          expect.objectContaining({data: {denialReason: null}})
+        )
+      );
+    });
+
+    describe('with credit checks', () => {
+      const checkedMember = OrganizationFixture({
+        access: ['org:read'],
+        features: ['token-billed-seer-enabled'],
+      });
+
+      function openWithCreditCheck({
+        linkDenialReason,
+        creditCheck,
+      }: {
+        creditCheck: {
+          denialReason: SeerCreditDenialReason | null;
+          hasEnoughCredits: boolean;
+        };
+        linkDenialReason: SeerCreditDenialReason;
+      }) {
+        act(() =>
+          SubscriptionStore.set(
+            checkedMember.slug,
+            SubscriptionFixture({
+              organization: checkedMember,
+              canSelfServe: true,
+              onDemandPeriodStart: '2017-10-01',
+            })
+          )
+        );
+        MockApiClient.addMockResponse({
+          url: `/organizations/${checkedMember.slug}/prompts-activity/`,
+          body: {},
+        });
+        MockApiClient.addMockResponse({
+          url: `/organizations/${checkedMember.slug}/prompts-activity/`,
+          method: 'PUT',
+        });
+        MockApiClient.addMockResponse({
+          url: `/organizations/${checkedMember.slug}/seer/credit-check/`,
+          body: creditCheck,
+          // Autofix's most expensive step, so a balance a chat message fits in
+          // can't hide Contact Admin while Autofix is blocked.
+          match: [MockApiClient.matchQuery({operation: 'autofix_pr_iteration'})],
+        });
+        const request = MockApiClient.addMockResponse({
+          url: `/organizations/${checkedMember.slug}/seer-top-up-request/`,
+          method: 'POST',
+        });
+        renderGlobalModal({organization: checkedMember});
+        act(() =>
+          openSeerAutoTopUpModal({
+            organization: checkedMember,
+            denialReason: linkDenialReason,
+          })
+        );
+        return request;
+      }
+
+      it('tells members what stops Seer now, not what the link says', async () => {
+        const request = openWithCreditCheck({
+          linkDenialReason: 'not_enough_credits',
+          creditCheck: {hasEnoughCredits: false, denialReason: 'daily_cap_exceeded'},
+        });
+
+        expect(
+          await screen.findByText(
+            'Your organization hit its daily Seer usage limit. Only owners and billing members can change the limit, so ask your admin to raise it.'
+          )
+        ).toBeInTheDocument();
+        // Tests run in UTC with the clock frozen at 2017-10-17T02:41:20Z, so the
+        // limit resets at the next midnight UTC.
+        expect(screen.getByRole('dialog')).toHaveTextContent(
+          'This will reset at 12:00 AM UTC.'
+        );
+        await userEvent.click(await screen.findByRole('button', {name: 'Contact Admin'}));
+
+        await waitFor(() =>
+          expect(request).toHaveBeenCalledWith(
+            `/organizations/${checkedMember.slug}/seer-top-up-request/`,
+            expect.objectContaining({data: {denialReason: 'daily_cap_exceeded'}})
+          )
+        );
+      });
+
+      it('tells members Seer is available once it is no longer stopped', async () => {
+        const request = openWithCreditCheck({
+          linkDenialReason: 'daily_cap_exceeded',
+          creditCheck: {hasEnoughCredits: true, denialReason: null},
+        });
+
+        expect(
+          await screen.findByText(
+            'Seer is available, so there is no need to contact your admin.'
+          )
+        ).toBeInTheDocument();
+        expect(
+          screen.queryByRole('button', {name: 'Contact Admin'})
+        ).not.toBeInTheDocument();
+        expect(request).not.toHaveBeenCalled();
+      });
+
+      it('waits for a new check rather than a cached one when opened again', async () => {
+        openWithCreditCheck({
+          linkDenialReason: 'daily_cap_exceeded',
+          creditCheck: {hasEnoughCredits: true, denialReason: null},
+        });
+        expect(
+          await screen.findByText(
+            'Seer is available, so there is no need to contact your admin.'
+          )
+        ).toBeInTheDocument();
+        await userEvent.click(screen.getByRole('button', {name: 'Close'}));
+        await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+
+        // The org hits its daily usage limit before the member opens the link again.
+        MockApiClient.addMockResponse({
+          url: `/organizations/${checkedMember.slug}/seer/credit-check/`,
+          body: {hasEnoughCredits: false, denialReason: 'daily_cap_exceeded'},
+        });
+        act(() =>
+          openSeerAutoTopUpModal({
+            organization: checkedMember,
+            denialReason: 'daily_cap_exceeded',
+          })
+        );
+
+        expect(
+          screen.queryByText(
+            'Seer is available, so there is no need to contact your admin.'
+          )
+        ).not.toBeInTheDocument();
+        expect(await screen.findByRole('button', {name: 'Contact Admin'})).toBeEnabled();
+      });
+
+      it('does not email admins when Seer is available again by the time of the click', async () => {
+        const request = openWithCreditCheck({
+          linkDenialReason: 'daily_cap_exceeded',
+          creditCheck: {hasEnoughCredits: false, denialReason: 'daily_cap_exceeded'},
+        });
+        const contactAdmin = await screen.findByRole('button', {name: 'Contact Admin'});
+
+        // The daily usage limit resets while the modal is open.
+        const recheck = MockApiClient.addMockResponse({
+          url: `/organizations/${checkedMember.slug}/seer/credit-check/`,
+          body: {hasEnoughCredits: true, denialReason: null},
+        });
+        await userEvent.click(contactAdmin);
+
+        expect(
+          await screen.findByText(
+            'Seer is available, so there is no need to contact your admin.'
+          )
+        ).toBeInTheDocument();
+        expect(recheck).toHaveBeenCalled();
+        expect(request).not.toHaveBeenCalled();
+        expect(
+          screen.queryByRole('button', {name: 'Contact Admin'})
+        ).not.toBeInTheDocument();
+      });
+    });
+
+    it('loads the subscription when the page has not', async () => {
+      act(() => SubscriptionStore.init());
+      MockApiClient.addMockResponse({
+        url: `/customers/${member.slug}/`,
+        body: SubscriptionFixture({organization: member, canSelfServe: true}),
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${member.slug}/prompts-activity/`,
+        body: {},
+      });
+      renderGlobalModal({organization: member});
+      act(() =>
+        openSeerAutoTopUpModal({organization: member, denialReason: 'not_enough_credits'})
+      );
+
+      // The title and close button stay up while the subscription loads.
+      expect(
+        screen.getByRole('heading', {name: 'Auto-reload credits'})
+      ).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Close Modal'})).toBeInTheDocument();
+      expect(await screen.findByRole('button', {name: 'Contact Admin'})).toBeEnabled();
+    });
+
+    it('gives members of orgs that cannot self-serve no Contact Admin', () => {
+      openForMember({canSelfServe: false, denialReason: 'not_enough_credits'});
+
+      expect(
+        screen.getByText(
+          'Your organization does not have enough Seer credits. Only owners and billing members can manage auto-reload, so ask your admin to check it.'
+        )
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Contact Admin'})
+      ).not.toBeInTheDocument();
+    });
   });
 });

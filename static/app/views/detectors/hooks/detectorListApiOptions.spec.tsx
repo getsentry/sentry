@@ -107,12 +107,14 @@ describe('detectorListApiOptions', () => {
     it('produces a prefix key that matches all detector list queries', () => {
       const prefixKey = allDetectorListsQueryKey(organization);
 
-      // Should be a 3-element key (empty options) so it prefix-matches everything
-      expect(prefixKey).toHaveLength(3);
+      // Only path params in options, so it partially matches every filter
       expect(prefixKey).toEqual([
-        `/organizations/${organization.slug}/detectors/`,
-        {},
-        {infinite: false},
+        '_api',
+        {
+          url: `/organizations/${organization.slug}/detectors/`,
+          urlParts: ['organizations', '$organizationIdOrSlug', 'detectors'],
+          options: {path: {organizationIdOrSlug: organization.slug}},
+        },
       ]);
     });
 

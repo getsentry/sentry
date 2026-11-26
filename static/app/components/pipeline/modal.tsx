@@ -1,4 +1,5 @@
 import {Fragment, useEffect, useEffectEvent} from 'react';
+import {IconArrow} from '@sentry/icons/arrow';
 import {IconRefresh} from '@sentry/icons/refresh';
 import {AnimatePresence, motion} from 'framer-motion';
 
@@ -29,13 +30,27 @@ interface PipelineModalProps<
   /** Overrides the step's default descriptive copy. */
   description?: React.ReactNode;
   initialData?: Record<string, string>;
+  /**
+   * Shows a back button in the header, for a host modal that shows the flow in place of its
+   * own content. Clicking it calls this.
+   */
+  onBack?: () => void;
   onComplete?: (data: CompletionDataFor<T, P>) => void;
   onError?: (error: string) => void;
   /** Overrides the header title (defaults to the pipeline's `actionTitle`). */
   title?: string;
 }
 
-function PipelineModal<
+/**
+ * The flow's header and body. `openPipelineModal` shows it in a modal of its own.
+ *
+ * A modal that's already open can show it in place of its own content instead, since opening a
+ * second modal would replace the first. The host passes its own modal props, with `closeModal`
+ * swapped for a function that goes back to the host's content. The flow calls it when it
+ * finishes. The host also calls the flow's `onClose` when the user leaves early, by going back or
+ * by closing the host, as closing the flow's own modal would.
+ */
+export function PipelineModal<
   T extends RegisteredPipelineType,
   P extends ProvidersByType[T] = ProvidersByType[T],
 >({
@@ -45,6 +60,7 @@ function PipelineModal<
   type,
   provider,
   initialData,
+  onBack,
   onComplete,
   onError,
   title,
@@ -85,11 +101,25 @@ function PipelineModal<
   );
 
   const loading = pipeline.isInitializing || pipeline.isAdvancing;
+  const titleText = <Text size="lg">{title ?? pipeline.definition.actionTitle}</Text>;
 
   return (
     <Fragment>
       <Header closeButton>
-        <Text size="lg">{title ?? pipeline.definition.actionTitle}</Text>
+        {onBack ? (
+          <Flex align="center" gap="sm">
+            <Button
+              size="zero"
+              variant="transparent"
+              icon={<IconArrow direction="left" />}
+              aria-label={t('Back')}
+              onClick={onBack}
+            />
+            {titleText}
+          </Flex>
+        ) : (
+          titleText
+        )}
       </Header>
       <Body>
         <Stack gap="2xl">
@@ -157,7 +187,7 @@ function PipelineModal<
   );
 }
 
-interface OpenPipelineModalOptions<
+export interface OpenPipelineModalOptions<
   T extends RegisteredPipelineType,
   P extends ProvidersByType[T] = ProvidersByType[T],
 > {

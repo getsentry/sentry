@@ -73,9 +73,7 @@ describe('aiohttp onboarding docs', () => {
 
     // Renders logs config
     expect(
-      screen.getByText(
-        textWithMarkupMatcher(/LoggingIntegration\(capture_sentry_logs=True\)/)
-      )
+      screen.getByText(textWithMarkupMatcher(/LoggingIntegration\(\),/))
     ).toBeInTheDocument();
 
     // Renders logs verification steps
@@ -85,7 +83,7 @@ describe('aiohttp onboarding docs', () => {
     expect(
       screen.getByText(
         textWithMarkupMatcher(
-          "You can also forward logs from Python's built-in logging module by setting capture_sentry_logs=True on the LoggingIntegration:"
+          "You can also forward logs from Python's built-in logging module by adding the LoggingIntegration:"
         )
       )
     ).toBeInTheDocument();
@@ -96,9 +94,7 @@ describe('aiohttp onboarding docs', () => {
 
     // Does not render logs config
     expect(
-      screen.queryByText(
-        textWithMarkupMatcher(/LoggingIntegration\(capture_sentry_logs=True\)/)
-      )
+      screen.queryByText(textWithMarkupMatcher(/LoggingIntegration\(\),/))
     ).not.toBeInTheDocument();
 
     // Does not render logs verification steps
@@ -108,7 +104,7 @@ describe('aiohttp onboarding docs', () => {
     expect(
       screen.queryByText(
         textWithMarkupMatcher(
-          "You can also forward logs from Python's built-in logging module by setting capture_sentry_logs=True on the LoggingIntegration:"
+          "You can also forward logs from Python's built-in logging module by adding the LoggingIntegration:"
         )
       )
     ).not.toBeInTheDocument();

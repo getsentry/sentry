@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, cast
+from typing import Any
 
 from sentry.constants import ObjectStatus
 from sentry.incidents.models.incident import IncidentStatus
@@ -94,8 +94,6 @@ def send_incident_alert_notification(
     organization: Organization,
     notification_uuid: str | None = None,
 ) -> bool:
-    from sentry.integrations.opsgenie.integration import OpsgenieIntegration
-
     result = integration_service.organization_context(
         organization_id=organization.id, integration_id=notification_context.integration_id
     )
@@ -111,10 +109,7 @@ def send_incident_alert_notification(
         logger.info("Opsgenie team removed, but the rule is still active.")
         return False
 
-    install = cast(
-        "OpsgenieIntegration",
-        integration.get_installation(organization_id=org_integration.organization_id),
-    )
+    install = integration.get_installation(organization_id=org_integration.organization_id)
     client = install.get_keyring_client(keyid=team["id"])
     attachment = build_incident_attachment(
         alert_context=alert_context,

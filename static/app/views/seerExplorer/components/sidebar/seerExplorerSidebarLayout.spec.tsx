@@ -34,7 +34,6 @@ const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer
   isTimedOut: false,
   runId: null,
   overrideBashModeEnabled: false,
-  overrideCodeModeEnable: 'off',
   hasSentInterrupt: false,
   sendMessage: jest.fn(),
   requestError: null,
@@ -43,7 +42,6 @@ const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer
   interruptRun: jest.fn(),
   respondToUserInput: jest.fn(),
   setOverrideBashModeEnabled: jest.fn(),
-  setOverrideCodeModeEnable: jest.fn(),
 };
 
 // Non-zero size so the SplitPanel isn't gated out (jsdom reports 0×0). Wide
@@ -336,7 +334,7 @@ describe('SeerExplorerSidebarLayout', () => {
     expect(localStorage.getItem('seer-explorer-sidebar-seer-size:bottom')).toBeNull();
   });
 
-  it('changes and persists the dock position via the dropdown', async () => {
+  it('changes and persists the dock position via Seer settings', async () => {
     const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
     mockWideScreen(false); // auto → bottom
     renderSidebar(orgWithSidebar);
@@ -349,8 +347,8 @@ describe('SeerExplorerSidebarLayout', () => {
     // menu mid-interaction, dropping the selection.
     await waitFor(() => expect(input).toHaveFocus());
 
-    await userEvent.click(screen.getByRole('button', {name: 'Dock position'}));
-    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Right'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Seer settings'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Right'}));
 
     await waitFor(() => expect(splitOrientation()).toBe('horizontal'));
     await waitFor(() =>
@@ -534,8 +532,8 @@ describe('SeerExplorerSidebarLayout', () => {
     const input = await screen.findByTestId('seer-explorer-input');
     await waitFor(() => expect(input).toHaveFocus());
 
-    await userEvent.click(screen.getByRole('button', {name: 'Dock position'}));
-    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Windowed'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Seer settings'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Windowed'}));
 
     await waitFor(() => expect(requestWindow).toHaveBeenCalled());
     await waitFor(() =>
@@ -732,8 +730,8 @@ describe('SeerExplorerSidebarLayout', () => {
       // Opening focuses the input; wait for it so the focus move can't close the menu below.
       await waitFor(() => expect(input).toHaveFocus());
 
-      await userEvent.click(screen.getByRole('button', {name: 'Dock position'}));
-      await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Windowed'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Seer settings'}));
+      await userEvent.click(await screen.findByRole('option', {name: 'Windowed'}));
       await waitFor(() => expect(splitOrientation()).toBeUndefined());
       expect(router.location.query.explorerRunId).toBe('99');
 

@@ -62,6 +62,19 @@ export function getInvestigationDetailQueryOptions(
 
 export const INVESTIGATION_COMMENTS_PAGE_SIZE = 100;
 
+function allInvestigationCommentsFilter({
+  organizationSlug,
+  investigationId,
+}: {
+  investigationId: string;
+  organizationSlug: string;
+}) {
+  return apiOptions.queryFilter(
+    '/organizations/$organizationIdOrSlug/notebooks/$notebookId/comments/',
+    {path: {organizationIdOrSlug: organizationSlug, notebookId: investigationId}}
+  );
+}
+
 /** Newest first. Without `blockId`, page-level and block comments together. */
 export function investigationCommentsQueryOptions({
   organizationSlug,
@@ -86,12 +99,11 @@ export function investigationCommentsQueryOptions({
 export function useCreateInvestigationCommentMutation(
   organizationSlug: string,
   investigationId: string,
-  options?: MutationOptions<InvestigationComment, {body: string; blockId?: string}>
+  options?: MutationOptions<
+    InvestigationComment,
+    {body: string; blockId?: string; mentions?: string[]}
+  >
 ) {
-  const [commentsUrl] = investigationCommentsQueryOptions({
-    organizationSlug,
-    investigationId,
-  }).queryKey;
   const invalidateComments = useInvalidateInvestigationComments(
     organizationSlug,
     investigationId
@@ -99,11 +111,14 @@ export function useCreateInvestigationCommentMutation(
 
   return useMutation({
     ...options,
-    mutationFn: ({body, blockId}) =>
+    mutationFn: ({body, blockId, mentions}) =>
       fetchMutation<InvestigationComment>({
-        url: commentsUrl,
+        url: getApiUrl(
+          '/organizations/$organizationIdOrSlug/notebooks/$notebookId/comments/',
+          {path: {organizationIdOrSlug: organizationSlug, notebookId: investigationId}}
+        ),
         method: 'POST',
-        data: blockId === undefined ? {body} : {body, blockId},
+        data: {body, blockId, mentions},
       }),
     onSuccess: async (comment, variables, onMutateResult, context) => {
       await invalidateComments();
@@ -134,13 +149,11 @@ function useInvalidateInvestigationComments(
   investigationId: string
 ) {
   const queryClient = useQueryClient();
-  const [commentsUrl] = investigationCommentsQueryOptions({
-    organizationSlug,
-    investigationId,
-  }).queryKey;
   return () =>
     Promise.all([
-      queryClient.invalidateQueries({queryKey: [commentsUrl]}),
+      queryClient.invalidateQueries(
+        allInvestigationCommentsFilter({organizationSlug, investigationId})
+      ),
       queryClient.invalidateQueries({
         queryKey: investigationCommentCountsQueryOptions(
           organizationSlug,
@@ -155,10 +168,6 @@ export function useUpdateInvestigationCommentMutation(
   investigationId: string
 ) {
   const queryClient = useQueryClient();
-  const [commentsUrl] = investigationCommentsQueryOptions({
-    organizationSlug,
-    investigationId,
-  }).queryKey;
   const invalidateComments = useInvalidateInvestigationComments(
     organizationSlug,
     investigationId
@@ -173,7 +182,7 @@ export function useUpdateInvestigationCommentMutation(
       }),
     onSuccess: updated => {
       queryClient.setQueriesData(
-        {queryKey: [commentsUrl]},
+        allInvestigationCommentsFilter({organizationSlug, investigationId}),
         (prev: ApiResponse<InvestigationComment[]> | undefined) =>
           prev && {
             ...prev,
@@ -192,10 +201,6 @@ export function useDeleteInvestigationCommentMutation(
   investigationId: string
 ) {
   const queryClient = useQueryClient();
-  const [commentsUrl] = investigationCommentsQueryOptions({
-    organizationSlug,
-    investigationId,
-  }).queryKey;
   const invalidateComments = useInvalidateInvestigationComments(
     organizationSlug,
     investigationId
@@ -209,7 +214,7 @@ export function useDeleteInvestigationCommentMutation(
       }),
     onSuccess: (_data, {commentId}) => {
       queryClient.setQueriesData(
-        {queryKey: [commentsUrl]},
+        allInvestigationCommentsFilter({organizationSlug, investigationId}),
         (prev: ApiResponse<InvestigationComment[]> | undefined) =>
           prev && {...prev, json: prev.json.filter(comment => comment.id !== commentId)}
       );
@@ -377,12 +382,11 @@ export function investigationCandidatesQueryOptions({
   );
 }
 
-function investigationCandidatesUrl(organizationSlug: string) {
-  const [url] = investigationCandidatesQueryOptions({
-    organizationSlug,
-    sources: [],
-  }).queryKey;
-  return url;
+function allInvestigationCandidatesFilter(organizationSlug: string) {
+  return apiOptions.queryFilter(
+    '/organizations/$organizationIdOrSlug/investigations/candidates/',
+    {path: {organizationIdOrSlug: organizationSlug}}
+  );
 }
 
 type FavoriteVariables = {investigation: InvestigationListItem; shouldFavorite: boolean};
@@ -418,9 +422,9 @@ function useInvestigationMutation<TData, TVariables>(
           queryKey: investigationListQueryOptions({organizationSlug}).queryKey,
         }),
         invalidateCandidates
-          ? queryClient.invalidateQueries({
-              queryKey: [investigationCandidatesUrl(organizationSlug)],
-            })
+          ? queryClient.invalidateQueries(
+              allInvestigationCandidatesFilter(organizationSlug)
+            )
           : Promise.resolve(),
       ]);
       await options?.onSuccess?.(data, variables, onMutateResult, context);

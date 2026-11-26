@@ -41,7 +41,7 @@ export function calculateMenuMinHeight(
 
 /** Container for a menu header, with a divider below it. */
 export function MenuHeaderLayout(props: FlexProps) {
-  return <Stack borderBottom="muted" gap="0" {...props} />;
+  return <Stack borderBottom="secondary" gap="0" {...props} />;
 }
 
 /** Text style for the menu's main heading. */
@@ -93,7 +93,7 @@ export function MenuSectionHeader({
       justify="between"
       align="center"
       minHeight="1.5em"
-      padding="2xs lg"
+      padding="md lg"
       {...props}
     >
       {children}
@@ -104,7 +104,7 @@ export function MenuSectionHeader({
 
 /** Divider between menu sections. */
 export function MenuSectionSeparator() {
-  return <Separator orientation="horizontal" border="muted" />;
+  return <Separator orientation="horizontal" border="secondary" />;
 }
 
 /** List item wrapper for a menu section. */
@@ -119,7 +119,7 @@ export function MenuSectionList(props: FlexProps<'ul'>) {
 
 /** Container for menu footer actions, with a divider above it. */
 export function MenuFooterLayout(props: FlexProps) {
-  return <Flex borderTop="muted" align="center" padding="md lg" {...props} />;
+  return <Flex borderTop="secondary" align="center" padding="md lg" {...props} />;
 }
 
 type SearchInputProps = React.ComponentPropsWithRef<typeof InputGroup.Input> & {

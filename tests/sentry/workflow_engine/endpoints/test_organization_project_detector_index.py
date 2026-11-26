@@ -42,11 +42,11 @@ from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
 from sentry.workflow_engine.registry import data_source_type_registry, detector_settings_registry
 from sentry.workflow_engine.types import (
-    DetectorAPIOperation,
     DetectorPriorityLevel,
     DetectorSettings,
     DetectorType,
     FeatureGate,
+    WorkflowEngineAPIOperation,
 )
 from tests.sentry.workflow_engine.endpoints.test_helpers import (
     GATE_FEATURE,
@@ -186,9 +186,9 @@ class OrganizationProjectDetectorIndexPostTest(OrganizationProjectDetectorIndexB
         with override_detector_api_availability(
             MetricIssue.slug,
             {
-                DetectorAPIOperation.POST: FeatureGate(GATE_FEATURE),
-                DetectorAPIOperation.LIST: False,
-                DetectorAPIOperation.GET: False,
+                WorkflowEngineAPIOperation.POST: FeatureGate(GATE_FEATURE),
+                WorkflowEngineAPIOperation.LIST: False,
+                WorkflowEngineAPIOperation.GET: False,
             },
         ):
             with (

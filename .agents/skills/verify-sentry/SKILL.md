@@ -25,12 +25,11 @@ Preconditions, once per machine: `devenv sync` has run, and `devservices up --mo
 
 Feature flags. Sentry-only dev has no flag handler, so `SENTRY_FEATURES` in the overlay decides every flag. `--flags` takes a comma list of the profiles below. They are the flags that the mapped systems need today; add a profile when a new feature file needs another flag:
 
-| `--flags` name         | Flag                                                                                                                            | Default |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ------- |
-| `agentic`              | `organizations:onboarding-agentic-setup` (agent card on welcome and on `/projects/new/`)                                        | on      |
-| `scm-project-creation` | `organizations:onboarding-scm-project-creation` (SCM create-project form)                                                       | on      |
-| `messaging`            | `organizations:onboarding-scm-messaging-experiment` (adds the `scm-messaging` step)                                             | off     |
-| `scm`                  | `organizations:onboarding-scm` (registered and API-exposed; no frontend code reads it today, and the SCM steps show without it) | off     |
+| `--flags` name         | Flag                                                                                     | Default |
+| ---------------------- | ---------------------------------------------------------------------------------------- | ------- |
+| `agentic`              | `organizations:onboarding-agentic-setup` (agent card on welcome and on `/projects/new/`) | on      |
+| `scm-project-creation` | `organizations:onboarding-scm-project-creation` (SCM create-project form)                | on      |
+| `messaging`            | `organizations:onboarding-scm-messaging-experiment` (adds the `scm-messaging` step)      | off     |
 
 The overlay always turns on `organizations:session-replay`, `organizations:ourlogs-enabled`, and `organizations:tracemetrics-enabled`, because SaaS plans grant them and the product toggles render disabled without them. It also sets the agent handoff options `onboarding.agent-handoff.client-id` and `oauth.setup-code.allowed-client-ids` to `verify-sentry-agent-cli`. `seed` creates that public OAuth application. To change flags, run `stop`, then `launch` again.
 

@@ -128,9 +128,11 @@ class Referrer(StrEnum):
     API_EXPLORE_OURLOGS_TIMESERIES = "api.explore.ourlogs-timeseries"
     API_EXPLORE_TRACEMETRICS_TIMESERIES = "api.explore.tracemetrics-timeseries"
     API_EXPLORE_TRACEMETRICS_METRICS_LIST = "api.explore.tracemetrics.metrics-list"
+    API_EXPLORE_METRIC_TRACE_DETAIL = "api.explore.metric-trace-detail"
     API_EXPLORE_SPANS_AGGREGATES_TABLE = "api.explore.spans-aggregates-table"
     API_EXPLORE_SPANS_SAMPLES_TABLE = "api.explore.spans-samples-table"
     API_EXPLORE_SPAN_ITEM_DETAILS = "api.explore.span-item-details"
+    API_EXPLORE_LOG_ITEM_DETAILS = "api.explore.log-item-details"
     API_EXPLORE_SPANS_EXTRAPOLATION_META = "api.explore.spans-extrapolation-meta"
     API_EXPLORE_LOGS_TABLE = "api.explore.logs-table"
     API_EXPLORE_LOGS_TABLE_ROW = "api.explore.logs-table-row"
@@ -401,9 +403,9 @@ class Referrer(StrEnum):
     API_INSIGHTS_BROWSER_RESOURCES_PAGE_SELECTOR = "api.insights.browser.resources.page-selector"
 
     # AI Agents
-    API_INSIGHTS_AGENTS_TRACE_DRAWER = "api.insights.agent-monitoring.trace-drawer"
-    API_INSIGHTS_AGENTS_TRACE_DRAWER_TOOL_USAGE = (
-        "api.insights.agent-monitoring.trace-drawer-tool-usage"
+    API_INSIGHTS_AGENTS_SPAN_DETAILS = "api.insights.agent-monitoring.span-details"
+    API_INSIGHTS_AGENTS_SPAN_DETAILS_TOOL_USAGE = (
+        "api.insights.agent-monitoring.span-details-tool-usage"
     )
     API_INSIGHTS_AGENTS_TRACES_TABLE = "api.insights.agent-monitoring.traces-table"
     API_INSIGHTS_AGENTS_ONBOARDING = "api.insights.agent-monitoring.onboarding"
@@ -493,6 +495,7 @@ class Referrer(StrEnum):
     API_AI_CONVERSATIONS_COMPLETE = "api.ai-conversations.complete"
     API_AI_CONVERSATION_DETAILS = "api.ai-conversation-details"
     API_AI_CONVERSATION_DETAILS_ISSUES = "api.ai-conversation-details.issues"
+    API_AI_CONVERSATION_DETAILS_RELATED = "api.ai-conversation-details.related"
     API_AI_PIPELINES_VIEW = "api.ai-pipelines.view"
     API_AI_PIPELINES_DETAILS_VIEW = "api.ai-pipelines.details.view"
     API_PROFILING_ONBOARDING = "profiling-onboarding"
@@ -570,6 +573,10 @@ class Referrer(StrEnum):
     API_PREPROD_TAG_VALUES_RPC = "api.preprod.tags-values.rpc"
     API_PROCESSING_ERRORS_TAG_KEYS_RPC = "api.processing-errors.tags-keys.rpc"
     API_PROCESSING_ERRORS_TAG_VALUES_RPC = "api.processing-errors.tags-values.rpc"
+    API_TRACE_ITEM_ATTRIBUTE_CARDINALITY = "api.trace-item.attribute-cardinality"
+    API_TRACE_ITEM_ATTRIBUTE_LAST_SEEN = "api.trace-item.attribute-last-seen"
+    API_TRACE_ITEM_ATTRIBUTE_LAST_SEEN_FALLBACK = "api.trace-item.attribute-last-seen-fallback"
+    API_TRACE_ITEM_ATTRIBUTE_MODIFIED_COUNT = "api.trace-item.attribute-modified-count"
     API_TRACE_ITEM_ATTRIBUTE_VALIDATE = "api.trace-item.attribute-validate"
     API_SPANS_TAG_KEYS = "api.spans.tags-keys"
     API_SPANS_TAG_KEYS_RPC = "api.spans.tags-keys.rpc"
@@ -580,6 +587,13 @@ class Referrer(StrEnum):
     API_OCCURRENCES_FREQUENCY_STATS_RPC = "api.occurrences.fields-stats.rpc"
     API_TRACE_METRICS_TAG_KEYS_RPC = "api.tracemetrics.tags-keys.rpc"
     API_TRACE_METRICS_TAG_VALUES_RPC = "api.tracemetrics.tags-values.rpc"
+    # Two queries, two referrers: a single grouped scan over all projects (cheap) vs. the
+    # per-distinct-hash payload fetches (the latency-sensitive fan-out). Separate referrers keep
+    # them distinct in query analytics so each can be measured on its own.
+    API_TIMESERIES_ANNOTATIONS_SDK_CONFIG_TIMELINE = (
+        "api.timeseries-annotations.sdk-config.timeline"
+    )
+    API_TIMESERIES_ANNOTATIONS_SDK_CONFIG_PAYLOAD = "api.timeseries-annotations.sdk-config.payload"
 
     API_SPAN_SAMPLE_GET_BOUNDS = "api.spans.sample-get-bounds"
     API_SPAN_SAMPLE_GET_SPAN_DATA = "api.spans.sample-get-span-data"
@@ -663,6 +677,7 @@ class Referrer(StrEnum):
     ISSUE_DETAILS_STREAMLINE_GRAPH = "issue_details.streamline_graph"
     ISSUE_DETAILS_STREAMLINE_LIST = "issue_details.streamline_list"
     ISSUES_ESCALATING_ISSUE_VELOCITY = "sentry.issues.escalating.issue_velocity"
+    ISSUES_IMPACT_SCHEDULED_CANDIDATES = "issues.impact.scheduled.candidates"
     ISSUES_LLM_ISSUE_DETECTION_TRANSACTION = "issues.llm_issue_detection.transaction"
     ISSUES_LLM_ISSUE_DETECTION_TRACE = "issues.llm_issue_detection.trace"
     ISSUES_LLM_ISSUE_DETECTION_SPAN_COUNT = "issues.llm_issue_detection.span_count"
@@ -948,6 +963,24 @@ def is_valid_referrer(referrer: str | None) -> bool:
             return True
 
     return False
+
+
+# Snuba's allocation policies exempt these from quotas, so only server-side callers may send them.
+SERVER_ONLY_REFERRER_PREFIXES = (Referrer.SUBSCRIPTIONS_EXECUTOR.value, "tsdb-modelid:")
+
+
+def is_valid_client_referrer(referrer: str | None) -> bool:
+    if referrer and referrer.startswith(SERVER_ONLY_REFERRER_PREFIXES):
+        return False
+
+    return is_valid_referrer(referrer)
+
+
+def resolve_client_referrer(referrer: str | None, default: str) -> str:
+    if referrer and is_valid_client_referrer(referrer):
+        return referrer
+
+    return default
 
 
 def validate_referrer(referrer: str | None) -> bool:

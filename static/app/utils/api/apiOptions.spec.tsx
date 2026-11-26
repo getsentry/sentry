@@ -17,17 +17,25 @@ describe('apiOptions', () => {
       {staleTime: 0, path: {organizationIdOrSlug: 'my-org', version: 'v 1.0.0'}}
     );
 
-    const {url} = parseQueryKey(options.queryKey);
+    const {url, options: keyOptions} = parseQueryKey(options.queryKey);
     expect(url).toBe('/organizations/my-org/releases/v%201.0.0/');
+    expect(keyOptions.path).toEqual({organizationIdOrSlug: 'my-org', version: 'v 1.0.0'});
   });
 
-  it('produces an empty options slot when there are no options', () => {
+  it('keeps the url template parts and path params in the key', () => {
     const options = apiOptions.as<unknown>()('/api-tokens/$tokenId/', {
       staleTime: 0,
       path: {tokenId: '123'},
     });
 
-    expect(options.queryKey).toEqual(['/api-tokens/123/', {}, {infinite: false}]);
+    expect(options.queryKey).toEqual([
+      '_api',
+      {
+        url: '/api-tokens/123/',
+        urlParts: ['api-tokens', '$tokenId'],
+        options: {path: {tokenId: '123'}},
+      },
+    ]);
   });
 
   it('strips undefined top-level values from options in queryKey', () => {
@@ -38,7 +46,14 @@ describe('apiOptions', () => {
       method: undefined,
     });
 
-    expect(options.queryKey).toEqual(['/api-tokens/123/', {}, {infinite: false}]);
+    expect(options.queryKey).toEqual([
+      '_api',
+      {
+        url: '/api-tokens/123/',
+        urlParts: ['api-tokens', '$tokenId'],
+        options: {path: {tokenId: '123'}},
+      },
+    ]);
   });
 
   it('strips undefined deep values from options in queryKey', () => {
@@ -49,7 +64,14 @@ describe('apiOptions', () => {
       method: undefined,
     });
 
-    expect(options.queryKey).toEqual(['/api-tokens/123/', {}, {infinite: false}]);
+    expect(options.queryKey).toEqual([
+      '_api',
+      {
+        url: '/api-tokens/123/',
+        urlParts: ['api-tokens', '$tokenId'],
+        options: {path: {tokenId: '123'}},
+      },
+    ]);
   });
 
   it('keeps defined values when stripping undefined ones', () => {
@@ -61,20 +83,13 @@ describe('apiOptions', () => {
     });
 
     expect(options.queryKey).toEqual([
-      '/api-tokens/123/',
-      {query: {cursor: 'abc'}},
-      {infinite: false},
+      '_api',
+      {
+        url: '/api-tokens/123/',
+        urlParts: ['api-tokens', '$tokenId'],
+        options: {path: {tokenId: '123'}, query: {cursor: 'abc'}},
+      },
     ]);
-  });
-
-  it('should stringify number path params', () => {
-    const options = apiOptions.as<unknown>()('/api-tokens/$tokenId/', {
-      staleTime: 0,
-      path: {tokenId: 123},
-    });
-
-    const {url} = parseQueryKey(options.queryKey);
-    expect(url).toBe('/api-tokens/123/');
   });
 
   it('should not do accidental replacements', () => {
@@ -84,7 +99,7 @@ describe('apiOptions', () => {
       path: {id: '123', id1: '456'},
     });
 
-    expect(options.queryKey).toEqual(['/projects/456/123', {}, {infinite: false}]);
+    expect(parseQueryKey(options.queryKey).url).toBe('/projects/456/123');
   });
 
   it('should allow skipToken as path', () => {
@@ -97,15 +112,17 @@ describe('apiOptions', () => {
 
     expect(getOptions('123').queryFn).toEqual(expect.any(Function));
     expect(getOptions('123').queryKey).toEqual([
-      '/api-tokens/123/',
-      {},
-      {infinite: false},
+      '_api',
+      {
+        url: '/api-tokens/123/',
+        urlParts: ['api-tokens', '$tokenId'],
+        options: {path: {tokenId: '123'}},
+      },
     ]);
     expect(getOptions(null).queryFn).toEqual(skipToken);
     expect(getOptions(null).queryKey).toEqual([
-      '/api-tokens/$tokenId/',
-      {},
-      {infinite: false},
+      '_api',
+      {url: '/api-tokens/$tokenId/', urlParts: ['api-tokens', '$tokenId'], options: {}},
     ]);
   });
 
@@ -213,20 +230,19 @@ describe('apiOptions', () => {
       expectTypeOf(options.queryFn).returns.toEqualTypeOf<QueryFunctionResult<never>>();
     });
 
-    it('should allow string or number path parameters', () => {
-      const options = apiOptions.as<never>()('/api-tokens/$tokenId/', {
+    it('should only allow string path parameters', () => {
+      apiOptions.as<never>()('/api-tokens/$tokenId/', {
         staleTime: 0,
+        // @ts-expect-error Path parameters must be strings
         path: {tokenId: 123},
       });
 
-      expectTypeOf(options.queryFn).returns.toEqualTypeOf<QueryFunctionResult<never>>();
-
-      const options2 = apiOptions.as<never>()('/api-tokens/$tokenId/', {
+      const options = apiOptions.as<never>()('/api-tokens/$tokenId/', {
         staleTime: 0,
         path: {tokenId: 'abc'},
       });
 
-      expectTypeOf(options2.queryFn).returns.toEqualTypeOf<QueryFunctionResult<never>>();
+      expectTypeOf(options.queryFn).returns.toEqualTypeOf<QueryFunctionResult<never>>();
     });
 
     it('should default to never for unknown API paths', () => {
@@ -261,7 +277,7 @@ describe('apiOptions', () => {
     it('should have a default select that extracts content', () => {
       const options = apiOptions.as<number>()('/api-tokens/$tokenId/', {
         staleTime: 0,
-        path: {tokenId: 123},
+        path: {tokenId: '123'},
       });
 
       expectTypeOf(options.select).returns.toEqualTypeOf<number>();

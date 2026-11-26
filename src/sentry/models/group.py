@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from enum import Enum
 from functools import reduce
 from operator import or_
-from typing import TYPE_CHECKING, Any, ClassVar, cast
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.core.cache import cache
 from django.db import models
@@ -50,7 +50,6 @@ from sentry.issues.priority import (
     PriorityChangeReason,
     get_priority_for_ongoing_group,
 )
-from sentry.models.commit import Commit
 from sentry.models.grouphistory import record_group_history, record_group_history_from_activity_type
 from sentry.models.organization import Organization
 from sentry.search.eap.occurrences.query_utils import build_event_id_in_filter
@@ -953,7 +952,7 @@ class Group(Model):
         self.message = strip(self.message)
         if self.message:
             self.message = truncatechars(self.message.splitlines()[0], 255)
-        if cast("int | None", self.times_seen) is None:
+        if self.times_seen is None:
             self.times_seen = 1
         super().save(
             force_insert=force_insert,
@@ -988,6 +987,15 @@ class Group(Model):
             if params:
                 query = urlencode(params)
             return organization.absolute_url(path, query=query)
+
+    def get_absolute_replays_url(self, params: Mapping[str, str] | None = None) -> str:
+        # The feedback page shows the feedback's replay inline and has no replays tab.
+        if self.issue_category == GroupCategory.FEEDBACK:
+            return self.get_absolute_url(params=params)
+        organization = self.organization
+        path = f"/organizations/{organization.slug}/issues/{self.id}/replays/"
+        query = urlencode(params) if params else None
+        return organization.absolute_url(path, query=query)
 
     def get_absolute_api_url(self) -> str:
         path = f"/issues/{self.id}/"
@@ -1200,30 +1208,6 @@ class Group(Model):
                 Condition(Column("environment"), Op.IN, [e.name for e in environments])
             )
         return self.get_recommended_event(conditions=all_conditions)
-
-    def get_suspect_commit(self) -> Commit | None:
-        from sentry.models.groupowner import GroupOwner, GroupOwnerType
-
-        suspect_commit_owner = (
-            GroupOwner.objects.filter(
-                group_id=self.id,
-                project_id=self.project_id,
-                type=GroupOwnerType.SUSPECT_COMMIT.value,
-                context__isnull=False,
-            )
-            .order_by("-date_added")
-            .first()
-        )
-
-        if not suspect_commit_owner:
-            return None
-
-        commit_id = suspect_commit_owner.context.get("commitId")
-        if not commit_id:
-            return None
-
-        commit = Commit.objects.filter(id=commit_id)
-        return commit.first()
 
     def get_first_release(self, environment_names: list[str] | None = None) -> str | None:
         from sentry.models.release import Release

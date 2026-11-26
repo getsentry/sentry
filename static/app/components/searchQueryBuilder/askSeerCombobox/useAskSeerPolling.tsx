@@ -26,7 +26,7 @@ const askSeerApiOptions = <T extends QueryTokensProps>(
 ) =>
   apiOptions.as<AskSeerPollingResponse<T>>()(
     '/organizations/$organizationIdOrSlug/search-agent/state/$runId/',
-    {path: {organizationIdOrSlug: orgSlug, runId: runId ?? ''}, staleTime: 0}
+    {path: {organizationIdOrSlug: orgSlug, runId: String(runId ?? '')}, staleTime: 0}
   );
 
 /**

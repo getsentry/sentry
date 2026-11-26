@@ -60,7 +60,7 @@ describe('AutomationDetail', () => {
     await findLoadedPage();
 
     // Breadcrumb title and page header
-    expect(screen.getAllByRole('heading', {name: 'Agentic triage'})).toHaveLength(2);
+    expect(screen.getAllByRole('heading', {name: 'Agentic Triage'})).toHaveLength(2);
     expect(
       screen.getByText('Automatically triage and fix the most fixable Issues.')
     ).toBeInTheDocument();
@@ -245,6 +245,41 @@ describe('AutomationDetail', () => {
       expect.objectContaining({method: 'PUT', data: {enabled: true}})
     );
     expect(await screen.findByRole('button', {name: 'Disable'})).toBeInTheDocument();
+  });
+
+  it('runs the automation now', async () => {
+    mockConfig(
+      SeerWorkflowConfigFixture({id: '42', strategy: 'scheduled_investigation'})
+    );
+    const manualRunUrl = `/organizations/${organization.slug}/seer/workflows/manual-run/`;
+    const manualRunRequest = MockApiClient.addMockResponse({
+      url: manualRunUrl,
+      method: 'POST',
+      body: {},
+    });
+    renderDetail();
+    await findLoadedPage();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Run now'}));
+
+    await waitFor(() =>
+      expect(manualRunRequest).toHaveBeenCalledWith(
+        manualRunUrl,
+        expect.objectContaining({method: 'POST', data: {configId: '42'}})
+      )
+    );
+    expect(manualRunRequest).toHaveBeenCalledTimes(1);
+  });
+
+  it('hides run now for breached metric automations', async () => {
+    mockConfig(
+      SeerWorkflowConfigFixture({id: '42', strategy: 'breached_metric_investigation'})
+    );
+    renderDetail();
+    await findLoadedPage();
+
+    expect(screen.getByRole('button', {name: 'Edit'})).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Run now'})).not.toBeInTheDocument();
   });
 
   it('deletes the automation after confirming and returns to the list', async () => {

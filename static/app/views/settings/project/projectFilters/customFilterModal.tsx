@@ -35,6 +35,8 @@ import {
 import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import {android, gaming, sourceMaps} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
+import type {EntryException, Event, ExceptionValue} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
 import type {TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/platform';
@@ -45,6 +47,7 @@ import {FieldKind, FieldValueType} from 'sentry/utils/fields';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {formatVersion} from 'sentry/utils/versions/formatVersion';
 
 // Condition types accepted by the custom inbound filters API. The values match
 // the `type` field on the backend serializer exactly. `CONDITIONS` below
@@ -57,13 +60,15 @@ type ConditionType =
   | 'log_message'
   | 'release'
   | 'environment'
-  | 'ip_address';
+  | 'ip_address'
+  | 'browser_name'
+  | 'browser_version';
 
 // How a condition compares its values to the field, as the API names it. `glob`
 // matches each value as a glob pattern. The literal operators read every character
 // of a value as itself. `cidr` matches an IP address against addresses and ranges,
-// `not_cidr` one that none covers. The ordered operators compare a release as a
-// version. A condition matches when any value does, except under a negated
+// `not_cidr` one that none covers. The ordered operators compare a release or a
+// browser version as a version. A condition matches when any value does, except under a negated
 // operator, which matches when none does.
 export type ConditionOperator =
   | 'glob'
@@ -131,6 +136,10 @@ type DataTypeOption = {label: string; value: FilterDataType};
 // text translates.
 type FilterFormValues = {conditions: string; dataType: FilterDataType; name: string};
 
+// Where a draft passed to the modal comes from, which decides how the modal
+// introduces it.
+type InboundFilterDraftSource = 'event' | 'release';
+
 type DataTypeSpec = {
   label: string;
   // Ingestion feature the org needs before the API accepts a filter on this data
@@ -158,13 +167,14 @@ type ConditionSpec = {
   placeholder: string;
   // Values compare as versions too, so the query builder offers >, >=, < and <=.
   comparable?: boolean;
-  // The data type whose field this condition reads. Absent for `release`,
-  // `environment` and `ip_address`, which every data type carries, so they stay
-  // on offer whatever the filter targets.
+  // The data type whose field this condition reads. Absent for the conditions
+  // every data type carries, so they stay on offer whatever the filter targets.
   dataType?: FilterDataType;
   // Values are addresses and ranges, not text: the field "matches" them or "does
   // not match" them, and the query builder offers no wildcard.
   exact?: boolean;
+  // The organization feature the condition rolls out behind.
+  feature?: string;
 };
 
 // Declaration order is the order of the key menu. Keep the conditions every data
@@ -219,6 +229,7 @@ const CONDITIONS: Record<ConditionType, ConditionSpec> = {
     },
   },
   environment: {
+    feature: 'inbound-filters-environment-condition',
     label: t('Environment'),
     placeholder: t('Glob pattern, e.g. staging'),
     description: {
@@ -235,6 +246,23 @@ const CONDITIONS: Record<ConditionType, ConditionSpec> = {
     placeholder: t('IP address or CIDR range, e.g. 203.0.113.7 or 10.0.0.0/8'),
     description: t(
       'Matches the IP address the data was sent from against single addresses and CIDR ranges, e.g. 203.0.113.7 or 10.0.0.0/8.'
+    ),
+  },
+  browser_name: {
+    feature: 'inbound-filters-browser-condition',
+    label: t('Browser'),
+    placeholder: t('Glob pattern, e.g. Chrome*'),
+    description: t(
+      'Matches the name of the browser, e.g. Chrome. Mobile browsers have names of their own, e.g. Chrome Mobile or Mobile Safari, so Chrome* matches every Chrome.'
+    ),
+  },
+  browser_version: {
+    comparable: true,
+    feature: 'inbound-filters-browser-condition',
+    label: t('Browser Version'),
+    placeholder: t('Glob pattern, e.g. 120.*'),
+    description: t(
+      'Matches the version of the browser, e.g. 120.0.6099. Versions compare part by part, so 120.0.6099 is greater than 120.'
     ),
   },
 };
@@ -287,24 +315,30 @@ function getFilterKeys(dataType: FilterDataType): TagCollection {
   return keys;
 }
 
-// The environment condition rolls out behind its own flag, so the key menu leaves
-// it out until the organization has it. Parsing still reads it, so a filter that
-// already holds one stays editable.
-const FILTER_KEYS_WITHOUT_ENVIRONMENT = new Map<FilterDataType, TagCollection>();
+// A condition that rolls out behind its own flag stays out of the key menu until the
+// organization has it. Parsing still reads it, so a filter that already holds one
+// stays editable. Each set of hidden keys gets its own stable key set.
+const OFFERED_FILTER_KEYS = new Map<string, TagCollection>();
 
 function getOfferedFilterKeys(
   dataType: FilterDataType,
-  hasEnvironmentCondition: boolean
+  organizationFeatures: string[]
 ): TagCollection {
   const keys = getFilterKeys(dataType);
-  if (hasEnvironmentCondition) {
+  const hidden = Object.keys(keys).filter(key => {
+    const feature = getCondition(key).feature;
+    return feature !== undefined && !organizationFeatures.includes(feature);
+  });
+  if (hidden.length === 0) {
     return keys;
   }
-  let offered = FILTER_KEYS_WITHOUT_ENVIRONMENT.get(dataType);
+  const cacheKey = `${dataType}:${hidden.join(',')}`;
+  let offered = OFFERED_FILTER_KEYS.get(cacheKey);
   if (!offered) {
-    const {environment: _environment, ...rest} = keys;
-    offered = rest;
-    FILTER_KEYS_WITHOUT_ENVIRONMENT.set(dataType, offered);
+    offered = Object.fromEntries(
+      Object.entries(keys).filter(([key]) => !hidden.includes(key))
+    );
+    OFFERED_FILTER_KEYS.set(cacheKey, offered);
   }
   return offered;
 }
@@ -329,7 +363,7 @@ function getValueHint(spec: ConditionSpec, operator: TermOperator): string | und
   }
   const conditionOperator = TERM_OPERATORS[operator];
   if (conditionOperator && COMPARISON_OPERATORS.has(conditionOperator)) {
-    return t('A release with a version, e.g. 1.2.0 or myapp@1.2.0');
+    return t('A version, e.g. 1.2.0');
   }
   if (operator === TermOperator.DEFAULT || operator === TermOperator.EQUAL) {
     return t('The exact text, or a pattern with * as a wildcard');
@@ -796,6 +830,47 @@ function ObfuscatedErrorWarning({project}: {project: Project}) {
   );
 }
 
+function getModalDescription(
+  legacyCondition: CustomInboundFilterCondition | undefined,
+  isReadOnly: boolean,
+  draftSource: InboundFilterDraftSource | undefined,
+  project: Project
+): string {
+  if (legacyCondition) {
+    const {label} = getCondition(legacyCondition.type);
+    return isReadOnly
+      ? t('Sentry drops data whose %s matches any pattern below, one per line.', label)
+      : t(
+          'Sentry drops data whose %s matches any pattern below, one per line. Use * in a pattern as a wildcard.',
+          label
+        );
+  }
+  if (draftSource === 'event') {
+    return t(
+      'The conditions below come from the event you were looking at. Remove the ones you do not want, and widen the rest with another operator or a * wildcard where one exact value is too narrow. Sentry drops data that meets every condition.'
+    );
+  }
+  if (draftSource === 'release') {
+    return t(
+      'The condition below matches the release you were looking at, in %s. To cover more releases, widen it with another operator, like greater than, or a * wildcard. Sentry drops data that meets every condition.',
+      project.slug
+    );
+  }
+  return isReadOnly
+    ? t('Sentry drops data that meets every condition below.')
+    : t(
+        'Sentry drops data that meets every condition below. Type a property, pick an operator, then enter a value. Use * in a value as a wildcard, or list several values to match any of them.'
+      );
+}
+
+function getModalTitle(isReadOnly: boolean, hasFilter: boolean): string {
+  if (isReadOnly) {
+    return t('View Custom Filter');
+  }
+
+  return hasFilter ? t('Edit Custom Filter') : t('Create Custom Filter');
+}
+
 // Condition values can get long (full error messages, release ranges), so give the
 // modal more room than the 640px default.
 const filterModalCss = css`
@@ -833,6 +908,81 @@ export function getCustomFilterUrl(
   });
 }
 
+function uniqueNonEmpty(values: Array<string | null | undefined>): string[] {
+  return [...new Set(values.map(value => value?.trim()).filter(Boolean))] as string[];
+}
+
+// Use an exact match for values copied from the event. Filter values can't
+// contain newlines, so for multi-line values (e.g. a long error message) fall
+// back to a glob: escape glob metacharacters, then replace each line break
+// and its surrounding whitespace with `*`.
+function conditionFromLiterals(
+  type: ConditionType,
+  literals: string[]
+): CustomInboundFilterCondition {
+  if (literals.some(literal => literal.includes('\n'))) {
+    return {
+      type,
+      operator: 'glob',
+      value: literals.map(literal =>
+        literal.replace(/[\\*?[\]{}]/g, '\\$&').replace(/\s*\n\s*/g, '*')
+      ),
+    };
+  }
+  return {type, operator: 'equals', value: literals};
+}
+
+// A draft filter that matches the event: one condition per property the event
+// carries a value for, so the user removes what they do not want instead of
+// typing what they do. Exception types and messages come from the raw values
+// where the event has them, which is what Relay saw before symbolication.
+export function getFilterDraftFromEvent(event: Event): FilterFormValues {
+  const exceptions: ExceptionValue[] =
+    event.entries.find(
+      (entry): entry is EntryException => entry.type === EntryType.EXCEPTION
+    )?.data.values ?? [];
+  const message: string | undefined = event.entries.find(
+    entry => entry.type === EntryType.MESSAGE
+  )?.data.formatted;
+
+  const literals: Array<[ConditionType, string[]]> = [
+    ['error_type', uniqueNonEmpty(exceptions.map(exc => exc.rawType || exc.type))],
+    [
+      'error_message',
+      exceptions.length > 0
+        ? uniqueNonEmpty(exceptions.map(exc => exc.rawValue || exc.value))
+        : uniqueNonEmpty([message]),
+    ],
+    ['geo_country_code', uniqueNonEmpty([event.user?.geo?.country_code])],
+    ['release', uniqueNonEmpty([event.release?.version])],
+  ];
+  const conditions: CustomInboundFilterCondition[] = literals
+    .filter(([, values]) => values.length > 0)
+    .map(([type, values]) => conditionFromLiterals(type, values));
+
+  const ipAddress = event.user?.ip_address?.trim();
+  if (ipAddress) {
+    conditions.push({type: 'ip_address', operator: 'cidr', value: [ipAddress]});
+  }
+
+  return {
+    name: event.title.slice(0, 256),
+    dataType: 'error',
+    conditions: conditionsToQuery(conditions),
+  };
+}
+
+// A draft filter that drops every data type from one release of the project. It
+// matches the raw version exactly, which is what Relay compares against, so the
+// user widens it in the modal if they want more releases.
+export function getFilterDraftFromRelease(version: string): FilterFormValues {
+  return {
+    name: t('Release %s', formatVersion(version)).slice(0, 256),
+    dataType: 'all',
+    conditions: conditionsToQuery([conditionFromLiterals('release', [version])]),
+  };
+}
+
 function CustomFilterModal({
   Header,
   Body,
@@ -840,25 +990,34 @@ function CustomFilterModal({
   closeModal,
   project,
   filter,
+  initialValues,
+  readOnlyReason,
+  draftSource,
 }: ModalRenderProps & {
   project: Project;
+  // Where `initialValues` come from. Ignored when `filter` is set.
+  draftSource?: InboundFilterDraftSource;
   // The filter to edit. Absent when the modal creates one.
   filter?: CustomInboundFilter;
+  // Starting values of a new filter. Ignored when `filter` is set.
+  initialValues?: FilterFormValues;
+  // Why the user cannot edit `filter`. When set, the modal shows the filter with
+  // its controls disabled, so someone without write access can still read every
+  // condition, and says why in the footer.
+  readOnlyReason?: string;
 }) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
-  const hasEnvironmentCondition = organization.features.includes(
-    'inbound-filters-environment-condition'
-  );
 
   // A row that holds a legacy list keeps its one condition and its data type: the
   // modal edits the lines of the condition.
   const legacyCondition = filter?.legacyFilter ? filter.conditions[0] : undefined;
+  const isReadOnly = readOnlyReason !== undefined;
   const editor = useMemo(() => getConditionEditor(legacyCondition), [legacyCondition]);
   const filterSchema = useMemo(() => getFilterSchema(editor), [editor]);
   const defaultValues = filter
     ? filterToFormValues(filter, editor)
-    : {name: '', dataType: 'error' as const, conditions: ''};
+    : (initialValues ?? {name: '', dataType: 'error' as const, conditions: ''});
   const modalDataTypeOptions = getModalDataTypeOptions(
     getAvailableDataTypeOptions(organization),
     filter ? defaultValues.dataType : undefined
@@ -968,18 +1127,14 @@ function CustomFilterModal({
     <form.AppForm form={form}>
       <Header closeButton>
         <Stack gap="xs">
-          <Heading as="h4">
-            {filter ? t('Edit Custom Filter') : t('Create Custom Filter')}
-          </Heading>
+          <Heading as="h4">{getModalTitle(isReadOnly, !!filter)}</Heading>
           <Text variant="muted" size="sm">
-            {legacyCondition
-              ? t(
-                  'Sentry drops data whose %s matches any pattern below, one per line. Use * in a pattern as a wildcard.',
-                  getCondition(legacyCondition.type).label
-                )
-              : t(
-                  'Sentry drops data that meets every condition below. Type a property, pick an operator, then enter a value. Use * in a value as a wildcard, or list several values to match any of them.'
-                )}
+            {getModalDescription(
+              legacyCondition,
+              isReadOnly,
+              filter ? undefined : draftSource,
+              project
+            )}
           </Text>
         </Stack>
       </Header>
@@ -990,6 +1145,7 @@ function CustomFilterModal({
               {field => (
                 <field.Layout.Stack label={t('Name')} required>
                   <field.Input
+                    disabled={isReadOnly}
                     value={field.state.value}
                     onChange={field.handleChange}
                     placeholder={
@@ -1007,7 +1163,7 @@ function CustomFilterModal({
                 <dataTypeField.Layout.Stack label={t('Data Type')} required>
                   <dataTypeField.Select
                     clearable={false}
-                    disabled={legacyCondition !== undefined}
+                    disabled={isReadOnly || legacyCondition !== undefined}
                     options={modalDataTypeOptions}
                     value={dataTypeField.state.value}
                     onChange={value => dataTypeField.handleChange(value)}
@@ -1025,6 +1181,7 @@ function CustomFilterModal({
                   required
                 >
                   <linesField.TextArea
+                    readOnly={isReadOnly}
                     placeholder={getCondition(legacyCondition.type).placeholder}
                     value={linesField.state.value}
                     onChange={linesField.handleChange}
@@ -1067,13 +1224,13 @@ function CustomFilterModal({
                               initialQuery={queryField.state.value}
                               filterKeys={getOfferedFilterKeys(
                                 dataType,
-                                hasEnvironmentCondition
+                                organization.features
                               )}
                               fieldDefinitionGetter={getFieldDefinitionGetter(dataType)}
                               getTagValues={getNoTagValues}
                               onChange={value => queryField.handleChange(value)}
                               onBlur={onBlur}
-                              disabled={disabled}
+                              disabled={isReadOnly || disabled}
                               searchSource="custom_inbound_filter"
                               placeholder={t(
                                 'e.g. error_message:*timeout* release:<2.0.0'
@@ -1111,22 +1268,36 @@ function CustomFilterModal({
         </Stack>
       </Body>
       <Footer>
-        <Flex gap="md">
-          <Button onClick={closeModal}>{t('Cancel')}</Button>
-          <form.SubmitButton>
-            {filter ? t('Save Changes') : t('Create Filter')}
-          </form.SubmitButton>
-        </Flex>
+        {isReadOnly ? (
+          <Flex gap="md" align="center" justify="between" flex={1}>
+            <Text variant="muted" size="sm">
+              {readOnlyReason}
+            </Text>
+            <Button onClick={closeModal}>{t('Close')}</Button>
+          </Flex>
+        ) : (
+          <Flex gap="md">
+            <Button onClick={closeModal}>{t('Cancel')}</Button>
+            <form.SubmitButton>
+              {filter ? t('Save Changes') : t('Create Filter')}
+            </form.SubmitButton>
+          </Flex>
+        )}
       </Footer>
     </form.AppForm>
   );
 }
 
-// Opens the modal to create a filter, or to edit `filter`. Saving goes through
-// the modal, so callers only pick what it opens on.
+// Opens the modal to create a filter, from a draft or from scratch, or to edit
+// `filter`. Saving goes through the modal, so callers only pick what it opens on.
+// With `readOnlyReason`, the modal shows the filter without letting the user
+// change it.
 export function openCustomFilterModal(options: {
   project: Project;
+  draftSource?: InboundFilterDraftSource;
   filter?: CustomInboundFilter;
+  initialValues?: FilterFormValues;
+  readOnlyReason?: string;
 }) {
   openModal(deps => <CustomFilterModal {...deps} {...options} />, {
     modalCss: filterModalCss,

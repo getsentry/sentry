@@ -9,7 +9,7 @@ import {WizardProjectSelection} from './wizardProjectSelection';
 
 type Props = {hash: string; enableProjectSelection?: boolean};
 
-function SetupWizard({hash, enableProjectSelection = false}: Props) {
+export function SetupWizard({hash, enableProjectSelection = false}: Props) {
   const {data: organizations, isError, isPending} = useOrganizationsWithRegion();
 
   useSetupWizardViewedAnalytics(organizations);
@@ -28,5 +28,3 @@ function SetupWizard({hash, enableProjectSelection = false}: Props) {
     <WaitingForWizardToConnect hash={hash} organizations={organizations} />
   );
 }
-
-export default SetupWizard;

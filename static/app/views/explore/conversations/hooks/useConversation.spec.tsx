@@ -271,9 +271,10 @@ describe('useConversation', () => {
     });
 
     it('leaves them alone unless asked to mark them, like for the export', () => {
-      const {nodes} = buildConversationNodes([
-        {...BASE_SPAN, 'gen_ai.input.messages': inputMessages, meta},
-      ]);
+      const {nodes} = buildConversationNodes(
+        [{...BASE_SPAN, 'gen_ai.input.messages': inputMessages, meta}],
+        {organization}
+      );
 
       expect(nodes[0]?.attributes?.[SpanFields.GEN_AI_INPUT_MESSAGES]).toBe(
         inputMessages
@@ -830,7 +831,7 @@ describe('useConversation', () => {
     expect(queryArg).not.toHaveProperty('end');
   });
 
-  it('filters to only gen_ai spans', async () => {
+  it('filters to spans with a gen_ai operation type', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/agents/conversations/conv-filter/`,
       body: envelope([
@@ -854,9 +855,9 @@ describe('useConversation', () => {
           'precise.start_ts': 1001,
           project: 'test-project',
           'project.id': 1,
-          'span.name': 'http.client',
+          'span.name': 'gen_ai.generate',
           'span.status': 'ok',
-          span_id: 'span-http',
+          span_id: 'span-untyped',
           trace: 'trace-1',
           // No gen_ai.operation.type - should be filtered out
         },

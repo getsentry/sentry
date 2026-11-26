@@ -16,6 +16,7 @@ from sentry.constants import (
 )
 from sentry.models.group import Group
 from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.agent.client_utils import (
@@ -39,6 +40,7 @@ from sentry.seer.autofix.feature.models import (
     RCAStepArgs,
     SolutionStepArgs,
 )
+from sentry.seer.autofix.open_prs import get_open_prs
 from sentry.seer.autofix.pr_iteration.feedback import (
     Feedback,
     feedback_text,
@@ -51,7 +53,6 @@ from sentry.seer.autofix.utils import (
     get_automation_handoff,
     get_event_matched_project_repo_ids,
     is_free_cohort_org,
-    is_seer_seat_or_token_billed_enabled,
 )
 from sentry.seer.credits import SeerOperation, check_seer_operation, get_denial_reason
 from sentry.seer.models.run import SeerAgentRun, SeerRun
@@ -61,8 +62,6 @@ from sentry.users.services.user import RpcUser
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
-
-SINGLE_RUN_LEGACY_PLAN_DETAIL = "Single-run Autofix needs a seat-based or token-billed Seer plan"
 
 
 @dataclass(frozen=True)
@@ -138,9 +137,21 @@ def should_use_single_run(
     # Only fresh root-cause starts qualify: later steps and retries continue step-by-step runs.
     if step != AutofixStep.ROOT_CAUSE or existing_run_id is not None:
         return False
+    return single_run_requested or features.has(
+        "organizations:autofix-single-run", group.organization
+    )
+
+
+def single_run_stopping_point(
+    project: Project, requested: AutofixStoppingPoint | None
+) -> AutofixStoppingPoint:
+    if requested is not None and requested != AutofixStoppingPoint.OPEN_PR:
+        return requested
     return (
-        single_run_requested or features.has("organizations:autofix-single-run", group.organization)
-    ) and is_seer_seat_or_token_billed_enabled(group.organization)
+        AutofixStoppingPoint.OPEN_PR
+        if get_open_prs(project.get_option)
+        else AutofixStoppingPoint.CODE_CHANGES
+    )
 
 
 def _single_run_pr_internal_settings(
@@ -213,11 +224,6 @@ def check_autofix_billing(
     return uses_quota
 
 
-def _require_single_run_plan(organization: Organization) -> None:
-    if not is_seer_seat_or_token_billed_enabled(organization):
-        raise SeerPermissionError(SINGLE_RUN_LEGACY_PLAN_DETAIL)
-
-
 def continue_single_run(
     agent_run: SeerAgentRun,
     group: Group,
@@ -228,7 +234,6 @@ def continue_single_run(
     user: User | RpcUser,
     can_publish: bool,
 ) -> SeerRun:
-    _require_single_run_plan(group.organization)
     check_autofix_billing(
         group.organization,
         billing_feature,
@@ -265,7 +270,6 @@ def continue_single_run_from_pr_feedback(
     referrer: AutofixReferrer,
     billing_feature: int,
 ) -> SeerRun:
-    _require_single_run_plan(group.organization)
     check_autofix_billing(
         group.organization,
         billing_feature,
@@ -418,7 +422,7 @@ def trigger_autofix_feature(
         single_run_requested=args.single_run,
     )
     stopping_point = (
-        (args.stopping_point or AutofixStoppingPoint.CODE_CHANGES)
+        single_run_stopping_point(group.project, args.stopping_point)
         if single_run
         else args.stopping_point
     )
@@ -444,9 +448,8 @@ def trigger_autofix_feature(
             user_context=args.user_context,
             should_run_repo_checks=True,
         )
-        # The project's coding agent writes the fix, so Seer stops after the root cause. Only
-        # automated runs, which pass the project's stopping point, hand off. A manual run names
-        # none and has Seer write the fix; the user can hand off from the UI instead.
+        # Only automated runs, which pass the project's stopping point, hand off to the coding
+        # agent. A manual run names none, so Seer writes the fix and follows the project's Open PRs.
         hand_off = will_hand_off_to_coding_agent(group, args.stopping_point)
         enable_coding = (
             stopping_point in _CODING_STOPPING_POINTS and not hand_off and _org_allows_coding(group)

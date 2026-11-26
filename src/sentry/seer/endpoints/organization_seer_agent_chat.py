@@ -34,6 +34,10 @@ from sentry.seer.agent.client_utils import (
     has_seer_agent_access_with_detail,
     snapshot_to_markdown,
 )
+from sentry.seer.agent.scm_connect_analytics import (
+    record_scm_connect_new_message,
+    record_scm_connect_shown,
+)
 from sentry.seer.autofix.constants import (
     AUTOFIX_RUN_SCOPES,
     PUBLISH_SCOPES,
@@ -298,8 +302,6 @@ def _maybe_reply_to_single_run(
         )
     except SeerOutOfCreditsException as e:
         return seer_out_of_credits_response(SEER_AGENT_CHAT_OUT_OF_CREDITS_DETAIL, e.denial_reason)
-    except SeerPermissionError as e:
-        raise PermissionDenied(e.message) from e
     except SeerApiError as e:
         if e.status == 404:
             return Response({"session": None}, status=404)
@@ -363,6 +365,13 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
         try:
             client = SeerAgentClient(organization, request.user)
             state = client.get_run(run_id=resolved.seer_run_state_id)
+            record_scm_connect_shown(
+                organization,
+                acting_user_id(request.user),
+                resolved.seer_run_state_id,
+                state,
+                can_install_integrations=request.access.has_scope("org:integrations"),
+            )
             session = state if has_elevated_mode(request) else redact_autofix_prompts(state)
             return Response(
                 SeerAgentChatStateResponse(
@@ -457,7 +466,9 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
             user_id = acting_user_id(request.user)
             if user_id is None:
                 raise PermissionDenied("A user account is required to continue a conversation.")
-            result = resolve_seer_run(run_id, organization, for_continue=True, user_id=user_id)
+            result = resolve_seer_run(
+                run_id, organization, for_continue=True, user_id=user_id, access=request.access
+            )
             if isinstance(result, Response):
                 return result
             resolved = result
@@ -503,11 +514,11 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
                 enable_code_mode_tools=enable_code_mode_tools,
                 enable_investigation_tools=True,
                 enable_inbox_tools=True,
-                # Only users who can install integrations are asked to fix repo access.
+                # Members are asked too: they can't install integrations, but the popup lets them
+                # request one from the owners.
                 enable_scm_connect_prompt=features.has(
                     "organizations:ask-seer-scm-connect-prompt", organization, actor=request.user
-                )
-                and request.access.has_scope("org:integrations"),
+                ),
                 reasoning_effort="medium",
             )
             if resolved is not None:
@@ -523,6 +534,10 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
                     sent_at=sent_at,
                     ui_tools=ui_tools,
                     request=request,
+                )
+                # A new message closes a popup still asking to fix repository access.
+                record_scm_connect_new_message(
+                    organization, acting_user_id(request.user), resolved.seer_run_state_id
                 )
                 return Response(
                     {"run_id": resolved.seer_run_state_id, "sentry_run_id": resolved.uuid}

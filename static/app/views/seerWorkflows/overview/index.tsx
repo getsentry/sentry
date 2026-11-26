@@ -565,7 +565,6 @@ function OverviewSectionList({
     <Stack gap="lg">
       {sections.map(({key, runs}) => {
         const meta = STATUS_GROUP_META[key];
-        const groupLabel = key === 'needs_investigation' ? t('Create Plan') : meta.label;
         const expanded = !collapsedGroups.includes(key);
         return (
           <StatusGroup
@@ -580,7 +579,7 @@ function OverviewSectionList({
                   <Tooltip title={<StatusGroupTooltip groupKey={key} />} skipWrapper>
                     <meta.Icon size="sm" aria-hidden />
                   </Tooltip>
-                  <Text bold>{groupLabel}</Text>
+                  <Text bold>{meta.label}</Text>
                   <Badge variant="muted">{runs.length}</Badge>
                 </Flex>
               </Disclosure.Title>

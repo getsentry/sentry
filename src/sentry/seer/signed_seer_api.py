@@ -1,14 +1,15 @@
 import hashlib
 import hmac
 import logging
+from collections.abc import Mapping
 from dataclasses import replace
 from typing import Any, Literal, NotRequired, TypedDict
-from urllib.parse import urlparse
+from urllib.parse import quote, urlencode, urlparse
 
 import orjson
 from django.conf import settings
 from sentry_sdk import traces
-from urllib3 import BaseHTTPResponse, HTTPConnectionPool, Retry
+from urllib3 import BaseHTTPResponse, HTTPConnectionPool, Retry, Timeout
 
 from sentry.net.http import connection_from_url
 from sentry.utils import metrics
@@ -159,18 +160,20 @@ def make_signed_seer_api_request(
     connection_pool: HTTPConnectionPool,
     path: str,
     body: bytes,
-    timeout: int | float | None = None,
+    timeout: int | float | Timeout | None = None,
     retries: int | None | Retry = None,
     metric_tags: dict[str, Any] | None = None,
     method: str = "POST",
     viewer_context: SeerViewerContext | None = None,
     metrics_endpoint: str | None = None,
+    extra_headers: Mapping[str, str] | None = None,
 ) -> BaseHTTPResponse:
     """Send a signed request to Seer.
 
     All outbound Sentry-to-Seer HTTP requests must go through this function so
     ViewerContext propagation, signing, tracing, and metrics remain consistent.
     Use metrics_endpoint as a low-cardinality endpoint tag when the request path varies.
+    extra_headers are sent unsigned and cannot replace the auth or ViewerContext headers.
     """
     host = connection_pool.host
     if connection_pool.port:
@@ -187,6 +190,7 @@ def make_signed_seer_api_request(
     auth_headers = sign_with_seer_secret(body)
 
     headers: dict[str, str] = {
+        **(extra_headers or {}),
         "content-type": "application/json;charset=utf-8",
         **auth_headers,
         "X-Viewer-Context": viewer_context_header,
@@ -650,6 +654,40 @@ def make_delete_grouping_records_by_project_request(
         method="GET",
         timeout=timeout,
         viewer_context=viewer_context,
+    )
+
+
+def make_agent_conversations_request(
+    method: Literal["GET", "POST"],
+    agent: str,
+    conversation_id: str | None = None,
+    *,
+    messages: bool = False,
+    query: dict[str, str] | None = None,
+    body: dict[str, Any] | None = None,
+    timeout: int | float | None = None,
+    viewer_context: SeerViewerContext | None = None,
+    idempotency_key: str | None = None,
+) -> BaseHTTPResponse:
+    path = f"/v1/agents/{quote(agent, safe='')}/conversations/"
+    metrics_endpoint = "/v1/agents/:agent/conversations/"
+    if conversation_id is not None:
+        path += f"{quote(conversation_id, safe='')}/"
+        metrics_endpoint += ":conversation_id/"
+    if messages:
+        path += "messages/"
+        metrics_endpoint += "messages/"
+    if query:
+        path += f"?{urlencode(query)}"
+    return make_signed_seer_api_request(
+        seer_autofix_default_connection_pool,
+        path,
+        body=orjson.dumps(body) if body is not None else b"",
+        method=method,
+        timeout=timeout,
+        viewer_context=viewer_context,
+        metrics_endpoint=metrics_endpoint,
+        extra_headers={"Idempotency-Key": idempotency_key} if idempotency_key else None,
     )
 
 

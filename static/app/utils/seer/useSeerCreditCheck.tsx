@@ -6,7 +6,6 @@ import type {Organization} from 'sentry/types/organization';
 import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -29,7 +28,12 @@ export type SeerCreditOperation =
  * - `daily_cap_exceeded`: the operation would take today's spend over the
  *   org's daily usage limit.
  */
-export type SeerCreditDenialReason = 'not_enough_credits' | 'daily_cap_exceeded';
+export const SEER_CREDIT_DENIAL_REASONS = [
+  'not_enough_credits',
+  'daily_cap_exceeded',
+] as const;
+
+export type SeerCreditDenialReason = (typeof SEER_CREDIT_DENIAL_REASONS)[number];
 
 interface SeerCreditCheckResponse {
   /**
@@ -82,12 +86,11 @@ export function seerCreditCheckApiOptions(
  * Matches the org's credit checks for every operation, so they can all be
  * rechecked at once, for example after credits are added.
  */
-export function seerCreditChecksQueryKey(organization: Organization) {
-  return [
-    getApiUrl('/organizations/$organizationIdOrSlug/seer/credit-check/', {
-      path: {organizationIdOrSlug: organization.slug},
-    }),
-  ];
+export function seerCreditChecksFilter(organization: Organization) {
+  return apiOptions.queryFilter(
+    '/organizations/$organizationIdOrSlug/seer/credit-check/',
+    {path: {organizationIdOrSlug: organization.slug}}
+  );
 }
 
 interface UseSeerCreditCheckOptions {

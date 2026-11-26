@@ -29,6 +29,7 @@ from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import cell_silo_test
@@ -49,7 +50,7 @@ from sentry.workflow_engine.models import (
     Detector,
 )
 from sentry.workflow_engine.models.detector_group import DetectorGroup
-from sentry.workflow_engine.types import DetectorAPIOperation, FeatureGate
+from sentry.workflow_engine.types import FeatureGate, WorkflowEngineAPIOperation
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 from tests.sentry.workflow_engine.endpoints.test_helpers import (
     GATE_FEATURE,
@@ -85,7 +86,7 @@ class OrganizationDetectorIndexBaseTest(APITestCase):
 class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
     def test_discovery_exclusion_does_not_hide_existing_rows(self) -> None:
         with override_detector_api_availability(
-            ErrorGroupType.slug, {DetectorAPIOperation.DISCOVER: False}
+            ErrorGroupType.slug, {WorkflowEngineAPIOperation.DISCOVER: False}
         ):
             response = self.get_success_response(
                 self.organization.slug, qs_params={"id": [self.error_detector.id]}
@@ -115,7 +116,7 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
         # per_page=1 catches exclusion applied after pagination, which returns an empty page
         self.create_detector(project=self.project, type=ErrorGroupType.slug)
         # LIST also requires GET, so denying either hides the type from the list
-        for operation in (DetectorAPIOperation.LIST, DetectorAPIOperation.GET):
+        for operation in (WorkflowEngineAPIOperation.LIST, WorkflowEngineAPIOperation.GET):
             with (
                 self.subTest(operation=operation.value),
                 override_detector_api_availability(ErrorGroupType.slug, {operation: False}),
@@ -137,7 +138,7 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
             with (
                 self.subTest(qs_params=qs_params),
                 override_detector_api_availability(
-                    ErrorGroupType.slug, {DetectorAPIOperation.LIST: False}
+                    ErrorGroupType.slug, {WorkflowEngineAPIOperation.LIST: False}
                 ),
             ):
                 response = self.get_success_response(self.organization.slug, qs_params=qs_params)
@@ -148,8 +149,8 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
         with override_detector_api_availability(
             ErrorGroupType.slug,
             {
-                DetectorAPIOperation.GET: FeatureGate(GATE_FEATURE),
-                DetectorAPIOperation.LIST: True,
+                WorkflowEngineAPIOperation.GET: FeatureGate(GATE_FEATURE),
+                WorkflowEngineAPIOperation.LIST: True,
             },
         ):
             for enabled in (False, True):
@@ -168,9 +169,9 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
         with override_detector_api_availability(
             ErrorGroupType.slug,
             {
-                DetectorAPIOperation.POST: False,
-                DetectorAPIOperation.PUT: False,
-                DetectorAPIOperation.DELETE: False,
+                WorkflowEngineAPIOperation.POST: False,
+                WorkflowEngineAPIOperation.PUT: False,
+                WorkflowEngineAPIOperation.DELETE: False,
             },
         ):
             response = self.get_success_response(
@@ -1194,7 +1195,9 @@ class OrganizationDetectorIndexPutTest(OrganizationDetectorIndexBaseTest):
             project=self.project, type=MonitorIncidentType.slug, enabled=True
         )
         with (
-            override_detector_api_availability(MetricIssue.slug, {DetectorAPIOperation.PUT: False}),
+            override_detector_api_availability(
+                MetricIssue.slug, {WorkflowEngineAPIOperation.PUT: False}
+            ),
             assert_querysets_unchanged(
                 detectors=Detector.objects.filter(id__in=[allowed_detector.id, self.detector.id])
             ),
@@ -1212,9 +1215,9 @@ class OrganizationDetectorIndexPutTest(OrganizationDetectorIndexBaseTest):
         with override_detector_api_availability(
             MetricIssue.slug,
             {
-                DetectorAPIOperation.PUT: FeatureGate(GATE_FEATURE),
-                DetectorAPIOperation.LIST: False,
-                DetectorAPIOperation.GET: False,
+                WorkflowEngineAPIOperation.PUT: FeatureGate(GATE_FEATURE),
+                WorkflowEngineAPIOperation.LIST: False,
+                WorkflowEngineAPIOperation.GET: False,
             },
         ):
             with (
@@ -1240,7 +1243,7 @@ class OrganizationDetectorIndexPutTest(OrganizationDetectorIndexBaseTest):
         allowed_detector = ensure_cron_detector(self.create_monitor(project=self.project))
         assert allowed_detector is not None
         with override_detector_api_availability(
-            MetricIssue.slug, {DetectorAPIOperation.PUT: False}
+            MetricIssue.slug, {WorkflowEngineAPIOperation.PUT: False}
         ):
             response = self.get_success_response(
                 self.organization.slug,
@@ -1324,6 +1327,152 @@ class OrganizationDetectorIndexPutTest(OrganizationDetectorIndexBaseTest):
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(self.detector_three.id)
         assert response.data[0]["enabled"] is True
+
+    @patch("sentry.quotas.backend.get_metric_detector_limit", return_value=3)
+    @with_feature("organizations:workflow-engine-metric-detector-limit")
+    def test_update_detectors_enable_rejected_over_metric_limit(
+        self, mock_get_limit: MagicMock
+    ) -> None:
+        self.detector_two.update(enabled=False)
+        self.detector_three.update(enabled=False)
+
+        response = self.get_error_response(
+            self.organization.slug,
+            qs_params={"id": [str(self.detector_two.id), str(self.detector_three.id)]},
+            enabled=True,
+            status_code=400,
+        )
+
+        assert (
+            response.data["detail"] == "This would exceed your plan's limit of 3 metric monitors."
+        )
+        self.detector_two.refresh_from_db()
+        self.detector_three.refresh_from_db()
+        assert self.detector_two.enabled is False
+        assert self.detector_three.enabled is False
+
+    @patch("sentry.quotas.backend.get_metric_detector_limit", return_value=3)
+    @with_feature("organizations:workflow-engine-metric-detector-limit")
+    def test_update_detectors_enable_within_metric_limit(self, mock_get_limit: MagicMock) -> None:
+        self.detector_two.update(enabled=False)
+        self.detector_three.update(enabled=False)
+
+        self.get_success_response(
+            self.organization.slug,
+            qs_params={"id": str(self.detector_three.id)},
+            enabled=True,
+            status_code=200,
+        )
+
+        self.detector_three.refresh_from_db()
+        assert self.detector_three.enabled is True
+
+    def _metric_detector_with_subscription(
+        self, enabled: bool, subscription_status: QuerySubscription.Status
+    ) -> tuple[Detector, QuerySubscription]:
+        snuba_query = create_snuba_query(
+            query_type=SnubaQuery.Type.ERROR,
+            dataset=Dataset.Events,
+            query="",
+            aggregate="count()",
+            time_window=timedelta(minutes=1),
+            resolution=timedelta(minutes=1),
+            environment=None,
+        )
+        subscription = create_snuba_subscription(
+            project=self.project,
+            subscription_type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+            snuba_query=snuba_query,
+        )
+        subscription.update(status=subscription_status.value)
+        data_source = self.create_data_source(
+            organization=self.organization, source_id=str(subscription.id)
+        )
+        detector = self.create_detector(
+            project=self.project, type=MetricIssue.slug, enabled=enabled
+        )
+        self.create_data_source_detector(data_source=data_source, detector=detector)
+        return detector, subscription
+
+    def test_update_detectors_disable_pauses_metric_subscriptions(self) -> None:
+        detector, subscription = self._metric_detector_with_subscription(
+            enabled=True, subscription_status=QuerySubscription.Status.ACTIVE
+        )
+
+        self.get_success_response(
+            self.organization.slug, qs_params={"id": str(detector.id)}, enabled=False
+        )
+
+        subscription.refresh_from_db()
+        assert subscription.status == QuerySubscription.Status.DISABLED.value
+
+    def test_update_detectors_enable_resumes_metric_subscriptions(self) -> None:
+        detector, subscription = self._metric_detector_with_subscription(
+            enabled=False, subscription_status=QuerySubscription.Status.DISABLED
+        )
+
+        self.get_success_response(
+            self.organization.slug, qs_params={"id": str(detector.id)}, enabled=True
+        )
+
+        subscription.refresh_from_db()
+        assert subscription.status == QuerySubscription.Status.CREATING.value
+
+    def test_update_detectors_unchanged_detector_keeps_subscription(self) -> None:
+        detector, subscription = self._metric_detector_with_subscription(
+            enabled=True, subscription_status=QuerySubscription.Status.ACTIVE
+        )
+
+        self.get_success_response(
+            self.organization.slug, qs_params={"id": str(detector.id)}, enabled=True
+        )
+
+        subscription.refresh_from_db()
+        assert subscription.status == QuerySubscription.Status.ACTIVE.value
+
+    def test_update_detectors_mixed_batch_only_toggles_changed_metric_subscriptions(
+        self,
+    ) -> None:
+        cases = [
+            (True, QuerySubscription.Status.DISABLED),
+            (True, QuerySubscription.Status.DISABLED),
+            (False, QuerySubscription.Status.ACTIVE),
+        ]
+        rows = []
+        for detector_enabled, expected_status in cases:
+            detector, subscription = self._metric_detector_with_subscription(
+                enabled=detector_enabled, subscription_status=QuerySubscription.Status.ACTIVE
+            )
+            rows.append((detector, subscription, expected_status))
+        detector_ids = [str(detector.id) for detector, _, _ in rows]
+
+        self.get_success_response(
+            self.organization.slug,
+            qs_params={"id": [*detector_ids, str(self.error_detector.id)]},
+            enabled=False,
+        )
+
+        for detector, subscription, expected_status in rows:
+            detector.refresh_from_db()
+            subscription.refresh_from_db()
+            assert detector.enabled is False
+            assert subscription.status == expected_status.value
+        self.error_detector.refresh_from_db()
+        assert self.error_detector.enabled is False
+
+    @patch("sentry.quotas.backend.get_metric_detector_limit", return_value=4)
+    @with_feature("organizations:workflow-engine-metric-detector-limit")
+    def test_update_detectors_enable_already_enabled_not_counted(
+        self, mock_get_limit: MagicMock
+    ) -> None:
+        assert self.detector.enabled is True
+
+        self.get_success_response(
+            self.organization.slug,
+            qs_params={"id": str(self.detector.id)},
+            enabled=True,
+            status_code=200,
+        )
 
     def test_update_detectors_no_parameters_error(self) -> None:
         response = self.get_error_response(
@@ -1858,7 +2007,7 @@ class OrganizationDetectorDeleteTest(OrganizationDetectorIndexBaseTest):
         detector_ids = [self.detector.id, self.error_detector.id]
         with (
             override_detector_api_availability(
-                ErrorGroupType.slug, {DetectorAPIOperation.DELETE: False}
+                ErrorGroupType.slug, {WorkflowEngineAPIOperation.DELETE: False}
             ),
             assert_querysets_unchanged(
                 detectors=Detector.objects.filter(id__in=detector_ids),
@@ -1879,9 +2028,9 @@ class OrganizationDetectorDeleteTest(OrganizationDetectorIndexBaseTest):
         with override_detector_api_availability(
             MetricIssue.slug,
             {
-                DetectorAPIOperation.DELETE: FeatureGate(GATE_FEATURE),
-                DetectorAPIOperation.LIST: False,
-                DetectorAPIOperation.GET: False,
+                WorkflowEngineAPIOperation.DELETE: FeatureGate(GATE_FEATURE),
+                WorkflowEngineAPIOperation.LIST: False,
+                WorkflowEngineAPIOperation.GET: False,
             },
         ):
             with (
@@ -1911,7 +2060,7 @@ class OrganizationDetectorDeleteTest(OrganizationDetectorIndexBaseTest):
 
     def test_delete_exclusion_skips_type_in_query_selection(self) -> None:
         with override_detector_api_availability(
-            ErrorGroupType.slug, {DetectorAPIOperation.DELETE: False}
+            ErrorGroupType.slug, {WorkflowEngineAPIOperation.DELETE: False}
         ):
             self.get_success_response(
                 self.organization.slug,

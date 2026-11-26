@@ -4,6 +4,7 @@ import trimStart from 'lodash/trimStart';
 
 import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {toArray} from 'sentry/utils/array/toArray';
 import {defined} from 'sentry/utils/defined';
 import type {
@@ -41,8 +42,8 @@ import {
   getValidAggregatesForRequest,
   hasNoValidAggregatesForRequest,
 } from 'sentry/views/explore/utils/conditionalAggregate';
-import {STARRED_SEGMENT_TABLE_QUERY_KEY} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
 import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
+import {STARRED_SEGMENT_TABLE_QUERY_KEY} from 'sentry/views/insights/common/utils/useStarredSegment';
 import {SpanFields} from 'sentry/views/insights/types';
 
 import {
@@ -444,27 +445,27 @@ export function useSpansTableQuery(
         }
       );
 
-      // eslint-disable-next-line @tanstack/query/exhaustive-deps
+      const baseQueryKey: ApiQueryKey = baseOptions.queryKey;
+
+      // eslint-disable-next-line @tanstack/query/exhaustive-deps -- The queue schedules the request without changing its result.
       return queryOptions({
         ...baseOptions,
-        queryKey: [...STARRED_SEGMENT_TABLE_QUERY_KEY, ...baseOptions.queryKey] as never,
+        // Keep queued Spans requests separate from Transactions widgets.
+        queryKey: [
+          ...baseQueryKey,
+          hasStarredField ? STARRED_SEGMENT_TABLE_QUERY_KEY : 'dashboard-spans-table',
+        ] as const,
         queryFn: (context): Promise<ApiResponse<SpansTableResponse>> => {
-          const modifiedContext = {
-            ...context,
-            // remove the STARRED_SEGMENT_TABLE_QUERY_KEY prefix, it's only used for the cache key, not the api call
-            queryKey: baseOptions.queryKey,
-          };
-
           if (queue) {
             return new Promise((resolve, reject) => {
               const fetchFnRef = {
                 current: () =>
-                  apiFetch<SpansTableResponse>(modifiedContext).then(resolve, reject),
+                  apiFetch<SpansTableResponse>(context).then(resolve, reject),
               };
               queue.addItem({fetchDataRef: fetchFnRef});
             });
           }
-          return apiFetch<SpansTableResponse>(modifiedContext);
+          return apiFetch<SpansTableResponse>(context);
         },
         enabled: enabled && !skippedForInvalidConditionalFilter,
         retry: false,

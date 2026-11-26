@@ -20,8 +20,8 @@ function propertyName(
   const key = node.type === 'MemberExpression' ? node.property : node.key;
   return !node.computed && key.type === 'Identifier'
     ? key.name
-    : key.type === 'Literal' && typeof key.value === 'string'
-      ? key.value
+    : key.type === 'Literal'
+      ? String(key.value)
       : undefined;
 }
 
@@ -44,7 +44,7 @@ export const preferFakeTimers = defineRule({
     const candidates: Array<{
       frame: Frame;
       messageId: 'preferFakeTimers' | 'sleep';
-      node: ESTree.CallExpression | ESTree.NewExpression;
+      node: ESTree.Node;
     }> = [];
     let current: Frame | undefined;
 
@@ -77,10 +77,7 @@ export const preferFakeTimers = defineRule({
             ? node.name
             : undefined;
         }
-        if (
-          definition.type === 'ImportBinding' &&
-          definition.parent?.type === 'ImportDeclaration'
-        ) {
+        if (definition.parent?.type === 'ImportDeclaration') {
           const source = definition.parent.source.value;
           const specifier = definition.node;
           if (!testingLibraries.has(source) && source !== '@jest/globals') {
@@ -95,10 +92,7 @@ export const preferFakeTimers = defineRule({
             return source === '@jest/globals' ? name : `rtl.${name}`;
           }
         }
-        if (
-          definition.type === 'Variable' &&
-          definition.node.type === 'VariableDeclarator'
-        ) {
+        if (definition.node.type === 'VariableDeclarator') {
           const declaration = definition.node;
           if (
             !declaration.init ||
@@ -161,13 +155,10 @@ export const preferFakeTimers = defineRule({
       if (node.type !== 'Identifier') {
         return node;
       }
-      const variable = binding(node);
-      const definition = variable?.defs[0];
-      return definition?.type === 'Variable' &&
-        definition.node.type === 'VariableDeclarator' &&
+      const definition = binding(node)?.defs[0];
+      return definition?.node.type === 'VariableDeclarator' &&
         definition.parent?.type === 'VariableDeclaration' &&
-        definition.parent.kind === 'const' &&
-        !variable?.references.some(ref => ref.isWrite() && !ref.init)
+        definition.parent.kind === 'const'
         ? resolved(definition.node.init ?? undefined, seen)
         : undefined;
     }
@@ -190,9 +181,7 @@ export const preferFakeTimers = defineRule({
     function enter(node: FunctionNode) {
       const call = node.parent;
       const name =
-        call?.type === 'CallExpression' && call.arguments.includes(node)
-          ? origin(call.callee)?.split('.')[0]
-          : undefined;
+        call?.type === 'CallExpression' ? origin(call.callee)?.split('.')[0] : undefined;
       const kind =
         name === 'describe'
           ? 'suite'
@@ -203,6 +192,21 @@ export const preferFakeTimers = defineRule({
               : 'other';
       current = {node, kind, parent: current, timers: []};
       frames.push(current);
+    }
+
+    function awaitingTest(node: ESTree.NewExpression) {
+      if (node.parent.type === 'AwaitExpression') {
+        return current?.kind === 'test' ? current : undefined;
+      }
+      const act = current?.node.parent;
+      return current?.node.type === 'ArrowFunctionExpression' &&
+        current.node.body === node &&
+        current.parent?.kind === 'test' &&
+        act?.type === 'CallExpression' &&
+        act.parent.type === 'AwaitExpression' &&
+        origin(act.callee) === 'rtl.act'
+        ? current.parent
+        : undefined;
     }
 
     function fakeAt(candidate: (typeof candidates)[number]) {
@@ -244,7 +248,6 @@ export const preferFakeTimers = defineRule({
     return {
       Program(node) {
         current = {node, kind: 'suite', parent: undefined, timers: []};
-        frames.push(current);
       },
       ArrowFunctionExpression: enter,
       FunctionExpression: enter,
@@ -259,9 +262,9 @@ export const preferFakeTimers = defineRule({
         current = current?.parent;
       },
       NewExpression(node) {
+        const frame = awaitingTest(node);
         if (
-          current?.kind !== 'test' ||
-          node.parent.type !== 'AwaitExpression' ||
+          !frame ||
           node.callee.type !== 'Identifier' ||
           node.callee.name !== 'Promise' ||
           binding(node.callee)?.defs.length
@@ -302,10 +305,9 @@ export const preferFakeTimers = defineRule({
           binding(callback) === binding(resolve) &&
           delay?.type === 'Literal' &&
           typeof delay.value === 'number' &&
-          Number.isFinite(delay.value) &&
           delay.value > 0
         ) {
-          candidates.push({node, frame: current, messageId: 'sleep'});
+          candidates.push({node, frame, messageId: 'sleep'});
         }
       },
       CallExpression(node) {
@@ -319,22 +321,21 @@ export const preferFakeTimers = defineRule({
         ) {
           current.timers.push({node, fake: name === 'jest.useFakeTimers'});
         }
-        if (current.kind !== 'test' || !name?.startsWith('rtl.')) {
+        if (current.kind !== 'test' || !name) {
           return;
         }
-        const options = resolved(
+        const argument =
           name === 'rtl.waitFor'
             ? node.arguments[1]
             : /^rtl\.(?:(screen|queries)\.)?find(All)?By[A-Z]/.test(name)
               ? node.arguments[name.split('.').length === 2 ? 3 : 2]
-              : undefined
-        );
+              : undefined;
+        const options = resolved(argument);
         if (
           options?.type !== 'ObjectExpression' ||
           options.properties.some(
             property =>
-              property.type === 'SpreadElement' ||
-              (property.computed && propertyName(property) === undefined)
+              property.type === 'SpreadElement' || propertyName(property) === undefined
           )
         ) {
           return;
@@ -344,12 +345,16 @@ export const preferFakeTimers = defineRule({
         );
         const value = timeout?.type === 'Property' ? resolved(timeout.value) : undefined;
         if (
+          argument &&
           value?.type === 'Literal' &&
           typeof value.value === 'number' &&
-          Number.isFinite(value.value) &&
           value.value > 0
         ) {
-          candidates.push({node, frame: current, messageId: 'preferFakeTimers'});
+          candidates.push({
+            node: argument,
+            frame: current,
+            messageId: 'preferFakeTimers',
+          });
         }
       },
       'Program:exit'() {

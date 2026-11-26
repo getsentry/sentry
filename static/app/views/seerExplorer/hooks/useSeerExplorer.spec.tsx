@@ -17,7 +17,7 @@ import {
   useSeerExplorerChatDispatch,
   useSeerExplorerChatState,
 } from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
-import type {SeerExplorerResponse} from 'sentry/views/seerExplorer/types';
+import type {Block, SeerExplorerResponse} from 'sentry/views/seerExplorer/types';
 import * as seerExplorerUtils from 'sentry/views/seerExplorer/utils';
 
 import {useSeerExplorer} from './useSeerExplorer';
@@ -636,6 +636,81 @@ describe('useSeerExplorer', () => {
       });
     });
 
+    it('keeps a sent message on screen when a poll returns the old session mid-send', async () => {
+      const runId = 'run-stale-poll';
+      const url = `/organizations/${organization.slug}/seer/explorer-chat/${runId}/`;
+      const block = (id: string, role: Block['message']['role'], content: string) => ({
+        id,
+        message: {role, content},
+        timestamp: '2024-01-01T00:00:00Z',
+        loading: role === 'assistant',
+      });
+      const question = block('user-1', 'user', 'Question');
+      MockApiClient.addMockResponse({
+        url,
+        method: 'GET',
+        body: {session: {blocks: [question], status: 'completed'}},
+      });
+      let finishSend!: () => void;
+      MockApiClient.addMockResponse({
+        url,
+        method: 'POST',
+        asyncDelay: new Promise<void>(resolve => {
+          finishSend = resolve;
+        }),
+        body: {run_id: 1},
+      });
+
+      let queryClient!: QueryClient;
+      const followUpOnScreen: boolean[] = []; // One entry per render.
+      const {result} = renderHookWithProviders(
+        () => {
+          queryClient = useQueryClient();
+          const explorer = useSeerExplorer();
+          followUpOnScreen.push(
+            !!explorer.sessionData?.blocks.some(b => b.message.content === 'Follow-up')
+          );
+          return explorer;
+        },
+        {organization, additionalWrapper: SeerExplorerChatStateProvider}
+      );
+      act(() => result.current.switchToRun(runId));
+      await waitFor(() => expect(result.current.sessionData?.status).toBe('completed'));
+
+      act(() => result.current.sendMessage('Follow-up'));
+      expect(followUpOnScreen.at(-1)).toBe(true);
+      // A poll during the slow send still gets the old session, without the message.
+      await act(() =>
+        queryClient.refetchQueries({
+          queryKey: seerExplorerUtils.makeSeerExplorerQueryKey(organization.slug, runId),
+        })
+      );
+
+      // The server saves the message, then the send finishes.
+      MockApiClient.addMockResponse({
+        url,
+        method: 'GET',
+        asyncDelay: 10,
+        body: {
+          session: {
+            blocks: [
+              question,
+              block('user-2', 'user', 'Follow-up'),
+              block('loading-3', 'assistant', 'Thinking...'),
+            ],
+            status: 'processing',
+            updated_at: new Date().toISOString(),
+          },
+        },
+      });
+      act(() => finishSend());
+      await waitFor(() =>
+        expect(result.current.sessionData?.blocks.map(b => b.id)).toContain('user-2')
+      );
+
+      expect(followUpOnScreen.slice(followUpOnScreen.indexOf(true))).not.toContain(false);
+    });
+
     it('keeps the alert when an older send succeeds after a newer send failed', async () => {
       const runId = 'run-stale';
       let settleFirstSend!: () => void;
@@ -1232,7 +1307,35 @@ describe('useSeerExplorer', () => {
       await act(() => jest.advanceTimersByTimeAsync(500));
       await waitFor(() =>
         expect(errorSpy).toHaveBeenCalledWith(
-          "Seer couldn't open a pull request in acme/web because your organization is out of credits."
+          "Seer couldn't open a pull request in acme/web because your organization does not have enough credits."
+        )
+      );
+    });
+
+    it('toasts daily usage limit copy when the push hit the limit', async () => {
+      const errorSpy = jest.spyOn(toast, 'error');
+      mockPRState({pr_creation_status: 'creating'});
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+        additionalWrapper: SeerExplorerChatStateProvider,
+      });
+      act(() => {
+        result.current.switchToRun(runId);
+      });
+      await waitFor(() => expect(result.current.isPolling).toBe(true));
+
+      mockPRState({
+        pr_creation_status: 'error',
+        pr_creation_error: "Your organization doesn't have enough Seer credits for this.",
+        pr_creation_error_code: 'out_of_credits',
+        credit_denial_reason: 'daily_cap_exceeded',
+      });
+
+      await act(() => jest.advanceTimersByTimeAsync(500));
+      await waitFor(() =>
+        expect(errorSpy).toHaveBeenCalledWith(
+          "Seer couldn't open a pull request in acme/web because your organization hit its daily usage limit."
         )
       );
     });

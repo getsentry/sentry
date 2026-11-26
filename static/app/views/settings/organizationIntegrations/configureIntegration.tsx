@@ -572,9 +572,12 @@ function ConfigureIntegration() {
    * Refetch everything, this could be improved to reload only the right thing
    */
   const onUpdateIntegration = () => {
-    queryClient.removeQueries({
-      queryKey: [`/organizations/${organization.slug}/config/integrations/`],
-    });
+    queryClient.removeQueries(
+      apiOptions.queryFilter(
+        '/organizations/$organizationIdOrSlug/config/integrations/',
+        {path: {organizationIdOrSlug: organization.slug}}
+      )
+    );
     refetchConfig();
 
     queryClient.removeQueries(

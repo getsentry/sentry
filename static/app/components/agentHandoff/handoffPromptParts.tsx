@@ -1,14 +1,11 @@
-import {Fragment, useState, type PointerEventHandler, type ReactNode} from 'react';
+import {useState, type PointerEventHandler} from 'react';
 import {css, ThemeProvider, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconSettings} from '@sentry/icons/settings';
 
 import {Alert} from '@sentry/scraps/alert';
-import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {InfoText} from '@sentry/scraps/info';
 import {Container} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
-import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 import {darkTheme} from '@sentry/scraps/theme';
 
@@ -18,75 +15,8 @@ import {getHandoffGuideUrl, getHandoffPrompt} from './handoffPrompt';
 import {AgentHandoffFlow, type AgentHandoffContext} from './types';
 import {useHandoffPromptInteractions} from './useHandoffPromptInteractions';
 
-export function getHandoffPreviewUrl(sentryUrl: string): string {
-  return new URL('/agent-handoff.md', sentryUrl).href;
-}
-
-interface HandoffAdvancedMenuProps {
-  disabled: boolean;
-  onToggle: () => void;
-  useIpPinning: boolean;
-}
-
-export function HandoffAdvancedMenu({
-  disabled,
-  useIpPinning,
-  onToggle,
-}: HandoffAdvancedMenuProps) {
-  return (
-    <DropdownMenu
-      items={[
-        {
-          key: 'ip-pinning',
-          label: t('Use IP pinning'),
-          details: t(
-            'Restricts the handoff code to your current IP address. Turn this off when your agent runs on a different network.'
-          ),
-          textValue: t('Use IP pinning'),
-          disabled,
-          isSelected: useIpPinning,
-          onAction: onToggle,
-        },
-      ]}
-      maxWidth={360}
-      position="bottom-end"
-      shouldApplyMinWidth={false}
-      size="xs"
-      usePortal
-      trigger={triggerProps => (
-        <OverlayTrigger.Button
-          {...triggerProps}
-          aria-label={t('Advanced options')}
-          icon={<IconSettings />}
-          showChevron={false}
-          size="xs"
-          variant="transparent"
-        >
-          {t('Advanced')}
-        </OverlayTrigger.Button>
-      )}
-    />
-  );
-}
-
-interface HandoffPromptAlertsProps {
-  error: Error | null;
-  useIpPinning: boolean;
-}
-
-export function HandoffPromptAlerts({useIpPinning, error}: HandoffPromptAlertsProps) {
-  return (
-    <Fragment>
-      {!useIpPinning && (
-        <Alert variant="warning">
-          {t(
-            'Without IP pinning, anyone with this prompt can use its handoff code from any IP address to authorize an agent on your behalf. Avoid pasting your prompt when streaming or screen sharing.'
-          )}
-        </Alert>
-      )}
-      {error && <Alert variant="danger">{error.message}</Alert>}
-    </Fragment>
-  );
+export function HandoffPromptError({error}: {error: Error | null}) {
+  return error && <Alert variant="danger">{error.message}</Alert>;
 }
 
 interface HandoffPromptBoxProps<Flow extends AgentHandoffFlow> {
@@ -94,7 +24,8 @@ interface HandoffPromptBoxProps<Flow extends AgentHandoffFlow> {
   flow: Flow;
   onCopyPrompt: () => void;
   onSelect?: () => void;
-  topRightAction?: ReactNode;
+  /** `md` sets the prompt in larger, looser monospace text with roomier vertical padding. */
+  size?: 'sm' | 'md';
 }
 
 export function HandoffPromptBox<Flow extends AgentHandoffFlow>({
@@ -102,7 +33,7 @@ export function HandoffPromptBox<Flow extends AgentHandoffFlow>({
   flow,
   onCopyPrompt,
   onSelect,
-  topRightAction,
+  size = 'sm',
 }: HandoffPromptBoxProps<Flow>) {
   const [isPromptSelected, setIsPromptSelected] = useState(false);
   const guideUrl = getHandoffGuideUrl();
@@ -125,9 +56,7 @@ export function HandoffPromptBox<Flow extends AgentHandoffFlow>({
         background="primary"
         border="primary"
         radius="md"
-        padding="md xl"
-        paddingRight={topRightAction ? '3xl' : 'xl'}
-        position="relative"
+        padding={size === 'md' ? 'lg xl' : 'md xl'}
       >
         {promptBoxProps => (
           <PromptBox {...promptBoxProps} onCopy={onCopy}>
@@ -135,7 +64,8 @@ export function HandoffPromptBox<Flow extends AgentHandoffFlow>({
               ref={promptRef}
               as="div"
               monospace
-              size="sm"
+              size={size}
+              density={size === 'md' ? 'comfortable' : undefined}
               tabIndex={tabIndex}
               textWrap="wrap"
               onBlur={() => setIsPromptSelected(false)}
@@ -163,11 +93,6 @@ export function HandoffPromptBox<Flow extends AgentHandoffFlow>({
                 ),
               })}
             </PromptText>
-            {topRightAction && (
-              <Container position="absolute" top="8px" right="8px">
-                {topRightAction}
-              </Container>
-            )}
           </PromptBox>
         )}
       </Container>

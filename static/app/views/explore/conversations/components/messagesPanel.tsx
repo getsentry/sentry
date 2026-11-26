@@ -1,4 +1,4 @@
-import {Fragment, memo, useCallback, useMemo} from 'react';
+import {memo, useCallback, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -28,6 +28,7 @@ import {
   callContainsNode,
   type ConversationMessage,
   extractMessagesFromNodes,
+  getConversationSystemPrompt,
   NOT_REPORTED,
   someMessageDeep,
 } from 'sentry/views/explore/conversations/utils/conversationMessages';
@@ -60,6 +61,11 @@ interface MessagesPanelProps {
   selectedNodeId: string | null;
   isLoading?: boolean;
   /**
+   * The transcript of `nodes`, for a caller that already built it. Built here
+   * when omitted.
+   */
+  messages?: ConversationMessage[];
+  /**
    * Switches the conversation view to the Timeline tab. Surfaced from the
    * empty transcript state when a conversation has no inference spans.
    */
@@ -75,8 +81,13 @@ export function MessagesPanel({
   onSelectNode,
   onViewTimeline,
   isLoading,
+  messages: messagesProp,
 }: MessagesPanelProps) {
-  const messages = useMemo(() => extractMessagesFromNodes(nodes), [nodes]);
+  const messages = useMemo(
+    () => messagesProp ?? extractMessagesFromNodes(nodes),
+    [messagesProp, nodes]
+  );
+  const systemPrompt = useMemo(() => getConversationSystemPrompt(nodes), [nodes]);
 
   const nodeMap = useMemo(() => {
     const map = new Map<string, AITraceSpanNode>();
@@ -108,6 +119,11 @@ export function MessagesPanel({
   return (
     <PanelContainer>
       {hasNotReportedContent && <NotReportedAlert nodes={nodes} />}
+      {systemPrompt && (
+        <MessageRow from="assistant" density="line" data-node-id={systemPrompt.node.id}>
+          <SystemPromptSection systemPrompt={systemPrompt.prompt} />
+        </MessageRow>
+      )}
       <TranscriptMessages
         messages={messages}
         nodeMap={nodeMap}
@@ -176,6 +192,7 @@ function TranscriptMessages({
           return (
             <UserTurn
               key={message.id}
+              nodeId={message.nodeId}
               content={message.content}
               hasXmlTags={hasXmlTags}
             />
@@ -230,7 +247,12 @@ function TranscriptMessages({
 
         if (message.subAgent) {
           return (
-            <MessageRow key={message.id} from="assistant" density="line">
+            <MessageRow
+              key={message.id}
+              from="assistant"
+              density="line"
+              data-node-id={message.nodeId}
+            >
               <SubAgentRow
                 call={message.subAgent}
                 nodeMap={nodeMap}
@@ -283,26 +305,29 @@ const NestedMessageList = styled(Stack)`
 const UserTurn = memo(function UserTurnImpl({
   content,
   hasXmlTags,
+  nodeId,
 }: {
   content: string;
   hasXmlTags: boolean;
+  nodeId: string;
 }) {
-  if (content === NOT_REPORTED) {
-    return (
-      <UserMessageBlock>
-        <MessageText align="left" variant="muted">
-          {content}
-        </MessageText>
-      </UserMessageBlock>
-    );
-  }
-
   return (
-    <UserMessageBlock expand={hasXmlTags}>
-      <MessageText align="left">
-        <AIContentRenderer text={content} inline autoCollapseLimit={10} />
-      </MessageText>
-    </UserMessageBlock>
+    // Search finds the span a transcript block renders by its data-node-id.
+    <Container display="contents" data-node-id={nodeId}>
+      {content === NOT_REPORTED ? (
+        <UserMessageBlock>
+          <MessageText align="left" variant="muted">
+            {content}
+          </MessageText>
+        </UserMessageBlock>
+      ) : (
+        <UserMessageBlock expand={hasXmlTags}>
+          <MessageText align="left">
+            <AIContentRenderer text={content} inline autoCollapseLimit={10} />
+          </MessageText>
+        </UserMessageBlock>
+      )}
+    </Container>
   );
 });
 
@@ -334,7 +359,13 @@ const AssistantTurn = memo(function AssistantTurnImpl({
   renderMessages,
 }: AssistantTurnProps) {
   const organization = useOrganization();
+  const theme = useTheme();
   const generationNode = nodeMap.get(message.nodeId);
+  // Without a bubble, the turn's first row shows the selection instead.
+  const isRowSelected = isSelected && message.content === '';
+  const selectedRowStyle = isRowSelected
+    ? {outline: `2px solid ${theme.tokens.focus.default}`, outlineOffset: '-2px'}
+    : undefined;
   // Spans often report `gen_ai.cost.total_tokens` as 0 when the API omits cost;
   // treat that as absent so we don't show `<$0.01`, matching the timeline.
   const cost = generationNode
@@ -352,7 +383,7 @@ const AssistantTurn = memo(function AssistantTurnImpl({
   };
 
   return (
-    <Fragment>
+    <Container display="contents" data-node-id={message.nodeId}>
       {message.toolCalls && message.toolCalls.length > 0 && (
         <MessageRow from="assistant" density="line">
           <MessageToolCalls
@@ -366,12 +397,19 @@ const AssistantTurn = memo(function AssistantTurnImpl({
       )}
       {message.reasoning && (
         <MessageRow from="assistant" density="line">
-          {/* A reasoning-only turn (no assistant bubble to hang meta on) surfaces
-           * the turn's cost/duration in the thinking row's own meta column. */}
-          <ReasoningSection
-            reasoning={message.reasoning}
-            meta={message.content === '' && hasMeta ? meta : undefined}
-          />
+          <Container
+            width="100%"
+            radius="xs"
+            data-selected={isRowSelected}
+            style={selectedRowStyle}
+          >
+            {/* A reasoning-only turn (no assistant bubble to hang meta on) surfaces
+             * the turn's cost/duration in the thinking row's own meta column. */}
+            <ReasoningSection
+              reasoning={message.reasoning}
+              meta={message.content === '' && hasMeta ? meta : undefined}
+            />
+          </Container>
         </MessageRow>
       )}
       {message.content === '' ? (
@@ -382,7 +420,13 @@ const AssistantTurn = memo(function AssistantTurnImpl({
         hasMeta &&
         !message.reasoning && (
           <MessageRow from="assistant" density="line">
-            <Flex justify="end" width="100%">
+            <Flex
+              justify="end"
+              width="100%"
+              radius="xs"
+              data-selected={isRowSelected}
+              style={selectedRowStyle}
+            >
               {meta}
             </Flex>
           </MessageRow>
@@ -405,7 +449,7 @@ const AssistantTurn = memo(function AssistantTurnImpl({
           </MessageText>
         </AssistantMessageBlock>
       )}
-    </Fragment>
+    </Container>
   );
 });
 
@@ -441,7 +485,7 @@ const EmbeddingTurn = memo(function EmbeddingTurnImpl({
   const [isOpen, setIsOpen] = useSelectionOpenState(isSelected ? message.nodeId : null);
 
   return (
-    <MessageRow from="assistant" density="line">
+    <MessageRow from="assistant" density="line" data-node-id={message.nodeId}>
       <CollapsibleChatRow
         open={isOpen}
         title={
@@ -522,7 +566,7 @@ const EvaluationTurn = memo(function EvaluationTurnImpl({
   };
 
   return (
-    <MessageRow from="assistant" density="line">
+    <MessageRow from="assistant" density="line" data-node-id={message.nodeId}>
       <TranscriptSpanRow
         node={node}
         isSelected={isSelected}
@@ -568,7 +612,7 @@ const ExtractionTurn = memo(function ExtractionTurnImpl({
   };
 
   return (
-    <MessageRow from="assistant" density="line">
+    <MessageRow from="assistant" density="line" data-node-id={message.nodeId}>
       <TranscriptSpanRow
         node={node}
         isSelected={isSelected}
@@ -608,7 +652,7 @@ const MemoryTurn = memo(function MemoryTurnImpl({
   };
 
   return (
-    <MessageRow from="assistant" density="line">
+    <MessageRow from="assistant" density="line" data-node-id={message.nodeId}>
       <TranscriptSpanRow
         node={node}
         isSelected={isSelected}
@@ -675,6 +719,43 @@ function ReasoningSection({
     </CollapsibleChatRow>
   );
 }
+
+// Collapsed by default: system prompts are long. Memoized since its only prop
+// is a string, so selection changes never re-render the (possibly long) prompt.
+const SystemPromptSection = memo(function SystemPromptSectionImpl({
+  systemPrompt,
+}: {
+  systemPrompt: string;
+}) {
+  const organization = useOrganization();
+
+  return (
+    <CollapsibleChatRow
+      title={isOpen => (
+        <Text size="sm" variant="muted" ellipsis monospace>
+          {t('System prompt')}{' '}
+          {isOpen ? null : <ScrubbedText>{systemPrompt}</ScrubbedText>}
+        </Text>
+      )}
+      onOpenChange={open =>
+        trackAnalytics('conversations.detail.expand-system-prompt', {
+          organization,
+          expanded: open,
+        })
+      }
+    >
+      <Flex>
+        <Container paddingTop="xs" paddingBottom="xs" flex="1" minWidth={0}>
+          {/* Rendered like the span's Input tab: a boxed block that keeps the
+           * prompt's line breaks, with a Pretty/Raw toggle. Not clipped, since
+           * expanding the row already asked to see the whole prompt. */}
+          <AIContentRenderer text={systemPrompt} clip={false} autoCollapseLimit={10} />
+        </Container>
+        <Container width={TURN_META_WIDTH} flexShrink={0} />
+      </Flex>
+    </CollapsibleChatRow>
+  );
+});
 
 /**
  * Links to the docs for the conversation's platform, since the transcript was

@@ -12,9 +12,11 @@ from sentry.apidocs.examples.release_examples import RELEASE
 from sentry.apidocs.formats import absolute_url, hex_id, numeric_id, slug
 from sentry.issues.related.types import (
     ContributingMeta,
+    InvestigationsMeta,
     RelatedIssuesResponse,
     RelationType,
     RelationTypeStatus,
+    SameSupergroupMeta,
     SameTitleMeta,
     SameTraceMeta,
     SimilarStacktraceMeta,
@@ -343,7 +345,18 @@ RELATED_ISSUES_RESPONSE: RelatedIssuesResponse = {
                 {"type": RelationType.SIMILAR_STACKTRACE, "score": 0.9787},
                 {"type": RelationType.SAME_TRACE},
                 {"type": RelationType.SAME_TITLE},
+                {"type": RelationType.SAME_SUPERGROUP},
             ],
+        }
+    ],
+    "investigations": [
+        {
+            "investigation": {
+                "id": numeric_id("5172"),
+                "title": "Order form errors after the 2.4 release",
+            },
+            "hypothesisStatement": "The 2.4 release stopped validating quantity fields",
+            "reason": "Its errors start with the 2.4 deploy and parse the same quantity field.",
         }
     ],
     "meta": {
@@ -369,6 +382,18 @@ RELATED_ISSUES_RESPONSE: RelatedIssuesResponse = {
                 status=RelationTypeStatus.OK,
                 eventId="60fc17404bf4445c81675be939ef74d6",
                 title="ValueError: invalid literal for int() with base 10: 'abc'",
+            ),
+            SameSupergroupMeta(
+                type=RelationType.SAME_SUPERGROUP,
+                status=RelationTypeStatus.OK,
+                supergroup={
+                    "id": numeric_id("4821"),
+                    "title": "Unvalidated quantity strings parsed as integers in order forms",
+                },
+            ),
+            InvestigationsMeta(
+                type=RelationType.INVESTIGATIONS,
+                status=RelationTypeStatus.OK,
             ),
         ],
     },

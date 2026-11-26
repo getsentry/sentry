@@ -8,6 +8,7 @@ from unittest import mock
 from uuid import uuid4
 
 import orjson
+import requests
 from django.core.files.base import ContentFile
 from django.urls import reverse
 
@@ -20,7 +21,6 @@ from sentry.models.artifactbundle import (
     DebugIdArtifactBundle,
     ProjectArtifactBundle,
     ReleaseArtifactBundle,
-    SourceFileType,
 )
 from sentry.models.distribution import Distribution
 from sentry.models.files.file import File
@@ -36,6 +36,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.response import close_streaming_response
+from sentry.testutils.skips import requires_objectstore
 
 
 def make_file(
@@ -90,6 +91,54 @@ def upload_bundle(
         checksum=total_checksum,
         chunks=[blob1.checksum],
     )
+
+
+@requires_objectstore
+class ObjectstoreArtifactLookupTest(APITestCase):
+    endpoint = "sentry-api-0-project-artifact-lookup"
+
+    def create_bundle(self) -> ArtifactBundle:
+        bundle = self.create_artifact_bundle(org=self.organization, use_objectstore=True)
+        ProjectArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            artifact_bundle=bundle,
+        )
+        self.login_as(self.user)
+        return bundle
+
+    def test_foreign_bundle_linked_to_project_returns_404(self) -> None:
+        foreign_bundle = self.create_artifact_bundle(
+            org=self.create_organization(), use_objectstore=True
+        )
+        ProjectArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            artifact_bundle=foreign_bundle,
+        )
+        self.login_as(self.user)
+
+        response = self.get_response(
+            self.organization.slug,
+            self.project.slug,
+            download=f"artifact_bundle/{foreign_bundle.id}",
+        )
+        assert response.status_code == 404
+
+    def test_internal_redirect(self) -> None:
+        bundle = self.create_bundle()
+        with (
+            mock.patch("sentry.auth.system.is_internal_ip", return_value=True),
+            mock.patch("sentry.objectstore._IS_SYMBOLICATOR_CONTAINER", False),
+        ):
+            response = self.get_response(
+                self.organization.slug, self.project.slug, download=f"artifact_bundle/{bundle.id}"
+            )
+        assert response.status_code == 302
+        assert "/v1/objects/artifact_bundles/" in response["Location"]
+        downloaded = requests.get(response["Location"], timeout=10)
+        assert downloaded.status_code == 200
+        assert sha1(downloaded.content).hexdigest() == bundle.get_checksum()
 
 
 class ArtifactLookupTest(APITestCase):
@@ -549,7 +598,6 @@ class ArtifactLookupTest(APITestCase):
                 organization_id=self.organization.id,
                 debug_id=debug_id,
                 artifact_bundle=artifact_bundle,
-                source_file_type=SourceFileType.SOURCE_MAP.value,
                 date_added=date_added,
             )
 

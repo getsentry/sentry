@@ -115,8 +115,8 @@ The example below is the Replay Details header. The title links to the replays l
       items: [
         {
           label: 'Started at',
-          type: 'text',
-          value: 'Feb 11, 2026 10:56 CET',
+          type: 'date',
+          date: '2026-02-11T09:56:00Z',
           leadingGraphic: <IconCalendar size="md" variant="muted" />,
         },
         {
@@ -210,8 +210,8 @@ The example below is the Replay Details header. The title links to the replays l
     items: [
       {
         label: 'Started at',
-        type: 'text',
-        value: 'Feb 11, 2026 10:56 CET',
+        type: 'date',
+        date: '2026-02-11T09:56:00Z',
         leadingGraphic: <IconCalendar size="md" variant="muted" />,
       },
       {
@@ -274,7 +274,7 @@ While `isLoading` is set, a declared `metadata` keeps its row even if every item
     metadata={{
       label: 'Replay properties',
       items: [
-        {label: 'Started at', type: 'text', value: 'Feb 11, 2026 10:56 CET'},
+        {label: 'Started at', type: 'date', date: '2026-02-11T09:56:00Z'},
         {
           label: 'Browser',
           type: 'text',
@@ -300,7 +300,7 @@ While `isLoading` is set, a declared `metadata` keeps its row even if every item
   metadata={{
     label: 'Replay properties',
     items: [
-      {label: 'Started at', type: 'text', value: 'Feb 11, 2026 10:56 CET'},
+      {label: 'Started at', type: 'date', date: '2026-02-11T09:56:00Z'},
       {
         label: 'Browser',
         type: 'text',
@@ -724,7 +724,7 @@ People related to the entity, such as who viewed a replay or who is involved in 
 
 ## Metadata
 
-The metadata row is a list of properties. Each item has a `label` saying what it is and a `value`. Add `secondary` for a qualifier such as a browser's version rather than joining both into one string; its `label` composes with the parent's, so "version" under "Browser" is read "Browser version". A property needing a third value is two properties.
+The metadata row is a list of properties that wraps onto as many lines as it needs, with a small (`md`) gap between boxes. Every property but the last ends with a pipe, drawn inside it after the value, so the pipe wraps with its property. When the row wraps, a line can end on a pipe. When a property is wider than the header, its long parts (label, value or `secondary`) share the space equally and truncate with an ellipsis, while short ones keep their width, so the pipe follows the text that shows. Screen readers still read the whole text. An item is `text`, `link`, [`date`](#dates) or [`list`](#lists). Each has a `label` saying what it is; a text or link item has a `value`. Add `secondary` for a qualifier such as a browser's version rather than joining both into one string; its `label` composes with the parent's, so "version" under "Browser" is read "Browser version". A property needing a third value is two properties. An item or list entry whose value is empty is left out. A blank `secondary` is dropped on its own, and the item still renders.
 
 `type: 'link'` makes the value a link, with `to` or `externalHref` as on the title. Its name includes the key ("Release 8.42.0"), because the key is usually hidden. `tooltip` explains the value on hover or focus, with an underline. `mode: 'full'` draws the key beside the value; the default, `compact`, keeps it for screen readers only.
 
@@ -900,6 +900,34 @@ Each header below varies one thing: the first shows how mode and a leadingGraphi
 />
 ```
 
+### Dates
+
+`type: 'date'` takes a `date` rather than a formatted `value`, so every header draws dates the same way. `format: 'absolute'`, the default, draws "Jun 8, 2025 9:05:09 PM PDT" in the viewer's 12 or 24 hour clock. `format: 'relative'` draws "5min ago" as a tab stop, with the absolute time in its tooltip, headed by the item's `label`. A date takes no `tooltip`, `secondary` or `variant`. A date the date formatter can't read (missing, a date-only string, or one without a timezone offset) is left out like an empty value.
+
+<Storybook.Demo resizable direction="column" align="stretch">
+  <EntityHeader
+    title={{type: 'text', label: 'Example', value: 'Dates'}}
+    metadata={{
+      label: 'Dates',
+      items: [
+        {label: 'Started at', type: 'date', date: '2025-06-09T04:05:09Z', mode: 'full'},
+        {
+          label: 'Last seen',
+          type: 'date',
+          date: new Date(Date.now() - 5 * 60 * 1000),
+          format: 'relative',
+          mode: 'full',
+        },
+      ],
+    }}
+  />
+</Storybook.Demo>
+
+```jsx
+{label: t('Started at'), type: 'date', date: replay.startedAt}
+{label: t('Last seen'), type: 'date', date: issue.lastSeen, format: 'relative'}
+```
+
 ### Leading graphic
 
 A metadata `leadingGraphic` takes an icon from `@sentry/icons`, a `PlatformIcon` or a `UserAvatar`. It sits in a fixed 16px box that keeps its width through loading, so draw the graphic at 16px.
@@ -912,8 +940,8 @@ A metadata `leadingGraphic` takes an icon from `@sentry/icons`, a `PlatformIcon`
       items: [
         {
           label: 'Last seen',
-          type: 'text',
-          value: 'Feb 11, 2026 10:56 CET',
+          type: 'date',
+          date: '2026-02-11T09:56:00Z',
           leadingGraphic: <IconCalendar size="md" variant="muted" />,
         },
         {
@@ -953,15 +981,17 @@ A metadata `leadingGraphic` takes an icon from `@sentry/icons`, a `PlatformIcon`
     items: [
       {
         label: t('Last seen'),
-        type: 'text',
-        value: <DateTime date={issue.lastSeen} />,
+        type: 'date',
+        date: issue.lastSeen,
         leadingGraphic: <IconCalendar size="md" variant="muted" />,
       },
       {
         label: t('Browser'),
         type: 'text',
         value: browser.name,
-        secondary: {label: t('version'), value: browser.version},
+        secondary: browser.version
+          ? {label: t('version'), value: browser.version}
+          : undefined,
         leadingGraphic: <PlatformIcon platform={browser.platform} size="16px" />,
       },
       {
@@ -1071,6 +1101,76 @@ A metadata `leadingGraphic` takes an icon from `@sentry/icons`, a `PlatformIcon`
 />
 ```
 
+### Lists
+
+`type: 'list'` groups related values under one label, such as the tools a conversation called. Each entry is a text, link or date metadata item with a `key`. An entry's `label` is optional, so leave it out when the list's label already says what the entry is; a link entry is then named by its value alone. Entries wrap with the rest of the row, with no pipes between them. `maxVisible` (responsive) collapses the rest behind "+N more", which expands the list in place. Entries show in the order you pass them, so filter and sort `items` first to keep the ones that matter in view. A list with no entries renders nothing.
+
+export const tools = [
+  {name: 'search_flights', hasError: false},
+  {name: 'book_hotel', hasError: true},
+  {name: 'get_weather', hasError: false},
+  {name: 'convert_currency', hasError: false},
+  {name: 'translate', hasError: true},
+  {name: 'find_restaurants', hasError: false},
+  {name: 'internal_ping', hasError: false},
+];
+
+<Storybook.Demo resizable direction="column" align="stretch">
+  <EntityHeader
+    title={{type: 'text', label: 'Conversation', value: 'Trip planning'}}
+    metadata={{
+      label: 'Conversation properties',
+      items: [
+        {label: 'Model', type: 'text', value: 'gpt-5', mode: 'full'},
+        {
+          label: 'Tools',
+          type: 'list',
+          mode: 'full',
+          maxVisible: {zero: 2, md: 4},
+          items: tools
+            .filter(tool => tool.name !== 'internal_ping')
+            .toSorted((a, b) => Number(b.hasError) - Number(a.hasError))
+            .map(tool => ({
+              key: tool.name,
+              type: 'text',
+              value: tool.name,
+              variant: tool.hasError ? 'danger' : undefined,
+            })),
+        },
+      ],
+    }}
+  />
+</Storybook.Demo>
+
+```jsx
+<EntityHeader
+  title={{type: 'text', label: t('Conversation'), value: conversation.title}}
+  metadata={{
+    label: t('Conversation properties'),
+    items: [
+      {label: t('Model'), type: 'text', value: conversation.model, mode: 'full'},
+      {
+        label: t('Tools'),
+        type: 'list',
+        mode: 'full',
+        // Two entries in a narrow header, four once it reaches `md`.
+        maxVisible: {zero: 2, md: 4},
+        items: tools
+          .filter(tool => tool.name !== 'internal_ping')
+          // Errored tools first, so they survive the cut.
+          .toSorted((a, b) => Number(b.hasError) - Number(a.hasError))
+          .map(tool => ({
+            key: tool.name,
+            type: 'text',
+            value: tool.name,
+            variant: tool.hasError ? 'danger' : undefined,
+          })),
+      },
+    ],
+  }}
+/>
+```
+
 ## Accessibility
 
 - **Title:** an `h2`, named "label, value" ("Replay user, anonymous@example.com"). A link title carries the same name.
@@ -1079,7 +1179,8 @@ A metadata `leadingGraphic` takes an icon from `@sentry/icons`, a `PlatformIcon`
 - **Tab order:** only halves that link or have a tooltip are tab stops, label first. A tooltip on a link attaches to the link, so it adds no extra stop.
 - **No data:** the dash is hidden from screen readers and "No data" is read instead.
 - **People:** read as text ("Viewed by: Alice Chen, Bob Diaz"). The avatars are decorative and can't be focused.
-- **Metadata:** every key is in the DOM, as hidden text or in a link's name, so a value is never announced unexplained: "Browser, Chrome, Browser version, 144.0.0". Leading graphics are hidden from assistive technology.
+- **Metadata:** every key is in the DOM, as hidden text or in a link's name, so a value is never announced unexplained: "Browser, Chrome, Browser version, 144.0.0". Leading graphics are hidden from assistive technology, and the pipes that end properties are decorative and never announced.
+- **Metadata lists:** a nested list named by its `label`. It holds the visible entries and the "+N more" button; activating the button reveals the rest and moves focus to the first of them.
 - **Color:** accent marks a link and an underline marks a tooltip. Links also show a focus ring on keyboard focus, so a keyboard user does not have to rely on color alone.
 - **Loading:** the header sets `aria-busy` while any slot is loading. This is a state, not an announcement.
 
@@ -1087,7 +1188,7 @@ A metadata `leadingGraphic` takes an icon from `@sentry/icons`, a `PlatformIcon`
 
 - Always pass a `label` for `stats`, `people` and `metadata`. Without one, a screen reader meets a run of values with nothing saying what they belong to.
 - Give a title's `leadingGraphic` a `label` when it adds information the title does not have.
-- Use `value: null` for no data, never a placeholder string.
+- Use `value: null` for a stat with no data, never a placeholder string. Pass a metadata item as `null` instead.
 - Don't put anything a user needs only in a tooltip. Nothing inside a tooltip can be reached by keyboard, and screen readers may not announce it.
 - Add your own live region if the end of loading needs to be announced.
 
