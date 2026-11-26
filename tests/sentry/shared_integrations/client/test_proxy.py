@@ -339,6 +339,15 @@ class IntegrationProxyClientTest(TestCase):
         assert retries.retry_after_max == 60
         assert not retries.is_retry("GET", 429, has_retry_after=True)
 
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    def test_no_retries_in_control_when_disabled(self) -> None:
+        client = self.client_cls(org_integration_id=self.oi_id)
+        client.disable_proxy_retries = True
+        adapter = client.build_session().get_adapter(self.base_url)
+        assert isinstance(adapter, HTTPAdapter)
+
+        assert adapter.max_retries.total == 0
+
     @override_settings(SILO_MODE=SiloMode.CELL)
     def test_does_not_honor_retry_after_in_cell(self) -> None:
         client = self.client_cls(org_integration_id=self.oi_id)

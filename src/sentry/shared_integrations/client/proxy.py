@@ -178,6 +178,8 @@ class IntegrationProxyClient(ApiClient):
                     retry_after_max=max_retry_sleep,
                 ),
             )
+        if self.disable_proxy_retries:
+            return build_session(max_retries=0)
         return build_session(
             max_retries=Retry(
                 total=3,

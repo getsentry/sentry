@@ -9,6 +9,7 @@ from django.http import HttpRequest
 from django.http.request import HttpHeaders
 from django.test import RequestFactory, override_settings
 from requests import Response
+from requests.adapters import HTTPAdapter
 
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
@@ -1084,6 +1085,19 @@ class IntegrationProxyRequestValidatorTest(TestCase):
         assert validator.client is proxy_client
 
         assert validator.proxy_path == self.proxy_path
+
+    @override_settings(SENTRY_SUBNET_SECRET=SENTRY_SUBNET_SECRET, SILO_MODE=SiloMode.CONTROL)
+    @patch.object(ExampleIntegration, "get_client")
+    def test_client_makes_a_single_attempt(self, mock_get_client: MagicMock) -> None:
+        mock_get_client.return_value = IntegrationProxyClient(
+            org_integration_id=self.org_integration.id
+        )
+
+        validator = IntegrationProxyRequestValidator(self.build_request())
+
+        adapter = validator.client.build_session().get_adapter("https://example.com")
+        assert isinstance(adapter, HTTPAdapter)
+        assert adapter.max_retries.total == 0
 
     @override_settings(SENTRY_SUBNET_SECRET=SENTRY_SUBNET_SECRET, SILO_MODE=SiloMode.CONTROL)
     @patch.object(ExampleIntegration, "get_client")

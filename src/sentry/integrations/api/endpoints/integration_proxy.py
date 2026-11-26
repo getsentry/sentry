@@ -304,6 +304,10 @@ class IntegrationProxyRequestValidator:
                 },
             )
 
+        # The cell that sent this request owns the retries. Retrying here too would multiply
+        # the calls to the provider and outlast the cell's timeout.
+        self.client.disable_proxy_retries = True
+
 
 @internal_control_silo_endpoint
 class InternalIntegrationProxyEndpoint(Endpoint):
