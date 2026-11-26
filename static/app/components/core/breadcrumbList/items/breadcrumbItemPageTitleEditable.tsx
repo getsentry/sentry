@@ -1,8 +1,12 @@
+import styled from '@emotion/styled';
+import {IconWarning} from '@sentry/icons/warning';
+
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {EditableText} from 'sentry/components/editableText';
-import {ControlState} from 'sentry/components/forms/fieldGroup/controlState';
+import {pulse} from 'sentry/styles/animations';
 
 import {BreadcrumbLeadingSlot} from './breadcrumbLeadingSlot';
 
@@ -55,7 +59,15 @@ export function BreadcrumbItemPageTitleEditable({
           />
         </Text>
       </Container>
-      <ControlState error={error} />
+      {error ? (
+        <Tooltip position="bottom" offset={8} title={error} forceVisible skipWrapper>
+          <ErrorIcon variant="danger" size="sm" />
+        </Tooltip>
+      ) : null}
     </Flex>
   );
 }
+
+const ErrorIcon = styled(IconWarning)`
+  animation: ${() => pulse(1.15)} 1s ease infinite;
+`;

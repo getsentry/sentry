@@ -8,7 +8,8 @@ import isEqual from 'lodash/isEqual';
 import {Button} from '@sentry/scraps/button';
 import {Confirm} from '@sentry/scraps/confirm';
 import {DateTime} from '@sentry/scraps/dateTime';
-import {Flex, Grid, useResponsivePropValue} from '@sentry/scraps/layout';
+import {DisplayField} from '@sentry/scraps/form';
+import {Flex, Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {toast} from '@sentry/scraps/toast';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -16,7 +17,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {removeAuthenticator} from 'sentry/actionCreators/account';
 import {resendMemberInvite, updateMember} from 'sentry/actionCreators/members';
 import {NotFound} from 'sentry/components/errors/notFound';
-import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
@@ -89,7 +89,6 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
   const [orgRole, setOrgRole] = useState(member.orgRole);
   const [teamRoles, setTeamRoles] = useState(member.teamRoles);
   const hasTeamRoles = organization.features.includes('team-roles');
-  const isLarge = useResponsivePropValue({zero: false, lg: true});
 
   const {mutate: updatedMember, isPending: isSaving} = useMutation<Member, RequestError>({
     mutationFn: () => {
@@ -294,12 +293,10 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
         <Panel>
           <PanelHeader>{t('Authentication')}</PanelHeader>
           <PanelBody>
-            <FieldGroup
-              alignRight={isLarge}
-              flexibleControlStateSize
-              inline={isLarge}
+            <DisplayField.Row
+              padding="xl"
               label={t('Reset two-factor authentication')}
-              help={t(
+              hintText={t(
                 'Resetting two-factor authentication will remove all two-factor authentication methods for this member.'
               )}
             >
@@ -317,7 +314,7 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
                   </Button>
                 </Confirm>
               </Tooltip>
-            </FieldGroup>
+            </DisplayField.Row>
           </PanelBody>
         </Panel>
       )}
