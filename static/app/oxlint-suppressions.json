@@ -252,7 +252,7 @@
     "@sentry/scraps/no-dom-coupling": {"count": 1}
   },
   "components/events/interfaces/frame/stacktraceLinkModal.tsx": {
-    "@sentry/scraps/no-dom-coupling": {"count": 3},
+    "@sentry/scraps/no-dom-coupling": {"count": 2},
     "@sentry/scraps/prefer-primitives": {"count": 3}
   },
   "components/events/interfaces/nativeFrame.tsx": {

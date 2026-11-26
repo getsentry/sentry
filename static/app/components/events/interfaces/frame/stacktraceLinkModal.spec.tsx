@@ -35,6 +35,7 @@ describe('StacktraceLinkModal', () => {
     integrationId: integration.id,
     repositoryId: repo.id,
     defaultBranch: 'master',
+    provider: 'github',
   };
   const onSubmit = jest.fn();
   const closeModal = jest.fn();
@@ -119,10 +120,14 @@ describe('StacktraceLinkModal', () => {
   });
 
   it('closes modal after successful quick setup', async () => {
-    MockApiClient.addMockResponse({
+    const parsingRequest = MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/repo-path-parsing/`,
       method: 'POST',
       body: {...configData},
+    });
+    const codeMappingRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/code-mappings/`,
+      method: 'POST',
     });
 
     renderGlobalModal();
@@ -146,6 +151,14 @@ describe('StacktraceLinkModal', () => {
       expect(closeModal).toHaveBeenCalled();
     });
     expect(onSubmit).toHaveBeenCalledTimes(1);
+    expect(parsingRequest).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({data: {sourceUrl: 'sourceUrl', stackPath: filename}})
+    );
+    expect(codeMappingRequest).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({data: {...configData, projectId: project.id}})
+    );
   });
 
   it('keeps modal open on unsuccessful quick setup', async () => {
@@ -245,7 +258,7 @@ describe('StacktraceLinkModal', () => {
 
     expect(analyticsSpy).toHaveBeenCalledWith(
       'integrations.stacktrace_complete_setup',
-      expect.objectContaining({is_suggestion: true})
+      expect.objectContaining({is_suggestion: true, provider: 'github'})
     );
   });
 
