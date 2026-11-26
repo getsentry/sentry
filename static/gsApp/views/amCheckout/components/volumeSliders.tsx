@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 import {IconInfo} from '@sentry/icons/info';
 import {IconLightning} from '@sentry/icons/lightning';
 
-import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Slider} from '@sentry/scraps/slider';
 import {Text} from '@sentry/scraps/text';
 
-import {RangeSlider} from 'sentry/components/forms/controls/rangeSlider';
 import {Body, Header, Hovercard} from 'sentry/components/hovercard';
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
@@ -126,6 +126,14 @@ export function VolumeSliders({
           });
 
           const sliderId = `slider-${category}`;
+          // The slider moves over bucket indexes so only bucket volumes are
+          // selectable. A volume outside the buckets falls back to its raw
+          // number as the index, which the slider clamps into range.
+          const currentValue = currentSliderValues[category] ?? '';
+          const bucketIndex = allowedValues.indexOf(Number(currentValue || 0));
+          const sliderIndex =
+            bucketIndex > -1 ? bucketIndex : currentValue === '' ? 0 : currentValue;
+          const selectedVolume = allowedValues[sliderIndex];
 
           // AM2-specific behavior: AM2 rebrands transactions as "performance
           // units". AM2 is the only tier that bills both transactions and
@@ -189,29 +197,33 @@ export function VolumeSliders({
                       )}
                     </div>
                   </Grid>
-                  <RangeSlider
-                    showLabel={false}
-                    name={category}
-                    id={sliderId}
-                    aria-label={
-                      isByteCategory(category)
-                        ? t(
-                            'Reserved volume for %s (in gigabytes)',
-                            getPlanCategoryName({plan: activePlan, category})
-                          )
-                        : t(
-                            'Reserved volume for %s',
-                            getPlanCategoryName({plan: activePlan, category})
-                          )
-                    }
-                    value={currentSliderValues[category] ?? ''}
-                    allowedValues={allowedValues}
-                    onChange={value =>
-                      defined(value) && typeof value === 'number'
-                        ? onReservedChange(value, category)
-                        : undefined
-                    }
-                  />
+                  <Container padding="md 0">
+                    <Slider
+                      name={category}
+                      id={sliderId}
+                      aria-label={
+                        isByteCategory(category)
+                          ? t(
+                              'Reserved volume for %s (in gigabytes)',
+                              getPlanCategoryName({plan: activePlan, category})
+                            )
+                          : t(
+                              'Reserved volume for %s',
+                              getPlanCategoryName({plan: activePlan, category})
+                            )
+                      }
+                      aria-valuetext={String(selectedVolume ?? t('Invalid value'))}
+                      formatOptions="hidden"
+                      max={allowedValues.length - 1}
+                      value={sliderIndex}
+                      onChange={index => {
+                        const volume = allowedValues[index];
+                        if (defined(volume)) {
+                          onReservedChange(volume, category);
+                        }
+                      }}
+                    />
+                  </Container>
                   <Grid columns="repeat(2, auto)" justify="between">
                     <Text as="div" size="sm">
                       {tct('[min] included', {
