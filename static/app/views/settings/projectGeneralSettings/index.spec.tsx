@@ -216,12 +216,10 @@ describe('projectGeneralSettings', () => {
       initialRouterConfig,
     });
 
-    await userEvent.click(await screen.findByRole('button', {name: 'Transfer Project'}));
-
-    // Click confirmation button
     renderGlobalModal();
+    await userEvent.click(await screen.findByRole('button', {name: 'Transfer Project'}));
     await userEvent.type(getField('textbox', 'Organization Owner'), 'billy@sentry.io');
-    await userEvent.click(screen.getByTestId('confirm-button'));
+    await userEvent.click(screen.getByRole('button', {name: 'Transfer project'}));
 
     await waitFor(() =>
       expect(deleteMock).toHaveBeenCalledWith(
@@ -231,6 +229,27 @@ describe('projectGeneralSettings', () => {
     );
 
     expect(toast.success).toHaveBeenCalled();
+  });
+
+  it('requires an email before transferring project', async () => {
+    const transferMock = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/transfer/`,
+      method: 'POST',
+    });
+
+    render(<ProjectGeneralSettings project={project} onChangeSlug={mockOnChangeSlug} />, {
+      organization,
+      initialRouterConfig,
+    });
+
+    renderGlobalModal();
+    await userEvent.click(await screen.findByRole('button', {name: 'Transfer Project'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Transfer project'}));
+
+    expect(
+      await screen.findByText('Organization owner email is required')
+    ).toBeInTheDocument();
+    expect(transferMock).not.toHaveBeenCalled();
   });
 
   it('handles errors on transfer project', async () => {
@@ -246,12 +265,10 @@ describe('projectGeneralSettings', () => {
       initialRouterConfig,
     });
 
-    await userEvent.click(await screen.findByRole('button', {name: 'Transfer Project'}));
-
-    // Click confirmation button
     renderGlobalModal();
+    await userEvent.click(await screen.findByRole('button', {name: 'Transfer Project'}));
     await userEvent.type(getField('textbox', 'Organization Owner'), 'billy@sentry.io');
-    await userEvent.click(screen.getByTestId('confirm-button'));
+    await userEvent.click(screen.getByRole('button', {name: 'Transfer project'}));
 
     await waitFor(() => expect(deleteMock).toHaveBeenCalled());
 
