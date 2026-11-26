@@ -1,5 +1,4 @@
 import {ActivityFeedFixture} from 'sentry-fixture/activityFeed';
-import {OrganizationFixture} from 'sentry-fixture/organization';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -14,13 +13,9 @@ describe('GroupPriority', () => {
     const defaultProps = {groupId: '1', onChange: jest.fn(), value: PriorityLevel.HIGH};
 
     it('skips request when sent lastEditedBy', async () => {
-      render(<GroupPriorityDropdown {...defaultProps} lastEditedBy="system" />, {
-        organization: OrganizationFixture({features: ['issue-priority-assignee-ui']}),
-      });
+      render(<GroupPriorityDropdown {...defaultProps} lastEditedBy="system" />);
 
-      await userEvent.click(
-        screen.getByRole('button', {name: 'Modify issue priority: High'})
-      );
+      await userEvent.click(screen.getByRole('button', {name: 'Modify issue priority'}));
 
       expect(
         screen.getByText(textWithMarkupMatcher('Last edited by Sentry'))

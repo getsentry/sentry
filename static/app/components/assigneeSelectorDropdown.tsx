@@ -4,13 +4,7 @@ import {IconAdd} from '@sentry/icons/add';
 import {IconUser} from '@sentry/icons/user';
 import uniqBy from 'lodash/uniqBy';
 
-import {
-  ActorAvatar,
-  type BaseAvatarProps,
-  getTeamAvatarProps,
-  getUserAvatarProps,
-} from '@sentry/scraps/avatar';
-import {AvatarButton} from '@sentry/scraps/avatarButton';
+import {ActorAvatar} from '@sentry/scraps/avatar';
 import {
   CompactSelect,
   MenuComponents,
@@ -31,16 +25,10 @@ import type {Group, SuggestedOwnerReason} from 'sentry/types/group';
 import type {Team} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {buildTeamId} from 'sentry/utils';
-import {useNewIssuePriorityAndAssigneeUI} from 'sentry/utils/useNewIssuePriorityAndAssigneeUI';
 import {useUser} from 'sentry/utils/useUser';
 
 import {TeamBadge} from './idBadge/teamBadge';
 import {UserBadge} from './idBadge/userBadge';
-import {
-  AssignedTooltip,
-  type AssignmentDetails,
-  UnassignedTooltip,
-} from './assigneeBadge';
 import {LoadingIndicator} from './loadingIndicator';
 import {SuggestedAvatarStack} from './suggestedAvatarStack';
 
@@ -86,7 +74,6 @@ interface AssigneeSelectorDropdownProps {
    * Additional items to render in the menu footer
    */
   additionalMenuFooterItems?: React.ReactNode;
-  assignmentDetails?: AssignmentDetails;
   /**
    * Additional styles to apply to the dropdown
    */
@@ -109,10 +96,6 @@ interface AssigneeSelectorDropdownProps {
    * Optional list of suggested owners of the group
    */
   owners?: Array<Omit<SuggestedAssignee, 'assignee'>>;
-  /**
-   * Show the assignee name next to the avatar.
-   */
-  showLabel?: boolean;
   /**
    * Optional trigger for the assignee selector. If nothing passed in,
    * the default trigger will be used
@@ -215,73 +198,7 @@ function AssigneeAvatar({
   );
 }
 
-function AvatarButtonTooltip({
-  assignedTo,
-  assignmentDetails,
-  suggestedActors,
-}: {
-  suggestedActors: SuggestedAssignee[];
-  assignedTo?: Actor | null;
-  assignmentDetails?: AssignmentDetails;
-}) {
-  if (assignedTo) {
-    return (
-      <AssignedTooltip assignedTo={assignedTo} assignmentDetails={assignmentDetails} />
-    );
-  }
-
-  const suggestion = suggestedActors[0];
-  if (suggestion) {
-    return (
-      <Stack gap="xs" align="start">
-        <Text as="div" align="left" wrap="nowrap">
-          {tct('Suggestion: [name]', {
-            name: suggestion.type === 'team' ? `#${suggestion.name}` : suggestion.name,
-          })}
-          {suggestedActors.length > 1 &&
-            tn(' + %s other', ' + %s others', suggestedActors.length - 1)}
-        </Text>
-        <Text as="div" align="left" variant="muted">
-          {suggestion.suggestedReasonText ??
-            suggestedReasonTable[suggestion.suggestedReason]}
-        </Text>
-      </Stack>
-    );
-  }
-
-  return <UnassignedTooltip />;
-}
-
-function isAssignableTeam(assignee: AssignableTeam | User): assignee is AssignableTeam {
-  return 'team' in assignee;
-}
-
-function getAvatarButtonAvatar({
-  actor,
-  assignee,
-  suggested,
-}: {
-  actor: Actor;
-  suggested: boolean;
-  assignee?: AssignableTeam | User;
-}): BaseAvatarProps {
-  const avatar =
-    actor.type === 'user'
-      ? getUserAvatarProps(assignee && !isAssignableTeam(assignee) ? assignee : actor)
-      : assignee && isAssignableTeam(assignee)
-        ? getTeamAvatarProps(assignee.team)
-        : {
-            type: 'letter_avatar' as const,
-            identifier: actor.name,
-            name: actor.name,
-            title: actor.name,
-          };
-
-  return {...avatar, round: actor.type === 'user', suggested};
-}
-
 export function AssigneeSelectorDropdown({
-  assignmentDetails,
   className,
   group,
   loading,
@@ -289,11 +206,9 @@ export function AssigneeSelectorDropdown({
   onAssign,
   onClear,
   owners,
-  showLabel = false,
   trigger,
   additionalMenuFooterItems,
 }: AssigneeSelectorDropdownProps) {
-  const shouldUseNewUI = useNewIssuePriorityAndAssigneeUI();
   const sessionUser = useUser();
 
   const currentMemberList = memberList ?? [];
@@ -541,58 +456,6 @@ export function AssigneeSelectorDropdown({
   };
 
   const makeTrigger = (props: TriggerProps) => {
-    if (shouldUseNewUI) {
-      const suggestedActors = getSuggestedAssignees();
-      const actor = group.assignedTo ?? suggestedActors[0];
-      const assignee = group.assignedTo
-        ? group.assignedTo.type === 'user'
-          ? currentMemberList.find(member => member.id === group.assignedTo?.id)
-          : getAssignableTeams().find(team => team.team.id === group.assignedTo?.id)
-        : suggestedActors[0]?.assignee;
-      const triggerLabel = loading
-        ? t('Loading…')
-        : actor
-          ? `${actor.type === 'team' ? '#' : ''}${actor.name}`
-          : t('Unassigned');
-      const tooltipTitle = (
-        <AvatarButtonTooltip
-          assignedTo={group.assignedTo}
-          assignmentDetails={assignmentDetails}
-          suggestedActors={suggestedActors}
-        />
-      );
-
-      const avatarButton = (
-        <AvatarButton
-          {...props}
-          aria-label={t('Modify issue assignee: %s', triggerLabel)}
-          avatar={
-            actor
-              ? getAvatarButtonAvatar({actor, assignee, suggested: !group.assignedTo})
-              : undefined
-          }
-          busy={loading}
-          data-test-id="assignee-selector"
-          disabled={loading}
-          size="xs"
-          tooltipProps={showLabel ? undefined : {maxWidth: 300, title: tooltipTitle}}
-        />
-      );
-
-      if (!showLabel) {
-        return avatarButton;
-      }
-
-      return (
-        <Tooltip maxWidth={300} skipWrapper title={tooltipTitle}>
-          <Flex as="label" align="center" gap="sm" htmlFor={props.id}>
-            {avatarButton}
-            <AssigneeLabel ellipsis>{triggerLabel}</AssigneeLabel>
-          </Flex>
-        </Tooltip>
-      );
-    }
-
     const avatarElement = (
       <AssigneeAvatar
         assignedTo={group.assignedTo}
@@ -620,7 +483,6 @@ export function AssigneeSelectorDropdown({
   return (
     <AssigneeWrapper>
       <CompactSelect
-        style={shouldUseNewUI ? {display: 'flex'} : undefined}
         search={{placeholder: 'Search users or teams...'}}
         clearable
         className={className}
@@ -673,10 +535,6 @@ const AssigneeTrigger = styled(OverlayTrigger.Button)`
   z-index: 0;
   padding-left: ${p => p.theme.space.xs};
   padding-right: ${p => p.theme.space.xs};
-`;
-
-const AssigneeLabel = styled(Text)`
-  max-width: 114px;
 `;
 
 const StyledIconUser = styled(IconUser)`

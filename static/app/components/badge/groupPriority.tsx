@@ -20,7 +20,6 @@ import {GroupActivityType, PriorityLevel} from 'sentry/types/group';
 import type {AvatarUser} from 'sentry/types/user';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';
-import {useNewIssuePriorityAndAssigneeUI} from 'sentry/utils/useNewIssuePriorityAndAssigneeUI';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {IconCellSignal} from './iconCellSignal';
@@ -146,7 +145,6 @@ export function GroupPriorityDropdown({
   lastEditedBy,
   disabled = false,
 }: GroupPriorityDropdownProps) {
-  const shouldUseNewUI = useNewIssuePriorityAndAssigneeUI();
   const options: MenuItemProps[] = useMemo(
     () => makeGroupPriorityDropdownOptions({onChange}),
     [onChange]
@@ -164,35 +162,20 @@ export function GroupPriorityDropdown({
         </Flex>
       }
       minMenuWidth={230}
-      trigger={(triggerProps, isOpen) =>
-        shouldUseNewUI ? (
-          <OverlayTrigger.IconButton
-            {...triggerProps}
-            aria-label={t(
-              'Modify issue priority: %s',
-              PRIORITY_KEY_TO_LABEL[value] ?? t('Unknown')
-            )}
-            disabled={disabled}
-            icon={<IconCellSignal bars={GROUP_PRIORITY_BARS[value]} />}
-            size="xs"
-            tooltipProps={{title: tooltip}}
-            variant="secondary"
-          />
-        ) : (
-          <DropdownButton
-            showChevron={false}
-            {...triggerProps}
-            aria-label={t('Modify issue priority')}
-            size="zero"
-            disabled={disabled}
-            tooltipProps={{title: tooltip}}
-          >
-            <GroupPriorityBadge showLabel={false} priority={value}>
-              <IconChevron direction={isOpen ? 'up' : 'down'} size="xs" variant="muted" />
-            </GroupPriorityBadge>
-          </DropdownButton>
-        )
-      }
+      trigger={(triggerProps, isOpen) => (
+        <DropdownButton
+          showChevron={false}
+          {...triggerProps}
+          aria-label={t('Modify issue priority')}
+          size="zero"
+          disabled={disabled}
+          tooltipProps={{title: tooltip}}
+        >
+          <GroupPriorityBadge showLabel={false} priority={value}>
+            <IconChevron direction={isOpen ? 'up' : 'down'} size="xs" variant="muted" />
+          </GroupPriorityBadge>
+        </DropdownButton>
+      )}
       items={options}
       menuFooter={
         <Fragment>
