@@ -62,9 +62,6 @@ export const metrics: OnboardingConfig = {
           language: 'go',
           code: `import (
   "context"
-  "log"
-  "time"
-
   "github.com/getsentry/sentry-go"
   "github.com/getsentry/sentry-go/attribute"
 )

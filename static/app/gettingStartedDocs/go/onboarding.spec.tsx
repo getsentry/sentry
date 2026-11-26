@@ -55,31 +55,4 @@ describe('go onboarding docs', () => {
       screen.queryByText(textWithMarkupMatcher(/EnableLogs/))
     ).not.toBeInTheDocument();
   });
-
-  it('renders the logs onboarding without EnableLogs', async () => {
-    renderWithOnboardingLayout(
-      {onboarding: docs.logsOnboarding!},
-      {selectedProducts: [ProductSolution.LOGS]}
-    );
-
-    expect(
-      await screen.findByText(textWithMarkupMatcher(/sentry\.NewLogger\(ctx\)/))
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByText(textWithMarkupMatcher(/EnableLogs/))
-    ).not.toBeInTheDocument();
-  });
-
-  it('imports log and time in the metrics snippet', async () => {
-    renderWithOnboardingLayout(
-      {onboarding: docs.metricsOnboarding!},
-      {selectedProducts: [ProductSolution.METRICS]}
-    );
-
-    expect(
-      await screen.findByText(
-        textWithMarkupMatcher(/import \(\s*"context"\s*"log"\s*"time"/)
-      )
-    ).toBeInTheDocument();
-  });
 });

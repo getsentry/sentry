@@ -43,9 +43,6 @@ export const logs = <PlatformOptions extends BasePlatformOptions = BasePlatformO
           code: `package main
 
 import (
-  "log"
-  "time"
-
   "github.com/getsentry/sentry-go"
 )
 
