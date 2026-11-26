@@ -712,12 +712,13 @@ class TraceMetricAggregateDefinition(AggregateDefinition):
             resolved_arguments, offset=self.offset
         )
 
-        # The search type for the first argument is always going to be 'number', but
-        # the real unit for the metric is stored in the metric_unit field of the trace metric
+        # The unit in the metric_unit field belongs to the metric's value, so only
+        # aggregates of `value` take it. Other attributes keep their own search type.
         resolved_search_type = search_type
         if (
             trace_metric
             and trace_metric.metric_unit
+            and cast(AttributeKey, resolved_attribute).name == "sentry.value"
             and self.internal_function not in [Function.FUNCTION_COUNT, Function.FUNCTION_UNIQ]
         ):
             if (

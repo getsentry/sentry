@@ -218,6 +218,41 @@ class OrganizationEventsStatsTraceMetricsEndpointTest(OrganizationEventsEndpoint
         assert timeseries["meta"]["valueType"] == "integer"
         assert timeseries["meta"]["valueUnit"] is None
 
+    def test_timeseries_attribute_aggregates_keep_the_attribute_type(self) -> None:
+        """The metric unit belongs to `value`; aggregates of other attributes keep their own type."""
+        self.store_eap_items(
+            [
+                self.create_trace_metric(
+                    "browser.web_vital.lcp",
+                    100.0,
+                    "distribution",
+                    metric_unit="millisecond",
+                    timestamp=self.start + timedelta(hours=1),
+                    attributes={"score.ratio.lcp": 0.5},
+                )
+            ]
+        )
+
+        y_axis = (
+            "avg(tags[score.ratio.lcp,percentage],browser.web_vital.lcp,distribution,millisecond)"
+        )
+        response = self._do_request(
+            data={
+                "start": self.start,
+                "end": self.end,
+                "interval": "1h",
+                "yAxis": y_axis,
+                "project": self.project.id,
+                "dataset": "tracemetrics",
+            },
+        )
+        assert response.status_code == 200, response.content
+
+        timeseries = response.data["timeSeries"][0]
+        assert timeseries["yAxis"] == y_axis
+        assert timeseries["meta"]["valueType"] == "percentage"
+        assert timeseries["meta"]["valueUnit"] is None
+
     def test_timeseries_count_aggregates_return_integer_in_meta(self) -> None:
         """Test that count aggregates return integer in the timeseries meta."""
         metric_values = [100, 0, 200, 150, 0, 50]
