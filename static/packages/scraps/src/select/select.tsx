@@ -279,7 +279,10 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
     onChange?.(next, {action, name});
   }
 
-  function choose(key: Key, deselect = false, fromKeyboard = false) {
+  function choose(
+    key: Key,
+    {deselect = false, fromKeyboard = false}: {deselect?: boolean; fromKeyboard?: boolean}
+  ) {
     const option = rowsByKey.get(key);
     if (key !== CREATE_KEY && (!option || option.disabled)) {
       return;
@@ -383,7 +386,7 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
       const removed = selectedKeys.find(key => !keys.has(key));
       const key = added ?? removed ?? keys.values().next().value;
       if (key !== undefined) {
-        choose(key, added === undefined && removed !== undefined);
+        choose(key, {deselect: added === undefined && removed !== undefined});
       }
     },
   });
@@ -532,7 +535,10 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
       event.preventDefault();
       const key = focusedKey ?? delegate.getFirstKey();
       if (key != null) {
-        choose(key, multiple && selectionManager.isSelected(key), true);
+        choose(key, {
+          deselect: multiple && selectionManager.isSelected(key),
+          fromKeyboard: true,
+        });
       }
       return true;
     }
