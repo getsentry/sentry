@@ -501,6 +501,12 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
       return;
     }
 
+    if (!handleMenuKey(event)) {
+      handleValueKey(event);
+    }
+  }
+
+  function handleMenuKey(event: React.KeyboardEvent<HTMLInputElement>): boolean {
     // Inline footers follow the control in the DOM. Portaled footers need a focus handoff.
     if (
       event.key === 'Tab' &&
@@ -514,13 +520,13 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
         event.preventDefault();
         next.focus();
       }
-      return;
+      return true;
     }
     const isSpaceAction = event.key === ' ' && (!searchable || !query);
     if (isSpaceAction && !isOpen) {
       event.preventDefault();
       overlayState.open();
-      return;
+      return true;
     }
     if (isOpen && (event.key === 'Enter' || isSpaceAction)) {
       event.preventDefault();
@@ -528,7 +534,7 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
       if (key != null) {
         choose(key, multiple && selectionManager.isSelected(key), true);
       }
-      return;
+      return true;
     }
     if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
       event.preventDefault();
@@ -537,10 +543,10 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
           event.key === 'ArrowDown' ? delegate.getFirstKey() : delegate.getLastKey();
         selectionManager.setFocusedKey(isOpen ? edgeKey : (selectedOptionKey ?? edgeKey));
         overlayState.open();
-        return;
+      } else {
+        collectionProps.onKeyDown?.(event);
       }
-      collectionProps.onKeyDown?.(event);
-      return;
+      return true;
     }
     if (
       isOpen &&
@@ -548,8 +554,12 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
       ['PageUp', 'PageDown', 'Home', 'End'].includes(event.key)
     ) {
       collectionProps.onKeyDown?.(event);
-      return;
+      return true;
     }
+    return false;
+  }
+
+  function handleValueKey(event: React.KeyboardEvent<HTMLInputElement>) {
     if (query || !selected.length) {
       return;
     }
