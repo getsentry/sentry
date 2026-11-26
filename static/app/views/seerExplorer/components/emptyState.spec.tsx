@@ -4,7 +4,8 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Composer, type ComposerValue} from '@sentry/scraps/composer';
 
-import {EmptyState, getPupilOffset, SlackAgentReminder} from './emptyState';
+import {SlackAgentReminder} from './composerAlertSlot';
+import {EmptyState, getPupilOffset} from './emptyState';
 
 function DraftPreview() {
   const composerRef = useRef<HTMLDivElement>(null);

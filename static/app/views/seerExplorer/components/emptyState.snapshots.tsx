@@ -1,11 +1,12 @@
 import {useRef, type ComponentProps} from 'react';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 
-import {Stack} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 
 import type {ChatSuggestionsState} from 'sentry/views/seerExplorer/hooks/useChatSuggestions';
 
-import {EmptyState, SlackAgentReminder} from './emptyState';
+import {SlackAgentReminder} from './composerAlertSlot';
+import {EmptyState, getSuggestionsExitDelay} from './emptyState';
 import {InputSection} from './inputSection';
 
 // Use the real decode exports without loading the Markdown renderer's ESM lexer in SSR.
@@ -33,7 +34,12 @@ function EmptyStateFrame(props: ComponentProps<typeof EmptyState>) {
           <EmptyState {...props} composerRef={composerRef} onSuggestionClick={() => {}} />
         </Stack>
         {!props.isLoading && !props.isError && (
-          <SlackAgentReminder hasDraft={props.hasDraft} suggestions={props.suggestions} />
+          <Container padding="0 xl">
+            <SlackAgentReminder
+              hasDraft={props.hasDraft}
+              exitDelayMs={getSuggestionsExitDelay(props.suggestions)}
+            />
+          </Container>
         )}
         <InputSection
           enabled={!props.isLoading && !props.isError}

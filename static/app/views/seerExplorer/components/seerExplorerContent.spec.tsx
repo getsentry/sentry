@@ -24,6 +24,7 @@ import type {SeerOutOfCreditsCtaProps} from 'sentry/components/seer/outOfCredits
 import {registerOverride} from 'sentry/overrideRegistry';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {
   seerCreditCheckApiOptions,
@@ -42,6 +43,33 @@ import * as seerExplorerUtils from 'sentry/views/seerExplorer/utils';
 import {INPUT_STORAGE_KEY_PREFIX, SeerExplorerContent} from './seerExplorerContent';
 
 const mockGetPageReferrer = jest.fn().mockReturnValue('/issues/');
+
+/**
+ * Mocks the organization's Slack integrations and loads them into a fresh query client, so the
+ * panel's first render already knows whether Slack is installed.
+ */
+async function prefetchSlackIntegrations(
+  organization: Organization,
+  integrations: Array<ReturnType<typeof OrganizationIntegrationsFixture>>
+) {
+  MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/integrations/`,
+    method: 'GET',
+    body: integrations,
+  });
+  const queryClient = makeTestQueryClient();
+  await queryClient.fetchQuery(
+    apiOptions.as<typeof integrations>()(
+      '/organizations/$organizationIdOrSlug/integrations/',
+      {
+        path: {organizationIdOrSlug: organization.slug},
+        query: {providerKey: 'slack', includeConfig: 0},
+        staleTime: 0,
+      }
+    )
+  );
+  return queryClient;
+}
 
 async function getSeerExplorerInput() {
   const editor = await screen.findByRole('combobox', {name: 'Ask Seer a question'});
@@ -1867,25 +1895,10 @@ describe('SeerExplorerContent', () => {
         hook: {isError: true},
       },
     ])('omits the reminder when $state', async ({integrations, hook}) => {
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/integrations/`,
-        method: 'GET',
-        body: integrations,
-      });
       jest
         .spyOn(useSeerExplorerModule, 'useSeerExplorer')
         .mockReturnValue({...defaultHookReturn, ...hook});
-      const queryClient = makeTestQueryClient();
-      await queryClient.fetchQuery(
-        apiOptions.as<typeof integrations>()(
-          '/organizations/$organizationIdOrSlug/integrations/',
-          {
-            path: {organizationIdOrSlug: organization.slug},
-            query: {providerKey: 'slack', includeConfig: 0},
-            staleTime: 0,
-          }
-        )
-      );
+      const queryClient = await prefetchSlackIntegrations(organization, integrations);
 
       render(
         <QueryClientProvider client={queryClient}>
@@ -1907,26 +1920,11 @@ describe('SeerExplorerContent', () => {
 
     it('shows a send error in place of the reminder', async () => {
       const integrations = [OrganizationIntegrationsFixture()];
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/integrations/`,
-        method: 'GET',
-        body: integrations,
-      });
       jest
         .spyOn(useSeerExplorerModule, 'useSeerExplorer')
         .mockReturnValue({...defaultHookReturn, requestError: {query: 'Failed message'}});
       // Loaded up front, so the reminder would already be on screen without the error.
-      const queryClient = makeTestQueryClient();
-      await queryClient.fetchQuery(
-        apiOptions.as<typeof integrations>()(
-          '/organizations/$organizationIdOrSlug/integrations/',
-          {
-            path: {organizationIdOrSlug: organization.slug},
-            query: {providerKey: 'slack', includeConfig: 0},
-            staleTime: 0,
-          }
-        )
-      );
+      const queryClient = await prefetchSlackIntegrations(organization, integrations);
 
       render(
         <QueryClientProvider client={queryClient}>

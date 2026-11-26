@@ -12,7 +12,6 @@ import seerBeam from 'sentry-images/spot/seer-beam.svg';
 import seerCharacter from 'sentry-images/spot/seer-character.svg';
 import seerEye from 'sentry-images/spot/seer-eye.svg';
 
-import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Image} from '@sentry/scraps/image';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
@@ -357,30 +356,9 @@ function getSuggestionCount(suggestions: ChatSuggestionsState | undefined) {
     : (suggestions?.suggestions.length ?? 0);
 }
 
-export function SlackAgentReminder({
-  hasDraft = false,
-  suggestions,
-}: Pick<EmptyStateProps, 'hasDraft' | 'suggestions'>) {
-  return (
-    <DraftExtras
-      padding="0 xl"
-      $hidden={hasDraft}
-      $offset={-12}
-      $delay={getSuggestionCount(suggestions) * DRAFT_STAGGER_MS}
-      aria-hidden={hasDraft || undefined}
-      inert={hasDraft}
-    >
-      <Alert variant="muted">
-        {tct('Want to chat in Slack? Just ask [mention] to debug issues.', {
-          mention: (
-            <Text size="md" monospace variant="promotion">
-              @sentry
-            </Text>
-          ),
-        })}
-      </Alert>
-    </DraftExtras>
-  );
+/** How long the suggestion cards take to leave once a draft starts, so later items can follow. */
+export function getSuggestionsExitDelay(suggestions: ChatSuggestionsState | undefined) {
+  return getSuggestionCount(suggestions) * DRAFT_STAGGER_MS;
 }
 
 export function getPupilOffset(
@@ -509,7 +487,7 @@ const scan = keyframes`
   100% { transform: translateY(450%) scale(1); opacity: 0; }
 `;
 
-const DraftExtras = styled(Stack)<{
+export const DraftExtras = styled(Stack)<{
   $hidden: boolean;
   $delay?: number;
   $offset?: number;
