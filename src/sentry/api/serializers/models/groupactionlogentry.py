@@ -427,6 +427,8 @@ class GroupActionLogEntrySerializer(Serializer):
                 "description": action.description,
                 "citations": [citation.dict() for citation in action.citations],
                 "sourceEventId": action.source_event_id,
+                "runUuid": action.run_uuid,
+                "promptVersion": action.prompt_version,
             }
         elif obj.type == GroupActionType.INVESTIGATION_LINKED.value:
             data = {

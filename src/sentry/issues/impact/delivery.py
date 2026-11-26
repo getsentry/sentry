@@ -75,6 +75,8 @@ def deliver_impact_assessment(
             description=assessment.description,
             citations=assessment.citations,
             source_event_id=source_event_id,
+            run_uuid=str(run_uuid),
+            prompt_version=prompt_version,
         ),
         source=ActionSource.SEER_EXPLORER,
         group_id=group.id,
