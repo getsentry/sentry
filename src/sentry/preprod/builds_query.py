@@ -6,7 +6,7 @@ from datetime import datetime
 from sentry.models.organization import Organization
 from sentry.preprod.artifact_search import queryset_for_query
 from sentry.preprod.models import PreprodArtifactQuerySet
-from sentry.preprod.quotas import get_size_retention_cutoff
+from sentry.preprod.retention import unexpired_artifacts, unexpired_size_analysis
 
 # Display values that constrain the list to non-snapshot builds (size + distribution
 # share the same underlying artifacts; only the columns shown differ).
@@ -24,8 +24,9 @@ def filtered_builds_queryset(
 ) -> PreprodArtifactQuerySet:
     """Build the PreprodArtifact queryset shared by the builds list and CSV export endpoints.
 
-    Applies the search query, size-retention cutoff, optional date range, project
-    scoping, and display-based snapshot filtering. Keeping this in one place ensures
+    Applies the search query, retention, optional date range, project
+    scoping, and display-based snapshot filtering. The response of a build whose size
+    analysis has expired must not carry it, see `is_size_analysis_expired`. Keeping this in one place ensures
     the CSV export returns exactly the same rows as the on-screen list.
 
     Callers are responsible for adding their own ``select_related``/``prefetch_related``
@@ -35,7 +36,14 @@ def filtered_builds_queryset(
         InvalidSearchQuery: if the query string is invalid.
     """
     queryset = queryset_for_query(query, organization)
-    queryset = queryset.filter(date_added__gte=get_size_retention_cutoff(organization))
+    queryset = queryset.filter(unexpired_artifacts())
+    # A build is listed for distribution until it expires. That can be after its size
+    # analysis has expired, where Build Distribution has the longer retention. Every
+    # other display is about the size analysis, or about snapshots. A snapshot has no
+    # `date_size_analysis_expires`, so it keeps the previous rule here: the Size Analysis
+    # retention, counted from `date_added`.
+    if display != "distribution":
+        queryset = queryset.filter(unexpired_size_analysis(organization))
     if start:
         queryset = queryset.filter(date_added__gte=start)
     if end:

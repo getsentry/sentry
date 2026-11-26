@@ -18,6 +18,7 @@ from sentry.preprod.api.models.project_preprod_build_details_models import (
 )
 from sentry.preprod.builds_query import filtered_builds_queryset
 from sentry.preprod.models import PreprodArtifact
+from sentry.preprod.retention import is_size_analysis_expired
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +35,12 @@ class BuildsEndpoint(OrganizationEndpoint):
             results = []
             for artifact in artifacts:
                 try:
-                    results.append(transform_preprod_artifact_to_build_details(artifact).dict())
+                    results.append(
+                        transform_preprod_artifact_to_build_details(
+                            artifact,
+                            size_analysis_expired=is_size_analysis_expired(artifact, organization),
+                        ).dict()
+                    )
                 except Exception:
                     logger.exception(
                         "preprod.builds.transform_failed",

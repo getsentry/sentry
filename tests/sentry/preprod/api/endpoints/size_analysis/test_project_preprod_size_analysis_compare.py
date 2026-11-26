@@ -736,12 +736,8 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
         )
         assert response.data["detail"] == "Head and base build configurations must be the same."
 
-    @patch(
-        "sentry.preprod.api.endpoints.size_analysis.project_preprod_size_analysis_compare.get_size_retention_cutoff"
-    )
-    def test_get_returns_404_for_expired_head_artifact(self, mock_cutoff: MagicMock) -> None:
-        mock_cutoff.return_value = timezone.now() - timedelta(days=30)
-        self.head_artifact.date_added = timezone.now() - timedelta(days=60)
+    def test_get_returns_404_for_expired_head_artifact(self) -> None:
+        self.head_artifact.date_size_analysis_expires = timezone.now() - timedelta(days=1)
         self.head_artifact.save()
 
         response = self.get_response(
@@ -752,12 +748,8 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
         assert response.status_code == 404
         assert response.data["detail"] == "This build's size data has expired."
 
-    @patch(
-        "sentry.preprod.api.endpoints.size_analysis.project_preprod_size_analysis_compare.get_size_retention_cutoff"
-    )
-    def test_get_returns_404_for_expired_base_artifact(self, mock_cutoff: MagicMock) -> None:
-        mock_cutoff.return_value = timezone.now() - timedelta(days=30)
-        self.base_artifact.date_added = timezone.now() - timedelta(days=60)
+    def test_get_returns_404_for_expired_base_artifact(self) -> None:
+        self.base_artifact.date_size_analysis_expires = timezone.now() - timedelta(days=1)
         self.base_artifact.save()
 
         response = self.get_response(
