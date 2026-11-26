@@ -115,7 +115,7 @@ def sort_merged_attributes(
 
 def _context_precedence(context: TraceItemAttributeContext | None) -> int:
     if not context:
-        return 0
+        return -1
     if "isConvention" in context:
         return 3
     if context.get("isCustom"):
