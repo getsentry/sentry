@@ -3,6 +3,8 @@ import {useState} from 'react';
 
 import type {SelectValue} from './types';
 
+export const CREATE_KEY = 'create';
+
 export type OptionRow<T> = {key: string; option: T};
 type OptionEntry<T> = OptionRow<T> | {rows: Array<OptionRow<T>>; label?: ReactNode};
 

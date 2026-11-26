@@ -9,8 +9,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import {createPortal} from 'react-dom';
-import {css, type CSSObject, useTheme} from '@emotion/react';
+import {type CSSObject, useTheme} from '@emotion/react';
 import {getFocusableTreeWalker} from '@react-aria/focus';
 import {useInteractOutside} from '@react-aria/interactions';
 import {getItemId, useListBox} from '@react-aria/listbox';
@@ -20,13 +19,8 @@ import {VisuallyHidden} from '@react-aria/visually-hidden';
 import {Item, Section} from '@react-stately/collections';
 import {useListState} from '@react-stately/list';
 import type {Key} from '@react-types/shared';
-import {IconChevron} from '@sentry/icons/chevron';
-import {IconClose} from '@sentry/icons/close';
 
-import {Button} from '@sentry/scraps/button';
-import {Flex, Grid} from '@sentry/scraps/layout';
-import {PanelProvider} from '@sentry/scraps/panelProvider';
-import {Spinner} from '@sentry/scraps/spinner';
+import {Flex} from '@sentry/scraps/layout';
 import type {FormSize} from '@sentry/scraps/theme';
 import {useTranslation} from '@sentry/scraps/translation';
 import {useOverlay} from '@sentry/scraps/useOverlay';
@@ -35,12 +29,13 @@ import {
   getWidestMenuItemKey,
   useVirtualCollection,
   useVirtualMenuWidth,
-  VirtualRows,
 } from '@sentry/scraps/useVirtualCollection';
 
+import {SelectChips} from './chips';
 import {createFilter} from './filter';
-import {SelectOption, SelectSection} from './option';
-import {useOptionIndex, type OptionRow} from './options';
+import {SelectIndicators} from './indicators';
+import {MENU_GAP, SelectMenu} from './menu';
+import {CREATE_KEY, useOptionIndex, type OptionRow} from './options';
 import {getSelectStyles} from './styles';
 import type {
   SelectComponents,
@@ -136,8 +131,6 @@ export type ControlProps<
 ) &
   BaseSelectProps<TValue, TOption>;
 
-const CREATE_KEY = 'create';
-const MENU_GAP = 8;
 const defaultFilter = createFilter();
 
 function optionText(option: SelectValue<unknown>) {
@@ -622,141 +615,6 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
   });
   const {Value, MultiValueLabel, OptionLabel} = components ?? {};
   const showClearButton = clearable && selected.length > 0 && !disabled;
-  const indicators = (
-    <Flex align="center" gap="xs" css={selectStyles.indicators}>
-      <Grid
-        flow="column"
-        autoColumns="minmax(24px, max-content)"
-        align="center"
-        justifyItems="center"
-        gap="xs"
-        css={css`
-          &:empty {
-            display: none;
-          }
-        `}
-      >
-        {trailingItems}
-        {showClearButton && (
-          <Button
-            size="zero"
-            variant="transparent"
-            aria-label={t('Clear choices')}
-            icon={<IconClose css={selectStyles.clearIcon} />}
-            onMouseDown={event => event.preventDefault()}
-            onClick={clear}
-          />
-        )}
-        {isLoading && (
-          <Spinner
-            size={14}
-            css={css`
-              margin: 0;
-            `}
-          />
-        )}
-      </Grid>
-      {dropdownIndicator !== null && (
-        <Flex as="span" align="center" aria-hidden="true">
-          {dropdownIndicator ?? <IconChevron direction="down" size="xs" />}
-        </Flex>
-      )}
-    </Flex>
-  );
-  const lockedMenuStyle =
-    shouldLockMenuWidth && lockedMenuWidth !== undefined
-      ? {width: lockedMenuWidth, maxWidth: menuStyle.maxWidth ?? '100%'}
-      : undefined;
-  const positionStyle: CSSObject = {
-    ...(menuStyle.position === 'initial' ? {marginBlockStart: MENU_GAP} : overlayStyle),
-    display: 'flex',
-    flexDirection: 'column',
-    zIndex: props.isInsideModal ? theme.zIndex.modal + 1 : theme.zIndex.dropdown,
-  };
-  const menuListStyle = {
-    ...selectStyles.menuList,
-    maxHeight: maxMenuHeight,
-    minHeight: minMenuHeight ?? 0,
-  };
-  const menu = isOpen && (
-    <div
-      ref={setOverlayElement}
-      data-overlay-root=""
-      css={
-        menuPortalTarget
-          ? (styles?.menuPortal?.(positionStyle, {}) ?? positionStyle)
-          : positionStyle
-      }
-      onKeyDown={event => {
-        if (event.key === 'Escape' && !event.defaultPrevented) {
-          event.preventDefault();
-          event.stopPropagation();
-          inputRef.current?.focus();
-          overlayState.close();
-        }
-      }}
-      onBlur={event => {
-        if (
-          !event.currentTarget.contains(event.relatedTarget) &&
-          !controlRef.current?.contains(event.relatedTarget)
-        ) {
-          overlayState.close();
-        }
-      }}
-    >
-      <PanelProvider>
-        <div ref={menuRef} css={[menuStyle, lockedMenuStyle]}>
-          <ul
-            {...listBoxProps}
-            ref={listRef}
-            css={styles?.menuList?.(menuListStyle, {}) ?? menuListStyle}
-          >
-            <VirtualRows
-              virtual={virtual}
-              renderRow={row => (
-                <SelectOption
-                  row={row}
-                  state={state}
-                  option={rowsByKey.get(row.node.key)}
-                  size={size}
-                  multiple={multiple}
-                  virtualized={virtualized}
-                  showDividers={props.showDividers}
-                  showCreateOptionIcon={props.showCreateOptionIcon}
-                  OptionLabel={OptionLabel}
-                  styleOption={styles?.option}
-                  create={row.node.key === CREATE_KEY}
-                />
-              )}
-              renderSection={(section, children) => (
-                <SelectSection
-                  row={section}
-                  headingStyle={
-                    styles?.groupHeading?.(selectStyles.heading, {}) ??
-                    selectStyles.heading
-                  }
-                >
-                  {children}
-                </SelectSection>
-              )}
-            />
-          </ul>
-          {state.collection.size === 0 && (
-            <div role="status" css={selectStyles.message}>
-              {isLoading
-                ? props.loadingMessage
-                  ? props.loadingMessage()
-                  : t('Loading...')
-                : props.noOptionsMessage
-                  ? props.noOptionsMessage({inputValue: query})
-                  : t('No options')}
-            </div>
-          )}
-          {props.menuFooter && <div ref={footerRef}>{props.menuFooter}</div>}
-        </div>
-      </PanelProvider>
-    </div>
-  );
   const first = selected[0];
   const activeChip = focusedChip === null ? undefined : selected[focusedChip];
 
@@ -807,56 +665,17 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
           </Flex>
         )}
         <div css={selectStyles.values}>
-          {multiple &&
-            selectedRows.map(({option, key}, index) => (
-              <div
-                key={key ?? index}
-                css={
-                  styles?.multiValue?.(
-                    {
-                      ...selectStyles.chip,
-                      ...(index === focusedChip && theme.focusRing()),
-                    },
-                    optionStyle(option)
-                  ) ?? {
-                    ...selectStyles.chip,
-                    ...(index === focusedChip && theme.focusRing()),
-                  }
-                }
-              >
-                <span
-                  css={
-                    styles?.multiValueLabel?.(
-                      selectStyles.chipLabel,
-                      optionStyle(option)
-                    ) ?? selectStyles.chipLabel
-                  }
-                >
-                  {MultiValueLabel ? (
-                    <MultiValueLabel option={option}>{option.label}</MultiValueLabel>
-                  ) : (
-                    option.label
-                  )}
-                </span>
-                {!disabled && (
-                  <button
-                    type="button"
-                    tabIndex={-1}
-                    aria-label={t('Remove item')}
-                    css={
-                      styles?.multiValueRemove?.(
-                        selectStyles.chipRemove,
-                        optionStyle(option)
-                      ) ?? selectStyles.chipRemove
-                    }
-                    onMouseDown={event => event.preventDefault()}
-                    onClick={() => remove(index)}
-                  >
-                    <IconClose css={selectStyles.chipRemoveIcon} />
-                  </button>
-                )}
-              </div>
-            ))}
+          {multiple && (
+            <SelectChips
+              disabled={disabled}
+              focusedChip={focusedChip}
+              MultiValueLabel={MultiValueLabel}
+              onRemove={remove}
+              selectedRows={selectedRows}
+              selectStyles={selectStyles}
+              styles={styles}
+            />
+          )}
           {!query && !multiple && first && (
             <div
               css={
@@ -932,11 +751,14 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
             css={styles?.input?.(selectStyles.input, {}) ?? selectStyles.input}
           />
         </div>
-        {(dropdownIndicator !== null ||
-          showClearButton ||
-          isLoading ||
-          (trailingItems != null && typeof trailingItems !== 'boolean')) &&
-          indicators}
+        <SelectIndicators
+          dropdownIndicator={dropdownIndicator}
+          isLoading={isLoading}
+          onClear={clear}
+          selectStyles={selectStyles}
+          showClearButton={showClearButton}
+          trailingItems={trailingItems}
+        />
       </div>
       {multiple && (
         <VisuallyHidden role="status" aria-atomic="true">
@@ -960,7 +782,41 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
             value={String(option?.value ?? '')}
           />
         ))}
-      {menuPortalTarget && menu ? createPortal(menu, menuPortalTarget) : menu}
+      {isOpen && (
+        <SelectMenu
+          controlRef={controlRef}
+          footerRef={footerRef}
+          inputRef={inputRef}
+          isInsideModal={props.isInsideModal}
+          isLoading={isLoading}
+          listBoxProps={listBoxProps}
+          listRef={listRef}
+          loadingMessage={props.loadingMessage}
+          lockedMenuWidth={shouldLockMenuWidth ? lockedMenuWidth : undefined}
+          maxMenuHeight={maxMenuHeight}
+          menuFooter={props.menuFooter}
+          menuPortalTarget={menuPortalTarget}
+          menuRef={menuRef}
+          menuStyle={menuStyle}
+          minMenuHeight={minMenuHeight}
+          multiple={multiple}
+          noOptionsMessage={props.noOptionsMessage}
+          onClose={overlayState.close}
+          OptionLabel={OptionLabel}
+          overlayStyle={overlayStyle}
+          query={query}
+          rowsByKey={rowsByKey}
+          selectStyles={selectStyles}
+          setOverlayElement={setOverlayElement}
+          showCreateOptionIcon={props.showCreateOptionIcon}
+          showDividers={props.showDividers}
+          size={size}
+          state={state}
+          styles={styles}
+          virtual={virtual}
+          virtualized={virtualized}
+        />
+      )}
     </div>
   );
 }
