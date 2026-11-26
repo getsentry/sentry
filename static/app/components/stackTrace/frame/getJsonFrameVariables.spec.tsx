@@ -335,6 +335,7 @@ describe('native variables extracted by Symbolicator', () => {
             pointer_address: '0x000000016b29a450',
             pointee: serialized,
           },
+          position: {type: 'Vec3', members: serialized},
         },
       })
     ).toMatchObject({
@@ -348,6 +349,7 @@ describe('native variables extracted by Symbolicator', () => {
           value: serialized,
           pointerAddresses: ['0x000000016b29a450'],
         },
+        {name: 'position', type: 'Vec3', kind: 'unformatted', value: serialized},
       ],
     });
   });

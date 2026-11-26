@@ -76,10 +76,12 @@ function toNativeVariable(
     };
   }
 
-  // A pointee that is not a value was serialized to a string by Relay's depth limit.
+  // A pointee that is not a value, or members that are not a record, were serialized to
+  // a string by Relay's depth limit.
+  const serialized = typeof target.members === 'string' ? 'members' : 'pointee';
   const [formatted, formattedMeta] =
     target.value === undefined
-      ? [target.pointee, targetMeta?.pointee]
+      ? [target[serialized], targetMeta?.[serialized]]
       : [target.value, targetMeta?.value];
   if (formatted !== undefined) {
     return {
