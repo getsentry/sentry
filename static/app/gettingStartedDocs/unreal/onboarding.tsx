@@ -273,25 +273,8 @@ export const onboarding: OnboardingConfig = {
         {
           type: 'text',
           text: tct(
-            "To manually upload debug symbols, you'll need to use [code:sentry-cli]. This requires your [strong:organization slug], [strong:project slug], and an [strong:authentication token]. These can be configured in one of two ways:",
+            "To manually upload debug symbols, you'll need to use the [code:sentry] CLI. This requires your [strong:organization slug], [strong:project slug], and an [strong:authentication token], which you can set as environment variables:",
             {code: <code />, strong: <strong />}
-          ),
-        },
-        {
-          type: 'list',
-          items: [
-            t('Environment variables (recommended)'),
-            tct(
-              'A [code:sentry.properties] file (automatically created by the Unreal Engine SDK)',
-              {code: <code />}
-            ),
-          ],
-        },
-        {
-          type: 'text',
-          text: tct(
-            'If the properties file is not found, [code:sentry-cli] will fall back to these environment variables if they are set:',
-            {code: <code />}
           ),
         },
         {
@@ -305,7 +288,7 @@ export SENTRY_AUTH_TOKEN=___ORG_AUTH_TOKEN___`,
         {
           type: 'code',
           language: 'bash',
-          code: `sentry-cli --auth-token ___ORG_AUTH_TOKEN___ debug-files upload --org ${params.organization.slug} --project ${params.project.slug} PATH_TO_SYMBOLS`,
+          code: `SENTRY_AUTH_TOKEN=___ORG_AUTH_TOKEN___ sentry debug-files upload --org ${params.organization.slug} --project ${params.project.slug} PATH_TO_SYMBOLS`,
         },
         {
           type: 'text',
