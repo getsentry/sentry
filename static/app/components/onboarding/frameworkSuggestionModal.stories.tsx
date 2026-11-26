@@ -130,7 +130,6 @@ export default Storybook.story('FrameworkSuggestionModal', story => {
             options={platformOptionGroups}
             value={platform}
             searchable
-            virtualThreshold={0}
             onChange={option => {
               const platformKey = option.value as PlatformKey;
               setPlatform(platformKey);

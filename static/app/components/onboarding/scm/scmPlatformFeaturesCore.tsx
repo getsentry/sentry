@@ -553,7 +553,6 @@ export function ScmPlatformFeaturesCore({
               onInputChange={handleManualPickerSearch}
               searchable
               leadingItems={<IconSearch size="sm" variant="muted" aria-hidden />}
-              virtualThreshold={0}
             />
           ) : (
             <Select<string, (typeof platformOptions)[number]>
@@ -567,7 +566,6 @@ export function ScmPlatformFeaturesCore({
               clearable
               searchable
               leadingItems={<IconSearch size="sm" variant="muted" aria-hidden />}
-              virtualThreshold={0}
             />
           )}
         </MotionStack>

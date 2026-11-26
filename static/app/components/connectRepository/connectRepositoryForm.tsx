@@ -142,7 +142,6 @@ export function ConnectRepositoryForm({
       placeholder={t('Search repositories')}
       isLoading={isReposPending}
       searchable
-      virtualThreshold={0}
     />
   );
 

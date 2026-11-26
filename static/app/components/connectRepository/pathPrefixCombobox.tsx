@@ -152,7 +152,6 @@ export function PathPrefixCombobox({
       // Options are filtered on the debounced input above.
       filterOption={null}
       formatCreateLabel={(input: string) => tct('Use "[path]"', {path: input})}
-      virtualThreshold={0}
       maxMenuHeight={maxMenuHeight}
       styles={prefixMenuStyles(menuWidth, menuAlign)}
     />
