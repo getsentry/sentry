@@ -16,7 +16,7 @@ from sentry.models.files.file import File
 from sentry.models.project import Project
 from sentry.preprod.analytics import PreprodArtifactApiSizeAnalysisCompareDownloadEvent
 from sentry.preprod.models import PreprodArtifactSizeComparison
-from sentry.preprod.quotas import get_size_retention_cutoff
+from sentry.preprod.retention import is_size_analysis_expired
 
 logger = logging.getLogger(__name__)
 
@@ -83,13 +83,14 @@ class ProjectPreprodArtifactSizeAnalysisCompareDownloadEndpoint(ProjectEndpoint)
             )
             return Response({"detail": "Comparison not found."}, status=404)
 
-        cutoff = get_size_retention_cutoff(project.organization)
         head_artifact = comparison_obj.head_size_analysis.preprod_artifact
         base_artifact = comparison_obj.base_size_analysis.preprod_artifact
         if head_artifact.project_id != project.id or base_artifact.project_id != project.id:
             return Response({"detail": "Comparison not found."}, status=404)
 
-        if head_artifact.date_added < cutoff or base_artifact.date_added < cutoff:
+        if is_size_analysis_expired(
+            head_artifact, project.organization
+        ) or is_size_analysis_expired(base_artifact, project.organization):
             return Response({"detail": "This build's size data has expired."}, status=404)
 
         if comparison_obj.file_id is None:

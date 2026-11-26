@@ -1,6 +1,5 @@
 from datetime import timedelta
 from io import BytesIO
-from unittest.mock import MagicMock, patch
 
 from django.utils import timezone
 
@@ -161,12 +160,8 @@ class ProjectPreprodArtifactSizeAnalysisDownloadEndpointTest(APITestCase):
             else response.content
         )
 
-    @patch(
-        "sentry.preprod.api.endpoints.size_analysis.project_preprod_size_analysis_download.get_size_retention_cutoff"
-    )
-    def test_returns_404_for_expired_artifact(self, mock_cutoff: MagicMock) -> None:
-        mock_cutoff.return_value = timezone.now() - timedelta(days=30)
-        self.artifact.date_added = timezone.now() - timedelta(days=60)
+    def test_returns_404_for_expired_artifact(self) -> None:
+        self.artifact.date_size_analysis_expires = timezone.now() - timedelta(days=1)
         self.artifact.save()
 
         response = self.get_response(self.organization.slug, self.artifact.id)

@@ -551,15 +551,65 @@ class ProjectPreprodBuildDetailsEndpointTest(APITestCase):
         assert resp_data["base_artifact_id"] is None
         assert resp_data["base_build_info"] is None
 
-    @patch("sentry.preprod.api.endpoints.project_preprod_build_details.get_size_retention_cutoff")
-    def test_returns_404_for_expired_artifact(self, mock_cutoff: MagicMock) -> None:
-        mock_cutoff.return_value = timezone.now() - timedelta(days=30)
+    def test_returns_404_for_artifact_past_date_expires(self) -> None:
+        self.preprod_artifact.date_expires = timezone.now() - timedelta(days=1)
+        self.preprod_artifact.save()
+
+        response = self.client.get(
+            self._get_url(), format="json", HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
+        )
+        assert response.status_code == 404
+        assert response.json()["detail"] == "The requested head preprod artifact does not exist"
+
+    @patch("sentry.quotas.backend.get_event_retention", return_value=30)
+    def test_returns_artifact_with_expiry_in_the_future(self, mock_retention: MagicMock) -> None:
+        # The current retention would hide the artifact. The stamped expiry decides.
+        self.preprod_artifact.date_added = timezone.now() - timedelta(days=60)
+        self.preprod_artifact.date_expires = timezone.now() + timedelta(days=300)
+        self.preprod_artifact.date_size_analysis_expires = timezone.now() + timedelta(days=300)
+        self.preprod_artifact.save()
+
+        response = self.client.get(
+            self._get_url(), format="json", HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
+        )
+        assert response.status_code == 200
+
+    def test_returns_build_without_expired_size_analysis(self) -> None:
+        # The build outlives its size analysis, as on a plan that retains Build
+        # Distribution for longer than Size Analysis.
+        self.create_preprod_artifact_size_metrics(
+            self.preprod_artifact,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            max_install_size=1000,
+            max_download_size=500,
+        )
+        self.preprod_artifact.date_expires = timezone.now() + timedelta(days=300)
+        self.preprod_artifact.date_size_analysis_expires = timezone.now() - timedelta(days=1)
+        self.preprod_artifact.save()
+
+        response = self.client.get(
+            self._get_url(), format="json", HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
+        )
+        assert response.status_code == 200
+        assert response.json()["id"] == str(self.preprod_artifact.id)
+        assert response.json()["size_info"] is None
+
+    @patch("sentry.quotas.backend.get_event_retention", return_value=30)
+    def test_returns_build_without_size_analysis_past_current_retention(
+        self, mock_retention: MagicMock
+    ) -> None:
+        # An artifact without a stamped date follows the current retention.
+        self.create_preprod_artifact_size_metrics(
+            self.preprod_artifact,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            max_install_size=1000,
+            max_download_size=500,
+        )
         self.preprod_artifact.date_added = timezone.now() - timedelta(days=60)
         self.preprod_artifact.save()
 
-        url = self._get_url()
         response = self.client.get(
-            url, format="json", HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
+            self._get_url(), format="json", HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
         )
-        assert response.status_code == 404
-        assert response.json()["detail"] == "This build's size data has expired."
+        assert response.status_code == 200
+        assert response.json()["size_info"] is None

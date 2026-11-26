@@ -24,7 +24,7 @@ from sentry.preprod.api.models.size_analysis.project_preprod_size_analysis_compa
 )
 from sentry.preprod.builds_query import filtered_builds_queryset
 from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeComparison
-from sentry.preprod.quotas import get_size_retention_cutoff
+from sentry.preprod.retention import is_size_analysis_expired
 
 logger = logging.getLogger(__name__)
 
@@ -54,8 +54,7 @@ class ProjectPreprodArtifactSizeAnalysisComparisonsEndpoint(PreprodArtifactEndpo
         ``MAX_COMPARISONS``. Accepts the same ``query`` search syntax as the builds
         endpoint, applied to the base builds.
         """
-        cutoff = get_size_retention_cutoff(project.organization)
-        if head_artifact.date_added < cutoff:
+        if is_size_analysis_expired(head_artifact, project.organization):
             return Response({"detail": "This build's size data has expired."}, status=404)
 
         head_success_comparisons = PreprodArtifactSizeComparison.objects.filter(

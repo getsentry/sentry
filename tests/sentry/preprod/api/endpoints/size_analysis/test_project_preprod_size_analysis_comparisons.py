@@ -1,6 +1,6 @@
 from datetime import timedelta
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from django.urls import reverse
 from django.utils import timezone
@@ -124,12 +124,8 @@ class ProjectPreprodSizeAnalysisComparisonsTest(APITestCase):
         )
         self.get_error_response(self.organization.slug, other_artifact.id, status_code=404)
 
-    @patch(
-        "sentry.preprod.api.endpoints.size_analysis.project_preprod_size_analysis_comparisons.get_size_retention_cutoff"
-    )
-    def test_returns_404_for_expired_head(self, mock_cutoff: MagicMock) -> None:
-        mock_cutoff.return_value = timezone.now() - timedelta(days=30)
-        self.head_artifact.date_added = timezone.now() - timedelta(days=60)
+    def test_returns_404_for_expired_head(self) -> None:
+        self.head_artifact.date_size_analysis_expires = timezone.now() - timedelta(days=1)
         self.head_artifact.save()
 
         response = self.get_error_response(

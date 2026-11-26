@@ -2,12 +2,10 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable
-from datetime import datetime, timedelta
 from enum import Enum
 from typing import Any
 
 import sentry_sdk
-from django.utils import timezone
 
 from sentry import features, quotas
 from sentry.auth.principal import RequestPrincipal
@@ -16,7 +14,6 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.preprod.artifact_search import artifact_matches_query
 from sentry.preprod.models import PreprodArtifact
-from sentry.preprod.retention import get_retention_days
 
 logger = logging.getLogger(__name__)
 
@@ -24,11 +21,6 @@ logger = logging.getLogger(__name__)
 class PreprodFeature(Enum):
     SIZE_ANALYSIS = "size_analysis"
     BUILD_DISTRIBUTION = "build_distribution"
-
-
-def get_size_retention_cutoff(organization: Organization) -> datetime:
-    retention_days = get_retention_days(organization, DataCategory.SIZE_ANALYSIS)
-    return timezone.now() - timedelta(days=retention_days)
 
 
 SIZE_ENABLED_KEY = "sentry:preprod_size_enabled_by_customer"
