@@ -15,6 +15,7 @@ from sentry.seer.fetch_issues.utils import (
 from sentry.seer.sentry_data_models import EmptyResponse, IssueDetails
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.skips import requires_snuba
 from sentry.utils.samples import load_data
 
 
@@ -236,6 +237,7 @@ class TestBulkSerializeForSeer(TestCase):
             assert result == {"issues": [], "issues_full": []}
 
 
+@requires_snuba
 class TestGetLatestIssueEvent(TestCase):
     def test_get_latest_issue_event_success(self) -> None:
         data = load_data("python", timestamp=before_now(minutes=1))

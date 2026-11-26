@@ -8,11 +8,13 @@ from rest_framework.response import Response
 from sentry.search.events import constants
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.skips import requires_snuba
 from sentry.utils.snuba import QueryExecutionError, QueryIllegalTypeOfArgument, RateLimitExceeded
 
 MAX_QUERYABLE_TRANSACTION_THRESHOLDS = 1
 
 
+@requires_snuba
 class OrganizationEventsEndpointTest(APITestCase):
     viewname = "sentry-api-0-organization-events"
     referrer = "api.organization-events"

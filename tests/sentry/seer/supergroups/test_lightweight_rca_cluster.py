@@ -13,6 +13,7 @@ from sentry.seer.supergroups.lightweight_rca_cluster import trigger_lightweight_
 from sentry.tasks.seer.lightweight_rca_cluster import trigger_lightweight_rca_cluster_task
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.skips import requires_snuba
 from sentry.utils.snuba import _snuba_pool
 
 SEER_PATH = "/v0/issues/supergroups/cluster-lightweight"
@@ -61,6 +62,7 @@ DEFAULT_EVENT_DATA_WITH_STACKTRACE = {
 GET_EVENT_BY_ID = "sentry.seer.supergroups.lightweight_rca_cluster.eventstore.get_event_by_id"
 
 
+@requires_snuba
 class TriggerLightweightRCAClusterTest(TestCase):
     def setUp(self) -> None:
         super().setUp()

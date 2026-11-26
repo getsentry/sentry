@@ -16,11 +16,15 @@ from sentry.services.eventstore.models import Event
 from sentry.testutils.asserts import assert_mock_called_once_with_partial
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import no_silo_test
-from sentry.testutils.skips import requires_kafka
+from sentry.testutils.skips import requires_kafka, requires_snuba
 from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 from sentry.utils.sdk import bind_organization_context, get_project_key
 
-pytestmark = [requires_kafka, thread_leak_allowlist(reason="relay integration tests", issue=97040)]
+pytestmark = [
+    requires_kafka,
+    requires_snuba,
+    thread_leak_allowlist(reason="relay integration tests", issue=97040),
+]
 
 
 @pytest.fixture
