@@ -3,6 +3,11 @@ import {ORDER, type WebVitals} from 'sentry/views/insights/browser/webVitals/typ
 
 import type {TraceMetric} from './metricQuery';
 import type {TraceMetricTypeValue} from './types';
+import {
+  webVitalMetricName,
+  webVitalScoreAttribute,
+  webVitalScoreMetricName,
+} from './virtualMetricNames';
 
 /**
  * A stored metric, with the unit typed so prebuilt configs can use it.
@@ -33,25 +38,22 @@ export interface VirtualTraceMetric {
   unit: string;
 }
 
-function webVitalUnit(vital: WebVitals): DataUnit {
-  const units: Record<WebVitals, DataUnit> = {
-    lcp: DurationUnit.MILLISECOND,
-    fcp: DurationUnit.MILLISECOND,
-    inp: DurationUnit.MILLISECOND,
-    ttfb: DurationUnit.MILLISECOND,
-    cls: null,
-  };
-  return units[vital];
-}
+const WEB_VITAL_UNITS: Record<WebVitals, DataUnit> = {
+  lcp: DurationUnit.MILLISECOND,
+  fcp: DurationUnit.MILLISECOND,
+  inp: DurationUnit.MILLISECOND,
+  ttfb: DurationUnit.MILLISECOND,
+  cls: null,
+};
 
 /**
  * The stored metric for a web vital, e.g. `browser.web_vital.lcp`.
  */
 export function webVitalMetric(vital: WebVitals): StoredTraceMetric {
   return {
-    name: `browser.web_vital.${vital}`,
+    name: webVitalMetricName(vital),
     type: 'distribution',
-    unit: webVitalUnit(vital),
+    unit: WEB_VITAL_UNITS[vital],
   };
 }
 
@@ -61,27 +63,21 @@ export function webVitalMetric(vital: WebVitals): StoredTraceMetric {
  */
 export function webVitalScoreMetric(vital: WebVitals): VirtualTraceMetric {
   return {
-    name: `browser.web_vital.${vital}.score`,
+    name: webVitalScoreMetricName(vital),
     type: 'distribution',
     unit: FractionUnit.RATIO,
     source: webVitalMetric(vital),
-    attribute: `tags[score.ratio.${vital},number]`,
+    attribute: webVitalScoreAttribute(vital),
   };
 }
 
-let webVitalScoreMetrics: VirtualTraceMetric[] | undefined;
-
-export function getWebVitalScoreMetrics(): VirtualTraceMetric[] {
-  webVitalScoreMetrics ??= ORDER.map(webVitalScoreMetric);
-  return webVitalScoreMetrics;
-}
+export const WEB_VITAL_SCORE_METRICS: VirtualTraceMetric[] =
+  ORDER.map(webVitalScoreMetric);
 
 /**
  * Every virtual metric the metric selectors know about.
  */
-function getVirtualTraceMetrics(): VirtualTraceMetric[] {
-  return getWebVitalScoreMetrics();
-}
+const VIRTUAL_TRACE_METRICS: VirtualTraceMetric[] = [...WEB_VITAL_SCORE_METRICS];
 
 /**
  * The virtual metric a selected metric stands for, if any. The unit is not
@@ -90,7 +86,7 @@ function getVirtualTraceMetrics(): VirtualTraceMetric[] {
 export function findVirtualTraceMetric(
   metric: TraceMetric
 ): VirtualTraceMetric | undefined {
-  return getVirtualTraceMetrics().find(
+  return VIRTUAL_TRACE_METRICS.find(
     virtual => virtual.name === metric.name && virtual.type === metric.type
   );
 }
@@ -103,7 +99,7 @@ export function findVirtualTraceMetricByAttribute(
   attribute: string,
   source: TraceMetric
 ): VirtualTraceMetric | undefined {
-  return getVirtualTraceMetrics().find(
+  return VIRTUAL_TRACE_METRICS.find(
     virtual =>
       virtual.attribute === attribute &&
       virtual.source.name === source.name &&

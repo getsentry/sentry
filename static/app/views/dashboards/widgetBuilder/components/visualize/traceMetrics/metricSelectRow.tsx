@@ -30,7 +30,7 @@ import {
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {MetricSelector} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/metricSelector';
 import type {MetricSelectorOption} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/types';
-import {getWebVitalScoreMetrics} from 'sentry/views/explore/metrics/virtualMetrics';
+import {WEB_VITAL_SCORE_METRICS} from 'sentry/views/explore/metrics/virtualMetrics';
 
 import {AggregateSelector} from './aggregateSelector';
 
@@ -116,7 +116,7 @@ export function MetricSelectRow({
   const virtualMetrics =
     organization.features.includes('dashboards-web-vitals-trace-metrics') &&
     state.displayType !== DisplayType.HEATMAP
-      ? getWebVitalScoreMetrics()
+      ? WEB_VITAL_SCORE_METRICS
       : undefined;
 
   const displayFields = getTraceMetricDisplayFields(
