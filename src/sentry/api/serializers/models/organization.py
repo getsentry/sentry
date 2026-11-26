@@ -74,7 +74,10 @@ from sentry.models.team import Team, TeamStatus
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.replays.models import OrganizationMemberReplayAccess
-from sentry.seer.autofix.utils import get_valid_automated_run_stopping_points
+from sentry.seer.autofix.utils import (
+    AGENTIC_TRIAGE_COHORT_OPTION,
+    get_valid_automated_run_stopping_points,
+)
 from sentry.types.cell import get_locality_name_for_cell
 from sentry.users.api.serializers.user import AvatarTypeName, SerializedAvatarFields
 from sentry.users.models.user import User
@@ -673,6 +676,7 @@ class _OrganizationSerializerResponseOptional(OrganizationSummarySerializerRespo
     enabledConsolePlatforms: list[str]
     consoleSdkInviteQuota: int
     dashboardsAsyncQueueParallelLimit: int
+    agenticTriageCohort: str | None
 
 
 @sentry_schema_serializer(
@@ -1078,6 +1082,8 @@ class OrganizationSerializer(OrganizationSummarySerializer):
             DASHBOARDS_ASYNC_QUEUE_PARALLEL_LIMIT_DEFAULT,
         )
 
+        context["agenticTriageCohort"] = obj.get_option(AGENTIC_TRIAGE_COHORT_OPTION)
+
         if access.role is not None:
             context["role"] = access.role  # Deprecated
             context["orgRole"] = access.role
@@ -1099,6 +1105,7 @@ class OrganizationSerializer(OrganizationSummarySerializer):
         "enabledConsolePlatforms": "Internal console-platform allowlist.",
         "consoleSdkInviteQuota": "Internal console SDK invite quota.",
         "dashboardsAsyncQueueParallelLimit": "Internal query-queue tuning value.",
+        "agenticTriageCohort": "Internal Seer billing cohort, set by staff.",
         "hasGranularReplayPermissions": "Internal replay permission flag surfaced only to the Sentry UI.",
         "replayAccessMembers": "Internal replay access list surfaced only to the Sentry UI.",
     }

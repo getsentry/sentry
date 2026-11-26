@@ -1204,6 +1204,41 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
         mock_cleanup_task.assert_called_once_with(self.organization.id, [])
 
+    def test_agentic_triage_cohort_default_none(self) -> None:
+        response = self.get_success_response(self.organization.slug)
+        assert response.data["agenticTriageCohort"] is None
+
+    def test_agentic_triage_cohort_no_staff_member(self) -> None:
+        response = self.get_error_response(
+            self.organization.slug, status_code=400, agenticTriageCohort="free"
+        )
+        assert response.data["agenticTriageCohort"] == [
+            "Only staff members can change the agentic triage cohort."
+        ]
+        assert self.organization.get_option("sentry:agentic-triage-cohort") is None
+
+    def test_agentic_triage_cohort_staff_can_set_and_clear(self) -> None:
+        staff_user = self.create_user(is_staff=True)
+        self.create_member(organization=self.organization, user=staff_user, role="owner")
+        self.login_as(user=staff_user, staff=True)
+
+        response = self.get_success_response(self.organization.slug, agenticTriageCohort="seat")
+        assert response.data["agenticTriageCohort"] == "seat"
+        assert self.organization.get_option("sentry:agentic-triage-cohort") == "seat"
+
+        response = self.get_success_response(self.organization.slug, agenticTriageCohort=None)
+        assert response.data["agenticTriageCohort"] is None
+        assert self.organization.get_option("sentry:agentic-triage-cohort") is None
+
+    def test_agentic_triage_cohort_invalid_value(self) -> None:
+        staff_user = self.create_user(is_staff=True)
+        self.create_member(organization=self.organization, user=staff_user, role="owner")
+        self.login_as(user=staff_user, staff=True)
+
+        self.get_error_response(
+            self.organization.slug, status_code=400, agenticTriageCohort="enterprise"
+        )
+
     def test_enable_seer_coding_default_true(self) -> None:
         response = self.get_success_response(self.organization.slug)
         assert response.data["enableSeerCoding"] is True

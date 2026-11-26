@@ -98,7 +98,11 @@ from sentry.organizations.services.organization.model import (
 from sentry.relay.datascrubbing import validate_pii_config_update, validate_pii_selectors
 from sentry.replays.models import OrganizationMemberReplayAccess
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
-from sentry.seer.autofix.utils import get_valid_automated_run_stopping_points
+from sentry.seer.autofix.utils import (
+    AGENTIC_TRIAGE_COHORT_OPTION,
+    AgenticTriageCohort,
+    get_valid_automated_run_stopping_points,
+)
 from sentry.services.organization.provisioning import organization_provisioning_service
 from sentry.tasks.console_platform_cleanup import remove_inaccessible_console_platform_sources
 from sentry.users.services.user.serial import serialize_generic_user
@@ -270,6 +274,12 @@ ORG_OPTIONS = (
         int,
         DASHBOARDS_ASYNC_QUEUE_PARALLEL_LIMIT_DEFAULT,
     ),
+    (
+        "agenticTriageCohort",
+        AGENTIC_TRIAGE_COHORT_OPTION,
+        str,
+        None,
+    ),
 )
 
 DELETION_STATUSES = frozenset(
@@ -338,6 +348,11 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     )
     consoleSdkInviteQuota = serializers.IntegerField(required=False, min_value=0)
     dashboardsAsyncQueueParallelLimit = serializers.IntegerField(required=False, min_value=1)
+    agenticTriageCohort = serializers.ChoiceField(
+        choices=[cohort.value for cohort in AgenticTriageCohort],
+        required=False,
+        allow_null=True,
+    )
     enableSeerCoding = serializers.BooleanField(required=False)
     defaultCodingAgent = serializers.ChoiceField(
         choices=["seer", "cursor", "claude_code", "cursor_background_agent", "claude_code_agent"],
@@ -495,6 +510,13 @@ class OrganizationSerializer(BaseOrganizationSerializer):
                 "Only staff members can change console SDK invite quota limit."
             )
 
+        return value
+
+    def validate_agenticTriageCohort(self, value: str | None) -> str | None:
+        if not is_active_staff(self.context["request"]):
+            raise serializers.ValidationError(
+                "Only staff members can change the agentic triage cohort."
+            )
         return value
 
     def validate_hasGranularReplayPermissions(self, value: bool) -> bool:
