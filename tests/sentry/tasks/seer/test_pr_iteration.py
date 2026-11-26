@@ -79,8 +79,8 @@ from sentry.tasks.seer.pr_iteration import (
     STOPPED_PR_ITERATION_COMMENT,
     _add_review_reaction,
     _build_review_feedback,
-    _delete_own_comment_eyes_reaction,
-    _delete_own_review_eyes_reaction,
+    _delete_own_comment_reactions,
+    _delete_own_review_reactions,
     _dropped_drain_reason,
     _ineligible_pr_iteration_comment_body,
     consume_queued_autofix_feedback,
@@ -93,6 +93,7 @@ from sentry.testutils.cases import TestCase
 
 FEEDBACK_PATH = "sentry.seer.autofix.pr_iteration.feedback"
 TASK_PATH = "sentry.tasks.seer.pr_iteration"
+REACTIONS_PATH = "sentry.seer.autofix.pr_iteration.completion_reactions"
 CHECK_SUITE_SOURCE_PATH = "sentry.seer.autofix.pr_iteration.feedback_sources.check_suite"
 PAUSE_PATH = "sentry.seer.autofix.pr_iteration.pause"
 PR_STATE_PATH = "sentry.seer.autofix.pr_iteration.pr_state"
@@ -1887,6 +1888,27 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         seer_run.refresh_from_db()
         assert OUT_OF_CREDITS_COMMENT_EXTRA not in seer_run.extras
 
+    @patch(f"{REACTIONS_PATH}._react_out_of_credits")
+    @patch(f"{TASK_PATH}.trigger_autofix_agent", side_effect=SeerOutOfCreditsException())
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_a_trigger_refused_for_credits_reacts_only_to_pr_feedback(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        _mock_trigger: MagicMock,
+        mock_react: MagicMock,
+    ) -> None:
+        self.create_seer_run(organization=self.organization, seer_run_state_id=67890)
+        state = self._state()
+        mock_fetch.return_value = state
+        comment = self._review_feedback(111)
+        mock_pop.return_value = [self._queued(comment), self._ui_queued()]
+
+        self._call()
+
+        mock_react.assert_called_once_with(self.organization, 67890, state, [comment.source], ANY)
+
     @patch(f"{TASK_PATH}.trigger_autofix_agent")
     @patch(f"{TASK_PATH}.fetch_run_status")
     def test_a_run_stopped_on_credits_drains_again_after_a_trigger_that_cannot_succeed(
@@ -3306,7 +3328,7 @@ class _ReactionScmProtocols:
     def delete_review_comment_reaction(self, *args: Any, **kwargs: Any) -> Any: ...
 
 
-class DeleteOwnCommentEyesReactionTest(TestCase):
+class DeleteOwnCommentReactionsTest(TestCase):
     ACTOR_ID = "actor-1"
 
     def _scm(self) -> MagicMock:
@@ -3316,7 +3338,7 @@ class DeleteOwnCommentEyesReactionTest(TestCase):
         return {"data": reactions}
 
     @patch(f"{TASK_PATH}.scm_actions")
-    def test_deletes_only_own_eyes(self, mock_scm_actions: MagicMock) -> None:
+    def test_deletes_only_own_requested_reactions(self, mock_scm_actions: MagicMock) -> None:
         scm = self._scm()
         mock_scm_actions.get_authenticated_actor.return_value = {"data": {"id": self.ACTOR_ID}}
         mock_scm_actions.get_pull_request_comment_reactions.return_value = self._reactions_result(
@@ -3325,16 +3347,20 @@ class DeleteOwnCommentEyesReactionTest(TestCase):
                 {"id": "r2", "content": "eyes", "author": {"id": "someone-else"}},
                 {"id": "r3", "content": "hooray", "author": {"id": self.ACTOR_ID}},
                 {"id": "r4", "content": "eyes", "author": None},
+                {"id": "r5", "content": "confused", "author": {"id": self.ACTOR_ID}},
             ]
         )
 
-        _delete_own_comment_eyes_reaction(
-            scm, source_type="github-pr-comment", pr_number=7, comment_id=111
+        _delete_own_comment_reactions(
+            scm,
+            source_type="github-pr-comment",
+            pr_number=7,
+            comment_id=111,
+            reactions=("eyes", "confused"),
         )
 
-        mock_scm_actions.delete_pull_request_comment_reaction.assert_called_once_with(
-            scm, "7", "111", "r1"
-        )
+        deleted = mock_scm_actions.delete_pull_request_comment_reaction.call_args_list
+        assert [call.args for call in deleted] == [(scm, "7", "111", "r1"), (scm, "7", "111", "r5")]
 
     @patch(f"{TASK_PATH}.scm_actions")
     def test_deletes_only_own_eyes_on_review_comment(self, mock_scm_actions: MagicMock) -> None:
@@ -3349,8 +3375,12 @@ class DeleteOwnCommentEyesReactionTest(TestCase):
             ]
         )
 
-        _delete_own_comment_eyes_reaction(
-            scm, source_type="github-pr-review-comment", pr_number=7, comment_id=222
+        _delete_own_comment_reactions(
+            scm,
+            source_type="github-pr-review-comment",
+            pr_number=7,
+            comment_id=222,
+            reactions=("eyes",),
         )
 
         mock_scm_actions.get_review_comment_reactions.assert_called_once_with(scm, "7", "222")
@@ -3369,8 +3399,8 @@ class DeleteOwnCommentEyesReactionTest(TestCase):
             ]
         )
 
-        _delete_own_comment_eyes_reaction(
-            scm, source_type="github-pr-comment", pr_number=7, comment_id=111
+        _delete_own_comment_reactions(
+            scm, source_type="github-pr-comment", pr_number=7, comment_id=111, reactions=("eyes",)
         )
 
         mock_scm_actions.delete_pull_request_comment_reaction.assert_not_called()
@@ -3388,8 +3418,12 @@ class DeleteOwnCommentEyesReactionTest(TestCase):
             ]
         )
 
-        _delete_own_comment_eyes_reaction(
-            scm, source_type="github-pr-review-comment", pr_number=7, comment_id=222
+        _delete_own_comment_reactions(
+            scm,
+            source_type="github-pr-review-comment",
+            pr_number=7,
+            comment_id=222,
+            reactions=("eyes",),
         )
 
         mock_scm_actions.delete_review_comment_reaction.assert_not_called()
@@ -3401,8 +3435,8 @@ class DeleteOwnCommentEyesReactionTest(TestCase):
             spec=["get_pull_request_comment_reactions", "delete_pull_request_comment_reaction"]
         )
 
-        _delete_own_comment_eyes_reaction(
-            scm, source_type="github-pr-comment", pr_number=7, comment_id=111
+        _delete_own_comment_reactions(
+            scm, source_type="github-pr-comment", pr_number=7, comment_id=111, reactions=("eyes",)
         )
 
         mock_scm_actions.get_authenticated_actor.assert_not_called()
@@ -3413,8 +3447,8 @@ class DeleteOwnCommentEyesReactionTest(TestCase):
         scm = self._scm()
         mock_scm_actions.get_authenticated_actor.side_effect = RuntimeError("boom")
 
-        _delete_own_comment_eyes_reaction(
-            scm, source_type="github-pr-comment", pr_number=7, comment_id=111
+        _delete_own_comment_reactions(
+            scm, source_type="github-pr-comment", pr_number=7, comment_id=111, reactions=("eyes",)
         )
 
         mock_scm_actions.delete_pull_request_comment_reaction.assert_not_called()
@@ -3460,19 +3494,28 @@ class ReviewReactionTest(TestCase):
     def test_deletes_own_eyes_by_content(self, mock_scm_actions: MagicMock) -> None:
         scm = MagicMock(spec=_ReviewReactionScmProtocols)
 
-        _delete_own_review_eyes_reaction(scm, pr_number=7, review_id=500)
+        _delete_own_review_reactions(scm, pr_number=7, review_id=500, reactions=("eyes",))
 
         mock_scm_actions.delete_pull_request_review_reaction.assert_called_once_with(
             scm, "7", "500", "eyes"
         )
 
     @patch(f"{TASK_PATH}.scm_actions")
-    def test_delete_swallows_exceptions(self, mock_scm_actions: MagicMock) -> None:
-        mock_scm_actions.delete_pull_request_review_reaction.side_effect = RuntimeError("boom")
+    def test_deletes_each_reaction_even_after_one_fails(self, mock_scm_actions: MagicMock) -> None:
+        scm = MagicMock(spec=_ReviewReactionScmProtocols)
+        mock_scm_actions.delete_pull_request_review_reaction.side_effect = [
+            RuntimeError("boom"),
+            None,
+        ]
 
-        _delete_own_review_eyes_reaction(
-            MagicMock(spec=_ReviewReactionScmProtocols), pr_number=7, review_id=500
+        _delete_own_review_reactions(
+            scm, pr_number=7, review_id=500, reactions=("eyes", "confused")
         )
+
+        assert [
+            call.args
+            for call in mock_scm_actions.delete_pull_request_review_reaction.call_args_list
+        ] == [(scm, "7", "500", "eyes"), (scm, "7", "500", "confused")]
 
 
 class BuildReviewFeedbackTest(TestCase):

@@ -1035,7 +1035,7 @@ def _drain_queued_autofix_feedback(
                 log_ctx=log_ctx,
                 run_id=run_id,
                 organization_id=organization_id,
-                group_id=group.id,
+                group=group,
                 state=state,
                 items=consumable_items,
                 denial_reason=error.denial_reason,
@@ -1076,16 +1076,21 @@ def _hold_for_credits(
     log_ctx: PrIterationLogContext,
     run_id: int,
     organization_id: int,
-    group_id: int,
+    group: Group,
     state: SeerRunState,
     items: Sequence[QueuedAutofixFeedback],
     denial_reason: SeerCreditDenialReason | None,
 ) -> None:
     """Put a batch refused for credits back, so the next trigger after a top-up runs it."""
+    # Imported here because completion_reactions imports this module.
+    from sentry.seer.autofix.pr_iteration.completion_reactions import (
+        react_to_feedback_held_for_credits,
+    )
+
     requeue_autofix_feedback(run_id, items)
     try:
         bootstrap_iteration(
-            logger=logger, run_state=state, organization_id=organization_id, group_id=group_id
+            logger=logger, run_state=state, organization_id=organization_id, group_id=group.id
         )
     except ValueError:
         # A legacy run has no SeerRun row to reopen or mark.
@@ -1100,6 +1105,10 @@ def _hold_for_credits(
     mark_out_of_credits(run_id=run_id, organization_id=organization_id, denial_reason=denial_reason)
     queue_out_of_credits_comment(
         run_id=run_id, organization_id=organization_id, state=state, denial_reason=denial_reason
+    )
+    # Last, so the slower GitHub calls run once the batch is safely held.
+    react_to_feedback_held_for_credits(
+        group.organization, run_id, state, [item.feedback for item in items]
     )
 
 
@@ -1179,14 +1188,15 @@ def _add_comment_reaction(
         sentry_sdk.capture_exception(e)
 
 
-def _delete_own_comment_eyes_reaction(
+def _delete_own_comment_reactions(
     scm: SourceCodeManager,
     *,
     source_type: GithubPrCommentFeedbackType,
     pr_number: int,
     comment_id: int,
+    reactions: tuple[Reaction, ...],
 ) -> None:
-    """Remove the :eyes: we added at trigger time, completing the :eyes:->:tada: swap.
+    """Remove our own ``reactions`` from a comment, e.g. the trigger-time :eyes: once :tada: lands.
 
     Both top-level PR comments and inline review comments get the trigger-time
     :eyes:, so both are cleaned up here. GitHub keeps issue-comment and
@@ -1197,12 +1207,12 @@ def _delete_own_comment_eyes_reaction(
         logger.warning("autofix.pr_iteration.completion_reaction.unsupported_provider")
         return
 
-    def _own_eyes_reaction_ids(reactions: list[ReactionResult], actor_id: ResourceId) -> list[str]:
+    def _own_reaction_ids(results: list[ReactionResult], actor_id: ResourceId) -> list[str]:
         return [
-            str(reaction["id"])
-            for reaction in reactions
-            if reaction["content"] == "eyes"
-            and (author := reaction.get("author")) is not None
+            str(result["id"])
+            for result in results
+            if result["content"] in reactions
+            and (author := result.get("author")) is not None
             and author["id"] == actor_id
         ]
 
@@ -1220,7 +1230,7 @@ def _delete_own_comment_eyes_reaction(
                 logger.warning("autofix.pr_iteration.completion_reaction.unsupported_provider")
                 return
             result = scm_actions.get_review_comment_reactions(scm, str(pr_number), str(comment_id))
-            for reaction_id in _own_eyes_reaction_ids(result["data"], actor_id):
+            for reaction_id in _own_reaction_ids(result["data"], actor_id):
                 scm_actions.delete_review_comment_reaction(
                     scm, str(pr_number), str(comment_id), reaction_id
                 )
@@ -1234,7 +1244,7 @@ def _delete_own_comment_eyes_reaction(
             result = scm_actions.get_pull_request_comment_reactions(
                 scm, str(pr_number), str(comment_id)
             )
-            for reaction_id in _own_eyes_reaction_ids(result["data"], actor_id):
+            for reaction_id in _own_reaction_ids(result["data"], actor_id):
                 scm_actions.delete_pull_request_comment_reaction(
                     scm, str(pr_number), str(comment_id), reaction_id
                 )
@@ -1261,20 +1271,25 @@ def _add_review_reaction(
         sentry_sdk.capture_exception(e)
 
 
-def _delete_own_review_eyes_reaction(
+def _delete_own_review_reactions(
     scm: SourceCodeManager,
     *,
     pr_number: int,
     review_id: int,
+    reactions: tuple[Reaction, ...],
 ) -> None:
-    """Remove the :eyes: we added to a review body at trigger time."""
+    """Remove our own ``reactions`` from a review body, e.g. the trigger-time :eyes:."""
     if not isinstance(scm, DeletePullRequestReviewReactionProtocol):
         logger.warning("autofix.pr_iteration.completion_reaction.unsupported_provider")
         return
-    try:
-        scm_actions.delete_pull_request_review_reaction(scm, str(pr_number), str(review_id), "eyes")
-    except Exception:
-        logger.exception("autofix.pr_iteration.completion_reaction.delete_eyes_failed")
+    # GitHub removes a review reaction by its content, so each one is its own call.
+    for reaction in reactions:
+        try:
+            scm_actions.delete_pull_request_review_reaction(
+                scm, str(pr_number), str(review_id), reaction
+            )
+        except Exception:
+            logger.exception("autofix.pr_iteration.completion_reaction.delete_eyes_failed")
 
 
 def _comment_pr_iteration_ineligible(

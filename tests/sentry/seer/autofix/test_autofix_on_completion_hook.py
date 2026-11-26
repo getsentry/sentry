@@ -1958,10 +1958,11 @@ class TestFailedRunCompletionHook(TestCase):
             run_id=123, organization_id=self.organization.id
         ) == OutOfCreditsMarker(stranded_action=None, denial_reason="daily_cap_exceeded")
 
+    @patch(f"{HOOK_PATH}.react_to_completed_iteration")
     @patch(COMMENT_TASK_DELAY)
     @patch(f"{HOOK_PATH}.fetch_run_status")
-    def test_a_seer_iteration_that_ran_out_of_credits_comments_on_the_pr(
-        self, mock_fetch: MagicMock, mock_comment: MagicMock
+    def test_a_seer_iteration_that_ran_out_of_credits_comments_and_reacts(
+        self, mock_fetch: MagicMock, mock_comment: MagicMock, mock_react: MagicMock
     ) -> None:
         self.create_seer_run(
             organization=self.organization, seer_run_state_id=123, user_id=self.user.id
@@ -1978,6 +1979,8 @@ class TestFailedRunCompletionHook(TestCase):
             pr_numbers_by_repo={"test-repo": 7},
             denial_reason="not_enough_credits",
         )
+
+        mock_react.assert_called_once_with(self.organization, 123, state)
 
     @patch(f"{COMPLETION_PATH}.consume_queued_feedback")
     @patch(f"{COMPLETION_PATH}.trigger_push_changes")
@@ -3108,7 +3111,7 @@ class TestMaybeReactToCompletedIteration(TestCase):
         mock_react.assert_not_called()
 
     @patch(f"{REACT_PATH}.is_github_rate_limit_sensitive", return_value=False)
-    @patch(f"{REACT_PATH}._delete_own_comment_eyes_reaction")
+    @patch(f"{REACT_PATH}._delete_own_comment_reactions")
     @patch(f"{REACT_PATH}.make_scm")
     @patch(f"{REACT_PATH}._add_comment_reaction")
     def test_deletes_own_eyes_on_both_comment_types(
@@ -3136,9 +3139,10 @@ class TestMaybeReactToCompletedIteration(TestCase):
         for call in mock_delete_eyes.call_args_list:
             assert call.args[0] is scm
             assert call.kwargs["pr_number"] == 7
+            assert call.kwargs["reactions"] == ("eyes", "confused")
 
     @patch(f"{REACT_PATH}.is_github_rate_limit_sensitive", return_value=True)
-    @patch(f"{REACT_PATH}._delete_own_comment_eyes_reaction")
+    @patch(f"{REACT_PATH}._delete_own_comment_reactions")
     @patch(f"{REACT_PATH}.make_scm")
     @patch(f"{REACT_PATH}._add_comment_reaction")
     def test_skips_eyes_delete_for_rate_limit_sensitive_org(
@@ -3160,7 +3164,7 @@ class TestMaybeReactToCompletedIteration(TestCase):
         mock_delete_eyes.assert_not_called()
 
     @patch(f"{REACT_PATH}.is_github_rate_limit_sensitive", return_value=False)
-    @patch(f"{REACT_PATH}._delete_own_review_eyes_reaction")
+    @patch(f"{REACT_PATH}._delete_own_review_reactions")
     @patch(f"{REACT_PATH}._add_review_reaction")
     @patch(f"{REACT_PATH}.make_scm")
     @patch(f"{REACT_PATH}._add_comment_reaction")
@@ -3181,11 +3185,13 @@ class TestMaybeReactToCompletedIteration(TestCase):
         mock_review_react.assert_called_once_with(
             scm, pr_number=7, review_id=333, reaction="hooray"
         )
-        mock_delete_eyes.assert_called_once_with(scm, pr_number=7, review_id=333)
+        mock_delete_eyes.assert_called_once_with(
+            scm, pr_number=7, review_id=333, reactions=("eyes", "confused")
+        )
         mock_react.assert_not_called()
 
     @patch(f"{REACT_PATH}.is_github_rate_limit_sensitive", return_value=True)
-    @patch(f"{REACT_PATH}._delete_own_review_eyes_reaction")
+    @patch(f"{REACT_PATH}._delete_own_review_reactions")
     @patch(f"{REACT_PATH}._add_review_reaction")
     @patch(f"{REACT_PATH}.make_scm")
     def test_skips_review_body_eyes_delete_for_rate_limit_sensitive_org(
@@ -3205,7 +3211,7 @@ class TestMaybeReactToCompletedIteration(TestCase):
 
     @patch(f"{REACT_PATH}.metrics.incr")
     @patch(f"{REACT_PATH}.is_github_rate_limit_sensitive", return_value=False)
-    @patch(f"{REACT_PATH}._delete_own_review_eyes_reaction")
+    @patch(f"{REACT_PATH}._delete_own_review_reactions")
     @patch(f"{REACT_PATH}._add_review_reaction")
     @patch(f"{REACT_PATH}.make_scm")
     def test_skips_review_body_reaction_when_iteration_made_no_changes(
@@ -3226,7 +3232,9 @@ class TestMaybeReactToCompletedIteration(TestCase):
         mock_review_react.assert_not_called()
         assert self._reaction_outcomes(mock_incr) == ["react_skipped_no_changes"]
         # :eyes: is still removed from the review body.
-        mock_delete_eyes.assert_called_once_with(scm, pr_number=7, review_id=333)
+        mock_delete_eyes.assert_called_once_with(
+            scm, pr_number=7, review_id=333, reactions=("eyes", "confused")
+        )
 
     @patch(f"{REACT_PATH}._add_review_reaction")
     @patch(f"{REACT_PATH}.make_scm")
@@ -3241,7 +3249,7 @@ class TestMaybeReactToCompletedIteration(TestCase):
 
     @patch(f"{REACT_PATH}.metrics.incr")
     @patch(f"{REACT_PATH}.is_github_rate_limit_sensitive", return_value=False)
-    @patch(f"{REACT_PATH}._delete_own_comment_eyes_reaction")
+    @patch(f"{REACT_PATH}._delete_own_comment_reactions")
     @patch(f"{REACT_PATH}.make_scm")
     @patch(f"{REACT_PATH}._add_comment_reaction")
     def test_skips_review_reaction_when_iteration_made_no_changes(
@@ -3290,6 +3298,85 @@ class TestMaybeReactToCompletedIteration(TestCase):
         self._run(state)
 
         mock_react.assert_not_called()
+
+    def _mark_out_of_credits(self, stranded_action: StrandedAction | None = None) -> None:
+        self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        mark_out_of_credits(
+            run_id=123, organization_id=self.organization.id, stranded_action=stranded_action
+        )
+
+    @patch(f"{REACT_PATH}.is_github_rate_limit_sensitive", return_value=False)
+    @patch(f"{REACT_PATH}._delete_own_comment_reactions")
+    @patch(f"{REACT_PATH}.make_scm")
+    @patch(f"{REACT_PATH}._add_comment_reaction")
+    def test_swaps_eyes_for_confused_when_credits_stop_the_turn(
+        self,
+        mock_react: MagicMock,
+        mock_make_scm: MagicMock,
+        mock_delete: MagicMock,
+        mock_sensitive: MagicMock,
+    ) -> None:
+        scm = MagicMock()
+        mock_make_scm.return_value = scm
+        self._mark_out_of_credits()
+        state = self._state_with([self._top_level_source(111), self._review_source(222)])
+        state.status = "error"
+        state.failure_reason = "out_of_credits"
+
+        self._run(state)
+
+        assert {
+            call.kwargs["comment_id"]: call.kwargs["reaction"] for call in mock_react.call_args_list
+        } == {111: "confused", 222: "confused"}
+        assert {
+            call.kwargs["comment_id"]: call.kwargs["reactions"]
+            for call in mock_delete.call_args_list
+        } == {111: ("eyes",), 222: ("eyes",)}
+
+    @patch(f"{REACT_PATH}.is_github_rate_limit_sensitive", return_value=False)
+    @patch(f"{REACT_PATH}._delete_own_review_reactions")
+    @patch(f"{REACT_PATH}._add_review_reaction")
+    @patch(f"{REACT_PATH}.make_scm")
+    def test_swaps_eyes_for_confused_on_a_review_body_when_credits_refuse_the_push(
+        self,
+        mock_make_scm: MagicMock,
+        mock_review_react: MagicMock,
+        mock_delete: MagicMock,
+        mock_sensitive: MagicMock,
+    ) -> None:
+        scm = MagicMock()
+        mock_make_scm.return_value = scm
+        self._mark_out_of_credits(StrandedAction.PUSH)
+        # The changes never reached the PR.
+        state = self._state_with(
+            [self._review_body_source()],
+            commit_sha="new-sha",
+            repo_pr_states={
+                "owner/repo": RepoPRState(repo_name="owner/repo", pr_number=7, commit_sha="old-sha")
+            },
+        )
+
+        self._run(state)
+
+        mock_review_react.assert_called_once_with(
+            scm, pr_number=7, review_id=333, reaction="confused"
+        )
+        mock_delete.assert_called_once_with(scm, pr_number=7, review_id=333, reactions=("eyes",))
+
+    @patch(f"{REACT_PATH}.metrics.incr")
+    @patch(f"{REACT_PATH}.make_scm")
+    @patch(f"{REACT_PATH}._add_comment_reaction")
+    def test_no_reaction_when_a_turn_errors_for_another_reason(
+        self, mock_react: MagicMock, mock_make_scm: MagicMock, mock_incr: MagicMock
+    ) -> None:
+        self._mark_out_of_credits()
+        state = self._state_with([self._top_level_source()], status="error")
+        state.failure_reason = "agent_crashed"
+
+        self._run(state)
+
+        mock_react.assert_not_called()
+        assert self._reaction_outcomes(mock_incr) == []
 
 
 class TestAutofixOnCompletionHookMilestones(TestCase):
@@ -3837,7 +3924,7 @@ class TestSingleRunCompletion(TestCase):
 
         mocks["fail"].assert_called_once()
         mocks["consume"].assert_not_called()
-        mocks["react"].assert_not_called()
+        mocks["react"].assert_called_once()
 
     def test_pr_feedback_turn_without_a_group_finalizes_the_iteration(self) -> None:
         state = run_state(
