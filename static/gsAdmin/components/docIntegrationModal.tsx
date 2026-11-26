@@ -1,32 +1,51 @@
-import {Fragment, useState} from 'react';
-import styled from '@emotion/styled';
+import {Fragment} from 'react';
 import {IconAdd} from '@sentry/icons/add';
 import {IconClose} from '@sentry/icons/close';
-import {useQuery} from '@tanstack/react-query';
+import {useMutation, useQuery} from '@tanstack/react-query';
+import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {toast} from '@sentry/scraps/toast';
 
 import {AvatarChooser} from 'sentry/components/avatarChooser';
-import {NumberField} from 'sentry/components/forms/fields/numberField';
-import {SelectField} from 'sentry/components/forms/fields/selectField';
-import {TextareaField} from 'sentry/components/forms/fields/textareaField';
-import {TextField} from 'sentry/components/forms/fields/textField';
-import {Form} from 'sentry/components/forms/form';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {DocIntegration, IntegrationFeature} from 'sentry/types/integrations';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {useApi} from 'sentry/utils/useApi';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {fetchMutation} from 'sentry/utils/queryClient';
+import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
+import {RequestError} from 'sentry/utils/requestError/requestError';
+import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
-const fieldProps = {
-  stacked: true,
-  inline: false,
-  flexibleControlStateSize: true,
-} as const;
+const schema = z.object({
+  name: z.string().min(5, 'Name must be at least 5 characters'),
+  author: z.string().min(1, 'Author is required'),
+  description: z.string(),
+  url: z.string().min(1, 'URL is required'),
+  resources: z.array(
+    z.object({
+      title: z.string().min(1, 'Resource title is required'),
+      url: z.string().min(1, 'Resource URL is required'),
+    })
+  ),
+  popularity: z
+    .number()
+    .nullable()
+    .refine(value => value !== null, 'Popularity is required'),
+  features: z.array(z.number()).min(1, 'Select at least one feature'),
+});
+
+type DocIntegrationPayload = Pick<
+  DocIntegration,
+  'name' | 'author' | 'description' | 'url' | 'popularity'
+> & {features: number[]; resources: Array<{title: string; url: string}>};
+
+const EMPTY_RESOURCE = {title: '', url: ''};
 
 type Props = ModalRenderProps & {
   docIntegration?: DocIntegration;
@@ -34,16 +53,15 @@ type Props = ModalRenderProps & {
 };
 
 export function DocIntegrationModal(props: Props) {
-  const {docIntegration, Body, Header, onSubmit: propsOnSubmit, closeModal} = props;
-  const api = useApi({persistInFlight: true});
+  const {
+    docIntegration,
+    Body,
+    Footer,
+    Header,
+    onSubmit: propsOnSubmit,
+    closeModal,
+  } = props;
   const navigate = useNavigate();
-
-  const [resources, setResources] = useState<
-    Record<number, {title?: string; url?: string}>
-  >({...(docIntegration?.resources ?? {0: {}})});
-  const [lastResourceId, setLastResourceId] = useState(
-    docIntegration?.resources?.length ?? 0
-  );
 
   const {
     data: features,
@@ -54,6 +72,61 @@ export function DocIntegrationModal(props: Props) {
     apiOptions.as<IntegrationFeature[]>()('/integration-features/', {staleTime: 0})
   );
 
+  const mutation = useMutation({
+    mutationFn: (data: DocIntegrationPayload) =>
+      fetchMutation<DocIntegration>({
+        url: docIntegration
+          ? getApiUrl('/doc-integrations/$docIntegrationIdOrSlug/', {
+              path: {docIntegrationIdOrSlug: docIntegration.slug},
+            })
+          : getApiUrl('/doc-integrations/'),
+        method: docIntegration ? 'PUT' : 'POST',
+        data,
+      }),
+    onMutate: () => {
+      toast.loading('Saving changes…');
+    },
+    onSettled: () => {
+      toast.dismiss();
+    },
+    onSuccess: newDocIntegration => {
+      propsOnSubmit?.(newDocIntegration);
+      if (docIntegration) {
+        closeModal();
+      } else {
+        navigate(`/_admin/doc-integrations/${newDocIntegration.slug}/`);
+      }
+    },
+  });
+
+  const defaultValues: z.input<typeof schema> = {
+    name: docIntegration?.name ?? '',
+    author: docIntegration?.author ?? '',
+    description: docIntegration?.description ?? '',
+    url: docIntegration?.url ?? '',
+    resources: docIntegration?.resources ?? [EMPTY_RESOURCE],
+    popularity: docIntegration?.popularity ?? null,
+    features: docIntegration?.features?.map(({featureId}) => featureId) ?? [],
+  };
+
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues,
+    validators: {onDynamic: schema},
+    onSubmit: async ({value, formApi}) => {
+      try {
+        await mutation.mutateAsync(schema.parse(value));
+      } catch (error) {
+        const handled =
+          error instanceof RequestError &&
+          setFieldErrors(formApi, requestErrorToFieldErrors(error, formApi.state.values));
+        if (!handled) {
+          toast.error(getRequestErrorUserMessage(error, 'Unknown error while saving'));
+        }
+      }
+    },
+  });
+
   if (isPending) {
     return <LoadingIndicator />;
   }
@@ -62,136 +135,13 @@ export function DocIntegrationModal(props: Props) {
     return <LoadingError onRetry={refetch} />;
   }
 
-  const getFeatures = (): Array<[number, string]> => {
-    if (!features) {
-      return [];
-    }
-    return features.map(({featureId, featureGate}) => [
-      featureId,
-      featureGate.replace(/(^integrations-)/, ''),
-    ]);
-  };
-
-  const renderResourceSection = () => {
-    const resourceRows = Object.entries(resources).map(([id, entry]) => (
-      <Flex gap="xl" key={id}>
-        <ResourceTextField
-          {...fieldProps}
-          name={`___resource-title-${id}`}
-          label="Resource Title"
-          placeholder="Report Issue"
-          help="The title of the resource."
-          required
-          onChange={(value: any) => {
-            setResources({...resources, [id]: {...entry, title: value}});
-          }}
-        />
-        <ResourceTextField
-          {...fieldProps}
-          name={`___resource-url-${id}`}
-          label="Resource URL"
-          placeholder="https://www.meow.com/report-issue/"
-          help="A link to the resource."
-          required
-          onChange={(value: any) => {
-            setResources({...resources, [id]: {...entry, url: value}});
-          }}
-        />
-        <RemoveButton
-          variant="transparent"
-          icon={<IconClose />}
-          size="zero"
-          onClick={e => {
-            e.preventDefault();
-            setResources(state => {
-              const existingResources = {...state};
-              delete existingResources[id as unknown as number];
-              return existingResources;
-            });
-          }}
-          aria-label="Close"
-        />
-      </Flex>
-    ));
-    resourceRows.push(
-      <AddButton
-        variant="link"
-        onClick={e => {
-          e.preventDefault();
-          setResources(state => ({...state, [lastResourceId + 1]: {}}));
-          setLastResourceId(lastResourceId + 1);
-        }}
-        icon={<IconAdd size="xs" />}
-        key="add-button"
-      >
-        Add a resource link (e.g. docs, source code, feedback forms)
-      </AddButton>
-    );
-    return resourceRows;
-  };
-
-  const getInitialData = () => {
-    // The form uses the 'name' attribute to track what to send as a payload.
-    // Unfortunately, we can't send `resource-title-0` to the API, so we ignore
-    // remove those fields when sending data, and only use them to load defaults
-    const resourceFields = Object.entries(resources).reduce(
-      (previousFields, [currentId, currentResource]) => {
-        return {
-          ...previousFields,
-          [`___resource-title-${currentId}`]: currentResource.title,
-          [`___resource-url-${currentId}`]: currentResource.url,
-        };
-      },
-      {}
-    );
-    return {
-      ...docIntegration,
-      ...resourceFields,
-      features: docIntegration?.features?.map(({featureId}) => featureId),
-    };
-  };
-
-  /**
-   * This function prepares the outgoing data to match what the API is expecting
-   * @param data The form data
-   */
-  const prepareData = (data: Record<string, any>) => {
-    const outgoingData = {...data};
-    // Remove any ignored fields (e.g. ResourceTextFields that saved to the form model)
-    Object.keys(outgoingData).forEach(field => {
-      if (field.startsWith('___')) {
-        delete outgoingData[field];
-      }
-    });
-    // We're using the 'resources' data from state since we have onChange calls
-    // on those fields, See renderResourceSection()
-    outgoingData.resources = Object.values(resources);
-    return outgoingData;
-  };
-
-  const onSubmit = async (
-    data: Record<string, any>,
-    onSuccess: (response: Record<string, any>) => void,
-    onError: (error: any) => void
-  ) => {
-    toast.loading('Saving changes\u2026');
-    try {
-      const response = await api.requestPromise(
-        docIntegration
-          ? `/doc-integrations/${docIntegration.slug}/`
-          : '/doc-integrations/',
-        {method: docIntegration ? 'PUT' : 'POST', data: prepareData(data)}
-      );
-      toast.dismiss();
-      onSuccess(response);
-    } catch (error) {
-      toast.dismiss();
-      onError(error);
-    }
-  };
+  const featureOptions = features.map(({featureId, featureGate}) => ({
+    value: featureId,
+    label: featureGate.replace(/(^integrations-)/, ''),
+  }));
 
   return (
-    <Fragment>
+    <form.AppForm form={form}>
       <Header closeButton>
         {docIntegration ? (
           <Fragment>
@@ -202,73 +152,163 @@ export function DocIntegrationModal(props: Props) {
         )}
       </Header>
       <Body>
-        <Form
-          onSubmit={onSubmit}
-          onSubmitSuccess={(newDocIntegration: DocIntegration) => {
-            if (propsOnSubmit) {
-              propsOnSubmit(newDocIntegration);
-            }
-            if (docIntegration) {
-              closeModal();
-            } else {
-              navigate(`/_admin/doc-integrations/${newDocIntegration.slug}/`);
-            }
-          }}
-          initialData={getInitialData()}
-          submitLabel={docIntegration ? 'Update' : 'Create'}
-        >
-          <TextField
-            {...fieldProps}
-            name="name"
-            label="Name"
-            placeholder={docIntegration ? docIntegration.name : 'Meow meow'}
-            help="The name of the document integration."
-            minLength={5}
-            required
-          />
-          <TextField
-            {...fieldProps}
-            name="author"
-            label="Author"
-            placeholder={docIntegration ? docIntegration.author : 'Hellboy'}
-            help="Who maintains this integration?"
-            required
-          />
-          <TextareaField
-            {...fieldProps}
-            name="description"
-            label="Description"
-            placeholder={
-              docIntegration ? docIntegration.description : 'A cool cool integration.'
-            }
-            help="What does this integration do?"
-          />
-          <TextField
-            {...fieldProps}
-            name="url"
-            label="URL"
-            placeholder={docIntegration ? docIntegration.url : 'https://www.meow.com'}
-            help="The link to the installation document."
-            required
-          />
-          {renderResourceSection()}
-          <NumberField
-            {...fieldProps}
-            name="popularity"
-            label="Popularity"
-            placeholder={docIntegration ? docIntegration.popularity : 8}
-            help="Higher values will be more prominent on the integration directory."
-            required
-          />
-          <SelectField
-            {...fieldProps}
-            multiple
-            name="features"
-            label="Features"
-            help="What features does this integration have?"
-            choices={getFeatures()}
-            required
-          />
+        <Stack gap="xl">
+          <form.AppField name="name">
+            {field => (
+              <field.Layout.Stack
+                label="Name"
+                hintText="The name of the document integration."
+                required
+              >
+                <field.Input
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  placeholder={docIntegration ? docIntegration.name : 'Meow meow'}
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+          <form.AppField name="author">
+            {field => (
+              <field.Layout.Stack
+                label="Author"
+                hintText="Who maintains this integration?"
+                required
+              >
+                <field.Input
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  placeholder={docIntegration ? docIntegration.author : 'Hellboy'}
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+          <form.AppField name="description">
+            {field => (
+              <field.Layout.Stack
+                label="Description"
+                hintText="What does this integration do?"
+              >
+                <field.TextArea
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  placeholder={
+                    docIntegration
+                      ? docIntegration.description
+                      : 'A cool cool integration.'
+                  }
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+          <form.AppField name="url">
+            {field => (
+              <field.Layout.Stack
+                label="URL"
+                hintText="The link to the installation document."
+                required
+              >
+                <field.Input
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  placeholder={
+                    docIntegration ? docIntegration.url : 'https://www.meow.com'
+                  }
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+          <form.AppField name="resources" mode="array">
+            {resourcesField => (
+              <Stack gap="xl" align="start">
+                {resourcesField.state.value.map((_, i) => (
+                  <Flex gap="xl" key={i} width="100%">
+                    <Container flex={1}>
+                      <form.AppField name={`resources[${i}].title`}>
+                        {field => (
+                          <field.Layout.Stack
+                            label="Resource Title"
+                            hintText="The title of the resource."
+                            required
+                          >
+                            <field.Input
+                              value={field.state.value}
+                              onChange={field.handleChange}
+                              placeholder="Report Issue"
+                            />
+                          </field.Layout.Stack>
+                        )}
+                      </form.AppField>
+                    </Container>
+                    <Container flex={1}>
+                      <form.AppField name={`resources[${i}].url`}>
+                        {field => (
+                          <field.Layout.Stack
+                            label="Resource URL"
+                            hintText="A link to the resource."
+                            required
+                          >
+                            <field.Input
+                              value={field.state.value}
+                              onChange={field.handleChange}
+                              placeholder="https://www.meow.com/report-issue/"
+                            />
+                          </field.Layout.Stack>
+                        )}
+                      </form.AppField>
+                    </Container>
+                    <Container paddingTop="3xl">
+                      <Button
+                        variant="transparent"
+                        icon={<IconClose />}
+                        size="zero"
+                        onClick={() => resourcesField.removeValue(i)}
+                        aria-label="Close"
+                      />
+                    </Container>
+                  </Flex>
+                ))}
+                <Button
+                  variant="link"
+                  onClick={() => resourcesField.pushValue(EMPTY_RESOURCE)}
+                  icon={<IconAdd size="xs" />}
+                >
+                  Add a resource link (e.g. docs, source code, feedback forms)
+                </Button>
+              </Stack>
+            )}
+          </form.AppField>
+          <form.AppField name="popularity">
+            {field => (
+              <field.Layout.Stack
+                label="Popularity"
+                hintText="Higher values will be more prominent on the integration directory."
+                required
+              >
+                <field.Number
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  placeholder={docIntegration ? String(docIntegration.popularity) : '8'}
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+          <form.AppField name="features">
+            {field => (
+              <field.Layout.Stack
+                label="Features"
+                hintText="What features does this integration have?"
+                required
+              >
+                <field.Select
+                  multiple
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  options={featureOptions}
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
           {docIntegration && (
             <AvatarChooser
               type="docIntegration"
@@ -280,20 +320,11 @@ export function DocIntegrationModal(props: Props) {
               help="The company's logo"
             />
           )}
-        </Form>
+        </Stack>
       </Body>
-    </Fragment>
+      <Footer>
+        <form.SubmitButton>{docIntegration ? 'Update' : 'Create'}</form.SubmitButton>
+      </Footer>
+    </form.AppForm>
   );
 }
-
-const AddButton = styled(Button)`
-  margin-bottom: ${p => p.theme.space.xl};
-`;
-
-const RemoveButton = styled(Button)`
-  margin-top: ${p => p.theme.space['3xl']};
-`;
-
-const ResourceTextField = styled(TextField)`
-  flex: 1;
-`;
