@@ -178,7 +178,7 @@ export function RepoLockedConnectForm({
       placeholder={t('Search projects')}
       isLoading={isProjectsPending}
       searchable
-      virtualized
+      virtualThreshold={0}
     />
   );
 

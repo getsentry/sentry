@@ -179,7 +179,7 @@ export function ScmRepoSelector({
       clearable
       searchable
       leadingItems={<IconSearch size="sm" variant="muted" aria-hidden />}
-      virtualized
+      virtualThreshold={0}
       styles={{container: base => ({...base, width: '100%'})}}
     />
   );
