@@ -18,6 +18,8 @@ from sentry.culprit import generate_culprit
 from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_scope
 from sentry.issues.action_log.backfill import BackfillEntry, backfill_actions
 from sentry.issues.action_log.types import FirstSeenAction, first_seen_idempotency_key
+from sentry.issues.merge_tracking import operation_kwargs, record_end_send, record_progress
+from sentry.issues.models.issuemergeoperation import IssueUnmergeOperation, OperationStatus
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
@@ -182,6 +184,7 @@ def migrate_events(
     locked_primary_hashes: Sequence[str],
     opt_destination_id: int | None,
     opt_eventstream_state: Mapping[str, Any] | None,
+    operation_id: int | None = None,
 ) -> tuple[int, Mapping[str, Any]]:
     extra = {"source_id": args.source_id, "project_id": project.id}
     logger.info(
@@ -211,6 +214,9 @@ def migrate_events(
         )
 
         destination_id = destination.id
+        record_progress(
+            IssueUnmergeOperation, project.id, operation_id, destination_group_id=destination_id
+        )
     else:
         # Update the existing destination group.
         destination_id = opt_destination_id
@@ -438,6 +444,7 @@ def start_unmerge(
     fingerprints: Sequence[str],
     actor_id: int | None,
     batch_size: int = 500,
+    operation_id: int | None = None,
 ) -> None:
     task_state = current_task()
     activation_id = task_state.id if task_state else None
@@ -465,7 +472,13 @@ def start_unmerge(
     metrics.incr("unmerge.started")
 
     unmerge.delay(
-        project_id, source_id, destination_id, fingerprints, actor_id, batch_size=batch_size
+        project_id,
+        source_id,
+        destination_id,
+        fingerprints,
+        actor_id,
+        batch_size=batch_size,
+        **operation_kwargs(operation_id),
     )
     if activation_id:
         mark_spawned(_START_TASK_KEY, activation_id)
@@ -477,7 +490,7 @@ def start_unmerge(
     processing_deadline_duration=300,
     silo_mode=SiloMode.CELL,
 )
-def unmerge(*posargs: Any, **kwargs: Any) -> None:
+def unmerge(*posargs: Any, operation_id: int | None = None, **kwargs: Any) -> None:
     with action_context_scope(ActionSource.SYSTEM):
         args = UnmergeArgsBase.parse_arguments(*posargs, **kwargs)
         batch_started_at = time.monotonic()
@@ -506,11 +519,19 @@ def unmerge(*posargs: Any, **kwargs: Any) -> None:
             "unmerge.killswitch-projects", {"project_id": args.project_id}
         ):
             logger.warning("unmerge.halted_by_killswitch", extra=extra)
+            cutoff = None
             if isinstance(args, SuccessiveUnmergeArgs):
                 unlock_hashes(args.project_id, list(args.locked_primary_hashes))
                 for _unmerge_key, (_destination_id, eventstream_state) in args.destinations.items():
                     if eventstream_state:
-                        args.replacement.stop_snuba_replacement(eventstream_state)
+                        cutoff = args.replacement.stop_snuba_replacement(eventstream_state)
+            record_progress(
+                IssueUnmergeOperation,
+                args.project_id,
+                operation_id,
+                status=OperationStatus.NEEDS_ATTENTION,
+                historical_cutoff=cutoff,
+            )
             return
 
         source = Group.objects.get(project_id=args.project_id, id=args.source_id)
@@ -523,6 +544,7 @@ def unmerge(*posargs: Any, **kwargs: Any) -> None:
         # denormalizations from the source group so that we can have a clean slate
         # for the new, repaired data.
         if isinstance(args, InitialUnmergeArgs):
+            record_progress(IssueUnmergeOperation, args.project_id, operation_id)
             locked_primary_hashes = lock_hashes(
                 args.project_id, args.source_id, list(args.replacement.primary_hashes_to_lock)
             )
@@ -563,12 +585,14 @@ def unmerge(*posargs: Any, **kwargs: Any) -> None:
                 project, [destination_id for destination_id, _ in args.destinations.values()]
             )
             unlock_hashes(args.project_id, locked_primary_hashes)
+            cutoff = None
             for unmerge_key, (_, eventstream_state) in args.destinations.items():
                 logger.warning(
                     "Unmerge complete (eventstream state: %s)", eventstream_state, extra=extra
                 )
                 if eventstream_state:
-                    args.replacement.stop_snuba_replacement(eventstream_state)
+                    cutoff = args.replacement.stop_snuba_replacement(eventstream_state)
+            record_end_send(IssueUnmergeOperation, args.project_id, operation_id, cutoff)
             logger.info(
                 "unmerge.batch_complete",
                 extra={
@@ -626,6 +650,7 @@ def unmerge(*posargs: Any, **kwargs: Any) -> None:
                 locked_primary_hashes,
                 destination_id,
                 eventstream_state,
+                operation_id,
             )
             destinations[unmerge_key] = destination_id, eventstream_state
 
@@ -643,7 +668,10 @@ def unmerge(*posargs: Any, **kwargs: Any) -> None:
             source_fields_reset=source_fields_reset,
         )
 
-        unmerge.delay(**new_args.dump_arguments())
+        record_progress(
+            IssueUnmergeOperation, args.project_id, operation_id, batch_cursor=last_event
+        )
+        unmerge.delay(**new_args.dump_arguments(), **operation_kwargs(operation_id))
         # Record that this activation has spawned its continuation. A subsequent re-pend of this same
         # activation will short-circuit at the guard above instead of spawning again.
         if activation_id:

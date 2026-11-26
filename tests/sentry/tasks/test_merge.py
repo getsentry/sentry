@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 
 from sentry import buffer, eventstream
 from sentry.issues.models.groupderiveddata import GroupDerivedData
+from sentry.issues.models.issuemergeoperation import OperationStatus, OperationStep
 from sentry.models.group import Group
 from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.groupmeta import GroupMeta
@@ -36,6 +37,41 @@ class MergeGroupTest(TestCase, SnubaTestCase):
             merge_groups([group1.id], group2.id, eventstream_state=eventstream_state)
 
         mock_eventstream.end_merge.assert_called_once_with(eventstream_state)
+
+    def test_sampling_failure_still_sends_end_message(self) -> None:
+        source = self.create_group()
+        survivor = self.create_group()
+        operation = self.create_issue_merge_operation([source.id], survivor.id)
+        state = {"previous_group_ids": [source.id]}
+        cutoff = before_now(seconds=1)
+        with (
+            self.tasks(),
+            patch(
+                "sentry.issues.merge_tracking.raw_snql_query",
+                side_effect=RuntimeError("unavailable"),
+            ),
+            patch.object(eventstream.backend, "end_merge", return_value=cutoff) as send,
+        ):
+            merge_groups(
+                [source.id], survivor.id, eventstream_state=state, operation_id=operation.id
+            )
+        send.assert_called_once_with(state)
+        operation.refresh_from_db()
+        assert operation.step == OperationStep.WAIT_FOR_SNUBA
+        assert operation.historical_cutoff == cutoff
+        assert operation.sample_event_ids_by_source == {}
+
+    def test_merge_without_an_end_message_needs_attention(self) -> None:
+        source = self.create_group()
+        survivor = self.create_group()
+        operation = self.create_issue_merge_operation([source.id], survivor.id)
+        with self.tasks(), patch.object(eventstream.backend, "end_merge") as send:
+            merge_groups([source.id], survivor.id, operation_id=operation.id)
+        send.assert_not_called()
+        operation.refresh_from_db()
+        assert operation.status == OperationStatus.NEEDS_ATTENTION
+        assert operation.step == OperationStep.MOVE
+        assert operation.historical_cutoff is None
 
     @patch("sentry.tasks.merge.current_task")
     def test_selfchain_skips_when_already_spawned(self, mock_current_task: MagicMock) -> None:

@@ -31,6 +31,7 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.principal import acting_user_id
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.issues.endpoints.bases.group import GroupEndpoint
+from sentry.issues.merge_tracking import operation_kwargs, record_unmerge_request
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
 from sentry.service_accounts.principal import ServiceAccountPrincipal
@@ -173,8 +174,24 @@ class GroupHashesEndpoint(GroupEndpoint):
             tags={"platform": group.platform or "unknown", "sdk": group.sdk or "unknown"},
         )
 
+        actor_id = acting_user_id(request.user)
+        operation_id = record_unmerge_request(
+            group,
+            grouphashes,
+            actor_id,
+            service_account_id=(
+                request.user.service_account_id
+                if isinstance(request.user, ServiceAccountPrincipal)
+                else None
+            ),
+        )
         start_unmerge.delay(
-            group.project_id, group.id, None, grouphashes, acting_user_id(request.user)
+            group.project_id,
+            group.id,
+            None,
+            grouphashes,
+            actor_id,
+            **operation_kwargs(operation_id),
         )
 
         return Response(status=202)
