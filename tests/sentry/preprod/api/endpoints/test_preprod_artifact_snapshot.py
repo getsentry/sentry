@@ -20,7 +20,6 @@ from sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot_latest_bas
     LATEST_BASE_SNAPSHOT_GET_QUERY_PARAMS,
 )
 from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
-from sentry.preprod.retention import SNAPSHOT_RETENTION_DAYS
 from sentry.preprod.snapshots.manifest import (
     ComparisonImageResult,
     ComparisonManifest,
@@ -309,6 +308,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
 
     @freeze_time("2026-01-01T00:00:00Z")
     def test_snapshot_upload_stamps_snapshot_expiry(self) -> None:
+        retention = {DataCategory.SIZE_ANALYSIS: 30, DataCategory.INSTALLABLE_BUILD: 396}
         data = {
             "app_id": "com.example.app",
             "images": {
@@ -322,13 +322,15 @@ class ProjectPreprodSnapshotTest(APITestCase):
             },
         }
 
-        response = self.client.post(self._get_create_url(), data, format="json")
+        with patch(
+            "sentry.quotas.backend.get_event_retention",
+            side_effect=lambda organization, category: retention[category],
+        ):
+            response = self.client.post(self._get_create_url(), data, format="json")
 
         assert response.status_code == 200
         artifact = PreprodArtifact.objects.get(id=response.data["artifactId"])
-        assert artifact.date_expires == artifact.date_added + timedelta(
-            days=SNAPSHOT_RETENTION_DAYS
-        )
+        assert artifact.date_expires == artifact.date_added + timedelta(days=30)
         assert artifact.date_size_analysis_expires is None
 
     def test_snapshot_upload_stores_manifest_key(self) -> None:

@@ -21,11 +21,6 @@ MAX_RETENTION_DAYS = 396
 # Used when no retention is configured, which only happens on self-hosted.
 DEFAULT_RETENTION_DAYS = 90
 
-# How long a snapshot artifact is kept. Snapshots have their own data category,
-# `SNAPSHOT_IMAGE`, but no retention is configured for it yet, so they are kept for the
-# age at which `cleanup` deleted every artifact before artifacts had an expiry.
-SNAPSHOT_RETENTION_DAYS = 396
-
 
 def get_retention_days(organization: Organization, category: DataCategory) -> int:
     """The organization's current retention for a preprod data category, in days."""
@@ -92,10 +87,24 @@ class SnapshotExpiry(TypedDict):
     date_expires: datetime
 
 
-def get_snapshot_expiry(date_added: datetime | None = None) -> SnapshotExpiry:
+def get_snapshot_retention_days(organization: Organization) -> int:
     """
-    The expiry of a snapshot created at `date_added` (now, if not given). Call this once,
-    when the snapshot is created, and store the result on it.
+    The organization's current retention for snapshots, in days.
+
+    Snapshots have their own data category, `SNAPSHOT_IMAGE`, but no retention is
+    configured for it yet. Until then the Size Analysis retention stands in for it, as it
+    matches the snapshot retention intended on every plan.
+    """
+    return get_retention_days(organization, DataCategory.SIZE_ANALYSIS)
+
+
+def get_snapshot_expiry(
+    organization: Organization, date_added: datetime | None = None
+) -> SnapshotExpiry:
+    """
+    The expiry of a snapshot created at `date_added` (now, if not given) under the
+    organization's current retention. Call this once, when the snapshot is created, and
+    store the result on it.
 
     It covers only the snapshot's row and its manifests. Its images are shared with other
     snapshots and expire on their own in Objectstore.
@@ -103,4 +112,6 @@ def get_snapshot_expiry(date_added: datetime | None = None) -> SnapshotExpiry:
     if date_added is None:
         date_added = timezone.now()
 
-    return SnapshotExpiry(date_expires=date_added + timedelta(days=SNAPSHOT_RETENTION_DAYS))
+    return SnapshotExpiry(
+        date_expires=date_added + timedelta(days=get_snapshot_retention_days(organization))
+    )

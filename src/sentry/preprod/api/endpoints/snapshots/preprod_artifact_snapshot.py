@@ -945,7 +945,7 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                 state=PreprodArtifact.ArtifactState.UPLOADED,
                 app_id=app_id,
                 commit_comparison=commit_comparison,
-                **get_snapshot_expiry(),
+                **get_snapshot_expiry(project.organization),
             )
 
             manifest_key = f"{project.organization_id}/{project.id}/{artifact.id}/manifest.json"
