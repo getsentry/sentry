@@ -38,6 +38,27 @@ function renderOpenMultiSelect(
 }
 
 describe('Select', () => {
+  it.snapshot('matches the control width with long option details', () => (
+    <Stack padding="md" width="280px">
+      <Select
+        aria-label="Role"
+        options={[
+          {
+            value: 'member',
+            label: 'Member',
+            details:
+              'Members can view and act on events and invite people to the organization.',
+          },
+        ]}
+        value="member"
+        isOpen
+        maxMenuWidth="100%"
+        styles={{menu: base => ({...base, position: 'initial'})}}
+        onChange={() => {}}
+      />
+    </Stack>
+  ));
+
   it.snapshot.each(['empty', 'loading'] as const)(
     'open menu in %s state',
     state => (

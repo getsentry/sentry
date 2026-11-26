@@ -90,7 +90,8 @@ export interface BaseSelectProps<
   leadingItems?: React.ReactNode;
   loadingMessage?: () => React.ReactNode;
   maxMenuHeight?: number;
-  maxMenuWidth?: number | string;
+  /** Maximum menu width in pixels, or '100%' to use the control width. */
+  maxMenuWidth?: number | '100%';
   /** Align the menu with the start or end edge of the control. Defaults to start. */
   menuAlign?: 'start' | 'end';
   /** Content after the options, outside the scroll container. */
@@ -412,7 +413,11 @@ export function Select<TValue, TOption extends SelectValue<TValue>>(
     hasQuery: query !== '',
     searchable,
   });
-  const baseMenuStyle: CSSObject = {...selectStyles.menu, maxWidth: props.maxMenuWidth};
+  const {maxMenuWidth} = props;
+  const baseMenuStyle: CSSObject = {
+    ...selectStyles.menu,
+    maxWidth: maxMenuWidth === '100%' ? (overlayStyle?.minWidth ?? '100%') : maxMenuWidth,
+  };
   const menuStyle = applyStyleSlot(styles, 'menu', baseMenuStyle, {});
   const shouldLockMenuWidth = isOpen && virtualized && menuStyle.width === 'max-content';
   const widestKey = shouldLockMenuWidth
