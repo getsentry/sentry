@@ -239,6 +239,13 @@ class PreprodArtifact(DefaultFieldsModel):
         choices=InstallableAppErrorCode.as_choices(), null=True
     )
     installable_app_error_message = models.TextField(null=True)
+    # Null only on artifacts created before the column existed that are not backfilled yet.
+    date_expires = models.DateTimeField(null=True)
+
+    # When the artifact's size analysis expires. Set like `date_expires`, from the Size
+    # Analysis retention, which can be shorter than the one of Build Distribution: the
+    # artifact then stays installable after its size analysis can no longer be read.
+    date_size_analysis_expires = models.DateTimeField(null=True)
 
     def get_mobile_app_info(self) -> PreprodArtifactMobileAppInfo | None:
         """Safely access the related mobile_app_info without raising RelatedObjectDoesNotExist."""
@@ -506,6 +513,7 @@ class PreprodArtifact(DefaultFieldsModel):
         db_table = "sentry_preprodartifact"
         indexes = [
             models.Index(fields=["project", "date_added"]),
+            models.Index(fields=["date_expires"]),
         ]
 
 

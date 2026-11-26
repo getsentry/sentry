@@ -1,5 +1,6 @@
 import os
 from collections.abc import Mapping
+from datetime import timedelta
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -29,6 +30,7 @@ from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSn
 from sentry.preprod.snapshots.precompute import build_head_images_payload
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.utils.outcomes import Outcome
 
@@ -303,6 +305,33 @@ class ProjectPreprodSnapshotTest(APITestCase):
         assert commit_comparison.provider == "github"
         assert commit_comparison.head_repo_name == "owner/repo"
         assert commit_comparison.pr_number == 123
+
+    @freeze_time("2026-01-01T00:00:00Z")
+    def test_snapshot_upload_stamps_expiry_from_current_retention(self) -> None:
+        retention = {DataCategory.SIZE_ANALYSIS: 30, DataCategory.INSTALLABLE_BUILD: 396}
+        data = {
+            "app_id": "com.example.app",
+            "images": {
+                "hash1": {
+                    "content_hash": "hash1",
+                    "display_name": "Screen 1",
+                    "image_file_name": "screen1.png",
+                    "width": 100,
+                    "height": 200,
+                },
+            },
+        }
+
+        with patch(
+            "sentry.quotas.backend.get_event_retention",
+            side_effect=lambda organization, category: retention[category],
+        ):
+            response = self.client.post(self._get_create_url(), data, format="json")
+
+        assert response.status_code == 200
+        artifact = PreprodArtifact.objects.get(id=response.data["artifactId"])
+        assert artifact.date_expires == artifact.date_added + timedelta(days=396)
+        assert artifact.date_size_analysis_expires == artifact.date_added + timedelta(days=30)
 
     def test_snapshot_upload_stores_manifest_key(self) -> None:
         url = self._get_create_url()
