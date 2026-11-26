@@ -217,11 +217,11 @@ function getExploreConnectedSpansMenuItems({
   organization: Organization;
   selection: PageFilters;
   showExploreConnectedSpansLink?: boolean;
-}): MenuItemProps[] | undefined {
+}): MenuItemProps[] {
   const messageString = String(message ?? '');
 
   if (!showExploreConnectedSpansLink || messageString.length === 0) {
-    return undefined;
+    return [];
   }
 
   return [
@@ -611,6 +611,50 @@ export const LogRowContent = memo(function LogRowContentImpl({
           : []),
       ];
 
+  const message = dataRow[OurLogKnownFieldKey.MESSAGE];
+
+  const exploreConnectedSpansMenuItems = getExploreConnectedSpansMenuItems({
+    message: typeof fullMessage === 'string' ? fullMessage : message,
+    onResolveMessage:
+      typeof fullMessage === 'string'
+        ? undefined
+        : () =>
+            exploreConnectedSpans.mutate({
+              cellValue: message ?? '',
+              field: OurLogKnownFieldKey.MESSAGE,
+            }),
+    organization,
+    selection,
+    showExploreConnectedSpansLink,
+  });
+
+  const addInboundFilterMenuItems: MenuItemProps[] =
+    addInboundFilterAvailability?.isVisible
+      ? [
+          {
+            key: 'add-inbound-filter',
+            label: t('Add Inbound Filter'),
+            disabled: addInboundFilterAvailability.disabledReason !== undefined,
+            details: addInboundFilterAvailability.disabledReason,
+            onAction: () => {
+              trackAnalytics('logs.table.add_inbound_filter_clicked', {
+                log_id: rowId,
+                organization,
+              });
+              addInboundFilter.mutate({
+                cellValue: message ?? '',
+                field: OurLogKnownFieldKey.MESSAGE,
+              });
+            },
+          },
+        ]
+      : [];
+
+  const messageMenuItems = [
+    ...exploreConnectedSpansMenuItems,
+    ...addInboundFilterMenuItems,
+  ];
+
   const buttonSize = 'xs';
   const chevronIcon = (
     <IconChevron size={buttonSize} direction={expanded ? 'down' : 'right'} />
@@ -740,40 +784,8 @@ export const LogRowContent = memo(function LogRowContentImpl({
 
             const value = dataRow[field];
 
-            const extraMenuItems: MenuItemProps[] | undefined =
-              field === OurLogKnownFieldKey.MESSAGE
-                ? [
-                    ...(getExploreConnectedSpansMenuItems({
-                      message: typeof fullMessage === 'string' ? fullMessage : value,
-                      onResolveMessage:
-                        typeof fullMessage === 'string'
-                          ? undefined
-                          : () =>
-                              exploreConnectedSpans.mutate({
-                                cellValue: value ?? '',
-                                field,
-                              }),
-                      organization,
-                      selection,
-                      showExploreConnectedSpansLink,
-                    }) ?? []),
-                    {
-                      key: 'add-inbound-filter',
-                      label: t('Add Inbound Filter'),
-                      hidden: !addInboundFilterAvailability?.isVisible,
-                      disabled:
-                        addInboundFilterAvailability?.disabledReason !== undefined,
-                      details: addInboundFilterAvailability?.disabledReason,
-                      onAction: () => {
-                        trackAnalytics('logs.table.add_inbound_filter_clicked', {
-                          log_id: rowId,
-                          organization,
-                        });
-                        addInboundFilter.mutate({cellValue: value ?? '', field});
-                      },
-                    },
-                  ]
-                : undefined;
+            const extraMenuItems =
+              field === OurLogKnownFieldKey.MESSAGE ? messageMenuItems : [];
 
             if (!defined(value)) {
               return (
@@ -862,7 +874,7 @@ export const LogRowContent = memo(function LogRowContentImpl({
                     }}
                     allowActions={ALLOWED_CELL_ACTIONS}
                     extraMenuItems={[
-                      ...(extraMenuItems ?? []),
+                      ...extraMenuItems,
                       ...scrollToLogMenuItems,
                       ...viewInContextMenuItems,
                     ]}
