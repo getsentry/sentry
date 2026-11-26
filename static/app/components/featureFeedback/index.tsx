@@ -4,15 +4,12 @@ import type {ButtonProps} from '@sentry/scraps/button';
 import {Button} from '@sentry/scraps/button';
 import {useModal} from '@sentry/scraps/modal';
 
-import type {Data} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';
 
 import type {FeedbackModalProps} from './feedbackModal';
 import {FeedbackModal, modalCss} from './feedbackModal';
 
-type FeatureFeedbackProps<T extends Data> = FeedbackModalProps<T> & {
-  buttonProps?: Partial<ButtonProps>;
-};
+type FeatureFeedbackProps = FeedbackModalProps & {buttonProps?: Partial<ButtonProps>};
 
 /**
  * Provides a button that, when clicked, opens a modal with a form that,
@@ -20,10 +17,7 @@ type FeatureFeedbackProps<T extends Data> = FeedbackModalProps<T> & {
  *
  * @deprecated Use `<FeedbackButton/>` instead.
  */
-export function FeatureFeedback<T extends Data>({
-  buttonProps = {},
-  ...props
-}: FeatureFeedbackProps<T>) {
+export function FeatureFeedback({buttonProps = {}, ...props}: FeatureFeedbackProps) {
   const {openModal} = useModal();
 
   function handleClick(e: React.MouseEvent<HTMLButtonElement>) {
