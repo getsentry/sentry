@@ -66,6 +66,10 @@ jobs:
           mode: migrations
 
       - name: Apply migrations
+        env:
+          # Creating the default project queues tasks, and with no Kafka in this job
+          # the producer waits 5 minutes for them at exit. Generating SQL doesn't need it.
+          SENTRY_NO_CREATE_DEFAULT_PROJECT: 1
         run: |
           sentry upgrade --noinput
 
