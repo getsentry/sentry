@@ -826,20 +826,47 @@ export type EventIdResponse = {
 };
 
 /**
- * Proposed Symbolicator native variable payload. `kind` describes the variable's scope.
- * TODO(scttcper): Revisit this type once the Symbolicator schema lands and confirm it is still needed.
- * https://github.com/getsentry/symbolicator/blob/90490595bfc14c929b295b97afd6f9789c3266dc/crates/symbolicator-native/src/interface/variables.rs
+ * A value Symbolicator extracted from a native crash: a variable or a structure member.
+ * A value without `value`, `members` and `pointer_address` could not be read.
+ * https://github.com/getsentry/symbolicator/blob/master/crates/symbolicator-native/src/interface/variables.rs
  */
-export interface NativeFrameVariable {
-  formatted: string | null;
+export interface NativeFrameVariableValue {
+  /**
+   * Structure members. For a pointer, the members of the final pointee. A member at
+   * Relay's depth limit is a JSON string.
+   */
+  members?: Record<string, NativeFrameVariableValue | string>;
+  /**
+   * The pointer chain: one address per pointer level, outermost first, ending at the
+   * first address that cannot be dereferenced.
+   */
+  pointer_address?: string[];
+  /**
+   * Type name, empty when Symbolicator does not support the type. Missing when Relay's
+   * size limit cut the value.
+   */
+  type?: string;
+  /**
+   * Formatted value. For a pointer, the value of the final pointee. Bytes of an
+   * unknown encoding are a list of hex strings.
+   */
+  value?: boolean | number | string | string[];
+}
+
+/** A native variable in `frame.vars`. `kind` describes the variable's scope. */
+export interface NativeFrameVariable extends NativeFrameVariableValue {
   kind: 'local' | 'parameter';
-  type: string;
 }
 
 interface FrameVariableBase {
   name: string;
   /** Annotations for this value; len is the original string or collection length. */
   meta?: Partial<Meta>;
+  /**
+   * Addresses of the native pointers that were dereferenced to reach this value,
+   * outermost first.
+   */
+  pointerAddresses?: readonly string[];
   /** Native type label, when provided separately by Symbolicator. */
   type?: string;
 }
@@ -866,8 +893,8 @@ interface FrameVariableUnavailable extends FrameVariableBase {
 /**
  * Renderer model built from frame.vars. Here `kind` selects the display representation,
  * unlike NativeFrameVariable.kind, which describes local variables and parameters.
- * Legacy native strings are preserved verbatim; proposed native payloads supply
- * a separate type label and an already-formatted value.
+ * Legacy native strings are preserved verbatim; Symbolicator's native payloads supply
+ * a separate type label, the pointer chain and an already-formatted value.
  */
 export type FrameVariable =
   | FrameVariableCollection
