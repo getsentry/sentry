@@ -38,9 +38,10 @@ FIX_PROMPT_SECONDARY = "Please fix the following issues and regenerate the dashb
 
 MAX_VALIDATION_RETRIES = 3
 
-# The dashboard page's default period, so the dry run sends what the UI sends.
-DRY_RUN_STATS_PERIOD = "24h"
-DRY_RUN_INTERVAL = "1h"
+# The dry run only checks that each query runs, so it uses the shortest range to
+# keep it fast. RPC timeseries reject an interval longer than the range.
+DRY_RUN_STATS_PERIOD = "1m"
+DRY_RUN_INTERVAL = "1m"
 DRY_RUN_API_KEY_SCOPES = ["org:read", "project:read", "event:read"]
 # Some query timeouts come back as a 400 with one of these details.
 QUERY_TIMEOUT_DETAILS = frozenset(

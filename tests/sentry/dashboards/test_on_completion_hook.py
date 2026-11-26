@@ -234,7 +234,7 @@ def test_build_widget_request_grouped_chart_queries_top_events() -> None:
             "dataset": "errors",
             "query": "",
             "yAxis": ["count()"],
-            "interval": "1h",
+            "interval": "1m",
             "field": ["release", "count()"],
             "groupBy": ["release", "count()"],
             "topEvents": 10,
