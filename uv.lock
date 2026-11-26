@@ -2166,7 +2166,7 @@ wheels = [
 
 [[package]]
 name = "sentry"
-version = "0.0.0"
+version = "26.12.0.dev0"
 source = { editable = "." }
 dependencies = [
     { name = "asyncpg" },

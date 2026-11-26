@@ -4,8 +4,9 @@ import os
 import os.path
 from subprocess import check_output
 
-# Bumped by scripts/bump-version.sh. Not read from package metadata, so that
-# pyproject.toml and uv.lock don't change on every release.
+# Bumped by scripts/bump-version.sh, together with the package version in
+# pyproject.toml. Kept as a literal because an editable install's metadata
+# lags until the next `uv sync`.
 VERSION = "26.12.0.dev0"
 
 

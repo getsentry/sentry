@@ -6,9 +6,10 @@ build-backend = "uv_build"
 
 [project]
 name = "sentry"
-# The real version is VERSION in src/sentry/__init__.py. This stays 0.0.0 so
-# version bumps don't change uv.lock.
-version = "0.0.0"
+# Bumped by scripts/bump-version.sh, together with uv.lock and VERSION in
+# src/sentry/__init__.py. Vulnerability scanners and pip resolve plugins
+# against this version, so it must not be a placeholder.
+version = "26.12.0.dev0"
 # without this uv derives requires-python from whichever interpreter runs it,
 # so `uv lock` under python 3.14 (e.g. dependabot) resolves for >=3.14 and fails
 # on wheel-only packages such as backports-zstd that have no cp314 wheels
