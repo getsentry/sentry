@@ -45,7 +45,7 @@ describe('SelectMembers', () => {
 
     await selectEvent.select(
       await screen.findByRole('combobox', {name: 'Member'}),
-      'Project Member'
+      /Project Member/
     );
 
     expect(projectMembersRequest).toHaveBeenCalled();

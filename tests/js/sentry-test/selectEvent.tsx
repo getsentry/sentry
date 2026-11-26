@@ -70,7 +70,7 @@ interface Config extends UserEventOptions {
 /**
  * Utility for selecting a value in a Select dropdown.
  * @param input The input field (eg. `getByLabelText('The label')`)
- * @param optionOrOptions The display name(s) for the option(s) to select
+ * @param optionOrOptions The accessible name(s) for the option(s) to select
  */
 const select = async (
   input: HTMLElement,
@@ -99,11 +99,8 @@ const select = async (
     });
 
     const row = typeof option === 'number' ? String(option) : option;
-    const menu = within(popup);
-    const matchingOptions = menu.queryAllByRole('option', {name: row});
-    const optionElement =
-      matchingOptions.at(-1) ?? (await menu.findAllByText(row)).at(-1)!;
-    await user.click(optionElement, {skipHover: true});
+    const matchingOptions = await within(popup).findAllByRole('option', {name: row});
+    await user.click(matchingOptions.at(-1)!, {skipHover: true});
   }
 };
 

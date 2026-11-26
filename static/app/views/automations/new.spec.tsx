@@ -250,7 +250,7 @@ describe('AutomationNewSettings', () => {
       screen.getByRole('combobox', {name: 'Notification target type'}),
       'Member'
     );
-    await selectEvent.select(screen.getByRole('combobox', {name: 'User'}), 'Moo Deng');
+    await selectEvent.select(screen.getByRole('combobox', {name: 'User'}), /Moo Deng/);
 
     // Submit the form
     await userEvent.click(screen.getByRole('button', {name: 'Create Alert'}));
@@ -384,7 +384,7 @@ describe('AutomationNewSettings', () => {
       screen.getByRole('combobox', {name: 'Notification target type'}),
       'Member'
     );
-    await selectEvent.select(screen.getByRole('combobox', {name: 'User'}), 'Moo Deng');
+    await selectEvent.select(screen.getByRole('combobox', {name: 'User'}), /Moo Deng/);
 
     await addAction('Send a notification via an integration');
     await addAction('My Sentry App');

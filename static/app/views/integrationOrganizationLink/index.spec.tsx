@@ -120,7 +120,7 @@ describe('IntegrationOrganizationLink', () => {
     expect(getOrgMock).toHaveBeenCalled();
 
     // Select organization
-    await selectEvent.select(await screen.findByRole('combobox'), org2.name);
+    await selectEvent.select(await screen.findByRole('combobox'), /Organization 2/);
     expect(testableWindowLocation.assign).toHaveBeenCalledWith(
       generateOrgSlugUrl(org2.slug)
     );
@@ -142,7 +142,7 @@ describe('IntegrationOrganizationLink', () => {
 
     render(<IntegrationOrganizationLink />, {initialRouterConfig});
     // Select the same organization as the domain
-    await selectEvent.select(await screen.findByRole('combobox'), org2.name);
+    await selectEvent.select(await screen.findByRole('combobox'), /Organization 2/);
     expect(testableWindowLocation.assign).not.toHaveBeenCalled();
 
     expect(screen.getByRole('button', {name: 'Install Vercel'})).toBeEnabled();
@@ -166,7 +166,7 @@ describe('IntegrationOrganizationLink', () => {
     });
     renderGlobalModal({organization: org2});
 
-    await selectEvent.select(await screen.findByRole('combobox'), org2.name);
+    await selectEvent.select(await screen.findByRole('combobox'), /Organization 2/);
     await userEvent.click(screen.getByRole('button', {name: 'Install Vercel'}));
 
     await waitFor(() => {
@@ -198,7 +198,7 @@ describe('IntegrationOrganizationLink', () => {
     });
     renderGlobalModal({organization: org2});
 
-    await selectEvent.select(await screen.findByRole('combobox'), org2.name);
+    await selectEvent.select(await screen.findByRole('combobox'), /Organization 2/);
     await userEvent.click(screen.getByRole('button', {name: 'Install Vercel'}));
 
     await waitFor(() => {
@@ -240,7 +240,7 @@ describe('IntegrationOrganizationLink', () => {
       },
     });
 
-    await selectEvent.select(await screen.findByRole('combobox'), org2.name);
+    await selectEvent.select(await screen.findByRole('combobox'), /Organization 2/);
 
     expect(
       await screen.findByText(/Sentry does not support installing/)
