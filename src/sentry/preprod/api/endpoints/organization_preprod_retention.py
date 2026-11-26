@@ -5,7 +5,6 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from sentry import quotas
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import OrgAuthTokenAuthentication, UserAuthTokenAuthentication
@@ -15,6 +14,7 @@ from sentry.constants import DataCategory
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization import RpcOrganization, RpcUserOrganizationContext
 from sentry.preprod.authentication import LaunchpadRpcSignatureAuthentication
+from sentry.preprod.retention import get_retention_days
 
 
 class LaunchpadServiceOrOrganizationPermission(OrganizationPermission):
@@ -56,21 +56,11 @@ class OrganizationPreprodRetentionEndpoint(OrganizationEndpoint):
     permission_classes = (LaunchpadServiceOrOrganizationPermission,)
 
     def get(self, request: Request, organization: Organization) -> Response:
-        size_retention = (
-            quotas.backend.get_event_retention(
-                organization=organization, category=DataCategory.SIZE_ANALYSIS
-            )
-            or 90
-        )
-        build_distribution_retention = (
-            quotas.backend.get_event_retention(
-                organization=organization, category=DataCategory.INSTALLABLE_BUILD
-            )
-            or 90
-        )
         return Response(
             {
-                "size": size_retention,
-                "buildDistribution": build_distribution_retention,
+                "size": get_retention_days(organization, DataCategory.SIZE_ANALYSIS),
+                "buildDistribution": get_retention_days(
+                    organization, DataCategory.INSTALLABLE_BUILD
+                ),
             }
         )
