@@ -25,7 +25,7 @@ def test_create_topics_creates_missing_topics(
     assert len(new_topics) == 1
     assert new_topics[0].topic == "events"
     assert new_topics[0].num_partitions == 4
-    assert new_topics[0].replication_factor == 1
+    assert new_topics[0].replication_factor == -1
     assert new_topics[0].config == {"retention.ms": "1000"}
     mock_wait_for_topics.assert_called_once_with(admin_client, ["events"])
 

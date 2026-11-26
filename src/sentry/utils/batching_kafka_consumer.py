@@ -89,7 +89,8 @@ def create_topics(
             NewTopic(
                 topic,
                 num_partitions=num_partitions,
-                replication_factor=1,
+                # -1 leaves the replication factor to the broker's default.
+                replication_factor=-1,
                 config=dict(config),
             )
         )
