@@ -1,5 +1,6 @@
 import {Fragment, useEffect, useState} from 'react';
 import {focusManager} from '@tanstack/react-query';
+import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegrationProvider';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
@@ -14,11 +15,13 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {Button} from '@sentry/scraps/button';
+import {GlobalModal} from '@sentry/scraps/modal';
 import {
   PictureInPictureProvider,
   usePictureInPicture,
 } from '@sentry/scraps/pictureInPicture';
 
+import * as pipelineModal from 'sentry/components/pipeline/modal';
 import type {PendingUserInput} from 'sentry/views/seerExplorer/types';
 
 import {ConnectScmBlock} from './connectScmBlock';
@@ -40,6 +43,13 @@ describe('ConnectScmBlock', () => {
       url: REPO_ACCESS_URL,
       body: {status, connectedAccounts},
       match: [MockApiClient.matchQuery({repoName: 'acme/app'})],
+    });
+  }
+
+  function mockRepoSync(status: string | null) {
+    return MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/${GitHubIntegrationFixture().id}/repo-sync/`,
+      body: {status, trigger: status ? 'install' : null, reason: null},
     });
   }
 
@@ -127,6 +137,70 @@ describe('ConnectScmBlock', () => {
           "This repo's account isn't connected to this organization. Connected: acme-labs, my-group."
         )
       ).toBeInTheDocument();
+    });
+
+    describe('while the repos sync', () => {
+      beforeEach(() => {
+        jest.useFakeTimers({advanceTimers: true});
+      });
+
+      afterEach(() => {
+        try {
+          cleanup();
+          jest.runOnlyPendingTimers();
+        } finally {
+          jest.useRealTimers();
+        }
+      });
+
+      it('continues the chat and closes the modal on the same answer', async () => {
+        jest
+          .spyOn(pipelineModal, 'PipelineModal')
+          .mockImplementation(({onComplete, closeModal}) => (
+            <Button
+              onClick={() => {
+                onComplete?.(GitHubIntegrationFixture() as never);
+                closeModal();
+              }}
+            >
+              Finish install
+            </Button>
+          ));
+        mockRepoAccess('no_scm_integration');
+        const respondToUserInput = jest.fn();
+        render(
+          <Fragment>
+            <ConnectScmBlock
+              pendingInput={{
+                id: 'input-id',
+                input_type: 'connect_scm',
+                data: {repo_name: 'acme/app', failure_reason: 'no_scm_integration'},
+              }}
+              respondToUserInput={respondToUserInput}
+            />
+            <GlobalModal />
+          </Fragment>,
+          {organization, additionalWrapper: PictureInPictureProvider}
+        );
+
+        await userEvent.click(
+          await screen.findByRole('button', {name: 'Connect source control'})
+        );
+        await userEvent.click(await screen.findByRole('button', {name: 'Add GitHub'}));
+        mockRepoAccess('repo_not_in_sentry');
+        mockRepoSync('syncing');
+        await userEvent.click(screen.getByRole('button', {name: 'Finish install'}));
+
+        expect(
+          await screen.findByText(/Getting your repos from GitHub/)
+        ).toBeInTheDocument();
+
+        mockRepoAccess('found');
+        await act(() => jest.advanceTimersByTimeAsync(5_000));
+
+        await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+        expect(respondToUserInput).toHaveBeenCalledWith('input-id', {decision: 'retry'});
+      });
     });
   });
 

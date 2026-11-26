@@ -405,13 +405,14 @@ export function ConnectScmBlock({
     }
   );
   const repoAccessKey: ApiQueryKey = repoAccessOptions.queryKey;
+  // Each pause gets its own answers. Seer just failed to open the repo, so an earlier pause's
+  // answer, or one from a check it started, says nothing about this one. Moving the chat in or
+  // out of its popped-out window remounts the popup but keeps this pause's answers.
+  const accessKey: ApiQueryKey = [...repoAccessKey, {pauseId: pendingInput.id}];
   // A failed check keeps the last answer, so this is this pause's latest answer.
   const {data: access, refetch} = useQuery({
     ...repoAccessOptions,
-    // Each pause gets its own answers. Seer just failed to open the repo, so an earlier pause's
-    // answer, or one from a check it started, says nothing about this one. Moving the chat in or
-    // out of its popped-out window remounts the popup but keeps this pause's answers.
-    queryKey: [...repoAccessKey, {pauseId: pendingInput.id}] as const,
+    queryKey: accessKey,
     // The fix happens in another tab, so coming back to this one is when to check again.
     refetchOnWindowFocus: true,
     // That other tab hides this one, and a popped-out chat stays on screen while it does, so keep
@@ -456,7 +457,7 @@ export function ConnectScmBlock({
   const {pipWindow, closePipWindow} = usePictureInPicture();
 
   function openConnectModal() {
-    openConnectScmModal({repoName: data.repo_name, onInstall: checkAgain});
+    openConnectScmModal({repoName: data.repo_name, onInstall: checkAgain, accessKey});
   }
 
   const prompt: Prompt = pipWindow

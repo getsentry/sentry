@@ -57,15 +57,22 @@ interface RepoSync {
 interface ConnectScmModalProps extends ModalRenderProps {
   onInstall: (integration: Integration) => void;
   repoName: string;
+  accessKey?: ApiQueryKey;
 }
 
 export function openConnectScmModal({
   repoName,
   onInstall,
-}: Pick<ConnectScmModalProps, 'repoName' | 'onInstall'>) {
+  accessKey,
+}: Pick<ConnectScmModalProps, 'repoName' | 'onInstall' | 'accessKey'>) {
   openModal(
     modalProps => (
-      <ConnectScmModal {...modalProps} repoName={repoName} onInstall={onInstall} />
+      <ConnectScmModal
+        {...modalProps}
+        repoName={repoName}
+        onInstall={onInstall}
+        accessKey={accessKey}
+      />
     ),
     {closeEvents: 'escape-key'}
   );
@@ -102,7 +109,12 @@ export function useConnectScmModalFromUrl() {
   }, [repoName, setRepoName, canInstall, hasPrompt, queryClient, organization.slug]);
 }
 
-function ConnectScmModal({repoName, onInstall, ...modalProps}: ConnectScmModalProps) {
+function ConnectScmModal({
+  repoName,
+  onInstall,
+  accessKey,
+  ...modalProps
+}: ConnectScmModalProps) {
   const {Header, Body} = modalProps;
   const organization = useOrganization();
   const {data, isPending, isLoadingError} = useQuery(
@@ -123,7 +135,14 @@ function ConnectScmModal({repoName, onInstall, ...modalProps}: ConnectScmModalPr
   }
 
   if (installed) {
-    return <ReposStep {...modalProps} integration={installed} repoName={repoName} />;
+    return (
+      <ReposStep
+        {...modalProps}
+        integration={installed}
+        repoName={repoName}
+        accessKey={accessKey}
+      />
+    );
   }
 
   if (installPipeline) {
@@ -181,9 +200,17 @@ interface ReposStepProps extends ModalRenderProps {
     provider: Pick<Integration['provider'], 'name'>;
   };
   repoName: string;
+  accessKey?: ApiQueryKey;
 }
 
-function ReposStep({integration, repoName, Header, Body, closeModal}: ReposStepProps) {
+function ReposStep({
+  integration,
+  repoName,
+  accessKey,
+  Header,
+  Body,
+  closeModal,
+}: ReposStepProps) {
   const organization = useOrganization();
   const provider = integration.provider.name;
   const [isWaiting, setIsWaiting] = useState(true);
@@ -198,6 +225,7 @@ function ReposStep({integration, repoName, Header, Body, closeModal}: ReposStepP
   const {
     data: sync,
     isError: isSyncError,
+    dataUpdatedAt: syncUpdatedAt,
     refetch: refetchSync,
   } = useQuery({
     ...apiOptions.as<RepoSync>()(
@@ -223,10 +251,11 @@ function ReposStep({integration, repoName, Header, Body, closeModal}: ReposStepP
   const {
     data: access,
     isError: isAccessError,
+    dataUpdatedAt: accessUpdatedAt,
     refetch: refetchAccess,
   } = useQuery({
     ...repoAccessOptions,
-    queryKey: [...repoAccessKey, {integrationId: integration.id}] as const,
+    queryKey: accessKey ?? [...repoAccessKey, {integrationId: integration.id}],
     enabled: isSyncDone,
     retry: false,
   });
@@ -242,8 +271,11 @@ function ReposStep({integration, repoName, Header, Body, closeModal}: ReposStepP
   function checkAgain() {
     setIsWaiting(true);
     startWaiting();
-    refetchSync();
-    refetchAccess();
+    if (isSyncDone) {
+      refetchAccess();
+    } else {
+      refetchSync();
+    }
   }
 
   const hasFailed =
@@ -251,7 +283,8 @@ function ReposStep({integration, repoName, Header, Body, closeModal}: ReposStepP
     isAccessError ||
     sync?.status === 'failed' ||
     (sync?.status === 'syncing' && !isWaiting);
-  const isLoading = !hasFailed && (!isSyncDone || !access);
+  const isLoading =
+    !hasFailed && (!isSyncDone || !access || accessUpdatedAt < syncUpdatedAt);
   const repo = <Text bold>{repoName}</Text>;
 
   let message: ReactNode;
