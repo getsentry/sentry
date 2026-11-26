@@ -596,6 +596,52 @@ describe('MessagesPanel', () => {
     expect(details).toHaveAttribute('open');
   });
 
+  it('collapses a long run of mixed events across turns, up to the next bubble', () => {
+    const thinkingTurn = (id: string, startTimestamp: number, text?: string) =>
+      createMockNode({
+        id,
+        startTimestamp,
+        attributes: {
+          // Later turns carry history, so the question isn't repeated.
+          [SpanFields.GEN_AI_REQUEST_MESSAGES]: JSON.stringify([
+            {role: 'user', content: 'Question?'},
+            ...(text ? [{role: 'assistant', content: 'Working on it'}] : []),
+          ]),
+          [SpanFields.GEN_AI_OUTPUT_MESSAGES]: JSON.stringify([
+            {
+              role: 'assistant',
+              parts: [
+                {type: 'reasoning', content: `thought ${id}`},
+                ...(text ? [{type: 'text', text}] : []),
+              ],
+            },
+          ]),
+        },
+      });
+
+    render(
+      <MessagesPanel
+        nodes={
+          [
+            thinkingTurn('span-1', 1000),
+            createMockEmbeddingNode({id: 'embed-1', startTimestamp: 1200}),
+            createMockToolNode({id: 'tool-1', toolName: 'search', startTimestamp: 1400}),
+            createMockMemoryNode({id: 'memory-1', startTimestamp: 1500}),
+            thinkingTurn('span-2', 1600, 'Here is the answer'),
+          ] as any
+        }
+        selectedNodeId={null}
+        onSelectNode={mockOnSelectNode}
+      />
+    );
+
+    const details = screen
+      .getByText('1 tool call, 2 thinking steps, 2 other spans')
+      .closest('details');
+    expect(details).not.toHaveAttribute('open');
+    expect(details).not.toContainElement(screen.getByText('Here is the answer'));
+  });
+
   it('selects assistant messages on click but not user messages', async () => {
     const node = createMockNode({
       id: 'span-1',
