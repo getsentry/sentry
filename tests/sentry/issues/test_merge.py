@@ -84,7 +84,7 @@ class IssueMergeOperationTest(TestCase):
             status=OperationStatus.NEEDS_ATTENTION,
         )
         self.create_issue_merge_operation([2], 3, project=self.create_project())
-        self.create_issue_unmerge_operation(2, ["b" * 32], status=OperationStatus.UNABLE_TO_START)
+        self.create_issue_unmerge_operation(2, ["b" * 32], status=OperationStatus.COMPLETE)
         self.create_issue_merge_operation([2], 5, status=OperationStatus.COMPLETE)
 
         def unfinished(group_id: int) -> UnfinishedIssueOperations:

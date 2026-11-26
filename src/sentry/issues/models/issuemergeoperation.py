@@ -22,7 +22,6 @@ class OperationStatus(models.TextChoices):
     RUNNING = "running"
     COMPLETE = "complete"
     NEEDS_ATTENTION = "needs_attention"
-    UNABLE_TO_START = "unable_to_start"
 
 
 class OperationStep(models.TextChoices):
@@ -46,6 +45,9 @@ class BaseIssueOperation(DefaultFieldsModel):
 
     project = FlexibleForeignKey("sentry.Project")
     actor_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
+    service_account_id = HybridCloudForeignKey(
+        "service_accounts.ServiceAccount", null=True, on_delete="SET_NULL"
+    )
     status = models.CharField(
         max_length=32, choices=OperationStatus, default=OperationStatus.QUEUED
     )
@@ -58,6 +60,12 @@ class BaseIssueOperation(DefaultFieldsModel):
 
     class Meta:
         abstract = True
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(actor_id__isnull=True) | Q(service_account_id__isnull=True),
+                name="%(class)s_one_actor",
+            ),
+        ]
 
     def claim(self, *, lease_duration: timedelta) -> UUID | None:
         """Claim a queued move or replace an expired worker. Only one claimant wins."""
@@ -121,7 +129,7 @@ class IssueMergeOperation(BaseIssueOperation):
     source_hashes_at_acceptance = ArrayField(models.CharField(max_length=32), default=list)
     sample_event_ids_by_source = models.JSONField(default=dict)
 
-    class Meta:
+    class Meta(BaseIssueOperation.Meta):
         app_label = "sentry"
         db_table = "sentry_issuemergeoperation"
 
@@ -133,7 +141,7 @@ class IssueUnmergeOperation(BaseIssueOperation):
     group_hashes = ArrayField(models.CharField(max_length=32))
     destination_group_id = BoundedBigIntegerField(null=True)
 
-    class Meta:
+    class Meta(BaseIssueOperation.Meta):
         app_label = "sentry"
         db_table = "sentry_issueunmergeoperation"
 
