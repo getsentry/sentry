@@ -8,6 +8,7 @@ from unittest.mock import patch
 from tools.api_guidelines.rules import ApiRule
 from tools.flake8_plugin import (
     ApiInputViolation,
+    PublishStatus,
     S021_msg,
     S022_bare_msg,
     S022_missing_msg,
@@ -1740,10 +1741,10 @@ class E(Endpoint):
     assert _run_input(src) == []
 
 
-def test_S025_private_method_is_skipped() -> None:
+def test_S025_experimental_method_is_skipped() -> None:
     src = """\
 class E(Endpoint):
-    publish_status = {"GET": ApiPublishStatus.PRIVATE}
+    publish_status = {"GET": ApiPublishStatus.EXPERIMENTAL}
 
     def get(self, request) -> Response[X]:
         QuerySerializer(data=request.GET)
@@ -1751,10 +1752,10 @@ class E(Endpoint):
     assert _run_input(src) == []
 
 
-def test_S025_mixed_publish_status_analyzes_only_the_public_method() -> None:
+def test_S025_mixed_publish_status_analyzes_only_the_checked_method() -> None:
     src = """\
 class E(Endpoint):
-    publish_status = {"GET": ApiPublishStatus.PUBLIC, "POST": ApiPublishStatus.PRIVATE}
+    publish_status = {"GET": ApiPublishStatus.PRIVATE, "POST": ApiPublishStatus.EXPERIMENTAL}
 
     def get(self, request) -> Response[X]:
         AQuerySerializer(data=request.GET)
@@ -1887,10 +1888,10 @@ class E(Endpoint):
     assert _run_input(src, SHAPED) == []
 
 
-def test_S026_private_method_is_skipped() -> None:
+def test_S026_experimental_method_is_skipped() -> None:
     src = """\
 class E(Endpoint):
-    publish_status = {"GET": ApiPublishStatus.PRIVATE}
+    publish_status = {"GET": ApiPublishStatus.EXPERIMENTAL}
 
     def get(self, request) -> Response[X]:
         return request.GET.get("truncate")
@@ -2391,6 +2392,7 @@ class E(Endpoint):
             severity="warning",
             scope="E.get",
             key="query:truncate",
+            publish_status=PublishStatus.PUBLIC,
         )
     ]
 
@@ -2603,15 +2605,56 @@ class E(Endpoint):
     assert reported == [(6, "query:a"), (9, "query:b")]
 
 
-def test_api_violations_skip_private_methods() -> None:
+def test_api_violations_skip_experimental_methods() -> None:
     src = """\
 class E(Endpoint):
-    publish_status = {"GET": ApiPublishStatus.PRIVATE}
+    publish_status = {"GET": ApiPublishStatus.EXPERIMENTAL}
 
     def get(self, request) -> Response[X]:
         return request.GET.get("truncate")
 """
     assert _api_violations(src) == []
+
+
+def test_api_violations_record_each_methods_publish_status() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
+    }
+
+    def get(self, request) -> Response[X]:
+        return request.GET.get("a")
+
+    def post(self, request) -> Response[X]:
+        return request.data.get("b")
+"""
+    statuses = []
+    for violation in _api_violations(src):
+        statuses.append((violation.key, violation.publish_status))
+    # most public first
+    assert statuses == [("body:b", "public_experimental"), ("query:a", "private")]
+
+
+def test_a_helper_shared_with_a_public_method_is_reported_as_public() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PRIVATE, "PUT": ApiPublishStatus.PUBLIC}
+
+    def get(self, request) -> Response[X]:
+        return self._read(request)
+
+    def put(self, request) -> Response[X]:
+        return self._read(request)
+
+    def _read(self, request):
+        return request.GET.get("a")
+"""
+    violations = _api_violations(src)
+    assert len(violations) == 1
+    assert violations[0].publish_status == "public"
+    assert violations[0].caller == "E.put"
 
 
 def _summary(violations: list[ApiInputViolation]) -> list[tuple[ApiRule, int, str, str]]:

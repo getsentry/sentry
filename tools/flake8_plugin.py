@@ -6,6 +6,7 @@ from collections import Counter
 from collections.abc import Generator, Iterator
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from enum import StrEnum
 from typing import Any, Literal, NamedTuple
 
 from tools.api_guidelines.helper_kinds import Kind
@@ -487,15 +488,36 @@ def _collect_eap_suite_class_names(tree: ast.AST) -> set[str]:
 
 
 HTTP_METHODS = frozenset({"get", "post", "put", "patch", "delete", "head", "options"})
-# ApiPublishStatus members whose `is_published` is true. Mirrored by name because this
-# plugin reads source with ast and must not import from src/sentry.
-PUBLISHED_STATUSES = frozenset({"PUBLIC", "PUBLIC_EXPERIMENTAL"})
 
 
-def publish_status(cls: ast.ClassDef) -> dict[str, str]:
-    """`{HTTP_METHOD: ApiPublishStatus_attr}` from a class's `publish_status`.
+class PublishStatus(StrEnum):
+    """ApiPublishStatus's members, mirrored because this plugin reads source with ast and must not
+    import from src/sentry. Keep in sync with src/sentry/api/api_publish_status.py
+    """
 
-    Handles plain and annotated assignment; `{}` when absent or not a literal dict."""
+    PRIVATE = "private"
+    EXPERIMENTAL = "experimental"
+    PUBLIC_EXPERIMENTAL = "public_experimental"
+    PUBLIC = "public"
+
+
+# ApiPublishStatus members whose `is_published` is true
+PUBLISHED_STATUSES = frozenset({PublishStatus.PUBLIC, PublishStatus.PUBLIC_EXPERIMENTAL})
+
+
+# for baselined API rules (from rules.py), we only check PUBLIC, PUBLIC_EXPERIMENTAL, PRIVATE endpoints
+INPUT_CHECKED_STATUSES = (
+    PublishStatus.PUBLIC,
+    PublishStatus.PUBLIC_EXPERIMENTAL,
+    PublishStatus.PRIVATE,
+)
+
+
+def publish_status(cls: ast.ClassDef) -> dict[str, PublishStatus]:
+    """`{HTTP_METHOD: PublishStatus}` from a class's `publish_status`.
+
+    Handles plain and annotated assignment; `{}` when absent or not a literal dict. A value that
+    isn't an ApiPublishStatus member is left out."""
     for item in cls.body:
         value: ast.expr | None = None
         if (
@@ -514,13 +536,16 @@ def publish_status(cls: ast.ClassDef) -> dict[str, str]:
             value = item.value
         if not isinstance(value, ast.Dict):
             continue
-        return {
-            k.value: v.attr
-            for k, v in zip(value.keys, value.values)
-            if isinstance(k, ast.Constant)
-            and isinstance(k.value, str)
-            and isinstance(v, ast.Attribute)
-        }
+        statuses: dict[str, PublishStatus] = {}
+        for k, v in zip(value.keys, value.values):
+            if not (isinstance(k, ast.Constant) and isinstance(k.value, str)):
+                continue
+            if not isinstance(v, ast.Attribute):
+                continue
+            status = PublishStatus.__members__.get(v.attr)
+            if status is not None:
+                statuses[k.value] = status
+        return statuses
     return {}
 
 
@@ -1134,13 +1159,14 @@ class ApiInputViolation:
     end_line: int
     end_column: int
     severity: Literal["error", "warning"]
-    # Class.method or function where the read or hand-off is. S025 is the public method instead,
+    # Class.method or function where the read or hand-off is. S025 is the HTTP method instead,
     # since it's checked against that method's @extend_schema
     scope: str
     key: str  # source and name, for example "query:id"
+    publish_status: PublishStatus  # the HTTP method's
     tool: str = "sentry-flake8"
-    # for a read or hand-off inside a helper, the first public method (in file order) whose request
-    # reaches it, so a module-level helper, which has no class, can still be given an owner
+    # for a read or hand-off inside a helper, the first checked method whose request reaches it, most
+    # public first and then in file order, so a module-level helper, which has no class, can still be given an owner
     caller: str | None = None
 
 
@@ -1152,7 +1178,7 @@ class _InputCtx:
         scope: str,
         declared_params: set[str],
         declared_body: set[str],
-        is_public: bool = False,
+        publish_status: PublishStatus | None = None,
         class_name: str | None = None,
     ) -> None:
         self.scope = scope
@@ -1173,12 +1199,13 @@ class _InputCtx:
         # A helper has no declared names, so whether X is declared is only known at merge time
         self.field_loop_vars: dict[str, str] = {}
         # (start_end, rendered key, source, serializer) reads keyed by one of those loop variables,
-        # dropped in the merge when the public method declares the serializer, otherwise S027
+        # dropped in the merge when the HTTP method declares the serializer, otherwise S027
         self.field_reads: list[tuple[_StartEnd, str, str, str]] = []
         # (start_end, callee, source) the whole dict passed somewhere
         self.hand_offs: list[tuple[_StartEnd, str, str]] = []
-        # true only for an HTTP method that publish_status marks PUBLIC on a top-level endpoint class
-        self.is_public = is_public
+        # the INPUT_CHECKED_STATUSES member publish_status gives an HTTP method on a top-level
+        # endpoint class. None for every other function, which is only checked as a helper
+        self.publish_status = publish_status
         # the class a method is defined in (None for a module-level function)
         self.class_name = class_name
         # this function's parameter names (used to match call arguments to parameters)
@@ -1587,7 +1614,7 @@ class SentryVisitor(ast.NodeVisitor):
         # name -> what it was tracked as before the block reassigned it, so it can be restored after
         self._forget_frames: list[dict[str, tuple[bool, bool, str | None, bool]]] = []
         # publish_status of the enclosing module-level class, for S022.
-        self._publish_status: dict[str, str] | None = None
+        self._publish_status: dict[str, PublishStatus] | None = None
         # Input rules: per-method accumulation, innermost last.
         self._input_stack: list[_InputCtx] = []
         # names of top level constants holding literal string keys, these keys are collected in visit_Module()
@@ -1755,7 +1782,7 @@ class SentryVisitor(ast.NodeVisitor):
         self._literal_var_constants = _collect_literal_var_constants(tree=node)
         self._module_bindings = _scope_binding_counts(node.body)
         self.generic_visit(node)
-        self._report_public_inputs()
+        self._report_checked_inputs()
 
     def _new_safe_loop_var(
         self, target: ast.expr, iter_node: ast.expr, curr_method: _InputCtx
@@ -1783,7 +1810,7 @@ class SentryVisitor(ast.NodeVisitor):
         """(loop variable, serializer) for `for f in X().fields` when X isn't declared on this function.
 
         Only called when the loop isn't already safe. Whether X is declared is decided in the merge,
-        against the public method's @extend_schema.
+        against the HTTP method's @extend_schema.
         """
         serializer = _fields_serializer(iter_node)
         if serializer is None:
@@ -2264,31 +2291,31 @@ class SentryVisitor(ast.NodeVisitor):
     def _new_input_ctx(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> _InputCtx | None:
         """Build the accumulator for a top-level function or a method of a top-level class, else None.
 
-        Only PUBLIC HTTP methods are reported, every other ctx is a helper whose
-        "facts" get merged into the public methods that call it. The caller pushes it
+        Only HTTP methods with an `INPUT_CHECKED_STATUSES` status are reported, every other ctx is a
+        helper whose "facts" get merged into the checked methods that call it. The caller pushes it
         onto _input_stack once the decorators and arguments have been visited.
         """
         if self._function_depth != 0:
             return None
 
         if not self._class_stack:
-            ctx = _InputCtx(node.name, set(), set(), is_public=False)
+            ctx = _InputCtx(node.name, set(), set())
             ctx.params = _function_params(node)
             return ctx
 
         if len(self._class_stack) != 1:
             return None
 
-        is_public = bool(
-            self._publish_status
-            and node.name in HTTP_METHODS
-            and self._publish_status.get(node.name.upper()) == "PUBLIC"
-        )
+        publish_status = None
+        if self._publish_status and node.name in HTTP_METHODS:
+            status = self._publish_status.get(node.name.upper())
+            if status in INPUT_CHECKED_STATUSES:
+                publish_status = status
 
         declared_params: set[str] = set()
         declared_body: set[str] = set()
 
-        if is_public:
+        if publish_status is not None:
             decorators = self._class_decorators + node.decorator_list
             declared_params = _declared_names(decorators, "parameters")
             declared_body = _declared_names(decorators, "request")
@@ -2297,7 +2324,7 @@ class SentryVisitor(ast.NodeVisitor):
             f"{self._class_stack[-1]}.{node.name}",
             declared_params,
             declared_body,
-            is_public=is_public,
+            publish_status=publish_status,
             class_name=self._class_stack[-1],
         )
         ctx.params = _function_params(node)
@@ -2379,12 +2406,13 @@ class SentryVisitor(ast.NodeVisitor):
         """Always recorded as a structured violation; fatal only for an enforced group.
 
         `scope` is where the finding is, when that isn't `ctx` itself (a read inside a helper). A helper
-        reached from several public methods is reported once, the first time (in file order).
+        reached from several checked methods is reported once, under the first one _report_checked_inputs
+        gets to.
         """
         enforced = group in ENFORCED
         where = scope or ctx.scope
         prefixed_key = f"{_SOURCE_PREFIX[source]}:{key}"
-        # a shared helper's line is one finding, however many public methods reach it
+        # a shared helper's line is one finding, however many checked methods reach it
         identity = (rule, where, prefixed_key, start_end)
         if identity in self._reported_inputs:
             return
@@ -2392,6 +2420,7 @@ class SentryVisitor(ast.NodeVisitor):
         caller = None
         if where != ctx.scope:
             caller = ctx.scope
+        assert ctx.publish_status is not None  # only checked methods are reported
         self.api_violations.append(
             ApiInputViolation(
                 rule=rule,
@@ -2403,17 +2432,23 @@ class SentryVisitor(ast.NodeVisitor):
                 severity="error" if enforced else "warning",
                 scope=where,
                 key=prefixed_key,
+                publish_status=ctx.publish_status,
                 caller=caller,
             )
         )
         if enforced or os.environ.get(INPUT_LINT_ALL_ENV):
             self.errors.append((start_end.line, start_end.column, msg))
 
-    def _report_public_inputs(self) -> None:
-        """Report input reads and hand-offs for each public endpoint method after traversing through the complete file"""
-        for http_ctx in self._function_ctxs:
-            if not http_ctx.is_public:
-                continue
+    def _report_checked_inputs(self) -> None:
+        """Report input reads and hand-offs for each checked endpoint method after traversing through the complete file"""
+        checked: list[_InputCtx] = []
+        for ctx in self._function_ctxs:
+            if ctx.publish_status is not None:
+                checked.append(ctx)
+        # most public first, so a helper shared by a public and a private method is reported with the
+        # public one's status. The sort is stable, so methods with the same status stay in file order
+        checked.sort(key=lambda ctx: INPUT_CHECKED_STATUSES.index(ctx.publish_status))
+        for http_ctx in checked:
             # the HTTP method's own facts plus those of every same-file helper it reaches
             ctx = self._merged_http_method_inputs(http_ctx)
             for start_end, name in ctx.query_validators:
@@ -2429,7 +2464,7 @@ class SentryVisitor(ast.NodeVisitor):
                         ctx, start_end, msg, "declared", name, "request body", ApiRule.S025
                     )
             # S026-S028 are reported where the read or hand-off is, so a helper's line is one finding.
-            # S025 above stays on the public method, since it depends on that method's @extend_schema
+            # S025 above stays on the HTTP method, since it depends on that method's @extend_schema
             for start_end, key, source in ctx.literal_reads:
                 msg = S026_msg.format(repr(key), source)
                 self._report_input(
@@ -2654,8 +2689,8 @@ class SentryVisitor(ast.NodeVisitor):
 
     def _merged_http_method_inputs(self, http_ctx: _InputCtx) -> _InputCtx:
         """Return a new ctx with `http_ctx`'s own facts plus those of every same-file helper it reaches.
-        Stored ctxs are never changed, so a helper shared by two public methods is merged into each separately.
-        _report_public_inputs() runs S025-S028 on the result, so reads inside helpers are reported under the HTTP method's `http_ctx`.
+        Stored ctxs are never changed, so a helper shared by two checked methods is merged into each separately.
+        _report_checked_inputs() runs S025-S028 on the result, so reads inside helpers are reported under the HTTP method's `http_ctx`.
         """
         assert http_ctx.class_name is not None  # to satisfy mypy
 
@@ -2664,7 +2699,7 @@ class SentryVisitor(ast.NodeVisitor):
             scope=http_ctx.scope,
             declared_params=http_ctx.declared_params,
             declared_body=http_ctx.declared_body,
-            is_public=True,
+            publish_status=http_ctx.publish_status,
             class_name=http_ctx.class_name,
         )
 
@@ -2782,7 +2817,7 @@ class SentryVisitor(ast.NodeVisitor):
             if real is not None:
                 _append_once(new_ctx.computed_reads, (start_end, key, real))
                 new_ctx.found_in[start_end] = ctx.scope
-        # a loop over X().fields reads a fixed set of keys when the public method declares X
+        # a loop over X().fields reads a fixed set of keys when the HTTP method declares X
         for start_end, key, source, serializer in ctx.field_reads:
             if serializer in new_ctx.declared_params or serializer in new_ctx.declared_body:
                 continue

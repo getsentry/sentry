@@ -18,7 +18,7 @@ from tools.api_guidelines.owners import owner_for
 from tools.api_guidelines.rules import BASELINED_RULES
 from tools.api_guidelines.scan import collect_findings
 from tools.api_guidelines.signature import BaselineSignature
-from tools.flake8_plugin import ApiInputViolation
+from tools.flake8_plugin import ApiInputViolation, PublishStatus
 
 OWNER_MAP_PATH = Path(".artifacts/api-endpoint-owners.json")
 _REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -42,8 +42,8 @@ def build_entries(
     Returns a list of entry dicts that are sorted by path, scope, rule, and key
     """
 
-    # {signature: (how many times it appeared -> count, the caller of its first violation -> caller)}
-    count_caller_signature: dict[BaselineSignature, tuple[int, str | None]] = {}
+    # {signature: (how many times it appeared, the caller and publish status of its first violation)}
+    count_caller_signature: dict[BaselineSignature, tuple[int, str | None, PublishStatus]] = {}
 
     for path, finding in findings:
         new_signature = BaselineSignature(
@@ -52,17 +52,17 @@ def build_entries(
 
         # check if the signature is already in the dict
         if new_signature in count_caller_signature:
-            # add one to its count and keep the first violation's caller
-            count, first_caller = count_caller_signature[new_signature]
-            count_caller_signature[new_signature] = (count + 1, first_caller)
+            # add one to its count and keep the first violation's caller and publish status
+            count, first_caller, status = count_caller_signature[new_signature]
+            count_caller_signature[new_signature] = (count + 1, first_caller, status)
 
         else:
-            count_caller_signature[new_signature] = (1, finding.caller)
+            count_caller_signature[new_signature] = (1, finding.caller, finding.publish_status)
 
     # go through the signatures in sorted order: path, then scope, then rule, then key
     entries: list[dict[str, object]] = []
     for signature in sorted(count_caller_signature, key=_sort_key):
-        count, first_caller = count_caller_signature[signature]
+        count, first_caller, publish_status = count_caller_signature[signature]
 
         entries.append(
             {
@@ -72,6 +72,7 @@ def build_entries(
                 "key": signature.key,
                 "count": count,
                 "owner": owner_for(signature.path, signature.scope, first_caller, owner_map),
+                "publish_status": publish_status,
                 # the safe default until the review issue sets the real status
                 "status": "debt-breaking",
                 "reason": f"legacy: predates {signature.rule}",
