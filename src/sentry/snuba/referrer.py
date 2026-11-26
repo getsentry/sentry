@@ -544,6 +544,7 @@ class Referrer(StrEnum):
         "api.profiling.functions.regression.transaction-stats"
     )
     API_PROFILING_CONTINUOUS_PROFILING_FLAMECHART = "api.profiling.continuous-profiling.flamechart"
+    API_PROJECT_CUSTOM_INBOUND_FILTER_SUGGESTIONS = "api.project.custom-inbound-filter-suggestions"
     API_PROJECT_EVENTS = "api.project-events"
     API_RELEASES_RELEASE_DETAILS_CHART = "api.releases.release-details-chart"
     API_REPLAY_DETAILS_PAGE = "api.replay.details-page"
