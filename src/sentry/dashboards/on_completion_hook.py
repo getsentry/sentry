@@ -9,7 +9,7 @@ from pydantic import ValidationError
 
 from sentry.api.client import ApiClient, ApiError
 from sentry.api.serializers.rest_framework import DashboardSerializer
-from sentry.constants import ALL_ACCESS_PROJECT_ID, ObjectStatus
+from sentry.constants import ObjectStatus
 from sentry.dashboards.models.generate_dashboard_artifact import (
     GeneratedDashboard,
     GeneratedWidget,
@@ -21,7 +21,10 @@ from sentry.models.project import Project
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.client_utils import fetch_run_status
 from sentry.seer.agent.on_completion_hook import AgentOnCompletionHook
+from sentry.seer.models.run import SeerRun
 from sentry.snuba.referrer import Referrer
+from sentry.users.services.user import RpcUser
+from sentry.users.services.user.service import user_service
 
 logger = logging.getLogger(__name__)
 
@@ -185,22 +188,39 @@ def _build_widget_request(
     return _build_events_request(widget, query, dataset)
 
 
-def _dry_run_widget_queries(artifact: GeneratedDashboard, organization: Organization) -> list[str]:
-    """
-    Run each widget query against the endpoint the dashboard page uses for it, and
-    return one line per query the endpoint rejects with a 400.
+def _get_run_owner(organization: Organization, run_id: int) -> RpcUser | None:
+    try:
+        run = SeerRun.objects.get(organization=organization, seer_run_state_id=run_id)
+    except SeerRun.DoesNotExist:
+        return None
+    if run.user_id is None:
+        return None
+    return user_service.get_user(user_id=run.user_id)
 
+
+def _dry_run_widget_queries(
+    artifact: GeneratedDashboard, organization: Organization, user: RpcUser
+) -> list[str]:
+    """
+    Run each widget query as the user who asked for the dashboard, against the
+    endpoint the dashboard page uses for it, and return one line per query the
+    endpoint rejects with a 400.
+
+    Running as that user applies their project access, as the dashboard page does.
     The serializer checks syntax and field names, but some queries only fail when
-    they run, such as numeric tag aggregates on the errors dataset, or aggregates
-    in a group-by. Failures other than a 400 are logged and skipped: they do not
+    they run, such as invalid issue search values or a sort on a column the query
+    doesn't select. Failures other than a 400 are logged and skipped: they do not
     mean that the query is wrong.
     """
     api_key = ApiKey(organization_id=organization.id, scope_list=DRY_RUN_API_KEY_SCOPES)
     shared_params: dict[str, Any] = {
-        "project": artifact.projects or [ALL_ACCESS_PROJECT_ID],
         "statsPeriod": DRY_RUN_STATS_PERIOD,
         "referrer": Referrer.API_DASHBOARDS_GENERATE_DRY_RUN.value,
     }
+    # Without projects, the endpoints fall back to the user's projects, like the
+    # page's "My Projects" default.
+    if artifact.projects:
+        shared_params["project"] = artifact.projects
     if artifact.environment:
         shared_params["environment"] = artifact.environment
 
@@ -214,7 +234,7 @@ def _dry_run_widget_queries(artifact: GeneratedDashboard, organization: Organiza
             try:
                 ApiClient().get(
                     auth=api_key,
-                    user=None,
+                    user=user,
                     path=f"/organizations/{organization.slug}/{endpoint}/",
                     params={**shared_params, **params},
                 )
@@ -340,7 +360,15 @@ class DashboardOnCompletionHook(AgentOnCompletionHook):
                 )
             return
 
-        query_errors = _dry_run_widget_queries(artifact, organization)
+        owner = _get_run_owner(organization, run_id)
+        if owner is None:
+            logger.info(
+                "dashboards.on_completion_hook.query_dry_run_skipped_no_owner",
+                extra={"run_id": run_id, "organization_id": organization.id},
+            )
+            query_errors = []
+        else:
+            query_errors = _dry_run_widget_queries(artifact, organization, owner)
         if query_errors:
             logger.info(
                 "dashboards.on_completion_hook.query_dry_run_failed",

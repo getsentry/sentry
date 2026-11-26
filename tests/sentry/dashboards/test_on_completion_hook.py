@@ -22,7 +22,9 @@ from sentry.dashboards.on_completion_hook import (
     _validate_with_serializer,
 )
 from sentry.seer.agent.client_models import Artifact, MemoryBlock, Message, SeerRunState
+from sentry.seer.models.run import SeerRun
 from sentry.testutils.cases import SnubaTestCase, TestCase
+from sentry.users.services.user.service import user_service
 
 
 def _make_state(
@@ -284,6 +286,9 @@ class DryRunWidgetQueriesTest(TestCase, SnubaTestCase):
     def setUp(self) -> None:
         super().setUp()
         self.project
+        owner = user_service.get_user(user_id=self.user.id)
+        assert owner is not None
+        self.owner = owner
 
     def test_valid_queries_return_no_errors(self) -> None:
         artifact = GeneratedDashboard(
@@ -308,7 +313,7 @@ class DryRunWidgetQueriesTest(TestCase, SnubaTestCase):
             ],
         )
 
-        assert _dry_run_widget_queries(artifact, self.organization) == []
+        assert _dry_run_widget_queries(artifact, self.organization, self.owner) == []
 
     def test_logs_sort_outside_selected_columns_is_reported(self) -> None:
         artifact = _make_artifact(
@@ -319,7 +324,7 @@ class DryRunWidgetQueriesTest(TestCase, SnubaTestCase):
         )
 
         assert _validate_with_serializer(artifact, self.organization) is None
-        assert _dry_run_widget_queries(artifact, self.organization) == [
+        assert _dry_run_widget_queries(artifact, self.organization, self.owner) == [
             "Widget 0 ('Recent logs'), query 0: orderby must also be in the selected columns or groupby"
         ]
 
@@ -332,7 +337,7 @@ class DryRunWidgetQueriesTest(TestCase, SnubaTestCase):
         )
 
         assert _validate_with_serializer(artifact, self.organization) is None
-        assert _dry_run_widget_queries(artifact, self.organization) == [
+        assert _dry_run_widget_queries(artifact, self.organization, self.owner) == [
             "Widget 0 ('ANRs'), query 0: Error parsing search query: Invalid category value of 'anr'"
         ]
 
@@ -349,20 +354,35 @@ class DryRunWidgetQueriesTest(TestCase, SnubaTestCase):
             ],
         )
 
-        assert _dry_run_widget_queries(artifact, self.organization) == []
+        assert _dry_run_widget_queries(artifact, self.organization, self.owner) == []
+
+    def test_runs_with_the_owners_access(self) -> None:
+        outsider = user_service.get_user(user_id=self.create_user().id)
+        assert outsider is not None
+        artifact = _make_artifact(
+            display_type="table",
+            widget_type="issue",
+            queries=[{"conditions": "is:unresolved issue.category:anr", "orderby": "freq"}],
+        )
+
+        # A user outside the org gets a 403, not the query's 400, so nothing is reported.
+        assert _dry_run_widget_queries(artifact, self.organization, outsider) == []
 
     def test_non_400_failures_are_skipped(self) -> None:
         with patch(
             "sentry.dashboards.on_completion_hook.ApiClient.get",
             side_effect=ApiError(500, {"detail": "Internal error"}),
         ):
-            assert _dry_run_widget_queries(_make_artifact(), self.organization) == []
+            assert _dry_run_widget_queries(_make_artifact(), self.organization, self.owner) == []
 
 
 class DashboardOnCompletionHookTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.project
+        self.create_seer_run(
+            organization=self.organization, user_id=self.user.id, seer_run_state_id=1
+        )
         dry_run = patch(
             "sentry.dashboards.on_completion_hook._dry_run_widget_queries", return_value=[]
         )
@@ -496,6 +516,26 @@ class DashboardOnCompletionHookTest(TestCase):
                 1,
                 "Widget 0 ('Error Count'), query 0: Invalid characters in field total_delay_ms,number",
             )
+
+    @patch("sentry.dashboards.on_completion_hook.fetch_run_status")
+    def test_query_dry_run_runs_as_the_run_owner(self, mock_fetch: MagicMock) -> None:
+        mock_fetch.return_value = _make_state(artifact_data=VALID_ARTIFACT)
+
+        DashboardOnCompletionHook.execute(self.organization, run_id=1)
+
+        self.mock_dry_run.assert_called_once()
+        assert self.mock_dry_run.call_args[0][2].id == self.user.id
+
+    @patch("sentry.dashboards.on_completion_hook.fetch_run_status")
+    def test_query_dry_run_skipped_without_run_owner(self, mock_fetch: MagicMock) -> None:
+        mock_fetch.return_value = _make_state(artifact_data=VALID_ARTIFACT)
+        SeerRun.objects.filter(seer_run_state_id=1).update(user_id=None)
+
+        with patch.object(DashboardOnCompletionHook, "_request_fix") as mock_fix:
+            DashboardOnCompletionHook.execute(self.organization, run_id=1)
+            mock_fix.assert_not_called()
+
+        self.mock_dry_run.assert_not_called()
 
     @patch("sentry.dashboards.on_completion_hook.fetch_run_status")
     def test_query_dry_run_skipped_when_serializer_fails(self, mock_fetch: MagicMock) -> None:
