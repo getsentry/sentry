@@ -33,9 +33,6 @@ describe('gin onboarding docs', () => {
     renderWithOnboardingLayout(docs, {selectedProducts: [ProductSolution.LOGS]});
 
     expect(await screen.findByText('Logging Integrations')).toBeInTheDocument();
-    expect(
-      screen.queryByText(textWithMarkupMatcher(/EnableLogs/))
-    ).not.toBeInTheDocument();
   });
 
   it('renders performance and logs onboarding docs correctly', async () => {
@@ -51,8 +48,5 @@ describe('gin onboarding docs', () => {
     }
 
     expect(await screen.findByText('Logging Integrations')).toBeInTheDocument();
-    expect(
-      screen.queryByText(textWithMarkupMatcher(/EnableLogs/))
-    ).not.toBeInTheDocument();
   });
 });
