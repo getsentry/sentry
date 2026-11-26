@@ -119,6 +119,7 @@ export interface DetailedProject extends ProjectSummary {
   highlightContext?: Record<string, string[]>;
   highlightPreset?: {context: Record<string, string[]>; tags: string[]};
   highlightTags?: string[];
+  impactAssessmentProjectContext?: string | null;
   options?: Record<string, boolean | string>;
   preprodDistributionEnabledByCustomer?: boolean;
   preprodDistributionEnabledQuery?: string | null;

@@ -89,6 +89,8 @@ export function getNavigationConfiguration({
           id: 'project_seer',
           path: `${pathPrefix}/seer/`,
           title: t('Seer'),
+          badge: () =>
+            organization?.features?.includes('seer-impact-assessment') ? 'alpha' : null,
           show: () => !isSelfHosted,
         },
         {
