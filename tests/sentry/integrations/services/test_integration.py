@@ -19,11 +19,18 @@ from sentry.integrations.services.integration import (
     RpcAccessToken,
     RpcIntegration,
     RpcOrganizationIntegration,
+    RpcScmRepoSyncState,
     integration_service,
 )
 from sentry.integrations.services.integration.serial import (
     serialize_integration,
     serialize_organization_integration,
+)
+from sentry.integrations.source_code_management.repo_sync_status import (
+    FEATURE,
+    RepoSyncTrigger,
+    record_sync_failed,
+    record_sync_requested,
 )
 from sentry.integrations.types import EventLifecycleOutcome, ExternalProviders
 from sentry.sentry_apps.models.sentry_app import SentryApp
@@ -32,6 +39,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_count_of_metric, assert_failure_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 from sentry.users.models.identity import Identity
 from sentry.utils.http import absolute_uri
@@ -461,6 +469,48 @@ class OrganizationIntegrationServiceTest(BaseIntegrationServiceTest):
         assert_count_of_metric(
             mock_record=mock_record, outcome=EventLifecycleOutcome.FAILURE, outcome_count=1
         )
+
+
+@all_silo_test
+@with_feature(FEATURE)
+class GetScmRepoSyncStateTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        with assume_test_silo_mode(SiloMode.CELL):
+            organization = self.organization
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration = self.create_integration(
+                organization=organization, provider="github", external_id="github:1"
+            )
+
+    def test_no_integration_from_these_providers(self) -> None:
+        state = integration_service.get_scm_repo_sync_state(
+            organization_id=self.organization.id, providers=["gitlab"]
+        )
+        assert state == RpcScmRepoSyncState(has_integration=False, syncing=False)
+
+    def test_syncing(self) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            record_sync_requested(
+                self.organization.id, self.integration.id, RepoSyncTrigger.INSTALL
+            )
+
+        state = integration_service.get_scm_repo_sync_state(
+            organization_id=self.organization.id, providers=["github"]
+        )
+        assert state == RpcScmRepoSyncState(has_integration=True, syncing=True)
+
+    def test_a_failed_sync_is_not_syncing(self) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            record_sync_requested(
+                self.organization.id, self.integration.id, RepoSyncTrigger.INSTALL
+            )
+            record_sync_failed(self.organization.id, self.integration.id, "rate_limited")
+
+        state = integration_service.get_scm_repo_sync_state(
+            organization_id=self.organization.id, providers=["github"]
+        )
+        assert state == RpcScmRepoSyncState(has_integration=True, syncing=False)
 
 
 @all_silo_test

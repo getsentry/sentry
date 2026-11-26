@@ -17,6 +17,7 @@ from sentry.integrations.services.integration.model import (
     RpcIntegrationIdentityContext,
     RpcOrganizationContext,
     RpcOrganizationContextList,
+    RpcScmRepoSyncState,
 )
 from sentry.silo.base import SiloMode
 
@@ -360,6 +361,19 @@ class IntegrationService(RpcService):
 
         None when the integration is missing, not GitHub, not active, or not
         installed on that organization.
+        """
+
+    @rpc_method
+    @abstractmethod
+    def get_scm_repo_sync_state(
+        self,
+        *,
+        organization_id: int,
+        providers: list[str],
+    ) -> RpcScmRepoSyncState:
+        """
+        Whether the organization has an active integration from these providers, and whether
+        Sentry is still adding repositories from one of them.
         """
 
     @rpc_method

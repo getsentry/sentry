@@ -116,3 +116,11 @@ class RpcOrganizationContext(RpcModel):
 class RpcOrganizationContextList(RpcModel):
     integration: RpcIntegration | None
     organization_integrations: list[RpcOrganizationIntegration]
+
+
+class RpcScmRepoSyncState(RpcModel):
+    has_integration: bool
+    """Whether the organization has an active integration from the providers asked about."""
+    syncing: bool
+    """Whether Sentry is still adding repositories from one of them, after an install, a
+    repositories-added webhook or "Sync now"."""
