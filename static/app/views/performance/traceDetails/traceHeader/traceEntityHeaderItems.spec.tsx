@@ -539,4 +539,19 @@ describe('getTraceMetadataItems', () => {
 
     expect(items).toContainEqual(expect.objectContaining({label, value, tooltip: label}));
   });
+
+  it('names the browser by its icon and value, without a tooltip', () => {
+    const items = getTraceMetadataItems({
+      operation: undefined,
+      organization,
+      project: undefined,
+      properties: {browser: {name: 'Chrome', version: '120.0'}},
+      replayId: undefined,
+      startTimestamp: undefined,
+    });
+
+    const browser = items.find(item => item?.label === 'Browser');
+    expect(browser).toMatchObject({type: 'text', value: 'Chrome'});
+    expect(browser).not.toHaveProperty('tooltip');
+  });
 });

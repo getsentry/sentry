@@ -321,7 +321,6 @@ export function getTraceMetadataItems({
           type: 'text',
           label: t('Browser'),
           value: browser.name,
-          tooltip: t('Browser'),
           secondary: versionQualifier(browser.version),
           leadingGraphic: platformGraphic(browser),
         }
