@@ -394,18 +394,6 @@ export function Select<TValue, TOption extends SelectValue<TValue>>(
   const listId = useId();
   const inputId = useId();
   const valueId = useId();
-  const {listBoxProps} = useListBox(
-    {
-      id: listId,
-      'aria-label': t('Options'),
-      shouldUseVirtualFocus: true,
-      shouldFocusOnHover: true,
-      shouldSelectOnPressUp: true,
-      isVirtualized: virtualized,
-    },
-    state,
-    listRef
-  );
   const selectStyles = getSelectStyles(theme, size, {
     disabled,
     focused,
@@ -441,15 +429,16 @@ export function Select<TValue, TOption extends SelectValue<TValue>>(
     menuRef,
     onLockWidth: setLockedMenuWidth,
   });
+  const {collection: listCollection, disabledKeys: listDisabledKeys} = state;
   const delegate = useMemo(
     () =>
       new ListKeyboardDelegate({
-        collection: state.collection,
-        disabledKeys: state.disabledKeys,
+        collection: listCollection,
+        disabledKeys: listDisabledKeys,
         ref: listRef,
         layoutDelegate: virtual.layoutDelegate,
       }),
-    [state.collection, state.disabledKeys, virtual.layoutDelegate]
+    [listCollection, listDisabledKeys, listRef, virtual.layoutDelegate]
   );
   const {collectionProps} = useSelectableCollection({
     selectionManager,
@@ -462,6 +451,19 @@ export function Select<TValue, TOption extends SelectValue<TValue>>(
     disallowEmptySelection: true,
     isVirtualized: virtualized,
   });
+
+  const {listBoxProps} = useListBox(
+    {
+      id: listId,
+      'aria-label': t('Options'),
+      shouldUseVirtualFocus: true,
+      shouldFocusOnHover: true,
+      shouldSelectOnPressUp: true,
+      isVirtualized: virtualized,
+    },
+    state,
+    listRef
+  );
 
   useImperativeHandle(
     selectHandleRef,

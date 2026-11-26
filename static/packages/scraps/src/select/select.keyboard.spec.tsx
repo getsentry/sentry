@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {act, render, screen} from '@testing-library/react';
+import {act, render, screen, waitFor} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import {Button} from '@sentry/scraps/button';
@@ -7,6 +7,31 @@ import {Button} from '@sentry/scraps/button';
 import {options, ThemeWrapper} from '../../test/selectFixtures';
 
 import {Select} from './select';
+
+it('scrolls the listbox to an option reached with the keyboard', async () => {
+  render(
+    <Select aria-label="Fruit" options={options} value="apple" onChange={jest.fn()} />,
+    {wrapper: ThemeWrapper}
+  );
+
+  const input = screen.getByRole('combobox', {name: 'Fruit'});
+  await userEvent.tab();
+  await userEvent.keyboard('{ArrowDown}');
+
+  const listbox = screen.getByRole('listbox');
+  const cherry = screen.getByRole('option', {name: 'Cherry'});
+  jest
+    .spyOn(listbox, 'getBoundingClientRect')
+    .mockReturnValue(new DOMRect(0, 0, 120, 30));
+  jest
+    .spyOn(cherry, 'getBoundingClientRect')
+    .mockImplementation(() => new DOMRect(0, 30 - listbox.scrollTop, 120, 30));
+
+  await userEvent.keyboard('{ArrowDown}');
+  await waitFor(() => expect(listbox.scrollTop).toBeGreaterThan(0));
+  expect(input).toHaveFocus();
+  expect(input).toHaveAttribute('aria-activedescendant', cherry.id);
+});
 
 it('wraps focus at both ends of the options list', async () => {
   render(
