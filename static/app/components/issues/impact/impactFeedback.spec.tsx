@@ -31,9 +31,10 @@ describe('ImpactFeedback', () => {
 
     expect(Sentry.captureFeedback).toHaveBeenCalledWith({
       message: 'Impact assessment is correct: high 73.5.',
-      source: 'issue_details.impact_assessment.correction',
+      source: 'impact_assessment.correction',
       tags: {
-        'feedback.source': 'issue_details.impact_assessment.correction',
+        'feedback.source': 'impact_assessment.correction',
+        'feedback.owner': 'issues',
         'impact.verdict': 'positive',
         'impact.level': 'high',
         'impact.score': 73.5,
@@ -65,9 +66,10 @@ describe('ImpactFeedback', () => {
 
     expect(Sentry.captureFeedback).toHaveBeenCalledWith({
       message: 'Should be low (was high 73.5). Orders retry automatically.',
-      source: 'issue_details.impact_assessment.correction',
+      source: 'impact_assessment.correction',
       tags: {
-        'feedback.source': 'issue_details.impact_assessment.correction',
+        'feedback.source': 'impact_assessment.correction',
+        'feedback.owner': 'issues',
         'impact.verdict': 'negative',
         'impact.level': 'high',
         'impact.score': 73.5,

@@ -61,9 +61,10 @@ export function ImpactFeedback({
           } ${note.trim()}`;
     captureFeedback({
       message,
-      source: 'issue_details.impact_assessment.correction',
+      source: 'impact_assessment.correction',
       tags: {
-        'feedback.source': 'issue_details.impact_assessment.correction',
+        'feedback.source': 'impact_assessment.correction',
+        'feedback.owner': 'issues',
         'impact.verdict': verdict,
         'impact.level': level,
         'impact.score': score,
