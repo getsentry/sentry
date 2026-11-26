@@ -795,6 +795,7 @@ export function Select<TValue, TOption extends SelectValue<TValue>>(
         <SelectIndicators
           dropdownIndicator={dropdownIndicator}
           isLoading={isLoading}
+          isOpen={isOpen}
           onClear={clear}
           selectStyles={selectStyles}
           showClearButton={showClearButton}

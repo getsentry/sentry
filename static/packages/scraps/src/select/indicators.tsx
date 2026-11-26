@@ -14,11 +14,13 @@ import {isRenderable} from './utils';
 export function SelectIndicators({
   dropdownIndicator,
   isLoading,
+  isOpen,
   onClear,
   selectStyles,
   showClearButton,
   trailingItems,
 }: {
+  isOpen: boolean;
   onClear: () => void;
   selectStyles: Pick<ReturnType<typeof getSelectStyles>, 'clearIcon' | 'indicators'>;
   showClearButton: boolean;
@@ -72,7 +74,9 @@ export function SelectIndicators({
       </Grid>
       {dropdownIndicator !== null && (
         <Flex as="span" align="center" aria-hidden="true">
-          {dropdownIndicator ?? <IconChevron direction="down" size="xs" />}
+          {dropdownIndicator ?? (
+            <IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />
+          )}
         </Flex>
       )}
     </Flex>
