@@ -481,9 +481,7 @@ function CodeChangesNextStepContent({
 interface NextStepTemplateProps {
   /**
    * Disables everything here that would start Seer work: the org can't afford
-   * the next step, or the check hasn't answered yet. "No" and "Ask Seer" lead
-   * only to a re-run or a Seer Agent message, so they go too. Coding agents
-   * aren't paid for in Seer credits, so their hand-off stays available.
+   * the next step, or the check hasn't answered yet
    */
   creditsDisabled: boolean;
   isProcessing: boolean;
@@ -585,7 +583,7 @@ function NextStepTemplate({
             <CodingAgentDropdown
               integrations={codingAgentIntegrations}
               disabledReason={codingAgentDisabledReason}
-              isProcessing={isProcessing}
+              isProcessing={isProcessing || creditsDisabled}
               onHandoff={onCodingAgentHandoff}
             />
           )}

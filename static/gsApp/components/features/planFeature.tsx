@@ -43,7 +43,6 @@ const UPSELL_MINIMUM_PLAN_TYPE: Record<string, PlanType> = {
   'integrations-scm-multi-org': 'business',
   'integrations-ticket-rules': 'business',
   'issue-views': 'team',
-  'performance-view': 'team',
   'rate-limits': 'business',
   'spend-allocations': 'enterprise',
   'sso-basic': 'team',

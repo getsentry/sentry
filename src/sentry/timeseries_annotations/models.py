@@ -74,6 +74,7 @@ class AnnotationType(IntEnum):
     SENTRY_OUTAGE = 3
     CUSTOM = 4
     SDK_CONFIG_CHANGE_EXPERIMENTAL = 5
+    FEATURE_FLAG_CHANGE = 6
 
     @classmethod
     def as_choices(cls) -> tuple[tuple[int, str], ...]:
@@ -84,6 +85,7 @@ class AnnotationType(IntEnum):
             (cls.SENTRY_OUTAGE, "sentry_outage"),
             (cls.CUSTOM, "custom"),
             (cls.SDK_CONFIG_CHANGE_EXPERIMENTAL, "sdk_config_change_experimental"),
+            (cls.FEATURE_FLAG_CHANGE, "feature_flag_change"),
         )
 
 
@@ -128,6 +130,7 @@ class TimeseriesAnnotation(DefaultFieldsModel):
     severity = BoundedPositiveIntegerField(
         default=Severity.LOW, db_default=Severity.LOW, choices=Severity.as_choices()
     )
+    pinned = models.BooleanField(default=False, db_default=False)
 
     description = models.TextField()
     tags = models.JSONField(null=True)

@@ -16,12 +16,17 @@ class IncompleteReason(StrEnum):
     NOT_ELAPSED = "NOT_ELAPSED"
     INGESTION_PENDING = "INGESTION_PENDING"
     OUTSIDE_RETENTION = "OUTSIDE_RETENTION"
+    EXCEEDS_QUERY_RANGE = "EXCEEDS_QUERY_RANGE"
 
 
 @dataclass(frozen=True)
 class BucketBoundaries:
     now: float
     complete_through: float
+    # The actual query range, which may not align exactly with the bucket
+    # boundaries.
+    query_start: float
+    query_end: float
     retention_start: float | None = None
 
     def incomplete_reason(self, bucket_start: float, rollup: int) -> IncompleteReason | None:
@@ -34,6 +39,9 @@ class BucketBoundaries:
 
         if bucket_end >= self.complete_through:
             return IncompleteReason.INGESTION_PENDING
+
+        if bucket_start < self.query_start or bucket_end > self.query_end:
+            return IncompleteReason.EXCEEDS_QUERY_RANGE
 
         return None
 
@@ -108,7 +116,7 @@ class Row(TypedDict):
         Annotated[
             str,
             ApiDescription(
-                "Why the bucket is incomplete: `NOT_ELAPSED`, `INGESTION_PENDING` or `OUTSIDE_RETENTION`"
+                "Why the bucket is incomplete: `NOT_ELAPSED`, `INGESTION_PENDING`, `OUTSIDE_RETENTION` or `EXCEEDS_QUERY_RANGE`"
             ),
         ]
     ]

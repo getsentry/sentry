@@ -37,23 +37,86 @@ const truncatedStringMeta: Partial<Meta> = {
 };
 const truncatedItemsMeta: Partial<Meta> = {len: 5, rem: [['!limit', 'x']]};
 
-// Synthetic payload matching Symbolicator's proposed schema; nested values are not defined yet.
+// Modeled on a crash of https://github.com/getsentry/varcrash-example, in Symbolicator's schema.
 const extractedNativeVariables = {
-  player: {kind: 'parameter', type: 'Player *', formatted: '0x16dc05ff0'},
-  frame_number: {kind: 'parameter', type: 'int', formatted: '0x1'},
-  address: {kind: 'local', type: 'void *', formatted: '0xffffffffffffffff'},
-  null_player: {kind: 'local', type: 'Player *', formatted: '0x0'},
-  status_ptr: {kind: 'local', type: 'RequestStatus *', formatted: null},
-  access_token: {kind: 'local', type: 'char *', formatted: null},
-  authorization: {kind: 'local', type: 'char[32]', formatted: maskedAuthorization},
-  large_counter: {kind: 'local', type: 'uint64_t', formatted: '0xffffffffffffffff'},
-  truncated_message: {kind: 'local', type: 'char[128]', formatted: truncatedMessage},
+  frame_number: {kind: 'parameter', type: 'int', value: 1},
+  player: {
+    kind: 'parameter',
+    type: 'Player*',
+    pointer_address: ['0x000000016b29a450'],
+    // Members are in alphabetical order, as Relay stores them.
+    members: {
+      health: {type: 'float', value: -5.5},
+      id: {type: 'int', value: 1},
+      inventory: {type: 'int*', pointer_address: ['0x000000016b29a540'], value: 42},
+      inventory_count: {type: 'size_t', value: 5},
+      name: {type: ''},
+      position: {
+        type: 'Vec3',
+        members: {
+          x: {type: 'double', value: 102},
+          y: {type: 'double', value: 197.1},
+          z: {type: 'double', value: 50},
+        },
+      },
+      status: {type: 'RequestStatus'},
+    },
+  },
+  health_ptr: {
+    kind: 'local',
+    type: 'float*',
+    pointer_address: ['0x000000016b29a4b0'],
+    value: -5.5,
+  },
+  player_ref: {
+    kind: 'local',
+    type: 'Player**',
+    pointer_address: ['0x000000016b29a430', '0x000000016b29a450'],
+    members: {id: {type: 'int', value: 1}},
+  },
+  map_name: {
+    kind: 'local',
+    type: 'char*',
+    pointer_address: ['0x0000000104b64b33'],
+    value: 'de_dust2',
+  },
+  null_player: {kind: 'local', type: 'Player*', pointer_address: ['0x0000000000000000']},
+  dangling: {
+    kind: 'local',
+    type: 'Player**',
+    pointer_address: ['0x000000016b29a430', '0x0000000000000000'],
+  },
+  unmapped: {kind: 'local', type: 'void*', pointer_address: ['0xffffffffffffffff']},
+  buffer: {kind: 'local', type: ''},
+  initial: {kind: 'local', type: 'char', value: "'A'"},
+  enabled: {kind: 'local', type: 'bool', value: true},
+  wide_counter: {
+    kind: 'local',
+    type: '__uint128_t',
+    value: '340282366920938463463374607431768211455',
+  },
+  opaque: {
+    kind: 'local',
+    type: '<unknown>',
+    value: ['0x2a', '0x00', '0xff', '0x10', '... (12 bytes truncated) ...'],
+  },
+  access_token: {
+    kind: 'local',
+    type: 'char*',
+    pointer_address: ['0x000000016b29a4c0'],
+    value: '[Filtered]',
+  },
+  truncated_message: {
+    kind: 'local',
+    type: 'char*',
+    pointer_address: ['0x000000016b29a4e0'],
+    value: truncatedMessage,
+  },
 } satisfies Record<string, NativeFrameVariable>;
 
 const extractedNativeMeta = {
-  access_token: {formatted: {'': filteredMeta}},
-  authorization: {formatted: {'': maskedMeta}},
-  truncated_message: {formatted: {'': truncatedStringMeta}},
+  access_token: {value: {'': replacedMeta}},
+  truncated_message: {value: {'': truncatedStringMeta}},
 };
 
 const jsonVariables = {
@@ -109,7 +172,7 @@ const nativeMeta = {
 export default Storybook.story('Frame variables', story => {
   story('Extracted native variables', () => (
     <VariableStory>
-      <Text>Preview of Symbolicator's proposed native variable schema.</Text>
+      <Text>Variables extracted by Symbolicator from a native crash.</Text>
       <FrameVariablesGrid
         platform="native"
         data={extractedNativeVariables}
@@ -141,8 +204,21 @@ export default Storybook.story('Frame variables', story => {
           "'message'": "'hello world'",
           "'client'": '<Client at 0x12345>',
           "'items'": ['1', '2'],
+          // More than five entries, so the dict starts collapsed and shows its preview.
+          "'request'": {
+            "'method'": "'GET'",
+            "'retries'": '3',
+            "'secure'": 'True',
+            "'session'": 'None',
+            "'token'": '[Filtered]',
+            "'client'": '<Client at 0x12345>',
+            "'headers'": {"'accept'": "'*/*'", "'host'": "'example.com'"},
+          },
         }}
-        meta={{"'items'": {'': truncatedItemsMeta}}}
+        meta={{
+          "'items'": {'': truncatedItemsMeta},
+          "'request'": {"'token'": {'': replacedMeta}},
+        }}
       />
     </VariableStory>
   ));

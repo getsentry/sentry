@@ -210,6 +210,34 @@ describe('ApiNewToken', () => {
     expect(screen.queryByRole('combobox', {name: 'Dashboards'})).not.toBeInTheDocument();
   });
 
+  it('submits user preference scopes', async () => {
+    MockApiClient.clearMockResponses();
+    const assignMock = MockApiClient.addMockResponse({
+      method: 'POST',
+      url: '/api-tokens/',
+    });
+
+    render(<ApiNewToken />);
+
+    await selectEvent.select(
+      screen.getByRole('combobox', {name: 'User Preferences'}),
+      'Read & Write'
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Create Token'}));
+
+    await waitFor(() =>
+      expect(assignMock).toHaveBeenCalledWith(
+        '/api-tokens/',
+        expect.objectContaining({
+          data: expect.objectContaining({
+            scopes: ['user_preference:read', 'user_preference:write'],
+          }),
+        })
+      )
+    );
+  });
+
   it('does not render service account permissions without the service-accounts flag', () => {
     render(<ApiNewToken />);
     expect(

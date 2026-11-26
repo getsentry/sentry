@@ -37,7 +37,7 @@ sentry_sdk.logger.error('This is an error message')`,
     {
       type: 'text',
       text: tct(
-        "You can also forward logs from Python's built-in logging module by setting [code:capture_sentry_logs=True] on the [code:LoggingIntegration]:",
+        "You can also forward logs from Python's built-in logging module by adding the [code:LoggingIntegration]:",
         {code: <code />}
       ),
     },
@@ -52,7 +52,7 @@ from sentry_sdk.integrations.logging import LoggingIntegration
 sentry_sdk.init(
     # ...
     integrations=[
-        LoggingIntegration(capture_sentry_logs=True),
+        LoggingIntegration(),
     ],
 )
 
@@ -63,6 +63,13 @@ logger = logging.getLogger(__name__)
 logger.info('This will be sent to Sentry')
 logger.warning('User login failed')
 logger.error('Something went wrong')`,
+    },
+    {
+      type: 'text',
+      text: tct(
+        'On SDK 2.x, pass [code:capture_sentry_logs=True] to the [code:LoggingIntegration].',
+        {code: <code />}
+      ),
     },
   ],
 });

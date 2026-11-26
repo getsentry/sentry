@@ -10,7 +10,7 @@ export function traceMetricField(
   aggregation: TraceMetricAggregation,
   name: string,
   metricType: TraceMetricTypeValue,
-  unit: DataUnit,
+  unit: DataUnit | 'ratio',
   attribute = 'value'
 ) {
   return `${aggregation}(${attribute},${name},${metricType},${unit ?? NONE_UNIT})`;

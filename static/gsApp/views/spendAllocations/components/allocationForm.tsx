@@ -188,12 +188,7 @@ export function AllocationForm({
       toast.error(t('Please validate your form values are correct'));
       return;
     }
-    let METHOD = 'POST';
-    let [start, end] = rootAllocation!.period;
-    if (initializedData) {
-      METHOD = 'PUT';
-      [start, end] = initializedData.period;
-    }
+    const METHOD = initializedData ? 'PUT' : 'POST';
     const PATH = `/organizations/${organization.slug}/spend-allocations/`;
     try {
       await api.requestPromise(PATH, {
@@ -203,8 +198,6 @@ export function AllocationForm({
           target_id: targetId,
           target_type: AllocationTargetTypes.PROJECT,
           desired_quantity: String(Number(allocationVolume) * incrementSize),
-          start_timestamp: new Date(start).getTime() / 1000,
-          end_timestamp: new Date(end).getTime() / 1000,
         },
       });
     } catch (err) {

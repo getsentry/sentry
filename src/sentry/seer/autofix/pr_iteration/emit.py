@@ -58,6 +58,8 @@ BLOCKED_OUTCOMES_DATA_KEY = "blocked_outcomes"
 # The latest reason a gate refused this batch. Cleared when the batch is triggered.
 FAILURE_REASON_DATA_KEY = "failure_reason"
 
+PUSH_TRIGGER_EXCEPTION_TYPE_DATA_KEY = "push_trigger_exception_type"
+
 
 class PrIterationOutcome(StrEnum):
     """An outcome of running an iteration.
@@ -323,6 +325,24 @@ def _pushed_head_shas(run_state: SeerRunState) -> list[str]:
     return sorted(shas)
 
 
+def _push_error_codes(run_state: SeerRunState) -> list[str]:
+    try:
+        iterations = get_iterations(run_state)
+    except Exception:
+        return []
+
+    if not iterations:
+        return []
+
+    codes = {
+        pr_state.pr_creation_error_code or "unknown"
+        for repo in iteration_repos(iterations[-1])
+        if (pr_state := run_state.repo_pr_states.get(repo))
+        and pr_state.pr_creation_status == "error"
+    }
+    return sorted(codes)
+
+
 def build_iteration_event(
     log_ctx: PrIterationLogContext,
     iteration: SeerRunPrIteration,
@@ -330,6 +350,7 @@ def build_iteration_event(
     *,
     outcome: str,
     head_shas: list[str] | None = None,
+    push_error_codes: list[str] | None = None,
 ) -> EventT | None:
     """An event filled from an iteration's row. None when that row is incomplete.
 
@@ -347,6 +368,8 @@ def build_iteration_event(
         payload["duration_ms"] = int((timezone.now() - iteration.date_added).total_seconds() * 1000)
     if head_shas is not None and "head_shas" in known:
         payload["head_shas"] = head_shas
+    if push_error_codes is not None and "push_error_codes" in known:
+        payload["push_error_codes"] = push_error_codes
 
     try:
         return event_cls(
@@ -457,6 +480,31 @@ def record_pr_iteration_failure_reason(
         log_ctx.error("autofix.pr_iteration.details.failure_reason_failed")
 
 
+def record_pr_iteration_push_error(
+    *,
+    log_ctx: PrIterationLogContext,
+    run_state: SeerRunState,
+    organization_id: int,
+    error: BaseException,
+) -> None:
+    try:
+        iteration_id = triggered_iteration_id(run_state)
+        if iteration_id is None:
+            return
+
+        seer_run = get_seer_run(run_id=run_state.run_id, organization_id=organization_id)
+        if seer_run is None:
+            return
+
+        iteration = get_iteration(seer_run, iteration_id)
+        if iteration is None:
+            return
+
+        update_iteration(iteration, **{PUSH_TRIGGER_EXCEPTION_TYPE_DATA_KEY: type(error).__name__})
+    except Exception:
+        log_ctx.error("autofix.pr_iteration.details.push_error_failed")
+
+
 @traces.trace
 def complete_pr_iteration_details(
     *,
@@ -535,12 +583,19 @@ def _complete_iteration(
             if outcome == PrIterationOutcome.ALREADY_PUSHED.value
             else []
         )
+        # Seer keeps a repo's previous error until its next push.
+        push_error_codes = (
+            _push_error_codes(run_state)
+            if outcome == PrIterationOutcome.PR_CREATION_ERRORED.value
+            else []
+        )
         event = build_iteration_event(
             log_ctx,
             iteration,
             AiAutofixPrIterationFeedbackBatchCompletedEvent,
             outcome=outcome,
             head_shas=head_shas,
+            push_error_codes=push_error_codes,
         )
         if event is None:
             return

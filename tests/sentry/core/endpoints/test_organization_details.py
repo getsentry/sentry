@@ -1740,6 +1740,42 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert response.data["hasGranularReplayPermissions"] is False
         assert response.data["replayAccessMembers"] == []
 
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    def test_service_account_cannot_update(self) -> None:
+        project = self.create_project(organization=self.organization)
+        service_account = self.create_service_account(
+            organization=self.organization,
+            scope_list=["org:read", "org:write", "org:admin"],
+            project_ids=[project.id],
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.organization.id,
+            ),
+            key="service-account-secret",
+        )
+        url = reverse(self.endpoint, args=[self.organization.slug])
+
+        response = self.client.put(
+            url,
+            data={
+                "trustedRelays": [
+                    {"name": "relay", "publicKey": _VALID_RELAY_KEYS[0], "description": ""}
+                ]
+            },
+            format="json",
+            HTTP_X_VIEWER_CONTEXT=viewer_context,
+        )
+
+        assert response.status_code == 403, response.content
+        assert response.data["detail"]["code"] == "user-required"
+        assert self.organization.get_option("sentry:trusted-relays") is None
+
+        response = self.client.get(url, HTTP_X_VIEWER_CONTEXT=viewer_context)
+        assert response.status_code == 200, response.content
+
 
 class OrganizationUpdateAsyncReplicationTest(OrganizationDetailsTestBase):
     method = "put"

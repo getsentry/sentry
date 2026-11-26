@@ -7,19 +7,13 @@ import {ListItem} from 'sentry/components/list/listItem';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
-import {withSubscription} from 'getsentry/components/withSubscription';
-import type {Subscription} from 'getsentry/types';
-import {displayPlanName, hasPerformance} from 'getsentry/utils/billing';
+import {displayPlanName} from 'getsentry/utils/billing';
 
 import {AlertsBackground} from './illustrations/alertsBackground';
 import PageUpsellOverlay from './pageUpsellOverlay';
 import PlanFeature from './planFeature';
 
-type Props = React.PropsWithChildren<{
-  features: string[];
-  organization: Organization;
-  subscription: Subscription;
-}>;
+type Props = React.PropsWithChildren<{features: string[]; organization: Organization}>;
 
 const TextWrapper = styled('div')`
   width: 550px;
@@ -27,7 +21,6 @@ const TextWrapper = styled('div')`
 
 function DisabledAlertsPage({
   organization,
-  subscription,
   features,
   children: _children,
   ...props
@@ -63,9 +56,7 @@ function DisabledAlertsPage({
   return (
     <PageUpsellOverlay
       name={t('Choose your alerts')}
-      source={
-        hasPerformance(subscription.planDetails) ? 'incidents' : 'incidents-performance'
-      }
+      source="incidents"
       description={description}
       data-test-id="mock-incidents-page"
       organization={organization}
@@ -96,4 +87,4 @@ const FeatureList = styled(List)`
   grid-template-columns: 1fr 1fr;
 `;
 
-export default withSubscription(DisabledAlertsPage);
+export default DisabledAlertsPage;

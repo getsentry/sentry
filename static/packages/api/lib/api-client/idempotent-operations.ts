@@ -8,7 +8,24 @@
  */
 
 import { API_BASE_PATH } from "../api-base-path.gen.js";
-import { isIdempotentRequest } from "./retry.js";
+
+const IDEMPOTENT_METHODS: ReadonlySet<string> = new Set([
+  "GET",
+  "HEAD",
+  "OPTIONS",
+]);
+
+/**
+ * Whether a request may be replayed after the endpoint may have run, such as
+ * after a transient 5xx, a network error, or a timeout. True for GET, HEAD,
+ * and OPTIONS, or when the caller marks the request `idempotent`.
+ */
+export function isIdempotentRequest(
+  method: string,
+  idempotent = false,
+): boolean {
+  return idempotent || IDEMPOTENT_METHODS.has(method.toUpperCase());
+}
 
 /** A non-safe operation Sentry marks idempotent. */
 export type IdempotentOperation = {
@@ -20,8 +37,8 @@ export type IdempotentOperation = {
 
 /**
  * The writes in a catalog that Sentry marks idempotent, sorted by path then
- * method. Safe methods already retry, so they are left out to keep the list
- * every request checks small.
+ * method. Safe methods are always replayable, so they are left out to keep
+ * the list every request checks small.
  */
 export function selectIdempotentWrites(
   operations: readonly {

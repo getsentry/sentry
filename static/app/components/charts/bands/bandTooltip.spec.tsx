@@ -27,7 +27,7 @@ function band(id: string, buckets: BandBucket[], withSection = true): ChartBand 
     height: 8,
     series: () => ({type: 'custom', name: id}),
     tooltipSection: withSection
-      ? start =>
+      ? ({start}) =>
           starts.has(start) ? <Text>{`${id} at ${(start - START) / MINUTE}`}</Text> : null
       : undefined,
   };

@@ -402,7 +402,7 @@ class IntegrationRepositoryProvider(Generic[InstT]):
             if repo is None:
                 lost_race.append(repo_config)
             else:
-                self.on_create_repository(repo, organization)
+                self._on_create_repository_in_batch(repo, organization)
                 created.append(repo)
         return created, lost_race
 
@@ -416,8 +416,26 @@ class IntegrationRepositoryProvider(Generic[InstT]):
         if repos:
             repository_service.update_repositories(organization_id=organization.id, updates=repos)
             for repo in repos:
-                self.on_create_repository(repo, organization)
+                self._on_create_repository_in_batch(repo, organization)
         return repos
+
+    def _on_create_repository_in_batch(
+        self, repo: RpcRepository, organization: RpcOrganization
+    ) -> None:
+        # The repo is already saved, so one failed webhook shouldn't fail the rest of the batch.
+        try:
+            self.on_create_repository(repo, organization)
+        except Exception:
+            self.logger.warning(
+                "repository.create.on_create_failed",
+                exc_info=True,
+                extra={
+                    "organization_id": organization.id,
+                    "integration_id": repo.integration_id,
+                    "repository_id": repo.id,
+                    "provider": self.id,
+                },
+            )
 
     def _transfer_repositories(
         self,
