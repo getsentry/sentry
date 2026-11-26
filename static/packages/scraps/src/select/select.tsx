@@ -296,11 +296,7 @@ export function Select<TValue, TOption extends SelectValue<TValue>>(
       return;
     }
     const created = key === CREATE_KEY;
-    const choice =
-      option ??
-      ({value: query, label: query, __isNew__: true} satisfies SelectValue<string> & {
-        __isNew__: true;
-      });
+    const choice = option ?? {value: query, label: query};
     setFocusedChip(null);
     if (!multiple && isOpen) {
       overlayState.close();

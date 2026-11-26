@@ -49,9 +49,5 @@ it('returns a string option when creating a choice alongside numeric options', a
   await userEvent.type(screen.getByRole('combobox', {name: 'Answer'}), 'New answer');
   await userEvent.click(screen.getByRole('option', {name: 'Create "New answer"'}));
 
-  expect(onChange).toHaveBeenCalledWith({
-    value: 'New answer',
-    label: 'New answer',
-    __isNew__: true,
-  });
+  expect(onChange).toHaveBeenCalledWith({value: 'New answer', label: 'New answer'});
 });
