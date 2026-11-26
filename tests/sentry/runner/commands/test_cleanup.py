@@ -19,9 +19,11 @@ from sentry.notifications.models.notificationrecord import NotificationRecord
 from sentry.notifications.models.notificationthread import NotificationThread
 from sentry.notifications.platform.threading import ThreadingConfig, ThreadingService
 from sentry.notifications.platform.types import NotificationProviderKey, NotificationSource
+from sentry.preprod.models import PreprodArtifact
 from sentry.runner.commands.cleanup import (
     CleanupExecutionAborted,
     _cleanup,
+    age_deletion_filters,
     generate_bulk_query_deletes,
     models_which_use_deletions_code_path,
     models_which_use_expiry_deletions,
@@ -591,6 +593,90 @@ class ExpiryDeletionsCodePathTest(TestCase):
 
         assert not EventAttachment.objects.filter(id=expired.id).exists()
         assert EventAttachment.objects.filter(id=fresh.id).exists()
+
+
+@patch("sentry.preprod.helpers.deletion.snuba_rpc.delete_trace_items_rpc")
+class PreprodArtifactCleanupTest(TestCase):
+    """
+    A `PreprodArtifact` with an expiry date is deleted when it expires. One without is
+    deleted based on its age.
+    """
+
+    DAYS = 90
+
+    def run_cleanup(self) -> None:
+        # The two passes `cleanup --days=90` makes over the models with a deletion task.
+        queue = SynchronousTaskQueue()
+        run_bulk_deletes_in_deletes(
+            queue,  # type: ignore[arg-type]  # It partially implements the queue protocol
+            [(PreprodArtifact, "date_added", "date_added")],
+            lambda model: False,
+            self.DAYS,
+            None,
+            None,
+            set(),
+            extra_filters=age_deletion_filters(),
+        )
+        run_bulk_deletes_in_deletes(
+            queue,  # type: ignore[arg-type]  # It partially implements the queue protocol
+            [(PreprodArtifact, "date_expires", "date_expires")],
+            lambda model: False,
+            0,
+            None,
+            None,
+            set(),
+        )
+
+    def is_deleted(self, artifact: PreprodArtifact) -> bool:
+        return not PreprodArtifact.objects.filter(id=artifact.id).exists()
+
+    def test_artifact_is_in_both_code_paths(self, mock_delete_eap: Any) -> None:
+        assert (PreprodArtifact, "date_added", "date_added") in (
+            models_which_use_deletions_code_path()
+        )
+        assert (PreprodArtifact, "date_expires", "date_expires") in (
+            models_which_use_expiry_deletions()
+        )
+        assert age_deletion_filters()[PreprodArtifact] == {"date_expires__isnull": True}
+
+    def test_deletes_artifact_past_its_expiry(self, mock_delete_eap: Any) -> None:
+        # Younger than --days, and expired.
+        artifact = self.create_preprod_artifact(
+            project=self.project,
+            date_added=before_now(days=31),
+            date_expires=before_now(days=1),
+        )
+
+        self.run_cleanup()
+
+        assert self.is_deleted(artifact)
+        mock_delete_eap.assert_called_once()
+
+    def test_keeps_artifact_until_its_expiry(self, mock_delete_eap: Any) -> None:
+        # Older than --days, and not expired.
+        artifact = self.create_preprod_artifact(
+            project=self.project,
+            date_added=before_now(days=300),
+            date_expires=before_now(days=300 - 396),
+        )
+
+        self.run_cleanup()
+
+        assert not self.is_deleted(artifact)
+        mock_delete_eap.assert_not_called()
+
+    def test_deletes_artifact_without_expiry_by_age(self, mock_delete_eap: Any) -> None:
+        old = self.create_preprod_artifact(
+            project=self.project, date_added=before_now(days=self.DAYS + 1)
+        )
+        recent = self.create_preprod_artifact(
+            project=self.project, date_added=before_now(days=self.DAYS - 1)
+        )
+
+        self.run_cleanup()
+
+        assert self.is_deleted(old)
+        assert not self.is_deleted(recent)
 
 
 class RemoveOldNotificationMessagesTest(TestCase):

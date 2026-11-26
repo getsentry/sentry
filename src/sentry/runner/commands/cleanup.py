@@ -467,6 +467,7 @@ def _cleanup(
                 project,
                 project_id,
                 models_attempted,
+                extra_filters=age_deletion_filters(),
             )
 
             # Expiry-based models always use days=0 so records are deleted exactly
@@ -788,6 +789,7 @@ def models_which_use_deletions_code_path() -> list[tuple[type[BaseModel], str, s
         (ReplayRecordingSegment, "date_added", "date_added"),
         (ArtifactBundle, "date_added", "date_added"),
         (MonitorCheckIn, "date_added", "date_added"),
+        # Only the artifacts without an expiry date, see `age_deletion_filters`.
         (PreprodArtifact, "date_added", "date_added"),
         (PullRequest, "date_added", "date_added"),
         (PullRequestActivity, "date_added", "date_added"),
@@ -803,9 +805,23 @@ def models_which_use_deletions_code_path() -> list[tuple[type[BaseModel], str, s
     ]
 
 
+def age_deletion_filters() -> dict[type[BaseModel], dict[str, Any]]:
+    from sentry.preprod.models import PreprodArtifact
+
+    # Models in `models_which_use_deletions_code_path` of which only the records matching
+    # a filter are deleted based on their age.
+    return {
+        # An artifact with an expiry date is deleted when it expires instead (see
+        # `models_which_use_expiry_deletions`), which can be later than --days. One
+        # without an expiry date predates the column and is not backfilled.
+        PreprodArtifact: {"date_expires__isnull": True},
+    }
+
+
 def models_which_use_expiry_deletions() -> list[tuple[type[BaseModel], str, str]]:
     from sentry.models.eventattachment import EventAttachment, PendingEventAttachment
     from sentry.models.profilechunkattachment import ProfileChunkAttachment
+    from sentry.preprod.models import PreprodArtifact
 
     # Models deleted based on their per-record expiry date, independent of --days.
     # Always run with days=0 so records are deleted exactly when they expire,
@@ -814,6 +830,7 @@ def models_which_use_expiry_deletions() -> list[tuple[type[BaseModel], str, str]
         (EventAttachment, "date_expires", "date_expires"),
         (PendingEventAttachment, "date_expires", "date_expires"),
         (ProfileChunkAttachment, "date_expires", "date_expires"),
+        (PreprodArtifact, "date_expires", "date_expires"),
     ]
 
 
@@ -1021,6 +1038,7 @@ def run_bulk_deletes_in_deletes(
     project: str | None,
     project_id: int | None,
     models_attempted: set[str],
+    extra_filters: Mapping[type[BaseModel], Mapping[str, Any]] | None = None,
 ) -> None:
     from sentry import options
     from sentry.db.deletion import BulkDeleteQuery
@@ -1046,6 +1064,7 @@ def run_bulk_deletes_in_deletes(
                     project_id=project_id,
                     order_by=order_by,
                     defer_dt_filter=defer_dt_filter,
+                    extra_filter=(extra_filters or {}).get(model_tp),
                 )
                 _schedule_bulk_delete_chunks(task_queue, q, model_tp, project_id)
 
