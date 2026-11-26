@@ -1074,6 +1074,8 @@ export interface ImpactAssessment {
   citations: ImpactCitation[];
   description: string;
   level: ImpactLevel | null;
+  promptVersion: string | null;
+  runUuid: string | null;
   score: number | null;
   sourceEventId: string;
 }

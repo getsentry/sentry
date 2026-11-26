@@ -43,6 +43,8 @@ export const examples = [
   ...example,
   citations: [],
   sourceEventId: '00000000000000000000000000000000',
+  runUuid: null,
+  promptVersion: null,
 }));
 
 Seer scores how much an issue affects users from 0 to 100, and buckets the score into one of five levels. The bucketing is determined from the API response, not the frontend. Each level has its own icon and color, so the level reads at a glance.

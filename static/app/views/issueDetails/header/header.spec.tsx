@@ -110,6 +110,8 @@ describe('GroupHeader', () => {
           description: 'Few users are affected.',
           citations: [],
           sourceEventId: 'event-id',
+          runUuid: null,
+          promptVersion: null,
         },
       },
     });
