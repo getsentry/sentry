@@ -51,7 +51,7 @@ describe('buildTraceMetricAggregate', () => {
   describe('virtual metrics', () => {
     const LCP_SCORE = {name: 'browser.web_vital.lcp.score', type: 'distribution'};
     const LCP_SCORE_AGGREGATE =
-      'avg(tags[score.ratio.lcp,number],browser.web_vital.lcp,distribution,millisecond)';
+      'avg(tags[score.ratio.lcp,percentage],browser.web_vital.lcp,distribution,millisecond)';
 
     it('builds an aggregate of the attribute on the stored metric', () => {
       expect(generateFieldAsString(buildTraceMetricAggregate('avg', LCP_SCORE))).toBe(
@@ -65,7 +65,7 @@ describe('buildTraceMetricAggregate', () => {
           })
         )
       ).toBe(
-        'count(tags[score.ratio.cls,number],browser.web_vital.cls,distribution,none)'
+        'count(tags[score.ratio.cls,percentage],browser.web_vital.cls,distribution,none)'
       );
     });
 
@@ -75,7 +75,7 @@ describe('buildTraceMetricAggregate', () => {
           buildTraceMetricAggregate('avg', LCP_SCORE, 'browser.name:Chrome')
         )
       ).toBe(
-        'avg_if(`browser.name:Chrome`,tags[score.ratio.lcp,number],browser.web_vital.lcp,distribution,millisecond)'
+        'avg_if(`browser.name:Chrome`,tags[score.ratio.lcp,percentage],browser.web_vital.lcp,distribution,millisecond)'
       );
     });
 

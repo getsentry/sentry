@@ -563,7 +563,7 @@ describe('MetricSelectRow', () => {
 
   describe('web vital score metrics', () => {
     const LCP_SCORE_AGGREGATE =
-      'avg(tags[score.ratio.lcp,number],browser.web_vital.lcp,distribution,millisecond)';
+      'avg(tags[score.ratio.lcp,percentage],browser.web_vital.lcp,distribution,millisecond)';
     const ALPHA_SUM: QueryFieldValue = {
       kind: 'function',
       function: ['sum', 'value', 'alpha_metric', 'counter', 'none'],
@@ -624,7 +624,7 @@ describe('MetricSelectRow', () => {
 
       await waitFor(() => {
         expect(decodeList(router.location.query.yAxis)).toEqual([
-          'sum(tags[score.ratio.lcp,number],browser.web_vital.lcp,distribution,millisecond)',
+          'sum(tags[score.ratio.lcp,percentage],browser.web_vital.lcp,distribution,millisecond)',
         ]);
       });
     });

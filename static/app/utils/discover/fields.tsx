@@ -1767,7 +1767,7 @@ export function prettifyParsedFunction(func: ParsedFunction) {
       return `${func.name}(${prettifyTagKey(metricName)})`;
     }
     // aggregates that read a virtual metric's attribute, e.g.
-    // avg(tags[score.ratio.lcp,number],browser.web_vital.lcp,distribution,millisecond),
+    // avg(tags[score.ratio.lcp,percentage],browser.web_vital.lcp,distribution,millisecond),
     // display as function(virtualMetricName)
     const virtualMetricName = findVirtualTraceMetricName(attribute, metricName);
     if (virtualMetricName) {

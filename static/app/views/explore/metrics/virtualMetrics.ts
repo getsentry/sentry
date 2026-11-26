@@ -26,7 +26,7 @@ interface StoredTraceMetric {
 export interface VirtualTraceMetric {
   /**
    * The aggregate argument that selects the attribute, e.g.
-   * `tags[score.ratio.lcp,number]`.
+   * `tags[score.ratio.lcp,percentage]`.
    */
   attribute: string;
   name: string;
