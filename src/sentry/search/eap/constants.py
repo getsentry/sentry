@@ -290,9 +290,9 @@ PROTO_TYPE_TO_ATTRIBUTE_TYPE_MAP: dict[AttributeKey.Type.ValueType, ColumnType] 
 # many functions chained together
 MAX_BOOLEAN_DEPTH = 50
 
-# Snuba rejects TraceItemStatsRequests with more attributes than this
-# (MAX_REQUEST_ATTRIBUTES in snuba/web/rpc/v1/endpoint_trace_item_stats.py)
-MAX_STATS_REQUEST_ATTRIBUTES = 500
+# Hard limit is 500, but assuming each tag is the max character length of 250, we can only fit around 154
+# Setting the limit slightly lower so we don't hit the 131kb snuba max
+MAX_STATS_REQUEST_ATTRIBUTES = 140
 
 
 class QueryPriorities(TypesClass):

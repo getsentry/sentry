@@ -246,6 +246,47 @@ class OrganizationEventsTimeseriesEnrichmentAttributesEndpointTest(
             self.start, 3_600_000, [1, 1, 0, 0, 0, 0], ignore_accuracy=True
         )
 
+    def test_count_if_on_numeric_attribute(self) -> None:
+        self.store_eap_items(
+            [
+                self.create_enrichment_attributes(
+                    {FRUSTRATION: 0.2}, timestamp=self.start + timedelta(minutes=1)
+                ),
+                self.create_enrichment_attributes(
+                    {FRUSTRATION: 0.8}, timestamp=self.start + timedelta(minutes=2)
+                ),
+                self.create_enrichment_attributes(
+                    {FRUSTRATION: 0.9}, timestamp=self.start + timedelta(hours=1, minutes=1)
+                ),
+            ]
+        )
+        matches = f"count_if(`tags[{FRUSTRATION},number]:>=0.8`)"
+        non_matches = f"count_if(`tags[{FRUSTRATION},number]:<0.8`)"
+
+        response = self._do_request(
+            data={
+                "start": self.start,
+                "end": self.end,
+                "interval": "1h",
+                "yAxis": [matches, non_matches],
+                "project": self.project.id,
+                "dataset": "enrichment_attributes",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["timeSeries"]) == 2
+        first, second = response.data["timeSeries"]
+        assert first["yAxis"] == matches
+        assert first["values"] == build_expected_timeseries(
+            self.start, 3_600_000, [1, 1, 0, 0, 0, 0], ignore_accuracy=True
+        )
+        assert first["meta"]["valueType"] == "integer"
+        assert second["yAxis"] == non_matches
+        assert second["values"] == build_expected_timeseries(
+            self.start, 3_600_000, [1, 0, 0, 0, 0, 0], ignore_accuracy=True
+        )
+
     def test_filter_on_environment(self) -> None:
         self.create_environment(project=self.project, name="production")
         self.store_eap_items(

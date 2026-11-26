@@ -5,7 +5,7 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
 
-export interface PasswordResetResult {
+interface PasswordResetResult {
   message: string;
   status: 'accepted';
 }

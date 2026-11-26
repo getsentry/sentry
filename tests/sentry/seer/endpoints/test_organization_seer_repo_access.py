@@ -95,13 +95,37 @@ class OrganizationSeerRepoAccessTest(APITestCase):
         assert response.status_code == 200
         assert response.data == {"status": "unknown", "connectedAccounts": []}
 
-    def test_repo_name_is_required(self) -> None:
+    def _get_without_repo(self) -> Response:
         self.login_as(self.user)
-        response = self.client.get(
+        response: Response = self.client.get(
             f"/api/0/organizations/{self.organization.slug}/seer/repo-access/"
         )
+        return response
 
-        assert response.status_code == 400
+    def test_without_repo_name_no_scm_integration(self) -> None:
+        response = self._get_without_repo()
+
+        assert response.status_code == 200
+        assert response.data == {"status": "no_scm_integration", "connectedAccounts": []}
+
+    def test_without_repo_name_found_once_source_control_is_connected(self) -> None:
+        # No repositories yet: connected is enough.
+        self._connect_github()
+
+        response = self._get_without_repo()
+
+        assert response.status_code == 200
+        assert response.data == {"status": "found", "connectedAccounts": []}
+
+    def test_without_repo_name_source_control_seer_cant_use_doesnt_count(self) -> None:
+        self.create_integration(
+            organization=self.organization, provider="bitbucket", external_id="bitbucket:1"
+        )
+
+        response = self._get_without_repo()
+
+        assert response.status_code == 200
+        assert response.data == {"status": "no_scm_integration", "connectedAccounts": []}
 
     def test_repo_name_too_long(self) -> None:
         response = self._get("a" * (REPOSITORY_NAME_LENGTH + 1))

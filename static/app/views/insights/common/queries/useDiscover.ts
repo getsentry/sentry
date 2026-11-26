@@ -14,7 +14,7 @@ import {
 } from './useSpansQuery';
 
 interface UseDiscoverQueryOptions {
-  additonalQueryKey?: string[];
+  additionalQueryKey?: readonly unknown[];
   refetchInterval?: number;
 }
 
@@ -112,7 +112,7 @@ const useDiscover = <T extends Array<Extract<keyof ResponseType, string>>, Respo
     noPagination,
     samplingMode,
     extrapolationMode,
-    additionalQueryKey: useQueryOptions?.additonalQueryKey,
+    additionalQueryKey: useQueryOptions?.additionalQueryKey,
     refetchInterval: useQueryOptions?.refetchInterval,
   });
 

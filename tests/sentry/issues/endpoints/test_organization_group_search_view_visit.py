@@ -146,8 +146,17 @@ class OrganizationGroupSearchViewVisitTest(GroupSearchViewAPITestCase):
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
 
     @with_feature("organizations:granular-permission-scopes")
-    def test_user_preference_write_can_record_visit(self) -> None:
-        self._use_token(["user_preference:write"])
+    def test_saved_query_read_can_record_visit(self) -> None:
+        self._use_token(["saved_query:read"])
+        response = self.client.post(self.url)
+        assert response.status_code == 204, response.content
+        assert GroupSearchViewLastVisited.objects.filter(
+            organization=self.organization, user_id=self.user.id, group_search_view=self.view
+        ).exists()
+
+    def test_org_read_can_record_visit(self) -> None:
+        # Same scopes as reading an issue view.
+        self._use_token(["org:read"])
         response = self.client.post(self.url)
         assert response.status_code == 204, response.content
         assert GroupSearchViewLastVisited.objects.filter(
@@ -155,6 +164,7 @@ class OrganizationGroupSearchViewVisitTest(GroupSearchViewAPITestCase):
         ).exists()
 
     @with_feature("organizations:granular-permission-scopes")
-    def test_user_preference_read_cannot_record_visit(self) -> None:
-        self._use_token(["user_preference:read"])
+    def test_saved_query_write_cannot_record_visit(self) -> None:
+        # Write does not imply read.
+        self._use_token(["saved_query:write", "user_preference:read", "user_preference:write"])
         assert self.client.post(self.url).status_code == 403

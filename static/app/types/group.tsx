@@ -656,6 +656,7 @@ export enum GroupActivityType {
   UNLINK_PLATFORM_EXTERNAL_ISSUE = 'unlink_platform_external_issue',
   IMPACT_ASSESSMENT = 'impact_assessment',
   INVESTIGATION_LINKED = 'investigation_linked',
+  INVESTIGATION_STARTED = 'investigation_started',
 }
 
 export const SEER_ACTIVITY_TYPES = new Set<GroupActivityType>([
@@ -1061,7 +1062,7 @@ interface GroupActivityUnlinkPlatformExternalIssue extends GroupActivityBase {
   type: GroupActivityType.UNLINK_PLATFORM_EXTERNAL_ISSUE;
 }
 
-type ImpactLevel = 'super_low' | 'low' | 'moderate' | 'high' | 'super_high';
+export type ImpactLevel = 'super_low' | 'low' | 'moderate' | 'high' | 'super_high';
 
 interface ImpactCitation {
   claim: string;
@@ -1069,7 +1070,7 @@ interface ImpactCitation {
   source: string;
 }
 
-interface ImpactAssessment {
+export interface ImpactAssessment {
   citations: ImpactCitation[];
   description: string;
   level: ImpactLevel | null;
@@ -1105,6 +1106,19 @@ export interface GroupActivityInvestigationLinked extends GroupActivityBase {
     reason: string | null;
   };
   type: GroupActivityType.INVESTIGATION_LINKED;
+}
+
+/**
+ * An investigation was started from this issue, by a user or a Seer automation.
+ */
+interface GroupActivityInvestigationStarted extends GroupActivityBase {
+  data: {
+    /**
+     * Null once the investigation is deleted.
+     */
+    investigation: LinkedInvestigation | null;
+  };
+  type: GroupActivityType.INVESTIGATION_STARTED;
 }
 
 export type GroupActivity =
@@ -1155,7 +1169,8 @@ export type GroupActivity =
   | GroupActivityPullRequestUnlinked
   | GroupActivityTriggerAutofix
   | GroupActivityImpactAssessment
-  | GroupActivityInvestigationLinked;
+  | GroupActivityInvestigationLinked
+  | GroupActivityInvestigationStarted;
 
 export type Activity = GroupActivity;
 

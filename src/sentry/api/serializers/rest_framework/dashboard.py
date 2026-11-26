@@ -697,16 +697,29 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
 
         return data
 
+    def _has_unified_tracemetrics_visualize_feature(self) -> bool:
+        return features.has(
+            "organizations:dashboards-trace-metrics-unified-visualize",
+            self.context["organization"],
+            actor=self.context["request"].user,
+        )
+
     def _validate_tracemetrics_constraints(self, data: dict[str, Any]) -> dict[str, Any]:
         if not data.get("widget_type") == DashboardWidgetTypes.TRACEMETRICS:
             return data
 
-        # Tracemetrics timeseries widgets only support a single equation per query
-        if data.get("display_type") in {
-            DashboardWidgetDisplayTypes.LINE_CHART,
-            DashboardWidgetDisplayTypes.AREA_CHART,
-            DashboardWidgetDisplayTypes.BAR_CHART,
-        }:
+        # The legacy builder shows a timeseries equation on its own, so it only
+        # supports a single equation per query. The unified list mixes metrics
+        # and equations, so the limit does not apply behind its feature.
+        if (
+            data.get("display_type")
+            in {
+                DashboardWidgetDisplayTypes.LINE_CHART,
+                DashboardWidgetDisplayTypes.AREA_CHART,
+                DashboardWidgetDisplayTypes.BAR_CHART,
+            }
+            and not self._has_unified_tracemetrics_visualize_feature()
+        ):
             for query in data.get("queries") or []:
                 aggregates = query.get("aggregates") or []
                 if any(is_equation(aggregate) for aggregate in aggregates) and len(aggregates) > 1:

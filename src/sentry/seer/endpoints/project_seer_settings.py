@@ -36,6 +36,7 @@ from sentry.models.projectrepository import ProjectRepository
 from sentry.projectoptions.defaults import SEER_PROJECT_PREFERENCE_OPTION_KEYS
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.autofix.issue_summary import STOPPING_POINT_HIERARCHY
+from sentry.seer.autofix.open_prs import get_open_prs
 from sentry.seer.autofix.pr_iteration.project_setting import (
     get_pr_iteration_setting,
     get_pr_iteration_settings,
@@ -77,6 +78,7 @@ parse_search_query = partial(base_parse_search_query, config=search_config)
 class SeerProjectSettings(TypedDict):
     automation_tuning: str
     handoff: SeerAutomationHandoffConfiguration | None
+    open_prs: bool
     pr_iteration: bool
     repo_providers: list[str]
     repos_count: int
@@ -94,6 +96,7 @@ class SeerProjectSettingsResponse(TypedDict):
     automationTuning: str
     scannerAutomation: bool
     prIteration: bool
+    openPrs: bool
     reposCount: int
     repoProviders: list[str]
 
@@ -163,6 +166,7 @@ def _get_project_settings(project: Project) -> SeerProjectSettings:
         stopping_point=project.get_option("sentry:seer_automated_run_stopping_point"),
         handoff=get_automation_handoff(project.get_option),
         pr_iteration=get_pr_iteration_setting(project),
+        open_prs=get_open_prs(project.get_option),
         repo_providers=repo_stats.repo_providers.get(project.id, []),
         repos_count=repo_stats.repos_count.get(project.id, 0),
     )
@@ -199,6 +203,7 @@ def _bulk_get_project_settings(
             stopping_point=_get_option("sentry:seer_automated_run_stopping_point"),
             handoff=get_automation_handoff(_get_option),
             pr_iteration=pr_iteration_by_project_id[project.id],
+            open_prs=get_open_prs(_get_option),
             repo_providers=repo_stats.repo_providers.get(project.id, []),
             repos_count=repo_stats.repos_count.get(project.id, 0),
         )
@@ -238,6 +243,7 @@ def _serialize(project: Project, settings: SeerProjectSettings) -> SeerProjectSe
         automationTuning=settings["automation_tuning"],
         scannerAutomation=settings["scanner_automation"],
         prIteration=settings["pr_iteration"],
+        openPrs=settings["open_prs"],
         reposCount=settings["repos_count"],
         repoProviders=settings["repo_providers"],
     )
@@ -403,6 +409,7 @@ class _BaseProjectSettingsUpdateSerializer(CamelSnakeSerializer[dict[str, Any]])
         choices=[*AutofixAutomationTuningSettings], required=False
     )
     pr_iteration = serializers.BooleanField(required=False)
+    open_prs = serializers.BooleanField(required=False)
 
     def _update_fields(self) -> set[str]:
         return {
@@ -411,6 +418,7 @@ class _BaseProjectSettingsUpdateSerializer(CamelSnakeSerializer[dict[str, Any]])
             "scanner_automation",
             "automation_tuning",
             "pr_iteration",
+            "open_prs",
         }
 
     def validate_integration_id(self, value: int) -> int:

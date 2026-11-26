@@ -142,7 +142,7 @@ def merge_attributes_across_datasets(
     return list(merged.values())
 
 
-def list_merged_attributes(
+def list_attributes_by_dataset(
     endpoint: OrganizationTraceItemAttributesEndpoint,
     request: Request,
     organization: Organization,
@@ -151,11 +151,7 @@ def list_merged_attributes(
     attribute_types: Collection[str] | None,
     substring_match: str,
     include_context: bool,
-) -> list[MergedTraceItemAttribute]:
-    """
-    Each dataset's attributes are fetched in full and merged, since per-dataset
-    cursors can't be combined into a single ordering.
-    """
+) -> dict[str, list[TraceItemAttributeKey]]:
     selected_datasets = [
         dataset for dataset in MERGEABLE_DATASETS if not datasets or dataset in datasets
     ]
@@ -239,7 +235,35 @@ def list_merged_attributes(
                 attributes, organization, SupportedTraceItemType(dataset), project_ids
             )
 
-    return merge_attributes_across_datasets(attributes_by_dataset)
+    return attributes_by_dataset
+
+
+def list_merged_attributes(
+    endpoint: OrganizationTraceItemAttributesEndpoint,
+    request: Request,
+    organization: Organization,
+    snuba_params: SnubaParams,
+    datasets: Collection[str] | None,
+    attribute_types: Collection[str] | None,
+    substring_match: str,
+    include_context: bool,
+) -> list[MergedTraceItemAttribute]:
+    """
+    Each dataset's attributes are fetched in full and merged, since per-dataset
+    cursors can't be combined into a single ordering.
+    """
+    return merge_attributes_across_datasets(
+        list_attributes_by_dataset(
+            endpoint,
+            request,
+            organization,
+            snuba_params,
+            datasets,
+            attribute_types,
+            substring_match,
+            include_context,
+        )
+    )
 
 
 @cell_silo_endpoint

@@ -854,7 +854,9 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
           ) : props.tree.type === 'error' ? (
             <TraceWaterfallState.Error trace={props.trace} />
           ) : props.tree.type === 'empty' ? (
-            <TraceWaterfallState.Empty />
+            <TraceWaterfallState.Empty
+              showCrossEventHelp={props.source === 'performance'}
+            />
           ) : null}
 
           <TraceDrawer

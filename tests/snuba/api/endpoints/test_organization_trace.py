@@ -485,6 +485,26 @@ class OrganizationEventsTraceEndpointTest(
         assert error_event_2["event_id"] in [error.event_id, error_2.event_id]
         assert error_event_1["event_id"] != error_event_2["event_id"]
 
+    @mock.patch.object(Spans, "run_trace_query", return_value=[])
+    def test_referrer_kept_when_client_supplies_valid_referrer(
+        self, mock_run_trace_query: MagicMock
+    ) -> None:
+        with self.feature(self.FEATURES):
+            response = self.client_get(data={"referrer": "api.trace-view.span-detail"})
+
+        assert response.status_code == 200, response.content
+        assert mock_run_trace_query.call_args.kwargs["referrer"] == "api.trace-view.span-detail"
+
+    @mock.patch.object(Spans, "run_trace_query", return_value=[])
+    def test_referrer_defaulted_when_client_supplies_server_only_referrer(
+        self, mock_run_trace_query: MagicMock
+    ) -> None:
+        with self.feature(self.FEATURES):
+            response = self.client_get(data={"referrer": "subscriptions_executor"})
+
+        assert response.status_code == 200, response.content
+        assert mock_run_trace_query.call_args.kwargs["referrer"] == "api.trace-view.get-events"
+
     @mock.patch("sentry.snuba.trace.metrics")
     def test_emits_metric_for_error_on_ok_span(self, mock_metrics: MagicMock) -> None:
         self.load_trace()

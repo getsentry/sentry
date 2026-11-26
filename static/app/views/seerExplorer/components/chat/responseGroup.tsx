@@ -7,8 +7,9 @@ import {Container} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
-import {STOPPED_CHAT_MESSAGE} from 'sentry/components/seer/outOfCredits/messages';
+import {getStoppedChatMessage} from 'sentry/components/seer/outOfCredits/messages';
 import {t} from 'sentry/locale';
+import type {SeerCreditDenialReason} from 'sentry/utils/seer/useSeerCreditCheck';
 import {callRecordLabel, visibleCallRecords} from 'sentry/views/seerExplorer/callRecords';
 import {
   isSeerErrorBlock,
@@ -140,6 +141,8 @@ export function deriveThinkingTitle(group: Block[]): string {
 interface ResponseGroupProps {
   blockIndex: number;
   group: Block[];
+  /** Why billing refused credit, when `outOfCredits` is set. */
+  creditDenialReason?: SeerCreditDenialReason | null;
   /** When the response ended, for one that ended without a settled answer. */
   endedAt?: string;
   getPageReferrer?: () => string;
@@ -184,6 +187,7 @@ function areResponseGroupPropsEqual(prev: ResponseGroupProps, next: ResponseGrou
 export const ResponseGroup = memo(function ResponseGroup({
   group,
   blockIndex,
+  creditDenialReason,
   latestTodos,
   getPageReferrer,
   interactionPending,
@@ -288,7 +292,9 @@ export const ResponseGroup = memo(function ResponseGroup({
             compact={hasTrace}
           />
         ) : null}
-        {showOutOfCredits ? <OutOfCreditsMessage compact={hasTrace} /> : null}
+        {showOutOfCredits ? (
+          <OutOfCreditsMessage compact={hasTrace} denialReason={creditDenialReason} />
+        ) : null}
       </motion.div>
     </Container>
   );
@@ -298,11 +304,17 @@ export const ResponseGroup = memo(function ResponseGroup({
  * Why the run stopped. The out-of-credits alert above the composer offers the
  * way out, so this has no CTA of its own.
  */
-function OutOfCreditsMessage({compact}: {compact: boolean}) {
+function OutOfCreditsMessage({
+  compact,
+  denialReason,
+}: {
+  compact: boolean;
+  denialReason?: SeerCreditDenialReason | null;
+}) {
   return (
     <MessageRow from="assistant" density={compact ? 'compact' : undefined}>
       <AssistantMessage>
-        <Text variant="muted">{STOPPED_CHAT_MESSAGE}</Text>
+        <Text variant="muted">{getStoppedChatMessage(denialReason)}</Text>
       </AssistantMessage>
     </MessageRow>
   );

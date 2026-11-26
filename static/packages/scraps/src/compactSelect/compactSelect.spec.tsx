@@ -3,7 +3,7 @@ import {Fragment, useRef, useState} from 'react';
 import {ThemeProvider} from '@emotion/react';
 import {mergeProps, mergeRefs} from '@react-aria/utils';
 import {IconEllipsis} from '@sentry/icons/ellipsis';
-import {act, render, screen, waitFor} from '@testing-library/react';
+import {act, render, screen, waitFor, within} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {expectTypeOf} from 'expect-type';
 
@@ -708,6 +708,94 @@ describe('CompactSelect', () => {
 
       expect(screen.getByRole('listbox')).toHaveFocus();
       expect(onChange).not.toHaveBeenCalled();
+    });
+
+    describe('virtualized sections', () => {
+      // jsdom does not lay out. Give elements a height so the list has a
+      // viewport smaller than its content.
+      const stubs: Array<[typeof Element.prototype, string, PropertyDescriptor]> = [
+        [HTMLElement.prototype, 'offsetHeight', {get: () => 100}],
+        [Element.prototype, 'clientHeight', {get: () => 100}],
+        [Element.prototype, 'scrollHeight', {get: () => 50_000}],
+      ];
+      const originals = stubs.map(
+        ([target, name]) =>
+          [target, name, Object.getOwnPropertyDescriptor(target, name)] as const
+      );
+
+      beforeEach(() => {
+        for (const [target, name, descriptor] of stubs) {
+          Object.defineProperty(target, name, {configurable: true, ...descriptor});
+        }
+      });
+
+      afterEach(() => {
+        for (const [target, name, descriptor] of originals) {
+          if (descriptor) {
+            Object.defineProperty(target, name, descriptor);
+          } else {
+            Reflect.deleteProperty(target, name);
+          }
+        }
+      });
+
+      it('renders only the options near the viewport inside their section', async () => {
+        render(
+          <CompactSelect
+            options={['A', 'B'].map(section => ({
+              key: section,
+              label: `Section ${section}`,
+              options: Array.from({length: 200}, (_, index) => ({
+                value: `${section}-${index}`,
+                label: `${section} option ${index}`,
+              })),
+            }))}
+            value={undefined}
+            onChange={jest.fn()}
+          />,
+          {wrapper: ThemeWrapper}
+        );
+
+        await userEvent.click(screen.getByRole('button'));
+
+        const sectionA = await screen.findByRole('group', {name: 'Section A'});
+        expect(
+          within(sectionA).getByRole('option', {name: 'A option 0'})
+        ).toBeInTheDocument();
+        expect(screen.getAllByRole('option').length).toBeLessThan(400);
+        expect(
+          screen.queryByRole('option', {name: 'B option 199'})
+        ).not.toBeInTheDocument();
+      });
+
+      it('renders only the rows near the viewport inside their section in grid mode', async () => {
+        render(
+          <CompactSelect
+            mode="grid"
+            multiple
+            options={['A', 'B'].map(section => ({
+              key: section,
+              label: `Section ${section}`,
+              options: Array.from({length: 200}, (_, index) => ({
+                value: `${section}-${index}`,
+                label: `${section} option ${index}`,
+              })),
+            }))}
+            value={[]}
+            onChange={jest.fn()}
+          />,
+          {wrapper: ThemeWrapper}
+        );
+
+        await userEvent.click(screen.getByRole('button'));
+
+        const sectionA = await screen.findByRole('rowgroup', {name: 'Section A'});
+        expect(
+          within(sectionA).getByRole('row', {name: 'A option 0'})
+        ).toBeInTheDocument();
+        expect(screen.getAllByRole('row').length).toBeLessThan(400);
+        expect(screen.queryByRole('row', {name: 'B option 199'})).not.toBeInTheDocument();
+      });
     });
 
     it('does not count disabled options as selectable', async () => {

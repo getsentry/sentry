@@ -1,3 +1,4 @@
+import {isAndroidAnrMechanism} from 'sentry/components/events/interfaces/utils';
 import {t} from 'sentry/locale';
 import type {Event, Frame} from 'sentry/types/event';
 import {EventOrGroupType} from 'sentry/types/event';
@@ -97,12 +98,11 @@ export function getLeadHint({
 
 function isAnrEvent(event: Event) {
   const mechanismTag = event.tags?.find(({key}) => key === 'mechanism')?.value;
-  const isANR =
-    mechanismTag === 'ANR' ||
-    mechanismTag === 'AppExitInfo' ||
+  return (
+    isAndroidAnrMechanism(mechanismTag) ||
     mechanismTag === 'AppHang' ||
-    mechanismTag === 'mx_hang_diagnostic';
-  return isANR;
+    mechanismTag === 'mx_hang_diagnostic'
+  );
 }
 
 export function hasFileExtension(filepath: string) {

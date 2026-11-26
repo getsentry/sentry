@@ -17,6 +17,10 @@ class InvestigationsConfig(AppConfig):
         for kind in (UpdateDetectorKind(), ConnectTelemetryKind()):
             register_action_kind(kind)
         producer = OrchestrationProducer()
-        # The engine runs manual prompts as well as metric open periods.
-        for source_type in (NotebookSourceType.MANUAL, NotebookSourceType.METRIC_OPEN_PERIOD):
+        # The engine runs manual prompts, detector occurrences, and metric open periods.
+        for source_type in (
+            NotebookSourceType.MANUAL,
+            NotebookSourceType.DETECTOR,
+            NotebookSourceType.METRIC_OPEN_PERIOD,
+        ):
             register_producer(source_type, producer)

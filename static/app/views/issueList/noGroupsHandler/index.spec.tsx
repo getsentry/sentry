@@ -99,15 +99,28 @@ describe('NoGroupsHandler', () => {
     expect(projects).toHaveBeenCalled();
   });
 
-  it('checks first events across all projects when all projects are selected', async () => {
+  it('checks first events across all accessible projects when all projects are selected', async () => {
     const sentFirstEvent = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sent-first-event/',
       body: {sentFirstEvent: true},
+      match: [MockApiClient.matchQuery({project: [ALL_ACCESS_PROJECTS]})],
     });
 
     render(
       <NoGroupsHandler {...defaultProps} selectedProjectIds={[ALL_ACCESS_PROJECTS]} />
     );
+
+    expect(await screen.findByText('No issues match your search')).toBeInTheDocument();
+    expect(sentFirstEvent).toHaveBeenCalled();
+  });
+
+  it('checks first events for member projects when my projects is selected', async () => {
+    const sentFirstEvent = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sent-first-event/',
+      body: {sentFirstEvent: true},
+    });
+
+    render(<NoGroupsHandler {...defaultProps} selectedProjectIds={[]} />);
 
     expect(await screen.findByText('No issues match your search')).toBeInTheDocument();
     expect(sentFirstEvent).toHaveBeenCalledWith(

@@ -21,6 +21,7 @@ import {SpanFields} from 'sentry/views/insights/types';
 export interface UseSpanSearchQueryBuilderProps {
   initialQuery: string;
   searchSource: string;
+  attributeKeyQuery?: string;
   autoFocus?: boolean;
   caseInsensitive?: CaseInsensitive;
   datetime?: PageFilterDatetime;
@@ -61,13 +62,13 @@ export function useSpanSearchQueryBuilderProps(props: UseSpanSearchQueryBuilderP
   spanSearchQueryBuilderProviderProps: UseTraceItemSearchQueryBuilderPropsReturnType;
 } {
   const {attributes: spanBooleanAttributes, secondaryAliases: booleanSecondaryAliases} =
-    useSpanItemAttributes({}, 'boolean');
+    useSpanItemAttributes({query: props.attributeKeyQuery}, 'boolean');
   const {attributes: spanNumberAttributes, secondaryAliases: numberSecondaryAliases} =
-    useSpanItemAttributes({}, 'number');
+    useSpanItemAttributes({query: props.attributeKeyQuery}, 'number');
   const {attributes: spanStringAttributes, secondaryAliases: stringSecondaryAliases} =
-    useSpanItemAttributes({}, 'string');
+    useSpanItemAttributes({query: props.attributeKeyQuery}, 'string');
   const {attributes: spansArrayAttributes, secondaryAliases: arraySecondaryAliases} =
-    useSpanItemAttributes({}, 'array');
+    useSpanItemAttributes({query: props.attributeKeyQuery}, 'array');
   const organization = useOrganization();
   const supportsArrays = organization.features.includes('trace-item-array-query-support');
 

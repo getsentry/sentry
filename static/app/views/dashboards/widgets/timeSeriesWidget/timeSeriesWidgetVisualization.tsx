@@ -1,6 +1,7 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import {mergeRefs} from '@react-aria/utils';
+import {IconWarning} from '@sentry/icons/warning';
 import * as Sentry from '@sentry/react';
 import type {SeriesOption, XAXisComponentOption, YAXisComponentOption} from 'echarts';
 import type {
@@ -11,8 +12,11 @@ import sum from 'lodash/sum';
 import unescape from 'lodash/unescape';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {useRenderToString} from '@sentry/scraps/renderToString';
+import {Text} from '@sentry/scraps/text';
 
 import type {AnnotationItem} from 'sentry/components/charts/annotations/types';
+import {useBarsPerAnnotationBucket} from 'sentry/components/charts/bands/annotationBucketSize';
 import {BAND_Y_AXIS, type BandBucket} from 'sentry/components/charts/bands/bandShapes';
 import {useBandTooltips} from 'sentry/components/charts/bands/bandTooltip';
 import {mergeChartBands} from 'sentry/components/charts/bands/mergeChartBands';
@@ -46,7 +50,6 @@ import {getUserTimezone} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
 import {RangeMap, type Range} from 'sentry/utils/number/rangeMap';
 import {mergeTimeRanges} from 'sentry/utils/timeSeries/mergeTimeRanges';
-import type {TimeSeriesSegmentField} from 'sentry/utils/timeSeries/segmentTimeSeriesByDisplayStyle';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useWidgetSyncContext} from 'sentry/views/dashboards/contexts/widgetSyncContext';
@@ -227,10 +230,6 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   // have the same difference in `timestamp`s) even though this is rare, since
   // the backend zerofills the data
 
-  const segmentBy: readonly TimeSeriesSegmentField[] = props.showConfidence
-    ? ['completeness', 'confidence']
-    : ['completeness'];
-
   const chartRef = useRef<ReactEchartsRef | null>(null);
   const connectChartRef = useCallback((e: ReactEchartsRef | null) => {
     chartRef.current = e;
@@ -249,6 +248,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     props.pageFilters?.datetime || pageFilters.selection.datetime;
 
   const theme = useTheme();
+  const renderToString = useRenderToString();
   const navigate = useNavigate();
   const location = useLocation();
   const hasReleaseBubbles =
@@ -443,16 +443,44 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
         const fieldType = correspondingPlottable?.dataType ?? FALLBACK_TYPE;
 
-        const formattedValue = escape(
-          formatTooltipValue(value, fieldType, unitForType[fieldType] ?? undefined)
+        const formattedValue = formatTooltipValue(
+          value,
+          fieldType,
+          unitForType[fieldType] ?? undefined
         );
 
-        if (isLowConfidenceDataPoint(valueFormatterParams.data)) {
-          return `${formattedValue} <span style="color: ${theme.tokens.content.warning}">${escape(t('(Low confidence)'))}</span>`;
+        if (props.showConfidence && isLowConfidenceDataPoint(valueFormatterParams.data)) {
+          return renderToString(
+            // Trimming the text box, or laying the icon out in a flex row, moves
+            // the value's baseline and makes the row taller than its neighbours
+            <Text variant="inherit" wrap="nowrap" trim={false}>
+              <IconWarning size="xs" aria-hidden style={{verticalAlign: '-0.125em'}} />{' '}
+              {formattedValue}
+            </Text>
+          );
         }
 
-        return formattedValue;
+        return escape(formattedValue);
       },
+      renderHeader: seriesParams =>
+        props.showConfidence &&
+        seriesParams.some(param => isLowConfidenceDataPoint(param.data))
+          ? renderToString(
+              <Flex
+                className="tooltip-header"
+                align="center"
+                gap="sm"
+                background="secondary"
+                borderBottom="secondary"
+                padding="md xl"
+              >
+                <IconWarning size="xs" variant="muted" aria-hidden />
+                <Text size="sm" variant="muted">
+                  {t('Low confidence')}
+                </Text>
+              </Flex>
+            )
+          : '',
       renderSeriesDetails: props.renderTooltipSeriesDetails,
       limit: props.tooltipLimit,
       truncate: false,
@@ -516,8 +544,14 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     () => (hasAnnotations ? getBandBuckets(props.plottables) : []),
     [hasAnnotations, props.plottables]
   );
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+  const barsPerAnnotationBucket = useBarsPerAnnotationBucket(
+    chartContainerRef,
+    bandBuckets.length
+  );
   const annotationBand = useAnnotationBand({
     buckets: bandBuckets,
+    barsPerBucket: barsPerAnnotationBucket,
     items: props.annotations,
     onClick: props.onAnnotationClick,
   });
@@ -660,7 +694,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   const thresholdMaxOffset = 10;
 
-  const lowConfidenceAreas = segmentBy.includes('confidence')
+  const lowConfidenceAreas = props.showConfidence
     ? new HatchAreas(
         mergeTimeRanges(
           props.plottables
@@ -675,6 +709,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         {
           name: LOW_CONFIDENCE_AREAS_NAME,
           color: theme.tokens.background.tertiary,
+          fadeColor: theme.tokens.background.primary,
           // The first plottable's type always gets the left axis
           dataType: props.plottables[0]?.dataType ?? FALLBACK_TYPE,
         }
@@ -719,7 +754,6 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       color,
       yAxisPosition: getYAxisPosition(plottable),
       unit: unitForType[plottable.dataType ?? FALLBACK_TYPE],
-      segmentBy,
       theme,
       maxOffset: thresholdMaxOffset,
       bounds: dataBounds,
@@ -875,7 +909,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       ) : (
         legend
       )}
-      <Container flex="1 1 0%" minHeight="0">
+      <Container ref={chartContainerRef} flex="1 1 0%" minHeight="0">
         <BaseChart
           ref={mergedChartRef}
           autoHeightResize

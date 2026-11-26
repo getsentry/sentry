@@ -39,8 +39,13 @@ jest.mock('sentry/stories/storyManifest.generated', () => ({
 
 describe('StorySearch', () => {
   beforeEach(() => {
-    // jsdom has no layout; give the real virtualized list a visible viewport.
-    jest.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(320);
+    // jsdom has no layout; give the real virtualized list a visible viewport
+    // that fits several rows.
+    jest.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockImplementation(function (
+      this: HTMLElement
+    ) {
+      return this.hasAttribute('data-index') ? 32 : 320;
+    });
     jest.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(320);
   });
   it('finds a nested component and navigates to its section by keyboard', async () => {

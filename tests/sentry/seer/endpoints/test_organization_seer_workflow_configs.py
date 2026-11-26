@@ -27,6 +27,7 @@ from sentry.seer.models.workflow import (
     SeerWorkflowConfig,
     SeerWorkflowConfigProject,
     SeerWorkflowRun,
+    SeerWorkflowRunSource,
     SeerWorkflowRunStatus,
     SeerWorkflowStrategy,
 )
@@ -54,6 +55,7 @@ from sentry.utils import json
 from sentry.workflow_engine.models import Detector, DetectorWorkflow, Workflow
 
 GRANT = SeerServiceAccountGrant(scopes=["event:read"])
+PROMPT = {"prompt": "Check checkout latency"}
 
 
 @override_settings(SENTRY_SELF_HOSTED=False)
@@ -124,6 +126,7 @@ class OrganizationSeerWorkflowConfigsTest(APITestCase):
             "filters": {"minEventCount": 10},
             "outputPolicy": {"review_mode": "manual"},
             "seededDefault": "scheduled_investigation",
+            "actionSettings": {},
             "nextRunAt": None,
             "dateAdded": config.date_added,
             "dateUpdated": config.date_updated,
@@ -284,7 +287,7 @@ class OrganizationSeerWorkflowConfigsTest(APITestCase):
                 configs, accessible_project_ids=[project_id], has_global_access=True
             )
 
-        assert len(queries) == 3
+        assert len(queries) == 4
         assert [config["dateLastRun"] for config in result["configs"]] == [
             run.date_added for run in runs
         ]
@@ -504,6 +507,29 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         assert response.data["environments"] == []
         config.refresh_from_db()
         assert config.filters["environments"] == []
+
+    def test_put_replaces_prompt(self) -> None:
+        config = self.create_config()
+        Factories.create_seer_workflow_config_project(config, self.project)
+
+        response = self.get_success_response(
+            self.organization.slug,
+            config.id,
+            method="put",
+            actionSettings={"prompt": "Check checkout latency"},
+        )
+
+        assert response.data["actionSettings"] == {"prompt": "Check checkout latency"}
+        workflow = SeerWorkflow(config_id=config.id, organization_id=config.organization_id)
+        assert workflow.action_settings == response.data["actionSettings"]
+
+        self.get_error_response(
+            self.organization.slug,
+            config.id,
+            method="put",
+            actionSettings={"prompt": "Check checkout latency", "skill": "agentic_triage"},
+            status_code=400,
+        )
 
     def test_put_sets_updated_by(self) -> None:
         config = self.create_config()
@@ -1289,6 +1315,72 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
 
 @override_settings(SENTRY_SELF_HOSTED=False)
 @with_feature("organizations:seer-automations")
+class OrganizationSeerWorkflowManualRunTest(APITestCase):
+    endpoint = "sentry-api-0-organization-seer-workflow-manual-run"
+    method = "post"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(user=self.user)
+        self.config = Factories.create_seer_workflow_config(
+            self.organization, strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION
+        )
+        Factories.create_seer_workflow_config_project(self.config, self.project)
+        self.workflow = SeerWorkflow(config_id=self.config.id, organization_id=self.organization.id)
+        with self.workflow.update_config() as update:
+            update.set_enabled(True)
+
+    def test_starts_a_manual_run_as_the_caller(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug, configId=self.config.id, status_code=201
+        )
+
+        run = self.workflow.get_runs().get()
+        assert response.data == {"runId": str(run.id)}
+        assert run.source == SeerWorkflowRunSource.MANUAL
+        assert run.status == SeerWorkflowRunStatus.COMPLETE
+        assert run.extras["snapshot"]["inputs"] == {"source": "manual", "user_id": self.user.id}
+
+    def test_disabled_config_returns_400(self) -> None:
+        with self.workflow.update_config() as update:
+            update.set_enabled(False)
+
+        self.get_error_response(self.organization.slug, configId=self.config.id, status_code=400)
+
+        assert not self.workflow.get_runs().exists()
+
+    def test_unavailable_config_returns_404(self) -> None:
+        metric = Factories.create_seer_workflow_config(
+            self.organization, strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
+        )
+        foreign = Factories.create_seer_workflow_config(
+            self.create_organization(owner=self.user),
+            strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION,
+        )
+        for config_id in (metric.id, foreign.id, I64_MAX):
+            self.get_error_response(self.organization.slug, configId=config_id, status_code=404)
+
+    def test_config_id_out_of_range_returns_400(self) -> None:
+        self.get_error_response(self.organization.slug, configId=I64_MAX + 1, status_code=400)
+
+    def test_member_without_access_to_every_project_cannot_run(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        team = self.create_team(organization=self.organization)
+        member = self.create_user()
+        self.create_member(organization=self.organization, user=member, role="member", teams=[team])
+        Factories.create_seer_workflow_config_project(
+            self.config, self.create_project(teams=[team])
+        )
+        self.login_as(member)
+
+        self.get_error_response(self.organization.slug, configId=self.config.id, status_code=403)
+
+        assert not self.workflow.get_runs().exists()
+
+
+@override_settings(SENTRY_SELF_HOSTED=False)
+@with_feature("organizations:seer-automations")
 @with_feature("organizations:service-accounts")
 class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
     endpoint = "sentry-api-0-organization-seer-workflow-configs"
@@ -1305,13 +1397,19 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
     def test_feature_disabled_returns_404(self) -> None:
         with self.feature({"organizations:seer-automations": False}):
             self.get_error_response(
-                self.organization.slug, strategy="scheduled_investigation", status_code=404
+                self.organization.slug,
+                strategy="scheduled_investigation",
+                actionSettings=PROMPT,
+                status_code=404,
             )
         assert not SeerWorkflowConfig.objects.filter(organization=self.organization).exists()
 
     def test_creates_config_with_defaults(self) -> None:
         response = self.get_success_response(
-            self.organization.slug, strategy="scheduled_investigation", status_code=201
+            self.organization.slug,
+            strategy="scheduled_investigation",
+            actionSettings=PROMPT,
+            status_code=201,
         )
 
         config = SeerWorkflowConfig.objects.get(organization=self.organization)
@@ -1333,6 +1431,7 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
             "filters": {},
             "outputPolicy": {},
             "seededDefault": None,
+            "actionSettings": PROMPT,
             "nextRunAt": None,
             "dateAdded": config.date_added,
             "dateUpdated": config.date_updated,
@@ -1347,7 +1446,10 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
     )
     def test_create_by_non_user_omits_created_by(self, _: MagicMock) -> None:
         response = self.get_success_response(
-            self.organization.slug, strategy="scheduled_investigation", status_code=201
+            self.organization.slug,
+            strategy="scheduled_investigation",
+            actionSettings=PROMPT,
+            status_code=201,
         )
 
         assert "createdBy" not in response.data
@@ -1385,6 +1487,7 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
         response = self.get_success_response(
             self.organization.slug,
             strategy="scheduled_investigation",
+            actionSettings=PROMPT,
             projectIds=[self.project.id],
             serviceAccount={"scopes": ["event:read"], "allProjects": True},
             status_code=201,
@@ -1411,6 +1514,7 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
             self.get_error_response(
                 self.organization.slug,
                 strategy="scheduled_investigation",
+                actionSettings=PROMPT,
                 serviceAccount={"scopes": ["event:read"]},
                 status_code=400,
             )
@@ -1423,6 +1527,7 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
         response = self.get_success_response(
             self.organization.slug,
             strategy="scheduled_investigation",
+            actionSettings=PROMPT,
             serviceAccount={
                 "scopes": ["project:read", "event:read", "event:read"],
                 "projectIds": [self.project.id, self.project.id],
@@ -1445,7 +1550,11 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
 
         lacks_scope = self.client.post(
             url,
-            {"strategy": "scheduled_investigation", "serviceAccount": {"scopes": ["org:admin"]}},
+            {
+                "strategy": "scheduled_investigation",
+                "actionSettings": PROMPT,
+                "serviceAccount": {"scopes": ["org:admin"]},
+            },
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {token.token}",
         )
@@ -1453,6 +1562,7 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
             url,
             {
                 "strategy": "scheduled_investigation",
+                "actionSettings": PROMPT,
                 "serviceAccount": {"scopes": ["event:read"], "allProjects": True},
             },
             format="json",
@@ -1474,7 +1584,10 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
     def test_requires_service_accounts_feature(self) -> None:
         with self.feature({"organizations:service-accounts": False}):
             self.get_error_response(
-                self.organization.slug, strategy="scheduled_investigation", status_code=404
+                self.organization.slug,
+                strategy="scheduled_investigation",
+                actionSettings=PROMPT,
+                status_code=404,
             )
         assert not SeerWorkflowConfig.objects.filter(organization=self.organization).exists()
 
@@ -1484,6 +1597,7 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
         response = self.get_success_response(
             self.organization.slug,
             strategy="scheduled_investigation",
+            actionSettings=PROMPT,
             enabled=True,
             environments=["production"],
             projectIds=[self.project.id, other.id, other.id],
@@ -1496,10 +1610,38 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
         assert sorted(response.data["projects"]) == sorted([self.project.id, other.id])
         assert self.selected_project_ids(config) == sorted([self.project.id, other.id])
 
+    def test_creates_scheduled_investigation_with_prompt(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug,
+            strategy="scheduled_investigation",
+            projectIds=[self.project.id],
+            actionSettings={"prompt": "Check checkout latency"},
+            status_code=201,
+        )
+
+        assert response.data["actionSettings"] == {"prompt": "Check checkout latency"}
+
+    def test_scheduled_investigation_requires_a_prompt_or_a_skill(self) -> None:
+        invalid: list[dict[str, Any]] = [
+            {},
+            {"actionSettings": {}},
+            {"actionSettings": {**PROMPT, "skill": "agentic_triage"}},
+        ]
+        for settings in invalid:
+            self.get_error_response(
+                self.organization.slug,
+                strategy="scheduled_investigation",
+                projectIds=[self.project.id],
+                status_code=400,
+                **settings,
+            )
+        assert not SeerWorkflowConfig.objects.filter(organization=self.organization).exists()
+
     def test_all_projects(self) -> None:
         response = self.get_success_response(
             self.organization.slug,
             strategy="scheduled_investigation",
+            actionSettings=PROMPT,
             projectIds=[-1],
             status_code=201,
         )
@@ -1515,6 +1657,7 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
             self.get_error_response(
                 self.organization.slug,
                 strategy="scheduled_investigation",
+                actionSettings=PROMPT,
                 projectIds=[self.project.id, project_id],
                 status_code=403,
             )
@@ -1527,6 +1670,7 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
             self.get_error_response(
                 self.organization.slug,
                 strategy="scheduled_investigation",
+                actionSettings=PROMPT,
                 projectIds=[self.project.id, project.id],
                 status_code=403,
             )
@@ -1545,6 +1689,7 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
         self.get_error_response(
             self.organization.slug,
             strategy="scheduled_investigation",
+            actionSettings=PROMPT,
             projectIds=[accessible.id, hidden.id],
             status_code=403,
         )
@@ -1552,6 +1697,7 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
         response = self.get_error_response(
             self.organization.slug,
             strategy="scheduled_investigation",
+            actionSettings=PROMPT,
             projectIds=[-1],
             status_code=403,
         )
@@ -1561,6 +1707,7 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
         response = self.get_success_response(
             self.organization.slug,
             strategy="scheduled_investigation",
+            actionSettings=PROMPT,
             projectIds=[accessible.id],
             status_code=201,
         )
@@ -1573,6 +1720,7 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
         response = self.get_success_response(
             self.organization.slug,
             strategy="scheduled_investigation",
+            actionSettings=PROMPT,
             projectIds=[-1],
             status_code=201,
         )
@@ -1591,7 +1739,10 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
         )
 
         response = self.get_error_response(
-            self.organization.slug, strategy="scheduled_investigation", status_code=400
+            self.organization.slug,
+            strategy="scheduled_investigation",
+            actionSettings=PROMPT,
+            status_code=400,
         )
 
         assert response.data["detail"] == "Couldn't create the automation."
@@ -1609,6 +1760,7 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
         response = self.get_error_response(
             self.organization.slug,
             strategy="scheduled_investigation",
+            actionSettings=PROMPT,
             monitorIds=[monitor.id],
             status_code=400,
         )
@@ -1728,10 +1880,16 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
     def test_rate_limits_creation(self) -> None:
         for _ in range(5):
             self.get_success_response(
-                self.organization.slug, strategy="scheduled_investigation", status_code=201
+                self.organization.slug,
+                strategy="scheduled_investigation",
+                actionSettings=PROMPT,
+                status_code=201,
             )
         self.get_error_response(
-            self.organization.slug, strategy="scheduled_investigation", status_code=429
+            self.organization.slug,
+            strategy="scheduled_investigation",
+            actionSettings=PROMPT,
+            status_code=429,
         )
 
     def create_metric_monitor(self, project: Project) -> Detector:

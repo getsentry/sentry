@@ -113,6 +113,13 @@ export type ProjectCreationEventParameters = {
     team: string;
     variant?: ProjectCreationVariant;
   };
+  // Create on a return from getting-started with nothing changed: the project
+  // already exists, so it's reported here rather than as a creation.
+  'project_creation.project_reused': {
+    platform: string;
+    project_id: string;
+    variant: ProjectCreationVariant;
+  };
   'project_creation.select_framework_modal_close_button_clicked': {
     platform: string;
     variant?: ProjectCreationVariant;
@@ -204,6 +211,7 @@ export const projectCreationEventMap: Record<
     'Project Creation: Project Details Name Edited',
   'project_creation.project_details_team_selected':
     'Project Creation: Project Details Team Selected',
+  'project_creation.project_reused': 'Project Creation: Project Reused',
   'project_creation.skip_detection_clicked': 'Project Creation: Skip Detection Clicked',
   'project_creation.source_maps_wizard_button_copy_clicked':
     'Project Creation: Source Maps Wizard Button Copy Clicked',
