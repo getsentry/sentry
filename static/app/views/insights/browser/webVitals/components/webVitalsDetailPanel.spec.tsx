@@ -285,4 +285,28 @@ describe('WebVitalsDetailPanel', () => {
       })
     );
   });
+
+  it('shows no value when the trace metrics row lacks the vital', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: {
+        data: [
+          {
+            transaction: '/home',
+            project: 'frontend',
+            'project.id': 1,
+            [webVitalP75Field('lcp')]: 2000,
+            [webVitalP75Field('cls')]: null,
+            [webVitalScoreField('cls')]: 0.5,
+            [webVitalScoreCountField('cls')]: 10,
+          },
+        ],
+      },
+    });
+
+    render(<WebVitalsDetailPanel webVital="cls" metricsQuery="" />, {organization});
+
+    expect(await screen.findByRole('link', {name: '/home'})).toBeInTheDocument();
+    expect(screen.getByText('—')).toBeInTheDocument();
+  });
 });

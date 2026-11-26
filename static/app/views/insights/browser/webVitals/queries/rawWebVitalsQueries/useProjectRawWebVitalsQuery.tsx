@@ -72,13 +72,14 @@ export const useProjectRawWebVitalsQuery = ({
     return spans;
   }
 
-  // Key the rows like the spans rows so callers read one shape
+  // Key the rows like the spans rows so callers read one shape. A vital with no
+  // data is null in the response and must stay empty, not become 0.
   const data = metrics.data.map(
     row =>
       Object.fromEntries(
         ORDER.map(vital => [
           `p75(${WEB_VITAL_TO_FIELD[vital]})`,
-          Number(row[webVitalP75Field(vital)] ?? 0),
+          row[webVitalP75Field(vital)] ?? undefined,
         ])
       ) as (typeof spans.data)[number]
   );
