@@ -515,12 +515,6 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
       }
       return;
     }
-    if (event.key === 'Escape' && isOpen) {
-      event.preventDefault();
-      event.stopPropagation();
-      overlayState.close();
-      return;
-    }
     const isSpaceAction = event.key === ' ' && (!searchable || !query);
     if (isSpaceAction && !isOpen) {
       event.preventDefault();
@@ -625,6 +619,30 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
       className={props.className}
       ref={selectRef}
       data-scraps-select=""
+      onKeyDown={event => {
+        if (
+          event.key !== 'Escape' ||
+          !isOpen ||
+          event.defaultPrevented ||
+          event.nativeEvent.isComposing
+        ) {
+          return;
+        }
+
+        const input = inputRef.current;
+        const fromMenu =
+          event.target instanceof Node && overlayRef.current?.contains(event.target);
+        if (event.target !== input && !fromMenu) {
+          return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+        if (fromMenu) {
+          input?.focus();
+        }
+        overlayState.close();
+      }}
       css={applyStyleSlot(styles, 'container', selectStyles.container, {
         isDisabled: disabled,
       })}
@@ -785,7 +803,6 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
         <SelectMenu
           controlRef={controlRef}
           footerRef={footerRef}
-          inputRef={inputRef}
           isInsideModal={props.isInsideModal}
           isLoading={isLoading}
           listBoxProps={listBoxProps}

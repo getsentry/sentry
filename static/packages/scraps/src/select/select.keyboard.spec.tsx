@@ -174,7 +174,7 @@ it('keeps the controlled menu closed while entering text', async () => {
   expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
 });
 
-it('tabs to a footer button outside a portaled listbox', async () => {
+it('tabs to a portaled menu footer and returns focus on Escape', async () => {
   const onChange = jest.fn();
   render(
     <Select
@@ -188,10 +188,15 @@ it('tabs to a footer button outside a portaled listbox', async () => {
     {wrapper: ThemeWrapper}
   );
 
-  await userEvent.click(screen.getByRole('combobox', {name: 'Fruit'}));
+  const input = screen.getByRole('combobox', {name: 'Fruit'});
+  await userEvent.click(input);
   await userEvent.tab();
   expect(screen.getByRole('button', {name: 'Manage fruit'})).toHaveFocus();
   expect(screen.getByRole('listbox')).toBeInTheDocument();
+
+  await userEvent.keyboard('{Escape}');
+  expect(input).toHaveFocus();
+  expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
   expect(onChange).not.toHaveBeenCalled();
 });
 

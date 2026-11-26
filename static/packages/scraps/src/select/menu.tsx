@@ -21,7 +21,6 @@ export const MENU_GAP = 8;
 export function SelectMenu<TValue, TOption extends SelectValue<TValue>>({
   controlRef,
   footerRef,
-  inputRef,
   isInsideModal,
   isLoading,
   listBoxProps,
@@ -53,7 +52,6 @@ export function SelectMenu<TValue, TOption extends SelectValue<TValue>>({
 }: {
   controlRef: React.RefObject<HTMLDivElement | null>;
   footerRef: React.Ref<HTMLDivElement>;
-  inputRef: React.RefObject<HTMLInputElement | null>;
   listBoxProps: ReturnType<typeof useListBox>['listBoxProps'];
   listRef: React.Ref<HTMLUListElement>;
   maxMenuHeight: number;
@@ -113,14 +111,6 @@ export function SelectMenu<TValue, TOption extends SelectValue<TValue>>({
           ? applyStyleSlot(styles, 'menuPortal', positionStyle, {})
           : positionStyle
       }
-      onKeyDown={event => {
-        if (event.key === 'Escape' && !event.defaultPrevented) {
-          event.preventDefault();
-          event.stopPropagation();
-          inputRef.current?.focus();
-          onClose();
-        }
-      }}
       onBlur={event => {
         if (
           !event.currentTarget.contains(event.relatedTarget) &&
