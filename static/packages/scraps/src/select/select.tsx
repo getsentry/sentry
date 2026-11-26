@@ -50,6 +50,7 @@ import {isRenderable} from './utils';
 export interface BaseSelectProps<
   TValue,
   TOption extends SelectValue<TValue> = SelectValue<TValue>,
+  TSelected extends SelectValue<TValue | string> = TOption,
 > {
   // Include TValue here so options infer the value type without a selected value.
   options: ReadonlyArray<
@@ -65,7 +66,8 @@ export interface BaseSelectProps<
   blurInputOnSelect?: boolean;
   className?: string;
   /** Customize content while Select retains input, option, and chip behavior. */
-  components?: SelectComponents<TOption>;
+  components?: Pick<SelectComponents<TOption>, 'OptionLabel'> &
+    Omit<SelectComponents<TSelected>, 'OptionLabel'>;
   /** Allow values that are not in `options`. */
   creatable?: boolean;
   disabled?: boolean;
@@ -112,7 +114,7 @@ export interface BaseSelectProps<
   showCreateOptionIcon?: boolean;
   showDividers?: boolean;
   size?: FormSize;
-  styles?: StylesConfig<NoInfer<TValue>, NoInfer<TOption>>;
+  styles?: StylesConfig<NoInfer<TValue | string>, NoInfer<TSelected>>;
   tabIndex?: number;
   /** Content beside the clear button and dropdown indicator. Each item is centered in a slot at least 24px wide. */
   trailingItems?: React.ReactNode;
@@ -124,14 +126,25 @@ type DisabledSelectionProps<Props extends {onChange: unknown}> = Props extends u
   ? Omit<Props, 'onChange'> & {disabled: true; onChange?: Props['onChange']}
   : never;
 
+type SelectionProps<TValue, TOption> =
+  | SelectSelectionProps<TValue, TOption>
+  | DisabledSelectionProps<SelectSelectionProps<TValue, TOption>>;
+
+type ResolvedOption<TValue, TOption> = TOption | SelectValue<TValue | string>;
+
 export type ControlProps<
   TValue,
   TOption extends SelectValue<TValue> = SelectValue<TValue>,
-> = (
-  | SelectSelectionProps<TValue, TOption>
-  | DisabledSelectionProps<SelectSelectionProps<TValue, TOption>>
-) &
-  BaseSelectProps<TValue, TOption>;
+> = BaseSelectProps<TValue, TOption> &
+  SelectionProps<TValue, TOption> & {creatable?: false};
+
+export type CreatableControlProps<
+  TValue,
+  TOption extends SelectValue<TValue> = SelectValue<TValue>,
+> = BaseSelectProps<TValue, TOption, ResolvedOption<TValue, TOption>> &
+  SelectionProps<TValue, ResolvedOption<TValue, TOption>> & {
+    creatable: boolean | undefined;
+  };
 
 const defaultFilter = createFilter();
 
@@ -146,6 +159,16 @@ function optionText(option: SelectValue<unknown>) {
 
 export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue<TValue>>(
   props: ControlProps<TValue, TOption>
+): React.JSX.Element;
+export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue<TValue>>(
+  props: CreatableControlProps<TValue, TOption>
+): React.JSX.Element;
+export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue<TValue>>(
+  props: ControlProps<TValue, TOption> | CreatableControlProps<TValue, TOption>
+): React.JSX.Element;
+export function Select<TValue, TOption extends SelectValue<TValue>>(
+  props: BaseSelectProps<TValue, TOption, ResolvedOption<TValue, TOption>> &
+    SelectionProps<TValue, ResolvedOption<TValue, TOption>>
 ) {
   const {
     options,
@@ -253,7 +276,10 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
   const selected = selectedRows.map(({option}) => option);
   const disabledKeys = rows.flatMap(({key, option}) => (option.disabled ? [key] : []));
 
-  function commit(next: TOption[] | TOption | null, action: string) {
+  function commit(
+    next: Array<SelectValue<TValue | string>> | SelectValue<TValue | string> | null,
+    action: string
+  ) {
     // The previous implementation also supplied action metadata at runtime.
     const onChange = props.onChange as
       | ((value: typeof next, metadata: {action: string; name?: string}) => void)
@@ -271,7 +297,10 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
     }
     const created = key === CREATE_KEY;
     const choice =
-      option ?? ({value: query, label: query, __isNew__: true} as unknown as TOption);
+      option ??
+      ({value: query, label: query, __isNew__: true} satisfies SelectValue<string> & {
+        __isNew__: true;
+      });
     setFocusedChip(null);
     if (!multiple && isOpen) {
       overlayState.close();
@@ -603,10 +632,10 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
       }
     },
   };
-  const optionStyle = (option: TOption) => ({
+  const optionStyle = (option: SelectValue<TValue | string>) => ({
     data: option,
     isDisabled: Boolean(disabled || option.disabled),
-    isSelected: selected.includes(option),
+    isSelected: true,
   });
   const {Value, MultiValueLabel, OptionLabel} = components ?? {};
   const showClearButton = clearable && selected.length > 0 && !disabled;

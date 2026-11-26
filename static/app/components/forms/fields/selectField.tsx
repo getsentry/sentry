@@ -28,6 +28,7 @@ export interface SelectFieldProps<
       | 'value'
       | 'options'
       | 'disabled'
+      | 'creatable'
       | 'name'
       | 'onBlur'
       | 'onFocus'
@@ -55,6 +56,7 @@ export interface SelectFieldProps<
    * not correctly reflect this so be careful!
    */
   confirm?: Record<string, React.ReactNode>;
+  creatable?: boolean;
   options?: ControlProps<TValue, TOption>['options'];
   value?: ControlProps<TValue, TOption>['value'];
 }

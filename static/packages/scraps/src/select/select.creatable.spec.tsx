@@ -1,9 +1,12 @@
 import {Fragment} from 'react';
 import {render, screen} from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import {expectTypeOf} from 'expect-type';
 
 import {ThemeWrapper} from '../../test/selectFixtures';
 
 import {Select} from './select';
+import type {SelectValue} from './types';
 
 it('preserves creatable values with an empty options list', () => {
   render(
@@ -22,4 +25,33 @@ it('preserves creatable values with an empty options list', () => {
 
   expect(screen.getByText('New fruit')).toBeInTheDocument();
   expect(screen.getByText('New tag')).toBeInTheDocument();
+});
+
+it('returns a string option when creating a choice alongside numeric options', async () => {
+  const options = [{value: 42, label: 'Answer', details: 'A supplied option'}];
+  const onChange = jest.fn();
+  render(
+    <Select
+      aria-label="Answer"
+      creatable
+      options={options}
+      value={null}
+      onChange={option => {
+        expectTypeOf(option).toEqualTypeOf<
+          (typeof options)[number] | SelectValue<number | string>
+        >();
+        onChange(option);
+      }}
+    />,
+    {wrapper: ThemeWrapper}
+  );
+
+  await userEvent.type(screen.getByRole('combobox', {name: 'Answer'}), 'New answer');
+  await userEvent.click(screen.getByRole('option', {name: 'Create "New answer"'}));
+
+  expect(onChange).toHaveBeenCalledWith({
+    value: 'New answer',
+    label: 'New answer',
+    __isNew__: true,
+  });
 });

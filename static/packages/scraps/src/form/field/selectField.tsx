@@ -13,7 +13,7 @@ import {BaseField, type BaseFieldProps} from './baseField';
 
 // Base props shared by all select variants
 type BaseSelectFieldProps<TValue, TOption extends SelectValue<TValue>> = Omit<
-  BaseSelectProps<TValue, TOption>,
+  BaseSelectProps<TValue, TOption, SelectValue<TValue | string>>,
   'onBlur' | 'disabled' | 'ref' | 'inputRef' | 'id' | 'options'
 > &
   BaseFieldProps<HTMLInputElement> & {
@@ -39,6 +39,10 @@ export function SelectField<
   ...props
 }: SelectFieldProps<TValue, TOption>) {
   const autoSaveContext = useAutoSaveContext();
+  // The field API still dispatches raw values, including strings entered in creatable selects.
+  const changeValue = onChange as (
+    value: TValue | string | Array<TValue | string> | null
+  ) => void;
   const selectVariantProps = multiple
     ? {multiple: true as const, clearable, value}
     : clearable
@@ -56,6 +60,7 @@ export function SelectField<
             {...fieldProps}
             {...props}
             {...selectVariantProps}
+            creatable={props.creatable}
             id={id}
             inputRef={fieldRef}
             blurInputOnSelect={false}
@@ -72,10 +77,15 @@ export function SelectField<
                 fieldProps.onBlur();
               }
             }}
-            onChange={(option: TOption | TOption[] | null) => {
+            onChange={(
+              option:
+                | SelectValue<TValue | string>
+                | Array<SelectValue<TValue | string>>
+                | null
+            ) => {
               if (multiple) {
                 // For multi-select, option is an array
-                onChange(Array.isArray(option) ? option.map(o => o.value) : []);
+                changeValue(Array.isArray(option) ? option.map(o => o.value) : []);
                 // For multi-select in auto-save context, trigger save when menu is closed
                 // (e.g., clicking X on a tag or clear all while menu is not open)
                 if (autoSaveContext && !isMenuOpenRef.current) {
@@ -83,15 +93,16 @@ export function SelectField<
                 }
               } else {
                 if (!option) {
-                  // Clearable single select - type system allows null via discriminated union
-                  (onChange as (value: TValue | null) => void)(null);
+                  changeValue(null);
                   if (autoSaveContext) {
                     fieldProps.onBlur();
                   }
                   return;
                 }
                 // For single-select, option is a single value
-                (onChange as (value: TValue) => void)((option as TOption).value);
+                if (!Array.isArray(option)) {
+                  changeValue(option.value);
+                }
                 // Preserve blur validation and auto-save after selection.
                 fieldProps.onBlur();
               }

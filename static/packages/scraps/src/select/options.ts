@@ -90,13 +90,16 @@ export function useOptionIndex<TValue, TOption extends SelectValue<TValue>>(
   const findRow = (value: TValue | null) =>
     index.rows.find(row => matchesValue(row.option.value, value, isValueEqual));
 
-  const selectedRows = values.flatMap<{option: TOption; key?: string}>(value => {
+  const selectedRows = values.flatMap<{
+    option: SelectValue<TValue> | TOption;
+    key?: string;
+  }>(value => {
     const existing = findRow(value);
     if (existing) {
       return [existing];
     }
     if (creatable && value != null) {
-      return [{option: {value, label: String(value)} as TOption, key: undefined}];
+      return [{option: {value, label: String(value)}, key: undefined}];
     }
     return [];
   });

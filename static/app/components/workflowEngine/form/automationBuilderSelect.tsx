@@ -1,12 +1,24 @@
 import type {CSSObject} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Select, type ControlProps, type SelectValue} from '@sentry/scraps/select';
+import {
+  Select,
+  type ControlProps,
+  type CreatableControlProps,
+  type SelectValue,
+} from '@sentry/scraps/select';
 
 export function AutomationBuilderSelect<
   TValue,
   TOption extends SelectValue<TValue> = SelectValue<TValue>,
->(props: ControlProps<TValue, TOption>) {
+>(props: ControlProps<TValue, TOption>): React.JSX.Element;
+export function AutomationBuilderSelect<
+  TValue,
+  TOption extends SelectValue<TValue> = SelectValue<TValue>,
+>(props: CreatableControlProps<TValue, TOption>): React.JSX.Element;
+export function AutomationBuilderSelect<TValue, TOption extends SelectValue<TValue>>(
+  props: ControlProps<TValue, TOption> | CreatableControlProps<TValue, TOption>
+) {
   return <StyledSelect styles={selectControlStyles} {...props} />;
 }
 
