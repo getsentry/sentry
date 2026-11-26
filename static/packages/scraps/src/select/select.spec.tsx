@@ -42,6 +42,25 @@ it.each([
   expect(useFloating).toHaveBeenLastCalledWith(expect.objectContaining({placement}));
 });
 
+it('omits the empty message when noOptionsMessage returns null', async () => {
+  render(
+    <Select
+      aria-label="Fruit"
+      options={options}
+      value={null}
+      onChange={() => {}}
+      noOptionsMessage={() => null}
+    />,
+    {wrapper: ThemeWrapper}
+  );
+
+  await userEvent.type(screen.getByRole('combobox', {name: 'Fruit'}), 'pineapple');
+
+  expect(screen.getByRole('listbox')).toBeInTheDocument();
+  expect(screen.queryByRole('option')).not.toBeInTheDocument();
+  expect(screen.queryByRole('status')).not.toBeInTheDocument();
+});
+
 it('customizes value and option content while preserving selection data', async () => {
   const onChange = jest.fn();
   render(

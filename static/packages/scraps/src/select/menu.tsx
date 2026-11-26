@@ -15,6 +15,7 @@ import {CREATE_KEY} from './options';
 import type {getSelectStyles} from './styles';
 import {applyStyleSlot} from './types';
 import type {SelectComponents, SelectValue, StylesConfig} from './types';
+import {isRenderable} from './utils';
 
 export const MENU_GAP = 8;
 
@@ -84,7 +85,6 @@ export function SelectMenu<TValue, TOption extends SelectValue<TValue>>({
   showDividers?: boolean;
   styles?: StylesConfig<TValue, TOption>;
 }) {
-  const {t} = useTranslation();
   const theme = useTheme();
 
   const lockedMenuStyle =
@@ -162,15 +162,13 @@ export function SelectMenu<TValue, TOption extends SelectValue<TValue>>({
             />
           </ul>
           {isEmpty && (
-            <div role="status" css={selectStyles.message}>
-              {isLoading
-                ? loadingMessage
-                  ? loadingMessage()
-                  : t('Loading...')
-                : noOptionsMessage
-                  ? noOptionsMessage({inputValue: query})
-                  : t('No options')}
-            </div>
+            <EmptyMessage
+              isLoading={isLoading}
+              loadingMessage={loadingMessage}
+              noOptionsMessage={noOptionsMessage}
+              query={query}
+              style={selectStyles.message}
+            />
           )}
           {menuFooter && <div ref={footerRef}>{menuFooter}</div>}
         </div>
@@ -179,4 +177,37 @@ export function SelectMenu<TValue, TOption extends SelectValue<TValue>>({
   );
 
   return menuPortalTarget ? createPortal(menu, menuPortalTarget) : menu;
+}
+
+function EmptyMessage({
+  isLoading,
+  loadingMessage,
+  noOptionsMessage,
+  query,
+  style,
+}: {
+  query: string;
+  style: CSSObject;
+  isLoading?: boolean;
+  loadingMessage?: () => React.ReactNode;
+  noOptionsMessage?: (state: {inputValue: string}) => React.ReactNode;
+}) {
+  const {t} = useTranslation();
+  const message = isLoading
+    ? loadingMessage
+      ? loadingMessage()
+      : t('Loading...')
+    : noOptionsMessage
+      ? noOptionsMessage({inputValue: query})
+      : t('No options');
+
+  if (!isRenderable(message)) {
+    return null;
+  }
+
+  return (
+    <div role="status" css={style}>
+      {message}
+    </div>
+  );
 }
