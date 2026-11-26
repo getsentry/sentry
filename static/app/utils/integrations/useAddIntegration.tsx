@@ -25,6 +25,7 @@ export interface AddIntegrationParams {
       | 'integrations_directory'
       | 'onboarding'
       | 'project_creation'
+      | 'seer_explorer_connect_scm'
       | 'seer_onboarding_github'
       | 'test_analytics_onboarding'
       | 'test_analytics_org_selector';

@@ -3,6 +3,7 @@ import type {ReactNode} from 'react';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 
 import {Container} from '@sentry/scraps/layout';
+import {PictureInPictureProvider} from '@sentry/scraps/pictureInPicture';
 
 import * as Storybook from 'sentry/stories';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
@@ -69,6 +70,8 @@ function TimedOut({children}: {children: ReactNode}) {
   );
 }
 
+const REQUEST_BUTTONS = new Set(['Connect source control', 'Request installation']);
+
 function Example({
   failureReason,
   status,
@@ -102,9 +105,30 @@ function Example({
   return (
     <OrganizationContext.Provider value={viewerOrganization}>
       <QueryClientProvider client={queryClient}>
-        <Container width="420px" border="primary" radius="md" padding="lg 0">
-          <ConnectScmBlock pendingInput={pendingInput} respondToUserInput={() => {}} />
-        </Container>
+        <PictureInPictureProvider>
+          <Container
+            width="420px"
+            border="primary"
+            radius="md"
+            padding="lg 0"
+            onClickCapture={event => {
+              const clicked =
+                event.target instanceof Element
+                  ? event.target.closest('a, button')
+                  : null;
+              if (
+                clicked &&
+                (clicked.tagName === 'A' ||
+                  REQUEST_BUTTONS.has(clicked.textContent?.trim() ?? ''))
+              ) {
+                event.preventDefault();
+                event.stopPropagation();
+              }
+            }}
+          >
+            <ConnectScmBlock pendingInput={pendingInput} respondToUserInput={() => {}} />
+          </Container>
+        </PictureInPictureProvider>
       </QueryClientProvider>
     </OrganizationContext.Provider>
   );
