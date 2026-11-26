@@ -26,12 +26,11 @@ from sentry.explore.types import SavedQueryRef, SavedQueryType
 from sentry.models.organization import Organization
 
 
-class MemberPermission(OrganizationPermission):
+class StarredExploreSavedQueryOrderPermission(OrganizationPermission):
     scope_map = {
-        "PUT": ["member:read", "member:write", "user_preference:write"],
+        "PUT": ["user_preference:write"],
     }
 
-    # user_preference:write replaces member:read in orgs with granular scopes.
     rejects_deprecated_scopes = True
 
 
@@ -72,7 +71,7 @@ class SavedQueryStarredOrderEndpoint(OrganizationEndpoint):
     publish_status = {"PUT": ApiPublishStatus.EXPERIMENTAL}
     idempotent_methods = frozenset({"PUT"})
     owner = ApiOwner.DATA_BROWSING
-    permission_classes = (MemberPermission,)
+    permission_classes = (StarredExploreSavedQueryOrderPermission,)
 
     def has_feature(self, organization: Organization, request: Request) -> bool:
         return features.has(

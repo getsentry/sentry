@@ -119,8 +119,13 @@ OAUTH_AUTHORIZATION_SERVER = {
     "issuer": "https://sentry.io",
     "authorization_endpoint": "https://sentry.io/oauth/authorize/",
     "token_endpoint": "https://sentry.io/oauth/token/",
+    "device_authorization_endpoint": "https://sentry.io/oauth/device/code/",
     "response_types_supported": ["code"],
-    "grant_types_supported": ["authorization_code", "refresh_token"],
+    "grant_types_supported": [
+        "authorization_code",
+        "refresh_token",
+        "urn:ietf:params:oauth:grant-type:device_code",
+    ],
     "code_challenge_methods_supported": ["S256"],
 }
 

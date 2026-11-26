@@ -2,6 +2,7 @@ import logging
 import re
 from typing import NamedTuple
 
+from django.http.response import HttpResponseBase
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -59,11 +60,13 @@ class OrganizationInsightsTreeEndpoint(OrganizationEventsEndpoint):
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
 
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> HttpResponseBase:
         if not request.GET.get("noPagination", False):
             return Response(status=404)
 
         response = super().get(request, organization)
+        if not isinstance(response, Response) or response.status_code != 200:
+            return response
         return self._separate_span_description_info(response)
 
     _EXTRACTION_PATTERNS = (_ParenthesisPattern, _ResolvePattern)

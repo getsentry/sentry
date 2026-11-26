@@ -2082,8 +2082,6 @@ GRANULAR_SCOPES = frozenset(
         "dashboard:write",
         "saved_query:read",
         "saved_query:write",
-        "user_preference:read",
-        "user_preference:write",
         # Accepted by endpoints, but not granted by any role yet.
         "membership:read",
         "membership:write",
@@ -2104,35 +2102,26 @@ DEPRECATED_SCOPE_TRANSLATIONS: dict[str, frozenset[str]] = {
             "dashboard:write",
             "saved_query:read",
             "saved_query:write",
-            # Recent searches and prompt activity accept org:read today, including writes.
-            "user_preference:read",
-            "user_preference:write",
         ]
     ),
-    # Starring and starred order accept member:read today, including writes.
     "member:read": frozenset(
         [
             # Removed once member:read has a full 1:1 translation to granular scopes.
             "member:read",
             # Org and team membership reads.
             "membership:read",
-            "user_preference:read",
-            "user_preference:write",
         ]
     ),
     # Membership scopes don't imply each other, and each endpoint method accepts only the one
     # it needs. So each member scope translates to the membership scope of every method that
     # accepts that member scope today, e.g. member:write can read and invite as well as write.
     "member:invite": frozenset(["member:invite", "membership:invite"]),
-    # Starring and starred order accept member:write too, like member:read.
     "member:write": frozenset(
         [
             "member:write",
             "membership:read",
             "membership:invite",
             "membership:write",
-            "user_preference:read",
-            "user_preference:write",
         ]
     ),
     "member:admin": frozenset(
@@ -2277,6 +2266,8 @@ SENTRY_ROLES: tuple[RoleDict, ...] = (
             "team:read",
             "alerts:read",
             "alerts:write",
+            "user_preference:read",
+            "user_preference:write",
             "seer:read",
             "seer:write",
         },
@@ -2312,6 +2303,8 @@ SENTRY_ROLES: tuple[RoleDict, ...] = (
             "org:integrations",
             "alerts:read",
             "alerts:write",
+            "user_preference:read",
+            "user_preference:write",
             "seer:read",
             "seer:write",
         },
@@ -2341,6 +2334,8 @@ SENTRY_ROLES: tuple[RoleDict, ...] = (
             "org:integrations",
             "alerts:read",
             "alerts:write",
+            "user_preference:read",
+            "user_preference:write",
             "seer:read",
             "seer:write",
             "service_account:read",
@@ -2379,6 +2374,8 @@ SENTRY_ROLES: tuple[RoleDict, ...] = (
             "event:admin",
             "alerts:read",
             "alerts:write",
+            "user_preference:read",
+            "user_preference:write",
             "seer:read",
             "seer:write",
             "service_account:read",

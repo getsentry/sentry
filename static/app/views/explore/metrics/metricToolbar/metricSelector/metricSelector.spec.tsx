@@ -14,6 +14,8 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
+import {createTraceMetricFilter} from 'sentry/views/explore/metrics/utils';
+import type {VirtualTraceMetric} from 'sentry/views/explore/metrics/virtualMetrics';
 
 import {MetricSelector} from './metricSelector';
 
@@ -714,6 +716,137 @@ describe('MetricSelector', () => {
 
       await waitFor(() => {
         expect(screen.getAllByText('foo').length).toBeGreaterThanOrEqual(2);
+      });
+    });
+  });
+
+  describe('virtual metrics', () => {
+    const SCORE_METRIC: VirtualTraceMetric = {
+      name: 'foo.score',
+      type: 'distribution',
+      unit: 'ratio',
+      source: {name: 'foo', type: 'distribution', unit: null},
+      attribute: 'tags[score,number]',
+    };
+
+    function mockStoredMetrics(
+      metrics: Array<{name: string; unit?: string}>,
+      match: Parameters<typeof MockApiClient.addMockResponse>[0]['match'] = []
+    ) {
+      return MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events/`,
+        method: 'GET',
+        body: {
+          data: metrics.map(metric => ({
+            [TraceMetricKnownFieldKey.METRIC_NAME]: metric.name,
+            [TraceMetricKnownFieldKey.METRIC_TYPE]: 'distribution',
+            [TraceMetricKnownFieldKey.METRIC_UNIT]: metric.unit ?? null,
+            [`count(${TraceMetricKnownFieldKey.METRIC_NAME})`]: 3,
+            [`max(${TraceMetricKnownFieldKey.TIMESTAMP_PRECISE})`]: 1736507580000000000,
+          })),
+          meta: {fields: {}, units: {}, dataScanned: 'full'},
+        },
+        match: [
+          MockApiClient.matchQuery({referrer: 'api.explore.metric-options'}),
+          ...match,
+        ],
+      });
+    }
+
+    it('lists a virtual metric right after its stored metric', async () => {
+      mockStoredMetrics([{name: 'bar'}, {name: 'foo'}, {name: 'zed'}]);
+      render(
+        <MetricSelector
+          traceMetric={DEFAULT_TRACE_METRIC}
+          onChange={jest.fn()}
+          virtualMetrics={[SCORE_METRIC]}
+        />,
+        {organization}
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'bar'}));
+      const options = await screen.findAllByRole('option');
+
+      expect(options).toHaveLength(4);
+      expect(options[1]).toHaveTextContent('foo');
+      expect(options[1]).not.toHaveTextContent('foo.score');
+      expect(options[2]).toHaveTextContent('foo.score');
+      expect(options[2]).toHaveTextContent('ratio');
+    });
+
+    it('does not list a virtual metric whose stored metric is missing', async () => {
+      mockStoredMetrics([{name: 'bar'}]);
+      render(
+        <MetricSelector
+          traceMetric={DEFAULT_TRACE_METRIC}
+          onChange={jest.fn()}
+          virtualMetrics={[SCORE_METRIC]}
+        />,
+        {organization}
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'bar'}));
+      await screen.findByRole('listbox');
+
+      expect(screen.queryByRole('option', {name: 'foo.score'})).not.toBeInTheDocument();
+    });
+
+    it('replaces a stored metric of the same name', async () => {
+      mockStoredMetrics([
+        {name: 'bar'},
+        {name: 'foo'},
+        {name: 'foo.score', unit: 'ratio'},
+      ]);
+      const onChange = jest.fn();
+      render(
+        <MetricSelector
+          traceMetric={DEFAULT_TRACE_METRIC}
+          onChange={onChange}
+          virtualMetrics={[SCORE_METRIC]}
+        />,
+        {organization}
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'bar'}));
+      const scoreOptions = await screen.findAllByRole('option', {name: 'foo.score'});
+      expect(scoreOptions).toHaveLength(1);
+
+      await userEvent.click(scoreOptions[0]!);
+      expect(onChange).toHaveBeenCalledWith({
+        name: 'foo.score',
+        type: 'distribution',
+        unit: 'ratio',
+      });
+    });
+
+    it('looks up attributes on the stored metric', async () => {
+      mockStoredMetrics([{name: 'bar'}, {name: 'foo'}]);
+      const attributesMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/trace-items/attributes/`,
+        method: 'GET',
+        body: [],
+      });
+      render(
+        <MetricSelector
+          traceMetric={DEFAULT_TRACE_METRIC}
+          onChange={jest.fn()}
+          virtualMetrics={[SCORE_METRIC]}
+        />,
+        {organization}
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'bar'}));
+      await userEvent.hover(await screen.findByRole('option', {name: 'foo.score'}));
+
+      await waitFor(() => {
+        expect(attributesMock).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            query: expect.objectContaining({
+              query: createTraceMetricFilter({name: 'foo', type: 'distribution'}),
+            }),
+          })
+        );
       });
     });
   });

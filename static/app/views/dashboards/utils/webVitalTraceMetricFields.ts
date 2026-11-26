@@ -1,7 +1,10 @@
 import isEqual from 'lodash/isEqual';
 
-import {DurationUnit, type DataUnit} from 'sentry/utils/discover/fields';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
+import {
+  webVitalMetric,
+  webVitalScoreMetric,
+} from 'sentry/views/explore/metrics/virtualMetrics';
 import {
   ORDER,
   type ProjectScore,
@@ -11,25 +14,13 @@ import {getWeights} from 'sentry/views/insights/browser/webVitals/utils/getWeigh
 
 import {traceMetricField} from './prebuiltConfigs/utils/traceMetricField';
 
-const WEB_VITAL_METRIC_UNITS: Record<WebVitals, DataUnit> = {
-  lcp: DurationUnit.MILLISECOND,
-  fcp: DurationUnit.MILLISECOND,
-  inp: DurationUnit.MILLISECOND,
-  ttfb: DurationUnit.MILLISECOND,
-  cls: null,
-};
-
 export function webVitalMetricName(vital: WebVitals): string {
-  return `browser.web_vital.${vital}`;
+  return webVitalMetric(vital).name;
 }
 
 function webVitalMetricField(aggregation: 'count' | 'p75', vital: WebVitals): string {
-  return traceMetricField(
-    aggregation,
-    webVitalMetricName(vital),
-    'distribution',
-    WEB_VITAL_METRIC_UNITS[vital]
-  );
+  const metric = webVitalMetric(vital);
+  return traceMetricField(aggregation, metric.name, metric.type, metric.unit);
 }
 
 export function webVitalP75Field(vital: WebVitals): string {
@@ -40,21 +31,12 @@ export function webVitalP75Field(vital: WebVitals): string {
  * Each web vital metric carries its score ratio (0 to 1) as a numeric
  * attribute, so scores come from the vital's own metric.
  */
-function webVitalScoreRatioAttribute(vital: WebVitals): string {
-  return `tags[score.ratio.${vital},number]`;
-}
-
 function webVitalScoreMetricField(
   aggregation: 'avg' | 'count',
   vital: WebVitals
 ): string {
-  return traceMetricField(
-    aggregation,
-    webVitalMetricName(vital),
-    'distribution',
-    WEB_VITAL_METRIC_UNITS[vital],
-    webVitalScoreRatioAttribute(vital)
-  );
+  const {source, attribute} = webVitalScoreMetric(vital);
+  return traceMetricField(aggregation, source.name, source.type, source.unit, attribute);
 }
 
 export function webVitalScoreField(vital: WebVitals): string {
