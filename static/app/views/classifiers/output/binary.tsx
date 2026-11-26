@@ -4,7 +4,6 @@ import {Tag} from '@sentry/scraps/badge';
 import {Flex} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
-import {alignTimeSeries} from 'sentry/utils/timeSeries/alignTimeSeries';
 import {ALL_RESULTS} from 'sentry/views/classifiers/constants';
 import type {TelemetryClassifier} from 'sentry/views/classifiers/types';
 import {getHasResultQuery, getResultField} from 'sentry/views/classifiers/utils';
@@ -25,6 +24,13 @@ function getThresholdQuery(
 ) {
   const operator = side === MATCHES ? '>=' : '<';
   return `${getResultField(classifier.resultAttribute)}:${operator}${classifier.binaryThreshold}`;
+}
+
+function getCountIfYAxis(
+  classifier: TelemetryClassifier,
+  side: typeof MATCHES | typeof NON_MATCHES
+) {
+  return `count_if(\`${getThresholdQuery(classifier, side)}\`)`;
 }
 
 function BinaryResultCell({
@@ -55,38 +61,34 @@ function BinaryClassifierVisualization({
   const isGrouped = filter === ALL_RESULTS;
   const isNonMatches = filter === NON_MATCHES;
 
-  const primary = useClassifierTimeSeries(classifier, {
+  const matchesYAxis = getCountIfYAxis(classifier, MATCHES);
+  const nonMatchesYAxis = getCountIfYAxis(classifier, NON_MATCHES);
+
+  const {data, error, isPending} = useClassifierTimeSeries(classifier, {
     interval,
     pageFilters,
-    query: getThresholdQuery(classifier, isNonMatches ? NON_MATCHES : MATCHES),
+    query: getHasResultQuery(classifier.resultAttribute),
+    yAxis: [matchesYAxis, nonMatchesYAxis],
   });
-  const nonMatches = useClassifierTimeSeries(classifier, {
-    interval,
-    pageFilters,
-    query: getThresholdQuery(classifier, NON_MATCHES),
-    enabled: isGrouped,
-  });
-  const [matchesSeries, nonMatchesSeries] = alignTimeSeries([
-    primary.data?.timeSeries[0],
-    nonMatches.data?.timeSeries[0],
-  ]);
+  const matches = data?.timeSeries.find(series => series.yAxis === matchesYAxis);
+  const nonMatches = data?.timeSeries.find(series => series.yAxis === nonMatchesYAxis);
 
   return (
     <BaseClassifierVisualization
-      error={primary.error ?? (isGrouped ? nonMatches.error : null)}
-      isPending={primary.isPending || (isGrouped && nonMatches.isPending)}
+      error={error}
+      isPending={isPending}
       pageFilters={pageFilters}
       plottables={
         isGrouped
           ? [
-              createPlottable(chartType, matchesSeries, {alias: t('Matches')}),
-              createPlottable(chartType, nonMatchesSeries, {
+              createPlottable(chartType, matches, {alias: t('Matches')}),
+              createPlottable(chartType, nonMatches, {
                 alias: t('Non-matches'),
                 color: neutral,
               }),
             ]
           : [
-              createPlottable(chartType, primary.data?.timeSeries[0], {
+              createPlottable(chartType, isNonMatches ? nonMatches : matches, {
                 alias: t('Instances'),
                 color: isNonMatches ? neutral : undefined,
               }),
