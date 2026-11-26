@@ -456,7 +456,7 @@ Failures throw `ObjectstoreError`, an `ApiError` with the failing object or requ
 
 ## Runtime validation
 
-The root `@sentry/api` entry imports no other package at runtime, and neither do `@sentry/api/browser`, `@sentry/api/operations`, and `@sentry/api/docs`. It provides the API client and pure TypeScript types without installing a validation library. Only `@sentry/api/client` imports packages, `p-limit` and `http-cache-semantics`. They are regular dependencies, so npm installs them with `@sentry/api` even when you never import `/client`.
+The root `@sentry/api` entry imports no other package at runtime, and neither do `@sentry/api/browser`, `@sentry/api/operations`, and `@sentry/api/docs`. It provides the API client and pure TypeScript types without installing a validation library. Only `@sentry/api/client` imports a package, `p-limit`. It is a regular dependency, so npm installs it with `@sentry/api` even when you never import `/client`.
 
 Valibot 1 runtime schemas are available through a separate optional entry point:
 
@@ -838,9 +838,9 @@ Generic helpers delegate cancellation to your fetcher. Pass its signal through t
 
 `@sentry/api/client` is the request layer the Sentry CLI and MCP servers share, built on the generated operations. It uses only web-standard APIs (`fetch`, `Request`, `Headers`, `URL`, `AbortSignal`, `crypto.subtle`), so it runs in Node, Cloudflare Workers, and browsers. Hosts inject what differs between them:
 
-- **Transport.** `createApiTransport` sets `Authorization` from a `CredentialProvider`, refreshes the credential once after a 401, times out each attempt, retries through the shared retry policy (429 for any method; 500, 502, 503, 504, timeouts, and network errors only for GET, HEAD, OPTIONS, or writes marked idempotent), follows redirects only to trusted origins, and serves and invalidates cached GETs. `CredentialProvider.current` receives the request URL and the organization and project its path targets (`parseApiPathScope`), so a host with several logins can pick the one that can reach that organization. The host passes credentials, a `TransportCache`, the request-scoped `fresh` hook, a logger, a span hook, and its error classes.
+- **Transport.** `createApiTransport` sets `Authorization` from a `CredentialProvider`, refreshes the credential once after a 401 and replays the request, times out each attempt, follows redirects only to trusted origins, and serves and invalidates cached GETs. It sends each request once otherwise: a host that retries wraps `transport.request` or the `fetch` it passes in. `CredentialProvider.current` receives the request URL and the organization and project its path targets (`parseApiPathScope`), so a host with several logins can pick the one that can reach that organization. The host passes credentials, a `TransportCache`, the request-scoped `fresh` hook, a logger, a span hook, and its error classes.
 - **Request core.** `createApiClientCore` sends `<origin><API_BASE_PATH><path>` through the transport and throws the status's `ApiError` subclass for an error response. `sdkClient` gives a generated operation a client that sends through the same path.
-- **Response cache.** The cache policy (`lookupResponse`, `storeResponse`, tiers, identity-scoped keys, invalidation) works on any `CacheStore` and `BodyCodec`. `createMemoryStore` is a byte-budgeted in-memory store. Compressing codecs need host APIs such as `node:zlib`, so hosts supply them.
+- **Caching and retries.** The host owns its cache and retry policy and plugs them in through `TransportCache` and `fetch`. The client gives them Sentry's rules: `classifyUrl` and `FALLBACK_TTL_MS` are the fallback TTL tiers for responses without freshness headers, `computeInvalidationPrefixes` lists the cached URL prefixes a write makes stale, `parseRetryDelayMs` reads the wait from `Retry-After` or `X-Sentry-Rate-Limit-Reset`, and `createIdempotentOperationMatcher` matches the writes Sentry marks safe to replay.
 - **Validation.** Endpoint wrappers validate responses with any [Standard Schema](https://standardschema.dev) validator the host passes in, such as the `@sentry/api/zod` or `@sentry/api/valibot` schemas. The client depends on neither.
 - **Pagination.** `paginate` and `fetchAllPages` walk list endpoints on top of `paginateUpTo` and `consumePage`. Their cursors are Sentry cursors that also record rows already returned from a page, so a resumed walk neither repeats nor skips rows.
 
@@ -856,7 +856,6 @@ import { createApiClientCore, createApiTransport } from "@sentry/api/client";
 
 const transport = createApiTransport({
   fetch: createBrowserFetch(),
-  retry: { maxRetries: 2, baseDelayMs: 500, maxDelayMs: 5000, maxTotalDelayMs: 10000 },
 });
 const core = createApiClientCore({ transport, headers: () => ({}), logger: console });
 const projects = await core.requestJson("https://sentry.example.com", "/organizations/acme/projects/");

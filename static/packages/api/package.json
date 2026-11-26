@@ -75,7 +75,6 @@
     "url": "https://github.com/getsentry/sentry/issues"
   },
   "dependencies": {
-    "http-cache-semantics": "^4.2.0",
     "p-limit": "^7.3.3"
   },
   "peerDependencies": {
@@ -96,7 +95,6 @@
   },
   "devDependencies": {
     "@hey-api/openapi-ts": "0.98.0",
-    "@types/http-cache-semantics": "4.2.0",
     "@types/node": "26.6.4",
     "esbuild": "0.28.1",
     "fast-check": "4.10.2",

@@ -3,23 +3,17 @@
  * Standard Web APIs only, so it runs in Node and Cloudflare Workers.
  *
  * Per request it sets the Authorization header, refreshes the credential once
- * after a 401 (any method), times out each attempt, retries through
- * `retry`, replays request bodies, optionally follows redirects only to
- * trusted origins, and serves and invalidates cached GETs through an injected
- * cache. The host supplies credentials, header rules, error classes, logging,
- * and spans.
+ * after a 401 (any method) and replays the request, times out each attempt,
+ * optionally follows redirects only to trusted origins, and serves and
+ * invalidates cached GETs through an injected cache. It does not retry: a
+ * host that retries wraps `request` or the `fetch` it injects. The host
+ * supplies credentials, header rules, error classes, logging, and spans.
  */
 
-import {
-  isIdempotentRequest,
-  nextRetryDelayMs,
-  parseRetryDelayMs,
-  type RetryPolicy,
-  sleep,
-} from "./retry.js";
 import { type ApiPathScope, parseApiPathScope } from "./api-path.js";
 import { sentryBearerHeader } from "./auth-token.js";
-import type { CacheLookup } from "./response-cache/policy.js";
+import { isIdempotentRequest } from "./idempotent-operations.js";
+import { parseRetryDelayMs } from "./rate-limit.js";
 
 type FetchInput = Request | string | URL;
 
@@ -59,7 +53,21 @@ export type CredentialProvider<C extends TransportCredential> = {
 /** How the caller reads a successful body; see {@link ApiTransportRequestOptions.responseBody}. */
 export type ResponseBodyMode = "auto" | "buffer" | "stream";
 
-/** The GET cache, keyed by the host. `CacheLookup` comes from `response-cache`. */
+/**
+ * What {@link TransportCache.lookup} found: a response to return as is, or a
+ * stale entry to revalidate with `conditionalHeaders`. On a 304,
+ * `revalidate` returns the refreshed response, or undefined when the entry
+ * cannot use that 304 and the transport fetches again unconditionally.
+ */
+export type CacheLookup =
+  | { kind: "hit"; response: Response }
+  | {
+      kind: "stale";
+      conditionalHeaders: Record<string, string>;
+      revalidate(response: Response): Promise<Response | undefined>;
+    };
+
+/** The GET cache, keyed and stored by the host. */
 export type TransportCache = {
   lookup(request: CachedRequest): Promise<CacheLookup | undefined>;
   /** Store a successful GET; `response` is a clone the cache may consume. */
@@ -86,7 +94,6 @@ export type ApiTransportOptions<C extends TransportCredential> = {
    * credential's identity.
    */
   credentials?: CredentialProvider<C>;
-  retry: RetryPolicy;
   /** Per-attempt timeout, or a function of the request URL. Default: none. */
   timeoutMs?: number | ((url: string) => number);
   /** Underlying fetch, read on each call. Defaults to `globalThis.fetch`. */
@@ -118,9 +125,9 @@ export type ApiTransportOptions<C extends TransportCredential> = {
      * have been applied.
      */
     timeout?(info: { timeoutMs: number; idempotent: boolean }): Error;
-    /** A fetch error to throw at once, without retrying, such as a TLS failure. */
+    /** The error to throw for a failed fetch, such as a TLS failure. Undefined throws it as is. */
     fatal?(error: unknown): Error | undefined;
-    /** A 429 that is not retried. Undefined returns the response. */
+    /** The error to throw for a 429. Undefined returns the response. */
     rateLimited?(
       response: Response,
       info: { path: string; retryAfterMs: number | undefined },
@@ -143,14 +150,15 @@ export type ApiTransportOptions<C extends TransportCredential> = {
 
 export type ApiTransportRequestOptions = {
   /**
-   * Replaying the request is harmless, so 5xx, timeouts, and network errors
-   * retry for any method. For writes the server dedupes, such as
-   * content-addressed chunk uploads.
+   * Replaying the request is harmless, such as a write the server dedupes
+   * (content-addressed chunk uploads), so a timeout reports it as
+   * idempotent. A host that retries reads it to replay writes.
    */
   idempotent?: boolean;
   /**
-   * `buffer` reads a successful body within the attempt's timeout and retry
-   * budget; `auto` does so only when it has a `Content-Type`, as the
+   * `buffer` reads a successful body within the attempt's timeout, so a body
+   * that fails mid-read rejects the request, where a host's retry can replay
+   * it; `auto` does so only when it has a `Content-Type`, as the
    * `@sentry/api` auto parser returns a stream otherwise. Default `stream`.
    */
   responseBody?: ResponseBodyMode;
@@ -221,7 +229,7 @@ export function extractUrlPath(input: FetchInput): string {
   }
 }
 
-/** Thrown inside an attempt for a host rejection that must not be retried. */
+/** Wraps a host rejection, such as an untrusted redirect, so it is thrown as is, not mapped by `errors.fatal`. */
 class Rejection {
   constructor(readonly error: unknown) {}
 }
@@ -233,8 +241,7 @@ type Outcome =
 
 type AttemptResult =
   | { action: "done"; response: Response }
-  | { action: "retry"; delayMs: number }
-  /** Send again at once, outside the retry budget: a credential refresh. */
+  /** Send again with a refreshed credential. */
   | { action: "replay" }
   | { action: "throw"; error: unknown };
 
@@ -254,7 +261,7 @@ type Send<C> = {
 export function createApiTransport<C extends TransportCredential>(
   config: ApiTransportOptions<C>,
 ): ApiTransport {
-  const { credentials, retry, logger } = config;
+  const { credentials, logger } = config;
   const cache = credentials && config.cache;
 
   const baseFetch = (input: FetchInput, init?: RequestInit) =>
@@ -331,8 +338,8 @@ export function createApiTransport<C extends TransportCredential>(
 
   /**
    * One fetch with a timeout. A buffered body is drained from a clone within
-   * the attempt, so a body failure can retry without consuming the caller's
-   * copy.
+   * the attempt, so a body failure rejects the request without consuming the
+   * caller's copy.
    */
   async function fetchOnce(
     input: FetchInput,
@@ -485,7 +492,7 @@ export function createApiTransport<C extends TransportCredential>(
     }
   }
 
-  /** Send with refresh, timeouts, and retries; the cache is handled by the caller. */
+  /** Send with refresh and timeouts; the cache is handled by the caller. */
   async function send(sendArgs: Send<C>): Promise<Response> {
     const { input, init, method, url, path, options } = sendArgs;
     let credential = credentials?.prepare
@@ -510,27 +517,8 @@ export function createApiTransport<C extends TransportCredential>(
           ? input.signal
           : undefined;
     let refreshed = false;
-    let waitedMs = 0;
 
-    const retryDelay = (
-      attempt: number,
-      status: number | undefined,
-      serverDelayMs: number | undefined,
-    ) =>
-      nextRetryDelayMs({
-        policy: retry,
-        method,
-        idempotent,
-        status,
-        serverDelayMs,
-        attempt,
-        waitedMs,
-      });
-
-    async function onResponse(
-      response: Response,
-      attempt: number,
-    ): Promise<AttemptResult> {
+    async function onResponse(response: Response): Promise<AttemptResult> {
       if (response.status === 401) {
         const next =
           refreshed || !credentials?.refresh
@@ -549,19 +537,10 @@ export function createApiTransport<C extends TransportCredential>(
         return { action: "replay" };
       }
 
-      const serverDelayMs = parseRetryDelayMs(
-        response.status,
-        response.headers,
-      );
-      const delayMs = retryDelay(attempt, response.status, serverDelayMs);
-      if (delayMs !== undefined) {
-        cancelBody(response);
-        return { action: "retry", delayMs };
-      }
       if (response.status === 429 && config.errors?.rateLimited) {
         const error = await config.errors.rateLimited(response, {
           path,
-          retryAfterMs: serverDelayMs,
+          retryAfterMs: parseRetryDelayMs(response.status, response.headers),
         });
         if (error) {
           return { action: "throw", error };
@@ -570,10 +549,10 @@ export function createApiTransport<C extends TransportCredential>(
       return { action: "done", response };
     }
 
-    function onFailure(
-      { failed, timedOutAfterMs }: Extract<Outcome, { failed: unknown }>,
-      attempt: number,
-    ): AttemptResult {
+    function onFailure({
+      failed,
+      timedOutAfterMs,
+    }: Extract<Outcome, { failed: unknown }>): AttemptResult {
       if (failed instanceof Rejection) {
         return { action: "throw", error: failed.error };
       }
@@ -583,10 +562,6 @@ export function createApiTransport<C extends TransportCredential>(
       const fatal = config.errors?.fatal?.(failed);
       if (fatal) {
         return { action: "throw", error: fatal };
-      }
-      const delayMs = retryDelay(attempt, undefined, undefined);
-      if (delayMs !== undefined) {
-        return { action: "retry", delayMs };
       }
       if (timedOutAfterMs === undefined) {
         return { action: "throw", error: failed };
@@ -603,7 +578,7 @@ export function createApiTransport<C extends TransportCredential>(
       };
     }
 
-    for (let attempt = 0; ; ) {
+    for (;;) {
       const { input: attemptInput, init: attemptInit } = nextInput();
       let outcome: Outcome;
       try {
@@ -629,8 +604,8 @@ export function createApiTransport<C extends TransportCredential>(
       // Outside the try: handling a response is not a fetch failure.
       const result =
         "response" in outcome
-          ? await onResponse(outcome.response, attempt)
-          : onFailure(outcome, attempt);
+          ? await onResponse(outcome.response)
+          : onFailure(outcome);
 
       if (result.action === "done") {
         storeInCache(
@@ -651,16 +626,7 @@ export function createApiTransport<C extends TransportCredential>(
       if (result.action === "throw") {
         throw result.error;
       }
-      if (result.action === "replay") {
-        logger?.debug(`${method} ${path} → replay with a refreshed credential`);
-        continue;
-      }
-      logger?.debug(
-        `${method} ${path} → retry ${attempt + 1}/${retry.maxRetries} after ${Math.round(result.delayMs)}ms`,
-      );
-      await sleep(result.delayMs, signal);
-      waitedMs += result.delayMs;
-      attempt++;
+      logger?.debug(`${method} ${path} → replay with a refreshed credential`);
     }
   }
 
@@ -832,8 +798,9 @@ function shouldBuffer(response: Response, mode: ResponseBodyMode): boolean {
 }
 
 /**
- * A fresh `(input, init)` pair per attempt: `fetch` consumes a body, so a
- * retry would otherwise throw `Request body already used`. A `Request` is
+ * A fresh `(input, init)` pair per attempt: `fetch` consumes a body, so the
+ * replay after a credential refresh would otherwise throw `Request body
+ * already used`. A `Request` is
  * cloned; a `ReadableStream` body, the only single-use body type, is read
  * once into a buffer. Other bodies pass through, which keeps the
  * `multipart/form-data` boundary `fetch` derives from `FormData`.

@@ -1,31 +1,17 @@
-import { setTimeout as delay } from "node:timers/promises";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { RetryPolicy } from "../../src/api-client/retry.ts";
 import {
   ApiTimeoutError,
   type ApiTransportOptions,
+  type CachedRequest,
   createApiTransport,
   getValidatedResponseSource,
   type TransportCache,
   type TransportCredential,
 } from "../../src/api-client/transport.ts";
-import {
-  buildCacheKey,
-  createMemoryStore,
-  lookupResponse,
-  storeResponse,
-} from "../../src/api-client/response-cache/index.ts";
-import { createBodyCodec, waitFor } from "./support.ts";
+import { waitFor } from "./support.ts";
 
 const URL_BASE = "https://us.sentry.io/api/0";
 const ISSUES_URL = `${URL_BASE}/organizations/acme/issues/`;
-
-const policy: RetryPolicy = {
-  maxRetries: 2,
-  baseDelayMs: 10,
-  maxDelayMs: 2000,
-  maxTotalDelayMs: 3000,
-};
 
 const credential: TransportCredential = { token: "token-a", identity: "id-a" };
 
@@ -72,7 +58,6 @@ function transport(
 ) {
   return createApiTransport({
     credentials: { current: () => credential },
-    retry: policy,
     timeoutMs: 1000,
     fetch,
     ...overrides,
@@ -134,144 +119,49 @@ describe("credential selection", () => {
   });
 });
 
-describe("retried statuses", () => {
-  it("returns a deterministic 5xx without retrying", async () => {
-    const { fetch, sent } = scriptedFetch([new Response("", { status: 501 })]);
+describe("sends once", () => {
+  it.each([
+    ["a 503", () => new Response("", { status: 503 }), 503],
+    ["a rate-limited 429", () => windowLimited(0), 429],
+  ])("returns %s without retrying", async (_, failure, status) => {
+    const { fetch, sent } = scriptedFetch([failure, Response.json({})]);
 
     const response = await transport(fetch).request(ISSUES_URL);
 
-    expect(response.status).toBe(501);
+    expect(response.status).toBe(status);
     expect(sent).toHaveLength(1);
   });
 
-  it("retries a 503 GET with backoff", async () => {
+  it("throws a network error without retrying", async () => {
     const { fetch, sent } = scriptedFetch([
-      new Response("", { status: 503 }),
-      Response.json({ ok: true }),
+      new TypeError("fetch failed"),
+      Response.json({}),
     ]);
-
-    const response = await transport(fetch).request(ISSUES_URL);
-
-    expect(response.status).toBe(200);
-    expect(sent).toHaveLength(2);
-  });
-});
-
-describe("unused bodies", () => {
-  it("retries without waiting for a teed body to cancel", async () => {
-    // Interceptors such as MSW hand out one branch of a teed stream; cancelling
-    // it settles only once the other branch, which nothing reads, is drained.
-    const [branch] = new Response("busy").body?.tee() ?? [];
-    const { fetch, sent } = scriptedFetch([
-      () => new Response(branch, { status: 503 }),
-      Response.json({ ok: true }),
-    ]);
-
-    const response = await transport(fetch).request(ISSUES_URL);
-
-    expect(response.status).toBe(200);
-    expect(sent).toHaveLength(2);
-  });
-});
-
-describe("writes", () => {
-  it("retries a rate-limited POST once the window resets", async () => {
-    const { fetch, sent } = scriptedFetch([
-      () => windowLimited(0),
-      Response.json({ ok: true }),
-    ]);
-
-    const response = await transport(fetch).request(ISSUES_URL, {
-      method: "POST",
-      body: '{"a":1}',
-    });
-
-    expect(response.status).toBe(200);
-    expect(sent.map((request) => request.body)).toEqual(['{"a":1}', '{"a":1}']);
-  });
-
-  it.each([
-    ["a 503", new Response("", { status: 503 })],
-    ["a network error", new TypeError("fetch failed")],
-  ])("does not replay a POST after %s", async (_, failure) => {
-    const { fetch, sent } = scriptedFetch([failure]);
 
     const result = await transport(fetch)
-      .request(ISSUES_URL, { method: "POST", body: "{}" })
+      .request(ISSUES_URL)
       .catch((error: unknown) => error);
 
-    expect(result instanceof Response ? result.status : result).toEqual(
-      failure instanceof Response ? 503 : failure,
-    );
+    expect(result).toEqual(new TypeError("fetch failed"));
     expect(sent).toHaveLength(1);
-  });
-
-  it("retries a POST marked idempotent like a GET", async () => {
-    const { fetch, sent } = scriptedFetch([
-      new Response("", { status: 503 }),
-      Response.json({ ok: true }),
-    ]);
-
-    const response = await transport(fetch).request(
-      ISSUES_URL,
-      { method: "POST", body: "chunk" },
-      { idempotent: true },
-    );
-
-    expect(response.status).toBe(200);
-    expect(sent).toHaveLength(2);
-  });
-
-  it("retries a write the host marks idempotent", async () => {
-    const { fetch, sent } = scriptedFetch([
-      new Response("", { status: 502 }),
-      new Response(null, { status: 204 }),
-    ]);
-
-    const response = await transport(fetch, {
-      isIdempotent: (method) => method === "PUT",
-    }).request(ISSUES_URL, { method: "PUT", body: "{}" });
-
-    expect(response.status).toBe(204);
-    expect(sent).toHaveLength(2);
-  });
-
-  it("replays a stream body on each attempt", async () => {
-    const { fetch, sent } = scriptedFetch([
-      new Response("", { status: 503 }),
-      Response.json({ ok: true }),
-    ]);
-
-    await transport(fetch).request(
-      ISSUES_URL,
-      {
-        method: "POST",
-        body: new Response("streamed").body,
-        duplex: "half",
-      } as RequestInit,
-      { idempotent: true },
-    );
-
-    expect(sent.map((request) => request.body)).toEqual([
-      "streamed",
-      "streamed",
-    ]);
   });
 });
 
 describe("credential refresh", () => {
+  const refreshToB = () =>
+    vi.fn(async (current: TransportCredential) => ({
+      ...current,
+      token: "token-b",
+    }));
+
   it("replays a POST once with the refreshed token", async () => {
     const { fetch, sent } = scriptedFetch([
       new Response("", { status: 401 }),
       Response.json({ ok: true }),
     ]);
-    const refresh = vi.fn(async (current: TransportCredential) => ({
-      ...current,
-      token: "token-b",
-    }));
 
     const response = await transport(fetch, {
-      credentials: { current: () => credential, refresh },
+      credentials: { current: () => credential, refresh: refreshToB() },
       refreshedRequestHeader: "x-refreshed",
     }).request(ISSUES_URL, { method: "POST", body: "{}" });
 
@@ -280,6 +170,43 @@ describe("credential refresh", () => {
       ["Bearer token-a", "Bearer token-b"],
     );
     expect(sent[1]?.headers.get("x-refreshed")).toBe("1");
+  });
+
+  it("replays a stream body after the refresh", async () => {
+    const { fetch, sent } = scriptedFetch([
+      new Response("", { status: 401 }),
+      Response.json({ ok: true }),
+    ]);
+
+    await transport(fetch, {
+      credentials: { current: () => credential, refresh: refreshToB() },
+    }).request(ISSUES_URL, {
+      method: "POST",
+      body: new Response("streamed").body,
+      duplex: "half",
+    } as RequestInit);
+
+    expect(sent.map((request) => request.body)).toEqual([
+      "streamed",
+      "streamed",
+    ]);
+  });
+
+  it("replays without waiting for a teed body to cancel", async () => {
+    // Interceptors such as MSW hand out one branch of a teed stream; cancelling
+    // it settles only once the other branch, which nothing reads, is drained.
+    const [branch] = new Response("expired").body?.tee() ?? [];
+    const { fetch, sent } = scriptedFetch([
+      () => new Response(branch, { status: 401 }),
+      Response.json({ ok: true }),
+    ]);
+
+    const response = await transport(fetch, {
+      credentials: { current: () => credential, refresh: refreshToB() },
+    }).request(ISSUES_URL);
+
+    expect(response.status).toBe(200);
+    expect(sent).toHaveLength(2);
   });
 
   it("returns a second 401 without refreshing again", async () => {
@@ -293,45 +220,6 @@ describe("credential refresh", () => {
     expect(response.status).toBe(401);
     expect(refresh).toHaveBeenCalledTimes(1);
     expect(sent).toHaveLength(2);
-  });
-
-  it("refreshes after a 401 with no retry budget", async () => {
-    const { fetch, sent } = scriptedFetch([
-      new Response("", { status: 401 }),
-      Response.json({ ok: true }),
-    ]);
-    const refresh = vi.fn(async (current: TransportCredential) => ({
-      ...current,
-      token: "token-b",
-    }));
-
-    const response = await transport(fetch, {
-      credentials: { current: () => credential, refresh },
-      retry: { ...policy, maxRetries: 0 },
-    }).request(ISSUES_URL);
-
-    expect(response.status).toBe(200);
-    expect(sent).toHaveLength(2);
-  });
-
-  it("does not spend a retry on the refresh replay", async () => {
-    const { fetch, sent } = scriptedFetch([
-      new Response("", { status: 401 }),
-      new Response("", { status: 503 }),
-      Response.json({ ok: true }),
-    ]);
-    const refresh = vi.fn(async (current: TransportCredential) => ({
-      ...current,
-      token: "token-b",
-    }));
-
-    const response = await transport(fetch, {
-      credentials: { current: () => credential, refresh },
-      retry: { ...policy, maxRetries: 1 },
-    }).request(ISSUES_URL);
-
-    expect(response.status).toBe(200);
-    expect(sent).toHaveLength(3);
   });
 
   it("refreshes ahead of expiry before the first attempt", async () => {
@@ -348,24 +236,8 @@ describe("credential refresh", () => {
   });
 });
 
-describe("rate-limit waits", () => {
-  it("waits for a reset within the cap", async () => {
-    // The reset header has whole-second resolution, so start on a second.
-    vi.setSystemTime(Date.UTC(2026, 0, 1, 12, 0, 0, 0));
-    const { fetch, sent } = scriptedFetch([
-      () => windowLimited(1000),
-      Response.json({ ok: true }),
-    ]);
-
-    const pending = transport(fetch).request(ISSUES_URL);
-    await delay(900);
-    expect(sent).toHaveLength(1);
-
-    expect((await pending).status).toBe(200);
-    expect(sent).toHaveLength(2);
-  });
-
-  it("does not wait for a reset beyond the cap and reports the delay", async () => {
+describe("rate limits", () => {
+  it("reports the server's delay to the host error", async () => {
     const { fetch, sent } = scriptedFetch([() => windowLimited(30_000)]);
     const rateLimited = vi.fn(async () => new Error("rate limited"));
 
@@ -381,29 +253,6 @@ describe("rate-limit waits", () => {
     ];
     expect(info.path).toBe("/api/0/organizations/acme/issues/");
     expect(info.retryAfterMs).toBeGreaterThan(28_000);
-  });
-
-  it("sends a still-limited GET at most maxRetries + 1 times", async () => {
-    const { fetch, sent } = scriptedFetch([() => windowLimited(0)]);
-
-    const response = await transport(fetch).request(ISSUES_URL);
-
-    expect(response.status).toBe(429);
-    expect(sent).toHaveLength(policy.maxRetries + 1);
-  });
-
-  it("ends the wait when the caller aborts", async () => {
-    const { fetch } = scriptedFetch([() => windowLimited(1500)]);
-    const controller = new AbortController();
-    const reason = new Error("stop");
-
-    const pending = transport(fetch)
-      .request(ISSUES_URL, { signal: controller.signal })
-      .catch((error: unknown) => error);
-    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
-    controller.abort(reason);
-
-    expect(await pending).toBe(reason);
   });
 });
 
@@ -438,7 +287,7 @@ describe("timeouts and fetch errors", () => {
     expect(fetch).toHaveBeenCalledTimes(1);
   });
 
-  it("throws the host timeout error for a POST without retrying", async () => {
+  it("throws the host timeout error for a POST", async () => {
     const fetch = vi.fn(hang);
 
     const result = await transport(fetch, { timeoutMs: 5 })
@@ -450,7 +299,7 @@ describe("timeouts and fetch errors", () => {
     expect(fetch).toHaveBeenCalledTimes(1);
   });
 
-  it("retries a timed-out GET, then maps the error", async () => {
+  it("maps a timed-out GET with the host error", async () => {
     const fetch = vi.fn(hang);
     const timeout = vi.fn(() => new Error("host timeout"));
 
@@ -463,7 +312,7 @@ describe("timeouts and fetch errors", () => {
 
     expect(result).toEqual(new Error("host timeout"));
     expect(timeout).toHaveBeenCalledWith({ timeoutMs: 5, idempotent: true });
-    expect(fetch).toHaveBeenCalledTimes(policy.maxRetries + 1);
+    expect(fetch).toHaveBeenCalledTimes(1);
   });
 
   it("times out a buffered body that stalls after the headers", async () => {
@@ -505,7 +354,7 @@ describe("timeouts and fetch errors", () => {
     expect(sent).toHaveLength(1);
   });
 
-  it("does not retry an error from the host's header rules", async () => {
+  it("throws an error from the host's header rules before sending", async () => {
     const { fetch } = scriptedFetch([Response.json({})]);
 
     const result = await transport(fetch, {
@@ -542,7 +391,7 @@ describe("headers", () => {
 
   it("leaves Authorization to the request without credentials", async () => {
     const { fetch, sent } = scriptedFetch([Response.json({})]);
-    const api = createApiTransport({ retry: policy, fetch });
+    const api = createApiTransport({ fetch });
 
     await api.request(ISSUES_URL, {
       headers: { Authorization: "Bearer from-request" },
@@ -627,30 +476,30 @@ describe("validated redirects", () => {
 });
 
 describe("cache", () => {
-  /** A cache on the shared memory store, keyed as the hosts key it. */
+  /**
+   * A cache that keys entries by identity, URL, and Authorization, so a hit
+   * needs the transport to pass the same Authorization to lookup and store.
+   */
   function memoryCache(): TransportCache & { invalidated: string[] } {
-    const store = createMemoryStore();
-    const codec = createBodyCodec();
+    const entries = new Map<string, { body: ArrayBuffer; init: ResponseInit }>();
     const invalidated: string[] = [];
+    const key = ({ url, requestHeaders, identity }: CachedRequest) =>
+      JSON.stringify([identity, url, requestHeaders.authorization ?? ""]);
     return {
       invalidated,
-      lookup: async ({ url, requestHeaders, identity }) =>
-        await lookupResponse({
-          store,
-          codec,
-          key: await buildCacheKey("GET", url, identity),
-          url,
-          requestHeaders,
-        }),
-      store: async ({ url, requestHeaders, identity }, response) => {
-        await storeResponse({
-          store,
-          codec,
-          key: await buildCacheKey("GET", url, identity),
-          identity,
-          url,
-          requestHeaders,
-          response,
+      lookup: async (request) => {
+        const entry = entries.get(key(request));
+        return (
+          entry && {
+            kind: "hit",
+            response: new Response(entry.body.slice(0), entry.init),
+          }
+        );
+      },
+      store: async (request, response) => {
+        entries.set(key(request), {
+          body: await response.arrayBuffer(),
+          init: { status: response.status, headers: response.headers },
         });
       },
       invalidate: async (url) => {
@@ -680,7 +529,7 @@ describe("cache", () => {
     expect(sent).toHaveLength(1);
   });
 
-  it("matches Vary: Authorization with the host's Authorization", async () => {
+  it("looks up and stores with the host's Authorization", async () => {
     const cache = memoryCache();
     const { fetch, sent } = scriptedFetch([
       Response.json([{ id: "1" }], {
@@ -747,7 +596,6 @@ describe("cache", () => {
     const store = vi.fn();
     const { fetch, sent } = scriptedFetch([Response.json({})]);
     const api = createApiTransport({
-      retry: policy,
       fetch,
       cache: { lookup, store, invalidate: vi.fn() },
     });

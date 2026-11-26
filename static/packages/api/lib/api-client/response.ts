@@ -3,7 +3,7 @@
  * errors: the MCP to `ApiError` subclasses, the CLI to its exit-coded ones.
  */
 
-import { parseRetryDelayMs } from "./retry.js";
+import { parseRetryDelayMs } from "./rate-limit.js";
 
 /** What a failed response's body says, read once. */
 export type ErrorResponseBody = {
