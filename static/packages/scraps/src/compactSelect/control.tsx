@@ -567,15 +567,17 @@ export function Control<Value extends SelectKey>({
                   </Header>
                 )}
                 {searchEnabled && (
-                  <Search
-                    ref={searchRef}
-                    placeholder={normalizedSearch?.placeholder ?? 'Search…'}
-                    value={searchInputValue}
-                    onFocus={onSearchFocus}
-                    onBlur={onSearchBlur}
-                    onChange={e => updateSearch(e.target.value)}
-                    {...searchKeyboardProps}
-                  />
+                  <Container borderBottom="secondary">
+                    <Search
+                      ref={searchRef}
+                      placeholder={normalizedSearch?.placeholder ?? 'Search…'}
+                      value={searchInputValue}
+                      onFocus={onSearchFocus}
+                      onBlur={onSearchBlur}
+                      onChange={e => updateSearch(e.target.value)}
+                      {...searchKeyboardProps}
+                    />
+                  </Container>
                 )}
                 {typeof menuBody === 'function'
                   ? menuBody({closeOverlay: overlayState.close})

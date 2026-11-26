@@ -635,7 +635,7 @@ describe('AutofixRef embed', () => {
       ],
       [
         'a_future_reason',
-        'Seer stopped before finishing the code changes because your organization ran out of credits.',
+        'Seer stopped before finishing the code changes because your organization does not have enough credits.',
       ],
     ])('says why a step stopped when denied for %s', async (denialReason, message) => {
       mockRun({
@@ -692,7 +692,7 @@ describe('AutofixRef embed', () => {
 
       expect(
         screen.getByText(
-          "Seer couldn't open a pull request in getsentry/sentry because your organization ran out of credits."
+          "Seer couldn't open a pull request in getsentry/sentry because your organization does not have enough credits."
         )
       ).toBeInTheDocument();
       expect(screen.queryByText(/This one is on us/)).not.toBeInTheDocument();

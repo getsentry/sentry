@@ -9,6 +9,7 @@ import {useRenderToString} from '@sentry/scraps/renderToString';
 import {isSevere} from 'sentry/components/charts/annotations/severity';
 import type {AnnotationItem} from 'sentry/components/charts/annotations/types';
 import {
+  ANNOTATION_MARKER_Z2,
   BAND_Z,
   type BandBucket,
   type BandElement,
@@ -159,7 +160,10 @@ function annotationMarkerRenderItem(
       );
     }
 
-    return {type: 'group', children};
+    return {
+      type: 'group',
+      children: children.map(child => ({...child, z2: ANNOTATION_MARKER_Z2})),
+    };
   };
 }
 

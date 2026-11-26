@@ -9,7 +9,9 @@ from sentry.search.events.fields import (
     COMBINATORS,
     FUNCTIONS,
     Combinator,
+    FunctionAliasArg,
     FunctionDetails,
+    InvalidFunctionArgument,
     get_json_meta_type,
     parse_arguments,
     parse_combinator,
@@ -230,6 +232,17 @@ def test_parse_arguments(function: str, columns: str, result: list[str]) -> None
 )
 def test_parse_combinator(function: str, expected: tuple[str, str | None]) -> None:
     assert parse_combinator(function) == expected
+
+
+@pytest.mark.parametrize("alias", ["a", "_", "test_123", "123_test", "1a2"])
+def test_function_alias_arg_accepts_word_with_non_digit(alias: str) -> None:
+    assert FunctionAliasArg("alias").normalize(alias, {}, None) == alias
+
+
+@pytest.mark.parametrize("alias", ["", "1", "123", "a-", "a b", "a" * 10000 + "-"])
+def test_function_alias_arg_rejects_invalid_alias(alias: str) -> None:
+    with pytest.raises(InvalidFunctionArgument):
+        FunctionAliasArg("alias").normalize(alias, {}, None)
 
 
 def resolve_snql_fieldlist(fields: list[str]) -> list[SelectType]:

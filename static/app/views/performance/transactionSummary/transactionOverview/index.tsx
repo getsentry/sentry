@@ -47,13 +47,7 @@ function TransactionOverview() {
 }
 
 function EAPOverviewContentWrapper() {
-  const {
-    organization,
-    projectId,
-    transactionName,
-    transactionThreshold,
-    transactionThresholdMetric,
-  } = useTransactionSummaryContext();
+  const {organization, projectId, transactionName} = useTransactionSummaryContext();
 
   const location = useLocation();
   const eventView = useMemo(
@@ -66,8 +60,6 @@ function EAPOverviewContentWrapper() {
     eventView: getEAPTotalsEventView(organization, eventView),
     orgSlug: organization.slug,
     location,
-    transactionThreshold,
-    transactionThresholdMetric,
     referrer: 'api.insights.transaction-summary',
     options: {refetchOnWindowFocus: false},
   });
@@ -78,8 +70,6 @@ function EAPOverviewContentWrapper() {
     eventView: getTotalCountEventView(organization, eventView),
     orgSlug: organization.slug,
     location,
-    transactionThreshold,
-    transactionThresholdMetric,
     referrer: 'api.insights.transaction-summary',
   });
 

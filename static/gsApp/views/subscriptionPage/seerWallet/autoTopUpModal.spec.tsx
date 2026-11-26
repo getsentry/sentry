@@ -1051,7 +1051,7 @@ describe('openSeerAutoTopUpModal', () => {
 
       expect(
         screen.getByText(
-          'Your organization ran out of Seer credits. Only owners and billing members can manage auto-reload, so ask your admin to check it.'
+          'Your organization does not have enough Seer credits. Only owners and billing members can manage auto-reload, so ask your admin to check it.'
         )
       ).toBeInTheDocument();
       expect(
