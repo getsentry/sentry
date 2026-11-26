@@ -46,6 +46,12 @@ x-sentry-service-config:
         repo_name: sentry-shared-redis
         branch: main
         repo_link: https://github.com/getsentry/sentry-shared-redis.git
+    kafka:
+      description: Shared instance of Kafka used by Sentry services
+      remote:
+        repo_name: sentry-shared-kafka
+        branch: main
+        repo_link: https://github.com/getsentry/sentry-shared-kafka.git
     symbolicator:
       description: A symbolication service for native stacktraces and minidumps with symbol server support
       remote:
@@ -180,7 +186,8 @@ x-sentry-service-config:
 
   modes:
     default: [snuba, postgres, relay, spotlight, objectstore]
-    migrations: [postgres, redis]
+    # Upgrade can create a default project that queues taskworker jobs.
+    migrations: [postgres, redis, kafka]
     acceptance-ci: [postgres, snuba, chartcuterie]
     chartcuterie: [postgres, snuba, chartcuterie, spotlight]
     launchpad:
