@@ -814,8 +814,11 @@ export type EventIdResponse = {
  * https://github.com/getsentry/symbolicator/blob/master/crates/symbolicator-native/src/interface/variables.rs
  */
 export interface NativeFrameVariableValue {
-  /** Structure members. For a pointer, the members of the final pointee. */
-  members?: Record<string, NativeFrameVariableValue>;
+  /**
+   * Structure members. For a pointer, the members of the final pointee. A member at
+   * Relay's depth limit is a JSON string.
+   */
+  members?: Record<string, NativeFrameVariableValue | string>;
   /**
    * The pointer chain: one address per pointer level, outermost first, ending at the
    * first address that cannot be dereferenced.

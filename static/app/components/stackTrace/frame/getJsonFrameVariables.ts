@@ -84,7 +84,11 @@ function toNativeVariable(
     : {...base, ...leading, kind: 'unformatted', value: lastAddress};
 }
 
-function toNativeMember(name: string, value: unknown, meta: unknown): FrameVariable {
+function toNativeMember(
+  name: string,
+  value: NativeFrameVariableValue | string,
+  meta: unknown
+): FrameVariable {
   // Relay's depth limit serializes deeply nested values to strings, show those verbatim.
   return isNativeValue(value)
     ? toNativeVariable(name, value, meta)
