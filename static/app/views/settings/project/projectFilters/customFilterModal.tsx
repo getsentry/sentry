@@ -86,8 +86,12 @@ export type ConditionOperator =
   | 'lte';
 
 export type CustomInboundFilterCondition = {
-  type: ConditionType;
+  // `attribute` matches the field that `key` names, so it has no row in `CONDITIONS`.
+  type: ConditionType | 'attribute';
   value: string[];
+  // Set on an `attribute` condition only: the name of the tag of an error, or of the
+  // attribute of a log, metric or span, that the condition matches.
+  key?: string;
   // Absent on a filter stored before operators existed. Such a condition holds
   // raw values: glob patterns, or addresses and ranges on `ip_address`.
   operator?: ConditionOperator;
@@ -262,6 +266,24 @@ const CONDITIONS: Record<ConditionType, ConditionSpec> = {
   },
 };
 
+// What an `attribute` condition is to the query builder: a key that names no
+// property above names a tag or an attribute.
+const ATTRIBUTE_FEATURE = 'inbound-filters-attribute-condition';
+const ATTRIBUTE: ConditionSpec = {
+  feature: ATTRIBUTE_FEATURE,
+  label: t('Attribute'),
+  placeholder: t('Glob pattern'),
+  description: {
+    all: t(
+      'Matches the tag of an error, or the attribute of a log, metric or span, with this name.'
+    ),
+    error: t('Matches the tag of the error with this name.'),
+    log: t('Matches the attribute of the log with this name.'),
+    metric: t('Matches the attribute of the metric with this name.'),
+    span: t('Matches the attribute of the span with this name.'),
+  },
+};
+
 const CONDITION_TYPES = Object.keys(CONDITIONS) as [ConditionType, ...ConditionType[]];
 const FILTER_DATA_TYPES = Object.keys(DATA_TYPES) as [
   FilterDataType,
@@ -281,6 +303,14 @@ export function getCondition(property: string): ConditionSpec {
       description: '',
     }
   );
+}
+
+// What the table calls the field a condition matches. An attribute condition goes by
+// the name of its tag or attribute.
+export function getConditionLabel(condition: CustomInboundFilterCondition): string {
+  return condition.type === 'attribute' && condition.key
+    ? condition.key
+    : getCondition(condition.type).label;
 }
 
 // A data type offers the conditions that read its own fields, plus the ones every
@@ -367,19 +397,17 @@ function getValueHint(spec: ConditionSpec, operator: TermOperator): string | und
 }
 
 // Tells the query builder which operators a condition takes and what it matches.
-// The description shows in the key menu.
+// The description shows in the key menu. A key that names no property reads as an
+// attribute; without the attribute feature the builder refuses such a key first.
 function getFieldDefinitionGetter(dataType: FilterDataType): FieldDefinitionGetter {
   let getter = FIELD_DEFINITION_GETTERS.get(dataType);
   if (!getter) {
     getter = key => {
-      const spec = CONDITION_SPECS.get(key);
-      if (!spec) {
-        return null;
-      }
+      const spec = CONDITION_SPECS.get(key) ?? ATTRIBUTE;
       return {
         kind: FieldKind.FIELD,
         valueType: FieldValueType.STRING,
-        desc: getMatchDescription(key, dataType),
+        desc: getMatchDescription(spec, dataType),
         allowComparisonOperators: spec.comparable,
         comparisonOperatorsFirst: spec.comparable,
         allowWildcard: !spec.exact,
@@ -494,13 +522,23 @@ type TokenTranslation =
   | {problem: string; condition?: undefined};
 
 // Translates one filter token of the query into an API condition, or says why the
-// API would refuse it: "is not" on text has no API operator.
-function tokenToCondition(token: TokenResult<Token.FILTER>): TokenTranslation {
+// API would refuse it: "is not" on text has no API operator. With `allowAttributes`,
+// a key that names no property is an attribute condition on that key, and so is
+// every `tags[key]`, which is how an attribute named like a property is written.
+function tokenToCondition(
+  token: TokenResult<Token.FILTER>,
+  allowAttributes: boolean
+): TokenTranslation {
   const type = getKeyName(token.key);
-  const spec = CONDITION_SPECS.get(type);
-  if (!spec) {
+  const property =
+    token.key.type === Token.KEY_EXPLICIT_TAG ? undefined : CONDITION_SPECS.get(type);
+  if (!property && !allowAttributes) {
     return {problem: t('%s is not a condition.', type)};
   }
+  const spec = property ?? ATTRIBUTE;
+  const field: Pick<CustomInboundFilterCondition, 'type' | 'key'> = property
+    ? {type: type as ConditionType}
+    : {type: 'attribute', key: type};
   const values =
     token.value.type === Token.VALUE_TEXT_LIST
       ? token.value.items.flatMap(item =>
@@ -515,20 +553,18 @@ function tokenToCondition(token: TokenResult<Token.FILTER>): TokenTranslation {
 
   if (spec.exact) {
     if (termOperator === TermOperator.DEFAULT || termOperator === TermOperator.EQUAL) {
-      return {condition: {type: type as ConditionType, operator: 'cidr', value: values}};
+      return {condition: {...field, operator: 'cidr', value: values}};
     }
     if (termOperator === TermOperator.NOT_EQUAL) {
-      return {
-        condition: {type: type as ConditionType, operator: 'not_cidr', value: values},
-      };
+      return {condition: {...field, operator: 'not_cidr', value: values}};
     }
     return {problem: t('%s only takes "matches" and "does not match".', type)};
   }
 
   if (termOperator === TermOperator.DEFAULT || termOperator === TermOperator.EQUAL) {
     return values.some(isGlob)
-      ? {condition: {type: type as ConditionType, operator: 'glob', value: values}}
-      : {condition: {type: type as ConditionType, operator: 'equals', value: literals}};
+      ? {condition: {...field, operator: 'glob', value: values}}
+      : {condition: {...field, operator: 'equals', value: literals}};
   }
 
   const operator = TERM_OPERATORS[termOperator];
@@ -540,7 +576,7 @@ function tokenToCondition(token: TokenResult<Token.FILTER>): TokenTranslation {
       ),
     };
   }
-  return {condition: {type: type as ConditionType, operator, value: literals}};
+  return {condition: {...field, operator, value: literals}};
 }
 
 type ConditionsTranslation =
@@ -549,17 +585,18 @@ type ConditionsTranslation =
 
 // Translates the modal's search query into API conditions, one per filter token.
 // Tokens AND together, as conditions do. Says why instead when the query has no
-// condition or one the API would reject: free text, OR, parens, an unknown key, or
-// a token `tokenToCondition` refuses.
+// condition or one the API would reject: free text, OR, parens, an unknown key
+// without `allowAttributes`, or a token `tokenToCondition` refuses.
 function parseConditionQuery(
   query: string,
-  dataType: FilterDataType
+  dataType: FilterDataType,
+  allowAttributes: boolean
 ): ConditionsTranslation {
   const parsed = parseQueryBuilderValue(query, getFieldDefinitionGetter(dataType), {
     filterKeys: getFilterKeys(dataType),
     disallowFreeText: true,
     disallowLogicalOperators: true,
-    disallowUnsupportedFilters: true,
+    disallowUnsupportedFilters: !allowAttributes,
   });
   if (!queryIsValid(parsed)) {
     return {problem: t('Every condition must be valid.')};
@@ -569,7 +606,7 @@ function parseConditionQuery(
     if (token.type !== Token.FILTER) {
       continue;
     }
-    const translation = tokenToCondition(token);
+    const translation = tokenToCondition(token, allowAttributes);
     if (translation.condition === undefined) {
       return translation;
     }
@@ -587,6 +624,20 @@ function formatValue(value: string, raw: boolean): string {
   return raw ? escapeTagValue(value) : escapeTagValueForSearch(value);
 }
 
+// The keys the search syntax reads as a plain key. `has` and `is` are filters of
+// their own to it.
+const PLAIN_KEY = /^(?!(has|is)$)[\w.-]+$/;
+
+// The query key of a condition. An attribute goes by its name, in `tags[...]` when
+// the name alone would read as a property or as no key at all.
+function conditionToKey(condition: CustomInboundFilterCondition): string {
+  if (condition.type !== 'attribute') {
+    return condition.type;
+  }
+  const key = condition.key ?? '';
+  return PLAIN_KEY.test(key) && !CONDITION_SPECS.has(key) ? key : `tags[${key}]`;
+}
+
 function conditionToToken(condition: CustomInboundFilterCondition): string {
   const operator = getConditionOperator(condition);
   const values = condition.value.map(value =>
@@ -594,7 +645,7 @@ function conditionToToken(condition: CustomInboundFilterCondition): string {
   );
   const text = values.length === 1 ? values[0]! : `[${values.join(',')}]`;
   const negation = NEGATED_OPERATORS.has(operator) ? '!' : '';
-  return `${negation}${condition.type}:${OPERATOR_PREFIXES[operator]}${text}`;
+  return `${negation}${conditionToKey(condition)}:${OPERATOR_PREFIXES[operator]}${text}`;
 }
 
 function conditionsToQuery(conditions: CustomInboundFilterCondition[]): string {
@@ -638,10 +689,12 @@ type ConditionEditor = {
 
 // A filter made here edits its conditions as a search query, one filter token per
 // condition. See `parseConditionQuery` for the translation.
-const QUERY_EDITOR: ConditionEditor = {
-  format: conditionsToQuery,
-  parse: parseConditionQuery,
-};
+function getQueryEditor(allowAttributes: boolean): ConditionEditor {
+  return {
+    format: conditionsToQuery,
+    parse: (text, dataType) => parseConditionQuery(text, dataType, allowAttributes),
+  };
+}
 
 // A row that holds a legacy list edits the lines of its one condition, one pattern
 // per line, the way the project settings edit the list. The condition keeps its
@@ -666,9 +719,12 @@ function getLineListEditor(condition: CustomInboundFilterCondition): ConditionEd
 }
 
 function getConditionEditor(
-  legacyCondition: CustomInboundFilterCondition | undefined
+  legacyCondition: CustomInboundFilterCondition | undefined,
+  allowAttributes: boolean
 ): ConditionEditor {
-  return legacyCondition ? getLineListEditor(legacyCondition) : QUERY_EDITOR;
+  return legacyCondition
+    ? getLineListEditor(legacyCondition)
+    : getQueryEditor(allowAttributes);
 }
 
 function getFilterSchema(editor: ConditionEditor) {
@@ -755,9 +811,35 @@ export function getErrorDetail(error: unknown, fallback: string): string {
   return messages.length > 0 ? messages.join(' ') : fallback;
 }
 
-function getMatchDescription(property: string, dataType: FilterDataType): string {
-  const {description} = getCondition(property);
+function getMatchDescription(spec: ConditionSpec, dataType: FilterDataType): string {
+  const {description} = spec;
   return typeof description === 'string' ? description : description[dataType];
+}
+
+// What the modal says below the conditions: what the catch-all restricts, and how
+// to write an attribute condition, which the key menu cannot list.
+function getConditionsHint(
+  dataType: FilterDataType,
+  allowAttributes: boolean
+): string | undefined {
+  const hints = [];
+  if (dataType === 'all') {
+    hints.push(
+      t(
+        'This filter applies to every data type Sentry ingests, including ones added later. Only conditions that every data type carries are available.'
+      )
+    );
+  }
+  if (allowAttributes) {
+    hints.push(
+      dataType === 'error'
+        ? t('To match a tag, type its name as the property, e.g. server_name:web-*.')
+        : t(
+            'To match an attribute, type its name as the property, e.g. http.route:/health*.'
+          )
+    );
+  }
+  return hints.length > 0 ? hints.join(' ') : undefined;
 }
 
 // An existing filter may target a data type whose ingestion feature is now
@@ -987,7 +1069,15 @@ function CustomFilterModal({
   // modal edits the lines of the condition.
   const legacyCondition = filter?.legacyFilter ? filter.conditions[0] : undefined;
   const isReadOnly = readOnlyReason !== undefined;
-  const editor = useMemo(() => getConditionEditor(legacyCondition), [legacyCondition]);
+  // A filter that already holds an attribute condition stays editable without the
+  // feature.
+  const allowAttributes =
+    organization.features.includes(ATTRIBUTE_FEATURE) ||
+    (filter?.conditions.some(condition => condition.type === 'attribute') ?? false);
+  const editor = useMemo(
+    () => getConditionEditor(legacyCondition, allowAttributes),
+    [legacyCondition, allowAttributes]
+  );
   const filterSchema = useMemo(() => getFilterSchema(editor), [editor]);
   const defaultValues = filter
     ? filterToFormValues(filter, editor)
@@ -1177,13 +1267,7 @@ function CustomFilterModal({
                     <queryField.Layout.Stack
                       label={t('Conditions')}
                       required
-                      hintText={
-                        dataType === 'all'
-                          ? t(
-                              'This filter applies to every data type Sentry ingests, including ones added later. Only conditions that every data type carries are available.'
-                            )
-                          : undefined
-                      }
+                      hintText={getConditionsHint(dataType, allowAttributes)}
                     >
                       <queryField.Base<HTMLDivElement>>
                         {({disabled, onBlur}) => (
@@ -1211,7 +1295,7 @@ function CustomFilterModal({
                               invalidMessages={CONDITION_QUERY_MESSAGES}
                               disallowFreeText
                               disallowLogicalOperators
-                              disallowUnsupportedFilters
+                              disallowUnsupportedFilters={!allowAttributes}
                               keepOperatorOnValueSelect
                               showAllFilterValues
                               showSearchIcon={false}
@@ -1229,7 +1313,7 @@ function CustomFilterModal({
                               .join(' ')}
                           </Text>
                         )}
-                      {(parseConditionQuery(conditions, dataType).conditions ?? []).some(
+                      {(editor.parse(conditions, dataType).conditions ?? []).some(
                         condition => RAW_ERROR_PROPERTIES.has(condition.type)
                       ) && <ObfuscatedErrorWarning project={project} />}
                     </queryField.Layout.Stack>

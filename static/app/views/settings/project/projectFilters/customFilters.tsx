@@ -47,7 +47,7 @@ import type {
 } from './customFilterModal';
 import {
   customFiltersQueryOptions,
-  getCondition,
+  getConditionLabel,
   getConditionOperator,
   getCustomFilterUrl,
   getDataTypeLabel,
@@ -143,7 +143,7 @@ function ConditionSummary({
   return (
     <Flex wrap="wrap" gap="xs" align="center">
       <Text size="sm" variant="muted">
-        {getCondition(condition.type).label}
+        {getConditionLabel(condition)}
       </Text>
       {OPERATOR_LABELS[operator] && (
         <Text size="sm" variant="muted">
@@ -415,7 +415,7 @@ function matchesQuery(filter: CustomInboundFilter, query: string) {
     filter.name ?? '',
     getDataTypeLabel(filter),
     ...filter.conditions.flatMap(condition => [
-      getCondition(condition.type).label,
+      getConditionLabel(condition),
       ...condition.value,
     ]),
   ];
