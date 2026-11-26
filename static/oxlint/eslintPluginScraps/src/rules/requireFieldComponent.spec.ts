@@ -126,11 +126,11 @@ ruleTester.run('require-field-component', requireFieldComponent, {
     },
     {
       name: 'supports string-keyed destructured field components',
-      code: '<form.AppField name="name">{({"Input": NameInput}) => <NameInput />}</form.AppField>',
+      code: '<form.Field name="name">{({"Input": NameInput}) => <NameInput />}</form.Field>',
     },
     {
-      name: 'ignores Field render functions',
-      code: '<><form.AppField name="name">{field => <field.Input />}</form.AppField><form.Field name="other">{field => <CustomInput value={field.state.value} />}</form.Field></>',
+      name: 'ignores legacy AppField render functions',
+      code: '<><form.Field name="name">{field => <field.Input />}</form.Field><form.AppField name="other">{field => <CustomInput value={field.state.value} />}</form.AppField></>',
     },
   ],
   invalid: [
@@ -182,7 +182,7 @@ ruleTester.run('require-field-component', requireFieldComponent, {
       errors,
     },
     {
-      name: 'checks item fields inside an exempt array-mode AppField',
+      name: 'checks item fields inside an exempt ArrayField',
       code: '<form.ArrayField name="items">{arrayField => arrayField.value.map((_, index) => <form.Field key={index} name={`items[${index}].name`}>{field => <CustomInput value={field.value} />}</form.Field>)}</form.ArrayField>',
       errors,
     },
@@ -293,32 +293,32 @@ ruleTester.run('require-field-component', requireFieldComponent, {
     },
     {
       name: 'does not count a destructured field component that is not rendered',
-      code: '<form.AppField name="name">{({Input}) => <CustomInput />}</form.AppField>',
+      code: '<form.Field name="name">{({Input}) => <CustomInput />}</form.Field>',
       errors,
     },
     {
       name: 'does not count computed destructured keys',
-      code: '<form.AppField name="name">{({[Input]: NameInput}) => <NameInput />}</form.AppField>',
+      code: '<form.Field name="name">{({[Input]: NameInput}) => <NameInput />}</form.Field>',
       errors,
     },
     {
       name: 'rejects array destructuring of the field',
-      code: '<form.AppField name="name">{([field]) => <field.Input />}</form.AppField>',
+      code: '<form.Field name="name">{([field]) => <field.Input />}</form.Field>',
       errors,
     },
     {
       name: 'does not exempt other attributes with an array value',
-      code: '<form.AppField name="array">{field => <CustomInput value={field.state.value} />}</form.AppField>',
+      code: '<form.Field name="array">{field => <CustomInput value={field.value} />}</form.Field>',
       errors,
     },
     {
       name: 'does not exempt spread mode attributes',
-      code: '<form.AppField name="name" {...{mode: "array"}}>{field => <CustomInput value={field.state.value} />}</form.AppField>',
+      code: '<form.Field name="name" {...{mode: "array"}}>{field => <CustomInput value={field.value} />}</form.Field>',
       errors,
     },
     {
       name: 'does not exempt mode attributes without a value',
-      code: '<form.AppField name="name" mode>{field => <CustomInput value={field.state.value} />}</form.AppField>',
+      code: '<form.Field name="name" mode>{field => <CustomInput value={field.value} />}</form.Field>',
       errors,
     },
   ],
