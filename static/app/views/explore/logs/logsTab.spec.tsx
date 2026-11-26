@@ -156,9 +156,7 @@ describe('LogsTabContent', () => {
       datasetReason: 'unchanged',
       dataset: 'ourlogs',
       dataScanned: 'full',
-      accuracy: {
-        confidence: [{}, {}],
-      },
+      accuracy: {confidence: [{}, {}]},
     },
     confidence: [{}, {}],
   };
@@ -177,9 +175,7 @@ describe('LogsTabContent', () => {
     eventsTimeSeriesMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-timeseries/`,
       method: 'GET',
-      body: {
-        timeSeries: [TimeSeriesFixture()],
-      },
+      body: {timeSeries: [TimeSeriesFixture()]},
     });
 
     MockApiClient.addMockResponse({
@@ -266,12 +262,7 @@ describe('LogsTabContent', () => {
           projectIds: [project.id],
           projectSlugs: [project.slug],
           projectSelectionMode: 'explicit',
-          currentSelectedDateRange: {
-            period: '14d',
-            start: null,
-            end: null,
-            utc: null,
-          },
+          currentSelectedDateRange: {period: '14d', start: null, end: null, utc: null},
         })
       );
     });
@@ -520,9 +511,7 @@ describe('LogsTabContent', () => {
     });
     expect(eventTableMock).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/events/`,
-      expect.objectContaining({
-        query: expect.objectContaining({sort: 'timestamp'}),
-      })
+      expect.objectContaining({query: expect.objectContaining({sort: 'timestamp'})})
     );
   });
 
@@ -531,18 +520,8 @@ describe('LogsTabContent', () => {
       dataset: [],
       environment: [],
       field: [
-        {
-          attrType: 'number',
-          error: null,
-          name: 'custom.duration',
-          valid: true,
-        },
-        {
-          attrType: 'boolean',
-          error: null,
-          name: 'custom.enabled',
-          valid: true,
-        },
+        {attrType: 'number', error: null, name: 'custom.duration', valid: true},
+        {attrType: 'boolean', error: null, name: 'custom.enabled', valid: true},
         {
           attrType: null,
           error: 'unknown attribute',
@@ -619,12 +598,7 @@ describe('LogsTabContent', () => {
       dataset: [],
       environment: [],
       field: [
-        {
-          attrType: 'number',
-          error: null,
-          name: 'custom.duration',
-          valid: true,
-        },
+        {attrType: 'number', error: null, name: 'custom.duration', valid: true},
         {
           attrType: null,
           error: 'unknown attribute',
@@ -697,12 +671,7 @@ describe('LogsTabContent', () => {
       dataset: [],
       environment: [],
       field: [
-        {
-          attrType: 'number',
-          error: null,
-          name: 'custom.duration',
-          valid: true,
-        },
+        {attrType: 'number', error: null, name: 'custom.duration', valid: true},
         {
           attrType: null,
           error: 'unknown attribute',
@@ -805,11 +774,7 @@ describe('LogsTabContent', () => {
   it('leaves the aggregate fields alone when switching to aggregates while ungrouped', async () => {
     const {router} = render(
       <LogsTabContentHarness datePageFilterProps={datePageFilterProps} />,
-      {
-        initialRouterConfig,
-        organization,
-        additionalWrapper: ProviderWrapper,
-      }
+      {initialRouterConfig, organization, additionalWrapper: ProviderWrapper}
     );
 
     await userEvent.click(screen.getByRole('tab', {name: 'Aggregates'}));
@@ -879,9 +844,7 @@ describe('LogsTabContent', () => {
 
     expect(eventTableMock).toHaveBeenCalled();
 
-    const caseInsensitiveBtn = await screen.findByRole('button', {
-      name: 'Ignore case',
-    });
+    const caseInsensitiveBtn = await screen.findByRole('button', {name: 'Ignore case'});
     await userEvent.click(caseInsensitiveBtn);
 
     expect(eventTableMock).toHaveBeenCalledWith(
@@ -952,9 +915,7 @@ describe('LogsTabContent', () => {
       organization,
       additionalWrapper: ProviderWrapper,
     });
-    const refreshButton = await screen.findByRole('button', {
-      name: 'Refresh',
-    });
+    const refreshButton = await screen.findByRole('button', {name: 'Refresh'});
     expect(refreshButton).toBeDisabled();
   });
 
@@ -999,10 +960,7 @@ describe('LogsTabContent', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
-      body: {
-        data: [],
-        meta: {fields: {}, units: {}, dataScanned: 'partial'},
-      },
+      body: {data: [], meta: {fields: {}, units: {}, dataScanned: 'partial'}},
     });
 
     render(<LogsTabContentHarness datePageFilterProps={datePageFilterProps} />, {
@@ -1022,10 +980,7 @@ describe('LogsTabContent', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
-      body: {
-        data: [],
-        meta: {fields: {}, units: {}, dataScanned: 'partial'},
-      },
+      body: {data: [], meta: {fields: {}, units: {}, dataScanned: 'partial'}},
     });
     const timestampSortRouterConfig = structuredClone(initialRouterConfig);
     timestampSortRouterConfig.location.query[LOGS_FIELDS_KEY] = ['timestamp', 'message'];
@@ -1102,10 +1057,7 @@ describe('LogsTabContent', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
-      body: {
-        data: [],
-        meta: {fields: {}, units: {}, dataScanned: 'full'},
-      },
+      body: {data: [], meta: {fields: {}, units: {}, dataScanned: 'full'}},
     });
     const autorefreshEnabledRouterConfig = structuredClone(initialRouterConfig);
     autorefreshEnabledRouterConfig.location.query[LOGS_FIELDS_KEY] = [
@@ -1123,6 +1075,130 @@ describe('LogsTabContent', () => {
     await screen.findByText('No logs found');
 
     expect(screen.queryByText(/may be incomplete/)).not.toBeInTheDocument();
+  });
+
+  describe('search key intersection', () => {
+    function mockAttributes() {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/trace-items/attributes/`,
+        method: 'GET',
+        body: [
+          {
+            attributeType: 'string',
+            key: 'http.method',
+            name: 'http.method',
+            attributeSource: {source_type: 'user'},
+          },
+        ],
+      });
+      return MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/trace-items/attributes/`,
+        method: 'GET',
+        match: [MockApiClient.matchQuery({query: 'severity:error'})],
+        body: [
+          {
+            attributeType: 'string',
+            key: 'db.system',
+            name: 'db.system',
+            attributeSource: {source_type: 'user'},
+          },
+        ],
+      });
+    }
+
+    it('only suggests keys on logs matching the search query', async () => {
+      mockAttributes();
+
+      render(<LogsTabContentHarness datePageFilterProps={datePageFilterProps} />, {
+        initialRouterConfig,
+        organization: {
+          ...organization,
+          features: [...organization.features, 'explore-search-attribute-intersection'],
+        },
+        additionalWrapper: ProviderWrapper,
+      });
+
+      await userEvent.click(screen.getByTestId('query-builder-input'));
+
+      expect(await screen.findByRole('option', {name: 'db.system'})).toBeInTheDocument();
+      expect(screen.queryByRole('option', {name: 'http.method'})).not.toBeInTheDocument();
+    });
+
+    it('suggests every key when the search query is invalid', async () => {
+      mockAttributes();
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events/validate/`,
+        method: 'GET',
+        body: {
+          dataset: [],
+          environment: [],
+          field: [],
+          orderby: [],
+          projects: [],
+          query: {error: 'Invalid query', fields: [], valid: false},
+          valid: false,
+        },
+      });
+
+      render(<LogsTabContentHarness datePageFilterProps={datePageFilterProps} />, {
+        initialRouterConfig,
+        organization: {
+          ...organization,
+          features: [...organization.features, 'explore-search-attribute-intersection'],
+        },
+        additionalWrapper: ProviderWrapper,
+      });
+
+      await userEvent.click(screen.getByTestId('query-builder-input'));
+
+      expect(
+        await screen.findByRole('option', {name: 'http.method'})
+      ).toBeInTheDocument();
+      expect(screen.queryByRole('option', {name: 'db.system'})).not.toBeInTheDocument();
+    });
+
+    it('suggests every key without the feature flag', async () => {
+      const matchingAttributesMock = mockAttributes();
+
+      render(<LogsTabContentHarness datePageFilterProps={datePageFilterProps} />, {
+        initialRouterConfig,
+        organization,
+        additionalWrapper: ProviderWrapper,
+      });
+
+      await userEvent.click(screen.getByTestId('query-builder-input'));
+
+      expect(
+        await screen.findByRole('option', {name: 'http.method'})
+      ).toBeInTheDocument();
+      expect(matchingAttributesMock).not.toHaveBeenCalled();
+    });
+
+    it('suggests every key while the search query is validating', async () => {
+      const matchingAttributesMock = mockAttributes();
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events/validate/`,
+        method: 'GET',
+        body: {},
+        asyncDelay: new Promise(() => {}),
+      });
+
+      render(<LogsTabContentHarness datePageFilterProps={datePageFilterProps} />, {
+        initialRouterConfig,
+        organization: {
+          ...organization,
+          features: [...organization.features, 'explore-search-attribute-intersection'],
+        },
+        additionalWrapper: ProviderWrapper,
+      });
+
+      await userEvent.click(screen.getByTestId('query-builder-input'));
+
+      expect(
+        await screen.findByRole('option', {name: 'http.method'})
+      ).toBeInTheDocument();
+      expect(matchingAttributesMock).not.toHaveBeenCalled();
+    });
   });
 
   describe('dropped data layer', () => {

@@ -20,57 +20,41 @@ export function transferProject(
 ) {
   const endpoint = getApiUrl(
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/transfer/',
-    {
-      path: {organizationIdOrSlug: orgId, projectIdOrSlug: project.slug},
-    }
+    {path: {organizationIdOrSlug: orgId, projectIdOrSlug: project.slug}}
   );
 
-  return api
-    .requestPromise(endpoint, {
-      method: 'POST',
-      data: {
-        email,
-      },
-    })
-    .then(
-      () => {
-        toast.success(
-          tct('A request was sent to move [project] to a different organization', {
-            project: project.slug,
-          })
-        );
-      },
-      (err: RequestError) => {
-        let message = '';
-        const detail = err.responseJSON?.detail;
-        // Handle errors with known failures
-        if (
-          err.status &&
-          err.status >= 400 &&
-          err.status < 500 &&
-          typeof detail === 'string'
-        ) {
-          message = detail;
-        }
-
-        if (message) {
-          toast.error(
-            tct('Error transferring [project]. [message]', {
-              project: project.slug,
-              message,
-            })
-          );
-        } else {
-          toast.error(
-            tct('Error transferring [project]', {
-              project: project.slug,
-            })
-          );
-        }
-
-        throw err;
+  return api.requestPromise(endpoint, {method: 'POST', data: {email}}).then(
+    () => {
+      toast.success(
+        tct('A request was sent to move [project] to a different organization', {
+          project: project.slug,
+        })
+      );
+    },
+    (err: RequestError) => {
+      let message = '';
+      const detail = err.responseJSON?.detail;
+      // Handle errors with known failures
+      if (
+        err.status &&
+        err.status >= 400 &&
+        err.status < 500 &&
+        typeof detail === 'string'
+      ) {
+        message = detail;
       }
-    );
+
+      if (message) {
+        toast.error(
+          tct('Error transferring [project]. [message]', {project: project.slug, message})
+        );
+      } else {
+        toast.error(tct('Error transferring [project]', {project: project.slug}));
+      }
+
+      throw err;
+    }
+  );
 }
 
 /**
@@ -95,31 +79,27 @@ export function addTeamToProject(
 
   toast.loading(t('Saving changes...'));
 
-  return api
-    .requestPromise(endpoint, {
-      method: 'POST',
-    })
-    .then(
-      project => {
-        toast.success(
-          tct('[team] has been added to the [project] project', {
-            team: `#${team.slug}`,
-            project: projectSlug,
-          })
-        );
-        ProjectsStore.onAddTeam(team, projectSlug);
-        ProjectsStore.onUpdateSuccess(project);
-      },
-      err => {
-        toast.error(
-          tct('Unable to add [team] to the [project] project', {
-            team: `#${team.slug}`,
-            project: projectSlug,
-          })
-        );
-        throw err;
-      }
-    );
+  return api.requestPromise(endpoint, {method: 'POST'}).then(
+    project => {
+      toast.success(
+        tct('[team] has been added to the [project] project', {
+          team: `#${team.slug}`,
+          project: projectSlug,
+        })
+      );
+      ProjectsStore.onAddTeam(team, projectSlug);
+      ProjectsStore.onUpdateSuccess(project);
+    },
+    err => {
+      toast.error(
+        tct('Unable to add [team] to the [project] project', {
+          team: `#${team.slug}`,
+          project: projectSlug,
+        })
+      );
+      throw err;
+    }
+  );
 }
 
 /**
@@ -144,31 +124,27 @@ function removeTeamFromProject(
 
   toast.loading(t('Saving changes...'));
 
-  return api
-    .requestPromise(endpoint, {
-      method: 'DELETE',
-    })
-    .then(
-      project => {
-        toast.success(
-          tct('[team] has been removed from the [project] project', {
-            team: `#${teamSlug}`,
-            project: projectSlug,
-          })
-        );
-        ProjectsStore.onRemoveTeam(teamSlug, projectSlug);
-        ProjectsStore.onUpdateSuccess(project);
-      },
-      err => {
-        toast.error(
-          tct('Unable to remove [team] from the [project] project', {
-            team: `#${teamSlug}`,
-            project: projectSlug,
-          })
-        );
-        throw err;
-      }
-    );
+  return api.requestPromise(endpoint, {method: 'DELETE'}).then(
+    project => {
+      toast.success(
+        tct('[team] has been removed from the [project] project', {
+          team: `#${teamSlug}`,
+          project: projectSlug,
+        })
+      );
+      ProjectsStore.onRemoveTeam(teamSlug, projectSlug);
+      ProjectsStore.onUpdateSuccess(project);
+    },
+    err => {
+      toast.error(
+        tct('Unable to remove [team] from the [project] project', {
+          team: `#${teamSlug}`,
+          project: projectSlug,
+        })
+      );
+      throw err;
+    }
+  );
 }
 
 /**
@@ -196,10 +172,7 @@ export async function removeProject({
     getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
       path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug},
     }),
-    {
-      method: 'DELETE',
-      data: {origin},
-    }
+    {method: 'DELETE', data: {origin}}
   );
   ProjectsStore.onDeleteProject(projectSlug);
 

@@ -45,10 +45,10 @@ export function useMutateFeedback({feedbackIds, organization, projectIds}: Props
           });
 
       // TODO: it would be excellent if `PUT /issues/` could return the same data
-      // as `GET /issues/` when query params are set. IE: it should expand inbox & owners
+      // as `GET /issues/` when query params are set, including suggested owners.
       // Then we could push new data into the cache instead of re-fetching it again
 
-      const listQueryKeyOptions = parseQueryKey(listApiOptions.queryKey).options ?? {};
+      const listQueryKeyOptions = parseQueryKey(listApiOptions.queryKey).options;
       const options = isSingleId
         ? {}
         : ids === 'all'
@@ -76,8 +76,5 @@ export function useMutateFeedback({feedbackIds, organization, projectIds}: Props
     [mutate, feedbackIds]
   );
 
-  return {
-    markAsRead,
-    resolve,
-  };
+  return {markAsRead, resolve};
 }

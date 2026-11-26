@@ -2,11 +2,14 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {IconClock} from '@sentry/icons/clock';
 import {IconIssues} from '@sentry/icons/issues';
+import {IconPlay} from '@sentry/icons/play';
 import {IconSiren} from '@sentry/icons/siren';
 import upperFirst from 'lodash/upperFirst';
 import {useQueryState} from 'nuqs';
 
 import {Tag} from '@sentry/scraps/badge';
+import {DateTime} from '@sentry/scraps/dateTime';
+import {getDuration} from '@sentry/scraps/duration';
 import {InfoText} from '@sentry/scraps/info';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
@@ -14,18 +17,18 @@ import {Pagination} from '@sentry/scraps/pagination';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {Hovercard} from 'sentry/components/hovercard';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import {UserBadge} from 'sentry/components/idBadge/userBadge';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct, tn} from 'sentry/locale';
-import {getDuration} from 'sentry/utils/duration/getDuration';
 import {getPaginationProps} from 'sentry/utils/pagination';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
+import {useUserFromId} from 'sentry/utils/useUserFromId';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 import {getInvestigationPath} from 'sentry/views/investigations/utils';
 import {useAutomationRuns} from 'sentry/views/seerWorkflows/automations/hooks/useAutomationRuns';
@@ -34,7 +37,10 @@ import type {
   SeerAutomationRun,
   WorkflowDisplayStatus,
 } from 'sentry/views/seerWorkflows/types';
-import {getAutomationDetailPath} from 'sentry/views/seerWorkflows/utils';
+import {
+  AUTO_REFRESH_INTERVAL,
+  getAutomationDetailPath,
+} from 'sentry/views/seerWorkflows/utils';
 
 import {getRunDisplayStatus, getStatusLabel, StatusIcon} from './statusIcon';
 
@@ -44,6 +50,8 @@ type MonitorTrigger = Extract<
   NonNullable<SeerAutomationRun['trigger']>,
   {type: 'monitor'}
 >;
+
+type ManualTrigger = Extract<NonNullable<SeerAutomationRun['trigger']>, {type: 'manual'}>;
 
 function getColumns(showAutomation: boolean): TableColumnConfig[] {
   return [
@@ -70,10 +78,10 @@ export function RunsTable({
   showStrategy?: boolean;
 }) {
   const [cursor] = useQueryState('cursor');
-  const {runs, pageLinks, isPending, isLoadingError, refetch} = useAutomationRuns({
-    configId,
-    cursor: cursor || undefined,
-  });
+  const {runs, pageLinks, isPending, isLoadingError, refetch} = useAutomationRuns(
+    {configId, cursor: cursor || undefined},
+    {refetchInterval: AUTO_REFRESH_INTERVAL}
+  );
 
   if (isLoadingError) {
     return <LoadingError onRetry={refetch} />;
@@ -212,6 +220,8 @@ function RunRow({
             <IconClock size="xs" variant="muted" />
             <Text>{t('Schedule')}</Text>
           </Flex>
+        ) : run.trigger?.type === 'manual' ? (
+          <ManualTriggerCell trigger={run.trigger} />
         ) : run.trigger ? (
           <Text variant="muted">{fallbackTriggerText(run.trigger)}</Text>
         ) : (
@@ -226,8 +236,8 @@ function RunRow({
 }
 
 const RunTableRow = styled(SimpleTable.Row)`
-  > [role='cell']:hover {
-    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.active};
+  &:hover {
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.hover};
   }
 `;
 
@@ -329,14 +339,37 @@ function MonitorTriggerCell({trigger}: {trigger: MonitorTrigger}) {
   );
 }
 
+function ManualTriggerCell({trigger}: {trigger: ManualTrigger}) {
+  const {data: user} = useUserFromId({
+    id: trigger.userId ? Number(trigger.userId) : undefined,
+  });
+
+  return (
+    <Flex gap="sm" align="center" wrap="wrap">
+      <Flex gap="xs" align="center">
+        <IconPlay size="xs" variant="muted" />
+        <Text>{user ? t('Manually triggered by') : t('Manually triggered')}</Text>
+      </Flex>
+      {user && (
+        <UserBadge
+          user={user}
+          hideEmail
+          avatarSize={16}
+          avatarProps={{hasTooltip: true}}
+          displayName={<Text>{user.name || user.email}</Text>}
+        />
+      )}
+    </Flex>
+  );
+}
+
 function RunTiming({run}: {run: SeerAutomationRun}) {
   const inProgress = run.status === 'queued' || run.status === 'running';
   const duration = run.dateCompleted
     ? getDuration(
         (new Date(run.dateCompleted).getTime() - new Date(run.dateAdded).getTime()) /
           1000,
-        0,
-        true
+        {style: 'short'}
       )
     : null;
 
@@ -354,11 +387,11 @@ function RunTiming({run}: {run: SeerAutomationRun}) {
               justifyItems="start"
             >
               <Text variant="muted">{t('Started')}</Text>
-              <DateTime date={run.dateAdded} seconds timeZone />
+              <DateTime date={run.dateAdded} precision="second" showTimezone />
               {run.dateCompleted && (
                 <Fragment>
                   <Text variant="muted">{t('Finished')}</Text>
-                  <DateTime date={run.dateCompleted} seconds timeZone />
+                  <DateTime date={run.dateCompleted} precision="second" showTimezone />
                   <Text variant="muted">{t('Duration')}</Text>
                   <Text>{duration}</Text>
                 </Fragment>

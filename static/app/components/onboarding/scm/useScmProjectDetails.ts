@@ -167,10 +167,11 @@ export function useScmProjectDetails({
   // Provides the messaging-integration notification picker (notificationProps,
   // rendered in ScmAlertFrequencySection) and resolves its selected action for
   // the workflow created alongside the project.
-  const {getIntegrationAction, notificationProps} = useScmNotificationAction(
-    // oxlint-disable-next-line react/refs
-    restoredNotificationSelectionRef.current
-  );
+  const {getIntegrationAction, isSelectionSettled, notificationProps} =
+    useScmNotificationAction(
+      // oxlint-disable-next-line react/refs
+      restoredNotificationSelectionRef.current
+    );
 
   const accessTeams = teams.filter((team: Team) => team.access.includes('team:admin'));
   const firstAdminTeam = accessTeams[0];
@@ -295,31 +296,8 @@ export function useScmProjectDetails({
 
   const submitTooltipText = getSubmitTooltipText(missingFields);
 
-  const notificationRestoreCompleteRef = useRef(
-    !projectDetailsForm?.notificationSelection
-  );
-
-  // Blocks canSubmit until a persisted notification selection settles, then latches open
-  // so later edits don't re-block. No-op when there's no saved action.
-  // "Settled" means one of three things:
-  //   1. Integration restored — query succeeded + INTEGRATION re-added to actions
-  //   2. Integration gone    — query succeeded + picker fell back to the setup CTA
-  //   3. Query failed        — unblock unconditionally so the user isn't permanently stuck
-  //                           (the init effect never runs on error, so notificationPickerSettled
-  //                            stays false and must NOT gate the error escape hatch)
-  const notificationPickerSettled =
-    notificationProps.actions.includes(MultipleCheckboxOptions.INTEGRATION) ||
-    notificationProps.shouldRenderSetupButton;
-  const notificationRestoreComplete =
-    notificationProps.queryError ||
-    (notificationProps.querySuccess && notificationPickerSettled);
-  // oxlint-disable-next-line react/refs
-  if (!notificationRestoreCompleteRef.current && notificationRestoreComplete) {
-    notificationRestoreCompleteRef.current = true;
-  }
-
-  // Block submission until teams and the projects store have loaded so the
-  // reuse check below can't be bypassed by a race.
+  // Block submission until teams, the projects store and any saved notification
+  // selection have loaded, so the reuse check below can't be bypassed by a race.
   const canSubmit =
     !missingFields.projectName &&
     !missingFields.team &&
@@ -328,8 +306,7 @@ export function useScmProjectDetails({
     !isCompleting &&
     !isLoadingTeams &&
     projectsLoaded &&
-    // oxlint-disable-next-line react/refs
-    notificationRestoreCompleteRef.current;
+    (!projectDetailsForm?.notificationSelection || isSelectionSettled);
 
   const existingProject = createdProjectSlug
     ? projects.find(p => p.slug === createdProjectSlug)
@@ -474,8 +451,8 @@ export function useScmProjectDetails({
       isCompletingRef.current = false;
       setIsCompleting(false);
     }
+    // oxlint-disable-next-line react/preserve-manual-memoization
   }, [
-    // oxlint-disable-next-line react/memo-dependencies
     accessTeams,
     alertRuleConfig,
     canSubmit,

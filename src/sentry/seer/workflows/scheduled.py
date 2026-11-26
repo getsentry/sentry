@@ -1,19 +1,20 @@
 """
 The scheduled automation: its trigger and action, and the sentry.cadence task that runs it.
 
-Firings reach the task, but scheduled execution is separately gated off while Seer dispatch
-is unimplemented. Admission and lifecycle handling remain available for that integration.
-No run history is created while the execution flag is off.
+Each firing records one run per scheduled time. Until the investigation platform runs
+custom prompts, a run's single execution succeeds immediately. No run history is created
+while the execution flag is off.
 """
 
 from __future__ import annotations
 
 import functools
 import logging
-from collections.abc import Collection, Sequence
+from collections.abc import Collection, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-from typing import Any, Literal, assert_never
+from typing import Any, ClassVar, Literal, assert_never
+from uuid import uuid4
 
 from django.db.models import QuerySet
 from pydantic import BaseModel, validator
@@ -35,19 +36,22 @@ from sentry.cadence.api import (
 from sentry.constants import ObjectStatus
 from sentry.models.project import Project
 from sentry.seer.models.workflow import (
+    SeerSkill,
     SeerWorkflowConfig,
     SeerWorkflowConfigExtras,
     SeerWorkflowConfigProject,
+    SeerWorkflowExecutionExtras,
     SeerWorkflowFilters,
     SeerWorkflowRun,
+    SeerWorkflowRunSource,
     SeerWorkflowSchedule,
+    SeerWorkflowStrategy,
 )
 from sentry.seer.workflows.base import (
     AllProjects,
-    AutomationAction,
     AutomationDefinition,
-    AutomationTrigger,
     ConfigUpdate,
+    LockedConfig,
     ScopeSelection,
     SelectedMonitors,
     SelectedProjects,
@@ -60,6 +64,13 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.utils import metrics
+from sentry.workflow_engine.models import (
+    Action,
+    DataConditionGroup,
+    DataConditionGroupAction,
+    Workflow,
+    WorkflowDataConditionGroup,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -80,18 +91,18 @@ class ScheduleSettings(BaseModel):
         return value
 
 
-class PromptSettings(BaseModel):
-    prompt: str | None = None
-
-    class Config:
-        extra = "forbid"
-
-
 class ScheduledRunInputs(BaseModel):
     """The inputs of a scheduled run, recorded in its snapshot."""
 
     source: Literal["cron"] = "cron"
     scheduled_for: datetime
+
+
+class ManualRunInputs(BaseModel):
+    """The inputs of a manual run, recorded in its snapshot."""
+
+    source: Literal["manual"] = "manual"
+    user_id: int | None = None
 
 
 @functools.cache
@@ -103,7 +114,7 @@ def _daily() -> CronSchedule:
 
 def schedule_for(config: SeerWorkflowConfig) -> Schedule | None:
     """The schedule a scheduled `config` should run on, or None while it is disabled."""
-    if not config.enabled:
+    if not AutomationDefinition.is_enabled(config):
         return None
     extras = SeerWorkflowConfigExtras.parse_obj(config.extras)
     settings = ScheduleSettings.parse_obj(extras.trigger_settings or {})
@@ -138,12 +149,23 @@ def sync_schedule(config: SeerWorkflowConfig) -> None:
         )
 
 
-class ScheduleTrigger(AutomationTrigger[ScheduledRunInputs]):
+class ScheduleDefinition(AutomationDefinition[ScheduledRunInputs | ManualRunInputs]):
     """Runs on the config's schedule, over the projects the config selects."""
 
+    strategy = SeerWorkflowStrategy.SCHEDULED_INVESTIGATION
     inputs_type = ScheduledRunInputs
     settings_type = ScheduleSettings
+    takes_action_settings = True
+    seeded_action_settings: ClassVar[Mapping[str, Any]] = {"skill": SeerSkill.AGENTIC_TRIAGE.value}
     scoped_by: Literal["projects", "monitors"] = "projects"
+
+    def setup(self, update: ConfigUpdate, workflow: Workflow) -> None:
+        action = Action.objects.create(type=Action.Type.SEER_INVESTIGATION, config={}, data={})
+        action_group = DataConditionGroup.objects.create(
+            organization_id=update.config.organization_id, logic_type=DataConditionGroup.Type.ALL
+        )
+        WorkflowDataConditionGroup.objects.create(workflow=workflow, condition_group=action_group)
+        DataConditionGroupAction.objects.create(condition_group=action_group, action=action)
 
     def projects(self, config: SeerWorkflowConfig) -> QuerySet[Project]:
         projects = Project.objects.filter(
@@ -203,21 +225,50 @@ class ScheduleTrigger(AutomationTrigger[ScheduledRunInputs]):
             target_id=config.id,
         )
 
+    def admit_firing(self, config: LockedConfig, scheduled_for: datetime) -> ScheduledRunOutcome:
+        """Record one run per scheduled time, and dispatch it when it is new."""
+        if not self.is_enabled(config):
+            return ScheduledRunOutcome("ignored", reason="config_disabled")
+        admitted = self.admit_run(
+            config,
+            trigger_key=trigger_key_for(scheduled_for),
+            source=SeerWorkflowRunSource.CRON,
+            inputs=ScheduledRunInputs(scheduled_for=scheduled_for),
+        )
+        if admitted.rejection is not None:
+            return ScheduledRunOutcome(
+                "rejected", reason=admitted.rejection, run=admitted.lifecycle.get_run()
+            )
+        if not admitted.created:
+            return ScheduledRunOutcome("duplicate", run=admitted.lifecycle.get_run())
+        admitted.lifecycle.start()
+        self.dispatch(admitted.lifecycle)
+        return ScheduledRunOutcome("accepted", run=admitted.lifecycle.get_run())
 
-class PromptedInvestigationAction(AutomationAction[BaseModel]):
-    """Run an investigation from a prompt, whatever started the run."""
+    def admit_manual_run(self, config: LockedConfig, user_id: int | None) -> ScheduledRunOutcome:
+        if not self.is_enabled(config):
+            return ScheduledRunOutcome("ignored", reason="config_disabled")
+        admitted = self.admit_run(
+            config,
+            trigger_key=f"manual:{uuid4().hex}",
+            source=SeerWorkflowRunSource.MANUAL,
+            inputs=ManualRunInputs(user_id=user_id),
+        )
+        if admitted.rejection is not None:
+            return ScheduledRunOutcome(
+                "rejected", reason=admitted.rejection, run=admitted.lifecycle.get_run()
+            )
+        admitted.lifecycle.start()
+        self.dispatch(admitted.lifecycle)
+        return ScheduledRunOutcome("accepted", run=admitted.lifecycle.get_run())
 
-    settings_type = PromptSettings
-
-    def dispatch(
-        self, config: SeerWorkflowConfig, run: SeerWorkflowRunLifecycle, inputs: BaseModel
-    ) -> None:
-        """Persist the execution plan and durable dispatch before admission commits.
-
-        Seer result/status delivery must complete those executions. Raising here rolls back
-        admission if the execution flag is enabled before this implementation is supplied.
-        """
-        raise NotImplementedError("Scheduled Seer automation dispatch is not implemented")
+    def dispatch(self, run: SeerWorkflowRunLifecycle) -> None:
+        # TODO(telkins): Start an investigation with the config's prompt or skill once the
+        # investigation platform runs custom prompts. Until then the run has one execution
+        # that succeeds immediately.
+        (execution,) = run.create_executions([SeerWorkflowExecutionExtras()])
+        run.start_execution(execution.id)
+        run.complete_execution(execution.id)
 
 
 def trigger_key_for(scheduled_for: datetime) -> str:
@@ -282,15 +333,10 @@ def record_scheduled_automation_run(
 
 
 def _run(organization_id: int, config_id: int, scheduled_for: datetime) -> ScheduledRunOutcome:
-    # Imported here because definitions imports this module for its table of pairings.
-    from sentry.seer.workflows.definitions import find_definition
-
     config = SeerWorkflowConfig.objects.get_or_none(id=config_id, organization_id=organization_id)
-    definition = find_definition(config.strategy) if config is not None else None
     if (
         config is None
-        or definition is None
-        or not isinstance(definition.trigger, ScheduleTrigger)
+        or config.strategy != ScheduleDefinition.strategy
         or schedule_for(config) is None
     ):
         # The config was deleted, disabled, or no longer runs on a schedule, but its
@@ -308,32 +354,8 @@ def _run(organization_id: int, config_id: int, scheduled_for: datetime) -> Sched
     # Firings consumed during this stage are not replayed when execution is enabled later.
     if not features.has(SCHEDULED_EXECUTION_FEATURE, config.organization):
         return ScheduledRunOutcome("ignored", reason="execution_disabled")
-    return _record_scheduled_run(definition, config.organization_id, config.id, scheduled_for)
-
-
-def _record_scheduled_run(
-    definition: AutomationDefinition[Any],
-    organization_id: int,
-    config_id: int,
-    scheduled_for: datetime,
-) -> ScheduledRunOutcome:
-    """Admit and dispatch the run scheduled for `scheduled_for`, once per config."""
     try:
-        with lock_config(organization_id, config_id) as config:
-            if not config.enabled:
-                return ScheduledRunOutcome("ignored", reason="config_disabled")
-
-            run = definition.trigger_run(
-                config,
-                trigger_key=trigger_key_for(scheduled_for),
-                inputs=ScheduledRunInputs(scheduled_for=scheduled_for),
-            )
-            if not run.created:
-                return ScheduledRunOutcome("duplicate", run=run.lifecycle.get_run())
-            if run.rejection is not None:
-                return ScheduledRunOutcome(
-                    "rejected", reason=run.rejection, run=run.lifecycle.get_run()
-                )
-            return ScheduledRunOutcome("accepted", run=run.lifecycle.get_run())
+        with lock_config(organization_id, config_id) as locked:
+            return ScheduleDefinition().admit_firing(locked, scheduled_for)
     except SeerWorkflowConfig.DoesNotExist:
-        return ScheduledRunOutcome("ignored", reason="configuration_unavailable")
+        return ScheduledRunOutcome("ignored", reason="unscheduled")

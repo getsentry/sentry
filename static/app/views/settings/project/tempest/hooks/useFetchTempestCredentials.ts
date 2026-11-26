@@ -22,10 +22,7 @@ const tempestCredentialsOptions = ({
 
 export function useFetchTempestCredentials(organization: Organization, project: Project) {
   const tempestCredentialsQuery = useQuery(
-    tempestCredentialsOptions({
-      orgSlug: organization.slug,
-      projectSlug: project.slug,
-    })
+    tempestCredentialsOptions({orgSlug: organization.slug, projectSlug: project.slug})
   );
 
   const queryClient = useQueryClient();

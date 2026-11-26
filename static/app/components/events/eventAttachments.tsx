@@ -25,7 +25,10 @@ import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRou
 
 import {EventAttachmentActions} from './eventAttachmentActions';
 import {EventAttachmentsCrashReportsNotice} from './eventAttachmentsCrashReportsNotice';
-import {EventAttachmentsQuotaExceededNotice} from './eventAttachmentsQuotaExceededNotice';
+import {
+  EventAttachmentsQuotaExceededNotice,
+  hasAttachmentsQuotaExceeded,
+} from './eventAttachmentsQuotaExceededNotice';
 
 const ATTACHMENT_COLUMNS: TableColumnConfig[] = [
   {key: 'name', width: '1fr'},
@@ -59,10 +62,7 @@ function ViewAllGroupAttachmentsButton() {
   return (
     <LinkButton
       size="xs"
-      to={{
-        pathname: `${baseUrl}${TabPaths[Tab.ATTACHMENTS]}`,
-        query: location.query,
-      }}
+      to={{pathname: `${baseUrl}${TabPaths[Tab.ATTACHMENTS]}`, query: location.query}}
     >
       {t('View All Attachments')}
     </LinkButton>
@@ -95,7 +95,7 @@ function EventAttachmentsContent({
   const attachmentsQuotaExceeded =
     !isPending &&
     organization.features.includes('attachments-quota-exceeded-notice') &&
-    !!event.metadata.attachments_quota_exceeded;
+    hasAttachmentsQuotaExceeded(event);
 
   if (isError) {
     return (
@@ -139,7 +139,7 @@ function EventAttachmentsContent({
       {attachmentsQuotaExceeded && (
         <EventAttachmentsQuotaExceededNotice
           project={project}
-          variant={attachments.length > 0 ? 'event-some' : 'event-all'}
+          variant={attachments.length > 0 ? 'some' : 'all'}
         />
       )}
 

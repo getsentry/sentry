@@ -16,10 +16,7 @@ export const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
   feedbackOnboardingJsLoader,
-  featureFlagOnboarding: featureFlag({
-    packageName: PACKAGE_NAME,
-    sentryImport,
-  }),
+  featureFlagOnboarding: featureFlag({packageName: PACKAGE_NAME, sentryImport}),
   agentMonitoringOnboarding: agentMonitoring,
   logsOnboarding: logs,
   mcpOnboarding: mcp,

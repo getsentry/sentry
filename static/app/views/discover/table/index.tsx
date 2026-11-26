@@ -202,11 +202,7 @@ export class Table extends PureComponent<TableProps, TableState> {
 
     this.api.clear();
     this.api
-      .requestPromise(url, {
-        method: 'GET',
-        includeAllArgs: true,
-        query: apiPayload,
-      })
+      .requestPromise(url, {method: 'GET', includeAllArgs: true, query: apiPayload})
       .then(([data, _, resp]) => {
         if (this.state.tableFetchID !== tableFetchID) {
           // invariant: a different request was initiated after this request
@@ -215,10 +211,7 @@ export class Table extends PureComponent<TableProps, TableState> {
 
         const {fields, ...nonFieldsMeta} = data.meta ?? {};
         // events api uses a different response format so we need to construct tableData differently
-        const tableData = {
-          ...data,
-          meta: {...fields, ...nonFieldsMeta, fields},
-        };
+        const tableData = {...data, meta: {...fields, ...nonFieldsMeta, fields}};
 
         trackAnalytics('discover_search.success', {
           has_results: tableData.data.length > 0,

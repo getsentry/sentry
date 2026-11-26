@@ -49,12 +49,14 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             validator=validate_span_id,
             normalizer=normalize_span_id,
             canonical_case=True,
+            wildcard_allowed=False,
         ),
         ResolvedAttribute(
             public_alias="parent_span",
             internal_name="sentry.parent_span_id",
             search_type="string",
             validator=[is_empty_string, validate_span_id],
+            wildcard_allowed=False,
         ),
         ResolvedAttribute(
             public_alias="span.name",
@@ -155,6 +157,7 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             validator=validate_event_id,
             normalizer=normalize_event_id_strict,
             canonical_case=True,
+            wildcard_allowed=False,
             context=AttributeContext(
                 brief=(
                     "A trace represents the record of the entire operation you want to "
@@ -165,7 +168,7 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
         ),
         ResolvedAttribute(
             public_alias="transaction",
-            internal_name="sentry.transaction",
+            internal_name=ATTRIBUTE_NAMES.SENTRY_SEGMENT_NAME,
             search_type="string",
         ),
         ResolvedAttribute(
@@ -577,6 +580,7 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             internal_name="sentry.item_id",
             search_type="string",
             validator=validate_span_id,
+            wildcard_allowed=False,
         ),
         simple_sentry_field(
             "trace.status",
@@ -829,7 +833,7 @@ def is_starred_segment_context_constructor(
     value_map = {result.segment_name: "true" for result in starred_segment_results}
 
     return VirtualColumnContext(
-        from_column_name="sentry.transaction",
+        from_column_name=ATTRIBUTE_NAMES.SENTRY_SEGMENT_NAME,
         to_column_name="is_starred_transaction",
         value_map=value_map,
         default_value="false",  # We can directly make this a boolean when https://github.com/getsentry/eap-planning/issues/224 is fixed
@@ -852,7 +856,7 @@ SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS: dict[
         # to return the new aliases, remove these temp mappings.
         "sentry.description": "sentry.normalized_description",
         "sentry.span_id": "id",
-        ATTRIBUTE_NAMES.SENTRY_SEGMENT_NAME: "transaction",
+        "sentry.transaction": "transaction",
     },
     "boolean": {
         definition.internal_name: definition.public_alias

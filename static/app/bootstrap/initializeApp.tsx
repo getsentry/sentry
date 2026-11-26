@@ -5,7 +5,6 @@ import {CAN_MARK} from 'sentry/utils/analytics';
 
 import {commonInitialization} from './commonInitialization';
 import {initializeSdk} from './initializeSdk';
-import {processInitQueue} from './processInitQueue';
 import {renderMain} from './renderMain';
 import {renderOnDomReady} from './renderOnDomReady';
 import {reportPreloadRequestMetrics} from './reportPreloadRequestMetrics';
@@ -22,5 +21,4 @@ export function initializeApp(config: Config) {
     window.performance.mark('sentry-app-init');
   }
   renderOnDomReady(renderMain);
-  processInitQueue();
 }

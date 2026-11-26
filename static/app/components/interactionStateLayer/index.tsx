@@ -1,1 +1,1 @@
-export {InteractionStateLayer as default} from './interactionStateLayer';
+export {InteractionStateLayer} from './interactionStateLayer';

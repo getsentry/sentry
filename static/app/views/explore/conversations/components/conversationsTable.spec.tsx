@@ -50,9 +50,7 @@ const BASE_CONVERSATION = {
   user: null,
 };
 
-const organization = OrganizationFixture({
-  features: ['gen-ai-conversations'],
-});
+const organization = OrganizationFixture();
 
 function mockConversations(body: Array<Record<string, unknown>>) {
   return MockApiClient.addMockResponse({
@@ -163,12 +161,7 @@ describe('ConversationsTable', () => {
       {
         ...BASE_CONVERSATION,
         title: 'A conversation',
-        user: {
-          id: '1',
-          email: 'sarah@example.com',
-          username: null,
-          ip_address: null,
-        },
+        user: {id: '1', email: 'sarah@example.com', username: null, ip_address: null},
       },
     ]);
 
@@ -543,10 +536,7 @@ describe('parseStoredColumnWidths', () => {
 
   it('drops widths below the grid minimum', () => {
     expect(
-      parseStoredColumnWidths({
-        tools: COL_WIDTH_MINIMUM - 1,
-        age: COL_WIDTH_UNDEFINED,
-      })
+      parseStoredColumnWidths({tools: COL_WIDTH_MINIMUM - 1, age: COL_WIDTH_UNDEFINED})
     ).toEqual({});
   });
 

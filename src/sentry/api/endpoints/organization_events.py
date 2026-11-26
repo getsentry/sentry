@@ -5,7 +5,6 @@ from typing import Annotated, Any, Literal, TypedDict, cast
 
 import sentry_sdk
 from drf_spectacular.utils import OpenApiResponse, extend_schema
-from rest_framework import status
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -64,7 +63,7 @@ from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.preprod_size import PreprodSize
 from sentry.snuba.processing_errors_rpc import ProcessingErrors
 from sentry.snuba.profile_functions import ProfileFunctions
-from sentry.snuba.referrer import Referrer, is_valid_referrer
+from sentry.snuba.referrer import Referrer, is_valid_referrer, resolve_client_referrer
 from sentry.snuba.rpc_dataset_common import RPCBase
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace_metrics import TraceMetrics
@@ -257,13 +256,6 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
           `routing_hint` when fetching item details for a row in this response. It identifies how
           the table query was routed and is omitted when no hint is available.
         """
-        if not self.has_feature(organization, request):
-            return Response(
-                {
-                    "detail": "Discover, Performance, or Explore is required to access this endpoint."
-                },
-                status=status.HTTP_403_FORBIDDEN,
-            )
 
         referrer = request.GET.get("referrer")
         sentry_sdk.set_attribute("query.raw_referrer", referrer or "")
@@ -311,19 +303,16 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
 
         # Force the referrer to "api.auth-token.events" for events requests authorized through a bearer token
         if request.auth:
-            if referrer is not None and is_valid_referrer(referrer):
-                if referrer.startswith("seer."):
-                    sentry_sdk.set_tag("query.from_seer", True)
-                    sentry_sdk.set_attribute("query.from_seer", True)
-                elif referrer.startswith("api.mcp."):
-                    sentry_sdk.set_tag("query.from_mcp", True)
-                    sentry_sdk.set_attribute("query.from_mcp", True)
+            if referrer and referrer.startswith("seer.") and is_valid_referrer(referrer):
+                sentry_sdk.set_tag("query.from_seer", True)
+                sentry_sdk.set_attribute("query.from_seer", True)
+            elif referrer and referrer.startswith("api.mcp.") and is_valid_referrer(referrer):
+                sentry_sdk.set_tag("query.from_mcp", True)
+                sentry_sdk.set_attribute("query.from_mcp", True)
             else:
                 referrer = Referrer.API_AUTH_TOKEN_EVENTS.value
-        elif referrer is None or not referrer:
-            referrer = Referrer.API_ORGANIZATION_EVENTS.value
-        elif not is_valid_referrer(referrer):
-            referrer = Referrer.API_ORGANIZATION_EVENTS.value
+        else:
+            referrer = resolve_client_referrer(referrer, Referrer.API_ORGANIZATION_EVENTS.value)
 
         sentry_sdk.set_tag("query.referrer", referrer)
         sentry_sdk.set_attribute("query.referrer", referrer)
@@ -745,23 +734,20 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                 def flex_time_data_fn(limit: int, page_token: PageToken | None) -> dict[str, Any]:
                     config = get_rpc_config()
 
-                    return cast(
-                        dict[str, Any],
-                        scoped_dataset.run_table_query(
-                            params=snuba_params,
-                            query_string=scoped_query or "",
-                            selected_columns=self.get_field_list(organization, request),
-                            equations=self.get_equation_list(organization, request),
-                            orderby=self.get_orderby(request),
-                            offset=0,  # required but not used because we're using page tokens here
-                            limit=limit,
-                            referrer=referrer,
-                            config=config,
-                            sampling_mode=snuba_params.sampling_mode,
-                            page_token=page_token,
-                            additional_queries=additional_queries,
-                            max_string_length=max_string_length,
-                        ),
+                    return scoped_dataset.run_table_query(
+                        params=snuba_params,
+                        query_string=scoped_query or "",
+                        selected_columns=self.get_field_list(organization, request),
+                        equations=self.get_equation_list(organization, request),
+                        orderby=self.get_orderby(request),
+                        offset=0,  # required but not used because we're using page tokens here
+                        limit=limit,
+                        referrer=referrer,
+                        config=config,
+                        sampling_mode=snuba_params.sampling_mode,
+                        page_token=page_token,
+                        additional_queries=additional_queries,
+                        max_string_length=max_string_length,
                     )
 
                 return EAPPageTokenPaginator(data_fn=flex_time_data_fn), EAPPageTokenCursor

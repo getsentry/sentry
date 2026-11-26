@@ -1,24 +1,17 @@
 export type QuickStartEventParameters = {
-  'quick_start.completed': {
-    referrer: string;
-  };
+  'quick_start.completed': {referrer: string};
   'quick_start.opened': {
     source:
       | 'targeted_onboarding_welcome_skip'
       | 'targeted_onboarding_first_event_footer_skip'
+      | 'targeted_onboarding_setup_docs_setup_later'
       | 'targeted_onboarding_scm_connect_skip'
       | 'targeted_onboarding_scm_platform_features_skip'
       | 'onboarding_sidebar';
     user_clicked: boolean;
   };
-  'quick_start.task_card_clicked': {
-    action: string;
-    todo_id: string;
-    todo_title: string;
-  };
-  'quick_start.task_group_completed': {
-    group: 'getting_started' | 'beyond_basics';
-  };
+  'quick_start.task_card_clicked': {action: string; todo_id: string; todo_title: string};
+  'quick_start.task_group_completed': {group: 'getting_started' | 'beyond_basics'};
 };
 
 export const quickStartEventMap: Record<keyof QuickStartEventParameters, string> = {

@@ -17,8 +17,8 @@ import {
 import {getShortEventId} from 'sentry/utils/events';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {Timeline} from 'sentry/views/issueDetails/activitySection/timeline';
+import {ImpactChip} from 'sentry/views/issueDetails/groupImpact';
 
-import {ImpactChip} from './chips/impactChip';
 import {ActivityLineHeadline} from './layout';
 import {ActivityLineMarker} from './marker';
 
@@ -48,20 +48,18 @@ export function ActivityLineImpact({
           title={assessed ? t('Impact assessed') : t("Impact wasn't assessed")}
           details={
             assessed
-              ? tct('as [impact]', {
-                  impact: <ImpactChip level={level} score={score} />,
-                })
+              ? tct('as [impact]', {impact: <ImpactChip level={level} score={score} />})
               : undefined
           }
           timestamp={
             <TimeSince date={activity.dateCreated} unitStyle={timestampUnitStyle} />
           }
-          trailingItems={<FeatureBadge type="alpha" />}
+          leadingItems={<FeatureBadge type="alpha" />}
         />
       }
     >
       <Container paddingTop="sm">
-        <Container width="100%" padding="sm md" border="muted" radius="md">
+        <Container width="100%" padding="sm md" border="secondary" radius="md">
           <ImpactActivityDetails activity={activity} group={group} />
         </Container>
       </Container>
@@ -79,39 +77,44 @@ function ImpactActivityDetails({
   const organization = useOrganization();
   const {description, citations, sourceEventId} = activity.data;
   const eventUrl = `/organizations/${organization.slug}/issues/${group.id}/events/${sourceEventId}/`;
+  const showCitations = organization.features.includes(
+    'seer-impact-assessment-citations'
+  );
   return (
     <Stack gap="md" data-test-id="impact-activity-details">
       <Text as="p" density="comfortable">
         {description}
       </Text>
-      <Flex gap="xs" wrap="wrap" borderTop="muted" paddingTop="md">
-        <Container>
-          <Text bold size="xs">
-            {t('Citations:')}
-          </Text>
-        </Container>
-        {citations.map((citation, index) => (
-          <Tooltip
-            key={`${citation.source}:${citation.reference}:${index}`}
-            title={
-              <Fragment>
-                <Tooltip.Header
-                  trailingItems={
-                    <Link to={eventUrl}>{getShortEventId(sourceEventId)}</Link>
-                  }
-                >
-                  <Text size="sm">{t('Source Event')}</Text>
-                </Tooltip.Header>
-                <Text size="sm" align="left">
-                  {citation.claim}
-                </Text>
-              </Fragment>
-            }
-          >
-            <Tag variant="muted">{citation.source}</Tag>
-          </Tooltip>
-        ))}
-      </Flex>
+      {showCitations && (
+        <Flex gap="xs" wrap="wrap" borderTop="secondary" paddingTop="md">
+          <Container>
+            <Text bold size="xs">
+              {t('Citations:')}
+            </Text>
+          </Container>
+          {citations.map((citation, index) => (
+            <Tooltip
+              key={`${citation.source}:${citation.reference}:${index}`}
+              title={
+                <Fragment>
+                  <Tooltip.Header
+                    trailingItems={
+                      <Link to={eventUrl}>{getShortEventId(sourceEventId)}</Link>
+                    }
+                  >
+                    <Text size="sm">{t('Source Event')}</Text>
+                  </Tooltip.Header>
+                  <Text size="sm" align="left">
+                    {citation.claim}
+                  </Text>
+                </Fragment>
+              }
+            >
+              <Tag variant="muted">{citation.source}</Tag>
+            </Tooltip>
+          ))}
+        </Flex>
+      )}
     </Stack>
   );
 }

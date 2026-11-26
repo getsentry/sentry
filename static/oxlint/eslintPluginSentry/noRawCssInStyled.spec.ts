@@ -44,6 +44,7 @@ ruleTester.run('no-raw-css-in-styled', noRawCssInStyled, {
   invalid: [
     {
       code: `
+        import {css} from '@emotion/react';
         const Foo = styled('div')\`
           \${p => p.active && \`
             color: red;
@@ -52,6 +53,7 @@ ruleTester.run('no-raw-css-in-styled', noRawCssInStyled, {
         \`;
       `,
       output: `
+        import {css} from '@emotion/react';
         const Foo = styled('div')\`
           \${p => p.active && css\`
             color: red;
@@ -63,6 +65,7 @@ ruleTester.run('no-raw-css-in-styled', noRawCssInStyled, {
     },
     {
       code: `
+        import {css} from '@emotion/react';
         const Foo = styled('div')\`
           \${p => p.vertical
             ? \`
@@ -77,6 +80,7 @@ ruleTester.run('no-raw-css-in-styled', noRawCssInStyled, {
         \`;
       `,
       output: `
+        import {css} from '@emotion/react';
         const Foo = styled('div')\`
           \${p => p.vertical
             ? css\`
@@ -94,6 +98,7 @@ ruleTester.run('no-raw-css-in-styled', noRawCssInStyled, {
     },
     {
       code: `
+        import {css} from '@emotion/react';
         const Foo = styled(Button)\`
           \${p => p.active && \`
             padding: 8px;
@@ -101,6 +106,7 @@ ruleTester.run('no-raw-css-in-styled', noRawCssInStyled, {
         \`;
       `,
       output: `
+        import {css} from '@emotion/react';
         const Foo = styled(Button)\`
           \${p => p.active && css\`
             padding: 8px;
@@ -111,6 +117,7 @@ ruleTester.run('no-raw-css-in-styled', noRawCssInStyled, {
     },
     {
       code: `
+        import {css} from '@emotion/react';
         const Foo = styled(({active, ...props}: any) => null)\`
           \${p => p.active && \`
             padding: 8px;
@@ -118,12 +125,25 @@ ruleTester.run('no-raw-css-in-styled', noRawCssInStyled, {
         \`;
       `,
       output: `
+        import {css} from '@emotion/react';
         const Foo = styled(({active, ...props}: any) => null)\`
           \${p => p.active && css\`
             padding: 8px;
           \`}
         \`;
       `,
+      errors: [{messageId: 'useCssTag'}],
+    },
+    {
+      code: `
+        import styled from '@emotion/styled';
+        const Foo = styled('div')\`
+          \${p => p.active && \`
+            padding: 8px;
+          \`}
+        \`;
+      `,
+      output: null,
       errors: [{messageId: 'useCssTag'}],
     },
   ],

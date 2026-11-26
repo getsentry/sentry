@@ -24,6 +24,15 @@ describe('javascript-solid onboarding docs', () => {
     ).toBeInTheDocument();
   });
 
+  it('points Solid 2 users to the Solid 2 docs', () => {
+    renderWithOnboardingLayout(docs);
+
+    expect(screen.getByRole('link', {name: 'Solid 2 guide'})).toHaveAttribute(
+      'href',
+      'https://docs.sentry.io/platforms/javascript/guides/solid/solid-2/'
+    );
+  });
+
   it('displays sample rates by default', () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [

@@ -15,6 +15,7 @@ function WalletFixture(params: Partial<SeerWalletBalance> = {}): SeerWalletBalan
   return {
     balance: 320,
     creditPriceCents: 1,
+    dailyLimit: null,
     included: {total: 500, remaining: 320, resetsAt: '2026-11-01'},
     purchased: {total: 0, remaining: 0, expiresAt: null},
     percentUsed: 0.36,
@@ -179,7 +180,10 @@ describe('SeerWalletCard', () => {
       AutoTopUpFixture({enabled: true})
     );
     await userEvent.click(
-      await screen.findByRole('button', {name: 'Turn on and pay $15.00 + tax'})
+      await screen.findByRole('checkbox', {name: 'Auto-reload enabled'})
+    );
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Save and pay $15.00 + tax'})
     );
 
     expect(saveMock).toHaveBeenCalled();
@@ -188,21 +192,6 @@ describe('SeerWalletCard', () => {
     expect(
       screen.getByText('Adds 1,500 credits when at or below 500')
     ).toBeInTheDocument();
-  });
-
-  it('opens the auto-reload modal from the link hash', async () => {
-    mockWallet();
-    window.location.hash = '#open-seer-auto-reload-modal';
-
-    render(
-      <Fragment>
-        <SeerWalletCard organization={organization} />
-        <GlobalModal />
-      </Fragment>
-    );
-
-    expect(await screen.findByLabelText('Daily usage limit')).toBeInTheDocument();
-    expect(window.location.hash).toBe('');
   });
 
   it('shows an error when the wallet fails to load', async () => {

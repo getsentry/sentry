@@ -495,14 +495,9 @@ export function BaseChart({
                   ? undefined
                   : markLine({
                       silent: true,
-                      lineStyle: {
-                        type: 'solid',
-                        width: 1.5,
-                      },
+                      lineStyle: {type: 'solid', width: 1.5},
                       data: [{yAxis: (s?.data?.[0] as any)?.[1]}],
-                      label: {
-                        show: false,
-                      },
+                      label: {show: false},
                     }),
             }))
           : series) ?? [];
@@ -877,6 +872,18 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
   .tooltip-release-timerange {
     font-size: ${p.theme.font.size.xs};
     color: ${p.theme.tokens.content.primary};
+  }
+  .tooltip-header {
+    /* The header is the only tooltip section with a background, so it has to
+       follow the ECharts container's corners */
+    border-top-left-radius: inherit;
+    border-top-right-radius: inherit;
+  }
+  /* A tooltip flipped below the cursor points its arrow out of the header,
+     so the arrow has to take the header's background */
+  .tooltip-header ~ .tooltip-arrow.arrow-top {
+    /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
+    border-bottom-color: ${p.theme.tokens.background.secondary};
   }
   .tooltip-series {
     border-bottom: none;

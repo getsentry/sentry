@@ -1,6 +1,7 @@
 import {useState, type ReactNode} from 'react';
 import {QueryClient, QueryClientProvider, skipToken} from '@tanstack/react-query';
 
+import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -18,7 +19,7 @@ class CreditCheckQueryClient extends QueryClient {
 
   override defaultQueryOptions: QueryClient['defaultQueryOptions'] = options => {
     const defaulted = super.defaultQueryOptions(options);
-    const url = String(defaulted.queryKey[0]);
+    const url = safeParseQueryKey(defaulted.queryKey)?.url ?? '';
     if (defaulted.queryFn === skipToken || !url.includes('/seer/credit-check/')) {
       return defaulted;
     }
@@ -34,9 +35,9 @@ interface SeerCreditCheckStubProps {
 }
 
 /**
- * Turns on `seer-credit-checks` and `token-billed-seer-enabled`, and answers
- * every credit check with `hasEnoughCredits`, so a story can show what a
- * credit-gated button does before and after the organization tops up.
+ * Turns on `token-billed-seer-enabled`, and answers every credit check with
+ * `hasEnoughCredits`, so a story can show what a credit-gated button does
+ * before and after the organization tops up.
  */
 export function SeerCreditCheckStub({
   children,
@@ -49,11 +50,7 @@ export function SeerCreditCheckStub({
     <OrganizationContext.Provider
       value={{
         ...organization,
-        features: [
-          ...organization.features,
-          'seer-credit-checks',
-          'token-billed-seer-enabled',
-        ],
+        features: [...organization.features, 'token-billed-seer-enabled'],
       }}
     >
       <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>

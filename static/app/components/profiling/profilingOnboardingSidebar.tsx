@@ -192,14 +192,8 @@ function SidebarContent() {
       }
     );
     return [
-      {
-        label: t('Supported'),
-        options: supportedProjectItems,
-      },
-      {
-        label: t('Unsupported'),
-        options: unsupportedProjectItems,
-      },
+      {label: t('Supported'), options: supportedProjectItems},
+      {label: t('Unsupported'), options: unsupportedProjectItems},
     ];
   }, [supportedProjects, unsupportedProjects]);
 
@@ -287,8 +281,9 @@ function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
     return (
       <LoadingError
         message={t(
-          'We encountered an issue while loading the getting started documentation for this platform.'
+          'We encountered an issue while loading Client Keys for this getting started documentation.'
         )}
+        onRetry={refetch}
       />
     );
   }
@@ -342,10 +337,7 @@ function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
     isPerformanceSelected: true,
     isProfilingSelected: true,
     isReplaySelected: false,
-    sourcePackageRegistries: {
-      isLoading: isLoadingRegistry,
-      data: registryData,
-    },
+    sourcePackageRegistries: {isLoading: isLoadingRegistry, data: registryData},
     platformOptions: PROFILING_ONBOARDING_STEPS,
     feedbackOptions: {},
     /**

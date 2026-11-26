@@ -26,6 +26,7 @@ from sentry.seer.autofix.analytics import record_autofix_event
 from sentry.seer.autofix.autofix_agent import (
     SEER_FIXES_SENTRY_ISSUE_MARKER,
     _build_repo_pins,
+    build_pr_description_suffix,
     generate_autofix_handoff_prompt,
     trigger_autofix_agent,
     trigger_coding_agent_handoff,
@@ -40,7 +41,11 @@ from sentry.seer.autofix.pr_iteration.feedback import Feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
 from sentry.seer.autofix.pr_iteration.iterations import PrIterationNoPullRequestException
 from sentry.seer.autofix.steps import AutofixStep
-from sentry.seer.autofix.utils import MAX_SEER_REPOS_PER_PROJECT
+from sentry.seer.autofix.utils import (
+    AGENTIC_TRIAGE_COHORT_OPTION,
+    MAX_SEER_REPOS_PER_PROJECT,
+    AgenticTriageCohort,
+)
 from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.seer.models.run import SeerAgentRun, SeerRun
 from sentry.sentry_apps.event_types import SentryAppEventType
@@ -250,6 +255,33 @@ class TestGenerateAutofixHandoffPrompt(TestCase):
         ) in prompt
         assert "Fixes [SENTRY-123](https://sentry.example/issues/123)" in prompt
         assert "Fixes [LINEAR-456](https://linear.app/example/issue/LINEAR-456)" in prompt
+
+    def test_prompt_with_issue_keys_for_branch_commits_and_title(self) -> None:
+        state = SeerRunState(
+            run_id=123,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+        )
+
+        prompt = generate_autofix_handoff_prompt(
+            state, issue_keys_for_branch_commits_and_title=("APP-1", "APP-2")
+        )
+
+        assert "linked to these external issues: APP-1, APP-2." in prompt
+        assert "in every commit message, and in the pull request title" in prompt
+
+    def test_prompt_without_issue_keys_for_branch_commits_and_title(self) -> None:
+        state = SeerRunState(
+            run_id=123,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+        )
+
+        prompt = generate_autofix_handoff_prompt(state)
+
+        assert "external issues" not in prompt
 
     def test_prompt_without_short_id(self) -> None:
         """Test that 'Fixes' is not in prompt when short_id is None."""
@@ -946,7 +978,7 @@ class TestTriggerAutofixAgentAttemptMetric(TestCase):
             }
         ]
 
-    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
+    @with_feature("organizations:token-billed-seer-enabled")
     @patch(
         "sentry.seer_credit.backend.check_seer_credits",
         return_value=CheckSeerCreditsResponse(has_enough_credits=False),
@@ -1117,12 +1149,7 @@ class TestBuildRepoPins(TestCase):
         }
 
 
-@with_feature(
-    {
-        "organizations:seer-token-based-billing-onboarding": True,
-        "organizations:token-billed-seer-enabled": True,
-    }
-)
+@with_feature("organizations:token-billed-seer-enabled")
 class TestBuildRepoPinsEventMatchedRepos(TestCase, SnubaTestCase):
     @patch("sentry.scm.factory.new")
     def test_pins_repo_matching_the_event_past_the_limit(self, mock_scm_new: MagicMock) -> None:
@@ -1301,6 +1328,48 @@ class TestTriggerCodingAgentHandoff(TestCase):
 
         prompt = mock_client.launch_coding_agents.call_args.kwargs["prompt"]
         assert "Fixes [PROJ-123](https://linear.app/proj/issue/PROJ-123)" in prompt
+
+    @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
+    def test_trigger_coding_agent_handoff_includes_linked_jira_issues(
+        self, mock_client_class: MagicMock
+    ) -> None:
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        mock_client.get_run.return_value = self._make_run_state()
+        mock_client.launch_coding_agents.return_value = {"successes": [], "failures": []}
+        self._make_repo_and_projectrepo()
+        jira = self.create_integration(
+            organization=self.organization, external_id="jira:1", provider="jira"
+        )
+        jira_server = self.create_integration(
+            organization=self.organization, external_id="jira_server:1", provider="jira_server"
+        )
+        github = self.create_integration(
+            organization=self.organization, external_id="github:1", provider="github"
+        )
+        self.create_integration_external_issue(group=self.group, integration=jira, key="APP-123")
+        self.create_integration_external_issue(
+            group=self.group, integration=jira_server, key="OPS_2-7"
+        )
+        self.create_integration_external_issue(
+            group=self.group, integration=github, key="owner/repo#9"
+        )
+        self.create_integration_external_issue(
+            group=self.group, integration=jira, key="not a jira key"
+        )
+
+        trigger_coding_agent_handoff(
+            group=self.group,
+            run_id=123,
+            referrer=AutofixReferrer.UNKNOWN,
+            integration_id=456,
+        )
+
+        prompt = mock_client.launch_coding_agents.call_args.kwargs["prompt"]
+        assert "linked to these external issues: APP-123, OPS_2-7." in prompt
+        assert "owner/repo#9" not in prompt
+        assert "not a jira key" not in prompt
+        assert "Fixes APP-123" not in prompt
 
     @patch("sentry.seer.autofix.analytics.analytics.record")
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
@@ -1806,7 +1875,7 @@ class TestTriggerPushChanges(TestCase):
                 referrer=AutofixReferrer.UNKNOWN,
             )
 
-    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
+    @with_feature("organizations:token-billed-seer-enabled")
     @patch(
         "sentry.seer_credit.backend.check_seer_credits",
         return_value=CheckSeerCreditsResponse(has_enough_credits=False),
@@ -1830,10 +1899,7 @@ class TestTriggerPushChanges(TestCase):
     ) -> None:
         self._push(
             mock_post,
-            features={
-                "organizations:seer-credit-checks": True,
-                "organizations:token-billed-seer-enabled": True,
-            },
+            features={"organizations:token-billed-seer-enabled": True},
             billing_feature=SEER_BILLING_FEATURE_AUTOFIX_AGENTIC_TRIAGE,
         )
 
@@ -1896,6 +1962,25 @@ class TestTriggerPushChanges(TestCase):
             f"\n{self._iteration_help()}"
         )
 
+    @patch("sentry.seer.agent.client.make_agent_update_request")
+    def test_pr_description_suffix_skips_branch_commits_and_title_issues(
+        self, mock_post: MagicMock
+    ) -> None:
+        jira = self.create_integration(
+            organization=self.organization, external_id="jira:1", provider="jira"
+        )
+        self.create_integration_external_issue(group=self.group, integration=jira, key="APP-123")
+
+        with patch(
+            "sentry.seer.autofix.autofix_agent.integration_service.get_integrations"
+        ) as mock_get_integrations:
+            payload = self._push(mock_post)
+
+        mock_get_integrations.assert_not_called()
+        assert payload["pr_description_suffix"] == (
+            f"{self._fixes_line()}\n{self._iteration_help()}"
+        )
+
     @patch("sentry.seer.autofix.autofix_agent.is_free_cohort_org", return_value=True)
     @patch("sentry.seer.agent.client.make_agent_update_request")
     def test_pr_description_suffix_automated_free_cohort_run(
@@ -1950,6 +2035,91 @@ class TestTriggerPushChanges(TestCase):
         payload = self._push(mock_post)
 
         assert payload["pr_description_suffix"] == f"{self._fixes_line()}\n{self._iteration_help()}"
+
+
+class TestBuildPrDescriptionSuffixAutomationNote(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.group = self.create_group(project=self.project)
+        settings_url = self.organization.absolute_url(
+            f"/settings/{self.organization.slug}/projects/{self.project.slug}/seer/"
+        )
+        self.paid_note = (
+            f"<sub>This PR was automatically generated by Sentry. "
+            f"You can [adjust this setting]({settings_url}) at any time.</sub>"
+        )
+        self.free_note = (
+            f"<sub>This PR was automatically generated by Sentry at no cost. "
+            f"You can [adjust this setting]({settings_url}) at any time.</sub>"
+        )
+
+    def _suffix(self, referrer: AutofixReferrer = AutofixReferrer.AGENTIC_TRIAGE) -> str:
+        suffix = build_pr_description_suffix(self.group, referrer.value)
+        assert suffix is not None
+        return suffix
+
+    def _set_cohort(self, cohort: AgenticTriageCohort) -> None:
+        self.organization.update_option(AGENTIC_TRIAGE_COHORT_OPTION, cohort.value)
+
+    @patch("sentry.seer.autofix.autofix_agent.is_free_cohort_org", return_value=True)
+    def test_gating_off_free_cohort(self, _mock_free_cohort: MagicMock) -> None:
+        assert self._suffix().endswith(self.free_note)
+
+    @with_feature("organizations:token-billed-seer-enabled")
+    def test_gating_off_ignores_cohort_option(self) -> None:
+        self._set_cohort(AgenticTriageCohort.LEGACY)
+        assert self._suffix().endswith(self.paid_note)
+
+    @with_feature(
+        {
+            "organizations:seer-agentic-triage-cohort-gating": True,
+            "organizations:token-billed-seer-enabled": True,
+        }
+    )
+    def test_gating_on_each_cohort_is_free(self) -> None:
+        for cohort in AgenticTriageCohort:
+            self._set_cohort(cohort)
+            assert self._suffix().endswith(self.free_note), cohort
+
+    @with_feature(
+        {
+            "organizations:seer-agentic-triage-cohort-gating": True,
+            "organizations:token-billed-seer-enabled": True,
+        }
+    )
+    def test_gating_on_without_cohort(self) -> None:
+        assert self._suffix().endswith(self.paid_note)
+
+    @with_feature("organizations:seer-agentic-triage-cohort-gating")
+    def test_gating_on_enterprise_legacy_post_process_pays(self) -> None:
+        # Not token-billed, so the legacy cohort doesn't apply.
+        self._set_cohort(AgenticTriageCohort.LEGACY)
+        suffix = self._suffix(AutofixReferrer.ISSUE_SUMMARY_POST_PROCESS_FIXABILITY)
+        assert suffix.endswith(self.paid_note)
+
+    @with_feature(
+        {
+            "organizations:seer-agentic-triage-cohort-gating": True,
+            "organizations:token-billed-seer-enabled": True,
+        }
+    )
+    def test_gating_on_cohort_non_agentic_triage_pays(self) -> None:
+        self._set_cohort(AgenticTriageCohort.LEGACY)
+        for referrer in (
+            AutofixReferrer.ISSUE_SUMMARY_POST_PROCESS_FIXABILITY,
+            AutofixReferrer.ADMIN_AUTOMATED,
+        ):
+            assert self._suffix(referrer).endswith(self.paid_note), referrer
+
+    @with_feature(
+        {
+            "organizations:seer-agentic-triage-cohort-gating": True,
+            "organizations:token-billed-seer-enabled": True,
+        }
+    )
+    def test_manual_run_has_no_automation_note(self) -> None:
+        self._set_cohort(AgenticTriageCohort.FREE)
+        assert "automatically generated" not in self._suffix(AutofixReferrer.WEB)
 
 
 class TestAutofixFunnelAnalytics:

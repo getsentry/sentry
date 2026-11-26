@@ -3,7 +3,7 @@ from collections import defaultdict
 from collections.abc import Collection, Mapping, Sequence
 from dataclasses import replace
 from datetime import datetime, timedelta
-from typing import Annotated, Any, TypedDict
+from typing import Annotated, Any, NotRequired, TypedDict
 
 from django.utils import timezone
 from drf_spectacular.utils import OpenApiParameter, extend_schema
@@ -11,6 +11,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import traces
 
+from sentry import features
 from sentry.ai_monitoring.conversation_aggregates import (
     CONVERSATION_AGGREGATE_COLUMNS,
     AIConversationAggregates,
@@ -62,6 +63,9 @@ type SpanKey = tuple[str, str]
 
 MAX_PARENT_REPAIR_DEPTH = 5
 MAX_MODEL_USAGE_ROWS = 100
+# One long-running trace can carry unrelated conversations, so cap both lookups.
+MAX_RELATED_TRACES = 100
+MAX_RELATED_CONVERSATIONS = 20
 
 MODEL_USAGE_COLUMNS = [
     "gen_ai.request.model",
@@ -98,8 +102,6 @@ PARENT_SPAN_ATTRIBUTES = [
     "span_id",
     "trace",
     "parent_span",
-    "span.op",
-    "span.name",
     "gen_ai.operation.type",
     "gen_ai.conversation.id",
 ]
@@ -196,6 +198,11 @@ def _get_meta_columns() -> dict[str, str]:
 META_COLUMNS = _get_meta_columns()
 
 
+def _build_conversation_query(conversation_id: str) -> str:
+    conversation_filter = build_escaped_term_filter("gen_ai.conversation.id", [conversation_id])
+    return f"{conversation_filter} has:gen_ai.operation.type"
+
+
 def _move_meta_columns(spans: Sequence[SpanRow]) -> None:
     for span in spans:
         meta: dict[str, Any] = {}
@@ -251,6 +258,8 @@ class AIConversationQueryResult(TypedDict):
     # GenericOffsetPaginator requires the paginated list under this key.
     data: list[SpanRow]
     stats: AIConversationStats | None
+    # Only set on the first page when related conversations are requested.
+    traceIds: list[str] | None
 
 
 class AIConversationDetailsResponse(TypedDict):
@@ -271,6 +280,15 @@ class AIConversationDetailsResponse(TypedDict):
     stats: Annotated[
         AIConversationStats | None,
         ApiDescription("Aggregate stats for the conversation. Only returned on the first page"),
+    ]
+    relatedConversationIds: NotRequired[
+        Annotated[
+            list[str],
+            ApiDescription(
+                "IDs of other conversations recorded in the same traces, such as sub-agents. "
+                "Only returned on the first page"
+            ),
+        ]
     ]
 
 
@@ -399,7 +417,7 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
         """Return spans recorded for one AI conversation in start-time order.
 
         Message, tool, and response attributes contain their recorded string values.
-        `stats.errors` counts spans whose status is not `ok`, `cancelled`, or `unknown`.
+        `stats.errors` counts AI spans whose status is not `ok`, `cancelled`, or `unknown`.
         `stats.errorToolNames` lists tools used by those spans.
         `stats.inputTokens` includes cache-read and cache-write tokens. In `stats.usageByModel`,
         `inputCost` includes cache-read and cache-write costs, and `outputCost` includes
@@ -419,6 +437,10 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
             return Response(DetailResponse(detail=time_range_error), status=400)
         has_explicit_range = request.GET.get("start") or request.GET.get("end")
 
+        include_related = features.has(
+            "organizations:gen-ai-related-conversations", organization, actor=request.user
+        )
+
         with handle_query_errors():
             if has_explicit_range:
                 resolved_params = snuba_params
@@ -429,7 +451,7 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
 
             def data_fn(offset: int, limit: int) -> AIConversationQueryResult:
                 return self._fetch_spans_and_aggregates(
-                    resolved_params, conversation_id, offset, limit
+                    resolved_params, conversation_id, offset, limit, include_related
                 )
 
             def on_results(
@@ -446,7 +468,7 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
                 )
                 projects_by_id = {project.id: project for project in resolved_params.projects}
                 project = projects_by_id.get(project_id) if project_id is not None else None
-                return {
+                response: AIConversationDetailsResponse = {
                     "conversationId": conversation_id,
                     "title": self._resolve_title(conversation_id, spans, organization),
                     "projects": [serialize_conversation_project(project)] if project else [],
@@ -456,6 +478,12 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
                     "spans": spans,
                     "stats": query_result["stats"],
                 }
+                trace_ids = query_result["traceIds"]
+                if trace_ids is not None:
+                    response["relatedConversationIds"] = self._fetch_related_conversation_ids(
+                        resolved_params, conversation_id, trace_ids, organization
+                    )
+                return response
 
             return self.paginate(
                 request=request,
@@ -591,12 +619,7 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
                 span["occurrences"] = bucket["occurrences"]
 
     def _is_gen_ai_span(self, span: Mapping[str, Any]) -> bool:
-        if span.get("gen_ai.operation.type"):
-            return True
-        return any(
-            isinstance(value := span.get(field), str) and value.startswith("gen_ai.")
-            for field in ("span.op", "span.name")
-        )
+        return bool(span.get("gen_ai.operation.type"))
 
     def _span_key(self, span: Mapping[str, Any], id_field: str = "span_id") -> SpanKey | None:
         trace_id = span.get("trace")
@@ -718,14 +741,107 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
             pending = next_pending
 
     @traces.trace
+    def _fetch_related_conversation_ids(
+        self,
+        snuba_params: SnubaParams,
+        conversation_id: str,
+        trace_ids: Sequence[str],
+        organization: Organization,
+    ) -> list[str]:
+        """IDs of other conversations with spans in the conversation's traces.
+
+        Best-effort: a failed lookup must not break listing the conversation spans.
+
+        Records the lookup's inputs and outcome on its span, so its duration can be
+        broken down by how many traces it scanned and over what time window.
+        """
+        span = traces.get_current_span()
+        if span:
+            span.set_attributes(
+                {
+                    "ai_conversations.related.trace_count": len(trace_ids),
+                    "ai_conversations.related.traces_capped": len(trace_ids) >= MAX_RELATED_TRACES,
+                    "ai_conversations.related.window_days": snuba_params.date_range.total_seconds()
+                    / 86400,
+                }
+            )
+        metrics.distribution(
+            "ai_monitoring.conversation_details.related_traces_scanned", len(trace_ids)
+        )
+        related_ids = (
+            self._query_related_conversation_ids(
+                snuba_params, conversation_id, trace_ids, organization
+            )
+            if trace_ids
+            else []
+        )
+        if span:
+            span.set_attribute("ai_conversations.related.lookup_failed", related_ids is None)
+        if related_ids is None:
+            return []
+        if span:
+            span.set_attributes(
+                {
+                    "ai_conversations.related.conversation_count": len(related_ids),
+                    "ai_conversations.related.conversations_capped": len(related_ids)
+                    >= MAX_RELATED_CONVERSATIONS,
+                }
+            )
+        metrics.distribution(
+            "ai_monitoring.conversation_details.related_conversations_returned",
+            len(related_ids),
+        )
+        return related_ids
+
+    def _query_related_conversation_ids(
+        self,
+        snuba_params: SnubaParams,
+        conversation_id: str,
+        trace_ids: Sequence[str],
+        organization: Organization,
+    ) -> list[str] | None:
+        """Returns None when the lookup fails."""
+        query_string = (
+            f"{build_escaped_term_filter('trace', trace_ids)} "
+            f"!{build_escaped_term_filter('gen_ai.conversation.id', [conversation_id])} "
+            "has:gen_ai.conversation.id has:gen_ai.operation.type"
+        )
+        try:
+            with metrics.timer("ai_monitoring.conversation_details.related_lookup"):
+                result = Spans.run_table_query(
+                    params=snuba_params,
+                    query_string=query_string,
+                    selected_columns=["gen_ai.conversation.id", "min(timestamp)"],
+                    orderby=["min(timestamp)", "gen_ai.conversation.id"],
+                    offset=0,
+                    limit=MAX_RELATED_CONVERSATIONS,
+                    referrer=Referrer.API_AI_CONVERSATION_DETAILS_RELATED.value,
+                    config=SearchResolverConfig(auto_fields=False),
+                    sampling_mode="HIGHEST_ACCURACY",
+                )
+        except Exception:
+            logger.exception(
+                "Failed to resolve related AI conversations",
+                extra={"organization_id": organization.id},
+            )
+            return None
+
+        return [
+            related_id
+            for row in result.get("data", [])
+            if (related_id := row.get("gen_ai.conversation.id"))
+        ]
+
+    @traces.trace
     def _fetch_spans_and_aggregates(
         self,
         snuba_params: SnubaParams,
         conversation_id: str,
         offset: int,
         limit: int,
+        include_related: bool = False,
     ) -> AIConversationQueryResult:
-        query_string = build_escaped_term_filter("gen_ai.conversation.id", [conversation_id])
+        query_string = _build_conversation_query(conversation_id)
         resolver = Spans.get_resolver(
             snuba_params,
             SearchResolverConfig(
@@ -767,6 +883,21 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
                     resolver=resolver,
                 )
             )
+        if offset == 0 and include_related:
+            # Runs alongside the page so the related lookup only adds one query.
+            queries.append(
+                TableQuery(
+                    name="traces",
+                    query_string=query_string,
+                    selected_columns=["trace", "min(timestamp)"],
+                    orderby=["min(timestamp)", "trace"],
+                    offset=0,
+                    limit=MAX_RELATED_TRACES,
+                    referrer=Referrer.API_AI_CONVERSATION_DETAILS_RELATED.value,
+                    sampling_mode="HIGHEST_ACCURACY",
+                    resolver=resolver,
+                )
+            )
 
         results = Spans.run_bulk_table_queries(queries, snuba_params.debug)
         aggregate_result = results.get("aggregates")
@@ -775,13 +906,16 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
             stats = _parse_grouped_stats(aggregate_result.get("data", []))
         spans = results["spans"].get("data", [])
         _move_meta_columns(spans)
-        return {"data": spans, "stats": stats}
+        trace_ids: list[str] | None = None
+        if (trace_result := results.get("traces")) is not None:
+            trace_ids = [row["trace"] for row in trace_result.get("data", []) if row.get("trace")]
+        return {"data": spans, "stats": stats, "traceIds": trace_ids}
 
     @traces.trace
     def _conversation_exists(self, snuba_params: SnubaParams, conversation_id: str) -> bool:
         result = Spans.run_table_query(
             params=snuba_params,
-            query_string=build_escaped_term_filter("gen_ai.conversation.id", [conversation_id]),
+            query_string=_build_conversation_query(conversation_id),
             selected_columns=["span_id"],
             orderby=[],
             offset=0,

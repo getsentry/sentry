@@ -6,7 +6,6 @@ import type {Organization} from 'sentry/types/organization';
 import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -29,7 +28,12 @@ export type SeerCreditOperation =
  * - `daily_cap_exceeded`: the operation would take today's spend over the
  *   org's daily usage limit.
  */
-export type SeerCreditDenialReason = 'not_enough_credits' | 'daily_cap_exceeded';
+export const SEER_CREDIT_DENIAL_REASONS = [
+  'not_enough_credits',
+  'daily_cap_exceeded',
+] as const;
+
+export type SeerCreditDenialReason = (typeof SEER_CREDIT_DENIAL_REASONS)[number];
 
 interface SeerCreditCheckResponse {
   /**
@@ -82,12 +86,11 @@ export function seerCreditCheckApiOptions(
  * Matches the org's credit checks for every operation, so they can all be
  * rechecked at once, for example after credits are added.
  */
-export function seerCreditChecksQueryKey(organization: Organization) {
-  return [
-    getApiUrl('/organizations/$organizationIdOrSlug/seer/credit-check/', {
-      path: {organizationIdOrSlug: organization.slug},
-    }),
-  ];
+export function seerCreditChecksFilter(organization: Organization) {
+  return apiOptions.queryFilter(
+    '/organizations/$organizationIdOrSlug/seer/credit-check/',
+    {path: {organizationIdOrSlug: organization.slug}}
+  );
 }
 
 interface UseSeerCreditCheckOptions {
@@ -107,9 +110,8 @@ interface UseSeerCreditCheckOptions {
  * Seer on this plan" and is mounted on many pages that should not make a
  * billing call. Only mount this where a Seer trigger is about to be shown.
  *
- * The check fails open. Without `seer-credit-checks` and
- * `token-billed-seer-enabled`, or when the request fails, `hasEnoughCredits`
- * is `true` and the backend has the final say.
+ * The check fails open. Without `token-billed-seer-enabled`, or when the
+ * request fails, `hasEnoughCredits` is `true` and the backend has the final say.
  */
 export function useSeerCreditCheck(
   operation: SeerCreditOperation,
@@ -119,9 +121,7 @@ export function useSeerCreditCheck(
   // Orgs without token-billed Seer have no wallet to check, so they make no
   // billing call.
   const isChecking =
-    enabled &&
-    organization.features.includes('seer-credit-checks') &&
-    organization.features.includes('token-billed-seer-enabled');
+    enabled && organization.features.includes('token-billed-seer-enabled');
 
   const query = useQuery({
     ...seerCreditCheckApiOptions(organization, operation, billingFeature),

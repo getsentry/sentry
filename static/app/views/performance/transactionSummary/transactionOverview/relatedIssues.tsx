@@ -21,9 +21,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {loadQueryParamsFromLocation} from 'sentry/views/explore/queryParams/parsers';
 import {removeTracingKeysFromSearch} from 'sentry/views/performance/utils';
 
-const relatedIssuesParsers = {
-  query: parseAsString.withDefault(''),
-};
+const relatedIssuesParsers = {query: parseAsString.withDefault('')};
 
 type Props = {
   location: Location;
@@ -55,17 +53,13 @@ export function RelatedIssues({
       loadQueryParamsFromLocation(relatedIssuesParsers, location).query
     );
     currentFilter.renameFilter('request.method', 'http.method');
+    currentFilter.renameFilter('http.request.method', 'http.method');
     removeTracingKeysFromSearch(currentFilter);
     currentFilter
       .addFreeText('is:unresolved')
       .setFilterValues('transaction', [transaction]);
 
-    return {
-      queryParams: {
-        ...queryParams,
-        query: currentFilter.formatString(),
-      },
-    };
+    return {queryParams: {...queryParams, query: currentFilter.formatString()}};
   };
 
   const handleOpenClick = () => {

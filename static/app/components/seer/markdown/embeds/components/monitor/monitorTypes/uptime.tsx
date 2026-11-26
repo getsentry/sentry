@@ -1,9 +1,9 @@
+import {getDuration} from '@sentry/scraps/duration';
 import {Grid, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {t, tn} from 'sentry/locale';
 import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
-import {getDuration} from 'sentry/utils/duration/getDuration';
 
 export function UptimeMonitor({detector}: {detector: UptimeDetector}) {
   const {queryObj} = detector.dataSources[0];
@@ -20,7 +20,9 @@ export function UptimeMonitor({detector}: {detector: UptimeDetector}) {
         <Text variant="muted">{t('Interval')}</Text>
         <Text>{t('Every %s', getDuration(queryObj.intervalSeconds))}</Text>
         <Text variant="muted">{t('Timeout')}</Text>
-        <Text>{t('After %s', getDuration(queryObj.timeoutMs / 1000, 2))}</Text>
+        <Text>
+          {t('After %s', getDuration(queryObj.timeoutMs / 1000, {precision: 2}))}
+        </Text>
         <Text variant="muted">{t('Creates an issue')}</Text>
         <Text>
           {tn(

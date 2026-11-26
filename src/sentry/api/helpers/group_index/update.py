@@ -5,7 +5,7 @@ import re
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
 from http import HTTPStatus
-from typing import Any, NotRequired, TypedDict, cast
+from typing import Any, NotRequired, TypedDict
 from urllib.parse import urlparse
 from uuid import uuid4
 
@@ -207,7 +207,7 @@ def get_current_release_version_of_group(group: Group, follows_semver: bool = Fa
         current_release_version = (
             Release.objects.filter(id__in=latest_observation)
             .values_list("version", flat=True)
-            .first()
+            .first()  # noqa: S035
         )
     return current_release_version
 
@@ -915,13 +915,10 @@ def most_recent_release(project: Project) -> Release | None:
 def most_recent_release_matching_commit(
     projects: Sequence[Project], commit: Commit
 ) -> Release | None:
-    return cast(
-        "Release | None",
-        (
-            Release.objects.filter(projects__in=projects, releasecommit__commit=commit)
-            .extra(select={"sort": "COALESCE(date_released, date_added)"})
-            .order_by("-sort")[0]
-        ),
+    return (
+        Release.objects.filter(projects__in=projects, releasecommit__commit=commit)
+        .extra(select={"sort": "COALESCE(date_released, date_added)"})
+        .order_by("-sort")[0]
     )
 
 

@@ -7,6 +7,7 @@ import {IconWarning} from '@sentry/icons/warning';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
+import {getDuration} from '@sentry/scraps/duration';
 import {InfoTip} from '@sentry/scraps/info';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -22,7 +23,6 @@ import type {RawCrumb} from 'sentry/types/breadcrumbs';
 import {EntryType, type Event, type ExceptionValue} from 'sentry/types/event';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import {defined} from 'sentry/utils/defined';
-import {getDuration} from 'sentry/utils/duration/getDuration';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
@@ -407,7 +407,7 @@ function FaultPanel({crash}: {crash: GPUCrashContext}) {
   ].filter(([, value]) => defined(value) && value !== '');
 
   return (
-    <Container border="danger" radius="md" padding="lg">
+    <Container border="danger.vibrant" radius="md" padding="lg">
       <Stack gap="lg">
         <Flex gap="sm" align="center">
           <IconWarning size="sm" />
@@ -472,7 +472,7 @@ function LastOperation({marker, operation}: {operation: string; marker?: RawCrum
     .join(' · ');
 
   return (
-    <Container background="secondary" border="accent" radius="md" padding="lg">
+    <Container background="secondary" border="accent.vibrant" radius="md" padding="lg">
       <Stack gap="xs">
         <Flex gap="xs" align="center">
           <Text size="xs" variant="muted" uppercase>
@@ -508,7 +508,7 @@ function Markers({crumbs}: {crumbs: RawCrumb[]}) {
   return (
     <Grid columns="repeat(auto-fit, minmax(320px, 1fr))" gap="lg" align="start">
       {markers.length ? (
-        <Container border="muted" radius="md" padding="md">
+        <Container border="secondary" radius="md" padding="md">
           <Stack gap="sm">
             <Flex gap="xs" align="center">
               <Text size="xs" bold uppercase variant="muted">
@@ -543,7 +543,7 @@ function Markers({crumbs}: {crumbs: RawCrumb[]}) {
         </Container>
       ) : null}
       {callstack.length ? (
-        <Container border="muted" radius="md" padding="md">
+        <Container border="secondary" radius="md" padding="md">
           <Stack gap="sm">
             <Flex gap="xs" align="center">
               <Text size="xs" bold uppercase variant="muted">
@@ -576,7 +576,10 @@ function DecodeDetails({crash}: {crash: GPUCrashContext}) {
     (crash.sdk_version || crash.handler) &&
       t('Decoded by %s', crash.sdk_version ?? crash.handler),
     defined(crash.decode_time_ms) &&
-      t('in %s', getDuration(crash.decode_time_ms / 1000, 2, true)),
+      t(
+        'in %s',
+        getDuration(crash.decode_time_ms / 1000, {precision: 2, style: 'short'})
+      ),
   ]
     .filter(Boolean)
     .join(' ');
@@ -762,7 +765,7 @@ export function EventGpuCrashReport({event}: {event: Event}) {
                   'seconds_since_start',
                   t('Uptime'),
                   typeof unreal.seconds_since_start === 'number'
-                    ? getDuration(unreal.seconds_since_start, 0, true)
+                    ? getDuration(unreal.seconds_since_start, {style: 'short'})
                     : unreal.seconds_since_start,
                 ],
                 [

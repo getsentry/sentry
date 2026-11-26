@@ -70,16 +70,17 @@ import {
   type NavigationTourElementProps,
 } from 'sentry/views/navigation/navigationTour';
 import {isPrimaryNavigationLinkActive} from 'sentry/views/navigation/primary/components';
-import {
-  useNavigationGroupHoverEnabled,
-  usePrimaryNavigation,
-} from 'sentry/views/navigation/primaryNavigationContext';
+import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 import {useSettingsNavigation} from 'sentry/views/navigation/useSettingsNavigation';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
 const MotionContainer = motion.create(Container);
 const LEADING_SLOT_SIZE = '24px';
+/** With settings-v3, the padding from the panel edge to the link backgrounds, shared by the header and body. */
+const PANEL_PADDING_X = 'xs';
+/** The padding from a link's background to its content, shared by link rows and the header title. */
+const ITEM_PADDING_X = 'md';
 
 interface SecondarySidebarProps {
   children: ReactNode;
@@ -123,8 +124,6 @@ function SecondarySidebarPanel({
   const containerRef = useObjectRef(tourRef);
   const resizeHandleRef = useRef<HTMLDivElement>(null);
   const {layout, activeGroup} = usePrimaryNavigation();
-  // Group switches only animate to smooth over hover previews.
-  const shouldAnimateGroupSwitch = useNavigationGroupHoverEnabled();
   const isSettingsNavigation = useSettingsNavigation();
 
   const [secondarySidebarWidth, setSecondarySidebarWidth] = useSyncedLocalStorageState(
@@ -153,9 +152,7 @@ function SecondarySidebarPanel({
     <Container
       height="100%"
       right="0"
-      {...mergeProps(props, {
-        [NAVIGATION_SECONDARY_SIDEBAR_DATA_ATTRIBUTE]: true,
-      })}
+      {...mergeProps(props, {[NAVIGATION_SECONDARY_SIDEBAR_DATA_ATTRIBUTE]: true})}
       width={isMobile ? '100%' : `${size}px`}
       ref={isMobile ? undefined : containerRef}
     >
@@ -170,9 +167,9 @@ function SecondarySidebarPanel({
           width="100%"
           height="100%"
           key={activeGroup}
-          initial={shouldAnimateGroupSwitch ? {x: -6, opacity: 0} : false}
+          initial={{x: -6, opacity: 0}}
           animate={{x: 0, opacity: 1}}
-          exit={shouldAnimateGroupSwitch ? {x: 6, opacity: 0} : undefined}
+          exit={{x: 6, opacity: 0}}
           transition={{duration: 0.06}}
         >
           <Grid
@@ -310,6 +307,7 @@ interface SecondaryNavigationHeaderProps {
 
 function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
   const {layout} = usePrimaryNavigation();
+  const settingsV3 = useSettingsV3();
   const isMobile = layout === 'mobile';
 
   return (
@@ -318,7 +316,7 @@ function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
       align="center"
       borderBottom="primary"
       height={`${PRIMARY_HEADER_HEIGHT}px`}
-      padding={isMobile ? 'md lg' : '0 sm 0 sm'}
+      padding={isMobile ? 'md lg' : settingsV3 ? `0 ${PANEL_PADDING_X}` : '0 sm'}
     >
       {props.children}
       <SecondaryNavigationToggle />
@@ -330,16 +328,22 @@ function SecondaryNavigationHeaderTitle({children}: {children: ReactNode}) {
   const {layout} = usePrimaryNavigation();
   const settingsV3 = useSettingsV3();
 
+  // Without settings-v3, mobile links have no body padding, so the title drops
+  // its own to stay aligned with them.
+  const paddingX = settingsV3 ? ITEM_PADDING_X : layout === 'mobile' ? undefined : 'lg';
+
   return (
-    <Container
+    <Flex
+      align="center"
+      height="32px"
       minWidth="0"
-      padding={settingsV3 ? 'md xs' : undefined}
-      paddingLeft={!settingsV3 && layout !== 'mobile' ? 'lg' : undefined}
+      paddingLeft={paddingX}
+      paddingRight={paddingX}
     >
-      <Text size="md" bold>
+      <Text size="md" bold ellipsis>
         {children}
       </Text>
-    </Container>
+    </Flex>
   );
 }
 
@@ -390,7 +394,13 @@ function SecondaryNavigationBody(props: SecondaryNavigationBodyProps) {
     <Container
       overflow="auto"
       overscrollBehavior="contain"
-      padding={settingsV3 ? 'md xs' : layout === 'mobile' ? '0 0 md 0' : undefined}
+      padding={
+        settingsV3
+          ? `md ${PANEL_PADDING_X}`
+          : layout === 'mobile'
+            ? '0 0 md 0'
+            : undefined
+      }
     >
       {props.children}
     </Container>
@@ -410,7 +420,7 @@ function SecondaryNavigationRow(props: ComponentProps<typeof Grid>) {
       align="center"
       position="relative"
       height="32px"
-      padding="0 sm 0 md"
+      padding={`0 ${ITEM_PADDING_X}`}
       radius="md"
       {...props}
       columns={`${LEADING_SLOT_SIZE} minmax(0, 1fr)`}
@@ -660,7 +670,7 @@ function SecondaryNavigationSeparator() {
     return (
       <SecondaryNavigationRow height="auto" padding="md" radius="0">
         <Container column="2" minWidth="0">
-          <Separator orientation="horizontal" border="muted" />
+          <Separator orientation="horizontal" border="secondary" />
         </Container>
       </SecondaryNavigationRow>
     );
@@ -668,7 +678,7 @@ function SecondaryNavigationSeparator() {
 
   return (
     <Container padding="0 xl">
-      <Separator orientation="horizontal" border="muted" />
+      <Separator orientation="horizontal" border="secondary" />
     </Container>
   );
 }
@@ -720,10 +730,7 @@ function Collapsible(props: CollapsibleProps) {
           direction="column-reverse"
           key="collapsible-content"
           variants={{
-            collapsed: {
-              height: 0,
-              overflow: 'hidden',
-            },
+            collapsed: {height: 0, overflow: 'hidden'},
             expanded: {
               height: 'auto',
               // Let focus rings and other content extend beyond the expanded section.
@@ -873,12 +880,8 @@ function SecondaryNavigationReorderableList<T extends {id: string | number}>(
   props: SecondaryNavigationReorderableListProps<T>
 ) {
   const sensors = useSensors(
-    useSensor(NavigationPointerSensor, {
-      activationConstraint: {distance: 5},
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
+    useSensor(NavigationPointerSensor, {activationConstraint: {distance: 5}}),
+    useSensor(KeyboardSensor, {coordinateGetter: sortableKeyboardCoordinates})
   );
 
   // We need to hold a copy of the local state because dnd-kit does not play well
@@ -1055,7 +1058,7 @@ function GrabHandle() {
     return (
       <Flex
         align="center"
-        padding="0 sm 0 md"
+        padding={`0 ${ITEM_PADDING_X}`}
         position="absolute"
         inset="0"
         pointerEvents="none"
@@ -1170,9 +1173,7 @@ const DotIndicator = styled('div')<{variant: 'accent' | 'danger' | 'warning'}>`
 
 const StyledReorderableLink = styled(Link, {
   shouldForwardProp: prop => prop !== 'layout',
-})<{
-  layout: 'mobile' | 'sidebar';
-}>`
+})<{layout: 'mobile' | 'sidebar'}>`
   color: ${p => p.theme.tokens.interactive.link.neutral.rest};
   border: 0;
   user-select: none;
@@ -1230,9 +1231,7 @@ const StyledReorderableLink = styled(Link, {
 
 const LegacyStyledReorderableLink = styled(Link, {
   shouldForwardProp: prop => prop !== 'layout',
-})<{
-  layout: 'mobile' | 'sidebar';
-}>`
+})<{layout: 'mobile' | 'sidebar'}>`
   display: flex;
   gap: ${p => p.theme.space.sm};
   justify-content: center;

@@ -1,25 +1,22 @@
 import {isRepeatedFrame} from 'sentry/components/events/interfaces/utils';
 import type {Frame} from 'sentry/types/event';
 
+import {DEFAULT_STACK_TRACE_ROW_POLICY, type StackTraceRowPolicy} from './rowPolicy';
 import type {FrameRow, OmittedFramesRow, Row} from './types';
 
 function frameIsVisible(
   frame: Frame,
   nextFrame: Frame | undefined,
-  includeSystemFrames: boolean
+  includeSystemFrames: boolean,
+  rowPolicy: StackTraceRowPolicy
 ) {
-  return (
-    includeSystemFrames ||
-    frame.inApp ||
-    nextFrame?.inApp ||
-    // Include the last non-app frame to keep the call chain understandable.
-    (!frame.inApp && !nextFrame)
-  );
+  return rowPolicy.isFrameVisible({frame, includeSystemFrames, nextFrame});
 }
 
 export function createInitialHiddenFrameToggleMap(
   frames: Frame[],
-  includeSystemFrames: boolean
+  includeSystemFrames: boolean,
+  rowPolicy = DEFAULT_STACK_TRACE_ROW_POLICY
 ) {
   const indexMap: Record<number, boolean> = {};
 
@@ -28,7 +25,7 @@ export function createInitialHiddenFrameToggleMap(
     const repeatedFrame = isRepeatedFrame(frame, nextFrame);
 
     if (
-      frameIsVisible(frame, nextFrame, includeSystemFrames) &&
+      frameIsVisible(frame, nextFrame, includeSystemFrames, rowPolicy) &&
       !repeatedFrame &&
       !frame.inApp
     ) {
@@ -39,7 +36,11 @@ export function createInitialHiddenFrameToggleMap(
   return indexMap;
 }
 
-export function getFrameCountMap(frames: Frame[], includeSystemFrames: boolean) {
+export function getFrameCountMap(
+  frames: Frame[],
+  includeSystemFrames: boolean,
+  rowPolicy = DEFAULT_STACK_TRACE_ROW_POLICY
+) {
   let count = 0;
   const countMap: Record<number, number> = {};
 
@@ -48,7 +49,7 @@ export function getFrameCountMap(frames: Frame[], includeSystemFrames: boolean) 
     const repeatedFrame = isRepeatedFrame(frame, nextFrame);
 
     if (
-      frameIsVisible(frame, nextFrame, includeSystemFrames) &&
+      frameIsVisible(frame, nextFrame, includeSystemFrames, rowPolicy) &&
       !repeatedFrame &&
       !frame.inApp
     ) {
@@ -111,6 +112,7 @@ export function getRows({
   newestFirst,
   framesOmitted,
   maxDepth,
+  rowPolicy = DEFAULT_STACK_TRACE_ROW_POLICY,
 }: {
   frameCountMap: Record<number, number>;
   frames: Frame[];
@@ -119,6 +121,7 @@ export function getRows({
   includeSystemFrames: boolean;
   newestFirst: boolean;
   maxDepth?: number;
+  rowPolicy?: StackTraceRowPolicy;
 }): Row[] {
   const hiddenFrameIndices = getHiddenFrameIndices({
     frames,
@@ -138,7 +141,8 @@ export function getRows({
       }
 
       if (
-        (frameIsVisible(frame, nextFrame, includeSystemFrames) && !repeatedFrame) ||
+        (frameIsVisible(frame, nextFrame, includeSystemFrames, rowPolicy) &&
+          !repeatedFrame) ||
         hiddenFrameIndices.has(frameIndex)
       ) {
         const row: FrameRow = {
@@ -147,6 +151,7 @@ export function getRows({
           frameIndex,
           nextFrame,
           timesRepeated: nRepeats,
+          isUsedForGrouping: rowPolicy.isFrameUsedForGrouping(frame),
           isSubFrame: hiddenFrameIndices.has(frameIndex),
           hiddenFrameCount: frameCountMap[frameIndex],
         };

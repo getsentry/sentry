@@ -10,8 +10,10 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import type {TagCollection} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {FieldKind} from 'sentry/utils/fields';
+import {decodeList} from 'sentry/utils/queryString';
 import {useCustomMeasurements} from 'sentry/utils/useCustomMeasurements';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {Visualize} from 'sentry/views/dashboards/widgetBuilder/components/visualize';
@@ -22,6 +24,7 @@ import {
   useTraceItemDatasetAttributes,
   useTraceMetricItemAttributes,
 } from 'sentry/views/explore/hooks/useTraceItemAttributes';
+import {MAX_METRICS_ALLOWED} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 
 jest.mock('sentry/utils/analytics');
 jest.mock('sentry/utils/useCustomMeasurements');
@@ -75,11 +78,7 @@ describe('Visualize', () => {
       }
 
       const tags: TagCollection = {
-        'span.op': {
-          key: 'span.op',
-          name: 'span.op',
-          kind: FieldKind.TAG,
-        },
+        'span.op': {key: 'span.op', name: 'span.op', kind: FieldKind.TAG},
         'span.description': {
           key: 'span.description',
           name: 'span.description',
@@ -87,11 +86,7 @@ describe('Visualize', () => {
         },
       };
 
-      return {
-        attributes: tags,
-        secondaryAliases: {},
-        isLoading: false,
-      };
+      return {attributes: tags, secondaryAliases: {}, isLoading: false};
     };
 
     jest
@@ -103,11 +98,9 @@ describe('Visualize', () => {
       .mocked(useSpanItemAttributes)
       .mockImplementation((_options, type?) => mockAttributes(_options, type));
 
-    jest.mocked(useTraceMetricItemAttributes).mockReturnValue({
-      attributes: {},
-      isLoading: false,
-      secondaryAliases: {},
-    });
+    jest
+      .mocked(useTraceMetricItemAttributes)
+      .mockReturnValue({attributes: {}, isLoading: false, secondaryAliases: {}});
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/recent-searches/',
@@ -130,10 +123,7 @@ describe('Visualize', () => {
 
   it.each([
     {dataset: WidgetType.SPANS, aggregate: 'avg(span.duration)'},
-    {
-      dataset: WidgetType.TRACEMETRICS,
-      aggregate: 'sum(value,alpha_metric,counter,none)',
-    },
+    {dataset: WidgetType.TRACEMETRICS, aggregate: 'sum(value,alpha_metric,counter,none)'},
   ])(
     'edits and persists transformations for $dataset series',
     async ({dataset, aggregate}) => {
@@ -256,9 +246,7 @@ describe('Visualize', () => {
       }
     );
 
-    const addButtons = await screen.findAllByRole('button', {
-      name: 'Add Transformation',
-    });
+    const addButtons = await screen.findAllByRole('button', {name: 'Add Transformation'});
     expect(addButtons).toHaveLength(2);
     await userEvent.click(addButtons[1]!);
     await userEvent.click(screen.getByRole('option', {name: 'Smooth'}));
@@ -421,8 +409,8 @@ describe('Visualize', () => {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
-              yAxis: ['max(spans.db)'],
-              dataset: WidgetType.TRANSACTIONS,
+              yAxis: ['count()'],
+              dataset: WidgetType.ERRORS,
               displayType: DisplayType.LINE,
             },
           },
@@ -452,8 +440,8 @@ describe('Visualize', () => {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
-              yAxis: ['max(spans.db)'],
-              dataset: WidgetType.TRANSACTIONS,
+              yAxis: ['count_unique(user)'],
+              dataset: WidgetType.ERRORS,
               displayType: DisplayType.LINE,
             },
           },
@@ -483,8 +471,8 @@ describe('Visualize', () => {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
-              yAxis: ['count()'],
-              dataset: WidgetType.TRANSACTIONS,
+              yAxis: ['count(span.duration)'],
+              dataset: WidgetType.SPANS,
               displayType: DisplayType.LINE,
             },
           },
@@ -493,12 +481,14 @@ describe('Visualize', () => {
       }
     );
 
-    await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Aggregate Selection'})
+    );
     await userEvent.click(screen.getByRole('option', {name: 'p95'}));
 
     expect(screen.getByRole('button', {name: 'Column Selection'})).toBeEnabled();
     expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
-      'transaction.duration'
+      'span.duration'
     );
     expect(screen.getByRole('button', {name: 'Aggregate Selection'})).toHaveTextContent(
       'p95'
@@ -542,8 +532,8 @@ describe('Visualize', () => {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
-              yAxis: ['max(spans.db)'],
-              dataset: WidgetType.TRANSACTIONS,
+              yAxis: ['max(span.self_time)'],
+              dataset: WidgetType.SPANS,
               displayType: DisplayType.LINE,
             },
           },
@@ -552,11 +542,13 @@ describe('Visualize', () => {
       }
     );
 
-    await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Aggregate Selection'})
+    );
     await userEvent.click(screen.getByRole('option', {name: 'p95'}));
 
     expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
-      'spans.db'
+      'span.self_time'
     );
     expect(screen.getByRole('button', {name: 'Aggregate Selection'})).toHaveTextContent(
       'p95'
@@ -575,7 +567,7 @@ describe('Visualize', () => {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
               yAxis: ['count()'],
-              dataset: WidgetType.TRANSACTIONS,
+              dataset: WidgetType.ERRORS,
               displayType: DisplayType.LINE,
             },
           },
@@ -644,7 +636,7 @@ describe('Visualize', () => {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
               field: ['count()'],
-              dataset: WidgetType.TRANSACTIONS,
+              dataset: WidgetType.ERRORS,
               displayType: DisplayType.TABLE,
             },
           },
@@ -653,7 +645,9 @@ describe('Visualize', () => {
       }
     );
 
-    await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Aggregate Selection'})
+    );
     await userEvent.click(screen.getByRole('option', {name: 'field'}));
 
     expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
@@ -675,8 +669,8 @@ describe('Visualize', () => {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
-              field: ['count()'],
-              dataset: WidgetType.TRANSACTIONS,
+              field: ['count(span.duration)'],
+              dataset: WidgetType.SPANS,
               displayType: DisplayType.TABLE,
             },
           },
@@ -685,11 +679,13 @@ describe('Visualize', () => {
       }
     );
 
-    await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Aggregate Selection'})
+    );
     await userEvent.click(screen.getByRole('option', {name: 'p50'}));
 
     // Indicate that the column selection is open, and multiple options are available
-    const option = await screen.findByRole('option', {name: 'transaction.duration'});
+    const option = await screen.findByRole('option', {name: 'span.duration'});
     expect(option).toBeInTheDocument();
     expect(screen.getAllByRole('option').length).toBeGreaterThan(1);
   });
@@ -706,7 +702,7 @@ describe('Visualize', () => {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
               field: ['count()'],
-              dataset: WidgetType.TRANSACTIONS,
+              dataset: WidgetType.ERRORS,
               displayType: DisplayType.TABLE,
             },
           },
@@ -734,8 +730,8 @@ describe('Visualize', () => {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
-              yAxis: ['transaction.duration'],
-              dataset: WidgetType.TRANSACTIONS,
+              yAxis: ['span.duration'],
+              dataset: WidgetType.SPANS,
               displayType: DisplayType.LINE,
             },
           },
@@ -744,11 +740,13 @@ describe('Visualize', () => {
       }
     );
 
-    await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Aggregate Selection'})
+    );
     await userEvent.click(screen.getByRole('option', {name: 'p95'}));
 
     expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
-      'transaction.duration'
+      'span.duration'
     );
   });
 
@@ -763,8 +761,8 @@ describe('Visualize', () => {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
-              field: ['max(spans.db)'],
-              dataset: WidgetType.TRANSACTIONS,
+              field: ['max(span.self_time)'],
+              dataset: WidgetType.SPANS,
               displayType: DisplayType.TABLE,
             },
           },
@@ -773,11 +771,13 @@ describe('Visualize', () => {
       }
     );
 
-    await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Aggregate Selection'})
+    );
     await userEvent.click(screen.getByRole('option', {name: 'p95'}));
 
     expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
-      'spans.db'
+      'span.self_time'
     );
   });
 
@@ -792,8 +792,8 @@ describe('Visualize', () => {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
-              field: ['count_if(transaction.duration,equals,testValue)'],
-              dataset: WidgetType.TRANSACTIONS,
+              field: ['count_if(user,equals,testValue)'],
+              dataset: WidgetType.ERRORS,
               displayType: DisplayType.TABLE,
             },
           },
@@ -802,7 +802,9 @@ describe('Visualize', () => {
       }
     );
 
-    await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Aggregate Selection'})
+    );
     await userEvent.click(screen.getByRole('option', {name: 'count'}));
 
     expect(
@@ -827,8 +829,8 @@ describe('Visualize', () => {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
-              field: ['count_if(transaction.duration,equals,testValue)'],
-              dataset: WidgetType.TRANSACTIONS,
+              field: ['count_if(user,equals,testValue)'],
+              dataset: WidgetType.ERRORS,
               displayType: DisplayType.TABLE,
             },
           },
@@ -837,50 +839,23 @@ describe('Visualize', () => {
       }
     );
 
-    await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
-    await userEvent.click(screen.getByRole('option', {name: 'count_miserable'}));
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Aggregate Selection'})
+    );
+    await userEvent.click(screen.getByRole('option', {name: 'count_unique'}));
 
     expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
       'user'
     );
     expect(screen.getByRole('button', {name: 'Aggregate Selection'})).toHaveTextContent(
-      'count_miserable'
+      'count_unique'
     );
-    expect(screen.getByDisplayValue('300')).toBeInTheDocument();
+    expect(screen.queryByText('is equal to')).not.toBeInTheDocument();
     await waitFor(() => {
       expect(router.location.query).toEqual(
-        expect.objectContaining({field: 'count_miserable(user,300)'})
+        expect.objectContaining({field: 'count_unique(user)'})
       );
     });
-  });
-
-  it('adds the default value for an aggregate with 2 parameters', async () => {
-    render(
-      <WidgetBuilderProvider>
-        <Visualize />
-      </WidgetBuilderProvider>,
-      {
-        organization,
-        initialRouterConfig: {
-          location: {
-            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
-            query: {
-              field: ['transaction.duration'],
-              dataset: WidgetType.TRANSACTIONS,
-              displayType: DisplayType.TABLE,
-            },
-          },
-          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
-        },
-      }
-    );
-
-    await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
-    await userEvent.click(screen.getByRole('option', {name: 'count_miserable'}));
-
-    expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
-      'user'
-    );
   });
 
   it('adds the default values for an aggregate with 3 parameters', async () => {
@@ -894,8 +869,8 @@ describe('Visualize', () => {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
-              field: ['transaction'],
-              dataset: WidgetType.TRANSACTIONS,
+              field: ['title'],
+              dataset: WidgetType.ERRORS,
               displayType: DisplayType.TABLE,
             },
           },
@@ -904,17 +879,19 @@ describe('Visualize', () => {
       }
     );
 
-    await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Aggregate Selection'})
+    );
     await userEvent.click(screen.getByRole('option', {name: 'count_if'}));
 
     expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
-      'transaction'
+      'title'
     );
     expect(screen.getByRole('button', {name: 'Aggregate Selection'})).toHaveTextContent(
       'count_if'
     );
     expect(screen.getByText('is equal to')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('300')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('error')).toBeInTheDocument();
   });
 
   it('disables the aggregate selection for issue widgets', async () => {
@@ -1039,9 +1016,9 @@ describe('Visualize', () => {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
-              dataset: WidgetType.TRANSACTIONS,
+              dataset: WidgetType.SPANS,
               displayType: DisplayType.TABLE,
-              field: ['p50(transaction.duration)'],
+              field: ['p50(span.duration)'],
             },
           },
           route: DASHBOARD_WIDGET_BUILDER_ROUTE,
@@ -1050,9 +1027,7 @@ describe('Visualize', () => {
     );
 
     expect(await screen.findByLabelText('Aggregate Selection')).toHaveTextContent('p50');
-    expect(screen.getByLabelText('Column Selection')).toHaveTextContent(
-      'transaction.duration'
-    );
+    expect(screen.getByLabelText('Column Selection')).toHaveTextContent('span.duration');
 
     // Add 3 fields
     await userEvent.click(screen.getByRole('button', {name: 'Add Column'}));
@@ -1060,15 +1035,15 @@ describe('Visualize', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Add Column'}));
 
     // count() is the default aggregate when adding a field
-    expect(screen.getAllByText('count_unique')).toHaveLength(3);
+    expect(screen.getAllByText('count')).toHaveLength(3);
 
     // Change the last field
-    await userEvent.click(screen.getAllByText('count_unique')[2]!);
+    await userEvent.click(screen.getAllByText('count')[2]!);
     await userEvent.click(screen.getByRole('option', {name: 'epm'}));
 
     // The other fields should not be affected
     expect(screen.getByText('p50')).toBeInTheDocument();
-    expect(screen.getAllByText('count_unique')).toHaveLength(2);
+    expect(screen.getAllByText('count')).toHaveLength(2);
     expect(screen.getAllByText('epm')).toHaveLength(1);
   });
 
@@ -1141,11 +1116,7 @@ describe('Visualize', () => {
     // on it.
     render(
       <WidgetBuilderProvider>
-        <Visualize
-          error={{
-            queries: 'some validation error' as any,
-          }}
-        />
+        <Visualize error={{queries: 'some validation error' as any}} />
       </WidgetBuilderProvider>,
       {
         organization,
@@ -1177,7 +1148,7 @@ describe('Visualize', () => {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
-              dataset: WidgetType.TRANSACTIONS,
+              dataset: WidgetType.ERRORS,
               displayType: DisplayType.BIG_NUMBER,
               field: ['count_unique(user)'],
             },
@@ -1268,7 +1239,7 @@ describe('Visualize', () => {
         initialRouterConfig: {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
-            query: {dataset: WidgetType.TRANSACTIONS, field: ['transaction.duration']},
+            query: {dataset: WidgetType.ERRORS, field: ['message']},
           },
           route: DASHBOARD_WIDGET_BUILDER_ROUTE,
         },
@@ -1367,29 +1338,6 @@ describe('Visualize', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('resets the text box value when swapping between apdex and user_misery', async () => {
-    render(
-      <WidgetBuilderProvider>
-        <Visualize />
-      </WidgetBuilderProvider>,
-      {
-        organization,
-        initialRouterConfig: {
-          location: {
-            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
-            query: {dataset: WidgetType.TRANSACTIONS, field: ['apdex(9999)']},
-          },
-          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
-        },
-      }
-    );
-
-    await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
-    await userEvent.click(screen.getByRole('option', {name: 'user_misery'}));
-
-    expect(screen.getByRole('textbox', {name: 'Numeric Input'})).toHaveValue('300');
-  });
-
   it('does not allow for deleting the only field or aggregate when there is an equation', async () => {
     render(
       <WidgetBuilderProvider>
@@ -1473,9 +1421,7 @@ describe('Visualize', () => {
       }
     );
 
-    const [firstHandle] = await screen.findAllByRole('button', {
-      name: 'Drag to reorder',
-    });
+    const [firstHandle] = await screen.findAllByRole('button', {name: 'Drag to reorder'});
     act(() => firstHandle!.focus());
     await userEvent.keyboard(' ');
     await userEvent.keyboard('{ArrowDown}{ArrowDown}');
@@ -1501,7 +1447,7 @@ describe('Visualize', () => {
         initialRouterConfig: {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
-            query: {dataset: WidgetType.TRANSACTIONS, field: ['count()']},
+            query: {dataset: WidgetType.ERRORS, field: ['count()']},
           },
           route: DASHBOARD_WIDGET_BUILDER_ROUTE,
         },
@@ -1590,8 +1536,9 @@ describe('Visualize', () => {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
-              dataset: WidgetType.TRANSACTIONS,
-              field: ['p50(transaction.duration)'],
+              dataset: WidgetType.SPANS,
+              displayType: DisplayType.TABLE,
+              field: ['p50(span.duration)'],
             },
           },
           route: DASHBOARD_WIDGET_BUILDER_ROUTE,
@@ -1601,8 +1548,8 @@ describe('Visualize', () => {
 
     await userEvent.click(await screen.findByRole('button', {name: 'Column Selection'}));
     // Assert options that are strings, not typically valid for p50, are rendered but disabled
-    expect(screen.getByRole('option', {name: 'message'})).toBeInTheDocument();
-    expect(screen.getByRole('option', {name: 'message'})).toHaveAttribute(
+    expect(screen.getByRole('option', {name: 'span.op'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'span.op'})).toHaveAttribute(
       'aria-disabled',
       'true'
     );
@@ -1869,9 +1816,7 @@ describe('Visualize', () => {
           <Visualize />
         </WidgetBuilderProvider>,
         {
-          organization: OrganizationFixture({
-            features: ['visibility-explore-view'],
-          }),
+          organization: OrganizationFixture({features: ['visibility-explore-view']}),
           initialRouterConfig: {
             location: {
               pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
@@ -1972,9 +1917,7 @@ describe('Visualize', () => {
           <Visualize />
         </WidgetBuilderProvider>,
         {
-          organization: OrganizationFixture({
-            features: ['visibility-explore-view'],
-          }),
+          organization: OrganizationFixture({features: ['visibility-explore-view']}),
           initialRouterConfig: {
             location: {
               pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
@@ -2075,18 +2018,14 @@ describe('Visualize', () => {
 
       expect(screen.getByLabelText('Enter an equation')).toBeInTheDocument();
 
-      const input = screen.getByRole('combobox', {
-        name: 'Add a term',
-      });
+      const input = screen.getByRole('combobox', {name: 'Add a term'});
       expect(input).toBeInTheDocument();
 
       await userEvent.click(input);
       await userEvent.type(input, 'avg(');
 
       expect(
-        await screen.findByRole('row', {
-          name: 'avg(span.duration)',
-        })
+        await screen.findByRole('row', {name: 'avg(span.duration)'})
       ).toBeInTheDocument();
 
       await waitFor(() => {
@@ -2125,18 +2064,14 @@ describe('Visualize', () => {
 
       expect(screen.getByLabelText('Enter an equation')).toBeInTheDocument();
 
-      const input = screen.getByRole('combobox', {
-        name: 'Add a term',
-      });
+      const input = screen.getByRole('combobox', {name: 'Add a term'});
       expect(input).toBeInTheDocument();
 
       await userEvent.click(input);
       await userEvent.type(input, 'avg(');
 
       expect(
-        await screen.findByRole('row', {
-          name: 'avg(span.duration)',
-        })
+        await screen.findByRole('row', {name: 'avg(span.duration)'})
       ).toBeInTheDocument();
 
       await waitFor(() => {
@@ -2614,17 +2549,13 @@ describe('Visualize', () => {
     ).toHaveTextContent('span.op');
   });
 
-  it('disables visualize step when discover-saved-queries-deprecation feature is enabled and dataset is transactions', async () => {
-    const organizationWithDeprecation = OrganizationFixture({
-      features: ['discover-saved-queries-deprecation'],
-    });
-
+  it('disables visualize step when dataset is transactions', async () => {
     render(
       <WidgetBuilderProvider>
         <Visualize />
       </WidgetBuilderProvider>,
       {
-        organization: organizationWithDeprecation,
+        organization,
         initialRouterConfig: {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
@@ -2647,6 +2578,36 @@ describe('Visualize', () => {
 
     const columnSelect = await screen.findByRole('button', {name: 'Column Selection'});
     expect(columnSelect).toBeDisabled();
+  });
+
+  it('enables visualize step for non-transaction datasets', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+            query: {
+              dataset: WidgetType.SPANS,
+              displayType: DisplayType.LINE,
+              yAxis: ['p95(span.duration)'],
+            },
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
+      }
+    );
+
+    const aggregateSelect = await screen.findByRole('button', {
+      name: 'Aggregate Selection',
+    });
+    expect(aggregateSelect).toBeEnabled();
+
+    const columnSelect = await screen.findByRole('button', {name: 'Column Selection'});
+    expect(columnSelect).toBeEnabled();
   });
 
   it('duplicates the last y-axis when adding a series for trace metrics timeseries chart', async () => {
@@ -2693,9 +2654,7 @@ describe('Visualize', () => {
     // Click "Add Series"
     await userEvent.click(screen.getByRole('button', {name: 'Add Series'}));
 
-    const metricSelectors = await screen.findAllByRole('button', {
-      name: 'alpha_metric',
-    });
+    const metricSelectors = await screen.findAllByRole('button', {name: 'alpha_metric'});
     expect(metricSelectors).toHaveLength(2);
     expect(metricSelectors[0]).toHaveTextContent('alpha_metric');
     expect(metricSelectors[1]).toHaveTextContent('alpha_metric');
@@ -2743,6 +2702,51 @@ describe('Visualize', () => {
     expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
       'span.op'
     );
+  });
+
+  it('explains why adding a column is disabled at the metric cap', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        data: [
+          {
+            'metric.name': 'alpha_metric',
+            'metric.type': 'counter',
+            'count(metric.name)': 1,
+          },
+        ],
+      },
+    });
+
+    render(<Visualize />, {
+      organization,
+      additionalWrapper: WidgetBuilderProvider,
+      initialRouterConfig: {
+        location: {
+          pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+          query: {
+            field: Array.from(
+              {length: MAX_METRICS_ALLOWED},
+              () => 'sum(value,alpha_metric,counter,none)'
+            ),
+            dataset: WidgetType.TRACEMETRICS,
+            displayType: DisplayType.TABLE,
+          },
+        },
+        route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+      },
+    });
+
+    const addColumn = await screen.findByRole('button', {name: 'Add Column'});
+    // The tooltip keeps the button hoverable, so it is aria-disabled instead
+    expect(addColumn).toHaveAttribute('aria-disabled', 'true');
+
+    await userEvent.hover(addColumn);
+    expect(
+      await screen.findByText(
+        `A widget can have up to ${MAX_METRICS_ALLOWED} metrics and equations.`
+      )
+    ).toBeInTheDocument();
   });
 
   it('lets users switch trace metrics table columns between aggregates and fields', async () => {
@@ -2810,38 +2814,545 @@ describe('Visualize', () => {
     });
   });
 
-  it('enables visualize step when discover-saved-queries-deprecation feature is disabled', async () => {
-    const organizationWithoutDeprecation = OrganizationFixture({
-      features: [], // No discover-saved-queries-deprecation feature
-    });
+  describe('trace metrics unified list', () => {
+    const SUM_ALPHA = 'sum(value,alpha_metric,counter,none)';
+    const SUM_BETA = 'sum(value,beta_metric,counter,none)';
+    let unifiedOrganization: Organization;
 
-    render(
-      <WidgetBuilderProvider>
-        <Visualize />
-      </WidgetBuilderProvider>,
-      {
-        organization: organizationWithoutDeprecation,
-        initialRouterConfig: {
-          location: {
-            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
-            query: {
-              dataset: WidgetType.TRANSACTIONS,
-              displayType: DisplayType.LINE,
-              yAxis: ['p95(transaction.duration)'],
+    beforeEach(() => {
+      unifiedOrganization = OrganizationFixture({
+        features: ['performance-view', 'dashboards-trace-metrics-unified-visualize'],
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/',
+        body: {
+          data: [
+            {
+              'metric.name': 'alpha_metric',
+              'metric.type': 'counter',
+              'count(metric.name)': 1,
             },
-          },
-          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+            {
+              'metric.name': 'beta_metric',
+              'metric.type': 'counter',
+              'count(metric.name)': 1,
+            },
+          ],
         },
-      }
-    );
-
-    // The dropdowns should be enabled
-    const aggregateSelect = await screen.findByRole('button', {
-      name: 'Aggregate Selection',
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/trace-items/attributes/',
+        body: [],
+      });
     });
-    expect(aggregateSelect).toBeEnabled();
 
-    const columnSelect = await screen.findByRole('button', {name: 'Column Selection'});
-    expect(columnSelect).toBeEnabled();
+    function renderUnifiedQuery(query: Record<string, string | string[]>) {
+      return render(
+        <WidgetBuilderProvider>
+          <Visualize />
+        </WidgetBuilderProvider>,
+        {
+          organization: unifiedOrganization,
+          initialRouterConfig: {
+            location: {
+              pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+              query: {dataset: WidgetType.TRACEMETRICS, ...query},
+            },
+            route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+          },
+        }
+      );
+    }
+
+    function renderUnified(yAxis: string[]) {
+      return renderUnifiedQuery({displayType: DisplayType.LINE, yAxis});
+    }
+
+    it('lists aggregates and equations together without the mode toggle', async () => {
+      renderUnified([SUM_ALPHA, `equation|${SUM_ALPHA} / ${SUM_BETA}`]);
+
+      expect(
+        await screen.findByRole('button', {name: 'Hide series A'})
+      ).toBeInTheDocument();
+      expect(screen.queryByRole('radio', {name: 'Equation'})).not.toBeInTheDocument();
+
+      expect(screen.getByTestId('hidden-metric-row')).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Show series B'})).toBeInTheDocument();
+      expect(screen.getByLabelText('Row ƒ1')).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Add Equation'})).toBeInTheDocument();
+    });
+
+    it('adds a metric row after an equation instead of copying the equation', async () => {
+      const {router} = renderUnified([SUM_ALPHA, `equation|${SUM_ALPHA} * 2`]);
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Add Series'}));
+
+      await waitFor(() => {
+        expect(decodeList(router.location.query.yAxis)).toEqual([
+          SUM_ALPHA,
+          `equation|${SUM_ALPHA} * 2`,
+          SUM_ALPHA,
+        ]);
+      });
+    });
+
+    it('does not default a new row to a hidden metric', async () => {
+      const {router} = renderUnified([`equation|${SUM_ALPHA} * 2`]);
+      expect(await screen.findByTestId('hidden-metric-row')).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Add Series'}));
+
+      // alpha_metric is first in the list but only lives in the equation
+      await waitFor(() => {
+        expect(decodeList(router.location.query.yAxis)).toEqual([
+          `equation|${SUM_ALPHA} * 2`,
+          SUM_BETA,
+        ]);
+      });
+      expect(screen.getByTestId('hidden-metric-row')).toBeInTheDocument();
+    });
+
+    it('disables adding series and equations at the metric cap', async () => {
+      const aggregates = Array.from({length: MAX_METRICS_ALLOWED - 1}, (_, i) =>
+        i % 2 === 0 ? SUM_ALPHA : SUM_BETA
+      );
+      renderUnified([...aggregates, `equation|${SUM_ALPHA} * 2`]);
+
+      // The tooltip keeps the buttons hoverable, so they are aria-disabled instead
+      const addSeries = await screen.findByRole('button', {name: 'Add Series'});
+      expect(addSeries).toHaveAttribute('aria-disabled', 'true');
+      const addEquation = screen.getByRole('button', {name: 'Add Equation'});
+      expect(addEquation).toHaveAttribute('aria-disabled', 'true');
+
+      await userEvent.hover(addEquation);
+      expect(
+        await screen.findByText(
+          `A widget can have up to ${MAX_METRICS_ALLOWED} metrics and equations.`
+        )
+      ).toBeInTheDocument();
+    });
+
+    it('disables showing a hidden series at the metric cap', async () => {
+      const aggregates = Array.from({length: MAX_METRICS_ALLOWED - 1}, () => SUM_ALPHA);
+      renderUnified([...aggregates, `equation|${SUM_BETA} * 2`]);
+
+      const show = await screen.findByRole('button', {name: 'Show series J'});
+      expect(show).toHaveAttribute('aria-disabled', 'true');
+
+      await userEvent.hover(show);
+      expect(
+        await screen.findByText(
+          `A widget can have up to ${MAX_METRICS_ALLOWED} metrics and equations.`
+        )
+      ).toBeInTheDocument();
+    });
+
+    it('adds an equation row', async () => {
+      const {router} = renderUnified([SUM_ALPHA]);
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Add Equation'}));
+
+      await waitFor(() => {
+        expect(decodeList(router.location.query.yAxis)).toEqual([SUM_ALPHA, 'equation|']);
+      });
+      expect(screen.getByLabelText('Row ƒ1')).toBeInTheDocument();
+    });
+
+    it('hides a series an equation uses instead of deleting it', async () => {
+      const {router} = renderUnified([SUM_ALPHA, SUM_BETA, `equation|${SUM_ALPHA} * 2`]);
+      const hideToggle = await screen.findByRole('button', {name: 'Hide series A'});
+      expect(screen.getByLabelText('Row B')).toBeInTheDocument();
+
+      const removeButtons = screen.getAllByRole('button', {name: 'Remove field'});
+      expect(removeButtons[0]).toBeDisabled();
+      expect(removeButtons[1]).toBeEnabled();
+
+      await userEvent.click(hideToggle);
+
+      await waitFor(() => {
+        expect(decodeList(router.location.query.yAxis)).toEqual([
+          SUM_BETA,
+          `equation|${SUM_ALPHA} * 2`,
+        ]);
+      });
+      expect(await screen.findByTestId('hidden-metric-row')).toBeInTheDocument();
+    });
+
+    it('keeps the row labels in place when hiding a series', async () => {
+      const {router} = renderUnified([
+        SUM_ALPHA,
+        SUM_BETA,
+        `equation|${SUM_ALPHA} + ${SUM_BETA}`,
+      ]);
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Hide series A'}));
+
+      await waitFor(() => {
+        expect(decodeList(router.location.query.yAxis)).toEqual([
+          SUM_BETA,
+          `equation|${SUM_ALPHA} + ${SUM_BETA}`,
+        ]);
+      });
+      expect(
+        await screen.findByRole('button', {name: 'Show series A'})
+      ).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Hide series B'})).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Show series A'}));
+      await waitFor(() => {
+        expect(decodeList(router.location.query.yAxis)).toEqual([
+          SUM_ALPHA,
+          SUM_BETA,
+          `equation|${SUM_ALPHA} + ${SUM_BETA}`,
+        ]);
+      });
+    });
+
+    it('explains why a hidden series cannot be deleted', async () => {
+      renderUnified([`equation|${SUM_BETA} * 2`]);
+
+      const hiddenRow = await screen.findByTestId('hidden-metric-row');
+      const removeButton = within(hiddenRow).getByRole('button', {name: 'Remove field'});
+      expect(removeButton).toHaveAttribute('aria-disabled', 'true');
+
+      await userEvent.hover(removeButton);
+      expect(
+        await screen.findByText(
+          'This series is used in an equation. Remove it from the equation to delete it.'
+        )
+      ).toBeInTheDocument();
+    });
+
+    it('follows a row in the equation when its metric changes', async () => {
+      const {router} = renderUnified([
+        SUM_ALPHA,
+        SUM_ALPHA,
+        `equation|${SUM_ALPHA} + ${SUM_ALPHA}`,
+      ]);
+      await screen.findByRole('button', {name: 'Hide series A'});
+
+      // The equation reads A + A, so it follows A to beta_metric.
+      await userEvent.click(screen.getAllByRole('button', {name: 'alpha_metric'})[0]!);
+      await userEvent.click(await screen.findByRole('option', {name: 'beta_metric'}));
+
+      await waitFor(() => {
+        expect(decodeList(router.location.query.yAxis)).toEqual([
+          SUM_BETA,
+          SUM_ALPHA,
+          `equation|${SUM_BETA} + ${SUM_BETA}`,
+        ]);
+      });
+    });
+
+    it('keeps labels with their rows when series are reordered', async () => {
+      // dnd-kit's keyboard sensor needs distinct element positions to find a drop target
+      jest.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (
+        this: Element
+      ) {
+        const siblings = this.parentElement
+          ? Array.from(this.parentElement.children)
+          : [];
+        const top = Math.max(siblings.indexOf(this), 0) * 50;
+        return DOMRect.fromRect({x: 0, y: top, width: 300, height: 40});
+      });
+      const {router} = renderUnified([
+        SUM_ALPHA,
+        SUM_BETA,
+        `equation|${SUM_ALPHA} - ${SUM_BETA}`,
+      ]);
+
+      const [firstHandle] = await screen.findAllByRole('button', {
+        name: 'Drag to reorder',
+      });
+      act(() => firstHandle!.focus());
+      await userEvent.keyboard(' ');
+      await userEvent.keyboard('{ArrowDown}{ArrowDown}');
+      await userEvent.keyboard(' ');
+
+      await waitFor(() => {
+        expect(decodeList(router.location.query.yAxis)).toEqual([
+          SUM_BETA,
+          SUM_ALPHA,
+          `equation|${SUM_ALPHA} - ${SUM_BETA}`,
+        ]);
+      });
+      const hideButtons = screen.getAllByRole('button', {name: /Hide series/});
+      expect(hideButtons.map(button => button.getAttribute('aria-label'))).toEqual([
+        'Hide series B',
+        'Hide series A',
+      ]);
+    });
+
+    it('loads an equation saved before the rows it uses without hidden rows', async () => {
+      renderUnified([`equation|${SUM_ALPHA} + ${SUM_BETA}`, SUM_ALPHA, SUM_BETA]);
+
+      expect(await screen.findByLabelText('Row ƒ1')).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Hide series A'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Hide series B'})).toBeInTheDocument();
+      expect(screen.queryByTestId('hidden-metric-row')).not.toBeInTheDocument();
+    });
+
+    it('keeps a hidden row after the equation when the last row is hidden', async () => {
+      const {router} = renderUnified([`equation|${SUM_ALPHA} * 2`, SUM_ALPHA]);
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Hide series A'}));
+      await waitFor(() => {
+        expect(decodeList(router.location.query.yAxis)).toEqual([
+          `equation|${SUM_ALPHA} * 2`,
+        ]);
+      });
+      expect(screen.getByTestId('hidden-metric-row')).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Show series A'}));
+      await waitFor(() => {
+        expect(decodeList(router.location.query.yAxis)).toEqual([
+          `equation|${SUM_ALPHA} * 2`,
+          SUM_ALPHA,
+        ]);
+      });
+    });
+
+    it('keeps a hidden row and its label through a reorder', async () => {
+      // dnd-kit's keyboard sensor needs distinct element positions to find a drop target
+      jest.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (
+        this: Element
+      ) {
+        const siblings = this.parentElement
+          ? Array.from(this.parentElement.children)
+          : [];
+        const top = Math.max(siblings.indexOf(this), 0) * 50;
+        return DOMRect.fromRect({x: 0, y: top, width: 300, height: 40});
+      });
+      const {router} = renderUnified([
+        SUM_ALPHA,
+        SUM_BETA,
+        `equation|${SUM_ALPHA} + ${SUM_BETA}`,
+      ]);
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Hide series B'}));
+      await waitFor(() => {
+        expect(decodeList(router.location.query.yAxis)).toEqual([
+          SUM_ALPHA,
+          `equation|${SUM_ALPHA} + ${SUM_BETA}`,
+        ]);
+      });
+
+      // Hidden rows have no drag handle, so the second handle is the equation's.
+      const handles = screen.getAllByRole('button', {name: 'Drag to reorder'});
+      expect(handles).toHaveLength(2);
+      act(() => handles[1]!.focus());
+      await userEvent.keyboard(' ');
+      await userEvent.keyboard('{ArrowUp}{ArrowUp}');
+      await userEvent.keyboard(' ');
+
+      await waitFor(() => {
+        expect(decodeList(router.location.query.yAxis)).toEqual([
+          `equation|${SUM_ALPHA} + ${SUM_BETA}`,
+          SUM_ALPHA,
+        ]);
+      });
+      expect(screen.getByRole('button', {name: 'Hide series A'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Show series B'})).toBeInTheDocument();
+    });
+
+    it('rewrites the equation when a hidden row changes metric', async () => {
+      const {router} = renderUnified([SUM_ALPHA, `equation|${SUM_BETA} * 2`]);
+
+      const hiddenRow = await screen.findByTestId('hidden-metric-row');
+      await userEvent.click(within(hiddenRow).getByRole('button', {name: 'beta_metric'}));
+      await userEvent.click(await screen.findByRole('option', {name: 'alpha_metric'}));
+
+      await waitFor(() => {
+        expect(decodeList(router.location.query.yAxis)).toEqual([
+          SUM_ALPHA,
+          `equation|${SUM_ALPHA} * 2`,
+        ]);
+      });
+      expect(screen.getByRole('button', {name: 'Show series B'})).toBeInTheDocument();
+    });
+
+    it('drops a hidden row when the only equation using it is deleted', async () => {
+      const {router} = renderUnified([SUM_ALPHA, `equation|${SUM_BETA} * 2`]);
+      await screen.findByTestId('hidden-metric-row');
+
+      // Remove buttons: row A, hidden row B (disabled), equation.
+      const removeButtons = screen.getAllByRole('button', {name: 'Remove field'});
+      expect(removeButtons).toHaveLength(3);
+      await userEvent.click(removeButtons[2]!);
+
+      await waitFor(() => {
+        expect(decodeList(router.location.query.yAxis)).toEqual([SUM_ALPHA]);
+      });
+      expect(screen.queryByTestId('hidden-metric-row')).not.toBeInTheDocument();
+    });
+
+    it('keeps a hidden row another equation still uses', async () => {
+      const {router} = renderUnified([
+        SUM_ALPHA,
+        `equation|${SUM_BETA} * 2`,
+        `equation|${SUM_BETA} + ${SUM_ALPHA}`,
+      ]);
+      expect(await screen.findAllByTestId('hidden-metric-row')).toHaveLength(1);
+
+      // Remove buttons: row A, hidden row B, equation 1, equation 2.
+      await userEvent.click(screen.getAllByRole('button', {name: 'Remove field'})[2]!);
+
+      await waitFor(() => {
+        expect(decodeList(router.location.query.yAxis)).toEqual([
+          SUM_ALPHA,
+          `equation|${SUM_BETA} + ${SUM_ALPHA}`,
+        ]);
+      });
+      expect(screen.getByTestId('hidden-metric-row')).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Show series B'})).toBeInTheDocument();
+    });
+
+    it('labels only aggregates and equations in a table with a group by column', async () => {
+      const {router} = render(
+        <WidgetBuilderProvider>
+          <Visualize />
+        </WidgetBuilderProvider>,
+        {
+          organization: unifiedOrganization,
+          initialRouterConfig: {
+            location: {
+              pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+              query: {
+                dataset: WidgetType.TRACEMETRICS,
+                displayType: DisplayType.TABLE,
+                field: ['transaction', SUM_ALPHA, `equation|${SUM_ALPHA} * 2`],
+              },
+            },
+            route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+          },
+        }
+      );
+
+      expect(
+        await screen.findByRole('button', {name: 'Hide series A'})
+      ).toBeInTheDocument();
+      expect(screen.getByLabelText('Row ƒ1')).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
+        'transaction'
+      );
+      expect(screen.queryByLabelText('Row B')).not.toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Hide series A'}));
+      await waitFor(() => {
+        expect(decodeList(router.location.query.field)).toEqual([
+          'transaction',
+          `equation|${SUM_ALPHA} * 2`,
+        ]);
+      });
+    });
+
+    it('keeps the big number selection on the same row when a hidden row is shown', async () => {
+      const {router} = renderUnifiedQuery({
+        displayType: DisplayType.BIG_NUMBER,
+        field: [SUM_BETA, `equation|${SUM_ALPHA} * 2`],
+        selectedAggregate: '1',
+      });
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Show series B'}));
+
+      await waitFor(() => {
+        expect(decodeList(router.location.query.field)).toEqual([
+          SUM_BETA,
+          SUM_ALPHA,
+          `equation|${SUM_ALPHA} * 2`,
+        ]);
+      });
+      expect(router.location.query.selectedAggregate).toBe('2');
+    });
+
+    it('does not offer hide where only the selected series shows', async () => {
+      renderUnifiedQuery({
+        displayType: DisplayType.BIG_NUMBER,
+        field: [SUM_ALPHA, `equation|${SUM_ALPHA} * 2`],
+      });
+
+      expect(await screen.findByLabelText('Row A')).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Hide series A'})
+      ).not.toBeInTheDocument();
+
+      // The delete button still explains why it is disabled
+      await userEvent.hover(screen.getAllByRole('button', {name: 'Remove field'})[0]!);
+      expect(
+        await screen.findByText('This series is used in an equation.')
+      ).toBeInTheDocument();
+    });
+
+    it('keeps the categorical bar sort on the displayed series when a hidden row is shown', async () => {
+      const {router} = renderUnifiedQuery({
+        displayType: DisplayType.CATEGORICAL_BAR,
+        field: ['metric.name', SUM_BETA, `equation|${SUM_ALPHA} * 2`],
+        selectedAggregate: '1',
+        sort: ['-equation[0]'],
+      });
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Show series B'}));
+
+      await waitFor(() => {
+        expect(decodeList(router.location.query.field)).toEqual([
+          'metric.name',
+          SUM_BETA,
+          SUM_ALPHA,
+          `equation|${SUM_ALPHA} * 2`,
+        ]);
+      });
+      expect(router.location.query.selectedAggregate).toBe('2');
+      expect(decodeList(router.location.query.sort)).toEqual(['-equation[0]']);
+    });
+
+    it('shows a disabled transformation button on hidden rows', async () => {
+      unifiedOrganization.features.push('explore-interpolation-and-smoothing');
+      renderUnified([SUM_ALPHA, `equation|${SUM_BETA} * 2`]);
+
+      const hiddenRow = await screen.findByTestId('hidden-metric-row');
+      expect(
+        within(hiddenRow).getByRole('button', {name: 'Add Transformation'})
+      ).toHaveAttribute('aria-disabled', 'true');
+
+      const buttons = screen.getAllByRole('button', {name: 'Add Transformation'});
+      expect(buttons.some(button => !hiddenRow.contains(button))).toBe(true);
+      expect(buttons.find(button => !hiddenRow.contains(button))).toHaveAttribute(
+        'aria-disabled',
+        'false'
+      );
+    });
+
+    it('does not offer the field option on hidden rows', async () => {
+      renderUnifiedQuery({
+        displayType: DisplayType.TABLE,
+        field: [SUM_ALPHA, `equation|${SUM_BETA} * 2`],
+      });
+
+      const hiddenRow = await screen.findByTestId('hidden-metric-row');
+      await userEvent.click(within(hiddenRow).getByRole('button', {name: 'beta_metric'}));
+      expect(
+        await screen.findByRole('option', {name: 'beta_metric'})
+      ).toBeInTheDocument();
+      expect(screen.queryByRole('option', {name: 'field'})).not.toBeInTheDocument();
+      await userEvent.keyboard('{Escape}');
+
+      // Visible columns keep it
+      await userEvent.click(screen.getByRole('button', {name: 'alpha_metric'}));
+      expect(await screen.findByRole('option', {name: 'field'})).toBeInTheDocument();
+    });
+
+    it('shows a hidden series again', async () => {
+      const {router} = renderUnified([`equation|${SUM_BETA} * 2`]);
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Show series A'}));
+
+      await waitFor(() => {
+        expect(decodeList(router.location.query.yAxis)).toEqual([
+          SUM_BETA,
+          `equation|${SUM_BETA} * 2`,
+        ]);
+      });
+      expect(screen.queryByTestId('hidden-metric-row')).not.toBeInTheDocument();
+    });
   });
 });

@@ -16,13 +16,7 @@ interface AddHighlightBySelectorParams extends Partial<DrawProps> {
 
 type AddHighlightParams = AddHighlightByNodeIdsParams | AddHighlightBySelectorParams;
 
-type RemoveHighlightParams =
-  | {
-      nodeIds: number[];
-    }
-  | {
-      selector: string;
-    };
+type RemoveHighlightParams = {nodeIds: number[]} | {selector: string};
 
 export function clearAllHighlights(replayer: Replayer) {
   for (const nodeId of highlightsByNodeIds.keys()) {

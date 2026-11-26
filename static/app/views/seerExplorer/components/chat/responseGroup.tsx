@@ -7,8 +7,9 @@ import {Container} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
-import {OUT_OF_CREDITS_CHAT_MESSAGE} from 'sentry/components/seer/outOfCredits/messages';
+import {getStoppedChatMessage} from 'sentry/components/seer/outOfCredits/messages';
 import {t} from 'sentry/locale';
+import type {SeerCreditDenialReason} from 'sentry/utils/seer/useSeerCreditCheck';
 import {callRecordLabel, visibleCallRecords} from 'sentry/views/seerExplorer/callRecords';
 import {
   isSeerErrorBlock,
@@ -140,6 +141,10 @@ export function deriveThinkingTitle(group: Block[]): string {
 interface ResponseGroupProps {
   blockIndex: number;
   group: Block[];
+  /** Why billing refused credit, when `outOfCredits` is set. */
+  creditDenialReason?: SeerCreditDenialReason | null;
+  /** When the response ended, for one that ended without a settled answer. */
+  endedAt?: string;
   getPageReferrer?: () => string;
   interactionPending?: boolean;
   /** The conversation's newest todo snapshot, from `findLatestTodos`. */
@@ -182,6 +187,7 @@ function areResponseGroupPropsEqual(prev: ResponseGroupProps, next: ResponseGrou
 export const ResponseGroup = memo(function ResponseGroup({
   group,
   blockIndex,
+  creditDenialReason,
   latestTodos,
   getPageReferrer,
   interactionPending,
@@ -190,6 +196,7 @@ export const ResponseGroup = memo(function ResponseGroup({
   readOnly,
   runId,
   showThinking,
+  endedAt,
 }: ResponseGroupProps) {
   // `answer` identifies the block whose content is the visible response — used to exclude it
   // from the ThinkingBlock trace. `settledAnswer` is the same block once it has finished
@@ -215,11 +222,10 @@ export const ResponseGroup = memo(function ResponseGroup({
 
   const [startTime] = useState(() => new Date(group[0]!.timestamp));
   // `settledAnswer` is the stable "response is done" signal. `block.loading` flickers false
-  // between tool calls, but answer settles once
-  const endTime =
-    !settledAnswer || pendingInput
-      ? undefined
-      : new Date(group[group.length - 1]!.timestamp);
+  // between tool calls, but answer settles once.
+  // Without a settled answer, end at `endedAt` if the caller passed it.
+  const endTimestamp = settledAnswer ? group[group.length - 1]!.timestamp : endedAt;
+  const endTime = !endTimestamp || pendingInput ? undefined : new Date(endTimestamp);
 
   return (
     <Container width="100%" position="relative" flexShrink={0} data-block-wrapper="">
@@ -286,7 +292,9 @@ export const ResponseGroup = memo(function ResponseGroup({
             compact={hasTrace}
           />
         ) : null}
-        {showOutOfCredits ? <OutOfCreditsMessage compact={hasTrace} /> : null}
+        {showOutOfCredits ? (
+          <OutOfCreditsMessage compact={hasTrace} denialReason={creditDenialReason} />
+        ) : null}
       </motion.div>
     </Container>
   );
@@ -296,11 +304,17 @@ export const ResponseGroup = memo(function ResponseGroup({
  * Why the run stopped. The out-of-credits alert above the composer offers the
  * way out, so this has no CTA of its own.
  */
-function OutOfCreditsMessage({compact}: {compact: boolean}) {
+function OutOfCreditsMessage({
+  compact,
+  denialReason,
+}: {
+  compact: boolean;
+  denialReason?: SeerCreditDenialReason | null;
+}) {
   return (
     <MessageRow from="assistant" density={compact ? 'compact' : undefined}>
       <AssistantMessage>
-        <Text variant="muted">{OUT_OF_CREDITS_CHAT_MESSAGE}</Text>
+        <Text variant="muted">{getStoppedChatMessage(denialReason)}</Text>
       </AssistantMessage>
     </MessageRow>
   );

@@ -131,7 +131,7 @@ export function getConversationTimeSpan(
   return conversation.timeSpan || conversation.generationDuration;
 }
 
-export function normalizeUserField(value: string | null | undefined): string | null {
+function normalizeUserField(value: string | null | undefined): string | null {
   if (!value || value.toLowerCase() === 'none') {
     return null;
   }
@@ -148,7 +148,7 @@ export function getUserDisplayName(user: ConversationUser): string | null {
   );
 }
 
-export function UserNotInstrumentedTooltip() {
+function UserNotInstrumentedTooltip() {
   return (
     <Text>
       {tct(
@@ -501,7 +501,7 @@ function BodyCell({
     case 'age':
       return (
         <Text align="right" variant="muted">
-          <TimeSince unitStyle="extraShort" date={conversation.endTimestamp} />
+          <TimeSince unitStyle="narrow" date={conversation.endTimestamp} />
         </Text>
       );
     default:

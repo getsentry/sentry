@@ -49,9 +49,7 @@ import {ProjectAllocationsTable} from './projectAllocationsTable';
 import {RootAllocationCard} from './rootAllocationCard';
 import {BigNumUnits, getRequestErrorMessage} from './utils';
 
-type Props = {
-  subscription: Subscription;
-};
+type Props = {subscription: Subscription};
 
 const DEFAULT_SPEND_ALLOCATION_PERIODS = 1;
 
@@ -102,38 +100,12 @@ export function SpendAllocationsRoot({subscription}: Props) {
     return [start, end];
   }, [viewNextPeriod, subscription]);
 
-  const currentRootAllocations = useMemo(() => {
-    // Return all root allocations that overlap with the selected period
-    const [periodStart, periodEnd] = period;
-    return rootAllocations.filter(
-      allocation =>
-        allocation &&
-        ((new Date(allocation.period[0]) < periodEnd! && // allocation starts before period ends
-          new Date(allocation.period[1]) <= periodEnd!) || // allocation ends before or equal to period end
-          (new Date(allocation.period[1]) > periodStart! && // allocation ends after the period starts
-            new Date(allocation.period[0]) >= periodStart!)) // allocation starts after or equal to period start
-    );
-  }, [rootAllocations, period]);
-
-  const currentAllocations = useMemo(() => {
-    // Return all project allocations that overlap with the selected period
-    const [periodStart, periodEnd] = period;
-    return spendAllocations.filter(
-      allocation =>
-        allocation &&
-        ((new Date(allocation.period[0]) < periodEnd! && // allocation starts before period ends
-          new Date(allocation.period[1]) <= periodEnd!) || // allocation ends before or equal to period end
-          (new Date(allocation.period[1]) > periodStart! && // allocation ends after the period starts
-            new Date(allocation.period[0]) >= periodStart!)) // allocation starts after or equal to period start
-    );
-  }, [spendAllocations, period]);
-
   const rootAllocationForMetric = useMemo(() => {
-    const root = currentRootAllocations.find(
+    const root = rootAllocations.find(
       a => a.billingMetric === getCategoryInfoFromPlural(selectedMetric)?.name
     );
     return root;
-  }, [currentRootAllocations, selectedMetric]);
+  }, [rootAllocations, selectedMetric]);
 
   const fetchSpendAllocations = useCallback(async () => {
     try {
@@ -193,12 +165,7 @@ export function SpendAllocationsRoot({subscription}: Props) {
   }, [api, currentCursor, organization.id, organization.slug, period, selectedMetric]);
 
   const deleteSpendAllocation =
-    (
-      billingMetric: DataCategory | null,
-      targetId: number,
-      targetType: string,
-      timestamp: number
-    ) =>
+    (billingMetric: DataCategory | null, targetId: number, targetType: string) =>
     async (e: React.MouseEvent) => {
       e.preventDefault();
       setErrors(null);
@@ -212,7 +179,6 @@ export function SpendAllocationsRoot({subscription}: Props) {
               : null,
             target_id: targetId,
             target_type: targetType,
-            timestamp,
           },
         });
         await fetchSpendAllocations();
@@ -266,9 +232,7 @@ export function SpendAllocationsRoot({subscription}: Props) {
         getApiUrl('/organizations/$organizationIdOrSlug/spend-allocations/index/', {
           path: {organizationIdOrSlug: organization.slug},
         }),
-        {
-          method: 'DELETE',
-        }
+        {method: 'DELETE'}
       );
     } catch (err: any) {
       if (err.status === 409) {
@@ -299,13 +263,11 @@ export function SpendAllocationsRoot({subscription}: Props) {
           initializedData={formData}
           selectedMetric={selectedMetric}
           rootAllocation={rootAllocationForMetric}
-          spendAllocations={currentAllocations}
+          spendAllocations={spendAllocations}
           subscription={subscription}
         />
       ),
-      {
-        closeEvents: 'escape-key',
-      }
+      {closeEvents: 'escape-key'}
     );
   };
 
@@ -507,7 +469,7 @@ export function SpendAllocationsRoot({subscription}: Props) {
               metricUnit={metricUnit}
               openForm={openForm}
               selectedMetric={selectedMetric}
-              spendAllocations={currentAllocations}
+              spendAllocations={spendAllocations}
             />
             {pageLinks && (
               <Pagination

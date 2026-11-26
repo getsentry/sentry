@@ -5,7 +5,7 @@ import {useQuery} from '@tanstack/react-query';
 import {Tag} from '@sentry/scraps/badge';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
-import type {TableColumnConfig} from '@sentry/scraps/table';
+import type {SortDirection, TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -24,6 +24,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {automationsApiOptions} from 'sentry/views/automations/hooks';
 import {MetricDetectorDetailsDetect} from 'sentry/views/detectors/components/details/metric/detect';
 import {DetectorLink} from 'sentry/views/detectors/components/detectorLink';
+import {AUTO_REFRESH_INTERVAL} from 'sentry/views/seerWorkflows/utils';
 
 const MAX_VISIBLE_TARGETS = 2;
 
@@ -40,12 +41,10 @@ function useMonitorAlertTargets(monitorIds: string[]) {
   const organization = useOrganization();
 
   return useQuery({
-    ...automationsApiOptions(organization, {
-      detector: monitorIds.toSorted(),
-      limit: 100,
-    }),
+    ...automationsApiOptions(organization, {detector: monitorIds.toSorted(), limit: 100}),
     enabled: monitorIds.length > 0,
     select: ({json}) => getAlertTargetsByMonitor(json),
+    refetchInterval: AUTO_REFRESH_INTERVAL,
   });
 }
 
@@ -173,6 +172,10 @@ type Props = {
   renderAction: (monitor: MetricDetector) => React.ReactNode;
   emptyMessage?: string;
   isError?: boolean;
+  /**
+   * Makes the Last breach header sortable
+   */
+  lastBreachSort?: {direction: SortDirection; onSort: () => void};
   pendingRows?: number;
 };
 
@@ -181,6 +184,7 @@ export function MonitorTable({
   renderAction,
   emptyMessage,
   isError,
+  lastBreachSort,
   pendingRows = 0,
 }: Props) {
   const alertTargets = useMonitorAlertTargets(monitors.map(monitor => monitor.id));
@@ -191,7 +195,12 @@ export function MonitorTable({
       header={
         <SimpleTable.HeaderRow>
           <SimpleTable.HeaderCell>{t('Monitor')}</SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell>{t('Last breach')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell
+            sort={lastBreachSort?.direction}
+            handleSortClick={lastBreachSort?.onSort}
+          >
+            {t('Last breach')}
+          </SimpleTable.HeaderCell>
           <SimpleTable.HeaderCell>{t('Notifies')}</SimpleTable.HeaderCell>
           <SimpleTable.HeaderCell />
         </SimpleTable.HeaderRow>

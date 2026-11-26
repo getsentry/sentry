@@ -5,26 +5,11 @@ const isProductionMode = process.argv.includes('--production');
 const productionEntryPoints = [
   // scraps has all index.tsx file as separate entry points
   'components/core/*/index.tsx',
-  // Build entry points that are not package entry points.
-  'utils/setupStatics.tsx',
-  'serviceWorker/worker/worker.ts',
   // very dynamically imported
   'gettingStartedDocs/**/*.{js,ts,tsx}',
   // --- we should be able to get rid of those: ---
-  // TODO: Remove when wired into Seer Explorer
-  'components/core/chat/thinkingBlock.tsx',
-  'components/core/chat/toolCall.tsx',
   // todo find out how chartcuterie works
   'chartcuterie/**/*.{js,ts,tsx}',
-  // TODO: Remove when the autofixRef embed consumes it (#122099)
-  'components/seer/autofixChatContext.tsx',
-  // TODO: Remove when the Seer credit gates consume it (#129563, #129565)
-  'utils/seer/useSeerCreditCheck.tsx',
-  // TODO: Remove when the Seer credit gates render it (#129563, #129565)
-  'components/seer/outOfCredits/seerOutOfCreditsCta.tsx',
-  'components/brandPageLayout/**/*.{ts,tsx}',
-  // React authentication routes are discovered dynamically by the frontend route registry
-  'views/authV2/authLogin/**/*.{ts,tsx}',
 ];
 
 // Scoped configs reuse the test package's dependencies. Parse the shared config
@@ -36,10 +21,7 @@ const scopedJest = {
 
 // Shared Oxlint plugins belong to the root workspace. Analyze package wrappers
 // as development entries without assigning the shared plugin list to each package.
-const scopedOxlint = {
-  config: [],
-  entry: ['oxlint.config.ts'],
-};
+const scopedOxlint = {config: [], entry: ['oxlint.config.ts']};
 
 const frontendWorkspace = {
   jest: scopedJest,
@@ -75,6 +57,7 @@ const config: KnipConfig = {
         'jest', // CI runner and regression tests resolve Jest from tests/js.
         'tslib', // subdependency of many packages, declare the latest version
         'odiff-bin', // raw binary consumed by Python backend, not a JS import
+        '@sentry/decision-model-linter', // run by .github/workflows/scripts/run-decision-model-lint.sh
         'zrender', // used in echarts
       ],
     },
@@ -110,9 +93,7 @@ const config: KnipConfig = {
         '**/*.mdx',
       ],
     },
-    'static/gsAdmin': {
-      ...frontendWorkspace,
-    },
+    'static/gsAdmin': {...frontendWorkspace},
     'tests/js': {
       jest: {
         config: ['jest.config.mjs', 'jest.config.ci.mjs', 'jest.config.snapshots.ts'],
@@ -143,13 +124,8 @@ const config: KnipConfig = {
         '!{test,scripts}/**!',
       ],
     },
-    'static/packages/search-syntax': {
-      jest: scopedJest,
-      oxlint: scopedOxlint,
-    },
-    'static/oxlint/eslintPluginScraps': {
-      jest: scopedJest,
-    },
+    'static/packages/search-syntax': {jest: scopedJest, oxlint: scopedOxlint},
+    'static/oxlint/eslintPluginScraps': {jest: scopedJest},
     'static/oxlint/eslintPluginSentry': {
       jest: scopedJest,
       // RuleTester resolves these cross-file fixtures by filename.
@@ -157,18 +133,10 @@ const config: KnipConfig = {
     },
   },
   ignoreExportsUsedInFile: isProductionMode,
-  cycles: {
-    dynamicImports: false,
-  },
-  rules: {
-    binaries: 'off',
-    enumMembers: 'off',
-    cycles: 'error',
-  },
+  cycles: {dynamicImports: false},
+  rules: {binaries: 'off', enumMembers: 'off', cycles: 'error'},
   include: ['nsExports', 'nsTypes'],
-  mdx: {
-    config: 'tsconfig.mdx.json',
-  },
+  mdx: {config: 'tsconfig.mdx.json'},
   treatConfigHintsAsErrors: true,
   treatTagHintsAsErrors: true,
 };

@@ -97,6 +97,91 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
 
+    def _dashboard_with_query(self, title: str, **query_kwargs: object) -> Dashboard:
+        dashboard = Dashboard.objects.create(
+            title=title, created_by_id=self.user.id, organization=self.organization
+        )
+        widget = self.create_dashboard_widget(dashboard=dashboard, title=title)
+        self.create_dashboard_widget_query(widget=widget, order=0, **query_kwargs)
+        return dashboard
+
+    def _formula_titles(self, formula: str = "formula.apdex") -> set[str]:
+        with self.feature("organizations:explore-saved-formulas"):
+            response = self.do_request("get", self.url, data={"formula": formula})
+        assert response.status_code == 200, response.content
+        return {dashboard["title"] for dashboard in response.data}
+
+    def test_get_filters_by_formula_aggregate(self) -> None:
+        dashboard = self._dashboard_with_query(
+            "Formula dashboard",
+            aggregates=["formula.apdex(span.duration,300)"],
+            fields=["span.duration"],
+            columns=[],
+            conditions="",
+        )
+
+        assert self._formula_titles() == {dashboard.title}
+
+    def test_get_filters_by_formula_condition(self) -> None:
+        dashboard = self._dashboard_with_query(
+            "Formula condition dashboard",
+            aggregates=["count()"],
+            fields=["count()"],
+            columns=[],
+            conditions="formula.apdex(span.duration,300):>0.7",
+        )
+
+        assert self._formula_titles() == {dashboard.title}
+
+    def test_get_formula_filter_ignores_fields(self) -> None:
+        self._dashboard_with_query(
+            "Formula in fields",
+            aggregates=["count()"],
+            fields=["formula.apdex(span.duration,300)"],
+            columns=[],
+            conditions="",
+        )
+
+        assert self._formula_titles() == set()
+
+    def test_get_formula_filter_ignores_columns(self) -> None:
+        self._dashboard_with_query(
+            "Formula in columns",
+            aggregates=["count()"],
+            fields=["count()"],
+            columns=["formula.apdex(span.duration,300)"],
+            conditions="",
+        )
+
+        assert self._formula_titles() == set()
+
+    def test_get_formula_filter_ignores_similar_name(self) -> None:
+        self._dashboard_with_query(
+            "Similar formula name",
+            aggregates=["formula.apdex_score(span.duration,300)"],
+            fields=["span.duration"],
+            columns=[],
+            conditions="",
+        )
+
+        assert self._formula_titles() == set()
+
+    def test_get_formula_filter_ignores_similar_condition(self) -> None:
+        self._dashboard_with_query(
+            "Similar dashboard",
+            aggregates=["count()"],
+            fields=["count()"],
+            columns=[],
+            conditions="field:formula.apdex(span.duration,300)",
+        )
+
+        assert self._formula_titles() == set()
+
+    def test_get_formula_filter_rejects_invalid_prefix(self) -> None:
+        with self.feature("organizations:explore-saved-formulas"):
+            response = self.do_request("get", self.url, data={"formula": "not-a-formula"})
+        assert response.status_code == 400, response.content
+
     def test_get_sortby(self) -> None:
         Dashboard.objects.create(
             title="A", created_by_id=self.user.id, organization=self.organization
@@ -2025,21 +2110,6 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                     "widgetType": "error-events",
                 },
                 {
-                    "title": "Transaction Op Count",
-                    "displayType": "table",
-                    "interval": "5m",
-                    "queries": [
-                        {
-                            "name": "Transaction Op Count",
-                            "fields": ["count()", "transaction.op"],
-                            "columns": ["transaction.op"],
-                            "aggregates": ["count()"],
-                            "conditions": "",
-                        }
-                    ],
-                    "widgetType": "transaction-like",
-                },
-                {
                     "title": "Irrelevant widget type",
                     "displayType": "table",
                     "interval": "5m",
@@ -2066,15 +2136,8 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             "error-events"
         )
 
-        assert widgets[1].widget_type == DashboardWidgetTypes.get_id_for_type_name(
-            "transaction-like"
-        )
-        assert widgets[1].discover_widget_split == DashboardWidgetTypes.get_id_for_type_name(
-            "transaction-like"
-        )
-
-        assert widgets[2].widget_type == DashboardWidgetTypes.get_id_for_type_name("issue")
-        assert widgets[2].discover_widget_split is None
+        assert widgets[1].widget_type == DashboardWidgetTypes.get_id_for_type_name("issue")
+        assert widgets[1].discover_widget_split is None
 
     def test_add_widget_with_selected_aggregate(self) -> None:
         data: dict[str, Any] = {
@@ -2502,6 +2565,49 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         ).exists()
         assert all(
             dashboard.get("prebuiltId") != PrebuiltDashboardId.NODE_RUNTIME_METRICS
+            for dashboard in response.data
+        )
+
+    def test_elixir_runtime_metrics_prebuilt_dashboard_sync(self) -> None:
+        with self.feature(
+            [
+                "organizations:dashboards-prebuilt-insights-dashboards",
+                "organizations:tracemetrics-enabled",
+            ]
+        ):
+            with override_options(
+                {"dashboards.prebuilt-dashboard-ids": [PrebuiltDashboardId.ELIXIR_RUNTIME_METRICS]}
+            ):
+                response = self.do_request("get", self.url)
+        assert response.status_code == 200
+
+        dashboard = Dashboard.objects.get(
+            organization=self.organization,
+            prebuilt_id=PrebuiltDashboardId.ELIXIR_RUNTIME_METRICS,
+        )
+        assert dashboard.title == "Elixir Runtime Metrics"
+
+        prebuilt_in_response = [
+            d
+            for d in response.data
+            if d.get("prebuiltId") == PrebuiltDashboardId.ELIXIR_RUNTIME_METRICS
+        ]
+        assert len(prebuilt_in_response) == 1
+
+    def test_elixir_runtime_metrics_prebuilt_dashboard_not_synced_without_metrics(self) -> None:
+        with self.feature("organizations:dashboards-prebuilt-insights-dashboards"):
+            with override_options(
+                {"dashboards.prebuilt-dashboard-ids": [PrebuiltDashboardId.ELIXIR_RUNTIME_METRICS]}
+            ):
+                response = self.do_request("get", self.url)
+        assert response.status_code == 200
+
+        assert not Dashboard.objects.filter(
+            organization=self.organization,
+            prebuilt_id=PrebuiltDashboardId.ELIXIR_RUNTIME_METRICS,
+        ).exists()
+        assert all(
+            dashboard.get("prebuiltId") != PrebuiltDashboardId.ELIXIR_RUNTIME_METRICS
             for dashboard in response.data
         )
 

@@ -6,6 +6,7 @@ from django.test import override_settings
 from rest_framework.response import Response
 
 from sentry.constants import ObjectStatus
+from sentry.integrations.models.integration import Integration
 from sentry.models.repository import REPOSITORY_NAME_LENGTH, Repository
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
@@ -33,8 +34,8 @@ class OrganizationSeerRepoAccessTest(APITestCase):
         )
         return response
 
-    def _connect_github(self) -> None:
-        self.create_integration(
+    def _connect_github(self) -> Integration:
+        return self.create_integration(
             organization=self.organization,
             provider="github",
             external_id="github:1",
@@ -42,13 +43,13 @@ class OrganizationSeerRepoAccessTest(APITestCase):
             metadata={"domain_name": "github.com/acme-labs"},
         )
 
-    def _add_repo(self) -> None:
-        Repository.objects.create(
-            organization_id=self.organization.id,
+    def _add_repo(self, integration_id: int) -> None:
+        self.create_repo(
             name="acme-labs/app",
             url="https://github.com/acme-labs/app",
             provider="integrations:github",
             external_id="1",
+            integration_id=integration_id,
         )
 
     def test_no_scm_integration(self) -> None:
@@ -77,8 +78,7 @@ class OrganizationSeerRepoAccessTest(APITestCase):
         assert response.data == {"status": "repo_not_in_sentry", "connectedAccounts": ["acme-labs"]}
 
     def test_found_once_the_repo_reaches_sentry(self) -> None:
-        self._connect_github()
-        self._add_repo()
+        self._add_repo(self._connect_github().id)
 
         response = self._get()
 
@@ -95,13 +95,37 @@ class OrganizationSeerRepoAccessTest(APITestCase):
         assert response.status_code == 200
         assert response.data == {"status": "unknown", "connectedAccounts": []}
 
-    def test_repo_name_is_required(self) -> None:
+    def _get_without_repo(self) -> Response:
         self.login_as(self.user)
-        response = self.client.get(
+        response: Response = self.client.get(
             f"/api/0/organizations/{self.organization.slug}/seer/repo-access/"
         )
+        return response
 
-        assert response.status_code == 400
+    def test_without_repo_name_no_scm_integration(self) -> None:
+        response = self._get_without_repo()
+
+        assert response.status_code == 200
+        assert response.data == {"status": "no_scm_integration", "connectedAccounts": []}
+
+    def test_without_repo_name_found_once_source_control_is_connected(self) -> None:
+        # No repositories yet: connected is enough.
+        self._connect_github()
+
+        response = self._get_without_repo()
+
+        assert response.status_code == 200
+        assert response.data == {"status": "found", "connectedAccounts": []}
+
+    def test_without_repo_name_source_control_seer_cant_use_doesnt_count(self) -> None:
+        self.create_integration(
+            organization=self.organization, provider="bitbucket", external_id="bitbucket:1"
+        )
+
+        response = self._get_without_repo()
+
+        assert response.status_code == 200
+        assert response.data == {"status": "no_scm_integration", "connectedAccounts": []}
 
     def test_repo_name_too_long(self) -> None:
         response = self._get("a" * (REPOSITORY_NAME_LENGTH + 1))
@@ -133,7 +157,7 @@ class OrganizationSeerRepoAccessTest(APITestCase):
 
     def test_another_organizations_integration_and_repo_dont_count(self) -> None:
         other = self.create_organization(owner=self.create_user())
-        self.create_integration(
+        integration = self.create_integration(
             organization=other,
             provider="github",
             external_id="github:1",
@@ -146,6 +170,7 @@ class OrganizationSeerRepoAccessTest(APITestCase):
             url="https://github.com/acme-labs/app",
             provider="integrations:github",
             external_id="1",
+            integration_id=integration.id,
         )
 
         response = self._get()

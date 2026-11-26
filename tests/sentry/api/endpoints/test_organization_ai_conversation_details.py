@@ -57,6 +57,9 @@ def test_conversation_probe_fetches_only_span_id() -> None:
         exists = endpoint._conversation_exists(MagicMock(), "conversation-id")
 
     assert exists is True
+    assert run_query.call_args.kwargs["query_string"] == (
+        'gen_ai.conversation.id:"conversation-id" has:gen_ai.operation.type'
+    )
     assert run_query.call_args.kwargs["selected_columns"] == ["span_id"]
     assert run_query.call_args.kwargs["orderby"] == []
     assert run_query.call_args.kwargs["offset"] == 0
@@ -195,28 +198,29 @@ def test_parent_repair_skips_gen_ai_ancestors_from_other_conversations() -> None
         "trace": trace_id,
         "span_id": "root",
         "gen_ai.conversation.id": conversation_id,
-        "span.name": "gen_ai.invoke_agent",
+        "gen_ai.operation.type": "invoke_agent",
     }
     child = {
         "trace": trace_id,
         "span_id": "child",
         "parent_span": "bridge",
         "gen_ai.conversation.id": conversation_id,
-        "span.op": "gen_ai.chat",
+        "gen_ai.operation.type": "ai_client",
     }
     parent_rows = {
+        # Same conversation, but without an operation type it isn't a valid ancestor.
         (trace_id, "bridge"): {
             "trace": trace_id,
             "span_id": "bridge",
             "parent_span": "nested",
-            "span.op": "http.client",
+            "gen_ai.conversation.id": conversation_id,
         },
         (trace_id, "nested"): {
             "trace": trace_id,
             "span_id": "nested",
             "parent_span": "root",
             "gen_ai.conversation.id": "nested-conversation",
-            "span.name": "gen_ai.invoke_agent",
+            "gen_ai.operation.type": "invoke_agent",
         },
     }
 
@@ -772,6 +776,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
                 conversation_id=conversation_id,
                 timestamp=now - timedelta(seconds=i),
                 op="gen_ai.chat",
+                operation_type="ai_client",
                 trace_id=trace_id,
             )
 
@@ -819,6 +824,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
                 conversation_id=conversation_id,
                 timestamp=ts,
                 op="gen_ai.chat",
+                operation_type="ai_client",
                 trace_id=trace_id,
             )
 
@@ -850,18 +856,28 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             conversation_id=conversation_id_1,
             timestamp=now - timedelta(seconds=2),
             op="gen_ai.chat",
+            operation_type="ai_client",
             trace_id=trace_id,
         )
         self.store_ai_span(
             conversation_id=conversation_id_1,
             timestamp=now - timedelta(seconds=1),
             op="gen_ai.chat",
+            operation_type="ai_client",
             trace_id=trace_id,
         )
         self.store_ai_span(
             conversation_id=conversation_id_2,
             timestamp=now,
             op="gen_ai.chat",
+            operation_type="ai_client",
+            trace_id=trace_id,
+        )
+        # Spans without an AI operation are not returned.
+        self.store_ai_span(
+            conversation_id=conversation_id_1,
+            timestamp=now - timedelta(seconds=3),
+            op="http.client",
             trace_id=trace_id,
         )
 
@@ -990,6 +1006,14 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             conversation_id=conversation_id,
             timestamp=timestamp_15d,
             op="gen_ai.chat",
+            operation_type="ai_client",
+            trace_id=trace_id,
+        )
+        # A newer span without an AI operation must not stop the widening.
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=before_now(days=1).replace(microsecond=0),
+            op="http.client",
             trace_id=trace_id,
         )
 
@@ -1012,6 +1036,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             conversation_id=conversation_id,
             timestamp=timestamp_1h,
             op="gen_ai.chat",
+            operation_type="ai_client",
             trace_id=trace_id,
         )
 
@@ -1033,6 +1058,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             conversation_id=conversation_id,
             timestamp=timestamp,
             op="gen_ai.chat",
+            operation_type="ai_client",
             trace_id=trace_id,
         )
 
@@ -1164,6 +1190,14 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             cache_read_cost=1.0,
             cache_write_cost=2.0,
             reasoning_cost=3.0,
+        )
+        # A failed span without an AI operation doesn't change the stats.
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now - timedelta(seconds=3),
+            op="http.client",
+            status="internal_error",
+            trace_id=trace_id,
         )
 
         query: dict[str, Any] = {
@@ -1550,6 +1584,65 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         ]
         assert len(response.data["spans"]) == 1
 
+    def test_returns_related_conversations_on_first_page(self) -> None:
+        now = before_now(days=5).replace(microsecond=0)
+        conversation_id = uuid4().hex
+        sub_conversation_id = uuid4().hex
+        trace_id = uuid4().hex
+        for i, span_conversation_id in enumerate(
+            [conversation_id, sub_conversation_id, conversation_id]
+        ):
+            self.store_ai_span(
+                conversation_id=span_conversation_id,
+                timestamp=now - timedelta(seconds=10 - i),
+                operation_type="ai_client",
+                trace_id=trace_id,
+            )
+        # A conversation in another trace is not related.
+        self._store_conversation_span(uuid4().hex, now)
+        query: dict[str, Any] = {
+            "project": [self.project.id],
+            "per_page": "1",
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+
+        assert "relatedConversationIds" not in self.do_request(conversation_id, query).data
+
+        with self.feature("organizations:gen-ai-related-conversations"):
+            response = self.do_request(conversation_id, query)
+            assert response.data["relatedConversationIds"] == [sub_conversation_id]
+            links = parse_link_header(response.headers["Link"])
+            # The sub-conversation finds its parent.
+            response = self.do_request(sub_conversation_id, query)
+            assert response.data["relatedConversationIds"] == [conversation_id]
+            # Only the first page carries related conversations.
+            query["cursor"] = next(
+                link["cursor"] for link in links.values() if link["rel"] == "next"
+            )
+            response = self.do_request(conversation_id, query)
+            assert "relatedConversationIds" not in response.data
+
+    def test_survives_a_failing_related_conversations_lookup(self) -> None:
+        now = before_now(days=5).replace(microsecond=0)
+        conversation_id = uuid4().hex
+        self._store_conversation_span(conversation_id, now)
+        query = {
+            "project": [self.project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+
+        with (
+            self.feature("organizations:gen-ai-related-conversations"),
+            patch.object(Spans, "run_table_query", side_effect=RuntimeError("boom")),
+        ):
+            response = self.do_request(conversation_id, query)
+
+        assert response.status_code == 200
+        assert response.data["relatedConversationIds"] == []
+        assert len(response.data["spans"]) == 1
+
     def test_returns_stored_title(self) -> None:
         now = before_now(days=5).replace(microsecond=0)
         conversation_id = uuid4().hex
@@ -1683,6 +1776,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
                 conversation_id=conversation_id,
                 timestamp=now - timedelta(seconds=i),
                 op="gen_ai.chat",
+                operation_type="ai_client",
                 trace_id=trace_id,
             )
         self.create_ai_conversation_metadata(

@@ -44,6 +44,9 @@ from sentry.models.custominboundfilter import (
 )
 from sentry.models.project import Project
 from sentry.tasks.relay import schedule_invalidate_project_config
+from sentry.timeseries_annotations.producers.inbound_filter_change import (
+    record_custom_filter_change_as_annotation,
+)
 
 MAX_CONDITIONS_PER_FILTER = 10
 # Relay matches every condition value as a glob against each item, so the size of a
@@ -56,6 +59,17 @@ MAX_CONDITION_VALUE_CHARS_PER_FILTER = 4000
 _REQUIRED_FEATURE_BY_DATA_TYPE: Mapping[DataType, str] = {
     DataType.LOG: "organizations:ourlogs-ingestion",
     DataType.METRIC: "organizations:tracemetrics-ingestion",
+}
+
+# Feature an organization needs before a filter can use a condition type, and the name the
+# error message gives the condition.
+_REQUIRED_FEATURE_BY_CONDITION_TYPE: Mapping[ConditionType, tuple[str, str]] = {
+    ConditionType.ENVIRONMENT: (
+        "organizations:inbound-filters-environment-condition",
+        "environment",
+    ),
+    ConditionType.BROWSER_NAME: ("organizations:inbound-filters-browser-condition", "browser"),
+    ConditionType.BROWSER_VERSION: ("organizations:inbound-filters-browser-condition", "browser"),
 }
 
 
@@ -134,7 +148,8 @@ _OPERATOR_HELP_TEXT = (
     "literally; `does_not_start_with`, `does_not_contain` and `does_not_end_with` "
     "match when the field is set and no value does. `cidr` matches `ip_address` against each value as an "
     "address or a CIDR range, and `not_cidr` matches when no value does. `gt`, `gte`, "
-    "`lt` and `lte` compare one value as a version and only apply to `release`."
+    "`lt` and `lte` compare one value as a version and only apply to `release` and "
+    "`browser_version`."
 )
 _NAME_HELP_TEXT = "A human-readable label for the filter."
 _ACTIVE_HELP_TEXT = (
@@ -148,12 +163,20 @@ _CONDITIONS_HELP_TEXT = (
 )
 
 
+def _is_browser_version(version: str) -> bool:
+    """
+    Whether Relay can compare the browser version, such as `120` or `120.0.6099.130`.
+    A browser version never names a package, so a value with one would match nothing.
+    """
+    return "@" not in version and _is_release_version(version)
+
+
 class CustomInboundFilterConditionSerializer(serializers.Serializer[CustomInboundFilterCondition]):
     type = serializers.ChoiceField(
         choices=[condition_type.value for condition_type in ConditionType],
         help_text=(
             "The field the condition matches against. Every `dataType` accepts `release`, "
-            "`environment` and `ip_address`. In addition, `error` accepts `error_type`, `error_message` and "
+            "`environment`, `ip_address`, `browser_name` and `browser_version`. In addition, `error` accepts `error_type`, `error_message` and "
             "`geo_country_code`, `log` accepts `log_message`, and `metric` accepts "
             "`metric_name`. `span` and `all` accept no other types."
         ),
@@ -175,7 +198,8 @@ class CustomInboundFilterConditionSerializer(serializers.Serializer[CustomInboun
             "matches, so multiple values act as OR; a negated operator matches when none "
             "does. A version comparison takes one release "
             "with a version such as `1.2.0` or `myapp@1.2.0`. A comparison with a package "
-            "only applies to releases of that package."
+            "only applies to releases of that package. A `browser_version` comparison "
+            "takes a version without a package, such as `120` or `120.0.6099`."
         ),
     )
 
@@ -212,9 +236,15 @@ class CustomInboundFilterConditionSerializer(serializers.Serializer[CustomInboun
             raise serializers.ValidationError(
                 {"value": f"The {attrs['operator']} operator takes exactly one value."}
             )
+        condition_type = ConditionType(attrs["type"])
+        if condition_type is ConditionType.BROWSER_VERSION:
+            if not _is_browser_version(attrs["value"][0]):
+                raise serializers.ValidationError(
+                    {"value": f"{attrs['value'][0]} is not a version such as 120 or 120.0.6099."}
+                )
         # Relay never matches a comparison against a release without a version, so the
         # condition would silently match nothing.
-        if not _is_release_version(attrs["value"][0]):
+        elif condition_type is ConditionType.RELEASE and not _is_release_version(attrs["value"][0]):
             raise serializers.ValidationError(
                 {
                     "value": (
@@ -323,22 +353,12 @@ class CustomInboundFilterSerializer(serializers.ModelSerializer[CustomInboundFil
         if stored is not None and stored.legacy_filter:
             _validate_legacy_row_change(stored, data_type, conditions)
 
-        if "conditions" in attrs and any(
-            condition["type"] == ConditionType.ENVIRONMENT for condition in conditions
-        ):
-            organization = self.context["project"].organization
-            if not features.has(
-                "organizations:inbound-filters-environment-condition",
-                organization,
-                actor=self.context["request"].user,
-            ):
-                raise serializers.ValidationError(
-                    {
-                        "conditions": (
-                            "The environment condition is not enabled for this organization."
-                        )
-                    }
-                )
+        if "conditions" in attrs:
+            _validate_feature_conditions_of_organization_for_inbound_filter(
+                conditions=conditions,
+                organization=self.context["project"].organization,
+                request=self.context["request"],
+            )
 
         supported = get_supported_condition_types(data_type)
         unsupported = sorted({condition["type"] for condition in conditions} - set(supported))
@@ -423,6 +443,24 @@ def _validate_legacy_row_change(
                 )
             }
         )
+
+
+def _validate_feature_conditions_of_organization_for_inbound_filter(
+    conditions: list[CustomInboundFilterCondition], organization: Any, request: Request
+) -> None:
+    for condition_type in sorted({ConditionType(c["type"]) for c in conditions}):
+        required = _REQUIRED_FEATURE_BY_CONDITION_TYPE.get(condition_type)
+        if required is None:
+            continue
+        feature, name = required
+        if not features.has(
+            feature,
+            organization,
+            actor=request.user,
+        ):
+            raise serializers.ValidationError(
+                {"conditions": f"The {name} condition is not enabled for this organization."}
+            )
 
 
 def serialize_custom_inbound_filter(
@@ -596,6 +634,15 @@ class CustomInboundFiltersEndpoint(ProjectCustomInboundFilterEndpoint):
 
         custom_filter = serializer.save(project=project)
 
+        if custom_filter.active:
+            record_custom_filter_change_as_annotation(
+                project,
+                custom_filter.id,
+                DataType(custom_filter.data_type),
+                "created",
+                request.user,
+            )
+
         self.create_audit_entry(
             request=request,
             organization=project.organization,
@@ -732,6 +779,13 @@ class CustomInboundFilterDetailsEndpoint(ProjectCustomInboundFilterEndpoint):
                 schedule_invalidate_project_config(
                     project_id=project.id, trigger="custom_inbound_filters"
                 )
+                record_custom_filter_change_as_annotation(
+                    project,
+                    custom_filter.id,
+                    DataType(custom_filter.data_type),
+                    "updated",
+                    request.user,
+                )
 
         return Response(serialize_custom_inbound_filter(custom_filter))
 
@@ -762,6 +816,16 @@ class CustomInboundFilterDetailsEndpoint(ProjectCustomInboundFilterEndpoint):
         custom_filter = self.get_custom_inbound_filter(project, filter_id)
         audit_log_data = self.get_audit_log_data(project, custom_filter, "remove")
         target_object = custom_filter.id
+
+        if custom_filter.active:
+            record_custom_filter_change_as_annotation(
+                project,
+                custom_filter.id,
+                DataType(custom_filter.data_type),
+                "deleted",
+                request.user,
+            )
+
         if custom_filter.legacy_filter:
             # The row holds a filter list of the project settings: deleting it empties the
             # list, in its option too.

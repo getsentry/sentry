@@ -12,7 +12,7 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log
+from sentry import audit_log, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -48,11 +48,11 @@ from sentry.seer.autofix.utils import (
     get_seer_project_repo,
     get_token_based_billing_project_repos,
     get_token_based_billing_repo_filter,
-    is_seer_token_based_billing_onboarding_enabled,
     replace_all_seer_project_repos,
     update_seer_project_repo,
 )
 from sentry.seer.models.project_repository import SeerProjectRepository
+from sentry.seer.scm_connect import mark_no_scm_integration
 from sentry.seer.seer_setup import get_supported_scm_providers
 
 SORT_FIELDS_MAPPING: dict[str, str] = {
@@ -180,7 +180,7 @@ def _validate_repo_ids(project: Project, repo_ids: list[int]) -> None:
     organization = project.organization
     repos = (
         _get_token_based_billing_repos(organization)
-        if is_seer_token_based_billing_onboarding_enabled(organization)
+        if features.has("organizations:token-billed-seer-enabled", organization)
         else _get_seat_based_billing_repos(organization)
     )
     valid_ids = set(repos.filter(id__in=repo_ids).values_list("id", flat=True))
@@ -343,10 +343,10 @@ class ProjectSeerRepoEndpoint(ProjectEndpoint):
     def get(self, request: Request, project: Project, repo_id: int) -> Response:
         project_repos_qs = (
             get_token_based_billing_project_repos(project.organization, [project.id])
-            if is_seer_token_based_billing_onboarding_enabled(project.organization)
+            if features.has("organizations:token-billed-seer-enabled", project.organization)
             else _get_seat_based_billing_project_repos(project)
         )
-        project_repo = project_repos_qs.filter(repository_id=repo_id).first()
+        project_repo = project_repos_qs.filter(repository_id=repo_id).first()  # noqa: S035
         if project_repo is None:
             return Response(status=404)
 
@@ -361,7 +361,7 @@ class ProjectSeerRepoEndpoint(ProjectEndpoint):
 
         seer_project_repo: SeerProjectRepository | None
         with transaction.atomic(router.db_for_write(SeerProjectRepository)):
-            if is_seer_token_based_billing_onboarding_enabled(project.organization):
+            if features.has("organizations:token-billed-seer-enabled", project.organization):
                 project_repo = (
                     get_token_based_billing_project_repos(project.organization, [project.id])
                     .filter(repository_id=repo_id)
@@ -391,7 +391,7 @@ class ProjectSeerRepoEndpoint(ProjectEndpoint):
         return Response(_serialize_project_repo(project_repo, seer_project_repo))
 
     def delete(self, request: Request, project: Project, repo_id: int) -> Response:
-        if is_seer_token_based_billing_onboarding_enabled(project.organization):
+        if features.has("organizations:token-billed-seer-enabled", project.organization):
             # Under token-based billing Seer uses every linked project repo,
             # so there's nothing to remove.
             return Response({"detail": "Repositories can't be removed from Seer."}, status=400)
@@ -462,7 +462,7 @@ class ProjectSeerReposEndpoint(ProjectEndpoint):
     ) -> Response[list[ProjectRepoResponse]] | Response[DetailResponse]:
         queryset = (
             get_token_based_billing_project_repos(project.organization, [project.id])
-            if is_seer_token_based_billing_onboarding_enabled(project.organization)
+            if features.has("organizations:token-billed-seer-enabled", project.organization)
             else _get_seat_based_billing_project_repos(project)
         ).annotate(
             provider_normalized=Replace("repository__provider", Value("integrations:"), Value(""))
@@ -481,7 +481,7 @@ class ProjectSeerReposEndpoint(ProjectEndpoint):
         if order_by is None:
             return Response({"detail": f"Invalid sortBy: {sort_by}"}, status=400)
 
-        return self.paginate(
+        response = self.paginate(
             request=request,
             queryset=queryset,
             order_by=order_by,
@@ -490,6 +490,7 @@ class ProjectSeerReposEndpoint(ProjectEndpoint):
             ],
             paginator_cls=OffsetPaginator,
         )
+        return mark_no_scm_integration(request, response, project.organization)
 
     @extend_schema(
         operation_id="addProjectSeerRepositories",
@@ -563,7 +564,7 @@ class ProjectSeerReposEndpoint(ProjectEndpoint):
             except ValueError as e:
                 return Response({"detail": f"Invalid repository IDs: {e.args[0]}"}, status=400)
 
-        if is_seer_token_based_billing_onboarding_enabled(project.organization):
+        if features.has("organizations:token-billed-seer-enabled", project.organization):
             # Every linked repo is a Seer repo, so leaving one out shouldn't drop its config.
             add_seer_project_repos(project, repos_data)
             audit_event = "SEER_PROJECT_REPOSITORIES_UPDATE"

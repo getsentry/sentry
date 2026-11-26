@@ -36,8 +36,8 @@ import {
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {useTraceMetricItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {HiddenTraceMetricSearchFields} from 'sentry/views/explore/metrics/constants';
+import {useTraceMetricFilter} from 'sentry/views/explore/metrics/hooks/useTraceMetricFilter';
 import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
-import {createTraceMetricFilter} from 'sentry/views/explore/metrics/utils';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 import {combineBaseFieldsWithTags} from './utils/combineBaseFieldsWithEapTags';
@@ -102,28 +102,19 @@ function TraceMetricsSearchBar({
     );
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
     useTraceMetricItemAttributes(
-      {
-        query: attributeQuery,
-        enabled: defined(traceMetrics[0]),
-      },
+      {query: attributeQuery, enabled: defined(traceMetrics[0])},
       'number',
       HiddenTraceMetricSearchFields
     );
   const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
     useTraceMetricItemAttributes(
-      {
-        query: attributeQuery,
-        enabled: defined(traceMetrics[0]),
-      },
+      {query: attributeQuery, enabled: defined(traceMetrics[0])},
       'boolean',
       HiddenTraceMetricSearchFields
     );
   const {attributes: arrayAttributes, secondaryAliases: arraySecondaryAliases} =
     useTraceMetricItemAttributes(
-      {
-        query: attributeQuery,
-        enabled: defined(traceMetrics[0]) && supportsArrays,
-      },
+      {query: attributeQuery, enabled: defined(traceMetrics[0]) && supportsArrays},
       'array',
       HiddenTraceMetricSearchFields
     );
@@ -224,10 +215,8 @@ function useTraceMetricsSearchScope() {
   const traceMetrics =
     displayFields?.map(extractTraceMetricFromColumn).filter(defined) ?? [];
   const hasMultipleMetrics = hasMultipleMetricsSelected(traceMetrics);
-  const attributeQuery =
-    !hasMultipleMetrics && traceMetrics[0]
-      ? createTraceMetricFilter(traceMetrics[0])
-      : undefined;
+  const traceMetricFilter = useTraceMetricFilter(traceMetrics[0]);
+  const attributeQuery = hasMultipleMetrics ? undefined : traceMetricFilter;
 
   return {attributeQuery, hasMultipleMetrics, traceMetrics};
 }
@@ -315,16 +304,10 @@ export const TraceMetricsConfig: DatasetConfig<
   getTableSortOptions: (organization, widgetQuery) =>
     getTableSortOptions(organization, widgetQuery).map(({value, label}) => {
       if (isEquationAlias(value)) {
-        return {
-          label: `ƒ${getEquationAliasIndex(value) + 1}`,
-          value,
-        };
+        return {label: `ƒ${getEquationAliasIndex(value) + 1}`, value};
       }
 
-      return {
-        label,
-        value,
-      };
+      return {label, value};
     }),
   getGroupByFieldOptions,
   supportedDisplayTypes: [

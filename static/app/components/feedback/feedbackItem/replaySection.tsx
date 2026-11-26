@@ -11,10 +11,7 @@ interface Props {
   replayId: string;
 }
 
-const CLIP_OFFSETS = {
-  durationAfterMs: 0,
-  durationBeforeMs: 20_000,
-};
+const CLIP_OFFSETS = {durationAfterMs: 0, durationBeforeMs: 20_000};
 
 const LazyReplayClipPreviewComponent = lazy(
   () => import('sentry/components/events/eventReplay/replayClipPreview')
@@ -30,9 +27,7 @@ export function ReplaySection({eventTimestampMs, organization, replayId}: Props)
     fullReplayButtonProps: {
       analyticsEventKey: 'feedback_details.open_replay_details_clicked',
       analyticsEventName: 'Feedback Details: Open Replay Details Clicked',
-      analyticsParams: {
-        organization,
-      },
+      analyticsParams: {organization},
     },
   };
 

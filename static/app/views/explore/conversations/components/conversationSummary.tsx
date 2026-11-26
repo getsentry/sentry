@@ -1,45 +1,56 @@
 import type React from 'react';
-import {Fragment, useMemo} from 'react';
+import {useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {ATTRIBUTE_SEARCH_METADATA} from '@sentry/conventions/attributes/search';
 import {IconCalendar} from '@sentry/icons/calendar';
-import {IconFire} from '@sentry/icons/fire';
+import {IconFix} from '@sentry/icons/fix';
 import {IconUser} from '@sentry/icons/user';
 
 import {Tag} from '@sentry/scraps/badge';
+import {EntityHeader} from '@sentry/scraps/entityHeader';
+import type {EntityHeaderStatProps} from '@sentry/scraps/entityHeader';
 import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
-import {Heading, Text} from '@sentry/scraps/text';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Count} from 'sentry/components/count';
-import {DateTime} from 'sentry/components/dateTime';
-import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Placeholder} from 'sentry/components/placeholder';
-import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import type {AvatarProject} from 'sentry/types/project';
 import {escapeDoubleQuotes} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
-import {isUUID} from 'sentry/utils/string/isUUID';
+import {unreachable} from 'sentry/utils/unreachable';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {
   ConversationModelUsage,
   ConversationStats,
 } from 'sentry/views/explore/conversations/hooks/useConversation';
-import type {ConversationUser} from 'sentry/views/explore/conversations/hooks/useConversations';
-import {getConversationDisplayId} from 'sentry/views/explore/conversations/utils/conversationDisplayId';
+import {
+  getConversationTraceUrl,
+  type ConversationTrace,
+} from 'sentry/views/explore/conversations/utils/conversationTraceUrl';
+import type {
+  ConversationUserField,
+  ConversationUserIdentity,
+} from 'sentry/views/explore/conversations/utils/conversationUser';
 import {getExploreUrl} from 'sentry/views/explore/utils';
-import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
+import {
+  LLMCosts,
+  NoCostRecordedMessage,
+} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {ModelName} from 'sentry/views/insights/pages/agents/components/modelName';
-import {NegativeCostInfo} from 'sentry/views/insights/pages/agents/components/negativeCostWarning';
+import {
+  NegativeCostInfo,
+  NegativeCostMessage,
+} from 'sentry/views/insights/pages/agents/components/negativeCostWarning';
 import {
   CostBreakdownTooltip,
-  type CostBreakdownDetails,
   TokenBreakdownTooltip,
   type TokenBreakdownDetails,
 } from 'sentry/views/insights/pages/agents/components/tokenBreakdownTooltip';
@@ -48,7 +59,10 @@ import {
   getStringAttr,
   hasError,
 } from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
-import {formatLLMCosts} from 'sentry/views/insights/pages/agents/utils/formatLLMCosts';
+import {
+  formatLLMCosts,
+  formatLLMCostsExact,
+} from 'sentry/views/insights/pages/agents/utils/formatLLMCosts';
 import {
   getIsAiGenerationSpan,
   getIsExecuteToolSpan,
@@ -57,14 +71,6 @@ import {getTokenBreakdown} from 'sentry/views/insights/pages/agents/utils/tokenB
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
 
-import {
-  getUserDisplayName,
-  normalizeUserField,
-  UserNotInstrumentedTooltip,
-} from './conversationsTable';
-import {ConversationTraceLink, type ConversationTrace} from './conversationTraceLink';
-import {ToolTag} from './toolTag';
-
 interface ConversationSummaryProps {
   conversationId: string;
   nodes: AITraceSpanNode[];
@@ -72,23 +78,14 @@ interface ConversationSummaryProps {
   hasMoreSpans?: boolean;
   isLoading?: boolean;
   nodeTraceMap?: Map<string, string>;
-  /** Project the conversation belongs to; rendered beneath the title. */
+  /** Project the conversation belongs to; rendered before the title. */
   project?: AvatarProject;
-  /** Conversation title when Sentry has one; falls back to the id when null. */
+  /** Conversation title when Sentry has one. */
   title?: string | null;
+  user?: ConversationUserIdentity | null;
 }
 
-const VISIBLE_TOOL_COUNT = 6;
-
-// Rendered heights of the content the loading skeletons stand in for. Text trims
-// to its font's ascender and descender, so those values are the trimmed boxes
-// rather than the line heights.
-const TEXT_XL_HEIGHT = '23px'; // `Text size="xl"`, and `Heading as="h2"` with it
-const TEXT_MD_HEIGHT = '16px'; // the `ProjectBadge` name, at the body font size
-const TEXT_SM_HEIGHT = '14px';
-const TAG_HEIGHT = '20px'; // `Tag`, and `ToolTag` with it
-// The zero-size dropdown button the trace link renders for several traces.
-const TRACE_LINK_HEIGHT = '24px';
+const VISIBLE_TOOL_COUNT = 4;
 
 export function ConversationSummary({
   nodes,
@@ -99,6 +96,7 @@ export function ConversationSummary({
   hasMoreSpans,
   isLoading,
   nodeTraceMap,
+  user,
 }: ConversationSummaryProps) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
@@ -107,18 +105,15 @@ export function ConversationSummary({
   const erroredToolNames = new Set(stats?.errorToolNames);
   const usageByModel = stats?.usageByModel ?? [];
   const tokenBreakdowns = getTokenBreakdowns(usageByModel);
-  const toolNames = stats?.toolNames ?? [];
+  const llmCalls = stats?.llmCalls ?? 0;
+  const totalTokens = stats?.totalTokens ?? 0;
+  // Errored tools lead, so they survive the list's truncation.
+  const toolNames = (stats?.toolNames ?? []).toSorted(
+    (a, b) =>
+      Number(erroredToolNames.has(b)) - Number(erroredToolNames.has(a)) ||
+      a.localeCompare(b)
+  );
   const startTimestamp = stats?.startTimestamp || null;
-  const user = useMemo(() => getConversationUser(nodes), [nodes]);
-  const userDisplayName = user ? getUserDisplayName(user) : null;
-
-  const displayId = getConversationDisplayId(conversationId);
-  // Prefer the human-readable title; fall back to the (possibly truncated) id.
-  const headingText = title || displayId;
-  const headingTooltip = title || conversationId;
-  // A UUID id is truncated to 8 chars, so it always needs the tooltip to reveal
-  // the full value; a title or non-UUID id only needs it when it overflows.
-  const headingTooltipOnlyOnOverflow = title ? true : !isUUID(conversationId);
 
   const errorsUrl = getExploreUrl({
     organization,
@@ -143,248 +138,221 @@ export function ConversationSummary({
     return Array.from(seen.values());
   }, [nodes, nodeTraceMap]);
 
+  const tracesValue = getTracesValue({
+    traces,
+    hasMoreSpans,
+    singleTraceUrl: trace =>
+      getConversationTraceUrl(
+        organization.slug,
+        trace,
+        normalizeDateTimeParams(selection.datetime)
+      ),
+    allTracesUrl: getExploreUrl({
+      organization,
+      selection,
+      query: `gen_ai.conversation.id:"${escapeDoubleQuotes(conversationId)}"`,
+      table: 'trace',
+    }),
+    onClick: () =>
+      trackAnalytics('conversations.detail.click-trace-link', {organization}),
+  });
+
   return (
-    <Flex
-      direction={{zero: 'column', xl: 'row'}}
-      justify="between"
-      align={{zero: 'stretch', xl: 'center'}}
-      gap="xl"
-      flex={1}
-      minWidth={0}
-    >
-      <Stack gap="md" minWidth={0} flex={1}>
-        {/* A flex box rather than a block: Tooltip wraps the heading in an
-            inline-block span, and as a block this would size to a line box,
-            adding the font strut's descender under the heading. */}
-        <Container minWidth={0} display="flex">
-          {isLoading ? (
-            // The title is only known once the conversation loads, so show a
-            // skeleton rather than briefly flashing the id and swapping it out.
-            <Placeholder width="240px" height={TEXT_XL_HEIGHT} />
-          ) : (
-            <Tooltip
-              title={headingTooltip}
-              showOnlyOnOverflow={headingTooltipOnlyOnOverflow}
-            >
-              <Heading as="h2" ellipsis>
-                {headingText}
-              </Heading>
-            </Tooltip>
-          )}
-        </Container>
-        {isLoading ? (
-          <Fragment>
-            <Flex align="center" gap="sm" minWidth={0} wrap="wrap">
-              <Placeholder width="40px" height={TEXT_SM_HEIGHT} />
-              <Placeholder width="72px" height={TAG_HEIGHT} />
-              <Placeholder width="72px" height={TAG_HEIGHT} />
-            </Flex>
-            <MetaRow>
-              <Flex align="center" gap="xs">
-                <Placeholder width="16px" height="16px" />
-                <Placeholder width="140px" height={TEXT_SM_HEIGHT} />
-              </Flex>
-              <Flex align="center" gap="xs">
-                <Placeholder width="12px" height="12px" />
-                <Placeholder width="40px" height={TEXT_SM_HEIGHT} />
-              </Flex>
-              {/* The project comes from the conversation's spans, so it is only
-                  known once they load; its space is reserved either way. */}
-              <Flex align="center" gap="sm">
-                <Placeholder width="16px" height="16px" />
-                <Placeholder width="80px" height={TEXT_MD_HEIGHT} />
-              </Flex>
-              <Flex align="center" gap="xs">
-                <Placeholder width="16px" height="16px" />
-                <Placeholder width="120px" height={TEXT_SM_HEIGHT} />
-              </Flex>
-            </MetaRow>
-          </Fragment>
-        ) : (
-          <Fragment>
-            {toolNames.length > 0 && (
-              <Flex align="center" gap="sm" minWidth={0} wrap="wrap">
-                <Text size="sm" wrap="nowrap">
-                  {t('Tools:')}
-                </Text>
-                {toolNames.slice(0, VISIBLE_TOOL_COUNT).map(name => (
-                  <ToolTag key={name} name={name} hasError={erroredToolNames.has(name)} />
-                ))}
-                {toolNames.length > VISIBLE_TOOL_COUNT && (
-                  <InfoText
-                    size="sm"
-                    variant="muted"
-                    wrap="nowrap"
-                    title={
-                      <Flex wrap="wrap" gap="sm" paddingTop="xs" paddingBottom="xs">
-                        {toolNames.slice(VISIBLE_TOOL_COUNT).map(name => (
-                          <ToolTag
-                            key={name}
-                            name={name}
-                            hasError={erroredToolNames.has(name)}
-                          />
-                        ))}
-                      </Flex>
-                    }
-                  >
-                    {t('+%s more', toolNames.length - VISIBLE_TOOL_COUNT)}
-                  </InfoText>
-                )}
-              </Flex>
-            )}
-            <MetaRow>
-              {startTimestamp !== null && (
-                <Flex align="center" gap="xs">
-                  <IconCalendar size="md" />
-                  <InfoText
-                    size="sm"
-                    title={<TimeSince date={startTimestamp} disabledAbsoluteTooltip />}
-                  >
-                    <DateTime date={startTimestamp} year timeZone />
-                  </InfoText>
-                </Flex>
-              )}
-              <ConversationTraceLink
-                conversationId={conversationId}
-                traces={traces}
-                hasMoreSpans={hasMoreSpans}
-              />
-              {project && <ProjectBadge project={project} avatarSize={16} disableLink />}
-              <Flex align="center" gap="xs" minWidth={0}>
-                <IconUser size="md" />
-                {userDisplayName ? (
-                  <InfoText
-                    title={userDisplayName}
-                    mode="overflowOnly"
-                    size="sm"
-                    variant="muted"
-                  >
-                    {userDisplayName}
-                  </InfoText>
-                ) : (
-                  <InfoText
-                    size="sm"
-                    variant="muted"
-                    title={<UserNotInstrumentedTooltip />}
-                  >
-                    &mdash;
-                  </InfoText>
-                )}
-              </Flex>
-            </MetaRow>
-          </Fragment>
-        )}
-      </Stack>
-      <Flex align="start" gap="xl" wrap="wrap" flexShrink={0}>
-        <Stat
-          label={t('LLM Calls')}
-          value={
-            <ModelMetricBreakdown
-              breakdowns={usageByModel}
-              metric="llmCalls"
-              total={stats?.llmCalls ?? 0}
-            />
-          }
-          isLoading={isLoading}
-        />
-        <Stat
-          label={t('Errors')}
-          value={<Count value={errorCount} />}
-          icon={
-            errorCount > 0 ? (
-              <IconFire
-                size="sm"
-                variant="danger"
-                data-test-id="conversation-error-icon"
-              />
-            ) : undefined
-          }
-          to={errorCount > 0 ? errorsUrl : undefined}
-          onClick={
-            errorCount > 0
-              ? () =>
-                  trackAnalytics('conversations.detail.click-errors-link', {organization})
-              : undefined
-          }
-          isLoading={isLoading}
-        />
-        <Stat
-          label={t('Tokens')}
-          value={
-            <TokenCount breakdowns={tokenBreakdowns} total={stats?.totalTokens ?? 0} />
-          }
-          isLoading={isLoading}
-        />
-        <Stat
-          label={t('Cost')}
-          value={<CostCount breakdowns={usageByModel} total={stats?.totalCost ?? 0} />}
-          isLoading={isLoading}
-        />
-      </Flex>
-    </Flex>
+    <EntityHeader
+      isLoading={isLoading}
+      title={{
+        type: 'text',
+        label: t('Conversation'),
+        value: title || t('Untitled conversation'),
+        leadingGraphic: project
+          ? {type: 'project', projects: [project], label: project.slug}
+          : undefined,
+      }}
+      metadata={{
+        label: t('Conversation details'),
+        items: [
+          startTimestamp === null
+            ? null
+            : {
+                type: 'date',
+                label: t('Started'),
+                date: new Date(startTimestamp),
+                leadingGraphic: <IconCalendar size="md" variant="muted" />,
+              },
+          user
+            ? {
+                type: 'text',
+                label: getUserFieldLabel(user.field),
+                value: user.value,
+                tooltip: getUserTooltip(user),
+                leadingGraphic: <IconUser size="md" variant="muted" />,
+              }
+            : null,
+          toolNames.length > 0
+            ? {
+                type: 'list',
+                label: t('Tools'),
+                mode: 'full',
+                leadingGraphic: <IconFix size="md" variant="muted" />,
+                maxVisible: VISIBLE_TOOL_COUNT,
+                items: toolNames.map(name => ({
+                  type: 'text',
+                  key: name,
+                  value: name,
+                  variant: erroredToolNames.has(name) ? 'danger' : undefined,
+                })),
+              }
+            : null,
+        ],
+      }}
+      stats={{
+        label: t('Conversation stats'),
+        items: [
+          {
+            label: t('LLM Calls'),
+            value: {
+              type: 'text',
+              content: formatAbbreviatedNumber(llmCalls),
+              tooltip:
+                llmCalls > 0 && usageByModel.length > 0 ? (
+                  <ModelMetricBreakdownTooltip
+                    breakdowns={usageByModel}
+                    metric="llmCalls"
+                  />
+                ) : undefined,
+            },
+          },
+          {
+            label: t('Tokens'),
+            value: {
+              type: 'text',
+              content: formatAbbreviatedNumber(totalTokens),
+              tooltip:
+                tokenBreakdowns.length > 0 ? (
+                  <TokenBreakdownTooltip breakdowns={tokenBreakdowns} />
+                ) : undefined,
+            },
+          },
+          {label: t('Cost'), value: getCostValue(stats?.totalCost ?? 0, usageByModel)},
+          {label: t('Traces'), value: tracesValue},
+          {
+            label: t('Errors'),
+            value:
+              errorCount > 0
+                ? {
+                    type: 'link',
+                    content: formatAbbreviatedNumber(errorCount),
+                    to: errorsUrl,
+                    onClick: () =>
+                      trackAnalytics('conversations.detail.click-errors-link', {
+                        organization,
+                      }),
+                  }
+                : 0,
+          },
+        ],
+      }}
+    />
   );
+}
+
+function getUserFieldLabel(field: ConversationUserField): string {
+  switch (field) {
+    case 'user.email':
+      return t('User email');
+    case 'user.username':
+      return t('User username');
+    case 'user.ip':
+      return t('User IP');
+    case 'user.id':
+      return t('User ID');
+    default:
+      return unreachable(field);
+  }
 }
 
 /**
- * The row of conversation metadata under the title. Its minHeight matches the
- * trace link's dropdown button, the tallest thing it holds, so the row keeps
- * its height whether the link renders as a button, a plain link, or a skeleton.
+ * Names the field the value came from and, for a scrubbed value, how scrubbing
+ * changed it, in one line. Plain text, because nothing in a tooltip can be
+ * reached by keyboard.
  */
-function MetaRow({children}: {children: React.ReactNode}) {
-  return (
-    <Flex align="center" gap="xl" minWidth={0} wrap="wrap" minHeight={TRACE_LINK_HEIGHT}>
-      {children}
-    </Flex>
-  );
+function getUserTooltip(user: ConversationUserIdentity): string {
+  const label = getUserFieldLabel(user.field);
+  if (!user.isScrubbed) {
+    return label;
+  }
+  switch (user.scrubbingRule?.remark) {
+    case 'm':
+      return t('%s masked by data scrubbing.', label);
+    case 'p':
+      return t('%s pseudonymized by data scrubbing.', label);
+    case 'e':
+      return t('%s encrypted by data scrubbing.', label);
+    default:
+      // A "[Filtered]" value with no meta was replaced too.
+      return t('%s replaced by data scrubbing.', label);
+  }
 }
 
-function Stat({
-  label,
-  value,
-  isLoading,
-  to,
+/**
+ * A single loaded trace links straight to the trace view; several, or a count
+ * that is only a lower bound because more spans are still to load, link to
+ * every trace in the conversation.
+ */
+function getTracesValue({
+  traces,
+  hasMoreSpans,
+  singleTraceUrl,
+  allTracesUrl,
   onClick,
-  icon,
 }: {
-  label: string;
-  value: React.ReactNode;
-  icon?: React.ReactNode;
-  isLoading?: boolean;
-  onClick?: () => void;
-  to?: string;
-}) {
-  const isInteractive = !!to && !isLoading;
+  allTracesUrl: string;
+  onClick: () => void;
+  singleTraceUrl: (trace: ConversationTrace) => string;
+  traces: ConversationTrace[];
+  hasMoreSpans?: boolean;
+}): EntityHeaderStatProps['value'] {
+  const [firstTrace] = traces;
+  if (!hasMoreSpans && !firstTrace) {
+    return 0;
+  }
+  if (!hasMoreSpans && firstTrace && traces.length === 1) {
+    return {type: 'link', content: 1, to: singleTraceUrl(firstTrace), onClick};
+  }
+  return {
+    type: 'link',
+    content: hasMoreSpans ? `${traces.length}+` : traces.length,
+    to: allTracesUrl,
+    onClick,
+  };
+}
 
-  const valueContent = (
-    <Flex align="center" gap="xs">
-      <Text
-        size="xl"
-        tabular
-        variant={isInteractive ? 'danger' : undefined}
-        wrap="nowrap"
-      >
-        {value}
-      </Text>
-      {icon}
-    </Flex>
-  );
-
-  return (
-    <Stack gap="xs" flexShrink={0}>
-      <Text size="sm" variant="muted" bold wrap="nowrap">
-        {label}
-      </Text>
-      {isLoading ? (
-        <Placeholder width="32px" height={TEXT_XL_HEIGHT} />
-      ) : isInteractive ? (
-        <Link to={to} onClick={onClick}>
-          {valueContent}
-        </Link>
+function getCostValue(
+  total: number,
+  breakdowns: ConversationModelUsage[]
+): EntityHeaderStatProps['value'] {
+  if (total < 0) {
+    return {
+      type: 'text',
+      content: formatLLMCosts(total),
+      tooltip: <NegativeCostMessage />,
+    };
+  }
+  if (total === 0) {
+    return {type: 'text', content: null, tooltip: <NoCostRecordedMessage />};
+  }
+  return {
+    type: 'text',
+    content: formatLLMCosts(total),
+    tooltip:
+      breakdowns.length > 0 ? (
+        <CostBreakdownTooltip
+          breakdowns={breakdowns.toSorted((a, b) => b.totalCost - a.totalCost)}
+        />
       ) : (
-        valueContent
-      )}
-    </Stack>
-  );
+        formatLLMCostsExact(total)
+      ),
+  };
 }
 
 interface TraceAggregates {
@@ -555,28 +523,6 @@ function calculateTraceAggregates(nodes: AITraceSpanNode[]): TraceAggregates {
   };
 }
 
-/**
- * Derives the conversation's user from the first span node that carries any
- * user identity attribute. Returns null when the spans aren't user-instrumented.
- */
-function getConversationUser(nodes: AITraceSpanNode[]): ConversationUser | null {
-  for (const node of nodes) {
-    const email = normalizeUserField(getStringAttr(node, SpanFields.USER_EMAIL));
-    const username = normalizeUserField(getStringAttr(node, SpanFields.USER_USERNAME));
-    const ipAddress = normalizeUserField(getStringAttr(node, SpanFields.USER_IP));
-    const id = normalizeUserField(getStringAttr(node, SpanFields.USER_ID));
-    if (email || username || ipAddress || id) {
-      return {
-        email,
-        username,
-        ip_address: ipAddress,
-        id,
-      };
-    }
-  }
-  return null;
-}
-
 const AGGREGATES_BAR_VISIBLE_TOOL_COUNT = 4;
 
 function getConversationErrorsQuery(conversationId: string): string {
@@ -701,25 +647,40 @@ export function ConversationAggregatesBar({
   );
 }
 
-function CostCount({
-  breakdowns,
-  total,
-}: {
-  breakdowns: CostBreakdownDetails[];
-  total: number;
-}) {
-  if (total < 0) {
-    return <NegativeCostInfo cost={total} />;
-  }
-  if (total === 0 || breakdowns.length === 0) {
-    return <LLMCosts cost={total} />;
-  }
+type ModelBreakdownMetric = 'llmCalls' | 'totalCost';
 
-  const sortedBreakdowns = breakdowns.toSorted((a, b) => b.totalCost - a.totalCost);
+function formatModelMetric(metric: ModelBreakdownMetric, value: number) {
+  return metric === 'llmCalls' ? formatAbbreviatedNumber(value) : formatLLMCosts(value);
+}
+
+function ModelMetricBreakdownTooltip({
+  breakdowns,
+  metric,
+}: {
+  breakdowns: ModelBreakdownDetails[];
+  metric: ModelBreakdownMetric;
+}) {
+  const sortedBreakdowns = breakdowns.toSorted((a, b) => b[metric] - a[metric]);
+
   return (
-    <Tooltip title={<CostBreakdownTooltip breakdowns={sortedBreakdowns} />}>
-      <BreakdownValue>{formatLLMCosts(total)}</BreakdownValue>
-    </Tooltip>
+    <Stack gap="sm" width="100%">
+      {sortedBreakdowns.map(breakdown => (
+        <Flex key={breakdown.model} align="center" gap="xl" width="100%">
+          <Container minWidth={0} flex={1} overflow="hidden">
+            <ModelName
+              modelId={breakdown.model ?? t('Unknown model')}
+              size={14}
+              gap="sm"
+            />
+          </Container>
+          <Container flexShrink={0}>
+            <Text tabular align="right">
+              {formatModelMetric(metric, breakdown[metric])}
+            </Text>
+          </Container>
+        </Flex>
+      ))}
+    </Stack>
   );
 }
 
@@ -729,40 +690,18 @@ function ModelMetricBreakdown({
   total,
 }: {
   breakdowns: ModelBreakdownDetails[];
-  metric: 'llmCalls' | 'totalCost';
+  metric: ModelBreakdownMetric;
   total: number;
 }) {
   if (total === 0 || breakdowns.length === 0) {
     return metric === 'llmCalls' ? <Count value={total} /> : <LLMCosts cost={total} />;
   }
 
-  const formatValue = metric === 'llmCalls' ? formatAbbreviatedNumber : formatLLMCosts;
-  const sortedBreakdowns = breakdowns.toSorted((a, b) => b[metric] - a[metric]);
-
   return (
     <Tooltip
-      title={
-        <Stack gap="sm" width="100%">
-          {sortedBreakdowns.map(breakdown => (
-            <Flex key={breakdown.model} align="center" gap="xl" width="100%">
-              <Container minWidth={0} flex={1} overflow="hidden">
-                <ModelName
-                  modelId={breakdown.model ?? t('Unknown model')}
-                  size={14}
-                  gap="sm"
-                />
-              </Container>
-              <Container flexShrink={0}>
-                <Text tabular align="right">
-                  {formatValue(breakdown[metric])}
-                </Text>
-              </Container>
-            </Flex>
-          ))}
-        </Stack>
-      }
+      title={<ModelMetricBreakdownTooltip breakdowns={breakdowns} metric={metric} />}
     >
-      <BreakdownValue>{formatValue(total)}</BreakdownValue>
+      <BreakdownValue>{formatModelMetric(metric, total)}</BreakdownValue>
     </Tooltip>
   );
 }

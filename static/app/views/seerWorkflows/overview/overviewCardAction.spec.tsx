@@ -48,9 +48,7 @@ describe('OverviewCardAction', () => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/integrations/coding-agents/',
-      body: {
-        integrations: [{id: '123', name: 'Claude Agent', provider: 'claude_code'}],
-      },
+      body: {integrations: [{id: '123', name: 'Claude Agent', provider: 'claude_code'}]},
     });
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/seer/repos/',
@@ -113,15 +111,36 @@ describe('OverviewCardAction', () => {
 
       expect(trackAnalytics).toHaveBeenCalledWith(
         'autofix.overview.action_clicked',
-        expect.objectContaining({
-          organization,
-          group_id: '2',
-          run_id: 'run-1',
-          action,
-        })
+        expect.objectContaining({organization, group_id: '2', run_id: 'run-1', action})
       );
     }
   );
+
+  it('opens Seer instead of creating a plan for a single run', async () => {
+    const postRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/2/autofix/',
+      method: 'POST',
+      body: {},
+    });
+
+    const {router} = render(
+      <OverviewCardAction
+        run={runFixture({isSingleRun: true})}
+        sectionKey="needs_investigation"
+      />,
+      {organization}
+    );
+
+    expect(screen.queryByRole('button', {name: 'Create Plan'})).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Open Autofix'}));
+
+    expect(router.location.query.seerDrawer).toBe('2');
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'autofix.overview.open_seer_clicked',
+      expect.objectContaining({run_id: 'run-1', section: 'needs_investigation'})
+    );
+    expect(postRequest).not.toHaveBeenCalled();
+  });
 
   it('routes a Draft PR card to grant permissions when write access is missing', async () => {
     MockApiClient.addMockResponse({
@@ -249,9 +268,7 @@ describe('OverviewCardAction', () => {
   it('defers coding agent fetches until the dropdown is opened', async () => {
     const agentsRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/integrations/coding-agents/',
-      body: {
-        integrations: [{id: '123', name: 'Claude Agent', provider: 'claude_code'}],
-      },
+      body: {integrations: [{id: '123', name: 'Claude Agent', provider: 'claude_code'}]},
     });
     const reposRequest = MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/seer/repos/',
@@ -351,9 +368,7 @@ describe('OverviewCardAction', () => {
     const codingAgents = Promise.withResolvers<void>();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/integrations/coding-agents/',
-      body: {
-        integrations: [{id: '123', name: 'Claude Agent', provider: 'claude_code'}],
-      },
+      body: {integrations: [{id: '123', name: 'Claude Agent', provider: 'claude_code'}]},
       asyncDelay: codingAgents.promise,
     });
 

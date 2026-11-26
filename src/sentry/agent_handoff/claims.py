@@ -8,12 +8,11 @@ from sentry.agent_handoff.applications import get_handoff_application
 from sentry.agent_handoff.codes import (
     AgentHandoff,
     HandoffExpired,
-    HandoffIPMismatch,
     consume_handoff,
+    normalize_handoff_ip,
 )
 from sentry.agent_handoff.flows import get_flow
 from sentry.agent_handoff.flows.base import InvalidHandoffContext
-from sentry.agent_handoff.runbook import render_agent_runbook
 from sentry.analytics.events.agent_handoff import AgentHandoffClaimedEvent
 from sentry.analytics.events.oauth_setup_code import OAuthSetupCodeIssuedEvent
 from sentry.api.helpers.oauth_consent import (
@@ -21,6 +20,7 @@ from sentry.api.helpers.oauth_consent import (
     persist_authorization,
     resolve_organization,
 )
+from sentry.models.apiapplication import ApiApplication
 from sentry.models.apisetupcode import ApiSetupCode
 from sentry.models.organization import OrganizationStatus
 from sentry.organizations.services.organization.service import organization_service
@@ -30,8 +30,23 @@ from sentry.users.models.user import User
 class ClaimOutcome(StrEnum):
     ACCEPTED = "accepted"
     EXPIRED = "expired"
-    IP_MISMATCH = "ip_mismatch"
+    DEVICE_AUTH_REQUIRED = "device_auth_required"
     INVALID = "invalid"
+
+
+class ClaimFailureReason(StrEnum):
+    # Covers unknown, already claimed and revoked codes. A claimed code is deleted, so these
+    # can't be told apart.
+    UNAVAILABLE = "unavailable"
+    EXPIRED = "expired"
+    ACCESS_CHANGED = "access_changed"
+    SETUP_UNAVAILABLE = "setup_unavailable"
+
+
+class HandoffClaimFailed(Exception):
+    def __init__(self, reason: ClaimFailureReason) -> None:
+        super().__init__(f"Agent handoff claim failed: {reason}")
+        self.reason = reason
 
 
 def _record_claim(outcome: ClaimOutcome, handoff: AgentHandoff | None) -> None:
@@ -53,55 +68,45 @@ class ClaimedHandoff:
     user_email: str
     sentry_url: str
     client_id: str
-    setup_code: str = field(repr=False)
+    setup_code: str | None = field(repr=False)
     flow_instructions: str = field(repr=False)
 
-    def render_runbook(self) -> str:
-        return render_agent_runbook(
-            organization_slug=self.organization_slug,
-            organization_name=self.organization_name,
-            user_email=self.user_email,
-            sentry_url=self.sentry_url,
-            client_id=self.client_id,
-            setup_code=self.setup_code,
-            flow_instructions=self.flow_instructions,
-        )
-
 
 @sensitive_variables()
-def claim_handoff(code: str, *, ip_address: str | None) -> str | None:
-    """Consume a handoff and render credentials after revalidating its authorization."""
-    claim = claim_handoff_context(code, ip_address=ip_address)
-    return claim.render_runbook() if claim is not None else None
-
-
-@sensitive_variables()
-def claim_handoff_context(code: str, *, ip_address: str | None) -> ClaimedHandoff | None:
-    """Consume a handoff and mint credentials after revalidating its authorization."""
+def claim_handoff_context(code: str, *, ip_address: str | None) -> ClaimedHandoff:
+    """Consume a handoff and determine how the CLI should authenticate."""
     try:
-        handoff = consume_handoff(code, ip_address=ip_address)
+        handoff = consume_handoff(code)
     except HandoffExpired as error:
         _record_claim(ClaimOutcome.EXPIRED, error.handoff)
-        return None
-    except HandoffIPMismatch as error:
-        _record_claim(ClaimOutcome.IP_MISMATCH, error.handoff)
-        raise
+        raise HandoffClaimFailed(ClaimFailureReason.EXPIRED)
 
     if handoff is None:
         _record_claim(ClaimOutcome.INVALID, None)
-        return None
+        raise HandoffClaimFailed(ClaimFailureReason.UNAVAILABLE)
 
-    claim = _claim(handoff)
-    _record_claim(ClaimOutcome.ACCEPTED if claim is not None else ClaimOutcome.INVALID, handoff)
+    issued_ip = normalize_handoff_ip(handoff.ip_address)
+    same_ip = issued_ip is not None and issued_ip == normalize_handoff_ip(ip_address)
+    try:
+        claim = _claim(handoff, same_ip=same_ip)
+    except HandoffClaimFailed:
+        _record_claim(ClaimOutcome.INVALID, handoff)
+        raise
+    _record_claim(ClaimOutcome.ACCEPTED if same_ip else ClaimOutcome.DEVICE_AUTH_REQUIRED, handoff)
     return claim
 
 
 @sensitive_variables()
-def _claim(handoff: AgentHandoff) -> ClaimedHandoff | None:
-    user = User.objects.get_or_none(id=handoff.user_id, is_active=True, is_suspended=False)
+def _claim(handoff: AgentHandoff, *, same_ip: bool) -> ClaimedHandoff:
+    # A new prompt mints against the currently configured application, so a changed or
+    # disabled application is recoverable the same way as an unavailable code.
     application = get_handoff_application(handoff.scope_list)
-    if user is None or application is None or application.id != handoff.application_id:
-        return None
+    if application is None or application.id != handoff.application_id:
+        raise HandoffClaimFailed(ClaimFailureReason.UNAVAILABLE)
+
+    user = User.objects.get_or_none(id=handoff.user_id, is_active=True, is_suspended=False)
+    if user is None:
+        raise HandoffClaimFailed(ClaimFailureReason.ACCESS_CHANGED)
 
     context = organization_service.get_access_context(
         organization_id=handoff.organization_id, user_id=user.id
@@ -111,12 +116,12 @@ def _claim(handoff: AgentHandoff) -> ClaimedHandoff | None:
         or context.member is None
         or context.organization.status != OrganizationStatus.ACTIVE
     ):
-        return None
+        raise HandoffClaimFailed(ClaimFailureReason.ACCESS_CHANGED)
 
     try:
         organization_id = resolve_organization(application, user.id, str(handoff.organization_id))
     except InvalidOrganizationSelection:
-        return None
+        raise HandoffClaimFailed(ClaimFailureReason.ACCESS_CHANGED)
 
     try:
         flow_instructions = get_flow(handoff.flow).render(
@@ -125,24 +130,14 @@ def _claim(handoff: AgentHandoff) -> ClaimedHandoff | None:
             organization_id=context.organization.id,
         )
     except InvalidHandoffContext:
-        return None
+        raise HandoffClaimFailed(ClaimFailureReason.SETUP_UNAVAILABLE)
 
-    persist_authorization(application, user.id, handoff.scope_list, organization_id)
-    minted, setup_code = ApiSetupCode.mint(
-        application=application,
-        user_id=user.id,
-        scope_list=handoff.scope_list,
-        organization_id=organization_id,
-    )
-    analytics.record(
-        OAuthSetupCodeIssuedEvent(
-            user_id=user.id,
-            organization_id=organization_id,
-            application_id=application.id,
-            setup_code_id=minted.id,
-            flow=handoff.flow.value,
+    setup_code = None
+    if same_ip:
+        setup_code = _mint_setup_code(
+            handoff, application=application, organization_id=organization_id
         )
-    )
+
     return ClaimedHandoff(
         organization_slug=context.organization.slug,
         organization_name=context.organization.name,
@@ -152,3 +147,26 @@ def _claim(handoff: AgentHandoff) -> ClaimedHandoff | None:
         setup_code=setup_code,
         flow_instructions=flow_instructions,
     )
+
+
+@sensitive_variables()
+def _mint_setup_code(
+    handoff: AgentHandoff, *, application: ApiApplication, organization_id: int | None
+) -> str:
+    persist_authorization(application, handoff.user_id, handoff.scope_list, organization_id)
+    minted, setup_code = ApiSetupCode.mint(
+        application=application,
+        user_id=handoff.user_id,
+        scope_list=handoff.scope_list,
+        organization_id=organization_id,
+    )
+    analytics.record(
+        OAuthSetupCodeIssuedEvent(
+            user_id=handoff.user_id,
+            organization_id=organization_id,
+            application_id=application.id,
+            setup_code_id=minted.id,
+            flow=handoff.flow.value,
+        )
+    )
+    return setup_code

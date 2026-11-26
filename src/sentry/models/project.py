@@ -260,7 +260,7 @@ class Project(Model):
     forced_color = models.CharField(max_length=6, null=True, blank=True)
     organization = FlexibleForeignKey("sentry.Organization")
     teams = models.ManyToManyField("sentry.Team", related_name="teams", through=ProjectTeam)
-    public = models.BooleanField(default=False)
+    public = models.BooleanField(default=False, db_default=False)
     date_added = models.DateTimeField(default=timezone.now)
     status = BoundedPositiveIntegerField(
         default=0,
@@ -529,6 +529,7 @@ class Project(Model):
         from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorStatus
         from sentry.service_accounts.models import ServiceAccountProjectReplica
         from sentry.snuba.models import QuerySubscriptionDataSourceHandler, SnubaQuery
+        from sentry.workflow_engine.caches.workflow import invalidate_activity_workflows
         from sentry.workflow_engine.models import (
             DataConditionGroup,
             DataSource,
@@ -729,6 +730,19 @@ class Project(Model):
                 Workflow.objects.filter(id__in=exclusive_workflow_ids).exclude(
                     id__in=workflows_with_env.keys()
                 ).update(organization_id=organization.id)
+
+                if exclusive_workflow_ids:
+                    # QuerySet.update bypasses workflow receivers. Clear both sides
+                    # of the organization-scoped activity lookup after the move commits.
+                    transaction.on_commit(
+                        lambda: invalidate_activity_workflows(old_org_id),
+                        router.db_for_write(Workflow),
+                    )
+                    destination_org_id = organization.id
+                    transaction.on_commit(
+                        lambda: invalidate_activity_workflows(destination_org_id),
+                        router.db_for_write(Workflow),
+                    )
 
                 # DataConditionGroups attached to the moved workflows (the "if" filters, linked via
                 # WorkflowDataConditionGroup) move with them.

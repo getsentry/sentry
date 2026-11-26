@@ -82,7 +82,7 @@ function toWrappedDiscoverQueryProps<T>({
 
 type WrappedDiscoverQueryProps<T> = {
   eventView: EventView;
-  additionalQueryKey?: string[];
+  additionalQueryKey?: readonly unknown[];
   allowAggregateConditions?: boolean;
   caseInsensitive?: CaseInsensitive;
   cursor?: string;
@@ -123,9 +123,7 @@ function useWrappedDiscoverQueryBase<T>({
   spanQuery,
   extrapolationMode,
   staleTime,
-}: WrappedDiscoverQueryProps<T> & {
-  pageFiltersReady: boolean;
-}) {
+}: WrappedDiscoverQueryProps<T> & {pageFiltersReady: boolean}) {
   const location = useLocation();
   const organization = useOrganization();
 
@@ -172,13 +170,13 @@ function useWrappedDiscoverQueryBase<T>({
     referrer,
     cursor,
     limit,
+    additionalQueryKey,
     options: {
       enabled: enabled && pageFiltersReady, // TODO this has a bug: if enabled is undefined, this short-circuits to undefined, which becomes true, regardless of pageFiltersReady
       refetchOnWindowFocus: false,
       retry: shouldRetryHandler,
       retryDelay: getRetryDelay,
       staleTime: staleTime ?? getStaleTimeForEventView(eventView),
-      additionalQueryKey,
       refetchInterval,
       placeholderData: keepPreviousData ? keepPreviousDataFn : undefined,
     },
@@ -193,11 +191,7 @@ function useWrappedDiscoverQueryBase<T>({
   const data =
     result.isPending && initialData ? initialData : (result.data?.data as T | undefined);
 
-  return {
-    ...result,
-    data,
-    meta,
-  };
+  return {...result, data, meta};
 }
 
 export function useWrappedDiscoverQuery<T>(props: WrappedDiscoverQueryProps<T>) {

@@ -5,6 +5,7 @@ import {IconClose} from '@sentry/icons/close';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
+import {getDuration} from '@sentry/scraps/duration';
 import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {stripAnnotations} from '@sentry/scraps/markdown/annotation';
@@ -16,7 +17,6 @@ import {ToolOutput} from 'sentry/components/ai/toolDetails/toolOutput';
 import {parseToolOutput} from 'sentry/components/ai/toolDetails/toolOutputData';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
-import {getDuration} from 'sentry/utils/duration/getDuration';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -64,6 +64,7 @@ import {
   getAIToolOutput,
 } from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiOutput';
 import {AttributesContent} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/attributes';
+import {AISpanErrorCard} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/sections/aiSpanErrorCard';
 import {TraceDrawerComponents} from 'sentry/views/performance/traceDetails/traceDrawer/details/styles';
 import {isEAPSpanNode} from 'sentry/views/performance/traceDetails/traceGuards';
 import {traceGridCssVariables} from 'sentry/views/performance/traceDetails/traceWaterfallStyles';
@@ -251,7 +252,7 @@ export function ConversationSpanDetail({
 
       <Stack gap="lg" flexShrink={0}>
         <Flex align="center" gap="sm" wrap="wrap">
-          <Text size="lg">{getDuration(duration, 2, true, true)}</Text>
+          <Text size="lg">{getDuration(duration, {precision: 2, style: 'narrow'})}</Text>
           {duration > 0 &&
           comparison &&
           comparison.deltaPct >= MIN_PCT_DURATION_DIFFERENCE ? (
@@ -276,6 +277,11 @@ export function ConversationSpanDetail({
         organization={organization}
         traceSlug={traceId}
       />
+      {/* AI span errors (e.g. tool failures) aren't always application errors, so
+       * they rarely have an issue. Show them in the issue slot when there isn't one. */}
+      {node.uniqueIssues.length === 0 ? (
+        <StyledAISpanErrorCard node={node} attributes={attributes} />
+      ) : null}
 
       {/*
        * The per-span fetch backs both the metadata and the tab content, and it
@@ -624,6 +630,10 @@ function AttributesTab({
 // under the waterfall, so scope those variables here.
 const StyledIssueList = styled(IssueList)`
   ${traceGridCssVariables}
+  flex-shrink: 0;
+`;
+
+const StyledAISpanErrorCard = styled(AISpanErrorCard)`
   flex-shrink: 0;
 `;
 

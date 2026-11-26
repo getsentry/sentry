@@ -72,10 +72,7 @@ describe('ActivitySection', () => {
     jest.restoreAllMocks();
     TeamStore.reset();
     MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/members/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/members/', body: []});
     localStorage.clear();
   });
 
@@ -180,10 +177,7 @@ describe('ActivitySection', () => {
       '/organizations/org-slug/issues/1337/comments/',
       expect.objectContaining({
         method: 'POST',
-        data: {
-          text: '**@Jane Doe** ',
-          mentions: ['user:42'],
-        },
+        data: {text: '**@Jane Doe** ', mentions: ['user:42']},
       })
     );
   });
@@ -202,10 +196,7 @@ describe('ActivitySection', () => {
       data: {},
       user,
     });
-    const deleteGroup = GroupFixture({
-      ...group,
-      activity: [note, resolution],
-    });
+    const deleteGroup = GroupFixture({...group, activity: [note, resolution]});
     const onActivityChange = jest.fn();
 
     const deleteMock = MockApiClient.addMockResponse({
@@ -502,10 +493,7 @@ describe('ActivitySection', () => {
           type: GroupActivityType.ASSIGNED,
           id: 'team-assignment-1',
           dateCreated: '2020-01-01T00:00:00',
-          data: {
-            assignee: team.id,
-            assigneeType: 'team',
-          },
+          data: {assignee: team.id, assigneeType: 'team'},
           user: assigningUser,
         },
       ],
@@ -551,11 +539,7 @@ describe('ActivitySection', () => {
           type: GroupActivityType.ASSIGNED,
           id: 'team-assignment-1',
           dateCreated: '2020-01-01T00:00:00',
-          data: {
-            assignee: team.id,
-            assigneeName: team.name,
-            assigneeType: 'team',
-          },
+          data: {assignee: team.id, assigneeName: team.name, assigneeType: 'team'},
           user,
         },
       ],
@@ -579,10 +563,7 @@ describe('ActivitySection', () => {
   });
 
   it('renders the stored name for a deleted team assignment', async () => {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/teams/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/teams/', body: []});
     TeamStore.loadInitialData([]);
 
     const assignedGroup = GroupFixture({
@@ -592,11 +573,7 @@ describe('ActivitySection', () => {
           type: GroupActivityType.ASSIGNED,
           id: 'deleted-team-assignment',
           dateCreated: '2020-01-01T00:00:00',
-          data: {
-            assignee: '123',
-            assigneeName: 'frontend',
-            assigneeType: 'team',
-          },
+          data: {assignee: '123', assigneeName: 'frontend', assigneeType: 'team'},
           user,
         },
       ],
@@ -666,10 +643,7 @@ describe('ActivitySection', () => {
   });
 
   it('renders the stored name for a deleted user assignment', async () => {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/members/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/members/', body: []});
 
     const assignedGroup = GroupFixture({
       id: '1347',
@@ -678,11 +652,7 @@ describe('ActivitySection', () => {
           type: GroupActivityType.ASSIGNED,
           id: 'deleted-user-assignment',
           dateCreated: '2020-01-01T00:00:00',
-          data: {
-            assignee: '123',
-            assigneeName: 'David Cramer',
-            assigneeType: 'user',
-          },
+          data: {assignee: '123', assigneeName: 'David Cramer', assigneeType: 'user'},
           user,
         },
       ],
@@ -929,19 +899,11 @@ describe('ActivitySection', () => {
       user,
     });
     const onActivityChange = jest.fn();
-    const editGroup = GroupFixture({
-      id: '1123',
-      activity: [note, resolution],
-      project,
-    });
+    const editGroup = GroupFixture({id: '1123', activity: [note, resolution], project});
     const editMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1123/comments/123/',
       method: 'PUT',
-      body: {
-        ...note,
-        id: '987',
-        data: {text: 'Group Test Updated'},
-      },
+      body: {...note, id: '987', data: {text: 'Group Test Updated'}},
     });
 
     render(
@@ -1452,11 +1414,7 @@ describe('ActivitySection', () => {
       expectedMarker: 'Seer activity',
     },
   ])('renders $name activity copy', async ({activity, expectedCopy, expectedMarker}) => {
-    const activityGroup = GroupFixture({
-      id: '1339',
-      activity: [activity],
-      project,
-    });
+    const activityGroup = GroupFixture({id: '1339', activity: [activity], project});
 
     render(
       <GroupDataContextProvider group={activityGroup} project={activityGroup.project}>
@@ -1657,9 +1615,7 @@ describe('ActivitySection', () => {
           type: GroupActivityType.SET_RESOLVED_IN_RELEASE,
           id: 'resolved-in-release-2',
           dateCreated: '2020-01-01T00:00:00',
-          data: {
-            version: 'frontend@1.0.0',
-          },
+          data: {version: 'frontend@1.0.0'},
           user,
         },
       ],
@@ -1772,11 +1728,7 @@ describe('ActivitySection', () => {
           type: GroupActivityType.REFERENCED_IN_COMMIT,
           id: 'referenced-in-commit-1',
           dateCreated: '2020-01-01T00:00:00',
-          data: {
-            commit: CommitFixture({
-              id: 'f7f395d14b2fe29a4e253bf1d3094d61e6ad4434',
-            }),
-          },
+          data: {commit: CommitFixture({id: 'f7f395d14b2fe29a4e253bf1d3094d61e6ad4434'})},
           user,
         },
       ],
@@ -2146,6 +2098,10 @@ describe('ActivitySection', () => {
         activity: [reference, comment, created, otherReference, ready],
         project,
       });
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/issues/${activityGroup.id}/pull-requests/`,
+        body: {pullRequests: []},
+      });
       render(
         <GroupDataContextProvider group={activityGroup} project={activityGroup.project}>
           <ActivitySection group={activityGroup} variant="standalone" />
@@ -2289,9 +2245,7 @@ describe('ActivitySection', () => {
           type: GroupActivityType.SET_RESOLVED_IN_COMMIT,
           id: 'resolved-commit-missing-commit',
           dateCreated: '2020-01-01T00:00:00',
-          data: {
-            commit: null,
-          },
+          data: {commit: null},
           user: null,
         },
       ],
@@ -2575,11 +2529,7 @@ describe('ActivitySection', () => {
           type: GroupActivityType.SEER_ITERATION_STARTED,
           id: 'seer-iteration-1',
           dateCreated: '2020-01-01T00:00:00',
-          data: {
-            run_id: 456,
-            iteration_index: 1,
-            referrer: 'github.check_suite',
-          },
+          data: {run_id: 456, iteration_index: 1, referrer: 'github.check_suite'},
           user,
         },
       ],
@@ -2614,9 +2564,7 @@ describe('ActivitySection', () => {
           type: GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST,
           id: 'pr-missing-1',
           dateCreated: '2020-01-01T00:00:00',
-          data: {
-            pullRequest: null,
-          },
+          data: {pullRequest: null},
           user: null,
         },
         {
@@ -2705,12 +2653,85 @@ describe('ActivitySection', () => {
       <GroupDataContextProvider group={impactGroup} project={impactGroup.project}>
         <ActivitySection group={impactGroup} />
       </GroupDataContextProvider>,
-      {organization: OrganizationFixture()}
+      {organization: OrganizationFixture({features: ['seer-impact-assessment']})}
     );
 
     const timeline = await screen.findByTestId('activity-timeline');
     expect(timeline).toHaveTextContent('Impact assessed as High (73.5)');
     expect(timeline).toHaveTextContent('Users cannot submit an order.');
+    expect(timeline).not.toHaveTextContent('Citations:');
+  });
+
+  it('hides Impact assessments without the impact assessment feature', async () => {
+    const impactGroup = GroupFixture({
+      activity: [
+        {
+          type: GroupActivityType.IMPACT_ASSESSMENT,
+          id: 'impact-1',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {
+            score: 73.5,
+            level: 'high',
+            description: 'Users cannot submit an order.',
+            citations: [],
+            sourceEventId: '7f4b9a95abc449a8a5afc3d1d2683a8b',
+          },
+          user: null,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={impactGroup} project={impactGroup.project}>
+        <ActivitySection group={impactGroup} />
+      </GroupDataContextProvider>,
+      {organization: OrganizationFixture()}
+    );
+
+    const timeline = await screen.findByTestId('activity-timeline');
+    expect(timeline).not.toHaveTextContent('Impact assessed');
+    expect(timeline).not.toHaveTextContent('Users cannot submit an order.');
+  });
+
+  it('renders Impact assessment citations with the citations flag', async () => {
+    const impactGroup = GroupFixture({
+      activity: [
+        {
+          type: GroupActivityType.IMPACT_ASSESSMENT,
+          id: 'impact-1',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {
+            score: 73.5,
+            level: 'high',
+            description: 'Users cannot submit an order.',
+            citations: [
+              {
+                source: 'event',
+                reference: 'entire-event:event-id',
+                claim: 'The request failed before order creation.',
+              },
+            ],
+            sourceEventId: '7f4b9a95abc449a8a5afc3d1d2683a8b',
+          },
+          user: null,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={impactGroup} project={impactGroup.project}>
+        <ActivitySection group={impactGroup} />
+      </GroupDataContextProvider>,
+      {
+        organization: OrganizationFixture({
+          features: ['seer-impact-assessment', 'seer-impact-assessment-citations'],
+        }),
+      }
+    );
+
+    const timeline = await screen.findByTestId('activity-timeline');
     expect(timeline).toHaveTextContent('Citations:');
     expect(screen.getByTestId('impact-activity-details')).toBeInTheDocument();
 
@@ -2832,5 +2853,113 @@ describe('ActivitySection', () => {
     expect(timeline).toHaveTextContent('Mentioned in a deleted investigation');
     expect(timeline).not.toHaveTextContent('Payment retries exhaust the pool');
     expect(screen.queryByRole('link', {name: /investigation/})).not.toBeInTheDocument();
+  });
+
+  describe('linked pull requests', () => {
+    const pullRequest = PullRequestFixture({title: 'Handle missing users'});
+    const referencedGroup = GroupFixture({
+      id: '1503',
+      activity: [
+        ActivityFeedFixture({
+          id: 'pr-reference',
+          type: GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST,
+          data: {pullRequest},
+        }),
+      ],
+      project,
+    });
+
+    function mockLinkedPullRequests() {
+      return MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/issues/${referencedGroup.id}/pull-requests/`,
+        match: [MockApiClient.matchQuery({expand: 'checksAndReview'})],
+        body: {
+          pullRequests: [
+            {
+              ...pullRequest,
+              checksStatus: null,
+              dateLinked: '2024-01-01T00:00:00Z',
+              reviewStatus: null,
+              status: 'open',
+            },
+          ],
+        },
+      });
+    }
+
+    it('shows the linked pull request below a pull request reference', async () => {
+      mockLinkedPullRequests();
+
+      render(
+        <GroupDataContextProvider
+          group={referencedGroup}
+          project={referencedGroup.project}
+        >
+          <ActivitySection group={referencedGroup} variant="standalone" />
+        </GroupDataContextProvider>
+      );
+
+      expect(await screen.findByTestId('loading-placeholder')).toBeInTheDocument();
+      const linkedPullRequests = await screen.findByRole('list', {
+        name: 'Linked pull requests',
+      });
+      expect(
+        within(linkedPullRequests).getByText('Handle missing users')
+      ).toBeInTheDocument();
+      expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
+    });
+
+    it('does not show linked pull requests in the sidebar', async () => {
+      const request = mockLinkedPullRequests();
+
+      render(
+        <GroupDataContextProvider
+          group={referencedGroup}
+          project={referencedGroup.project}
+        >
+          <ActivitySection group={referencedGroup} />
+        </GroupDataContextProvider>
+      );
+
+      expect(await screen.findByTestId('activity-timeline')).toBeInTheDocument();
+      expect(
+        screen.queryByRole('list', {name: 'Linked pull requests'})
+      ).not.toBeInTheDocument();
+      expect(request).not.toHaveBeenCalled();
+    });
+  });
+
+  it('renders an investigation started by a Seer automation', async () => {
+    const captureMessage = jest.spyOn(Sentry, 'captureMessage');
+    const startedGroup = GroupFixture({
+      activity: [
+        {
+          type: GroupActivityType.INVESTIGATION_STARTED,
+          id: 'investigation-started-1',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {investigation: {id: '42', title: 'Checkout latency', status: 'active'}},
+          source: 'system',
+          user: null,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={startedGroup} project={startedGroup.project}>
+        <ActivitySection group={startedGroup} />
+      </GroupDataContextProvider>,
+      {organization: OrganizationFixture()}
+    );
+
+    const timeline = await screen.findByTestId('activity-timeline');
+    expect(timeline).toHaveTextContent('Started investigation Checkout latency');
+    expect(screen.getByRole('link', {name: 'Checkout latency'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/seer/investigations/42/'
+    );
+    expect(screen.getByLabelText('Seer activity')).toBeInTheDocument();
+    expect(screen.queryByTestId('user-activity-actor')).not.toBeInTheDocument();
+    expect(captureMessage).not.toHaveBeenCalled();
   });
 });

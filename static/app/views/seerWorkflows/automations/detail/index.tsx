@@ -1,5 +1,6 @@
 import {Fragment, useRef, useState} from 'react';
 import {Outlet} from 'react-router';
+import {useTheme} from '@emotion/react';
 import {IconDelete} from '@sentry/icons/delete';
 import {IconEdit} from '@sentry/icons/edit';
 import {IconPause} from '@sentry/icons/pause';
@@ -22,26 +23,30 @@ import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct, tn} from 'sentry/locale';
+import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useUserFromId} from 'sentry/utils/useUserFromId';
 import {TopBar} from 'sentry/views/navigation/topBar';
+import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
 import {
   getNextUpdate,
   type AutomationConfig,
 } from 'sentry/views/seerWorkflows/automations';
+import type {AutomationFormHandle} from 'sentry/views/seerWorkflows/automations/baseForm';
 import {
   useDeleteConfig,
   useFetchConfigs,
   useIsUpdatingConfig,
+  useManualRun,
   useUpdateConfig,
 } from 'sentry/views/seerWorkflows/automations/hooks/configs';
-import type {MetricAutomationFormHandle} from 'sentry/views/seerWorkflows/automations/metricAutomationForm';
 import {STRATEGY_META} from 'sentry/views/seerWorkflows/strategies';
 import type {WorkflowStrategy} from 'sentry/views/seerWorkflows/types';
 import {
+  AUTO_REFRESH_INTERVAL,
   getAutomationDetailPath,
   getAutomationsPath,
   useAutomationsEnabled,
@@ -50,6 +55,8 @@ import {
 import type {AutomationDetailOutletContext} from './configuration';
 
 export default function AutomationDetail() {
+  const theme = useTheme();
+  const {pageContentTop} = useTopOffset();
   const organization = useOrganization();
   const location = useLocation();
   const activeTab: 'configuration' | 'runs' = location.pathname.endsWith('/runs/')
@@ -61,7 +68,10 @@ export default function AutomationDetail() {
   const basePath = getAutomationDetailPath(organization.slug, automationId);
   const navigate = useNavigate();
 
-  const {data, isPending, isError, refetch} = useFetchConfigs({ids: [automationId]});
+  const {data, isPending, isError, refetch} = useFetchConfigs(
+    {ids: [automationId]},
+    {refetchInterval: AUTO_REFRESH_INTERVAL}
+  );
   const config: AutomationConfig | undefined = data?.[0];
   const strategy = config?.strategy ?? '';
   const strategyMeta = Object.hasOwn(STRATEGY_META, strategy)
@@ -71,11 +81,12 @@ export default function AutomationDetail() {
   const updateConfig = useUpdateConfig({configId: automationId});
   const deleteConfig = useDeleteConfig({configId: automationId});
   const isUpdatingConfig = useIsUpdatingConfig({configId: automationId});
+  const manualRun = useManualRun({configId: automationId});
   const [isConfiguring, setIsConfiguring] = useState(false);
   const [draftName, setDraftName] = useState('');
   const [formHasChanges, setFormHasChanges] = useState(false);
   const [monitorsPending, setMonitorsPending] = useState(false);
-  const formRef = useRef<MetricAutomationFormHandle>(null);
+  const formRef = useRef<AutomationFormHandle>(null);
   const formId = `automation-config-${automationId}`;
   // Leaving the configuration tab unmounts the form, discarding any unsaved changes
   const [prevActiveTab, setPrevActiveTab] = useState(activeTab);
@@ -85,6 +96,13 @@ export default function AutomationDetail() {
       setIsConfiguring(false);
     }
   }
+  // Start each tab at the top. Reset every ancestor's scroll on tab change.
+  const pageRef = useRef<HTMLDivElement>(null);
+  const scrollToTop = () => {
+    for (let node = pageRef.current?.parentElement; node; node = node.parentElement) {
+      node.scrollTop = 0;
+    }
+  };
   // Show who last updated the automation, falling back to who created it
   const displayUserId = config?.updatedBy || config?.createdBy;
   const {data: displayUser} = useUserFromId({
@@ -242,8 +260,24 @@ export default function AutomationDetail() {
           )
         }
       />
+      {config.strategy === 'scheduled_investigation' && (
+        <Button
+          size="sm"
+          busy={manualRun.isPending}
+          onClick={() =>
+            manualRun.mutate(undefined, {
+              onSuccess: () => toast.success(t('Run started.')),
+              onError: error =>
+                toast.error(t('Unable to run. %s', getRequestErrorUserMessage(error))),
+            })
+          }
+        >
+          {t('Run now')}
+        </Button>
+      )}
       <Button
         size="sm"
+        variant="primary"
         icon={<IconEdit />}
         disabled={isUpdatingConfig}
         onClick={() => {
@@ -251,11 +285,12 @@ export default function AutomationDetail() {
           setIsConfiguring(true);
           // The form lives on the configuration tab
           if (activeTab !== 'configuration') {
+            scrollToTop();
             navigate(basePath);
           }
         }}
       >
-        {t('Configure')}
+        {t('Edit')}
       </Button>
     </Flex>
   );
@@ -280,7 +315,7 @@ export default function AutomationDetail() {
 
   return (
     <SentryDocumentTitle title={title} orgSlug={organization.slug}>
-      <Stack>
+      <Stack ref={pageRef}>
         <TopBar.Slot
           name="breadcrumbs"
           title={{type: 'page-title', label: title}}
@@ -297,6 +332,9 @@ export default function AutomationDetail() {
           padding="xl xl 0 xl"
           background="secondary"
           borderBottom="primary"
+          position="sticky"
+          top={pageContentTop}
+          style={{zIndex: theme.zIndex.stickyHeader}}
         >
           <Flex justify="between" align="start" gap="xl">
             <Stack gap="xs">
@@ -332,7 +370,7 @@ export default function AutomationDetail() {
               {headerCosts}
             </Stack>
           </Flex>
-          <LinkTabs value={activeTab} size="sm">
+          <LinkTabs value={activeTab} size="sm" onChange={scrollToTop}>
             {({TabList}) => (
               <TabList>
                 <TabList.Item

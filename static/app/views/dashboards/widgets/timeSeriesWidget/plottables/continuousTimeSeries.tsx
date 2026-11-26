@@ -1,8 +1,12 @@
 import type {SeriesOption} from 'echarts';
 
-import {defined} from 'sentry/utils/defined';
+import {mergeTimeRanges, type TimeRange} from 'sentry/utils/timeSeries/mergeTimeRanges';
 import {scaleTimeSeriesData} from 'sentry/utils/timeSeries/scaleTimeSeriesData';
 import type {TimeSeriesSegmentField} from 'sentry/utils/timeSeries/segmentTimeSeriesByDisplayStyle';
+import {
+  isExtrapolatedTimeSeriesItem,
+  isLowConfidenceTimeSeriesItem,
+} from 'sentry/utils/timeSeries/timeSeriesItemConfidence';
 import {timeSeriesItemToEChartsDataPoint} from 'sentry/utils/timeSeries/timeSeriesItemToEChartsDataPoint';
 import {isAPlottableTimeSeriesValueType} from 'sentry/views/dashboards/widgets/common/typePredicates';
 import type {
@@ -101,13 +105,36 @@ export abstract class ContinuousTimeSeries<
     // Incomplete buckets are partial, so they often have few samples. Charts draw
     // them in the incomplete style, which hides low confidence, so they don't count
     const completeValues = values.filter(datum => !datum.incomplete);
-    const lowCount = completeValues.filter(isLowConfidenceDataPoint).length;
+    const lowCount = completeValues.filter(isLowConfidenceTimeSeriesItem).length;
 
     if (lowCount > 0) {
       return lowCount === completeValues.length ? 'low' : 'mixed';
     }
 
-    return values.some(isExtrapolated) ? 'high' : 'full';
+    return values.some(isExtrapolatedTimeSeriesItem) ? 'high' : 'full';
+  }
+
+  /**
+   * Stretches of time covered by low confidence buckets. A bucket spans half an
+   * interval either side of its timestamp, the slot a bar fills, so consecutive
+   * buckets merge into one range. Incomplete buckets don't count, as in `confidence`
+   */
+  get lowConfidenceRanges(): TimeRange[] {
+    const {interval} = this.timeSeries.meta;
+
+    return mergeTimeRanges(
+      this.timeSeries.values
+        .filter(
+          datum =>
+            datum.value !== null &&
+            !datum.incomplete &&
+            isLowConfidenceTimeSeriesItem(datum)
+        )
+        .map(({timestamp}) => ({
+          start: timestamp - interval / 2,
+          end: timestamp + interval / 2,
+        }))
+    );
   }
 
   get needsColor(): boolean {
@@ -149,7 +176,7 @@ export abstract class ContinuousTimeSeries<
   }
 
   /**
-   * Converts an item to an ECharts data point. Fields the plottable segments by ride along on the point, so the tooltip can read them for whichever point is hovered
+   * Converts an item to an ECharts data point. Confidence, and any fields the plottable segments by, ride along on the point, so the tooltip can read them for whichever point is hovered
    */
   protected toDataPoint(
     item: TimeSeriesItem,
@@ -157,7 +184,7 @@ export abstract class ContinuousTimeSeries<
   ): ContinuousTimeSeriesDataPoint {
     return {
       value: timeSeriesItemToEChartsDataPoint(item),
-      confidence: segmentBy.includes('confidence') ? item.confidence : undefined,
+      confidence: getConfidence(item),
       completeness: segmentBy.includes('completeness')
         ? getCompleteness(item)
         : undefined,
@@ -173,12 +200,17 @@ export abstract class ContinuousTimeSeries<
 
 export const DEFAULT_SEGMENT_BY: readonly TimeSeriesSegmentField[] = ['completeness'];
 
+/**
+ * Incomplete points don't count: the chart draws them in the incomplete style,
+ * which hides low confidence
+ */
 export function isLowConfidenceDataPoint(data: unknown): boolean {
   return (
     typeof data === 'object' &&
     data !== null &&
     'confidence' in data &&
-    data.confidence === 'low'
+    data.confidence === 'low' &&
+    !('completeness' in data && data.completeness === 'incomplete')
   );
 }
 
@@ -192,6 +224,8 @@ function getCompleteness(
   return item.incomplete ? 'incomplete' : 'complete';
 }
 
-function isExtrapolated(datum: TimeSeriesItem): boolean {
-  return defined(datum.sampleRate) && datum.sampleRate < 1;
+function getConfidence(
+  item: TimeSeriesItem
+): ContinuousTimeSeriesDataPoint['confidence'] {
+  return isLowConfidenceTimeSeriesItem(item) ? 'low' : item.confidence;
 }

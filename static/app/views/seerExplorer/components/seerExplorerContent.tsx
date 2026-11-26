@@ -41,6 +41,7 @@ import {
 import {
   seerCreditCheckApiOptions,
   useSeerCreditCheck,
+  type SeerCreditDenialReason,
 } from 'sentry/utils/seer/useSeerCreditCheck';
 import {useDeferredSessionStorage} from 'sentry/utils/useDeferredSessionStorage';
 import {useDimensions} from 'sentry/utils/useDimensions';
@@ -88,6 +89,7 @@ import {
   PendingUserInputPicker,
 } from './pendingUserInputDock';
 import {SeerExplorerHeader} from './seerExplorerHeader';
+import {SeerExplorerSettingsMenu} from './seerExplorerSettingsMenu';
 import {UpdateSlackAlert} from './updateSlackAlert';
 
 export const INPUT_STORAGE_KEY_PREFIX = 'seer-explorer-draft';
@@ -231,7 +233,6 @@ export function SeerExplorerContent({
     hasSentInterrupt,
     overrideBashModeEnabled,
     setOverrideBashModeEnabled,
-    setOverrideCodeModeEnable,
   } = useSeerExplorer();
 
   // Persist the input draft per-run so drawer closes / run switches
@@ -275,10 +276,7 @@ export function SeerExplorerContent({
   // for the run on screen, and this panel only exists while Explorer is showing.
   useEffect(() => {
     if (requestError?.chatPrompt) {
-      chatDispatch({
-        type: 'restore chat prompt',
-        payload: requestError.chatPrompt,
-      });
+      chatDispatch({type: 'restore chat prompt', payload: requestError.chatPrompt});
     }
   }, [requestError, chatDispatch]);
 
@@ -402,9 +400,12 @@ export function SeerExplorerContent({
       <Container data-test-id="seer-explorer-out-of-credits">
         <SeerOutOfCreditsCta
           reason="agent-chat"
+          // Single runs skip the credit check, so the reason comes from the stop itself.
           denialReason={
             isSingleRunReply
-              ? (refusedForCredits?.creditDenialReason ?? null)
+              ? refusedForCredits
+                ? (refusedForCredits.creditDenialReason ?? null)
+                : (sessionData?.credit_denial_reason ?? null)
               : denialReason
           }
         />
@@ -649,7 +650,7 @@ export function SeerExplorerContent({
   );
 
   // Menu component
-  const {menu, closeMenu} = useExplorerMenu({
+  const {menu, toolbarMenu, closeMenu} = useExplorerMenu({
     clearInput,
     completeInput,
     inputValue: inputValue.text,
@@ -662,7 +663,6 @@ export function SeerExplorerContent({
       onFeedback: openFeedbackForm ? handleFeedback : undefined,
       onConversations: conversationsUrl ? handleOpenConversations : undefined,
       onBashMode: setOverrideBashModeEnabled,
-      onCodeMode: setOverrideCodeModeEnable,
     },
     inputAnchorRef: composerRef,
   });
@@ -819,9 +819,7 @@ export function SeerExplorerContent({
   }, [chatPrompt, pendingRestart, revealChatPrompt]);
 
   // Auto-scroll to bottom when blocks are added or the transcript resizes, unless scrolled up
-  const {height: transcriptHeight} = useDimensions({
-    elementRef: scrollContainerRef,
-  });
+  const {height: transcriptHeight} = useDimensions({elementRef: scrollContainerRef});
   useEffect(() => {
     if (!userScrolledUpRef.current && scrollContainerRef.current) {
       scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
@@ -871,10 +869,7 @@ export function SeerExplorerContent({
   const prevIsTimedOutRef = useRef(false);
   useEffect(() => {
     if (isTimedOut && !prevIsTimedOutRef.current) {
-      trackAnalytics('seer.explorer.timed_out', {
-        organization,
-        run_id: runId,
-      });
+      trackAnalytics('seer.explorer.timed_out', {organization, run_id: runId});
     }
     prevIsTimedOutRef.current = isTimedOut;
   }, [isTimedOut, organization, runId]);
@@ -896,14 +891,10 @@ export function SeerExplorerContent({
       onChangeSession={switchToRun}
       onCopySessionClick={copySessionEnabled ? copySessionToClipboard : undefined}
       onCopyLinkClick={runId === null ? undefined : handleCopyLink}
-      overrideBashModeEnabled={overrideBashModeEnabled}
-      onOverrideBashModeToggle={() => setOverrideBashModeEnabled(v => !v)}
-      conversationsUrl={conversationsUrl}
       isPipSupported={isPipSupported}
       isPoppedOut={isPoppedOut}
       onTogglePictureInPicture={handleTogglePictureInPicture}
-      sidebarPosition={sidebarPosition}
-      onSidebarPositionChange={onSidebarPositionChange}
+      canChangeDockPosition={!!onSidebarPositionChange}
     />
   );
 
@@ -924,11 +915,7 @@ export function SeerExplorerContent({
         containerType="inline-size"
       >
         {renderHeader ? (
-          renderHeader({
-            children: headerContent,
-            isPoppedOut,
-            onClose: handleClose,
-          })
+          renderHeader({children: headerContent, isPoppedOut, onClose: handleClose})
         ) : (
           <SidebarHeaderShell onClose={handleClose}>{headerContent}</SidebarHeaderShell>
         )}
@@ -960,9 +947,11 @@ export function SeerExplorerContent({
                   isFileApprovalPending ||
                   isAgentWriteApprovalPending ||
                   isQuestionPending ||
-                  showReauth
+                  showReauth ||
+                  (isAwaitingUserInput && pendingInput?.input_type === 'connect_scm')
                 }
                 outOfCredits={isRunOutOfCredits}
+                creditDenialReason={sessionData?.credit_denial_reason ?? null}
                 pendingInput={pendingInput}
                 readOnly={readOnly}
               />
@@ -1027,6 +1016,21 @@ export function SeerExplorerContent({
               hasEnoughCredits={hasEnoughCredits && !showSingleRunCreditError}
             />
           }
+          leadingToolbarItems={
+            <Flex align="center">
+              {toolbarMenu}
+              <SeerExplorerSettingsMenu
+                isPipSupported={isPipSupported}
+                isPoppedOut={isPoppedOut}
+                onTogglePictureInPicture={handleTogglePictureInPicture}
+                sidebarPosition={sidebarPosition}
+                onSidebarPositionChange={onSidebarPositionChange}
+                overrideBashModeEnabled={overrideBashModeEnabled}
+                onOverrideBashModeToggle={() => setOverrideBashModeEnabled(v => !v)}
+                conversationsUrl={conversationsUrl}
+              />
+            </Flex>
+          }
           interruptState={interruptState}
           onInputChange={handleInputChange}
           onInputClick={handleInputClick}
@@ -1068,6 +1072,8 @@ export function SeerExplorerContent({
 
 interface SeerExplorerTranscriptProps {
   blocks: Block[];
+  /** Why billing refused credit, when `outOfCredits` is set. */
+  creditDenialReason: SeerCreditDenialReason | null;
   getPageReferrer: () => string;
   interactionPending: boolean;
   /** The run stopped because the organization ran out of Seer credits. */
@@ -1084,6 +1090,7 @@ interface SeerExplorerTranscriptProps {
  */
 const SeerExplorerTranscript = memo(function SeerExplorerTranscript({
   blocks,
+  creditDenialReason,
   getPageReferrer,
   interactionPending,
   outOfCredits,
@@ -1120,6 +1127,7 @@ const SeerExplorerTranscript = memo(function SeerExplorerTranscript({
         interactionPending={interactionPending}
         // The run stopped at its end, so only the last response explains why.
         outOfCredits={outOfCredits && segmentIndex === segments.length - 1}
+        creditDenialReason={creditDenialReason}
         pendingInput={pendingInput}
         readOnly={readOnly}
         showThinking
@@ -1142,7 +1150,7 @@ function RestartNotice({onCancel}: {onCancel: () => void}) {
       gap="md"
       padding="md lg"
       radius="md"
-      border="accent"
+      border="accent.vibrant"
       background="secondary"
       data-test-id="seer-explorer-restart-notice"
     >

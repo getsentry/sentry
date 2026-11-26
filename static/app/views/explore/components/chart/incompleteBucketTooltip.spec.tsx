@@ -10,15 +10,12 @@ const ONE_HOUR_IN_MS = 3600000;
 const COMPLETE_TIMESTAMP = 1758153600000;
 const INCOMPLETE_TIMESTAMP = COMPLETE_TIMESTAMP + ONE_HOUR_IN_MS;
 const OUT_OF_RETENTION_TIMESTAMP = COMPLETE_TIMESTAMP - ONE_HOUR_IN_MS;
+const EXCEEDS_QUERY_RANGE_TIMESTAMP = INCOMPLETE_TIMESTAMP + ONE_HOUR_IN_MS;
 
 function makeSeries(): TimeSeries {
   return {
     yAxis: 'count(span.duration)',
-    meta: {
-      valueType: 'integer',
-      valueUnit: null,
-      interval: ONE_HOUR_IN_MS,
-    },
+    meta: {valueType: 'integer', valueUnit: null, interval: ONE_HOUR_IN_MS},
     values: [
       {
         timestamp: OUT_OF_RETENTION_TIMESTAMP,
@@ -32,6 +29,12 @@ function makeSeries(): TimeSeries {
         value: 2,
         incomplete: true,
         incompleteReason: 'INGESTION_PENDING',
+      },
+      {
+        timestamp: EXCEEDS_QUERY_RANGE_TIMESTAMP,
+        value: 0,
+        incomplete: true,
+        incompleteReason: 'EXCEEDS_QUERY_RANGE',
       },
     ],
   };
@@ -66,6 +69,15 @@ describe('useIncompleteBucketTooltipDetails', () => {
 
     const note = result.current!(['count(span.duration)'], OUT_OF_RETENTION_TIMESTAMP);
     expect(note).toContain('Some of this data is outside your retention period.');
+    expect(note).not.toContain('Event ingestion is incomplete.');
+    expect(note).not.toContain('Check again');
+  });
+
+  it('explains buckets that extend past the selected time range', () => {
+    const {result} = renderTooltipDetails(INCOMPLETE_TIMESTAMP);
+
+    const note = result.current!(['count(span.duration)'], EXCEEDS_QUERY_RANGE_TIMESTAMP);
+    expect(note).toContain('Part of this interval is outside the selected time range.');
     expect(note).not.toContain('Event ingestion is incomplete.');
     expect(note).not.toContain('Check again');
   });

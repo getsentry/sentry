@@ -17,31 +17,34 @@ from sentry.workflow_engine.endpoints.utils.detector_filters import (
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.models.data_source_detector import DataSourceDetector
 from sentry.workflow_engine.registry import detector_settings_registry
-from sentry.workflow_engine.types import DetectorAPIOperation, DetectorType
+from sentry.workflow_engine.types import DetectorType, WorkflowEngineAPIOperation
 
 if TYPE_CHECKING:
     from sentry.auth.principal import RequestPrincipal
 
 
-_API_OPERATIONS_BY_NAME: dict[str | None, DetectorAPIOperation] = {
-    operation.value: operation for operation in DetectorAPIOperation
+_API_OPERATIONS_BY_NAME: dict[str | None, WorkflowEngineAPIOperation] = {
+    operation.value: operation for operation in WorkflowEngineAPIOperation
 }
-_API_OPERATIONS_BY_NAME["HEAD"] = DetectorAPIOperation.GET
+_API_OPERATIONS_BY_NAME["HEAD"] = WorkflowEngineAPIOperation.GET
 
 
 def get_excluded_detector_types(
-    operation: DetectorAPIOperation | str | None,
+    operation: WorkflowEngineAPIOperation | str | None,
     organization: Organization,
     *,
     actor: RequestPrincipal | None = None,
 ) -> list[str]:
     """Resolve detector-platform API gates for the current request, without fetching rows."""
-    required_operations: tuple[DetectorAPIOperation, ...]
+    required_operations: tuple[WorkflowEngineAPIOperation, ...]
     match _API_OPERATIONS_BY_NAME.get(operation):
-        case DetectorAPIOperation.LIST:
-            required_operations = (DetectorAPIOperation.GET, DetectorAPIOperation.LIST)
-        case DetectorAPIOperation.DISCOVER:
-            required_operations = (DetectorAPIOperation.GET, DetectorAPIOperation.DISCOVER)
+        case WorkflowEngineAPIOperation.LIST:
+            required_operations = (WorkflowEngineAPIOperation.GET, WorkflowEngineAPIOperation.LIST)
+        case WorkflowEngineAPIOperation.DISCOVER:
+            required_operations = (
+                WorkflowEngineAPIOperation.GET,
+                WorkflowEngineAPIOperation.DISCOVER,
+            )
         case None:
             required_operations = ()
         case normalized_operation:

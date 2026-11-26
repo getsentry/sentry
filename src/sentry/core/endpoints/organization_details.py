@@ -6,6 +6,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, TypedDict
 from urllib.parse import urlsplit
 
+from django.conf import settings
 from django.db import models, router, transaction
 from django.db.models.query_utils import DeferredAttribute
 from django.urls import reverse
@@ -16,12 +17,13 @@ from rest_framework.exceptions import PermissionDenied
 from sentry_sdk import capture_exception
 
 from bitfield.types import BitHandler
-from sentry import analytics, audit_log, options, roles
+from sentry import analytics, audit_log, roles
 from sentry.analytics.events.organization_removed import OrganizationRemoved
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import ONE_DAY, cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.decorators import sudo_required
+from sentry.api.exceptions import UserRequired
 from sentry.api.fields import AvatarField
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models import organization as org_serializers
@@ -75,6 +77,7 @@ from sentry.constants import (
 )
 from sentry.core.endpoints.project_details import MAX_SENSITIVE_FIELD_CHARS
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
+from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.hybridcloud.rpc import IDEMPOTENCY_KEY_LENGTH
 from sentry.hybridcloud.rpc.service import RpcValidationException
 from sentry.integrations.services.integration import integration_service
@@ -97,6 +100,7 @@ from sentry.relay.datascrubbing import validate_pii_config_update, validate_pii_
 from sentry.replays.models import OrganizationMemberReplayAccess
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.autofix.utils import get_valid_automated_run_stopping_points
+from sentry.service_accounts.auth import is_service_account_auth
 from sentry.services.organization.provisioning import organization_provisioning_service
 from sentry.tasks.console_platform_cleanup import remove_inaccessible_console_platform_sources
 from sentry.users.services.user.serial import serialize_generic_user
@@ -692,6 +696,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
             org.flags.enhanced_privacy = data["enhancedPrivacy"]
         if "isEarlyAdopter" in data:
             org.flags.early_adopter = data["isEarlyAdopter"]
+        require_2fa_before = org.flags.require_2fa.is_set
         if "require2FA" in data:
             org.flags.require_2fa = data["require2FA"]
         if "allowMemberProjectCreation" in data:
@@ -733,7 +738,12 @@ class OrganizationSerializer(BaseOrganizationSerializer):
                     if flag_has_changed(org, f):
                         changed_data[f] = f"to {v}"
 
-        org.save()
+        # Control reads require_2fa to stop members removing their last authenticator.
+        with outbox_context(
+            transaction.atomic(router.db_for_write(Organization)),
+            flush=True if org.flags.require_2fa.is_set != require_2fa_before else None,
+        ):
+            org.save()
 
         if "avatar" in data or "avatarType" in data:
             OrganizationAvatar.save_avatar(
@@ -1115,6 +1125,11 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         """
         Update various attributes and configurable settings for the given organization.
         """
+        # Org settings reach every project, including ones a service account isn't
+        # linked to, so only a person may change them.
+        if is_service_account_auth(request.auth):
+            raise UserRequired()
+
         # This param will be used to determine if we should include feature flags in the response
         include_feature_flags = request.GET.get("include_feature_flags", "0") != "0"
 
@@ -1329,7 +1344,7 @@ def send_delete_confirmation(delete_confirmation_args: DeleteConfirmationArgs) -
     }
 
     message = MessageBuilder(
-        subject="{}Organization Queued for Deletion".format(options.get("mail.subject-prefix")),
+        subject=f"{settings.EMAIL_SUBJECT_PREFIX}Organization Queued for Deletion",
         template="sentry/emails/org_delete_confirm.txt",
         html_template="sentry/emails/org_delete_confirm.html",
         type="org.confirm_delete",

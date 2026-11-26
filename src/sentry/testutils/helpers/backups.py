@@ -573,6 +573,7 @@ class ExhaustiveFixtures(Fixtures):
             project_id=project.id,
             config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
             owner_user_id=owner_id,
+            created_by_service_account_id=service_account.id,
         )
 
         # AlertRule*
@@ -682,7 +683,7 @@ class ExhaustiveFixtures(Fixtures):
         seer_workflow_config = Factories.create_seer_workflow_config(
             org,
             service_account_id=service_account.id,
-            strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
+            strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION,
             filters={"environments": ["production"]},
         )
         Factories.create_seer_workflow_config_project(seer_workflow_config, project)
@@ -719,6 +720,13 @@ class ExhaustiveFixtures(Fixtures):
             group_search_view=group_search_view,
             project=project,
         )
+        GroupSearchView.objects.create(
+            name=f"View 2 for {slug}",
+            created_by_service_account_id=service_account.id,
+            organization=org,
+            query=f"some other query for {slug}",
+            query_sort="date",
+        )
         GroupSearchViewLastVisited.objects.create(
             organization=org,
             user_id=owner_id,
@@ -746,7 +754,9 @@ class ExhaustiveFixtures(Fixtures):
             )
 
         # Setup a test 'Issue Rule' and 'Automation'
-        workflow = self.create_workflow(organization=org)
+        workflow = self.create_workflow(
+            organization=org, created_by_service_account_id=service_account.id
+        )
         seer_workflow_config.update(backing_workflow=workflow)
         detector = self.create_detector(project=project, type=MetricIssue.slug)
         self.create_detector_workflow(detector=detector, workflow=workflow)

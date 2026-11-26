@@ -1,12 +1,16 @@
 import type {User} from 'sentry/types/user';
 
-export const CLASSIFIER_DATASETS = ['conversation', 'trace_spans'] as const;
+import type {CLASSIFIER_DATASETS} from './constants';
 
 export type ClassifierDataset = (typeof CLASSIFIER_DATASETS)[number];
 
 export type ClassifierOutputType = 'binary' | 'choice' | 'score';
 
-export interface TelemetryClassifier {
+export type ClassifierOutputConfig =
+  | {binaryThreshold: number; outputType: 'binary'}
+  | {binaryThreshold: null; outputType: Exclude<ClassifierOutputType, 'binary'>};
+
+type TelemetryClassifierBase = {
   createdBy: User | null;
   dataset: ClassifierDataset;
   dateAdded: string;
@@ -15,18 +19,20 @@ export interface TelemetryClassifier {
   id: string;
   name: string;
   naturalLanguagePrompt: string | null;
-  outputType: ClassifierOutputType | null;
   prebuiltClassifierKey: string | null;
   projectId: string;
   resultAttribute: string;
   status: 'disabled' | 'enabled';
-}
+};
 
-export interface PrebuiltClassifier {
+export type TelemetryClassifier = TelemetryClassifierBase & ClassifierOutputConfig;
+
+type PrebuiltClassifierBase = {
   dataset: ClassifierDataset;
   description: string;
   key: string;
   name: string;
-  outputType: ClassifierOutputType;
   resultAttribute: string;
-}
+};
+
+export type PrebuiltClassifier = PrebuiltClassifierBase & ClassifierOutputConfig;

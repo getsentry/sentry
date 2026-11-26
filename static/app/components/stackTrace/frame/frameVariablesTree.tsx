@@ -5,7 +5,7 @@ import {Button} from '@sentry/scraps/button';
 import {CopyToClipboardButton} from '@sentry/scraps/clipboard';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {InfoText} from '@sentry/scraps/info';
-import {Container, Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -25,34 +25,86 @@ interface Props {
   platform?: PlatformKey;
 }
 
-const KEY_PREVIEW_LENGTH = 32;
+const SUMMARY_PREVIEW_LENGTH = 64;
+const SUMMARY_VALUE_LENGTH = 16;
 const AUTO_EXPAND_MAX_ITEMS = 5;
 const AUTO_EXPAND_MAX_DEPTH = 2;
 
-/** Preview keys within a character budget, then count any remaining keys. */
+type ScalarVariable = Exclude<FrameVariable, {kind: 'object' | 'array'}>;
+
+function hasAnnotations({meta}: FrameVariable): boolean {
+  return Boolean(meta?.rem?.length || meta?.chunks?.length || meta?.err?.length);
+}
+
+/** The text of a scalar as its row displays it, without the quotes around a string. */
+function getScalarText(variable: ScalarVariable, platform: PlatformKey): string | null {
+  const annotated = hasAnnotations(variable);
+  const config = getStructuredDataConfig({platform});
+  switch (variable.kind) {
+    case 'unavailable':
+      return null;
+    case 'null':
+      return annotated
+        ? null
+        : (config.renderNull?.(variable.value ?? null) ??
+            (platform === 'native' ? 'nullptr' : 'null'));
+    case 'boolean':
+      return (
+        config.renderBoolean?.(variable.value === 'true' || variable.value === 'True') ??
+        variable.value
+      );
+    case 'string':
+      return annotated ? variable.value : JSON.stringify(variable.value).slice(1, -1);
+    default:
+      return variable.value;
+  }
+}
+
+/**
+ * Preview a child as `name: value` when it has a short scalar value, and as its name
+ * otherwise: collections, unavailable values, long values such as addresses, and
+ * redacted or trimmed values.
+ */
+function getSummaryEntry(variable: FrameVariable, platform: PlatformKey): string {
+  if (
+    variable.kind === 'object' ||
+    variable.kind === 'array' ||
+    hasAnnotations(variable)
+  ) {
+    return variable.name;
+  }
+  const text = getScalarText(variable, platform);
+  const value = variable.kind === 'string' ? `"${text}"` : text;
+  return value === null || value.length > SUMMARY_VALUE_LENGTH
+    ? variable.name
+    : `${variable.name}: ${value}`;
+}
+
+/** Preview entries within a character budget, then count any remaining entries. */
 function getObjectSummary(
   children: readonly FrameVariable[],
-  totalCount: number
+  totalCount: number,
+  platform: PlatformKey
 ): string {
   const [first, ...remaining] = children;
   if (!first) {
     return '{}';
   }
-  let preview = first.name;
-  if (preview.length > KEY_PREVIEW_LENGTH) {
-    preview = `${preview.slice(0, KEY_PREVIEW_LENGTH - 1)}…`;
+  let preview = getSummaryEntry(first, platform);
+  if (preview.length > SUMMARY_PREVIEW_LENGTH) {
+    preview = `${preview.slice(0, SUMMARY_PREVIEW_LENGTH - 1)}…`;
   }
   let shown = 1;
-  for (const {name} of remaining) {
-    const next = `${preview}, ${name}`;
-    if (next.length > KEY_PREVIEW_LENGTH) {
+  for (const child of remaining) {
+    const next = `${preview}, ${getSummaryEntry(child, platform)}`;
+    if (next.length > SUMMARY_PREVIEW_LENGTH) {
       break;
     }
     preview = next;
     shown++;
   }
   if (totalCount > shown) {
-    preview += `, ${t('%s more', totalCount - shown)}`;
+    preview += `, ${t('+%s more', totalCount - shown)}`;
   }
   return `{ ${preview} }`;
 }
@@ -164,9 +216,30 @@ function Variable({
     ) : (
       <Text monospace size="xs" variant="muted" ellipsis>
         {variable.kind === 'array' && `[ ${tn('%s item', '%s items', totalCount)} ]`}
-        {variable.kind === 'object' && getObjectSummary(variable.children, totalCount)}
+        {variable.kind === 'object' &&
+          getObjectSummary(variable.children, totalCount, platform)}
       </Text>
     ));
+
+  const showsValue = !isCollection || !hasChildren || !expanded;
+  const pointerChain = variable.pointerAddresses?.join(' → ');
+  const value = isCollection ? (
+    showsValue &&
+    (hasChildren ? (
+      <SummaryButton
+        variant="transparent"
+        size="zero"
+        aria-label={t('Expand %s', name)}
+        onClick={() => setExpanded(true)}
+      >
+        {summary}
+      </SummaryButton>
+    ) : (
+      summary
+    ))
+  ) : (
+    <ScalarValue variable={variable} platform={platform} />
+  );
 
   const row = (
     <VariableRow
@@ -204,25 +277,19 @@ function Variable({
         padding={depth > 0 ? 'sm md' : 'md'}
         minWidth="0"
       >
-        <Stack minWidth="0" align="start">
-          {isCollection ? (
-            (!hasChildren || !expanded) &&
-            (hasChildren ? (
-              <SummaryButton
-                variant="transparent"
-                size="zero"
-                aria-label={t('Expand %s', name)}
-                onClick={() => setExpanded(true)}
-              >
-                {summary}
-              </SummaryButton>
-            ) : (
-              summary
-            ))
-          ) : (
-            <ScalarValue variable={variable} platform={platform} />
-          )}
-        </Stack>
+        {pointerChain ? (
+          <Flex minWidth="0" align="baseline" wrap="wrap" gap="0 sm">
+            <Text monospace size="sm" variant="muted" density="comfortable">
+              {/* The members of an expanded structure are listed below the row. */}
+              {showsValue ? `${pointerChain} →` : pointerChain}
+            </Text>
+            {value}
+          </Flex>
+        ) : (
+          <Stack minWidth="0" align="start">
+            {value}
+          </Stack>
+        )}
         {copyText !== undefined && (
           <VariableCopyButton
             text={copyText}
@@ -277,14 +344,11 @@ function ScalarValue({
   platform,
 }: {
   platform: PlatformKey;
-  variable: Exclude<FrameVariable, {kind: 'object' | 'array'}>;
+  variable: ScalarVariable;
 }) {
   const {kind, meta} = variable;
-  const hasAnnotations = Boolean(
-    meta?.rem?.length || meta?.chunks?.length || meta?.err?.length
-  );
 
-  if (kind === 'unavailable' && !hasAnnotations) {
+  if (kind === 'unavailable' && !hasAnnotations(variable)) {
     return (
       <Text monospace size="sm" variant="muted" density="comfortable">
         {t('Unavailable')}
@@ -292,31 +356,7 @@ function ScalarValue({
     );
   }
 
-  let value: string | null;
-  const config = getStructuredDataConfig({platform});
-  switch (kind) {
-    case 'unavailable':
-      value = null;
-      break;
-    case 'null':
-      value = hasAnnotations
-        ? null
-        : (config.renderNull?.(variable.value ?? null) ??
-          (platform === 'native' ? 'nullptr' : 'null'));
-      break;
-    case 'boolean':
-      value =
-        config.renderBoolean?.(variable.value === 'true' || variable.value === 'True') ??
-        variable.value;
-      break;
-    case 'string':
-      value = hasAnnotations
-        ? variable.value
-        : JSON.stringify(variable.value).slice(1, -1);
-      break;
-    default:
-      value = variable.value;
-  }
+  const value = getScalarText(variable, platform);
 
   return (
     <VariableValue

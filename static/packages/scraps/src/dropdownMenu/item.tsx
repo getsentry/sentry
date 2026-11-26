@@ -9,7 +9,8 @@ import type {Node} from '@react-types/shared';
 import {IconCheckmark} from '@sentry/icons/checkmark';
 import {IconChevron} from '@sentry/icons/chevron';
 
-import {ExternalLink, Link, type LinkProps} from '@sentry/scraps/link';
+import type {LinkProps} from '@sentry/scraps/link';
+import {useLinkBehavior} from '@sentry/scraps/link/linkBehaviorContext';
 import {
   ListItem,
   type ListItemProps,
@@ -21,7 +22,7 @@ import {
   type VirtualRowProps,
 } from '@sentry/scraps/useVirtualCollection';
 
-import {DropdownMenuContext} from './context';
+import {DropdownMenuContext, DropdownMenuTreeStateContext} from './context';
 
 /**
  * Data attributes `DropdownMenuSection` spaces its items by: every item of a
@@ -140,10 +141,6 @@ interface DropdownMenuItemProps<T extends React.ElementType = 'li'> {
    * Node representation (from @react-aria) of the item
    */
   node: Node<MenuItemProps>;
-  /**
-   * Tree state (from @react-stately) inherited from parent menu
-   */
-  state: TreeState<MenuItemProps>;
   id?: string;
   /**
    * Whether the item is in a virtualized menu. React Aria then sets
@@ -183,7 +180,6 @@ interface DropdownMenuItemProps<T extends React.ElementType = 'li'> {
  */
 export function DropdownMenuItem<T extends React.ElementType = 'li'>({
   node,
-  state,
   closeOnSelect,
   onClose,
   renderAs,
@@ -196,6 +192,7 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
 }: DropdownMenuItemProps<T>) {
   const innerWrapRef = useRef<HTMLElement | null>(null);
   const trailingActionRef = useRef<HTMLButtonElement>(null);
+  const state = useContext(DropdownMenuTreeStateContext);
   const isDisabled = state.disabledKeys.has(node.key);
   const isFocused = state.selectionManager.focusedKey === node.key;
   const {
@@ -217,6 +214,9 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
   const {size} = node.props;
   const {rootMenuState} = useContext(DropdownMenuContext);
   const isLink = to || externalHref;
+  // The router link that Link styles. Rendering StyledInnerWrap `as` Link would
+  // make Emotion serialize both components' styles on every hover.
+  const {Component: RouterLink, behavior: linkBehavior} = useLinkBehavior({to: to ?? ''});
   const resolvedCloseOnSelect = itemCloseOnSelect ?? closeOnSelect;
 
   const actionHandler = () => {
@@ -275,16 +275,15 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
 
   const makeInnerWrapProps = () => {
     if (to) {
-      return {
-        as: Link,
-        to,
-      };
+      return {as: RouterLink, ...linkBehavior()};
     }
 
     if (externalHref) {
       return {
-        as: ExternalLink,
+        as: 'a' as const,
         href: externalHref,
+        target: '_blank',
+        rel: 'noreferrer noopener',
       };
     }
 

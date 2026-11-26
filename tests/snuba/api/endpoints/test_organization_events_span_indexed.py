@@ -15,7 +15,7 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import ExtrapolationMode
 from sentry.insights.models import InsightsStarredSegment
 from sentry.search.events.constants import RATE_LIMIT_ERROR_MESSAGE
 from sentry.testutils.helpers import parse_link_header
-from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.datetime import before_now, isoformat_z
 from sentry.testutils.helpers.eap import EAP_DEFAULT_STATS_PERIOD_DAYS
 from sentry.utils.snuba_rpc import _make_rpc_requests, table_rpc
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
@@ -2230,6 +2230,30 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
                 "tags[foo,number]": 30,
             },
         ]
+
+    def test_max_timestamp_datetime_aggregate_filter(self) -> None:
+        threshold = before_now(hours=1)
+        self.store_spans(
+            [
+                self.create_span({"description": "recent"}, start_ts=self.ten_mins_ago),
+                self.create_span({"description": "older"}, start_ts=before_now(hours=2)),
+            ]
+        )
+
+        response = self.do_request(
+            {
+                "field": ["description", "max(timestamp)"],
+                "query": f"max(timestamp):>{isoformat_z(threshold)}",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["description"] == "recent"
+        assert response.data["data"][0]["max(timestamp)"] > threshold.timestamp()
 
     def test_aggregate_filter(self) -> None:
         self._test_aggregate_filter(
@@ -6547,10 +6571,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
             }
         )
         assert response.status_code == 400, response.content
-        assert (
-            response.data["detail"]
-            == "`test%` must be a valid UUID hex (32-36 characters long, containing only digits, dashes, or a-f characters)"
-        )
+        assert response.data["detail"] == "Wildcard conditions are not permitted on `trace` field"
 
     def test_invalid_span_id(self) -> None:
         response = self.do_request(

@@ -10,7 +10,6 @@
 @import url('./bootstrap/scaffolding.css');
 @import url('./bootstrap/grid.css');
 @import url('./bootstrap/utilities.css');
-@import url('./bootstrap/responsive-utilities.css');
 
 /* Shared components */
 @import url('./shared/alerts.css');
@@ -19,7 +18,8 @@
 /* App components */
 @import url('./shared-components.css');
 @import url('./layout.css');
-@import url('./fonts.css');
+@import url('@sentry/scraps/fonts.css');
+@import url('./icon-font.css');
 @import url('./misc.css');
 
 /* Page specific */

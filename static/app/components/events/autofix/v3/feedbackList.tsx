@@ -3,6 +3,7 @@ import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconCircle} from '@sentry/icons/circle';
 import {IconCircleCheckmark} from '@sentry/icons/circleCheckmark';
+import {IconClock} from '@sentry/icons/clock';
 import {IconClose} from '@sentry/icons/close';
 import {IconGithub} from '@sentry/icons/github';
 import {IconOpen} from '@sentry/icons/open';
@@ -20,11 +21,14 @@ import {CollapsibleContent} from 'sentry/components/ai/chat/collapsibleContent';
 import {
   isOutOfCreditsSection,
   isPrIterationBlock,
+  getPrIterationWaitingAction,
+  isPrIterationPaused,
   type AutofixSection,
   type RawFeedback,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {getStoppedFeedbackMessage} from 'sentry/components/seer/outOfCredits/messages';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import type {AvatarUser, User} from 'sentry/types/user';
@@ -42,8 +46,17 @@ const SOURCE_BADGE_SIZE = 14;
  * - `error`: the iteration or its push failed.
  * - `in_progress`: it's driving the iteration currently being processed.
  * - `queued`: submitted while a run was processing, not yet picked up.
+ * - `waiting_for_credits`: it, or its iteration's push or retry, is waiting
+ *   for credits.
+ * - `paused`: queued, but iteration on the PR is paused, so it won't run.
  */
-type FeedbackStatus = 'processed' | 'error' | 'in_progress' | 'queued';
+type FeedbackStatus =
+  | 'processed'
+  | 'error'
+  | 'in_progress'
+  | 'queued'
+  | 'waiting_for_credits'
+  | 'paused';
 
 interface ParsedBaseFeedback {
   text: string;
@@ -103,7 +116,10 @@ type ParsedFeedback =
   | OtherFeedback;
 
 type FeedbackListItem = ParsedFeedback & {
+  /** Why billing refused credit, when `errorCode` is `out_of_credits`. */
+  creditDenialReason?: string | null;
   errorCode?: string | null;
+  queued?: boolean;
   status?: FeedbackStatus;
 };
 
@@ -131,11 +147,7 @@ function parseFeedbackItem(parsed: RawFeedback): ParsedFeedback | null {
       if (!commentUrl) {
         return null;
       }
-      const comment = {
-        ...base,
-        githubUsername: source.comment?.user?.login,
-        commentUrl,
-      };
+      const comment = {...base, githubUsername: source.comment?.user?.login, commentUrl};
       return source.type === 'github-pr-review-comment'
         ? {...comment, sourceType: source.type, reviewId: source.review_id}
         : {...comment, sourceType: source.type};
@@ -160,11 +172,7 @@ function parseFeedbackItem(parsed: RawFeedback): ParsedFeedback | null {
       };
     }
     default:
-      return {
-        ...base,
-        sourceType: 'other',
-        source: parsed.source?.type ?? 'unknown',
-      };
+      return {...base, sourceType: 'other', source: parsed.source?.type ?? 'unknown'};
   }
 }
 
@@ -201,16 +209,22 @@ export function usePrIterationFeedback(
     const repoStates = Object.values(autofix.runState?.repo_pr_states ?? {});
     const pushErrors = repoStates.filter(repo => repo.pr_creation_status === 'error');
     // Running out of credits stops either the iteration itself or its push.
+    const outOfCreditsPush = pushErrors.find(isOutOfCreditsPRState);
     const errorCode =
-      isOutOfCreditsSection(section) || pushErrors.some(isOutOfCreditsPRState)
+      isOutOfCreditsSection(section) || outOfCreditsPush
         ? 'out_of_credits'
         : pushErrors.find(repo => repo.pr_creation_error_code === 'branch_moved')
             ?.pr_creation_error_code;
+    const creditDenialReason = isOutOfCreditsSection(section)
+      ? section.creditDenialReason
+      : outOfCreditsPush?.credit_denial_reason;
     const inProgress =
       section.status === 'processing' ||
       autofix.runState?.status === 'processing' ||
       autofix.runState?.status === 'awaiting_user_input' ||
       repoStates.some(repo => repo.pr_creation_status === 'creating');
+
+    const waitingAction = getPrIterationWaitingAction(autofix.runState);
 
     const currentStep = section.blocks[currentStepStart];
     const currentIterationIndex =
@@ -244,6 +258,8 @@ export function usePrIterationFeedback(
       ) {
         if (inProgress) {
           status = 'in_progress';
+        } else if (waitingAction) {
+          status = 'waiting_for_credits';
         } else if (section.status === 'error' || pushErrors.length > 0) {
           status = 'error';
         }
@@ -254,6 +270,7 @@ export function usePrIterationFeedback(
         iterationIndex: Number(iterationIndex),
         status,
         errorCode: status === 'error' ? errorCode : undefined,
+        creditDenialReason: status === 'error' ? creditDenialReason : undefined,
       }));
     });
   }, [section, autofix.runState, currentStepStart]);
@@ -269,21 +286,29 @@ export function usePrIterationFeedback(
   );
 
   const queuedFeedback = useMemo<IterationFeedback[]>(() => {
+    const paused = isPrIterationPaused(autofix.runState);
+    const outOfCredits = defined(autofix.runState?.pr_iteration_out_of_credits);
     return (autofix.runState?.queued_feedback ?? []).flatMap(raw => {
       const parsed = parseFeedbackItem(raw);
       if (!parsed) {
         return [];
       }
 
+      const status: FeedbackStatus = paused
+        ? 'paused'
+        : outOfCredits
+          ? 'waiting_for_credits'
+          : 'queued';
       return [
         {
           ...parsed,
           iterationIndex: (latestIterationIndex ?? -1) + 1,
-          status: 'queued' as const,
+          queued: true,
+          status,
         },
       ];
     });
-  }, [autofix.runState?.queued_feedback, latestIterationIndex]);
+  }, [autofix.runState, latestIterationIndex]);
 
   const feedback = useMemo(
     () => [...blockFeedback, ...queuedFeedback].reverse(),
@@ -485,7 +510,11 @@ function FeedbackItem({item}: {item: FeedbackListItem}) {
       </Cell>
       {/* Status icon sits at the far right, after the timestamp. */}
       <Cell>
-        <FeedbackStatusIcon status={item.status} errorCode={item.errorCode} />
+        <FeedbackStatusIcon
+          status={item.status}
+          errorCode={item.errorCode}
+          creditDenialReason={item.creditDenialReason}
+        />
       </Cell>
     </Grid>
   );
@@ -504,7 +533,7 @@ function Cell({children}: {children: React.ReactNode}) {
 function FeedbackTimestamp({item}: {item: FeedbackListItem}) {
   return (
     <Text variant="muted" size="sm" wrap="nowrap">
-      {item.status === 'queued' ? (
+      {item.queued && item.status !== 'paused' ? (
         t('Queued')
       ) : item.timestamp ? (
         <TimeSince date={item.timestamp} />
@@ -802,16 +831,17 @@ function PrimaryIconAvatar({Icon, tooltip}: {Icon: typeof IconSeer; tooltip: str
   );
 }
 
-function getFeedbackErrorMessage(errorCode: string | null | undefined): string {
+function getFeedbackErrorMessage(
+  errorCode: string | null | undefined,
+  creditDenialReason: string | null | undefined
+): string {
   switch (errorCode) {
     case 'branch_moved':
       return t(
         'Seer did not push these changes because it would have had to force-push over newer commits on the PR branch.'
       );
     case 'out_of_credits':
-      return t(
-        "Seer couldn't finish this feedback because your organization is out of credits."
-      );
+      return getStoppedFeedbackMessage(creditDenialReason);
     default:
       return t('Changes from this feedback could not be pushed');
   }
@@ -821,14 +851,19 @@ function getFeedbackErrorMessage(errorCode: string | null | undefined): string {
 function FeedbackStatusIcon({
   status,
   errorCode,
+  creditDenialReason,
 }: {
+  creditDenialReason?: string | null;
   errorCode?: string | null;
   status?: FeedbackStatus;
 }) {
   switch (status) {
     case 'error':
       return (
-        <Tooltip title={getFeedbackErrorMessage(errorCode)} skipWrapper>
+        <Tooltip
+          title={getFeedbackErrorMessage(errorCode, creditDenialReason)}
+          skipWrapper
+        >
           <Flex
             align="center"
             justify="center"
@@ -857,6 +892,30 @@ function FeedbackStatusIcon({
       return (
         <Tooltip title={t('Queued, not yet picked up')} skipWrapper>
           <Flex align="center" justify="center">
+            <IconCircle variant="muted" />
+          </Flex>
+        </Tooltip>
+      );
+    case 'waiting_for_credits':
+      return (
+        <Tooltip title={t('This feedback is waiting for available credits')} skipWrapper>
+          <Flex
+            align="center"
+            justify="center"
+            role="img"
+            aria-label={t('Waiting for credits')}
+          >
+            <IconClock variant="warning" />
+          </Flex>
+        </Tooltip>
+      );
+    case 'paused':
+      return (
+        <Tooltip
+          title={t("This feedback won't run because PR iteration was stopped")}
+          skipWrapper
+        >
+          <Flex align="center" justify="center" role="img" aria-label={t('Paused')}>
             <IconCircle variant="muted" />
           </Flex>
         </Tooltip>

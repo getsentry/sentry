@@ -5,7 +5,20 @@ from typing import Required, TypedDict
 
 import sentry_sdk
 from django.db import IntegrityError, router, transaction
-from django.db.models import Case, Exists, F, IntegerField, OrderBy, OuterRef, Subquery, Value, When
+from django.db.models import (
+    Case,
+    Exists,
+    F,
+    Func,
+    IntegerField,
+    OrderBy,
+    OuterRef,
+    Q,
+    Subquery,
+    TextField,
+    Value,
+    When,
+)
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.request import Request
@@ -17,6 +30,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.api.endpoints.organization_explore_formulas import saved_formula_regex
 from sentry.api.paginator import ChainPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.dashboard import (
@@ -51,6 +65,7 @@ from sentry.models.dashboard import (
     DashboardFavoriteUser,
     DashboardLastVisited,
 )
+from sentry.models.dashboard_widget import DashboardWidgetQuery
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization.model import (
     RpcOrganization,
@@ -93,6 +108,7 @@ class PrebuiltDashboardId(IntEnum):
     BACKEND_QUEUE_SUMMARY = 27
     BACKEND_CACHES = 28
     NODE_RUNTIME_METRICS = 29
+    ELIXIR_RUNTIME_METRICS = 30
 
 
 class PrebuiltDashboard(TypedDict, total=False):
@@ -237,6 +253,11 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
     {
         "prebuilt_id": PrebuiltDashboardId.NODE_RUNTIME_METRICS,
         "title": "Node.js Runtime Metrics",
+        "required_feature_flags": ["organizations:tracemetrics-enabled"],
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.ELIXIR_RUNTIME_METRICS,
+        "title": "Elixir Runtime Metrics",
         "required_feature_flags": ["organizations:tracemetrics-enabled"],
     },
 ]
@@ -546,6 +567,30 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
 
         if query:
             dashboards = dashboards.filter(title__icontains=query)
+
+        formula = request.query_params.get("formula")
+        if formula is not None and features.has(
+            "organizations:explore-saved-formulas", organization, actor=request.user
+        ):
+            regex = saved_formula_regex(formula)
+            matching_widget_queries = (
+                DashboardWidgetQuery.objects.filter(widget__dashboard_id=OuterRef("pk"))
+                .annotate(
+                    aggregates_text=Func(
+                        F("aggregates"),
+                        Value(" ", output_field=TextField()),
+                        function="array_to_string",
+                        output_field=TextField(),
+                    )
+                )
+                .filter(
+                    Q(conditions__regex=regex)
+                    | Q(orderby__regex=regex)
+                    | Q(aggregates_text__regex=regex)
+                )
+            )
+            dashboards = dashboards.filter(Exists(matching_widget_queries))
+
         if should_filter_by_prebuilt_ids:
             dashboards = dashboards.filter(prebuilt_id__in=prebuilt_ids)
 

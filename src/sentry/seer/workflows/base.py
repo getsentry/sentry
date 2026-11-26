@@ -1,17 +1,19 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Iterator, Sequence
+from collections.abc import Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Annotated, Any, Literal, NewType, Protocol
+from typing import Annotated, Any, ClassVar, Literal, NewType, Protocol
 
 from django.db import router, transaction
 from django.db.models import QuerySet
 from django.utils import timezone
+from jsonschema import ValidationError as JSONSchemaValidationError
 from pydantic import BaseModel, Field, ValidationError
 
+from sentry.constants import ObjectStatus
 from sentry.models.project import Project
 from sentry.seer.models.workflow import (
     SeerWorkflowConfig,
@@ -19,6 +21,7 @@ from sentry.seer.models.workflow import (
     SeerWorkflowFilters,
     SeerWorkflowRun,
     SeerWorkflowRunExtras,
+    SeerWorkflowRunSource,
     SeerWorkflowStrategy,
     WorkflowRunError,
     WorkflowRunSnapshot,
@@ -33,8 +36,15 @@ from sentry.service_accounts.models import (
 )
 from sentry.service_accounts.outbox import service_account_grant_update_outbox
 from sentry.utils import json
+from sentry.workflow_engine.models import Action, Workflow
+from sentry.workflow_engine.types import ActionInvocation
 
 logger = logging.getLogger(__name__)
+
+# How an action reaches its workflow: workflow -> action filter group -> action.
+ACTION_WORKFLOW_ID = (
+    "dataconditiongroupaction__condition_group__workflowdataconditiongroup__workflow_id"
+)
 
 
 class WorkflowUpdateError(ValueError):
@@ -120,47 +130,6 @@ class NoSettings(BaseModel):
         extra = "forbid"
 
 
-class AutomationTrigger[Inputs: BaseModel](Protocol):
-    """How an automation's runs start, and which projects those runs cover."""
-
-    # What a firing hands to the automation's action; recorded in the run's snapshot.
-    inputs_type: type[Inputs]
-    settings_type: type[BaseModel]
-    scoped_by: Literal["projects", "monitors"]
-
-    def projects(self, config: SeerWorkflowConfig) -> QuerySet[Project]:
-        """Return the active projects in the config's scope."""
-        ...
-
-    def set_scope(self, update: ConfigUpdate, selection: ScopeSelection) -> None:
-        """Replace the config's scope, marking ``update`` only when something changed."""
-        ...
-
-    def sync(self, config: SeerWorkflowConfig) -> None:
-        """Bring anything the trigger keeps outside the config in line with it."""
-        ...
-
-    def teardown(self, config: SeerWorkflowConfig) -> None:
-        """Remove anything the trigger keeps outside the config, before it is deleted."""
-        ...
-
-
-class AutomationAction[Inputs: BaseModel](Protocol):
-    """What Seer does for an admitted run."""
-
-    settings_type: type[BaseModel]
-
-    def dispatch(
-        self, config: SeerWorkflowConfig, run: SeerWorkflowRunLifecycle, inputs: Inputs
-    ) -> None:
-        """Persist the run's execution plan and start its work.
-
-        Called once per run, inside the transaction that admitted it. Raising rolls the
-        admission back so a redelivered trigger can retry.
-        """
-        ...
-
-
 RejectionReason = Literal["quota_exceeded"]
 
 
@@ -192,29 +161,93 @@ class AdmittedRun:
 
 
 @dataclass(frozen=True)
-class AutomationDefinition[Inputs: BaseModel]:
-    """An automation: a trigger paired with an action that accepts what it produces."""
+class AcceptedRun:
+    run: SeerWorkflowRun
+    created: bool
 
-    trigger: AutomationTrigger[Inputs]
-    action: AutomationAction[Inputs]
+
+@dataclass(frozen=True)
+class RejectedRun:
+    run: SeerWorkflowRun
+    reason: RejectionReason
+    created: bool
+
+
+@dataclass(frozen=True)
+class IgnoredRun:
+    reason: Literal[
+        "unsupported_trigger",
+        "invalid_source",
+        "feature_disabled",
+        "config_disabled",
+        "configuration_unavailable",
+        "out_of_scope",
+    ]
+
+
+type ActionAdmission = AcceptedRun | RejectedRun | IgnoredRun
+
+
+class AutomationDefinition[Inputs: BaseModel](Protocol):
+    """An automation: how its runs start, and which projects those runs cover."""
+
+    strategy: SeerWorkflowStrategy
+    # What a firing hands to the automation's action; recorded in the run's snapshot.
+    inputs_type: type[Inputs]
+    settings_type: type[BaseModel]
+    # Whether the automation's investigation action takes a prompt or a skill, which is then
+    # required. Seeded defaults start with ``seeded_action_settings``.
+    takes_action_settings: ClassVar[bool] = False
+    seeded_action_settings: ClassVar[Mapping[str, Any] | None] = None
+    scoped_by: Literal["projects", "monitors"]
+
+    def projects(self, config: SeerWorkflowConfig) -> QuerySet[Project]:
+        """Return the active projects in the config's scope."""
+        ...
+
+    def setup(self, update: ConfigUpdate, workflow: Workflow) -> None:
+        """Attach anything the trigger needs to a new automation's backing workflow."""
+        return None
+
+    def admit_action(self, invocation: ActionInvocation, *, config_id: int) -> ActionAdmission:
+        """Decide whether the automation's backing workflow firing this action starts a run."""
+        return IgnoredRun("unsupported_trigger")
+
+    def set_scope(self, update: ConfigUpdate, selection: ScopeSelection) -> None:
+        """Replace the config's scope, marking ``update`` only when something changed."""
+        ...
+
+    def sync(self, config: SeerWorkflowConfig) -> None:
+        """Bring anything the trigger keeps outside the config in line with it."""
+        return None
+
+    def teardown(self, config: SeerWorkflowConfig) -> None:
+        """Remove anything the trigger keeps outside the config, before it is deleted."""
+        return None
 
     def project_ids(self, config: SeerWorkflowConfig) -> list[int]:
-        return list(self.trigger.projects(config).order_by("id").values_list("id", flat=True))
+        return list(self.projects(config).order_by("id").values_list("id", flat=True))
+
+    @staticmethod
+    def is_enabled(config: SeerWorkflowConfig) -> bool:
+        workflow = config.backing_workflow
+        # TODO(telkins): Cascade a deleted backing workflow to its automation.
+        return workflow is not None and workflow.enabled and workflow.status == ObjectStatus.ACTIVE
 
     def covers(self, config: SeerWorkflowConfig, project_id: int, environment: str | None) -> bool:
         filters = SeerWorkflowFilters.parse_obj(config.filters)
         return (
-            config.enabled
+            self.is_enabled(config)
             and (not filters.environments or environment in filters.environments)
-            and self.trigger.projects(config).filter(id=project_id).exists()
+            and self.projects(config).filter(id=project_id).exists()
         )
 
     def validate_settings(self, extras: SeerWorkflowConfigExtras) -> tuple[BaseModel, BaseModel]:
         """Return the parsed trigger and action settings."""
         try:
             return (
-                self.trigger.settings_type.parse_obj(extras.trigger_settings or {}),
-                self.action.settings_type.parse_obj(extras.action_settings or {}),
+                self.settings_type.parse_obj(extras.trigger_settings or {}),
+                NoSettings.parse_obj(extras.action_settings or {}),
             )
         except ValidationError as e:
             raise WorkflowUpdateError(
@@ -229,7 +262,14 @@ class AutomationDefinition[Inputs: BaseModel]:
         # TODO(telkins): Enforce automation quota before accepting a new run.
         return True
 
-    def admit_run(self, config: LockedConfig, *, trigger_key: str, inputs: Inputs) -> AdmittedRun:
+    def admit_run(
+        self,
+        config: LockedConfig,
+        *,
+        trigger_key: str,
+        source: SeerWorkflowRunSource,
+        inputs: Inputs,
+    ) -> AdmittedRun:
         """Record one admission decision per trigger key, leaving an accepted run queued.
 
         Retries return the original run with its configuration, inputs and decision.
@@ -274,7 +314,9 @@ class AutomationDefinition[Inputs: BaseModel]:
             ),
             admission=admission,
         )
-        lifecycle = SeerWorkflowRunLifecycle.create(config, trigger_key=trigger_key, extras=extras)
+        lifecycle = SeerWorkflowRunLifecycle.create(
+            config, trigger_key=trigger_key, source=source, extras=extras
+        )
         # TODO(telkins): Decide whether an automation that stays over quota should keep
         # recording a rejected run for every trigger.
         if admission.status == "rejected":
@@ -283,14 +325,6 @@ class AutomationDefinition[Inputs: BaseModel]:
             )
             return AdmittedRun(lifecycle=lifecycle, created=True, rejection=admission.reason)
         return AdmittedRun(lifecycle=lifecycle, created=True)
-
-    def trigger_run(self, config: LockedConfig, *, trigger_key: str, inputs: Inputs) -> AdmittedRun:
-        """Admit a triggered run and, the first time it is accepted, dispatch the action."""
-        run = self.admit_run(config, trigger_key=trigger_key, inputs=inputs)
-        if run.created and run.rejection is None:
-            run.lifecycle.start()
-            self.action.dispatch(config, run.lifecycle, inputs)
-        return run
 
 
 @dataclass
@@ -305,25 +339,76 @@ class ConfigUpdate:
     config: LockedConfig
     definition: AutomationDefinition[Any]
     dirty_fields: set[str] = field(default_factory=set)
+    workflow_dirty_fields: set[str] = field(default_factory=set)
     related_changed: bool = False
 
     @property
     def changed(self) -> bool:
-        return bool(self.dirty_fields) or self.related_changed
+        return bool(self.dirty_fields) or bool(self.workflow_dirty_fields) or self.related_changed
 
     def mark(self, *fields: str) -> None:
         """Record changed columns on the config row."""
         self.dirty_fields.update(fields)
 
+    def mark_workflow(self, *fields: str) -> None:
+        """Record changed columns on the backing workflow, saved once with the config."""
+        self.workflow_dirty_fields.update(fields)
+
     def mark_related_changed(self) -> None:
         """Record changes outside the row, like project links, that still bump the version."""
         self.related_changed = True
 
+    def setup_backing_workflow(
+        self, *, name: str | None, created_by_id: int | None, enabled: bool
+    ) -> None:
+        """Give a new automation the backing workflow that holds its name and enabled state."""
+        workflow = Workflow.objects.create(
+            organization_id=self.config.organization_id,
+            name=name or "Seer automation",
+            type=Workflow.Type.SEER_INVESTIGATION,
+            enabled=enabled,
+            created_by_id=created_by_id,
+            config={"frequency": 0},
+        )
+        self.config.backing_workflow = workflow
+        self.mark("backing_workflow")
+        self.definition.setup(self, workflow)
+
     def set_enabled(self, enabled: bool) -> None:
-        if self.config.enabled == enabled:
-            return
-        self.config.enabled = enabled
-        self.mark("enabled")
+        workflow = self._backing_workflow()
+        if workflow.enabled != enabled:
+            workflow.enabled = enabled
+            self.mark_workflow("enabled")
+
+    def set_name(self, name: str) -> None:
+        workflow = self._backing_workflow()
+        if workflow.name != name:
+            workflow.name = name
+            self.mark_workflow("name")
+
+    def set_environments(self, environments: Sequence[str]) -> None:
+        """Replace the environments the automation covers. An empty list means all."""
+        filters = SeerWorkflowFilters.parse_obj(self.config.filters)
+        if filters.environments != list(environments):
+            filters.environments = list(environments)
+            self.config.filters = filters.dict()
+            self.mark("filters")
+
+    def set_action_settings(self, action_settings: Mapping[str, Any]) -> None:
+        """Replace the investigation action's prompt or skill, which the action's schema checks."""
+        if not self.definition.takes_action_settings:
+            raise WorkflowUpdateError(f"{self.definition.strategy} automations take no settings")
+        if not action_settings:
+            raise WorkflowUpdateError("Set a prompt or a skill")
+        action = self._investigation_action()
+        data = dict(action_settings)
+        if action.data != data:
+            action.data = data
+            try:
+                action.save(update_fields=["data", "date_updated"])
+            except JSONSchemaValidationError as e:
+                raise WorkflowUpdateError(e.message) from e
+            self.mark_related_changed()
 
     def set_extras(self, extras: SeerWorkflowConfigExtras) -> None:
         self.definition.validate_settings(extras)
@@ -369,6 +454,20 @@ class ConfigUpdate:
         self.mark_related_changed()
         return True
 
+    def set_scope(self, selection: ScopeSelection) -> None:
+        """Replace which projects the automation covers, in the form its trigger takes.
+
+        Callers must authorize the change; this only checks that the selection belongs to
+        the workflow's organization.
+        """
+        self.definition.set_scope(self, selection)
+
+    def _backing_workflow(self) -> Workflow:
+        workflow = self.config.backing_workflow
+        if workflow is None:
+            raise WorkflowUpdateError("The automation has no backing workflow")
+        return workflow
+
     def _service_account_replica(self) -> ServiceAccountReplica:
         if self.config.service_account_id is None:
             raise WorkflowUpdateError("The automation doesn't have a service account")
@@ -389,10 +488,11 @@ class ConfigUpdate:
             raise WorkflowUpdateError("The automation's service account can't be found")
         return replica
 
-    def set_scope(self, selection: ScopeSelection) -> None:
-        """Replace which projects the automation covers, in the form its trigger takes.
-
-        Callers must authorize the change; this only checks that the selection belongs to
-        the workflow's organization.
-        """
-        self.definition.trigger.set_scope(self, selection)
+    def _investigation_action(self) -> Action:
+        try:
+            return Action.objects.get(
+                type=Action.Type.SEER_INVESTIGATION,
+                **{ACTION_WORKFLOW_ID: self._backing_workflow().id},
+            )
+        except Action.DoesNotExist as e:
+            raise WorkflowUpdateError("The automation has no investigation action") from e

@@ -61,12 +61,7 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
     PageFiltersStore.onInitializeUrlState({
       projects: [1],
       environments: [],
-      datetime: {
-        period: '14d',
-        start: null,
-        end: null,
-        utc: false,
-      },
+      datetime: {period: '14d', start: null, end: null, utc: false},
     });
   });
 
@@ -205,11 +200,7 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
       initialProps: {
         ...defaultInitialProps,
         stringAttributes: {
-          'log.message': {
-            key: 'log.message',
-            name: 'log.message',
-            kind: FieldKind.TAG,
-          },
+          'log.message': {key: 'log.message', name: 'log.message', kind: FieldKind.TAG},
         },
         stringSecondaryAliases: {
           'log.message_alias': {
@@ -247,10 +238,7 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
 
   it('does not warn for product fields that opt out of convention deprecation', () => {
     const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
-      initialProps: {
-        ...defaultInitialProps,
-        itemType: TraceItemDataset.REPLAYS,
-      },
+      initialProps: {...defaultInitialProps, itemType: TraceItemDataset.REPLAYS},
       organization,
     });
 
@@ -320,11 +308,7 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
     'disables recent searches when disableRecentSearches is true for item type %s',
     itemType => {
       const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
-        initialProps: {
-          ...defaultInitialProps,
-          itemType,
-          disableRecentSearches: true,
-        },
+        initialProps: {...defaultInitialProps, itemType, disableRecentSearches: true},
         organization,
       });
 
@@ -344,10 +328,7 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
 
   it('passes disabled through to search query builder provider props', () => {
     const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
-      initialProps: {
-        ...defaultInitialProps,
-        disabled: true,
-      },
+      initialProps: {...defaultInitialProps, disabled: true},
       organization,
     });
 
@@ -356,10 +337,7 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
 
   it('passes invalid filter keys through to search query builder provider props', () => {
     const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
-      initialProps: {
-        ...defaultInitialProps,
-        invalidFilterKeys: ['missing.key'],
-      },
+      initialProps: {...defaultInitialProps, invalidFilterKeys: ['missing.key']},
       organization,
     });
 
@@ -402,12 +380,41 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
     ]);
   });
 
+  it('scopes key suggestions, but not value suggestions, to attributeKeyQuery', async () => {
+    const keysMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      body: [{attributeType: 'string', key: 'db.system', name: 'db.system'}],
+      match: [MockApiClient.matchQuery({query: 'span.op:db'})],
+    });
+    const valuesMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/span.op/values/',
+      body: [{key: 'span.op', name: 'db', value: 'db', count: 1}],
+    });
+
+    const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
+      initialProps: {...defaultInitialProps, attributeKeyQuery: 'span.op:db'},
+      organization,
+    });
+
+    const tags = await result.current.getTagKeys?.('');
+    expect(tags?.map(tag => tag.key)).toEqual(['db.system']);
+    expect(keysMock).toHaveBeenCalled();
+
+    await result.current.getTagValues?.({
+      tag: {key: 'span.op', name: 'span.op', kind: FieldKind.TAG},
+      searchQuery: '',
+    });
+    expect(valuesMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/trace-items/attributes/span.op/values/',
+      expect.objectContaining({
+        query: expect.not.objectContaining({query: expect.anything()}),
+      })
+    );
+  });
+
   it('uses a custom placeholder when provided', () => {
     const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
-      initialProps: {
-        ...defaultInitialProps,
-        placeholder: 'Custom placeholder text',
-      },
+      initialProps: {...defaultInitialProps, placeholder: 'Custom placeholder text'},
       organization,
     });
 
@@ -416,10 +423,7 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
 
   it('falls back to the default placeholder for logs when no placeholder is provided', () => {
     const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
-      initialProps: {
-        ...defaultInitialProps,
-        itemType: TraceItemDataset.LOGS,
-      },
+      initialProps: {...defaultInitialProps, itemType: TraceItemDataset.LOGS},
       organization,
     });
 

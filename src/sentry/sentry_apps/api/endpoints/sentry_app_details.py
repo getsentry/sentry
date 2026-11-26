@@ -132,6 +132,9 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
         """
         Update an existing custom integration.
         """
+        # The app's webhook, events and scopes apply to the whole org, so only a
+        # person can change them, as with DELETE.
+        user = require_user(request)
         if sentry_app.metadata.get("partnership_restricted", False):
             return Response(
                 {"detail": PARTNERSHIP_RESTRICTED_ERROR_MESSAGE},
@@ -172,10 +175,6 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
 
         if serializer.is_valid():
             result = serializer.validated_data
-
-            assert request.user.is_authenticated, (
-                "User must be authenticated to update a Sentry App"
-            )
             updated_app = SentryAppUpdater(
                 sentry_app=sentry_app,
                 name=result.get("name"),
@@ -194,7 +193,7 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
                 webhook_headers=result.get("webhookHeaders"),
                 popularity=result.get("popularity"),
                 is_disabled=result.get("isDisabled"),
-            ).run(user=request.user)
+            ).run(user=user)
 
             return Response(
                 serialize(

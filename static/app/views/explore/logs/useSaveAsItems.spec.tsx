@@ -22,9 +22,7 @@ jest.mock('sentry/actionCreators/modal');
 const mockOpenSaveQueryModal = jest.mocked(modal.openSaveQueryModal);
 
 describe('useSaveAsItems', () => {
-  const organization = OrganizationFixture({
-    features: ['ourlogs-enabled'],
-  });
+  const organization = OrganizationFixture({features: ['ourlogs-enabled']});
   const project = ProjectFixture({id: '1'});
   const initialLocation = {
     pathname: '/mock-pathname/',

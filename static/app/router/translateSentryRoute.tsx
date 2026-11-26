@@ -35,11 +35,7 @@ export function Redirect({to, ...rest}: RedirectProps) {
       .join('/');
 
     Sentry.startSpan(
-      {
-        name: 'Redirect route used',
-        op: 'navigation.redirect',
-        attributes: {routePath},
-      },
+      {name: 'Redirect route used', op: 'navigation.redirect', attributes: {routePath}},
       () => {
         // End span automatically
       }

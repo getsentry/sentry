@@ -88,7 +88,7 @@ def _lock_orchestration_run(run_id: int) -> InvestigationOrchestrationRun | None
     investigation = (
         Notebook.objects.select_for_update(of=("self",))
         .filter(orchestration_run__id=run_id)
-        .first()
+        .first()  # noqa: S035
     )
     if investigation is None:
         return None

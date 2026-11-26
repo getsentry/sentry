@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from enum import Enum
 from functools import reduce
 from operator import or_
-from typing import TYPE_CHECKING, Any, ClassVar, cast
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.core.cache import cache
 from django.db import models
@@ -50,7 +50,6 @@ from sentry.issues.priority import (
     PriorityChangeReason,
     get_priority_for_ongoing_group,
 )
-from sentry.models.commit import Commit
 from sentry.models.grouphistory import record_group_history, record_group_history_from_activity_type
 from sentry.models.organization import Organization
 from sentry.search.eap.occurrences.query_utils import build_event_id_in_filter
@@ -703,7 +702,8 @@ class GroupManager(BaseManager["Group"]):
             external_issues = external_issues.filter(key=external_issue_key)
 
         group_link_subquery = GroupLink.objects.filter(
-            linked_id__in=external_issues.values_list("id", flat=True)
+            linked_type=GroupLink.LinkedType.issue,
+            linked_id__in=external_issues.values_list("id", flat=True),
         ).values_list("group_id", flat=True)
 
         return self.filter(
@@ -854,20 +854,27 @@ class Group(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
     project = FlexibleForeignKey("sentry.Project")
-    logger = models.CharField(max_length=64, blank=True, default=str(DEFAULT_LOGGER_NAME))
+    logger = models.CharField(
+        max_length=64,
+        blank=True,
+        default=str(DEFAULT_LOGGER_NAME),
+        db_default=str(DEFAULT_LOGGER_NAME),
+    )
     level = BoundedPositiveIntegerField(
         choices=[(key, str(val)) for key, val in sorted(LOG_LEVELS.items())],
         default=logging.ERROR,
+        db_default=logging.ERROR,
         blank=True,
     )
     message = models.TextField()
     culprit = models.CharField(
         max_length=MAX_CULPRIT_LENGTH, blank=True, null=True, db_column="view"
     )
-    num_comments = BoundedPositiveIntegerField(default=0, null=True)
+    num_comments = BoundedPositiveIntegerField(default=0, db_default=0, null=True)
     platform = models.CharField(max_length=64, null=True)
     status = BoundedPositiveIntegerField(
         default=GroupStatus.UNRESOLVED,
+        db_default=GroupStatus.UNRESOLVED,
         choices=(
             (GroupStatus.UNRESOLVED, _("Unresolved")),
             (GroupStatus.RESOLVED, _("Resolved")),
@@ -885,7 +892,7 @@ class Group(Model):
             (GroupSubStatus.FOREVER, _("Forever")),
         ),
     )
-    times_seen = BoundedPositiveIntegerField(default=1)
+    times_seen = BoundedPositiveIntegerField(default=1, db_default=1)
     last_seen = models.DateTimeField(default=timezone.now, db_index=True)
     first_seen = models.DateTimeField(default=timezone.now, db_index=True)
     first_release = FlexibleForeignKey("sentry.Release", null=True, on_delete=models.PROTECT)
@@ -952,7 +959,7 @@ class Group(Model):
         self.message = strip(self.message)
         if self.message:
             self.message = truncatechars(self.message.splitlines()[0], 255)
-        if cast("int | None", self.times_seen) is None:
+        if self.times_seen is None:
             self.times_seen = 1
         super().save(
             force_insert=force_insert,
@@ -987,6 +994,15 @@ class Group(Model):
             if params:
                 query = urlencode(params)
             return organization.absolute_url(path, query=query)
+
+    def get_absolute_replays_url(self, params: Mapping[str, str] | None = None) -> str:
+        # The feedback page shows the feedback's replay inline and has no replays tab.
+        if self.issue_category == GroupCategory.FEEDBACK:
+            return self.get_absolute_url(params=params)
+        organization = self.organization
+        path = f"/organizations/{organization.slug}/issues/{self.id}/replays/"
+        query = urlencode(params) if params else None
+        return organization.absolute_url(path, query=query)
 
     def get_absolute_api_url(self) -> str:
         path = f"/issues/{self.id}/"
@@ -1199,30 +1215,6 @@ class Group(Model):
                 Condition(Column("environment"), Op.IN, [e.name for e in environments])
             )
         return self.get_recommended_event(conditions=all_conditions)
-
-    def get_suspect_commit(self) -> Commit | None:
-        from sentry.models.groupowner import GroupOwner, GroupOwnerType
-
-        suspect_commit_owner = (
-            GroupOwner.objects.filter(
-                group_id=self.id,
-                project_id=self.project_id,
-                type=GroupOwnerType.SUSPECT_COMMIT.value,
-                context__isnull=False,
-            )
-            .order_by("-date_added")
-            .first()
-        )
-
-        if not suspect_commit_owner:
-            return None
-
-        commit_id = suspect_commit_owner.context.get("commitId")
-        if not commit_id:
-            return None
-
-        commit = Commit.objects.filter(id=commit_id)
-        return commit.first()
 
     def get_first_release(self, environment_names: list[str] | None = None) -> str | None:
         from sentry.models.release import Release

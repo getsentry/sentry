@@ -12,10 +12,7 @@ export type LoadingContainerProps = {
   showChildrenWhileLoading?: boolean;
 };
 
-type MaskProps = {
-  isReloading: boolean;
-  maskBackgroundColor: string;
-};
+type MaskProps = {isReloading: boolean; maskBackgroundColor: string};
 
 export function LoadingContainer({
   isLoading = false,

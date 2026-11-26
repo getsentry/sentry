@@ -10,10 +10,10 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    - uses: ./.github/actions/setup-node-toolchain
+    - uses: $/.github/actions/setup-node-toolchain
       if: inputs.setup-toolchain == 'true'
 
-    - uses: ./.github/actions/node-modules-cache-paths
+    - uses: $/.github/actions/node-modules-cache-paths
       id: workspace-cache
 
     - name: node_modules cache

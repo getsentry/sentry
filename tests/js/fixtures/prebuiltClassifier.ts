@@ -1,7 +1,15 @@
-import type {PrebuiltClassifier} from 'sentry/views/classifiers/types';
+import type {
+  ClassifierOutputConfig,
+  PrebuiltClassifier,
+} from 'sentry/views/classifiers/types';
+
+type PrebuiltClassifierFixtureParams = Partial<
+  Omit<PrebuiltClassifier, keyof ClassifierOutputConfig>
+> &
+  (ClassifierOutputConfig | {binaryThreshold?: never; outputType?: never});
 
 export function PrebuiltClassifierFixture(
-  params: Partial<PrebuiltClassifier> = {}
+  params: PrebuiltClassifierFixtureParams = {}
 ): PrebuiltClassifier {
   return {
     key: 'user_frustration',
@@ -9,6 +17,7 @@ export function PrebuiltClassifierFixture(
     name: 'User frustration',
     description: 'When your users become frustrated.',
     outputType: 'binary',
+    binaryThreshold: 0.8,
     resultAttribute: 'user_frustration',
     ...params,
   };

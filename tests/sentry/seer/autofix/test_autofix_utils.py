@@ -24,6 +24,7 @@ from sentry.seer.autofix.utils import (
     MAX_SEER_REPOS_PER_PROJECT,
     SEAT_BASED_STOPPING_POINTS,
     USAGE_BASED_STOPPING_POINTS,
+    AgenticTriageCohort,
     AutofixState,
     AutofixStoppingPoint,
     AutomationCodingAgent,
@@ -33,6 +34,7 @@ from sentry.seer.autofix.utils import (
     clear_preference_automation_handoff,
     deduplicate_repositories,
     extract_api_error_message,
+    get_agentic_triage_cohort,
     get_event_matched_project_repo_ids,
     get_org_default_seer_automation_handoff,
     get_repo_url_path,
@@ -334,6 +336,37 @@ class TestIsFreeCohortOrg(TestCase):
         assert is_free_cohort_org(self.organization) is False
 
 
+class TestGetAgenticTriageCohort(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.organization = self.create_organization(name="test-org")
+
+    def _set_cohort(self, value: str) -> None:
+        self.organization.update_option("sentry:agentic-triage-cohort", value)
+
+    def test_missing_option(self) -> None:
+        assert get_agentic_triage_cohort(self.organization) is None
+
+    def test_invalid_option(self) -> None:
+        self._set_cohort("enterprise")
+        assert get_agentic_triage_cohort(self.organization) is None
+
+    @with_feature("organizations:token-billed-seer-enabled")
+    def test_token_billed_cohorts(self) -> None:
+        for cohort in AgenticTriageCohort:
+            self._set_cohort(cohort.value)
+            assert get_agentic_triage_cohort(self.organization) is cohort
+
+    def test_legacy_and_seat_need_token_billing(self) -> None:
+        for cohort in ("legacy", "seat"):
+            self._set_cohort(cohort)
+            assert get_agentic_triage_cohort(self.organization) is None
+
+    def test_free_without_token_billing(self) -> None:
+        self._set_cohort("free")
+        assert get_agentic_triage_cohort(self.organization) is AgenticTriageCohort.FREE
+
+
 class HasProjectConnectedReposBaseTest(TestCase):
     """Test the has_project_connected_repos function."""
 
@@ -429,12 +462,7 @@ class TestHasProjectConnectedReposSeatBasedBilling(HasProjectConnectedReposBaseT
         assert has_project_connected_repos(self.organization, self.project) is False
 
 
-@with_feature(
-    {
-        "organizations:seer-token-based-billing-onboarding": True,
-        "organizations:token-billed-seer-enabled": True,
-    }
-)
+@with_feature("organizations:token-billed-seer-enabled")
 class TestHasProjectConnectedReposTokenBasedBilling(HasProjectConnectedReposBaseTest):
     __test__ = True
 
@@ -1321,12 +1349,7 @@ class TestReadPreferenceFromSentryDbSeatBasedBilling(ReadPreferenceFromSentryDbB
         assert len(result.repositories) == MAX_SEER_REPOS_PER_PROJECT + 2
 
 
-@with_feature(
-    {
-        "organizations:seer-token-based-billing-onboarding": True,
-        "organizations:token-billed-seer-enabled": True,
-    }
-)
+@with_feature("organizations:token-billed-seer-enabled")
 class TestReadPreferenceFromSentryDbTokenBasedBilling(ReadPreferenceFromSentryDbBaseTest):
     __test__ = True
 
@@ -1592,12 +1615,7 @@ class TestBulkReadPreferencesFromSentryDbSeatBasedBilling(BulkReadPreferencesFro
         assert result[self.project1.id].repositories == []
 
 
-@with_feature(
-    {
-        "organizations:seer-token-based-billing-onboarding": True,
-        "organizations:token-billed-seer-enabled": True,
-    }
-)
+@with_feature("organizations:token-billed-seer-enabled")
 class TestBulkReadPreferencesFromSentryDbTokenBasedBilling(BulkReadPreferencesFromSentryDbBaseTest):
     __test__ = True
 
@@ -1633,12 +1651,6 @@ class TestBulkReadPreferencesFromSentryDbTokenBasedBilling(BulkReadPreferencesFr
 
         result = bulk_read_preferences_from_sentry_db(self.organization.id, [self.project1.id])
         assert len(result[self.project1.id].repositories) == MAX_SEER_REPOS_PER_PROJECT + 2
-
-
-TOKEN_BILLING_FEATURES = {
-    "organizations:seer-token-based-billing-onboarding": True,
-    "organizations:token-billed-seer-enabled": True,
-}
 
 
 class TestGetEventMatchedProjectRepoIds(TestCase, SnubaTestCase):
@@ -1705,7 +1717,7 @@ class TestGetEventMatchedProjectRepoIds(TestCase, SnubaTestCase):
         assert event.group is not None
         return event.group
 
-    @with_feature(TOKEN_BILLING_FEATURES)
+    @with_feature("organizations:token-billed-seer-enabled")
     def test_returns_link_matching_an_in_app_frame(self) -> None:
         self._link_filler_repos()
         matched = self._link_repo("billing", stack_root="billing/")
@@ -1713,7 +1725,7 @@ class TestGetEventMatchedProjectRepoIds(TestCase, SnubaTestCase):
 
         assert get_event_matched_project_repo_ids(self._store_group()) == {matched.id}
 
-    @with_feature(TOKEN_BILLING_FEATURES)
+    @with_feature("organizations:token-billed-seer-enabled")
     def test_repeat_call_for_the_group_uses_the_cached_match(self) -> None:
         self._link_filler_repos()
         matched = self._link_repo("billing", stack_root="billing/")
@@ -1724,7 +1736,7 @@ class TestGetEventMatchedProjectRepoIds(TestCase, SnubaTestCase):
 
         assert get_event_matched_project_repo_ids(group) == {matched.id}
 
-    @with_feature(TOKEN_BILLING_FEATURES)
+    @with_feature("organizations:token-billed-seer-enabled")
     def test_matches_a_repeated_frame_once(self) -> None:
         self._link_filler_repos()
         matched = self._link_repo("billing", stack_root="billing/")
@@ -1743,14 +1755,14 @@ class TestGetEventMatchedProjectRepoIds(TestCase, SnubaTestCase):
 
         assert get_event_matched_project_repo_ids(event.group) == {matched.id}
 
-    @with_feature(TOKEN_BILLING_FEATURES)
+    @with_feature("organizations:token-billed-seer-enabled")
     def test_empty_when_limit_cannot_cut(self) -> None:
         self._link_filler_repos(MAX_SEER_REPOS_PER_PROJECT - 1)
         self._link_repo("billing", stack_root="billing/")
 
         assert get_event_matched_project_repo_ids(self._store_group()) == set()
 
-    @with_feature(TOKEN_BILLING_FEATURES)
+    @with_feature("organizations:token-billed-seer-enabled")
     def test_empty_without_event(self) -> None:
         self._link_filler_repos()
         self._link_repo("billing", stack_root="billing/")
@@ -1763,14 +1775,14 @@ class TestGetEventMatchedProjectRepoIds(TestCase, SnubaTestCase):
 
         assert get_event_matched_project_repo_ids(self._store_group()) == set()
 
-    @with_feature(TOKEN_BILLING_FEATURES)
+    @with_feature("organizations:token-billed-seer-enabled")
     def test_empty_when_no_frame_matches(self) -> None:
         self._link_filler_repos()
         self._link_repo("search", stack_root="search/")
 
         assert get_event_matched_project_repo_ids(self._store_group()) == set()
 
-    @with_feature(TOKEN_BILLING_FEATURES)
+    @with_feature("organizations:token-billed-seer-enabled")
     def test_ignores_mapping_of_a_repo_seer_cannot_use(self) -> None:
         self._link_filler_repos(MAX_SEER_REPOS_PER_PROJECT + 1)
         unusable = self._link_repo("billing", stack_root="billing/")
@@ -1778,7 +1790,7 @@ class TestGetEventMatchedProjectRepoIds(TestCase, SnubaTestCase):
 
         assert get_event_matched_project_repo_ids(self._store_group()) == set()
 
-    @with_feature(TOKEN_BILLING_FEATURES)
+    @with_feature("organizations:token-billed-seer-enabled")
     def test_most_specific_mapping_wins(self) -> None:
         self._link_filler_repos()
         self._link_repo("catch-all", stack_root="")
@@ -1786,7 +1798,7 @@ class TestGetEventMatchedProjectRepoIds(TestCase, SnubaTestCase):
 
         assert get_event_matched_project_repo_ids(self._store_group()) == {matched.id}
 
-    @with_feature(TOKEN_BILLING_FEATURES)
+    @with_feature("organizations:token-billed-seer-enabled")
     def test_specific_automatic_mapping_beats_user_made_catch_all(self) -> None:
         self._link_filler_repos()
         self._link_repo("catch-all", stack_root="")
@@ -1794,7 +1806,7 @@ class TestGetEventMatchedProjectRepoIds(TestCase, SnubaTestCase):
 
         assert get_event_matched_project_repo_ids(self._store_group()) == {matched.id}
 
-    @with_feature(TOKEN_BILLING_FEATURES)
+    @with_feature("organizations:token-billed-seer-enabled")
     def test_user_made_mapping_beats_more_specific_automatic_mapping(self) -> None:
         self._link_filler_repos()
         self._link_repo("automatic", stack_root="billing/charge", automatically_generated=True)
@@ -1802,7 +1814,7 @@ class TestGetEventMatchedProjectRepoIds(TestCase, SnubaTestCase):
 
         assert get_event_matched_project_repo_ids(self._store_group()) == {matched.id}
 
-    @with_feature(TOKEN_BILLING_FEATURES)
+    @with_feature("organizations:token-billed-seer-enabled")
     def test_single_catch_all_mapping_matches(self) -> None:
         self._link_filler_repos()
         matched = self._link_repo("catch-all", stack_root="")
@@ -1810,14 +1822,14 @@ class TestGetEventMatchedProjectRepoIds(TestCase, SnubaTestCase):
 
         assert get_event_matched_project_repo_ids(self._store_group()) == {matched.id}
 
-    @with_feature(TOKEN_BILLING_FEATURES)
+    @with_feature("organizations:token-billed-seer-enabled")
     def test_ignores_frames_not_in_app(self) -> None:
         self._link_filler_repos()
         self._link_repo("billing", stack_root="billing/")
 
         assert get_event_matched_project_repo_ids(self._store_group(in_app=False)) == set()
 
-    @with_feature(TOKEN_BILLING_FEATURES)
+    @with_feature("organizations:token-billed-seer-enabled")
     def test_matched_link_is_first_and_survives_limit(self) -> None:
         self._link_filler_repos(MAX_SEER_REPOS_PER_PROJECT + 2)
         self._link_repo("billing", stack_root="billing/")
@@ -1834,7 +1846,7 @@ class TestGetEventMatchedProjectRepoIds(TestCase, SnubaTestCase):
             *[f"filler-{i}" for i in range(MAX_SEER_REPOS_PER_PROJECT - 1)],
         ]
 
-    @with_feature(TOKEN_BILLING_FEATURES)
+    @with_feature("organizations:token-billed-seer-enabled")
     def test_bulk_read_puts_matched_link_first(self) -> None:
         self._link_filler_repos(MAX_SEER_REPOS_PER_PROJECT + 2)
         matched = self._link_repo("billing", stack_root="billing/")

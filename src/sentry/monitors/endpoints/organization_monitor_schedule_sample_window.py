@@ -3,7 +3,6 @@ from __future__ import annotations
 import math
 import zoneinfo
 from datetime import datetime
-from typing import cast
 
 from cronsim import CronSim
 from dateutil import rrule
@@ -23,7 +22,6 @@ from sentry.monitors.constants import (
 )
 from sentry.monitors.models import ScheduleType
 from sentry.monitors.schedule import SCHEDULE_INTERVAL_MAP
-from sentry.monitors.types import IntervalUnit
 from sentry.monitors.validators import ConfigValidator
 
 
@@ -80,7 +78,7 @@ class OrganizationMonitorScheduleSampleWindowEndpoint(OrganizationEndpoint):
 
         elif schedule_type == ScheduleType.INTERVAL:
             rule = rrule.rrule(
-                freq=SCHEDULE_INTERVAL_MAP[cast(IntervalUnit, schedule[1])],
+                freq=SCHEDULE_INTERVAL_MAP[schedule[1]],
                 interval=schedule[0],
                 dtstart=reference_ts,
                 count=num_ticks,

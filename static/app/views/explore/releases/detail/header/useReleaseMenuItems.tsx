@@ -11,14 +11,29 @@ import {Client} from 'sentry/api';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {t, tct, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import type {Release, ReleaseMeta, ReleaseProject} from 'sentry/types/release';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {useProjectFromSlug} from 'sentry/utils/useProjectFromSlug';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {isReleaseArchived} from 'sentry/views/explore/releases/utils';
 import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
+import {getAddInboundFilterAvailability} from 'sentry/views/settings/project/projectFilters/addInboundFilterAvailability';
 
 const MAX_VISIBLE_PROJECTS = 5;
+
+// The modal and its form live with the project settings, so the release page only
+// loads them once the action runs.
+async function openCustomFilterModalFromRelease(project: Project, version: string) {
+  const {getFilterDraftFromRelease, openCustomFilterModal} =
+    await import('sentry/views/settings/project/projectFilters/customFilterModal');
+  openCustomFilterModal({
+    project,
+    initialValues: getFilterDraftFromRelease(version),
+    draftSource: 'release',
+  });
+}
 
 /**
  * The projects an archive or restore will apply to, collapsing the tail into a
@@ -71,7 +86,7 @@ function ModalMessage({
 
 interface Props {
   organization: Organization;
-  projectSlug: string;
+  project: ReleaseProject;
   refetchData: () => void;
   release: Release;
   releaseMeta: ReleaseMeta;
@@ -79,31 +94,34 @@ interface Props {
 
 /**
  * Items for the release detail page-title actions menu — copying the version,
- * plus archiving or restoring the release depending on its current status.
+ * adding an inbound filter for the release in the selected project, plus
+ * archiving or restoring the release depending on its current status.
  */
 export function useReleaseMenuItems({
   organization,
-  projectSlug,
+  project,
   refetchData,
   release,
   releaseMeta,
 }: Props): MenuItemProps[] {
   const navigate = useNavigate();
   const {copy} = useCopyToClipboard();
+  // The filter belongs to the project selected on the page. The release only
+  // carries a summary of it, so look up the full project for its features and
+  // access.
+  const fullProject = useProjectFromSlug({organization, projectSlug: project.slug});
+  const addInboundFilterAvailability = fullProject
+    ? getAddInboundFilterAvailability(organization, fullProject)
+    : undefined;
 
   async function handleArchive() {
     try {
       await archiveRelease(new Client(), {
         orgSlug: organization.slug,
-        projectSlug,
+        projectSlug: project.slug,
         releaseVersion: release.version,
       });
-      navigate(
-        makeReleasesPathname({
-          organization,
-          path: '/',
-        })
-      );
+      navigate(makeReleasesPathname({organization, path: '/'}));
     } catch {
       // do nothing, action creator is already displaying error message
     }
@@ -113,7 +131,7 @@ export function useReleaseMenuItems({
     try {
       await restoreRelease(new Client(), {
         orgSlug: organization.slug,
-        projectSlug,
+        projectSlug: project.slug,
         releaseVersion: release.version,
       });
       refetchData();
@@ -181,6 +199,18 @@ export function useReleaseMenuItems({
       key: 'copy-version',
       label: t('Copy release version to clipboard'),
       onAction: () => copy(release.version),
+    },
+    {
+      key: 'add-inbound-filter',
+      label: t('Add Inbound Filter for this release'),
+      hidden: !addInboundFilterAvailability?.isVisible,
+      disabled: addInboundFilterAvailability?.disabledReason !== undefined,
+      details: addInboundFilterAvailability?.disabledReason,
+      onAction: () => {
+        if (fullProject) {
+          openCustomFilterModalFromRelease(fullProject, release.version);
+        }
+      },
     },
     statusItem,
   ];

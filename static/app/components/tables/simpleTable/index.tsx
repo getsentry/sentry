@@ -17,7 +17,7 @@ import {Flex, type FlexProps} from '@sentry/scraps/layout';
 import {PanelProvider} from '@sentry/scraps/panelProvider';
 import {fullWidthCellStyle, Table, type TableColumnConfig} from '@sentry/scraps/table';
 
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import {InteractionStateLayer} from 'sentry/components/interactionStateLayer';
 import {
   type ColumnAlign,
   HeaderCellContent,
@@ -241,9 +241,9 @@ const StyledHeaderRow = styled(Table.Row, {
   align-items: center;
 `;
 
-const StyledRow = styled(Table.Row, {
-  shouldForwardProp: prop => prop !== 'variant',
-})<{variant?: 'default' | 'faded'}>`
+const StyledRow = styled(Table.Row, {shouldForwardProp: prop => prop !== 'variant'})<{
+  variant?: 'default' | 'faded';
+}>`
   align-items: center;
 
   ${p =>

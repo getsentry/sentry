@@ -32,13 +32,8 @@ import {useEventLogsUrl} from './useEventLogsUrl';
 
 interface LogIssueDrawerProps {
   event: Event;
-  additionalData?: {
-    event?: Event;
-    scrollToDisabled?: boolean;
-  };
-  embeddedOptions?: {
-    openWithExpandedIds?: string[];
-  };
+  additionalData?: {event?: Event; scrollToDisabled?: boolean};
+  embeddedOptions?: {openWithExpandedIds?: string[]};
 }
 
 export function OurlogsDrawer({
@@ -79,10 +74,7 @@ export function OurlogsDrawer({
   );
 
   const additionalData = useMemo(
-    () => ({
-      event,
-      scrollToDisabled: propAdditionalData?.scrollToDisabled,
-    }),
+    () => ({event, scrollToDisabled: propAdditionalData?.scrollToDisabled}),
     [event, propAdditionalData?.scrollToDisabled]
   );
 

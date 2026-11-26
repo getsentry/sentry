@@ -43,10 +43,7 @@ export function MonitorEmbedStory() {
             key={detector.type}
             name="monitor"
             label={`${getDetectorTypeLabel(detector.type)} monitor`}
-            data={{
-              id: detector.id,
-              name: detector.name,
-            }}
+            data={{id: detector.id, name: detector.name}}
           />
         ))
       ) : (

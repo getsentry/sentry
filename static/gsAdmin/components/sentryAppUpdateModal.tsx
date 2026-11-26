@@ -18,9 +18,7 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 
-type Props = ModalRenderProps & {
-  sentryAppData: any;
-};
+type Props = ModalRenderProps & {sentryAppData: any};
 
 // See Django reference for PositiveSmallIntegerField
 // (https://docs.djangoproject.com/en/3.2/ref/models/fields/#positivesmallintegerfield)
@@ -40,9 +38,7 @@ const schema = z.object({
 export function SentryAppUpdateModal(props: Props) {
   const {sentryAppData, closeModal, Header, Body, Footer} = props;
   const queryClient = useQueryClient();
-  const sentryAppQueryOptions = sentryAppApiOptions({
-    appSlug: sentryAppData.slug,
-  });
+  const sentryAppQueryOptions = sentryAppApiOptions({appSlug: sentryAppData.slug});
 
   const mutation = useMutation({
     mutationFn: (data: {features: number[]; popularity: number}) =>
@@ -70,9 +66,7 @@ export function SentryAppUpdateModal(props: Props) {
       toast.error('Unable to update the Sentry App.');
     },
     onSettled: () => {
-      queryClient.invalidateQueries({
-        queryKey: sentryAppQueryOptions.queryKey,
-      });
+      queryClient.invalidateQueries({queryKey: sentryAppQueryOptions.queryKey});
     },
   });
 

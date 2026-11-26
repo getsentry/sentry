@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 from collections.abc import Iterator, Mapping, Sequence
-from typing import TYPE_CHECKING, Any, SupportsIndex, SupportsInt, TypeVar, cast
+from typing import TYPE_CHECKING, Any, SupportsIndex, SupportsInt, TypeVar, cast, overload
 
 from django.db.models import Model
-from django.db.models.fields import BigIntegerField
+from django.db.models.fields import NOT_PROVIDED, BigIntegerField
 
 from bitfield.query import BitQueryExactLookupStub
 from bitfield.types import Bit, BitHandler
@@ -94,6 +94,15 @@ class BitField(_BigIntegerFieldBase):
     def contribute_to_class(self, cls: type[Model], name: str, private_only: bool = False) -> None:
         super().contribute_to_class(cls, name, private_only=private_only)
         setattr(cls, self.name, BitFieldCreator(self))
+
+    if TYPE_CHECKING:
+        # contribute_to_class replaces the field with BitFieldCreator, whose class
+        # access returns BitFieldFlags rather than Django's field descriptor.
+        @overload
+        def __get__(self, instance: None, owner: Any) -> BitFieldFlags: ...
+        @overload
+        def __get__(self, instance: Model, owner: Any) -> Any: ...
+        def __get__(self, instance: Model | None, owner: Any) -> BitFieldFlags | Any: ...
 
     def __init__(
         self,
@@ -205,7 +214,12 @@ class TypedBitfieldMeta(type):
             if attr.startswith("_"):
                 continue
 
-            if attr in ("bitfield_default", "bitfield_null", "bitfield_db_column"):
+            if attr in (
+                "bitfield_default",
+                "bitfield_db_default",
+                "bitfield_null",
+                "bitfield_db_column",
+            ):
                 continue
 
             flags[attr] = ty
@@ -215,6 +229,7 @@ class TypedBitfieldMeta(type):
             BitField(
                 flags=flags_from_annotations(flags),
                 default=clsdict.get("bitfield_default"),
+                db_default=clsdict.get("bitfield_db_default", NOT_PROVIDED),
                 null=clsdict.get("bitfield_null") or False,
                 db_column=clsdict.get("bitfield_db_column"),
             ),
@@ -231,6 +246,7 @@ class TypedClassBitField(metaclass=TypedBitfieldMeta):
     """
 
     bitfield_default: Any | None
+    bitfield_db_default: Any
     bitfield_null: bool
 
     _value: int

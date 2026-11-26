@@ -12,7 +12,6 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tabs} from '@sentry/scraps/tabs';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {makeDroppedDataQueryKeyPrefix} from 'sentry/components/droppedData/useDroppedData';
 import * as Layout from 'sentry/components/layouts/thirds';
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
@@ -26,10 +25,11 @@ import {
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {HOUR} from 'sentry/utils/formatters';
-import {makeEventsTimeSeriesQueryKeyPrefix} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
+import {makeEventsTimeSeriesFilter} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ExploreQuotaExceededAlert} from 'sentry/views/explore/components/exploreQuotaExceededAlert';
@@ -53,6 +53,7 @@ import {
 } from 'sentry/views/explore/contexts/logs/logsPageData';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useLogAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
+import {useSearchAttributeKeyQuery} from 'sentry/views/explore/hooks/useSearchAttributeKeyQuery';
 import {useLogItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {
   useQueryParamsAggregateSortBys,
@@ -105,9 +106,7 @@ import {useValidatedLogsTabColumns} from './useValidatedLogsTabColumns';
 import {useValidateLogsTab} from './useValidateLogsTab';
 import {calculateAverageLogsPerSecond} from './utils';
 
-type LogsTabProps = {
-  datePageFilterProps: DatePageFilterProps;
-};
+type LogsTabProps = {datePageFilterProps: DatePageFilterProps};
 
 interface LogsSearchBarProps {
   tracesItemSearchQueryBuilderProps: Parameters<typeof TraceItemSearchQueryBuilder>[0];
@@ -148,19 +147,29 @@ const LogsSearchSection = memo(function LogsSearchSectionImpl({
 
   const organization = useOrganization();
   const supportsArrays = organization.features.includes('trace-item-array-query-support');
-  const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
-    useLogItemAttributes({}, 'string', HiddenLogSearchFields);
-  const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
-    useLogItemAttributes({}, 'number', HiddenLogSearchFields);
-  const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
-    useLogItemAttributes({}, 'boolean', HiddenLogSearchFields);
-  const {attributes: arrayAttributes, secondaryAliases: arraySecondaryAliases} =
-    useLogItemAttributes({enabled: supportsArrays}, 'array', HiddenLogSearchFields);
+  const {data: validatedSearchQueryData, isPlaceholderData: validationIsPlaceholderData} =
+    useValidateLogsTab();
+  const attributeKeyQuery = useSearchAttributeKeyQuery(logsSearch.formatString(), {
+    data: validatedSearchQueryData,
+    isPlaceholderData: validationIsPlaceholderData,
+  });
 
-  const {data: validatedSearchQueryData} = useValidateLogsTab();
+  const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
+    useLogItemAttributes({query: attributeKeyQuery}, 'string', HiddenLogSearchFields);
+  const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
+    useLogItemAttributes({query: attributeKeyQuery}, 'number', HiddenLogSearchFields);
+  const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
+    useLogItemAttributes({query: attributeKeyQuery}, 'boolean', HiddenLogSearchFields);
+  const {attributes: arrayAttributes, secondaryAliases: arraySecondaryAliases} =
+    useLogItemAttributes(
+      {query: attributeKeyQuery, enabled: supportsArrays},
+      'array',
+      HiddenLogSearchFields
+    );
 
   const {tracesItemSearchQueryBuilderProps, searchQueryBuilderProviderProps} =
     useLogsSearchQueryBuilderProps({
+      attributeKeyQuery,
       arrayAttributes,
       booleanAttributes,
       numberAttributes,
@@ -347,21 +356,21 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
     queryClient.setQueryData(tableData.queryKey, data => {
       if (data?.pages) {
         // We only want to keep the first page of data to avoid re-fetching multiple pages, since infinite query will otherwise fetch up to max pages (eg. 30) all at once.
-        return {
-          pages: data.pages.slice(0, 1),
-          pageParams: data.pageParams.slice(0, 1),
-        };
+        return {pages: data.pages.slice(0, 1), pageParams: data.pageParams.slice(0, 1)};
       }
       return data;
     });
     await Promise.all([
       tableData.refetch(),
       queryClient.refetchQueries({
-        queryKey: makeEventsTimeSeriesQueryKeyPrefix(organization.slug),
+        ...makeEventsTimeSeriesFilter(organization.slug),
         type: 'active',
       }),
       queryClient.refetchQueries({
-        queryKey: makeDroppedDataQueryKeyPrefix(organization.slug),
+        ...apiOptions.queryFilter(
+          '/organizations/$organizationIdOrSlug/events-dropped/',
+          {path: {organizationIdOrSlug: organization.slug}}
+        ),
         type: 'active',
       }),
     ]);

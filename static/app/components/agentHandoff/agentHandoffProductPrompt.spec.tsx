@@ -51,10 +51,9 @@ describe('AgentHandoffProductPrompt', () => {
       {organization}
     );
 
-    expect(screen.getByRole('link', {name: 'View all instructions'})).toHaveAttribute(
-      'href',
-      'https://sentry.io/agent-handoff.md?preview=1&flow=add_feature'
-    );
+    expect(
+      screen.queryByRole('link', {name: 'View all instructions'})
+    ).not.toBeInTheDocument();
     expect(screen.getByText(/Read and follow/)).toHaveTextContent(
       'Read and follow https://sentry-jest-tests.example.com/agent-handoff.md verbatim to set up tracing. Your handoff code is sntryh_****.'
     );
@@ -64,47 +63,11 @@ describe('AgentHandoffProductPrompt', () => {
     await waitFor(() => expect(onCopySuccess).toHaveBeenCalledWith(handoffId));
     expect(mint).toHaveBeenCalledWith(
       url,
-      expect.objectContaining({
-        data: {context, disableIpPinning: false, flow: 'add_feature'},
-      })
+      expect.objectContaining({data: {context, flow: 'add_feature'}})
     );
     const item = write.mock.calls[0]![0][0] as {data: Record<string, Promise<Blob>>};
     await expect(item.data['text/plain']!.then(blob => blob.text())).resolves.toBe(
       copiedPrompt
-    );
-  });
-
-  it('shows the IP pinning warning and posts disableIpPinning:true after turning it off', async () => {
-    const mint = MockApiClient.addMockResponse({
-      url,
-      method: 'POST',
-      body: {code, handoffId, expiresAt: new Date(Date.now() + 300_000).toISOString()},
-    });
-    render(
-      <AgentHandoffProductPrompt
-        agentSteps={agentSteps}
-        context={context}
-        feedbackSource={feedbackSource}
-      />,
-      {organization}
-    );
-
-    await userEvent.click(screen.getByRole('button', {name: 'Advanced options'}));
-    await userEvent.click(screen.getByRole('menuitemradio', {name: /Use IP pinning/}));
-
-    expect(
-      screen.getByText(/anyone with this prompt can use its handoff code/)
-    ).toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole('button', {name: 'Copy prompt'}));
-
-    await waitFor(() =>
-      expect(mint).toHaveBeenCalledWith(
-        url,
-        expect.objectContaining({
-          data: {context, disableIpPinning: true, flow: 'add_feature'},
-        })
-      )
     );
   });
 

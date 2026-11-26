@@ -77,9 +77,7 @@ import {useAutofixOverview} from './useAutofixOverview';
 import {useOverviewAnalytics} from './useOverviewAnalytics';
 import {useOverviewSeerDrawer} from './useOverviewSeerDrawer';
 
-const SeerTrialCTA = OverrideOrDefault({
-  overrideName: 'component:seer-trial-cta',
-});
+const SeerTrialCTA = OverrideOrDefault({overrideName: 'component:seer-trial-cta'});
 
 const FilterBar = styled(Flex)`
   @container (width < ${p => p.theme.container.sm}) {
@@ -152,9 +150,7 @@ export default function AutofixOverview() {
       renderDisabled={() => <NoAccess />}
     >
       <PageFiltersContainer
-        defaultSelection={{
-          datetime: {period: '7d', start: null, end: null, utc: null},
-        }}
+        defaultSelection={{datetime: {period: '7d', start: null, end: null, utc: null}}}
       >
         <SentryDocumentTitle title={t('Autofix Overview')} orgSlug={organization.slug}>
           <TopBar.Slot
@@ -569,7 +565,6 @@ function OverviewSectionList({
     <Stack gap="lg">
       {sections.map(({key, runs}) => {
         const meta = STATUS_GROUP_META[key];
-        const groupLabel = key === 'needs_investigation' ? t('Create Plan') : meta.label;
         const expanded = !collapsedGroups.includes(key);
         return (
           <StatusGroup
@@ -584,7 +579,7 @@ function OverviewSectionList({
                   <Tooltip title={<StatusGroupTooltip groupKey={key} />} skipWrapper>
                     <meta.Icon size="sm" aria-hidden />
                   </Tooltip>
-                  <Text bold>{groupLabel}</Text>
+                  <Text bold>{meta.label}</Text>
                   <Badge variant="muted">{runs.length}</Badge>
                 </Flex>
               </Disclosure.Title>

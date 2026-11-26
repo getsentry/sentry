@@ -1,5 +1,73 @@
 # Changelog
 
+## 0.6.0
+
+### New Features ✨
+
+#### Scraps
+
+- Accept every background token in Container background prop by @priscilawebdev in [#131997](https://github.com/getsentry/sentry/pull/131997)
+- Accept every border token in Container border props by @priscilawebdev with @sentry-junior in [#129843](https://github.com/getsentry/sentry/pull/129843)
+
+#### Sdk
+
+- Bump sentry-javascript to 11.17.0 by @logaretm in [#132209](https://github.com/getsentry/sentry/pull/132209)
+- Bump sentry-javascript to 11.15.0 by @nicohrubec and @codex in [#131871](https://github.com/getsentry/sentry/pull/131871)
+- Bump sentry-javascript to 11.14.0 and report SDK config by @logaretm in [#131480](https://github.com/getsentry/sentry/pull/131480)
+
+#### Other
+
+- (entity-header) Add a date metadata item type by @Jesse-Box in [#132147](https://github.com/getsentry/sentry/pull/132147)
+- (explore) Add search and title to the traces visualize aggregate selector by @nsdeschenes with @sentry-junior in [#131434](https://github.com/getsentry/sentry/pull/131434)
+
+### Bug Fixes 🐛
+
+#### Scraps
+
+- Stop CompactSelect wrappers from adding baseline space by @evanpurkhiser and @natemoo-re with @sentry-junior in [#131662](https://github.com/getsentry/sentry/pull/131662)
+- Address date formatting review follow-ups by @natemoo-re with @sentry-junior in [#131710](https://github.com/getsentry/sentry/pull/131710)
+- Match DropdownMenu search to CompactSelect by @TkDodo in [#131847](https://github.com/getsentry/sentry/pull/131847)
+- Treat hovering a trailing action as hovering its item by @priscilawebdev and @claude in [#130600](https://github.com/getsentry/sentry/pull/130600)
+- Tighten Tag padding and trim label text by @itsdangold in [#131145](https://github.com/getsentry/sentry/pull/131145)
+
+#### Other
+
+- (code-block) Keep copy button below sticky elements by @cleptric in [#132341](https://github.com/getsentry/sentry/pull/132341)
+- (explore) Portal attribute row action menus out of clipping containers by @JoshuaKGoldberg in [#131068](https://github.com/getsentry/sentry/pull/131068)
+- (fonts) Align web fonts and calibrate system fallbacks by @natemoo-re in [#132382](https://github.com/getsentry/sentry/pull/132382)
+- (settings) Fix Next, Previous, and the All Projects submenu in the settings tour by @priscilawebdev with @sentry-junior in [#131461](https://github.com/getsentry/sentry/pull/131461)
+
+### Internal Changes 🔧
+
+#### Frontend
+
+- Use tsrs for standalone type checks by @TkDodo in [#131670](https://github.com/getsentry/sentry/pull/131670)
+- Use tsrs for type-aware lint by @TkDodo in [#131641](https://github.com/getsentry/sentry/pull/131641)
+- Upgrade Oxlint to 1.94.0 by @TkDodo in [#131639](https://github.com/getsentry/sentry/pull/131639)
+
+#### Scraps
+
+- Package the self-hosted web fonts by @natemoo-re in [#132410](https://github.com/getsentry/sentry/pull/132410)
+- Allow relative parent imports by @TkDodo in [#132188](https://github.com/getsentry/sentry/pull/132188)
+- Add a data-button-label hook and move label overrides onto it by @natemoo-re with @sentry-junior in [#130955](https://github.com/getsentry/sentry/pull/130955)
+- Write out each button variant's styles instead of overriding them by @natemoo-re and @priscilawebdev with @sentry-junior in [#130950](https://github.com/getsentry/sentry/pull/130950)
+- Use Temporal for date and relative-time formatting by @natemoo-re with @sentry-junior in [#129904](https://github.com/getsentry/sentry/pull/129904)
+- Normalize date and duration formatting APIs by @natemoo-re with @getsantry and @sentry-junior in [#129901](https://github.com/getsentry/sentry/pull/129901)
+- Centralize date and duration formatting by @natemoo-re with @sentry-junior in [#129591](https://github.com/getsentry/sentry/pull/129591)
+- Use react-aria submenu triggers in DropdownMenu by @priscilawebdev with @sentry-junior in [#130410](https://github.com/getsentry/sentry/pull/130410)
+- Separate link tabs from state selection by @TkDodo in [#130758](https://github.com/getsentry/sentry/pull/130758)
+- Make Tabs type-safe by @TkDodo in [#130609](https://github.com/getsentry/sentry/pull/130609)
+
+#### Other
+
+- (lint) Forbid shadowing browser and built-in globals by @ericapisani in [#131127](https://github.com/getsentry/sentry/pull/131127)
+- (oxfmt) Collapse object literals that fit on one line by @TkDodo in [#131758](https://github.com/getsentry/sentry/pull/131758)
+- (utils) Replace query-string with a native query string module by @nsdeschenes and @natemoo-re with @sentry-junior in [#131324](https://github.com/getsentry/sentry/pull/131324)
+
+### Other
+
+- deps(ui): Upgrade rspack to 2.3.4 to fix React Compiler sourcemaps by @scttcper and @claude in [#132438](https://github.com/getsentry/sentry/pull/132438)
+
 ## 0.5.0
 
 ### New Features ✨

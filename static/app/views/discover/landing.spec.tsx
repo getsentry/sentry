@@ -16,10 +16,7 @@ describe('Discover > Landing', () => {
   beforeEach(() => {
     ProjectsStore.loadInitialData([ProjectFixture()]);
 
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/projects/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/projects/', body: []});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/eventsv2/',
       body: {
@@ -51,13 +48,7 @@ describe('Discover > Landing', () => {
         title: 'Oh no something bad',
         message: 'It was not good',
         dateCreated: '2019-05-23T22:12:48+00:00',
-        entries: [
-          {
-            type: 'message',
-            message: 'bad stuff',
-            data: {},
-          },
-        ],
+        entries: [{type: 'message', message: 'bad stuff', data: {}}],
         tags: [{key: 'browser', value: 'Firefox'}],
       },
     });

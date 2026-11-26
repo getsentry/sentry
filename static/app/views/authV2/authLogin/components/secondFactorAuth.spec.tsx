@@ -29,10 +29,7 @@ describe('SecondFactorAuth', () => {
   it('discovers methods and selects the highest-priority method', async () => {
     MockApiClient.addMockResponse({
       url: '/auth/2fa/',
-      body: {
-        mfaRequired: true,
-        mfaMethods: [{id: 'recovery'}, {id: 'totp'}],
-      },
+      body: {mfaRequired: true, mfaMethods: [{id: 'recovery'}, {id: 'totp'}]},
     });
 
     render(<SecondFactorAuth onBack={jest.fn()} onComplete={jest.fn()} />);
@@ -91,10 +88,7 @@ describe('SecondFactorAuth', () => {
     const challengeRequest = MockApiClient.addMockResponse({
       url: '/auth/2fa/challenge/',
       method: 'POST',
-      body: {
-        method: 'u2f',
-        challenge: {webAuthnAuthenticationData: 'challenge'},
-      },
+      body: {method: 'u2f', challenge: {webAuthnAuthenticationData: 'challenge'}},
     });
     const authorization = Promise.withResolvers<void>();
     const authRequest = MockApiClient.addMockResponse({
@@ -117,9 +111,7 @@ describe('SecondFactorAuth', () => {
     ).toBeInTheDocument();
     await waitFor(() => expect(challengeRequest).toHaveBeenCalledTimes(1));
     await waitFor(() =>
-      expect(handleSign).toHaveBeenCalledWith({
-        webAuthnAuthenticationData: 'challenge',
-      })
+      expect(handleSign).toHaveBeenCalledWith({webAuthnAuthenticationData: 'challenge'})
     );
     await waitFor(() =>
       expect(authRequest).toHaveBeenCalledWith(
@@ -156,10 +148,7 @@ describe('SecondFactorAuth', () => {
     const initialChallengeRequest = MockApiClient.addMockResponse({
       url: '/auth/2fa/challenge/',
       method: 'POST',
-      body: {
-        method: 'u2f',
-        challenge: {webAuthnAuthenticationData: 'initial-challenge'},
-      },
+      body: {method: 'u2f', challenge: {webAuthnAuthenticationData: 'initial-challenge'}},
     });
     MockApiClient.addMockResponse({
       url: '/auth/2fa/',
@@ -185,10 +174,7 @@ describe('SecondFactorAuth', () => {
     const retryChallengeRequest = MockApiClient.addMockResponse({
       url: '/auth/2fa/challenge/',
       method: 'POST',
-      body: {
-        method: 'u2f',
-        challenge: {webAuthnAuthenticationData: 'retry-challenge'},
-      },
+      body: {method: 'u2f', challenge: {webAuthnAuthenticationData: 'retry-challenge'}},
     });
     await userEvent.click(screen.getByRole('button', {name: 'Try again'}));
 
@@ -214,10 +200,7 @@ describe('SecondFactorAuth', () => {
     MockApiClient.addMockResponse({
       url: '/auth/2fa/challenge/',
       method: 'POST',
-      body: {
-        method: 'u2f',
-        challenge: {webAuthnAuthenticationData: 'challenge'},
-      },
+      body: {method: 'u2f', challenge: {webAuthnAuthenticationData: 'challenge'}},
     });
     const authRequest = MockApiClient.addMockResponse({
       url: '/auth/2fa/',
@@ -374,10 +357,7 @@ describe('SecondFactorAuth', () => {
     MockApiClient.addMockResponse({
       url: '/auth/2fa/challenge/',
       method: 'POST',
-      body: {
-        method: 'u2f',
-        challenge: {webAuthnAuthenticationData: 'challenge'},
-      },
+      body: {method: 'u2f', challenge: {webAuthnAuthenticationData: 'challenge'}},
     });
     const cancellation = Promise.withResolvers<undefined>();
     MockApiClient.addMockResponse({
@@ -415,10 +395,7 @@ describe('SecondFactorAuth', () => {
     MockApiClient.addMockResponse({
       url: '/auth/2fa/challenge/',
       method: 'POST',
-      body: {
-        method: 'u2f',
-        challenge: {webAuthnAuthenticationData: 'challenge'},
-      },
+      body: {method: 'u2f', challenge: {webAuthnAuthenticationData: 'challenge'}},
     });
     const cancellation = Promise.withResolvers<undefined>();
     MockApiClient.addMockResponse({

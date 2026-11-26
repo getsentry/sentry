@@ -34,11 +34,12 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import {t, tct} from 'sentry/locale';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
-import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {ListItemSelectCheckbox} from 'sentry/utils/list/listItemSelectCheckbox';
 import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
 import {useProjectsById} from 'sentry/utils/project/useProjectsById';
-import {isSeerTokenBasedBillingOnboardingEnabled} from 'sentry/utils/seer/isSeerTokenBasedBillingOnboardingEnabled';
+import {isTokenBilledSeerEnabled} from 'sentry/utils/seer/isTokenBilledSeerEnabled';
+import {useShowOpenPrs} from 'sentry/utils/seer/openPrs';
 import {
   seerAgentIntegrationsSelectQueryOptions,
   knownAgentIntegrationsQueryOptions,
@@ -46,9 +47,10 @@ import {
   NON_GITHUB_HANDOFF_WARNING,
   seerAgentProviderNameSelectQueryOptions,
 } from 'sentry/utils/seer/preferredAgent';
-import {PR_ITERATION_OPTIONS} from 'sentry/utils/seer/prIteration';
+import {NON_GITHUB_PR_ITERATION_WARNING} from 'sentry/utils/seer/prIteration';
 import {
   fetchProjectHasNonGithubRepo,
+  isGitHubDotComProvider,
   prefetchAllSeerProjectRepos,
 } from 'sentry/utils/seer/seerProjectRepos';
 import {
@@ -77,8 +79,14 @@ const TABLE_COLUMNS: TableColumnConfig[] = [
   {key: 'repos', width: '74px'},
   {key: 'fixes', width: '1fr'},
   {key: 'automation_steps', width: '1fr'},
-  {key: 'pr_iteration', width: '1fr'},
+  {key: 'pr_iteration', width: 'max-content'},
 ];
+
+const OPEN_PRS_TABLE_COLUMNS: TableColumnConfig[] = TABLE_COLUMNS.flatMap(column =>
+  column.key === 'automation_steps'
+    ? [column, {key: 'open_prs', width: 'max-content'}]
+    : [column]
+);
 
 export function SeerProjectTable() {
   const queryClient = useQueryClient();
@@ -124,6 +132,8 @@ export function SeerProjectTable() {
     seerAgentIntegrationsSelectQueryOptions({organization})
   );
   const stoppingPointOptions = useStoppingPointSelectOptions();
+  const showOpenPrs = useShowOpenPrs();
+  const columns = showOpenPrs ? OPEN_PRS_TABLE_COLUMNS : TABLE_COLUMNS;
 
   const bulkEdit = useMutation({
     ...getMutateSeerProjectsSettingsOptions({
@@ -148,11 +158,7 @@ export function SeerProjectTable() {
   const queryOptions = infiniteQueryOptions({
     ...getInfiniteSeerProjectsSettingsQueryOptions({
       organization,
-      query: {
-        per_page: 25,
-        query: mutableSearch,
-        sortBy,
-      },
+      query: {per_page: 25, query: mutableSearch, sortBy},
     }),
     select: ({pages}) => pages.flatMap(page => page.json),
   });
@@ -180,7 +186,7 @@ export function SeerProjectTable() {
                 {t('Enable Autofix on a Project')}
               </Heading>
               <Text variant="muted" size="md">
-                {isSeerTokenBasedBillingOnboardingEnabled(organization)
+                {isTokenBilledSeerEnabled(organization)
                   ? t('Link a repository to a project so Seer can read your code.')
                   : t(
                       'Add projects here in order to enable Autofix. Each project must be associated with a repository in order for Autofix to work.'
@@ -231,9 +237,9 @@ export function SeerProjectTable() {
       <ListItemCheckboxProvider
         hits={data?.length ?? 0}
         knownIds={data?.map(item => String(item.projectId)) ?? []}
-        endpointOptions={safeParseQueryKey(queryOptions.queryKey)?.options}
+        endpointOptions={parseQueryKey(queryOptions.queryKey).options}
       >
-        <InfiniteTable.Table columns={TABLE_COLUMNS}>
+        <InfiniteTable.Table columns={columns}>
           <ProjectTableHeader
             settings={data ?? []}
             sort={sortBy}
@@ -343,13 +349,13 @@ export function SeerProjectTable() {
                         </AutoSaveForm>
                       </Stack>
                     </InfiniteTable.RowCell>
-                    <InfiniteTable.RowCell>
-                      <Stack align="stretch" flex="1">
+                    {showOpenPrs && (
+                      <InfiniteTable.RowCell>
                         <AutoSaveForm
                           key={bulkEditVersion}
-                          name="prIteration"
+                          name="openPrs"
                           schema={seerProjectSettingsSchema}
-                          initialValue={item.prIteration}
+                          initialValue={item.openPrs}
                           mutationOptions={getMutateSeerProjectSettingsOptions({
                             organization,
                             project: {slug: item.projectSlug},
@@ -357,20 +363,26 @@ export function SeerProjectTable() {
                           })}
                         >
                           {field => (
-                            <field.Select
-                              aria-label={t(
-                                'Auto-iterate on PRs for %s',
-                                item.projectSlug
-                              )}
+                            <field.Switch
+                              aria-label={t('Open PRs for %s', item.projectSlug)}
+                              checked={field.state.value}
                               disabled={isRowDisabled}
-                              menuPortalTarget={document.body}
                               onChange={field.handleChange}
-                              options={PR_ITERATION_OPTIONS}
-                              size="xs"
-                              value={field.state.value}
+                              size="sm"
                             />
                           )}
                         </AutoSaveForm>
+                      </InfiniteTable.RowCell>
+                    )}
+                    <InfiniteTable.RowCell>
+                      <Stack align="stretch" flex="1">
+                        <PrIterationSwitchCell
+                          key={bulkEditVersion}
+                          projectSlug={item.projectSlug}
+                          initialValue={item.prIteration}
+                          disabled={isRowDisabled}
+                          repoProviders={item.repoProviders}
+                        />
                       </Stack>
                     </InfiniteTable.RowCell>
                   </InfiniteTable.Row>
@@ -465,6 +477,50 @@ function AgentSelectCell({
   );
 }
 
+interface PrIterationSwitchCellProps {
+  disabled: boolean;
+  initialValue: boolean;
+  projectSlug: string;
+  repoProviders: string[] | undefined;
+}
+
+function PrIterationSwitchCell({
+  disabled,
+  initialValue,
+  projectSlug,
+  repoProviders,
+}: PrIterationSwitchCellProps) {
+  const organization = useOrganization();
+  const queryClient = useQueryClient();
+  // Auto-Iterate only runs on github.com PRs. Older responses don't list the
+  // providers, so the control stays available until they do.
+  const unavailable =
+    repoProviders !== undefined && !repoProviders.some(isGitHubDotComProvider);
+
+  return (
+    <AutoSaveForm
+      name="prIteration"
+      schema={seerProjectSettingsSchema}
+      initialValue={initialValue}
+      mutationOptions={getMutateSeerProjectSettingsOptions({
+        organization,
+        project: {slug: projectSlug},
+        queryClient,
+      })}
+    >
+      {field => (
+        <field.Switch
+          aria-label={t('Auto-iterate on PRs for %s', projectSlug)}
+          checked={unavailable ? false : field.state.value}
+          disabled={unavailable ? NON_GITHUB_PR_ITERATION_WARNING : disabled}
+          onChange={field.handleChange}
+          size="sm"
+        />
+      )}
+    </AutoSaveForm>
+  );
+}
+
 function AddProjectButton({disabled}: {disabled: boolean}) {
   const {openModal} = useModal();
 
@@ -479,6 +535,7 @@ function AddProjectButton({disabled}: {disabled: boolean}) {
         // oxlint-disable-next-line react/todo
         try {
           const {ProjectAddRepoModal} =
+            // oxlint-disable-next-line react/todo
             await import('sentry/components/seer/projectAddRepoModal/projectAddRepoModal');
 
           openModal(

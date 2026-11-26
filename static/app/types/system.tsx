@@ -12,17 +12,6 @@ export interface PreloadRequestResult {
   status?: number;
 }
 
-export enum SentryInitRenderReactComponent {
-  SETUP_WIZARD = 'SetupWizard',
-}
-
-export type OnSentryInitConfiguration = {
-  component: SentryInitRenderReactComponent;
-  container: string;
-  name: 'renderReact';
-  props?: Record<string, any>;
-};
-
 declare global {
   interface Window {
     /**
@@ -36,16 +25,6 @@ declare global {
     __initialData: Config;
 
     /**
-     * This allows our server-rendered templates to push configuration that should be
-     * run after we render our main application.
-     */
-    __onSentryInit:
-      | OnSentryInitConfiguration[]
-      | {
-          push: (config: OnSentryInitConfiguration) => void;
-        };
-
-    /**
      * Used to open tooltips for testing purposes.
      */
     __openAllTooltips: () => void;
@@ -53,6 +32,9 @@ declare global {
      * Assets public location
      */
     __sentryGlobalStaticPrefix: string;
+
+    /** Query parameters supplied by the demo sandbox. */
+    SandboxData?: {extraQueryString?: string};
 
     /**
      * Is the UI running as dev-ui proxy.
@@ -136,10 +118,7 @@ export interface Config {
   enableAnalytics: boolean;
   features: Set<string>;
   gravatarBaseUrl: string;
-  initialTrace: {
-    baggage: string;
-    sentry_trace: string;
-  };
+  initialTrace: {baggage: string; sentry_trace: string};
   invitesEnabled: boolean;
   isAuthenticated: boolean;
 
@@ -193,29 +172,16 @@ export interface Config {
    * @deprecated
    */
   user: User;
-  userIdentity: {
-    email: string;
-    id: string;
-    ip_address: string;
-    isStaff: boolean;
-  };
+  userIdentity: {email: string; id: string; ip_address: string; isStaff: boolean};
   validateSUForm: boolean;
-  version: {
-    build: string;
-    current: string;
-    latest: string;
-    upgradeAvailable: boolean;
-  };
+  version: {build: string; current: string; latest: string; upgradeAvailable: boolean};
   intercomAppId?: string;
   partnershipAgreementPrompt?: {
     agreements: ParntershipAgreementType[];
     partnerDisplayName: string;
   } | null;
   shouldShowBeaconConsentPrompt?: boolean;
-  statuspage?: {
-    api_host: string;
-    id: string;
-  };
+  statuspage?: {api_host: string; id: string};
 }
 
 export interface Broadcast {

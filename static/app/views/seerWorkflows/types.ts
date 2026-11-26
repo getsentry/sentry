@@ -1,22 +1,15 @@
 export type WorkflowStrategy =
   | 'agentic_triage'
-  | 'agentic_triage_v2'
   | 'breached_metric_investigation'
-  | 'duplicate_monitors';
+  | 'duplicate_monitors'
+  | 'scheduled_investigation';
 
-type SeerWorkflowError = {
-  code: string;
-  message: string;
-};
+type SeerWorkflowError = {code: string; message: string};
 
 /**
  * Something an execution produced, e.g. a linked investigation
  */
-type ExecutionOutput = {
-  id: string;
-  title: string;
-  type: 'investigation';
-};
+type ExecutionOutput = {id: string; title: string; type: 'investigation'};
 
 type SeerWorkflowExecutionBase = {
   dateAdded: string;
@@ -68,14 +61,23 @@ type MonitorTrigger = {
 /**
  * A scheduled run
  */
-type CronTrigger = {
-  type: 'cron';
+type CronTrigger = {type: 'cron'};
+
+/**
+ * A run a user started by hand
+ */
+type ManualTrigger = {
+  type: 'manual';
+  /**
+   * The user who started the run, when known
+   */
+  userId?: string | null;
 };
 
 /**
  * What started a run. Discriminated by `type`; add new trigger variants to this union.
  */
-type WorkflowTrigger = MonitorTrigger | CronTrigger;
+type WorkflowTrigger = MonitorTrigger | CronTrigger | ManualTrigger;
 
 type SeerAutomationRunBase = {
   configId: string;
@@ -109,9 +111,7 @@ export type SeerAutomationRun = SeerAutomationRunBase &
 
 export type SeerAutomationRunStatus = SeerAutomationRun['status'];
 
-export type SeerAutomationRunsResponse = {
-  runs: SeerAutomationRun[];
-};
+export type SeerAutomationRunsResponse = {runs: SeerAutomationRun[]};
 
 export type WorkflowDisplayStatus =
   | 'succeeded'
@@ -179,9 +179,24 @@ type SeerServiceAccountRequest = {
 /**
  * Body of a POST to create a workflow config
  */
+/**
+ * When a scheduled automation runs
+ */
+type WorkflowCronSchedule = {
+  /**
+   * Five field crontab expression, e.g. `0 0 * * *`
+   */
+  crontab: string;
+  /**
+   * IANA timezone the crontab is evaluated in, e.g. `America/New_York`
+   */
+  timezone: string;
+};
+
 export type SeerWorkflowConfigCreateRequest = {
   serviceAccount: SeerServiceAccountRequest;
   strategy: WorkflowStrategy;
+  cronSchedules?: WorkflowCronSchedule[];
   enabled?: boolean;
   /**
    * Empty means all environments
@@ -203,7 +218,12 @@ export type SeerWorkflowConfigCreateRequest = {
  * Body of a PUT to a workflow config. Send at most one of projectIds or monitorIds
  */
 export type SeerWorkflowConfigUpdateRequest = {
+  cronSchedules?: WorkflowCronSchedule[];
   enabled?: boolean;
+  /**
+   * Empty means all environments
+   */
+  environments?: string[];
   monitorIds?: number[];
   name?: string;
   /**
@@ -213,6 +233,4 @@ export type SeerWorkflowConfigUpdateRequest = {
   serviceAccount?: SeerServiceAccountRequest;
 };
 
-export type SeerWorkflowConfigsResponse = {
-  configs: SeerWorkflowConfigResponse[];
-};
+export type SeerWorkflowConfigsResponse = {configs: SeerWorkflowConfigResponse[]};

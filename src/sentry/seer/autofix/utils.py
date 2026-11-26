@@ -3,7 +3,7 @@ from collections import defaultdict
 from collections.abc import Callable, Collection, Iterable, Mapping, Sequence
 from datetime import UTC, datetime
 from enum import StrEnum
-from typing import Any, Literal, NotRequired, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict, assert_never
 
 import orjson
 import sentry_sdk
@@ -576,7 +576,7 @@ def _get_link_priority(project_repo: ProjectRepository) -> int:
 def get_event_matched_project_repo_ids(group: Group) -> set[int]:
     """Linked repos of the group's project whose code mapping matches an in-app frame of its event."""
     organization = group.project.organization
-    if not is_seer_token_based_billing_onboarding_enabled(organization):
+    if not features.has("organizations:token-billed-seer-enabled", organization):
         return set()
     project_repos = get_token_based_billing_project_repos(organization, [group.project_id])
     # The order only matters when the limit can cut a repo, and loading the event hits Snuba.
@@ -662,7 +662,7 @@ def _get_repo_definitions_by_project(
     priority_project_repo_ids: Collection[int] = (),
 ) -> dict[int, list[SeerRepoDefinition]]:
     repo_definitions_by_project: defaultdict[int, list[SeerRepoDefinition]] = defaultdict(list)
-    if is_seer_token_based_billing_onboarding_enabled(organization):
+    if features.has("organizations:token-billed-seer-enabled", organization):
         project_repos = sorted(
             get_token_based_billing_project_repos(organization, project_ids),
             key=lambda project_repo: (
@@ -808,6 +808,7 @@ class SeerProjectSettingsUpdate(TypedDict, total=False):
     scanner_automation: bool
     auto_create_pr: bool
     pr_iteration: bool
+    open_prs: bool
 
 
 def update_seer_project_settings(project_ids: list[int], data: SeerProjectSettingsUpdate) -> None:
@@ -861,6 +862,9 @@ def update_seer_project_settings(project_ids: list[int], data: SeerProjectSettin
         # off (see ``pr_iteration.project_setting``), so deleting the row on "on"
         # would turn it back off for them.
         options_to_set["sentry:seer_pr_iteration"] = data["pr_iteration"]
+
+    if "open_prs" in data:
+        options_to_set["sentry:seer_open_prs"] = data["open_prs"]
 
     if "automation_tuning" in data:
         _set_or_clear(
@@ -1033,7 +1037,7 @@ def replace_all_seer_project_repos(
 
 def has_project_connected_repos(organization: Organization, project: Project) -> bool:
     """Check if a project has connected repositories for Seer automation."""
-    if is_seer_token_based_billing_onboarding_enabled(organization):
+    if features.has("organizations:token-billed-seer-enabled", organization):
         return (
             get_token_based_billing_project_repos(organization, [project.id])
             .filter(project__status=ObjectStatus.ACTIVE)
@@ -1170,13 +1174,6 @@ def is_seer_seat_or_token_billed_enabled(organization: Organization) -> bool:
     )
 
 
-def is_seer_token_based_billing_onboarding_enabled(organization: Organization) -> bool:
-    """Check if Seer onboarding changes for token-based billing apply to this organization."""
-    return features.has(
-        "organizations:seer-token-based-billing-onboarding", organization
-    ) and features.has("organizations:token-billed-seer-enabled", organization)
-
-
 def is_free_cohort_org(organization: Organization) -> bool:
     """Check if org is in the agentic triage free cohort — selected non-paying
     orgs that receive agentic triage and autofix without a Seer subscription.
@@ -1193,6 +1190,117 @@ def is_free_cohort_org(organization: Organization) -> bool:
     return bool(
         OrganizationOption.objects.get_value(organization, "agentic-triage-free-cohort", False)
     ) and not is_seer_seat_or_token_billed_enabled(organization)
+
+
+# See `get_agentic_triage_cohort`
+class AgenticTriageCohort(StrEnum):
+    LEGACY = "legacy"
+    SEAT = "seat"
+    FREE = "free"
+
+
+AGENTIC_TRIAGE_COHORT_OPTION = "sentry:agentic-triage-cohort"
+
+
+def get_agentic_triage_cohort(organization: Organization) -> AgenticTriageCohort | None:
+    """The agentic triage cohort an org was in before moving to token billing, or None.
+
+    Background
+    ----------
+    Seer has had three billing models:
+
+    - Legacy (usage-based): Autofix runs draw from a reserved budget / pay-as-you-go
+      quota (`check_seer_quota`, DataCategory.SEER_AUTOFIX).
+    - Seat-based: per-user seats (`organizations:seat-based-seer-enabled`).
+    - Token-based: a prepaid credit wallet charged per LLM usage, labelled by billing
+      feature (`organizations:token-billed-seer-enabled`).
+
+    As of 2026-11-23, all three models are in use by at least one org.
+
+    For our purposes orgs fall into these groups:
+
+    - Enterprise (sales-led): legacy or seat-based. Not migrated to token billing.
+    - Self-serve paid (monthly and annual): legacy, seat-based, or no Seer. All move
+      to token billing on 2026-12-08.
+    - Partner (Heroku/Vercel): treated like self-serve.
+    - Developer (unpaid): no token billing.
+    - Free cohort: selected orgs given agentic triage without a Seer subscription
+      (the `agentic-triage-free-cohort` org option).
+
+    Autofix automations come from two places:
+
+    - Post-process: Autofix on new, fixable issues. Legacy orgs only. Seat-based and
+      token-billed orgs skip it (see `kick_off_seer_automation`).
+    - Agentic triage (AT, "night shift"): a scheduled job that picks issues and runs
+      Autofix up to a PR (`sentry.tasks.seer.agentic_triage.cron`).
+
+    The cohort
+    ----------
+    At least initially, for token-based billing we want to:
+    - limit AT to orgs that already had it
+    - make it free for them
+    - leave post-process orgs (e.g. sales-led orgs on the original
+      legacy usage-based billing) untouched
+
+    The 'cohort' records a) whether an org had AT before token-based billing
+    and b) which of those groups it came from, so each can be:
+    - gated
+    - given its own PR copy
+    - dropped on its own
+
+    The 'cohorts' are:
+    - LEGACY: a self-serve legacy org with scheduled AT runs before the cutoff.
+    - SEAT: a self-serve seat-based org with scheduled AT runs before the cutoff.
+    - FREE: a free-cohort org.
+
+    The cohort option will be filled by a job in getsentry/getsentry.
+
+    `organizations:token-billed-seer-enabled` stands in for "not Enterprise", since
+    there is no explicit Enterprise check:
+    - LEGACY and SEAT only count once the org is token-billed
+    - FREE counts either way
+
+    After 12/8 (AT = scheduled agentic triage; Steps = the per-project Automation
+    Steps setting, proposed to show only for Enterprise and cohort orgs):
+
+    | Org                            | Post-process | AT                 | Steps |
+    |--------------------------------|--------------|--------------------|-------|
+    | Enterprise, legacy             | yes, paid    | yes, paid          | shown |
+    | Enterprise, seat-based         | no           | yes                | shown |
+    | Self-serve, was legacy         | no           | free if LEGACY     | if AT |
+    | Self-serve, was seat-based     | no           | free if SEAT       | if AT |
+    | Self-serve, no Seer            | no           | no                 | no    |
+    | Free cohort                    | no           | free (FREE)        | shown |
+    | Token-billed before the cutoff | no           | no (no cohort)     | no    |
+
+    Trials
+    ------
+    We have two types of trials:
+    - Plan trials: a trial of a paid plan, e.g. Business or Enterprise.
+    - Seer product trials: a time-limited Seer trial on the org's existing plan.
+
+    Trial orgs will get cohort = None, except free-cohort orgs, which keep FREE.
+
+    Callers switch to the cohort behind `organizations:seer-agentic-triage-cohort-gating`.
+    """
+    try:
+        cohort = AgenticTriageCohort(organization.get_option(AGENTIC_TRIAGE_COHORT_OPTION))
+    except ValueError:
+        return None
+    is_token_billed = features.has("organizations:token-billed-seer-enabled", organization)
+    if is_token_billed:
+        return cohort
+    else:
+        if cohort is AgenticTriageCohort.LEGACY:
+            # Still on legacy billing (e.g. Enterprise): keep today's path.
+            return None
+        elif cohort is AgenticTriageCohort.SEAT:
+            # Still on seat-based billing (e.g. Enterprise): keep today's path.
+            return None
+        elif cohort is AgenticTriageCohort.FREE:
+            return AgenticTriageCohort.FREE
+        else:
+            assert_never(cohort)
 
 
 def is_issue_category_eligible(group: Group) -> bool:

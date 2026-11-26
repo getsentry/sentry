@@ -9,11 +9,7 @@ import {t} from 'sentry/locale';
 
 import type {StoredGlobalAlert} from './globalAlerts';
 
-type Props = {
-  alert: StoredGlobalAlert;
-  onClose: () => void;
-  system: boolean;
-};
+type Props = {alert: StoredGlobalAlert; onClose: () => void; system: boolean};
 
 export function AlertMessage({alert, onClose, system}: Props) {
   return (

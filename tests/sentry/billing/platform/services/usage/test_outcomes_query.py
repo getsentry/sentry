@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
 
 from google.protobuf.timestamp_pb2 import Timestamp
@@ -352,8 +352,7 @@ class TestQueryOutcomesUsage:
         assert kwargs["referrer"] == "billing.usage_service.clickhouse"
 
     @patch("sentry.billing.platform.services.usage._outcomes_query.raw_snql_query")
-    def test_end_date_shifted_plus_one_day(self, mock_query: MagicMock) -> None:
-        """Proto end is inclusive (last included day). The query shifts +1 day for half-open."""
+    def test_end_date_is_exclusive(self, mock_query: MagicMock) -> None:
         mock_query.return_value = {"data": []}
 
         start = _make_timestamp(datetime(2025, 3, 1, tzinfo=timezone.utc))
@@ -369,10 +368,7 @@ class TestQueryOutcomesUsage:
             if hasattr(c, "lhs") and c.lhs.name == "timestamp"
         }
         assert timestamp_conditions[Op.GTE] == datetime(2025, 3, 1, tzinfo=timezone.utc)
-        # end=March 31 (inclusive) → query uses < April 1 (exclusive)
-        assert timestamp_conditions[Op.LT] == datetime(
-            2025, 3, 31, tzinfo=timezone.utc
-        ) + timedelta(days=1)
+        assert timestamp_conditions[Op.LT] == datetime(2025, 3, 31, tzinfo=timezone.utc)
 
     @patch("sentry.billing.platform.services.usage._outcomes_query.raw_snql_query")
     def test_query_returns_response(self, mock_query: MagicMock) -> None:
@@ -497,10 +493,10 @@ class TestBuildProjectQuery:
 
 class TestQueryProjectOutcomesUsage:
     @patch("sentry.billing.platform.services.usage._project_outcomes_query.raw_snql_query")
-    def test_end_date_shifted_plus_one_day(self, mock_query: MagicMock) -> None:
+    def test_end_date_is_exclusive(self, mock_query: MagicMock) -> None:
         mock_query.return_value = {"data": []}
         start_dt = datetime(2025, 3, 15, tzinfo=timezone.utc)
-        end_dt = datetime(2025, 3, 15, tzinfo=timezone.utc)
+        end_dt = datetime(2025, 3, 16, tzinfo=timezone.utc)
         request = GetUsageByProjectRequest(
             organization_id=1,
             start=_make_timestamp(start_dt),
@@ -516,7 +512,7 @@ class TestQueryProjectOutcomesUsage:
             if hasattr(condition, "lhs") and condition.lhs.name == "timestamp"
         }
         assert timestamp_conditions[Op.GTE] == start_dt
-        assert timestamp_conditions[Op.LT] == end_dt + timedelta(days=1)
+        assert timestamp_conditions[Op.LT] == end_dt
 
     @patch("sentry.billing.platform.services.usage._project_outcomes_query.logger")
     @patch("sentry.billing.platform.services.usage._project_outcomes_query.metrics")

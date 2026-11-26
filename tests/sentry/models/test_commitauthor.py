@@ -23,3 +23,17 @@ class CommitAuthorUsernameExtractionTest(SimpleTestCase):
     def test_get_username_from_external_id_multiple_colons(self) -> None:
         author = CommitAuthor(external_id="provider:user:with:colons")
         assert author.get_username_from_external_id() == "user:with:colons"
+
+
+class CommitAuthorProviderExtractionTest(SimpleTestCase):
+    def test_get_provider_from_external_id(self) -> None:
+        author = CommitAuthor(external_id="github_enterprise:baxterthehacker")
+        assert author.get_provider_from_external_id() == "github_enterprise"
+
+    def test_get_provider_from_external_id_no_external_id(self) -> None:
+        author = CommitAuthor(external_id=None)
+        assert author.get_provider_from_external_id() is None
+
+    def test_get_provider_from_external_id_no_colon(self) -> None:
+        author = CommitAuthor(external_id="justausername")
+        assert author.get_provider_from_external_id() is None

@@ -35,6 +35,7 @@ UPDATABLE_BLOCK_FIELDS = CREATABLE_BLOCK_FIELDS - {"kind"}
 _NOTEBOOK_TYPE_LABELS: dict[str, str] = {
     NotebookSourceType.MANUAL: "manual",
     NotebookSourceType.METRIC_OPEN_PERIOD: "breached metrics",
+    NotebookSourceType.DETECTOR: "detector",
 }
 
 
@@ -180,7 +181,7 @@ def get_or_create_source_notebook(
                     organization=organization,
                     source_key=source_key,
                     status=NotebookStatus.ACTIVE,
-                ).first()
+                ).first()  # noqa: S035
                 if active is not None:
                     return active, False
                 raise

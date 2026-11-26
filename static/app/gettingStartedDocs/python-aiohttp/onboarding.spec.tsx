@@ -19,9 +19,7 @@ describe('aiohttp onboarding docs', () => {
   });
 
   it('renders without tracing', () => {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [],
-    });
+    renderWithOnboardingLayout(docs, {selectedProducts: []});
 
     // Does not render config option
     expect(
@@ -52,17 +50,9 @@ describe('aiohttp onboarding docs', () => {
   });
 
   it('renders continuous profiling', () => {
-    const organization = OrganizationFixture({
-      features: ['continuous-profiling'],
-    });
+    const organization = OrganizationFixture({features: ['continuous-profiling']});
 
-    renderWithOnboardingLayout(
-      docs,
-      {},
-      {
-        organization,
-      }
-    );
+    renderWithOnboardingLayout(docs, {}, {organization});
 
     // Does not render transaction profiling config
     expect(
@@ -79,15 +69,11 @@ describe('aiohttp onboarding docs', () => {
   });
 
   it('renders with logs', () => {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [ProductSolution.LOGS],
-    });
+    renderWithOnboardingLayout(docs, {selectedProducts: [ProductSolution.LOGS]});
 
     // Renders logs config
     expect(
-      screen.getByText(
-        textWithMarkupMatcher(/LoggingIntegration\(capture_sentry_logs=True\)/)
-      )
+      screen.getByText(textWithMarkupMatcher(/LoggingIntegration\(\),/))
     ).toBeInTheDocument();
 
     // Renders logs verification steps
@@ -97,22 +83,18 @@ describe('aiohttp onboarding docs', () => {
     expect(
       screen.getByText(
         textWithMarkupMatcher(
-          "You can also forward logs from Python's built-in logging module by setting capture_sentry_logs=True on the LoggingIntegration:"
+          "You can also forward logs from Python's built-in logging module by adding the LoggingIntegration:"
         )
       )
     ).toBeInTheDocument();
   });
 
   it('renders without logs', () => {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [],
-    });
+    renderWithOnboardingLayout(docs, {selectedProducts: []});
 
     // Does not render logs config
     expect(
-      screen.queryByText(
-        textWithMarkupMatcher(/LoggingIntegration\(capture_sentry_logs=True\)/)
-      )
+      screen.queryByText(textWithMarkupMatcher(/LoggingIntegration\(\),/))
     ).not.toBeInTheDocument();
 
     // Does not render logs verification steps
@@ -122,16 +104,14 @@ describe('aiohttp onboarding docs', () => {
     expect(
       screen.queryByText(
         textWithMarkupMatcher(
-          "You can also forward logs from Python's built-in logging module by setting capture_sentry_logs=True on the LoggingIntegration:"
+          "You can also forward logs from Python's built-in logging module by adding the LoggingIntegration:"
         )
       )
     ).not.toBeInTheDocument();
   });
 
   it('renders metrics configuration when metrics are selected', () => {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [ProductSolution.METRICS],
-    });
+    renderWithOnboardingLayout(docs, {selectedProducts: [ProductSolution.METRICS]});
 
     // Renders metrics verification steps
     expect(
@@ -142,9 +122,7 @@ describe('aiohttp onboarding docs', () => {
   });
 
   it('renders without metrics configuration when metrics are not selected', () => {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [],
-    });
+    renderWithOnboardingLayout(docs, {selectedProducts: []});
 
     // Does not render metrics verification steps
     expect(

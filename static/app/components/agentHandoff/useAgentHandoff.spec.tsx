@@ -16,7 +16,6 @@ describe('useAgentHandoff', () => {
   const prompt =
     'Read and follow https://sentry-jest-tests.example.com/agent-handoff.md verbatim. Your handoff code is `sntryh_example`.';
   const write = jest.fn();
-  const options = {disableIpPinning: false};
   const context = {runId: 'a'.repeat(32)};
 
   beforeEach(() => {
@@ -48,34 +47,106 @@ describe('useAgentHandoff', () => {
       {organization}
     );
     await act(async () => {
-      await expect(result.current.copyPrompt(options)).rejects.toThrow('Unable to copy');
+      await expect(result.current.copyPrompt()).rejects.toThrow('Unable to copy');
     });
     await act(async () => {
-      await expect(result.current.copyPrompt(options)).resolves.toBe(handoffId);
+      await expect(result.current.copyPrompt()).resolves.toBe(handoffId);
     });
     expect(mint).toHaveBeenCalledTimes(1);
     expect(mint).toHaveBeenCalledWith(
       url,
-      expect.objectContaining({
-        data: {
-          context,
-          disableIpPinning: false,
-          flow: 'onboarding',
-        },
-      })
+      expect.objectContaining({data: {context, flow: 'onboarding'}})
     );
-    const item = write.mock.calls.at(-1)![0][0] as {
-      data: Record<string, Promise<Blob>>;
-    };
+    const item = write.mock.calls.at(-1)![0][0] as {data: Record<string, Promise<Blob>>};
     await expect(item.data['text/plain']!.then(blob => blob.text())).resolves.toBe(
       prompt
     );
 
     jest.spyOn(Date, 'now').mockReturnValue(Date.now() + 241_000);
     await act(async () => {
-      await result.current.copyPrompt(options);
+      await result.current.copyPrompt();
     });
     expect(mint).toHaveBeenCalledTimes(2);
+  });
+
+  it('reuses a copied code until the page is hidden', async () => {
+    let mintCount = 0;
+    const mint = MockApiClient.addMockResponse({
+      url,
+      method: 'POST',
+      body: () => {
+        mintCount++;
+        return {
+          code: `sntryh_code${mintCount}`,
+          handoffId: String(mintCount).repeat(32),
+          expiresAt: new Date(Date.now() + 300_000).toISOString(),
+        };
+      },
+    });
+    const hidden = jest.spyOn(document, 'hidden', 'get').mockReturnValue(false);
+    const {result} = renderHookWithProviders(
+      () => useAgentHandoff(AgentHandoffFlow.ONBOARDING, context),
+      {organization}
+    );
+
+    await act(async () => {
+      await expect(result.current.copyPrompt()).resolves.toBe('1'.repeat(32));
+    });
+    await act(async () => {
+      await expect(result.current.copyPrompt()).resolves.toBe('1'.repeat(32));
+    });
+    expect(mint).toHaveBeenCalledTimes(1);
+
+    hidden.mockReturnValue(true);
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    hidden.mockReturnValue(false);
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+
+    await act(async () => {
+      await expect(result.current.copyPrompt()).resolves.toBe('2'.repeat(32));
+    });
+    expect(mint).toHaveBeenCalledTimes(2);
+    const copied = await Promise.all(
+      write.mock.calls.map(([[item]]) =>
+        (item as {data: Record<string, Promise<Blob>>}).data['text/plain']!.then(blob =>
+          blob.text()
+        )
+      )
+    );
+    expect(copied[1]).toContain('`sntryh_code1`');
+    expect(copied[2]).toContain('`sntryh_code2`');
+  });
+
+  it('keeps a code that never reached the clipboard when the page is hidden', async () => {
+    const mint = MockApiClient.addMockResponse({
+      url,
+      method: 'POST',
+      body: {code, handoffId, expiresAt: new Date(Date.now() + 300_000).toISOString()},
+    });
+    write.mockRejectedValueOnce(new Error('Clipboard unavailable'));
+    const hidden = jest.spyOn(document, 'hidden', 'get').mockReturnValue(false);
+    const {result} = renderHookWithProviders(
+      () => useAgentHandoff(AgentHandoffFlow.ONBOARDING, context),
+      {organization}
+    );
+
+    await act(async () => {
+      await expect(result.current.copyPrompt()).rejects.toThrow('Unable to copy');
+    });
+    hidden.mockReturnValue(true);
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    hidden.mockReturnValue(false);
+
+    await act(async () => {
+      await expect(result.current.copyPrompt()).resolves.toBe(handoffId);
+    });
+    expect(mint).toHaveBeenCalledTimes(1);
   });
 
   it('reports a safe error when minting fails', async () => {
@@ -90,14 +161,12 @@ describe('useAgentHandoff', () => {
       {organization}
     );
     await act(async () => {
-      await expect(result.current.copyPrompt(options)).rejects.toThrow(
+      await expect(result.current.copyPrompt()).rejects.toThrow(
         'Unable to create your agent prompt. Try again.'
       );
     });
     expect(write).toHaveBeenCalledTimes(1);
-    const item = write.mock.calls[0]![0][0] as {
-      data: Record<string, Promise<Blob>>;
-    };
+    const item = write.mock.calls[0]![0][0] as {data: Record<string, Promise<Blob>>};
     await expect(item.data['text/plain']).rejects.toThrow(
       'Unable to create your agent prompt. Try again.'
     );
@@ -123,7 +192,7 @@ describe('useAgentHandoff', () => {
 
     let copy!: Promise<string>;
     act(() => {
-      copy = result.current.copyPrompt(options);
+      copy = result.current.copyPrompt();
     });
 
     expect(mint).toHaveBeenCalledTimes(1);
@@ -154,8 +223,8 @@ describe('useAgentHandoff', () => {
     let firstCopy!: Promise<string>;
     let secondCopy!: Promise<string>;
     act(() => {
-      firstCopy = result.current.copyPrompt(options);
-      secondCopy = result.current.copyPrompt(options);
+      firstCopy = result.current.copyPrompt();
+      secondCopy = result.current.copyPrompt();
     });
 
     expect(secondCopy).toBe(firstCopy);
@@ -184,14 +253,12 @@ describe('useAgentHandoff', () => {
     );
 
     await act(async () => {
-      await result.current.copyPrompt(options);
+      await result.current.copyPrompt();
     });
     expect(mint).toHaveBeenCalledTimes(1);
     expect(mint).toHaveBeenCalledWith(
       url,
-      expect.objectContaining({
-        data: {context: contextA, disableIpPinning: false, flow: 'add_feature'},
-      })
+      expect.objectContaining({data: {context: contextA, flow: 'add_feature'}})
     );
     const itemA = write.mock.calls[0]![0][0] as {data: Record<string, Promise<Blob>>};
     await expect(itemA.data['text/plain']!.then(b => b.text())).resolves.toBe(
@@ -200,14 +267,12 @@ describe('useAgentHandoff', () => {
 
     rerender({ctx: contextB});
     await act(async () => {
-      await result.current.copyPrompt(options);
+      await result.current.copyPrompt();
     });
     expect(mint).toHaveBeenCalledTimes(2);
     expect(mint).toHaveBeenLastCalledWith(
       url,
-      expect.objectContaining({
-        data: {context: contextB, disableIpPinning: false, flow: 'add_feature'},
-      })
+      expect.objectContaining({data: {context: contextB, flow: 'add_feature'}})
     );
   });
 
@@ -225,7 +290,7 @@ describe('useAgentHandoff', () => {
     );
     let copy!: Promise<string>;
     act(() => {
-      copy = result.current.copyPrompt(options);
+      copy = result.current.copyPrompt();
     });
     await waitFor(() => expect(mint).toHaveBeenCalledTimes(1));
     unmount();

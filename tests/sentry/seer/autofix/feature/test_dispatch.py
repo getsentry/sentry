@@ -330,8 +330,11 @@ class TestTriggerAutofixFeature(TestCase):
         mock_quotas.backend.record_seer_run.assert_called_once()
 
     @with_feature("organizations:token-billed-seer-enabled")
-    @patch("sentry.seer_credit.backend.check_seer_credits")
-    def test_token_billed_without_credit_checks_skips_quota_and_usage_recording(
+    @patch(
+        "sentry.seer_credit.backend.check_seer_credits",
+        return_value=CheckSeerCreditsResponse(has_enough_credits=True),
+    )
+    def test_token_billed_checks_credits_and_skips_quota_and_usage_recording(
         self, mock_check_seer_credits: MagicMock
     ) -> None:
         fake_run = self.create_seer_run(organization=self.organization, type="feature_run")
@@ -352,11 +355,11 @@ class TestTriggerAutofixFeature(TestCase):
             )
 
         assert run is fake_run
-        mock_check_seer_credits.assert_not_called()
+        mock_check_seer_credits.assert_called_once()
         mock_quotas.backend.check_seer_quota.assert_not_called()
         mock_quotas.backend.record_seer_run.assert_not_called()
 
-    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
+    @with_feature("organizations:token-billed-seer-enabled")
     @patch(
         "sentry.seer_credit.backend.check_seer_credits",
         return_value=CheckSeerCreditsResponse(
@@ -387,7 +390,7 @@ class TestTriggerAutofixFeature(TestCase):
         mock_quotas.backend.check_seer_quota.assert_not_called()
         mock_quotas.backend.record_seer_run.assert_not_called()
 
-    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
+    @with_feature("organizations:token-billed-seer-enabled")
     @patch(
         "sentry.seer_credit.backend.check_seer_credits",
         return_value=CheckSeerCreditsResponse(has_enough_credits=False),
@@ -417,7 +420,7 @@ class TestTriggerAutofixFeature(TestCase):
 
         MockClient.return_value.continue_feature_run.assert_not_called()
 
-    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
+    @with_feature("organizations:token-billed-seer-enabled")
     @patch(
         "sentry.seer_credit.backend.check_seer_credits",
         return_value=CheckSeerCreditsResponse(has_enough_credits=True),
@@ -448,7 +451,7 @@ class TestTriggerAutofixFeature(TestCase):
         start_kwargs = MockClient.return_value.start_feature_run.call_args.kwargs
         assert start_kwargs["billing_feature"] == SEER_BILLING_FEATURE_AUTOFIX_AGENTIC_TRIAGE
 
-    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
+    @with_feature("organizations:token-billed-seer-enabled")
     @patch(
         "sentry.seer_credit.backend.check_seer_credits",
         return_value=CheckSeerCreditsResponse(has_enough_credits=True),
@@ -484,7 +487,7 @@ class TestTriggerAutofixFeature(TestCase):
         assert run is fake_run
         assert mock_check_seer_credits.call_args.args[0].feature_id == "autofix_agentic_triage"
 
-    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
+    @with_feature("organizations:token-billed-seer-enabled")
     @patch(
         "sentry.seer_credit.backend.check_seer_credits",
         return_value=CheckSeerCreditsResponse(has_enough_credits=True),
@@ -732,16 +735,18 @@ class TestSingleRunStart(TestCase):
                 assert start_kwargs["payload"]["coding_agent_handoff"] is True
                 assert start_kwargs["extras"][CODING_AGENT_HANDOFF_KEY] is True
 
-    def test_handoff_project_manual_run_does_not_hand_off(self) -> None:
-        # A manual run names no stopping point, so Seer writes the fix as it does without handoff.
+    def test_handoff_project_manual_run_opens_pr_without_handing_off(self) -> None:
         self._set_handoff()
+        self.project.update_option("sentry:seer_automated_run_stopping_point", "open_pr")
+        self.project.update_option("sentry:autofix_automation_tuning", "medium")
         self.organization.update_option("sentry:enable_seer_coding", True)
 
         mock_client_cls = self._start(single_run=True)
 
         start_kwargs = mock_client_cls.return_value.start_feature_run.call_args.kwargs
         assert start_kwargs["agent_run_options"]["enable_coding"] is True
-        assert start_kwargs["extras"]["stopping_point"] == AutofixStoppingPoint.CODE_CHANGES.value
+        assert start_kwargs["agent_run_options"]["enable_write_pull_request"] is True
+        assert start_kwargs["extras"]["stopping_point"] == AutofixStoppingPoint.OPEN_PR.value
         assert start_kwargs["payload"]["coding_agent_handoff"] is False
         assert CODING_AGENT_HANDOFF_KEY not in start_kwargs["extras"]
 
@@ -801,6 +806,7 @@ class TestSingleRunStart(TestCase):
             (AutofixStoppingPoint.CODE_CHANGES, True, False),
             (AutofixStoppingPoint.ROOT_CAUSE, True, False),
         ]
+        self.project.update_option("sentry:seer_open_prs", True)
         for stopping_point, org_coding, expected in cases:
             with self.subTest(stopping_point=stopping_point, coding=org_coding):
                 self.organization.update_option("sentry:enable_seer_coding", org_coding)
@@ -812,19 +818,47 @@ class TestSingleRunStart(TestCase):
                 assert options.get("enable_write_pull_request", False) is expected
                 assert (start_kwargs["payload"]["pr_internal_settings"] is not None) is expected
 
-    def test_single_run_without_stopping_point_ignores_project_open_pr(self) -> None:
-        self.project.update_option("sentry:seer_automated_run_stopping_point", "open_pr")
+    def test_manual_single_run_follows_project_open_prs(self) -> None:
+        cases = [
+            ("open_pr", "medium", True, "open_pr"),
+            ("open_pr", "off", False, "code_changes"),
+            ("code_changes", "medium", False, "code_changes"),
+            ("root_cause", "medium", False, "code_changes"),
+        ]
         self.organization.update_option("sentry:enable_seer_coding", True)
+        for stored, tuning, expect_pr, expected_stopping_point in cases:
+            with self.subTest(stored=stored, tuning=tuning):
+                self.project.update_option("sentry:seer_automated_run_stopping_point", stored)
+                self.project.update_option("sentry:autofix_automation_tuning", tuning)
 
-        mock_client_cls = self._start(single_run=True)
+                mock_client_cls = self._start(single_run=True)
 
-        start_kwargs = mock_client_cls.return_value.start_feature_run.call_args.kwargs
-        assert start_kwargs["agent_run_options"]["enable_coding"] is True
-        assert "enable_write_pull_request" not in start_kwargs["agent_run_options"]
-        assert start_kwargs["payload"]["pr_internal_settings"] is None
+                start_kwargs = mock_client_cls.return_value.start_feature_run.call_args.kwargs
+                options = start_kwargs["agent_run_options"]
+                assert options["enable_coding"] is True
+                assert options.get("enable_write_pull_request", False) is expect_pr
+                assert (start_kwargs["payload"]["pr_internal_settings"] is not None) is expect_pr
+                assert start_kwargs["extras"]["stopping_point"] == expected_stopping_point
+
+    def test_open_prs_off_keeps_any_single_run_from_opening_a_pr(self) -> None:
+        self.organization.update_option("sentry:enable_seer_coding", True)
+        self.project.update_option("sentry:seer_automated_run_stopping_point", "open_pr")
+        self.project.update_option("sentry:autofix_automation_tuning", "medium")
+        self.project.update_option("sentry:seer_open_prs", False)
+
+        for stopping_point in (None, AutofixStoppingPoint.OPEN_PR):
+            with self.subTest(stopping_point=stopping_point):
+                mock_client_cls = self._start(single_run=True, stopping_point=stopping_point)
+
+                start_kwargs = mock_client_cls.return_value.start_feature_run.call_args.kwargs
+                assert start_kwargs["agent_run_options"]["enable_coding"] is True
+                assert "enable_write_pull_request" not in start_kwargs["agent_run_options"]
+                assert start_kwargs["payload"]["pr_internal_settings"] is None
+                assert start_kwargs["extras"]["stopping_point"] == "code_changes"
 
     def test_single_run_pr_internal_settings_match_the_pipeline_push(self) -> None:
         self.organization.update_option("sentry:enable_seer_coding", True)
+        self.project.update_option("sentry:seer_open_prs", True)
         with self.feature("organizations:autofix-pr-iteration-review-request"):
             mock_client_cls = self._start(
                 single_run=True, stopping_point=AutofixStoppingPoint.OPEN_PR
@@ -934,7 +968,7 @@ class TestContinueSingleRun(TestCase):
         assert kwargs["agent_run_options"]["enable_write_pull_request"] is False
         assert kwargs["payload"]["pr_internal_settings"] is None
 
-    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
+    @with_feature("organizations:token-billed-seer-enabled")
     @patch(
         "sentry.seer_credit.backend.check_seer_credits",
         return_value=CheckSeerCreditsResponse(has_enough_credits=False),
@@ -956,7 +990,7 @@ class TestContinueSingleRun(TestCase):
 
         mock_client_cls.return_value.continue_feature_run.assert_not_called()
 
-    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
+    @with_feature("organizations:token-billed-seer-enabled")
     @patch(
         "sentry.seer_credit.backend.check_seer_credits",
         return_value=CheckSeerCreditsResponse(has_enough_credits=True),

@@ -118,12 +118,7 @@ function makeSection(
   artifacts?: AutofixSection['artifacts'],
   status: AutofixSection['status'] = 'completed'
 ): AutofixSection {
-  return {
-    step,
-    artifacts: artifacts ?? defaultArtifacts(step),
-    blocks: [],
-    status,
-  };
+  return {step, artifacts: artifacts ?? defaultArtifacts(step), blocks: [], status};
 }
 
 describe('SeerDrawerNextStep', () => {
@@ -131,21 +126,23 @@ describe('SeerDrawerNextStep', () => {
 
   beforeEach(() => {
     openChatPrompt.mockClear();
-    jest.mocked(useSeerExplorerContext).mockReturnValue({
-      closeSeerExplorer: jest.fn(),
-      isOpen: false,
-      openChatPrompt,
-      openSeerExplorer: jest.fn(),
-      sessionState: 'inactive',
-      sidebarContainerRef: {current: null},
-      setSidebarPosition: jest.fn(),
-      sidebarAppendInitialQuery: false,
-      sidebarInitialQuery: undefined,
-      sidebarKey: 0,
-      sidebarPosition: 'auto',
-      toggleSeerExplorer: jest.fn(),
-      unreadCount: 0,
-    });
+    jest
+      .mocked(useSeerExplorerContext)
+      .mockReturnValue({
+        closeSeerExplorer: jest.fn(),
+        isOpen: false,
+        openChatPrompt,
+        openSeerExplorer: jest.fn(),
+        sessionState: 'inactive',
+        sidebarContainerRef: {current: null},
+        setSidebarPosition: jest.fn(),
+        sidebarAppendInitialQuery: false,
+        sidebarInitialQuery: undefined,
+        sidebarKey: 0,
+        sidebarPosition: 'auto',
+        toggleSeerExplorer: jest.fn(),
+        unreadCount: 0,
+      });
   });
 
   describe('on the Autofix page', () => {
@@ -1151,10 +1148,7 @@ describe('SeerDrawerNextStep', () => {
     function makePrIterationAutofix(
       overrides: Partial<ReturnType<typeof useExplorerAutofix>> = {}
     ) {
-      return makeAutofix({
-        runState: {run_id: 1, blocks: []} as any,
-        ...overrides,
-      });
+      return makeAutofix({runState: {run_id: 1, blocks: []} as any, ...overrides});
     }
 
     beforeEach(() => {
@@ -1284,7 +1278,7 @@ describe('SeerDrawerNextStep', () => {
   describe('out of Seer credits', () => {
     const creditCheckUrl = '/organizations/org-slug/seer/credit-check/';
     const creditCheckOrganization = OrganizationFixture({
-      features: ['seer-credit-checks', 'token-billed-seer-enabled'],
+      features: ['token-billed-seer-enabled'],
     });
 
     function mockCreditCheck(operation: string, hasEnoughCredits = false) {
@@ -1383,13 +1377,12 @@ describe('SeerDrawerNextStep', () => {
 
       expect(screen.getByRole('button', {name: 'Yes, make a plan'})).toBeDisabled();
       expect(screen.getByRole('button', {name: 'No'})).toBeDisabled();
-      // Nothing else on screen waits on the check.
       expect(
         await screen.findByRole('button', {name: 'More code fix options'})
-      ).toBeEnabled();
+      ).toBeDisabled();
     });
 
-    it('leaves the coding agent hand-off available', async () => {
+    it('disables the coding agent hand-off when the step is unaffordable', async () => {
       mockCreditCheck('autofix_solution');
 
       await renderAndWaitForCheck(
@@ -1402,12 +1395,9 @@ describe('SeerDrawerNextStep', () => {
       );
 
       expect(screen.getByRole('button', {name: 'Yes, make a plan'})).toBeDisabled();
-      await userEvent.click(
-        await screen.findByRole('button', {name: 'More code fix options'})
-      );
       expect(
-        await screen.findByRole('menuitemradio', {name: 'Send to Copilot'})
-      ).toBeInTheDocument();
+        await screen.findByRole('button', {name: 'More code fix options'})
+      ).toBeDisabled();
     });
 
     it('disables Ask Seer in code mode', async () => {
@@ -1425,11 +1415,7 @@ describe('SeerDrawerNextStep', () => {
           operation: 'autofix_solution',
           organization: OrganizationFixture({
             ...codeModeOrganization,
-            features: [
-              ...codeModeOrganization.features,
-              'seer-credit-checks',
-              'token-billed-seer-enabled',
-            ],
+            features: [...codeModeOrganization.features, 'token-billed-seer-enabled'],
           }),
         }
       );

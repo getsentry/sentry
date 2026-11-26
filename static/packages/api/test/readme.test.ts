@@ -1,9 +1,8 @@
-import { execFileSync } from "node:child_process";
 import { readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, test } from "vitest";
 
-import { installPackedPackage, packageRoot } from "./packed-package.ts";
+import { installPackedPackage, packageRoot, typecheckProject } from "./packed-package.ts";
 
 /**
  * Names the README examples use without defining them: values that earlier
@@ -58,9 +57,7 @@ describe("README", () => {
         files: ["context.d.ts", ...examples.map(({ file }) => file)],
       }));
       try {
-        execFileSync("node", [join(packageRoot, "node_modules", "typescript", "bin", "tsc6"), "-p", directory], {
-          encoding: "utf8",
-        });
+        typecheckProject(directory);
       } catch (error) {
         throw new Error(`README examples fail to typecheck:\n${(error as { stdout: string }).stdout}`);
       }

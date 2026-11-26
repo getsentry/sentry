@@ -3,15 +3,17 @@ from unittest.mock import patch
 import pytest
 from django.db import IntegrityError, router, transaction
 
+from sentry.inbox.event_data import InboxEventData
 from sentry.inbox.issue import (
     ISSUE,
     ISSUE_USER_ASSIGNED,
     IssueAssignedData,
     IssueMentionedData,
     IssuePRReadyForReviewData,
+    IssueSubject,
 )
 from sentry.inbox.registry import inbox_item_event_type_registry, inbox_item_type_registry
-from sentry.inbox.types import InboxActor, InboxEventData
+from sentry.inbox.types import InboxActor
 from sentry.issues.comments import create_comment, update_comment
 from sentry.models.activity import Activity, ActivityIntegration
 from sentry.models.groupassignee import GroupAssignee
@@ -36,9 +38,9 @@ class IssueItemTypeTest(TestCase):
         assert ISSUE.get_subject_id(group) == str(group.id)
         assert ISSUE.get_organization_id(group) == self.organization.id
 
-    def test_titles(self) -> None:
-        first = self.create_group(project=self.project, data={"title": "First issue"})
-        second = self.create_group(project=self.project, data={"title": "Second issue"})
+    def test_subjects(self) -> None:
+        project = self.create_project(slug="test-project")
+        first = self.create_group(project=project, short_id=1, data={"title": "First issue"})
         other = self.create_group(
             project=self.create_project(organization=self.create_organization()),
             data={"title": "Other organization"},
@@ -48,12 +50,32 @@ class IssueItemTypeTest(TestCase):
         deleted.delete()
 
         with self.assertNumQueries(1):
-            titles = ISSUE.get_titles(
+            subjects = ISSUE.get_subjects(
                 organization=self.organization,
-                subject_ids=[str(first.id), str(second.id), str(other.id), deleted_id, "invalid"],
+                subject_ids=[str(first.id), str(other.id), deleted_id, "invalid"],
             )
 
-        assert titles == {str(first.id): "First issue", str(second.id): "Second issue"}
+        assert subjects == {
+            str(first.id): IssueSubject(
+                id=first.id,
+                title="First issue",
+                short_id="TEST-PROJECT-1",
+                project_id=project.id,
+                project_slug="test-project",
+            ),
+        }
+
+    def test_subject_serialize(self) -> None:
+        subject = IssueSubject(
+            id=1, title="First issue", short_id="WEB-1", project_id=2, project_slug="web"
+        )
+
+        assert subject.serialize() == {
+            "id": "1",
+            "type": "issue",
+            "title": "First issue",
+            "metadata": {"shortId": "WEB-1", "project": {"id": "2", "slug": "web"}},
+        }
 
     def test_url(self) -> None:
         organization = self.organization

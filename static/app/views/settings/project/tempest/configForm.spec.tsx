@@ -78,10 +78,7 @@ describe('ConfigForm', () => {
     await waitFor(() => {
       expect(putMock).toHaveBeenCalledWith(
         `/projects/${organization.slug}/${project.slug}/`,
-        expect.objectContaining({
-          method: 'PUT',
-          data: {tempestFetchScreenshots: true},
-        })
+        expect.objectContaining({method: 'PUT', data: {tempestFetchScreenshots: true}})
       );
     });
     await waitFor(() => expect(switchInput).toBeEnabled());

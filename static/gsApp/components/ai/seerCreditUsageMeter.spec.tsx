@@ -9,7 +9,7 @@ import {SeerCreditUsageMeter} from './seerCreditUsageMeter';
 
 const billingOrganization = OrganizationFixture({
   access: ['org:read', 'org:billing'],
-  features: ['seer-credit-checks', 'token-billed-seer-enabled'],
+  features: ['token-billed-seer-enabled'],
 });
 
 function mockWallet(
@@ -17,24 +17,23 @@ function mockWallet(
   {
     autoReload = false,
     balance = 250,
+    dailyLimit = null,
     percentUsed = 0.75,
-    included = 1000,
-    purchased = 0,
   }: {
     autoReload?: boolean;
     balance?: number;
-    included?: number;
+    dailyLimit?: {remaining: number; total: number} | null;
     percentUsed?: number;
-    purchased?: number;
   } = {}
 ) {
   const wallet = MockApiClient.addMockResponse({
     url: `/customers/${organization.slug}/seer-wallet/`,
     body: {
       balance,
+      dailyLimit,
       percentUsed,
-      included: {remaining: balance, resetsAt: null, total: included},
-      purchased: {remaining: 0, expiresAt: null, total: purchased},
+      included: {remaining: balance, resetsAt: null, total: 1000},
+      purchased: {remaining: 0, expiresAt: null, total: 0},
       creditPriceCents: 1,
     },
   });
@@ -92,7 +91,7 @@ describe('SeerCreditUsageMeter', () => {
         'Your organization has used 75% of your available monthly credits.'
       )
     ).toBeInTheDocument();
-    expect(screen.getByText('250/1,000 credits remaining.')).toBeInTheDocument();
+    expect(screen.getByText('250 credits remaining.')).toBeInTheDocument();
     // The out-of-credits alert, not the meter, is where auto-reload gets turned on.
     expect(screen.queryByRole('link')).not.toBeInTheDocument();
   });
@@ -154,13 +153,8 @@ describe('SeerCreditUsageMeter', () => {
     expect(await screen.findByText('50%')).toBeInTheDocument();
   });
 
-  it('rounds the percent and counts purchased credits in the total', async () => {
-    mockWallet(billingOrganization, {
-      balance: 1250,
-      percentUsed: 0.8754,
-      included: 8000,
-      purchased: 2000,
-    });
+  it('rounds the percent and formats the credits remaining', async () => {
+    mockWallet(billingOrganization, {balance: 1250, percentUsed: 0.8754});
 
     render(<SeerCreditUsageMeter hasEnoughCredits />, {
       organization: billingOrganization,
@@ -168,9 +162,57 @@ describe('SeerCreditUsageMeter', () => {
 
     await userEvent.hover(await screen.findByText('88%'));
 
-    expect(
-      await screen.findByText('1,250/10,000 credits remaining.')
-    ).toBeInTheDocument();
+    expect(await screen.findByText('1,250 credits remaining.')).toBeInTheDocument();
+  });
+
+  it('says credit, not credits, when one is left', async () => {
+    mockWallet(billingOrganization, {balance: 1, percentUsed: 0.999});
+
+    render(<SeerCreditUsageMeter hasEnoughCredits />, {
+      organization: billingOrganization,
+    });
+
+    await userEvent.hover(await screen.findByText('100%'));
+
+    expect(await screen.findByText('1 credit remaining.')).toBeInTheDocument();
+  });
+
+  it.each([
+    [
+      'what is left of the daily usage limit when it runs out first',
+      {autoReload: false, balance: 2000, dailyLimit: {total: 2500, remaining: 700}},
+      'Your organization has used 72% of its daily usage limit.',
+      '700 credits remaining today.',
+    ],
+    [
+      'the wallet when it runs out first',
+      {autoReload: false, balance: 250, dailyLimit: {total: 2500, remaining: 700}},
+      'Your organization has used 75% of your available monthly credits.',
+      '250 credits remaining.',
+    ],
+    [
+      'the daily usage limit when auto-reload refills the wallet',
+      {autoReload: true, balance: 250, dailyLimit: {total: 2500, remaining: 700}},
+      'Your organization has used 72% of its daily usage limit.',
+      '700 credits remaining today.',
+    ],
+    [
+      'a $0 daily usage limit as fully used',
+      {autoReload: false, balance: 2000, dailyLimit: {total: 0, remaining: 0}},
+      'Your organization has used 100% of its daily usage limit.',
+      '0 credits remaining today.',
+    ],
+  ] as const)('counts down %s', async (_, wallet, usedText, remainingText) => {
+    mockWallet(billingOrganization, wallet);
+
+    render(<SeerCreditUsageMeter hasEnoughCredits />, {
+      organization: billingOrganization,
+    });
+
+    await userEvent.hover(await screen.findByTestId('seer-credit-usage-meter'));
+
+    expect(await screen.findByText(usedText)).toBeInTheDocument();
+    expect(screen.getByText(remainingText)).toBeInTheDocument();
   });
 
   it.each([
@@ -194,7 +236,7 @@ describe('SeerCreditUsageMeter', () => {
   it('shows usage without auto-reload to members without billing access', async () => {
     const organization = OrganizationFixture({
       access: ['org:read'],
-      features: ['seer-credit-checks', 'token-billed-seer-enabled'],
+      features: ['token-billed-seer-enabled'],
     });
     const {wallet, autoTopUp} = mockWallet(organization, {autoReload: true});
 
@@ -205,7 +247,7 @@ describe('SeerCreditUsageMeter', () => {
     expect(
       await screen.findByText('Your organization has used 75% of your available credits.')
     ).toBeInTheDocument();
-    expect(screen.getByText('250/1,000 credits remaining.')).toBeInTheDocument();
+    expect(screen.getByText('250 credits remaining.')).toBeInTheDocument();
     expect(
       screen.queryByText('Credits will reload automatically.')
     ).not.toBeInTheDocument();
@@ -216,7 +258,7 @@ describe('SeerCreditUsageMeter', () => {
     expect(autoTopUp).not.toHaveBeenCalled();
   });
 
-  it('shows nothing without seer-credit-checks', () => {
+  it('shows nothing without token-billed Seer', () => {
     const organization = OrganizationFixture({access: ['org:read', 'org:billing']});
     const {wallet, autoTopUp} = mockWallet(organization);
 

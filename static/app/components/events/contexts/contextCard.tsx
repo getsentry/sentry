@@ -120,9 +120,7 @@ export function ContextCard({alias, event, type, project, value = {}}: ContextCa
                 alias,
                 type,
                 value,
-                contextIconProps: {
-                  size: 'sm',
-                },
+                contextIconProps: {size: 'sm'},
                 theme,
               })}
             </ErrorBoundary>

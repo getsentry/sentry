@@ -57,6 +57,7 @@ from sentry.seer.autofix.pr_iteration.out_of_credits import (
     get_out_of_credits,
     mark_out_of_credits,
 )
+from sentry.seer.autofix.pr_iteration.out_of_credits_comment import OUT_OF_CREDITS_COMMENT_EXTRA
 from sentry.seer.autofix.pr_iteration.pause import (
     PAUSED_EXTRA,
     PauseReason,
@@ -95,12 +96,6 @@ TASK_PATH = "sentry.tasks.seer.pr_iteration"
 CHECK_SUITE_SOURCE_PATH = "sentry.seer.autofix.pr_iteration.feedback_sources.check_suite"
 PAUSE_PATH = "sentry.seer.autofix.pr_iteration.pause"
 PR_STATE_PATH = "sentry.seer.autofix.pr_iteration.pr_state"
-
-# Both flags behind ``is_seer_token_based_billing_onboarding_enabled``.
-TOKEN_BILLING_FEATURES = {
-    "organizations:seer-token-based-billing-onboarding": True,
-    "organizations:token-billed-seer-enabled": True,
-}
 
 
 class _CommentScmStub:
@@ -1304,6 +1299,64 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         mock_trigger.assert_called_once()
         assert get_out_of_credits(run_id=67890, organization_id=self.organization.id) is None
 
+    def _strand_with_comment(self, action: StrandedAction) -> SeerRun:
+        seer_run = self.create_seer_run(
+            organization=self.organization,
+            seer_run_state_id=67890,
+            extras={OUT_OF_CREDITS_COMMENT_EXTRA: {"denial_reason": None}},
+        )
+        mark_out_of_credits(
+            run_id=67890, organization_id=self.organization.id, stranded_action=action
+        )
+        return seer_run
+
+    @patch("sentry.seer.autofix.pr_iteration.completion.redo_stranded_action")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_a_redone_stranded_action_clears_the_out_of_credits_comment(
+        self, mock_fetch: MagicMock, mock_redo: MagicMock
+    ) -> None:
+        # Work resumed, so the next credit stop comments again.
+        seer_run = self._strand_with_comment(StrandedAction.BRANCH_MOVED_RETRY)
+        mock_fetch.return_value = self._state(blocks=[self._unpushed_block()])
+
+        self._call()
+
+        mock_redo.assert_called_once()
+        seer_run.refresh_from_db()
+        assert OUT_OF_CREDITS_COMMENT_EXTRA not in seer_run.extras
+
+    @patch("sentry.seer.autofix.pr_iteration.completion.redo_stranded_action")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_a_stranded_action_done_elsewhere_clears_the_out_of_credits_comment(
+        self, mock_fetch: MagicMock, mock_redo: MagicMock
+    ) -> None:
+        # Retry PR in the UI pushed the changes, so work resumed even with nothing queued.
+        seer_run = self._strand_with_comment(StrandedAction.PUSH)
+        mock_fetch.return_value = self._state()
+
+        self._call()
+
+        mock_redo.assert_not_called()
+        seer_run.refresh_from_db()
+        assert OUT_OF_CREDITS_COMMENT_EXTRA not in seer_run.extras
+
+    @patch("sentry.seer.autofix.pr_iteration.completion.redo_stranded_action")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_a_redo_refused_again_keeps_the_out_of_credits_comment(
+        self, mock_fetch: MagicMock, mock_redo: MagicMock
+    ) -> None:
+        # Still the same credit stop, so its comment stands.
+        seer_run = self._strand_with_comment(StrandedAction.PUSH)
+        mock_fetch.return_value = self._state(blocks=[self._unpushed_block()])
+        mock_redo.side_effect = lambda *args: mark_out_of_credits(
+            run_id=67890, organization_id=self.organization.id, stranded_action=StrandedAction.PUSH
+        )
+
+        self._call()
+
+        seer_run.refresh_from_db()
+        assert OUT_OF_CREDITS_COMMENT_EXTRA in seer_run.extras
+
     @patch(f"{TASK_PATH}.fetch_run_status")
     def test_an_empty_queue_leaves_the_out_of_credits_marker(self, mock_fetch: MagicMock) -> None:
         # Only a step that starts clears the marker.
@@ -1755,6 +1808,84 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         (row,) = open_iterations(seer_run)
         assert row.triggered is False
         assert row.data[FAILURE_REASON_DATA_KEY] == PrIterationOutcome.SENTRY_OUT_OF_CREDITS.value
+
+    def _state_with_pr_number(self) -> SeerRunState:
+        state = self._state()
+        state.repo_pr_states = {"owner/repo": RepoPRState(repo_name="owner/repo", pr_number=7)}
+        return state
+
+    @patch(f"{TASK_PATH}.comment_on_out_of_credits.delay")
+    @patch(
+        f"{TASK_PATH}.trigger_autofix_agent",
+        side_effect=SeerOutOfCreditsException("daily_cap_exceeded"),
+    )
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_a_trigger_refused_for_credits_comments_on_the_pr(
+        self,
+        mock_fetch: MagicMock,
+        _mock_trigger: MagicMock,
+        mock_comment: MagicMock,
+    ) -> None:
+        self.create_seer_run(organization=self.organization, seer_run_state_id=67890)
+        mock_fetch.return_value = self._state_with_pr_number()
+        self._open_iteration_row()
+        self._enqueue_ui_feedback("fix it")
+
+        self._call()
+
+        mock_comment.assert_called_once_with(
+            run_id=67890,
+            organization_id=self.organization.id,
+            pr_numbers_by_repo={"owner/repo": 7},
+            denial_reason="daily_cap_exceeded",
+        )
+
+    @patch(f"{TASK_PATH}.comment_on_out_of_credits.delay")
+    @patch(f"{TASK_PATH}.trigger_autofix_agent", side_effect=SeerOutOfCreditsException())
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_a_trigger_refused_again_for_credits_does_not_comment_again(
+        self,
+        mock_fetch: MagicMock,
+        _mock_trigger: MagicMock,
+        mock_comment: MagicMock,
+    ) -> None:
+        # The credit stop's comment is already on the PR.
+        self.create_seer_run(
+            organization=self.organization,
+            seer_run_state_id=67890,
+            extras={OUT_OF_CREDITS_COMMENT_EXTRA: {"denial_reason": None}},
+        )
+        mark_out_of_credits(run_id=67890, organization_id=self.organization.id)
+        mock_fetch.return_value = self._state_with_pr_number()
+        self._open_iteration_row()
+        self._enqueue_ui_feedback("fix it")
+
+        self._call()
+
+        mock_comment.assert_not_called()
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_a_started_iteration_clears_the_out_of_credits_comment(
+        self,
+        mock_fetch: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        # So the next credit stop comments again.
+        seer_run = self.create_seer_run(
+            organization=self.organization,
+            seer_run_state_id=67890,
+            extras={OUT_OF_CREDITS_COMMENT_EXTRA: {"denial_reason": None}},
+        )
+        mark_out_of_credits(run_id=67890, organization_id=self.organization.id)
+        mock_fetch.return_value = self._state_with_pr_number()
+        self._enqueue_ui_feedback("fix it")
+
+        self._call()
+
+        mock_trigger.assert_called_once()
+        seer_run.refresh_from_db()
+        assert OUT_OF_CREDITS_COMMENT_EXTRA not in seer_run.extras
 
     @patch(f"{TASK_PATH}.trigger_autofix_agent")
     @patch(f"{TASK_PATH}.fetch_run_status")
@@ -2410,7 +2541,7 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         ui = self._ui_queued()
         mock_pop.return_value = [self._queued(self._review_feedback(777)), ui]
 
-        with self.feature(TOKEN_BILLING_FEATURES):
+        with self.feature("organizations:token-billed-seer-enabled"):
             self._call()
 
         mock_trigger.assert_called_once()
@@ -2430,7 +2561,7 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         mock_fetch.return_value = self._state_on_head()
         mock_pop.return_value = [self._queued(self._review_feedback(777))]
 
-        with self.feature(TOKEN_BILLING_FEATURES):
+        with self.feature("organizations:token-billed-seer-enabled"):
             self._call()
 
         mock_trigger.assert_not_called()

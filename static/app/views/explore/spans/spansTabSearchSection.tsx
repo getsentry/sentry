@@ -29,6 +29,7 @@ import {
   type TraceItemSearchQueryBuilderProps,
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {useSearchAttributeKeyQuery} from 'sentry/views/explore/hooks/useSearchAttributeKeyQuery';
 import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {
   useQueryParamsCrossEvents,
@@ -79,13 +80,19 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
   const {attributes: numberAttributes} = useSpanItemAttributes({}, 'number');
   const {attributes: stringAttributes} = useSpanItemAttributes({}, 'string');
   const {attributes: booleanAttributes} = useSpanItemAttributes({}, 'boolean');
-  const {data: validatedSearchQueryData} = useValidateSpansTab();
+  const {data: validatedSearchQueryData, isPlaceholderData: validationIsPlaceholderData} =
+    useValidateSpansTab();
+  const attributeKeyQuery = useSearchAttributeKeyQuery(query, {
+    data: validatedSearchQueryData,
+    isPlaceholderData: validationIsPlaceholderData,
+  });
 
   const search = useMemo(() => new MutableSearch(query), [query]);
   const oldSearch = usePrevious(search);
 
   const searchQueryBuilderProps = useMemo(
     () => ({
+      attributeKeyQuery,
       initialQuery: query,
       onSearch: (newQuery: string) => {
         const newSearch = new MutableSearch(newQuery);
@@ -126,6 +133,7 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
       validatedSearchQueryData,
     }),
     [
+      attributeKeyQuery,
       booleanAttributes,
       caseInsensitive,
       fields,
@@ -180,11 +188,7 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
                     `,
                     '3xl': '"filters search actions"',
                   }}
-                  columns={{
-                    zero: '100%',
-                    xl: '1fr auto',
-                    '3xl': 'subgrid',
-                  }}
+                  columns={{zero: '100%', xl: '1fr auto', '3xl': 'subgrid'}}
                   gap="md"
                   width="100%"
                 >

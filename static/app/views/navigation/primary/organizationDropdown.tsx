@@ -7,7 +7,6 @@ import {IconSettings} from '@sentry/icons/settings';
 import omit from 'lodash/omit';
 import orderBy from 'lodash/orderBy';
 import partition from 'lodash/partition';
-import {useStore} from 'zustand';
 
 import {
   getOrganizationAvatarProps,
@@ -20,28 +19,31 @@ import {
   type DropdownMenuProps,
   type MenuItemProps,
 } from '@sentry/scraps/dropdownMenu';
-import {InfoTip} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import type {MenuItemTrailingAction} from '@sentry/scraps/menu';
 import {useSizeContext} from '@sentry/scraps/sizeContext';
 import {Text} from '@sentry/scraps/text';
 
-import {OrganizationBadge} from 'sentry/components/idBadge/organizationBadge';
 import {BookmarkStarIcon} from 'sentry/components/projects/bookmarkStar';
 import {useUpdateProjectBookmark} from 'sentry/components/projects/useUpdateProjectBookmark';
 import {CUSTOM_REFERRER_KEY} from 'sentry/constants';
 import {t, tn} from 'sentry/locale';
-import {ConfigStore} from 'sentry/stores/configStore';
-import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import type {Organization, OrganizationSummary} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {isDemoModeActive} from 'sentry/utils/demoMode';
+import {getOrganizationItemProps} from 'sentry/utils/organization/getOrganizationItemProps';
+import {
+  type CreateOrganizationLink,
+  useCreateOrganizationLink,
+} from 'sentry/utils/organization/useCreateOrganizationLink';
+import {useOrganizationSwitcher} from 'sentry/utils/organization/useOrganizationSwitcher';
+import {groupProjectsByMembership} from 'sentry/utils/project/groupProjectsByMembership';
 import {sortProjectsByBookmarkAndMembership} from 'sentry/utils/project/sortProjects';
-import {localizeDomain, resolveRoute} from 'sentry/utils/resolveRoute';
+import {resolveRoute} from 'sentry/utils/resolveRoute';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useOrganizations} from 'sentry/utils/useOrganizations';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 import {
@@ -71,7 +73,9 @@ interface OrganizationDropdownProps {
 
 export function OrganizationDropdown(props: OrganizationDropdownProps) {
   const navigate = useNavigate();
-  const singleOrganization = useStore(ConfigStore, state => state.singleOrganization);
+  const organizations = useOrganizations();
+  const {canSwitch} = useOrganizationSwitcher();
+  const createOrganizationLink = useCreateOrganizationLink();
   const theme = useTheme();
   const portalContainerRef = useRef<HTMLElement | null>(null);
 
@@ -84,7 +88,6 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
   const settingsTour = useSettingsNavigationTour();
   const [isMenuOpen, setMenuOpen] = useState(false);
   const isProjectTourActive = settingsTour?.currentStepId === 'projects';
-  const organizations = useStore(OrganizationsStore, state => state.organizations);
 
   const [activeOrgs, inactiveOrgs] = partition(
     organizations.filter(org => org.slug !== organization.slug),
@@ -171,17 +174,10 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
       )}
     </SettingsNavigationTourElement>
   );
-  const createOrganizationItem = makeCreateOrganizationMenuItem();
+  const createOrganizationItem =
+    createOrganizationLink && makeCreateOrganizationMenuItem(createOrganizationLink);
 
   if (settingsV3) {
-    const memberProjects = sortProjectsByBookmarkAndMembership(
-      projects.filter(project => project.isMember),
-      bookmarkedSnapshot
-    );
-    const otherProjects = sortProjectsByBookmarkAndMembership(
-      projects.filter(project => !project.isMember),
-      bookmarkedSnapshot
-    );
     // Unbookmarked projects fill the remaining slots, so the list is not empty
     // when nothing is bookmarked.
     const quickAccessProjects = sortProjectsByBookmarkAndMembership(
@@ -268,10 +264,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
                     label: t('Switch'),
                     leadingItems: <IconBuilding />,
                     submenu: true,
-                    hidden:
-                      singleOrganization ||
-                      isDemoModeActive() ||
-                      (activeOrgs.length === 0 && inactiveOrgs.length === 0),
+                    hidden: !canSwitch,
                     children: [
                       {
                         key: 'active-orgs',
@@ -283,13 +276,13 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
                       {
                         key: 'inactive-orgs',
                         children: orderBy(inactiveOrgs, ['name']).map(
-                          makeInactiveOrganizationMenuItem
+                          makeOrganizationMenuItem
                         ),
                         hidden: inactiveOrgs.length === 0,
                       },
                     ],
                   },
-                  createOrganizationItem,
+                  ...(createOrganizationItem ? [createOrganizationItem] : []),
                 ],
               },
               {
@@ -312,24 +305,15 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
                       maxWidth: ORGANIZATION_MENU_MAX_WIDTH,
                     },
                     hidden: projects.length === 0,
-                    children: [
-                      {
-                        key: 'my-projects',
-                        label: t('My Projects'),
-                        hidden: memberProjects.length === 0,
-                        children: memberProjects.map(project =>
+                    children: groupProjectsByMembership(projects, bookmarkedSnapshot).map(
+                      group => ({
+                        key: group.key,
+                        label: group.label,
+                        children: group.projects.map(project =>
                           makeSettingsProjectMenuItem(project, 'all_projects')
                         ),
-                      },
-                      {
-                        key: 'other-projects',
-                        label: t('Other Projects'),
-                        hidden: otherProjects.length === 0,
-                        children: otherProjects.map(project =>
-                          makeSettingsProjectMenuItem(project, 'all_projects')
-                        ),
-                      },
-                    ],
+                      })
+                    ),
                   },
                   {
                     key: 'create-project',
@@ -420,7 +404,9 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
               key: 'switch-organization',
               label: t('Switch Organization'),
               submenu: true,
-              hidden: singleOrganization || isDemoModeActive(),
+              // Also holds Create Organization, so a user with one organization
+              // still needs it.
+              hidden: !canSwitch && createOrganizationLink === null,
               children: [
                 {
                   key: 'active-orgs',
@@ -430,18 +416,16 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
                 },
                 {
                   key: 'inactive-ogs',
-                  children: orderBy(inactiveOrgs, ['name']).map(
-                    makeInactiveOrganizationMenuItem
-                  ),
+                  children: orderBy(inactiveOrgs, ['name']).map(makeOrganizationMenuItem),
                   // Hide entire submenu if there are no inactive organizations
                   hidden: inactiveOrgs.length === 0,
                 },
                 {
                   key: 'create-organization-section',
-                  children: [
-                    {...createOrganizationItem, label: t('Create a new organization')},
-                  ],
-                  hidden: createOrganizationItem.hidden,
+                  children: createOrganizationItem
+                    ? [{...createOrganizationItem, label: t('Create a new organization')}]
+                    : [],
+                  hidden: !createOrganizationItem,
                 },
               ],
             },
@@ -470,35 +454,16 @@ function makeProjectMenuItem(
 function makeOrganizationMenuItem(org: OrganizationSummary): MenuItemProps {
   return {
     key: org.id,
-    label: <OrganizationBadge organization={org} />,
-    textValue: org.name,
+    ...getOrganizationItemProps(org),
     to: resolveRoute(`/organizations/${org.slug}/issues/`, null, org),
   };
 }
 
-function makeInactiveOrganizationMenuItem(org: OrganizationSummary): MenuItemProps {
+function makeCreateOrganizationMenuItem(link: CreateOrganizationLink): MenuItemProps {
   return {
-    ...makeOrganizationMenuItem(org),
-    trailingItems: <InfoTip size="sm" title={org.status.name} />,
-  };
-}
-
-function makeCreateOrganizationMenuItem(): MenuItemProps {
-  const configFeatures = ConfigStore.get('features');
-
-  const menuItemProps: MenuItemProps = {
     key: 'create-organization',
     leadingItems: <IconAdd />,
     label: t('Create Organization'),
-    hidden: !configFeatures.has('organizations:create'),
+    ...('href' in link ? {externalHref: link.href} : {to: link.to}),
   };
-
-  if (configFeatures.has('system:multi-region')) {
-    menuItemProps.externalHref =
-      localizeDomain(ConfigStore.get('links').sentryUrl) + '/organizations/new/';
-  } else {
-    menuItemProps.to = '/organizations/new/';
-  }
-
-  return menuItemProps;
 }

@@ -1,4 +1,4 @@
-from typing import Literal, Never, cast
+from typing import Literal, Never
 
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers
@@ -178,7 +178,7 @@ class OrganizationTraceItemAttributeContextEndpoint(OrganizationTraceItemAttribu
         data = serializer.validated_data
 
         dataset = data["dataset"]
-        attribute_type = cast(AttributeType, data["attribute_type"])
+        attribute_type = data["attribute_type"]
         trace_item_type = SupportedTraceItemType(dataset)
 
         try:

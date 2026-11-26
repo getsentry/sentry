@@ -372,7 +372,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         if user_id is not None:
             member = OrganizationMember.objects.filter(
                 organization_id=org.id, user_id=user_id
-            ).first()
+            ).first()  # noqa: S035
         if member is None and email is not None:
             member = first_matching_email(
                 OrganizationMember.objects.filter(organization_id=org.id), email
@@ -414,9 +414,10 @@ class DatabaseBackedOrganizationService(OrganizationService):
         org_member: OrganizationMember | None = None
         try:
             # This transaction is required to bind the member to a variable
-            # when replication fails. The outbox_context is just to flag
-            # that this is an outbox-producing operation.
-            with outbox_context(transaction.atomic(router.db_for_write(OrganizationMember))):
+            # when replication fails. Control needs the accepted member right away.
+            with outbox_context(
+                transaction.atomic(router.db_for_write(OrganizationMember)), flush=True
+            ):
                 try:
                     org_member = OrganizationMember.objects.get(
                         user_id=user_id, organization_id=organization_id
@@ -540,11 +541,11 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 if user_id is not None:
                     org_member = OrganizationMember.objects.filter(
                         organization_id=organization_id, user_id=user_id
-                    ).first()
+                    ).first()  # noqa: S035
                 elif email is not None:
                     org_member = OrganizationMember.objects.filter(
                         organization_id=organization_id, email=email
-                    ).first()
+                    ).first()  # noqa: S035
 
                 if org_member is None:
                     org_member = OrganizationMember.objects.create(
@@ -577,7 +578,14 @@ class DatabaseBackedOrganizationService(OrganizationService):
         self, *, organization_id: int, member_id: int, attrs: OrganizationMemberUpdateArgs
     ) -> RpcOrganizationMember | None:
         member = OrganizationMember.objects.get(id=member_id)
-        with outbox_context(transaction.atomic(router.db_for_write(OrganizationMember))):
+        # Control reads the owner role, so changes to or from owner replicate right away.
+        top_dog = roles.get_top_dog().id
+        new_role = attrs.get("role", member.role)
+        owner_change = new_role != member.role and top_dog in (member.role, new_role)
+        with outbox_context(
+            transaction.atomic(router.db_for_write(OrganizationMember)),
+            flush=True if owner_change else None,
+        ):
             if len(attrs):
                 for k, v in attrs.items():
                     setattr(member, k, v)
@@ -659,7 +667,10 @@ class DatabaseBackedOrganizationService(OrganizationService):
         return serialize_rpc_organization(org)
 
     def remove_user(self, *, organization_id: int, user_id: int) -> RpcOrganizationMember | None:
-        with outbox_context(transaction.atomic(router.db_for_write(OrganizationMember))):
+        # Control reads user_id from the member mapping right away.
+        with outbox_context(
+            transaction.atomic(router.db_for_write(OrganizationMember)), flush=True
+        ):
             try:
                 org_member = OrganizationMember.objects.get(
                     organization_id=organization_id, user_id=user_id
@@ -678,11 +689,11 @@ class DatabaseBackedOrganizationService(OrganizationService):
     def merge_users(self, *, organization_id: int, from_user_id: int, to_user_id: int) -> None:
         to_member: OrganizationMember | None = OrganizationMember.objects.filter(
             organization_id=organization_id, user_id=to_user_id
-        ).first()
+        ).first()  # noqa: S035
 
         from_member: OrganizationMember | None = OrganizationMember.objects.filter(
             organization_id=organization_id, user_id=from_user_id
-        ).first()
+        ).first()  # noqa: S035
 
         if from_member is None:
             return
@@ -698,7 +709,11 @@ class DatabaseBackedOrganizationService(OrganizationService):
         else:
             if roles.get(from_member.role).priority > roles.get(to_member.role).priority:
                 to_member.role = from_member.role
-            to_member.save()
+            # May promote to owner, which control reads straight away.
+            with outbox_context(
+                transaction.atomic(router.db_for_write(OrganizationMember)), flush=True
+            ):
+                to_member.save()
 
         assert to_member
 

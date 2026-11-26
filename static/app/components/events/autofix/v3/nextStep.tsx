@@ -162,13 +162,7 @@ function RootCauseNextStep({autofix, group, runId, section, referrer}: NextStepP
   const {askSeer, isCodeMode} = useAskSeerHandoff();
 
   const {codingAgentIntegrations, codingAgentDisabledReason, handleCodingAgentHandoff} =
-    useCodingAgents({
-      autofix,
-      runId,
-      group,
-      step: 'root_cause',
-      referrer,
-    });
+    useCodingAgents({autofix, runId, group, step: 'root_cause', referrer});
 
   const handleYesClick = () => {
     startStep('solution', {runId});
@@ -194,10 +188,7 @@ function RootCauseNextStep({autofix, group, runId, section, referrer}: NextStepP
   );
 
   const rethinkPrompt = t('How can this root cause be improved?');
-  const rethinkInChat = useRethinkInChat({
-    prompt: rethinkPrompt,
-    step: 'root_cause',
-  });
+  const rethinkInChat = useRethinkInChat({prompt: rethinkPrompt, step: 'root_cause'});
 
   const artifact = useMemo(() => getAutofixArtifactFromSection(section), [section]);
   const creditsDisabled = useAutofixCreditsDisabled('solution', {
@@ -252,13 +243,7 @@ function SolutionNextStep({autofix, group, runId, section, referrer}: NextStepPr
   const {askSeer, isCodeMode} = useAskSeerHandoff();
 
   const {codingAgentIntegrations, codingAgentDisabledReason, handleCodingAgentHandoff} =
-    useCodingAgents({
-      autofix,
-      runId,
-      group,
-      step: 'solution',
-      referrer,
-    });
+    useCodingAgents({autofix, runId, group, step: 'solution', referrer});
 
   const handleYesClick = () => {
     startStep('code_changes', {runId});
@@ -284,10 +269,7 @@ function SolutionNextStep({autofix, group, runId, section, referrer}: NextStepPr
   );
 
   const rethinkPrompt = t('How can this plan be improved?');
-  const rethinkInChat = useRethinkInChat({
-    prompt: rethinkPrompt,
-    step: 'solution',
-  });
+  const rethinkInChat = useRethinkInChat({prompt: rethinkPrompt, step: 'solution'});
 
   const artifact = useMemo(() => getAutofixArtifactFromSection(section), [section]);
   const creditsDisabled = useAutofixCreditsDisabled('code_changes', {
@@ -452,10 +434,7 @@ function CodeChangesNextStepContent({
   );
 
   const rethinkPrompt = t('How can this code change be improved?');
-  const rethinkInChat = useRethinkInChat({
-    prompt: rethinkPrompt,
-    step: 'code_changes',
-  });
+  const rethinkInChat = useRethinkInChat({prompt: rethinkPrompt, step: 'code_changes'});
 
   return (
     <NextStepTemplate
@@ -502,9 +481,7 @@ function CodeChangesNextStepContent({
 interface NextStepTemplateProps {
   /**
    * Disables everything here that would start Seer work: the org can't afford
-   * the next step, or the check hasn't answered yet. "No" and "Ask Seer" lead
-   * only to a re-run or a Seer Agent message, so they go too. Coding agents
-   * aren't paid for in Seer credits, so their hand-off stays available.
+   * the next step, or the check hasn't answered yet
    */
   creditsDisabled: boolean;
   isProcessing: boolean;
@@ -606,7 +583,7 @@ function NextStepTemplate({
             <CodingAgentDropdown
               integrations={codingAgentIntegrations}
               disabledReason={codingAgentDisabledReason}
-              isProcessing={isProcessing}
+              isProcessing={isProcessing || creditsDisabled}
               onHandoff={onCodingAgentHandoff}
             />
           )}
@@ -620,16 +597,22 @@ interface SingleRunHandoffDropdownProps {
   autofix: ReturnType<typeof useExplorerAutofix>;
   group: Group;
   runId: SeerExplorerRunId;
+  /**
+   * Shows the trigger as a labeled button instead of the chevron half of a
+   * split button.
+   */
+  label?: string;
 }
 
 /**
- * Sits beside "Open Autofix" once a single run has a root cause, so the reader
- * can hand the fix to a coding agent the way the step-by-step flow allows.
+ * Hands a single run's root cause to a coding agent: the chevron beside "Open
+ * Autofix", or a labeled button that replaces it while the run's chat is open.
  */
 export function SingleRunHandoffDropdown({
   autofix,
   group,
   runId,
+  label,
 }: SingleRunHandoffDropdownProps) {
   const {codingAgentIntegrations, codingAgentDisabledReason, handleCodingAgentHandoff} =
     useCodingAgents({
@@ -641,7 +624,13 @@ export function SingleRunHandoffDropdown({
     });
 
   if (codingAgentIntegrations === undefined) {
-    return null;
+    // A labeled trigger is the only action left while the chat is open, so it
+    // stays in place while the agents load or if they fail to load.
+    return label ? (
+      <Button variant="primary" disabled>
+        {label}
+      </Button>
+    ) : null;
   }
 
   return (
@@ -650,6 +639,7 @@ export function SingleRunHandoffDropdown({
       disabledReason={codingAgentDisabledReason}
       isProcessing={autofix.isPolling}
       onHandoff={handleCodingAgentHandoff}
+      label={label}
     />
   );
 }
@@ -659,6 +649,7 @@ interface CodingAgentDropdownProps {
   isProcessing: boolean;
   onHandoff: (integration: CodingAgentIntegration) => void;
   disabledReason?: string;
+  label?: string;
 }
 
 function CodingAgentDropdown({
@@ -666,6 +657,7 @@ function CodingAgentDropdown({
   disabledReason,
   isProcessing,
   onHandoff,
+  label,
 }: CodingAgentDropdownProps) {
   const organization = useOrganization();
 
@@ -696,17 +688,24 @@ function CodingAgentDropdown({
     <DropdownMenu
       items={options}
       isDisabled={defined(disabledReason)}
-      trigger={(triggerProps, isOpen) => (
-        <OverlayTrigger.IconButton
-          {...triggerProps}
-          disabled={isProcessing || defined(disabledReason)}
-          tooltipProps={{title: disabledReason}}
-          variant="primary"
-          icon={<IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />}
-          aria-label={t('More code fix options')}
-        />
-      )}
-      position="bottom-end"
+      trigger={(triggerProps, isOpen) => {
+        const buttonProps = {
+          ...triggerProps,
+          disabled: isProcessing || defined(disabledReason),
+          tooltipProps: {title: disabledReason},
+          variant: 'primary' as const,
+        };
+        return label ? (
+          <OverlayTrigger.Button {...buttonProps}>{label}</OverlayTrigger.Button>
+        ) : (
+          <OverlayTrigger.IconButton
+            {...buttonProps}
+            icon={<IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />}
+            aria-label={t('More code fix options')}
+          />
+        );
+      }}
+      position={label ? 'bottom-start' : 'bottom-end'}
       shouldCloseOnBlur={false}
       menuFooter={
         <Footer>

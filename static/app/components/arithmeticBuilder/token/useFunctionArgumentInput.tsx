@@ -5,6 +5,7 @@ import type {ListState} from '@react-stately/list';
 import type {KeyboardEvent, Node} from '@react-types/shared';
 
 import {Flex, type FlexProps} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {useArithmeticBuilder} from 'sentry/components/arithmeticBuilder/context';
 import {
@@ -293,6 +294,17 @@ const StyledArgumentGridCell = styled(Flex)`
   }
 `;
 
-export function ArgumentGridCell(props: FlexProps) {
-  return <StyledArgumentGridCell align="center" height="100%" {...props} />;
+interface ArgumentGridCellProps extends FlexProps {
+  /**
+   * Full argument text, shown in a tooltip when the input truncates it.
+   */
+  fullText?: string;
+}
+
+export function ArgumentGridCell({fullText, ...props}: ArgumentGridCellProps) {
+  return (
+    <Tooltip title={fullText} disabled={!fullText} showOnlyOnOverflow skipWrapper>
+      <StyledArgumentGridCell align="center" height="100%" {...props} />
+    </Tooltip>
+  );
 }

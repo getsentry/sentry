@@ -12,6 +12,7 @@ import {
 import {toast} from '@sentry/scraps/toast';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {NON_GITHUB_PR_ITERATION_WARNING} from 'sentry/utils/seer/prIteration';
 
 import {SeerProjectTable} from './seerProjectTable';
 
@@ -39,12 +40,33 @@ describe('SeerProjectTable', () => {
   const organization = OrganizationFixture({access: ['org:write']});
   const project = ProjectFixture({id: '2', slug: 'project-slug'});
 
+  // Replaces the project's settings row; the latest mock wins.
+  function mockProjectSettings(overrides: Record<string, unknown>) {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/projects/`,
+      body: [
+        {
+          projectId: '2',
+          projectSlug: 'project-slug',
+          agent: 'seer',
+          integrationId: null,
+          stoppingPoint: 'root_cause',
+          autoCreatePr: null,
+          automationTuning: 'off',
+          scannerAutomation: false,
+          openPrs: false,
+          prIteration: true,
+          reposCount: 1,
+          ...overrides,
+        },
+      ],
+    });
+  }
+
   function mockBaseEndpoints() {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/coding-agents/`,
-      body: {
-        integrations: [{id: '123', provider: 'cursor', name: 'Cursor Cloud Agent'}],
-      },
+      body: {integrations: [{id: '123', provider: 'cursor', name: 'Cursor Cloud Agent'}]},
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/projects/`,
@@ -58,6 +80,7 @@ describe('SeerProjectTable', () => {
           autoCreatePr: null,
           automationTuning: 'off',
           scannerAutomation: false,
+          openPrs: false,
           prIteration: true,
           reposCount: 1,
         },
@@ -187,7 +210,39 @@ describe('SeerProjectTable', () => {
     expect(errorSpy).not.toHaveBeenCalled();
   });
 
-  it('saves the PR iteration dropdown for a project', async () => {
+  it('disables PR iteration with a tooltip for a project with only GitLab repos', async () => {
+    mockProjectSettings({repoProviders: ['integrations:gitlab']});
+
+    render(<SeerProjectTable />, {organization});
+
+    const toggle = await screen.findByRole('checkbox', {
+      name: 'Auto-iterate on PRs for project-slug',
+    });
+    expect(toggle).toBeDisabled();
+    // Shown as off, whatever is saved.
+    expect(toggle).not.toBeChecked();
+    const row = within(getRow('project-slug'));
+    await userEvent.hover(row.getByRole('img', {name: 'Disabled'}));
+    expect(await screen.findByText(NON_GITHUB_PR_ITERATION_WARNING)).toBeInTheDocument();
+  });
+
+  it('keeps PR iteration available for a project with a github.com repo', async () => {
+    mockProjectSettings({repoProviders: ['integrations:github', 'integrations:gitlab']});
+
+    render(<SeerProjectTable />, {organization});
+
+    const toggle = await screen.findByRole('checkbox', {
+      name: 'Auto-iterate on PRs for project-slug',
+    });
+    expect(toggle).toBeEnabled();
+    expect(
+      within(getRow('project-slug')).queryByRole('img', {name: 'Disabled'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('saves the PR iteration switch for a project', async () => {
+    // The default mock row omits `repoProviders`, which also verifies the
+    // switch stays enabled until the backend sends that field.
     const settingsPut = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/seer/settings/`,
       method: 'PUT',
@@ -225,6 +280,7 @@ describe('SeerProjectTable', () => {
       autoCreatePr: null,
       automationTuning: 'medium',
       scannerAutomation: false,
+      openPrs: false,
       reposCount: 1,
     };
     const server = {
@@ -293,20 +349,21 @@ describe('SeerProjectTable', () => {
     await userEvent.click(screen.getAllByRole('checkbox')[0]!);
   }
 
-  function getRowPrIterationSelect(slug: string) {
-    return screen.getByRole('textbox', {name: `Auto-iterate on PRs for ${slug}`});
-  }
-
-  async function chooseRowPrIteration(slug: string, label: 'On' | 'Off') {
-    // The row dropdown's menu renders outside the row, in the page body.
-    await userEvent.click(
-      await screen.findByRole('textbox', {name: `Auto-iterate on PRs for ${slug}`})
-    );
-    await userEvent.click(await screen.findByRole('menuitemradio', {name: label}));
+  function getRowPrIterationSwitch(slug: string) {
+    return screen.getByRole('checkbox', {name: `Auto-iterate on PRs for ${slug}`});
   }
 
   function getRow(slug: string) {
     return screen.getByRole('row', {name: new RegExp(slug)});
+  }
+
+  async function chooseRowPrIteration(slug: string, label: 'On' | 'Off') {
+    const toggle = await screen.findByRole('checkbox', {
+      name: `Auto-iterate on PRs for ${slug}`,
+    });
+    if ((toggle as HTMLInputElement).checked !== (label === 'On')) {
+      await userEvent.click(toggle);
+    }
   }
 
   async function chooseBulkPrIteration(label: 'On' | 'Off') {
@@ -321,7 +378,7 @@ describe('SeerProjectTable', () => {
 
     render(<SeerProjectTable />, {organization});
 
-    await screen.findByRole('textbox', {name: 'Auto-iterate on PRs for other-project'});
+    await screen.findByRole('checkbox', {name: 'Auto-iterate on PRs for other-project'});
     await selectAllProjects();
 
     await chooseBulkPrIteration('Off');
@@ -332,9 +389,9 @@ describe('SeerProjectTable', () => {
       )
     );
     await waitFor(() =>
-      expect(within(getRow('project-slug')).getByText('Off')).toBeInTheDocument()
+      expect(getRowPrIterationSwitch('project-slug')).not.toBeChecked()
     );
-    expect(within(getRow('other-project')).getByText('Off')).toBeInTheDocument();
+    expect(getRowPrIterationSwitch('other-project')).not.toBeChecked();
 
     await chooseBulkPrIteration('On');
     await waitFor(() =>
@@ -343,13 +400,11 @@ describe('SeerProjectTable', () => {
         expect.objectContaining({data: expect.objectContaining({prIteration: true})})
       )
     );
-    await waitFor(() =>
-      expect(within(getRow('project-slug')).getByText('On')).toBeInTheDocument()
-    );
-    expect(within(getRow('other-project')).getByText('On')).toBeInTheDocument();
+    await waitFor(() => expect(getRowPrIterationSwitch('project-slug')).toBeChecked());
+    expect(getRowPrIterationSwitch('other-project')).toBeChecked();
   });
 
-  it('updates a PR iteration dropdown that was already changed when the bulk menu is used', async () => {
+  it('updates a PR iteration switch that was already changed when the bulk menu is used', async () => {
     const {bulkPut, rowPuts} = mockTwoProjects();
 
     render(<SeerProjectTable />, {organization});
@@ -374,9 +429,9 @@ describe('SeerProjectTable', () => {
 
     // Both rows, including the one changed by hand, now show the bulk value.
     await waitFor(() =>
-      expect(within(getRow('other-project')).getByText('Off')).toBeInTheDocument()
+      expect(getRowPrIterationSwitch('other-project')).not.toBeChecked()
     );
-    expect(within(getRow('project-slug')).getByText('Off')).toBeInTheDocument();
+    expect(getRowPrIterationSwitch('project-slug')).not.toBeChecked();
   });
 
   it('updates an automation steps dropdown that was already changed when the bulk menu is used', async () => {
@@ -419,7 +474,7 @@ describe('SeerProjectTable', () => {
     expect(screen.queryByText('Stop after PR drafted')).not.toBeInTheDocument();
   });
 
-  it('marks a row PR iteration dropdown invalid when its save fails', async () => {
+  it('marks a row PR iteration switch invalid when its save fails', async () => {
     mockTwoProjects();
     const failedPut = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/project-slug/seer/settings/`,
@@ -435,14 +490,14 @@ describe('SeerProjectTable', () => {
     // The row keeps its form through its own save, so the form can show that
     // the save failed.
     await waitFor(() =>
-      expect(getRowPrIterationSelect('project-slug')).toHaveAttribute(
+      expect(getRowPrIterationSwitch('project-slug')).toHaveAttribute(
         'aria-invalid',
         'true'
       )
     );
   });
 
-  it('keeps a row PR iteration dropdown in place while its own save is in flight', async () => {
+  it('keeps a row PR iteration switch in place while its own save is in flight', async () => {
     mockTwoProjects();
     const delay = makeDelay();
     MockApiClient.addMockResponse({
@@ -453,7 +508,7 @@ describe('SeerProjectTable', () => {
 
     render(<SeerProjectTable />, {organization});
 
-    const rowSelect = await screen.findByRole('textbox', {
+    const rowToggle = await screen.findByRole('checkbox', {
       name: 'Auto-iterate on PRs for project-slug',
     });
     await chooseRowPrIteration('project-slug', 'Off');
@@ -462,13 +517,13 @@ describe('SeerProjectTable', () => {
     // row must keep the same dropdown through that, because the dropdown's form
     // is what shows an error if the save then fails.
     await waitFor(() =>
-      expect(within(getRow('project-slug')).getByText('Off')).toBeInTheDocument()
+      expect(getRowPrIterationSwitch('project-slug')).not.toBeChecked()
     );
-    expect(rowSelect).toBeInTheDocument();
+    expect(rowToggle).toBeInTheDocument();
 
     delay.release();
-    await waitFor(() => expect(rowSelect).toBeEnabled());
-    expect(rowSelect).toBeInTheDocument();
+    await waitFor(() => expect(rowToggle).toBeEnabled());
+    expect(rowToggle).toBeInTheDocument();
   });
 
   it('disables the bulk controls while a row is saving', async () => {
@@ -482,7 +537,7 @@ describe('SeerProjectTable', () => {
 
     render(<SeerProjectTable />, {organization});
 
-    await screen.findByRole('textbox', {name: 'Auto-iterate on PRs for project-slug'});
+    await screen.findByRole('checkbox', {name: 'Auto-iterate on PRs for project-slug'});
     await selectAllProjects();
     const bulkMenu = await screen.findByRole('button', {name: 'Auto-Iterate on PRs'});
     expect(bulkMenu).toBeEnabled();
@@ -508,7 +563,7 @@ describe('SeerProjectTable', () => {
 
     render(<SeerProjectTable />, {organization});
 
-    await screen.findByRole('textbox', {name: 'Auto-iterate on PRs for other-project'});
+    await screen.findByRole('checkbox', {name: 'Auto-iterate on PRs for other-project'});
     await selectAllProjects();
     await chooseBulkPrIteration('Off');
 
@@ -532,20 +587,20 @@ describe('SeerProjectTable', () => {
 
     render(<SeerProjectTable />, {organization});
 
-    await screen.findByRole('textbox', {name: 'Auto-iterate on PRs for other-project'});
+    await screen.findByRole('checkbox', {name: 'Auto-iterate on PRs for other-project'});
     await selectAllProjects();
     await chooseBulkPrIteration('Off');
 
-    await waitFor(() => expect(getRowPrIterationSelect('other-project')).toBeDisabled());
+    await waitFor(() => expect(getRowPrIterationSwitch('other-project')).toBeDisabled());
 
     delay.release();
-    await waitFor(() => expect(getRowPrIterationSelect('other-project')).toBeEnabled());
+    await waitFor(() => expect(getRowPrIterationSwitch('other-project')).toBeEnabled());
   });
 
   it('leaves the built-in repos filter out of the selection banner', async () => {
     render(<SeerProjectTable />, {organization});
 
-    await screen.findByRole('textbox', {name: 'Auto-iterate on PRs for project-slug'});
+    await screen.findByRole('checkbox', {name: 'Auto-iterate on PRs for project-slug'});
     // The first checkbox in the table is the header's "select all".
     await userEvent.click(screen.getAllByRole('checkbox')[0]!);
 
@@ -561,6 +616,53 @@ describe('SeerProjectTable', () => {
     expect(await screen.findByRole('button', {name: 'Add Project'})).toBeDisabled();
   });
 
+  describe('Open PRs toggle', () => {
+    const singleRunOrg = OrganizationFixture({
+      access: ['org:write'],
+      features: ['autofix-single-run'],
+    });
+
+    it('shows an Open PRs switch per project next to Automation Steps', async () => {
+      const {rowPuts} = mockTwoProjects();
+
+      render(<SeerProjectTable />, {organization: singleRunOrg});
+
+      const toggle = await screen.findByRole('checkbox', {
+        name: 'Open PRs for project-slug',
+      });
+      expect(toggle).not.toBeChecked();
+      expect(screen.getByText('Automation Steps')).toBeInTheDocument();
+
+      await userEvent.click(toggle);
+      await waitFor(() =>
+        expect(rowPuts['project-slug']).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({data: {openPrs: true}})
+        )
+      );
+    });
+
+    it('turns Open PRs off for all selected projects', async () => {
+      const {bulkPut} = mockTwoProjects();
+
+      render(<SeerProjectTable />, {organization: singleRunOrg});
+
+      await screen.findByRole('checkbox', {name: 'Open PRs for other-project'});
+      await selectAllProjects();
+      const bulkMenu = await screen.findByRole('button', {name: 'Open PRs'});
+      await waitFor(() => expect(bulkMenu).toBeEnabled());
+      await userEvent.click(bulkMenu);
+      await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Off'}));
+
+      await waitFor(() =>
+        expect(bulkPut).toHaveBeenLastCalledWith(
+          expect.anything(),
+          expect.objectContaining({data: expect.objectContaining({openPrs: false})})
+        )
+      );
+    });
+  });
+
   describe('empty state', () => {
     beforeEach(() => {
       MockApiClient.addMockResponse({
@@ -574,7 +676,7 @@ describe('SeerProjectTable', () => {
         organization: OrganizationFixture({
           slug: organization.slug,
           access: ['org:write'],
-          features: ['seer-token-based-billing-onboarding', 'token-billed-seer-enabled'],
+          features: ['token-billed-seer-enabled'],
         }),
       });
 

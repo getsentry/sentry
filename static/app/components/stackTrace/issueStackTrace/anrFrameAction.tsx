@@ -1,6 +1,7 @@
 import {Tag} from '@sentry/scraps/badge';
 
 import {analyzeFrameForRootCause} from 'sentry/components/events/interfaces/analyzeFrames';
+import {isAndroidAnrMechanism} from 'sentry/components/events/interfaces/utils';
 import {
   useStackTraceContext,
   useStackTraceFrameContext,
@@ -12,7 +13,7 @@ export function AnrFrameAction() {
   const {thread, lockAddress} = useStackTraceContext();
   const {event, frame} = useStackTraceFrameContext();
   const mechanism = event.tags?.find(tag => tag.key === 'mechanism')?.value;
-  if (mechanism !== 'ANR' && mechanism !== 'AppExitInfo') {
+  if (!isAndroidAnrMechanism(mechanism)) {
     return null;
   }
   if (!analyzeFrameForRootCause(frame, thread, lockAddress)) {

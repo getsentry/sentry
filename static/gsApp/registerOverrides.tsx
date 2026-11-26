@@ -66,9 +66,9 @@ import {
   seerProjectSettingsRoutes,
 } from 'getsentry/overrides/seerSettingsRoutes';
 import {SpikeProtectionProjectSettings} from 'getsentry/overrides/spendVisibility/spikeProtectionProjectSettings';
+import {statsRoutes} from 'getsentry/overrides/statsRoutes';
 import {subscriptionSettingsRoutes} from 'getsentry/overrides/subscriptionSettingsRoutes';
 import {SuperuserAccessCategory} from 'getsentry/overrides/superuserAccessCategory';
-import TargetedOnboardingHeader from 'getsentry/overrides/targetedOnboardingHeader';
 import {useBillingNavigationConfig} from 'getsentry/overrides/useBillingNavigationConfig';
 import {useDashboardDatasetRetentionLimit} from 'getsentry/overrides/useDashboardDatasetRetentionLimit';
 import {useExperiment} from 'getsentry/overrides/useExperiment';
@@ -95,10 +95,6 @@ const DisabledDiscover2Page = lazy(
   () => import('./components/features/disabledDiscover2Page')
 );
 
-const DisabledPerformancePage = lazy(
-  () => import('./components/features/disabledPerformancePage')
-);
-
 const DisabledAlertsPage = lazy(() => import('./components/features/disabledAlertsPage'));
 
 const EnhancedOrganizationStats = lazy(() =>
@@ -116,6 +112,7 @@ const GETSENTRY_OVERRIDES: Partial<Overrides> = {
    * Additional routes to be inserted into sentrys route tree
    */
   'routes:root': rootRoutes,
+  'routes:stats': statsRoutes,
   'routes:org-settings': seerSettingsRoutes,
   'routes:project-settings': seerProjectSettingsRoutes,
   'routes:legacy-organization-redirects': legacyOrganizationRedirectRoutes,
@@ -183,13 +180,6 @@ const GETSENTRY_OVERRIDES: Partial<Overrides> = {
    * inviting members.
    */
   'member-invite-modal:customization': () => MemberInviteModalCustomization,
-
-  /**
-   * Augment the targeted onboarding page with a different header
-   */
-  'onboarding:targeted-onboarding-header': ({source}: {source: string}) => (
-    <TargetedOnboardingHeader source={source} key="targeted-onboarding-header" />
-  ),
 
   /**
    * Get list of organization roles
@@ -284,11 +274,6 @@ const GETSENTRY_OVERRIDES: Partial<Overrides> = {
   ),
   'feature-disabled:discover2-page': p => (
     <LazyLoad LazyComponent={DisabledDiscover2Page} {...p}>
-      {typeof p.children === 'function' ? p.children(p) : p.children}
-    </LazyLoad>
-  ),
-  'feature-disabled:performance-page': p => (
-    <LazyLoad LazyComponent={DisabledPerformancePage} {...p}>
       {typeof p.children === 'function' ? p.children(p) : p.children}
     </LazyLoad>
   ),

@@ -6,9 +6,7 @@ import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLib
 import {useSeerCreditCheck} from './useSeerCreditCheck';
 
 describe('useSeerCreditCheck', () => {
-  const organization = OrganizationFixture({
-    features: ['seer-credit-checks', 'token-billed-seer-enabled'],
-  });
+  const organization = OrganizationFixture({features: ['token-billed-seer-enabled']});
   const url = `/organizations/${organization.slug}/seer/credit-check/`;
 
   afterEach(() => {
@@ -59,10 +57,7 @@ describe('useSeerCreditCheck', () => {
   });
 
   it('rechecks when the window regains focus', async () => {
-    const request = MockApiClient.addMockResponse({
-      url,
-      body: {hasEnoughCredits: true},
-    });
+    const request = MockApiClient.addMockResponse({url, body: {hasEnoughCredits: true}});
 
     const {result} = renderHookWithProviders(
       () => useSeerCreditCheck('autofix_root_cause'),
@@ -79,18 +74,12 @@ describe('useSeerCreditCheck', () => {
     await waitFor(() => expect(request).toHaveBeenCalledTimes(2));
   });
 
-  it.each([
-    ['seer-credit-checks', ['token-billed-seer-enabled']],
-    ['token-billed-seer-enabled', ['seer-credit-checks']],
-  ])('does not call the endpoint without %s', (_missingFeature, features) => {
-    const request = MockApiClient.addMockResponse({
-      url,
-      body: {hasEnoughCredits: false},
-    });
+  it('does not call the endpoint without token-billed-seer-enabled', () => {
+    const request = MockApiClient.addMockResponse({url, body: {hasEnoughCredits: false}});
 
     const {result} = renderHookWithProviders(
       () => useSeerCreditCheck('autofix_root_cause'),
-      {organization: OrganizationFixture({features})}
+      {organization: OrganizationFixture({features: []})}
     );
 
     expect(result.current).toEqual(
@@ -100,10 +89,7 @@ describe('useSeerCreditCheck', () => {
   });
 
   it('does not call the endpoint when disabled', () => {
-    const request = MockApiClient.addMockResponse({
-      url,
-      body: {hasEnoughCredits: false},
-    });
+    const request = MockApiClient.addMockResponse({url, body: {hasEnoughCredits: false}});
 
     const {result} = renderHookWithProviders(
       () => useSeerCreditCheck('autofix_root_cause', {enabled: false}),

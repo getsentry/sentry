@@ -9,11 +9,14 @@ from django.test import override_settings
 from sentry_protos.billing.v1.common.v1.seer_billing_feature_pb2 import (
     SEER_BILLING_FEATURE_SEER_AGENT_SLACK,
 )
+from sentry_protos.billing.v1.services.seer_feature_billing.v1.endpoint_check_seer_credits_pb2 import (
+    CheckSeerCreditsResponse,
+)
 
 from sentry.integrations.messaging.metrics import SeerSlackHaltReason
 from sentry.notifications.platform.templates.seer import (
-    AGENT_OUT_OF_CREDITS_BILLING_MESSAGE,
-    AGENT_OUT_OF_CREDITS_MEMBER_MESSAGE,
+    AGENT_DAILY_LIMIT_MESSAGE,
+    AGENT_OUT_OF_CREDITS_MESSAGE,
 )
 from sentry.seer.credits import SeerOperation
 from sentry.seer.entrypoints.slack.analytics import (
@@ -102,7 +105,6 @@ class ProcessMentionForSlackTest(TestCase):
         call_kwargs = mock_operator.trigger_agent.call_args[1]
         assert call_kwargs["organization"] == self.organization
         assert call_kwargs["user"] is mock_user
-        assert mock_entrypoint.user_id == self.user.id
         assert call_kwargs["prompt"] == "What is causing this issue?"
         assert call_kwargs["on_page_context"] is None
         assert call_kwargs["category_key"] == "slack_thread"
@@ -435,7 +437,10 @@ class ProcessMentionSeerCreditsTest(TestCase):
         return call_kwargs["renderable"]["text"]
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    @patch("sentry.seer.entrypoints.slack.tasks.can_run_seer_operation", return_value=False)
+    @patch(
+        "sentry.seer.entrypoints.slack.tasks.check_seer_operation",
+        return_value=CheckSeerCreditsResponse(has_enough_credits=False),
+    )
     @patch("sentry.seer.entrypoints.slack.tasks.SeerAgentOperator")
     @patch("sentry.seer.entrypoints.slack.tasks.SlackAgentEntrypoint")
     @patch("sentry.seer.entrypoints.slack.tasks._resolve_user")
@@ -444,7 +449,7 @@ class ProcessMentionSeerCreditsTest(TestCase):
         mock_resolve_user: MagicMock,
         mock_agent_cls: MagicMock,
         mock_operator_cls: MagicMock,
-        mock_can_run: MagicMock,
+        mock_check: MagicMock,
         mock_record: MagicMock,
     ) -> None:
         mock_operator_cls.has_access.return_value = True
@@ -453,7 +458,7 @@ class ProcessMentionSeerCreditsTest(TestCase):
             user_id=self.user.id, mock_agent_cls=mock_agent_cls, mock_resolve_user=mock_resolve_user
         )
 
-        mock_can_run.assert_called_once_with(
+        mock_check.assert_called_once_with(
             self.organization,
             SEER_BILLING_FEATURE_SEER_AGENT_SLACK,
             SeerOperation.AGENT_CHAT_MESSAGE,
@@ -461,7 +466,7 @@ class ProcessMentionSeerCreditsTest(TestCase):
         mock_operator_cls.assert_not_called()
         self.mock_entrypoint.install.get_thread_history.assert_not_called()
 
-        assert self._sent_text() == AGENT_OUT_OF_CREDITS_MEMBER_MESSAGE
+        assert self._sent_text() == AGENT_OUT_OF_CREDITS_MESSAGE
 
         self.mock_entrypoint.install.set_thread_status.assert_called_once_with(
             channel_id="C1234567890",
@@ -471,30 +476,9 @@ class ProcessMentionSeerCreditsTest(TestCase):
         assert_halt_metric(mock_record, ProcessMentionHaltReason.OUT_OF_SEER_CREDITS)
 
     @patch(
-        "sentry.models.organizationmember.OrganizationMember.get_scopes",
-        return_value=frozenset({"org:billing"}),
+        "sentry.seer.entrypoints.slack.tasks.check_seer_operation",
+        return_value=CheckSeerCreditsResponse(has_enough_credits=False),
     )
-    @patch("sentry.seer.entrypoints.slack.tasks.can_run_seer_operation", return_value=False)
-    @patch("sentry.seer.entrypoints.slack.tasks.SeerAgentOperator")
-    @patch("sentry.seer.entrypoints.slack.tasks.SlackAgentEntrypoint")
-    @patch("sentry.seer.entrypoints.slack.tasks._resolve_user")
-    def test_out_of_credits_reply_is_written_for_billing_member(
-        self,
-        mock_resolve_user: MagicMock,
-        mock_agent_cls: MagicMock,
-        mock_operator_cls: MagicMock,
-        mock_can_run: MagicMock,
-        _mock_get_scopes: MagicMock,
-    ) -> None:
-        mock_operator_cls.has_access.return_value = True
-        mock_resolve_user.return_value = self.user
-        mock_agent_cls.return_value = self.mock_entrypoint
-
-        process_mention_for_slack(**{**TASK_KWARGS, "organization_id": self.organization.id})
-
-        assert self._sent_text() == AGENT_OUT_OF_CREDITS_BILLING_MESSAGE
-
-    @patch("sentry.seer.entrypoints.slack.tasks.can_run_seer_operation", return_value=False)
     @patch("sentry.seer.entrypoints.slack.tasks.SeerAgentOperator")
     @patch("sentry.seer.entrypoints.slack.tasks.SlackAgentEntrypoint")
     @patch("sentry.seer.entrypoints.slack.tasks._resolve_user")
@@ -503,7 +487,7 @@ class ProcessMentionSeerCreditsTest(TestCase):
         mock_resolve_user: MagicMock,
         mock_agent_cls: MagicMock,
         mock_operator_cls: MagicMock,
-        mock_can_run: MagicMock,
+        _mock_check: MagicMock,
     ) -> None:
         mock_operator_cls.has_access.return_value = True
         mock_resolve_user.return_value = MagicMock(id=self.user.id, username="alice")
@@ -513,9 +497,12 @@ class ProcessMentionSeerCreditsTest(TestCase):
             **{**TASK_KWARGS, "organization_id": self.organization.id, "thread_ts": None}
         )
 
-        assert self._sent_text(thread_ts=TASK_KWARGS["ts"]) == AGENT_OUT_OF_CREDITS_MEMBER_MESSAGE
+        assert self._sent_text(thread_ts=TASK_KWARGS["ts"]) == AGENT_OUT_OF_CREDITS_MESSAGE
 
-    @patch("sentry.seer.entrypoints.slack.tasks.can_run_seer_operation", return_value=False)
+    @patch(
+        "sentry.seer.entrypoints.slack.tasks.check_seer_operation",
+        return_value=CheckSeerCreditsResponse(has_enough_credits=False),
+    )
     @patch("sentry.seer.entrypoints.slack.tasks.SeerAgentOperator")
     @patch("sentry.seer.entrypoints.slack.tasks.SlackAgentEntrypoint")
     @patch("sentry.seer.entrypoints.slack.tasks._resolve_user")
@@ -524,7 +511,7 @@ class ProcessMentionSeerCreditsTest(TestCase):
         mock_resolve_user: MagicMock,
         mock_agent_cls: MagicMock,
         mock_operator_cls: MagicMock,
-        mock_can_run: MagicMock,
+        _mock_check: MagicMock,
     ) -> None:
         mock_operator_cls.has_access.return_value = True
         self.mock_entrypoint.install.send_threaded_message.side_effect = IntegrationError(
@@ -542,11 +529,37 @@ class ProcessMentionSeerCreditsTest(TestCase):
             status="",
         )
 
+    @patch(
+        "sentry.seer.entrypoints.slack.tasks.check_seer_operation",
+        return_value=CheckSeerCreditsResponse(
+            has_enough_credits=False,
+            denial_reason=CheckSeerCreditsResponse.DENIAL_REASON_DAILY_CAP_EXCEEDED,
+        ),
+    )
+    @patch("sentry.seer.entrypoints.slack.tasks.SeerAgentOperator")
+    @patch("sentry.seer.entrypoints.slack.tasks.SlackAgentEntrypoint")
+    @patch("sentry.seer.entrypoints.slack.tasks._resolve_user")
+    def test_daily_limit_reply_says_the_limit_was_hit(
+        self,
+        mock_resolve_user: MagicMock,
+        mock_agent_cls: MagicMock,
+        mock_operator_cls: MagicMock,
+        _mock_check: MagicMock,
+    ) -> None:
+        mock_operator_cls.has_access.return_value = True
+
+        self._run_task(
+            user_id=self.user.id, mock_agent_cls=mock_agent_cls, mock_resolve_user=mock_resolve_user
+        )
+
+        mock_operator_cls.assert_not_called()
+        assert self._sent_text() == AGENT_DAILY_LIMIT_MESSAGE
+
     @patch("sentry.seer.credits.seer_credit.backend.check_seer_credits")
     @patch("sentry.seer.entrypoints.slack.tasks.SeerAgentOperator")
     @patch("sentry.seer.entrypoints.slack.tasks.SlackAgentEntrypoint")
     @patch("sentry.seer.entrypoints.slack.tasks._resolve_user")
-    def test_credit_check_flag_on_with_enough_credits_runs(
+    def test_token_billed_with_enough_credits_runs(
         self,
         mock_resolve_user: MagicMock,
         mock_agent_cls: MagicMock,
@@ -557,9 +570,7 @@ class ProcessMentionSeerCreditsTest(TestCase):
         mock_operator_cls.return_value.trigger_agent.return_value = None
         mock_check.return_value = MagicMock(has_enough_credits=True)
 
-        with self.feature(
-            ["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"]
-        ):
+        with self.feature("organizations:token-billed-seer-enabled"):
             self._run_task(
                 user_id=self.user.id,
                 mock_agent_cls=mock_agent_cls,
@@ -574,7 +585,7 @@ class ProcessMentionSeerCreditsTest(TestCase):
     @patch("sentry.seer.entrypoints.slack.tasks.SeerAgentOperator")
     @patch("sentry.seer.entrypoints.slack.tasks.SlackAgentEntrypoint")
     @patch("sentry.seer.entrypoints.slack.tasks._resolve_user")
-    def test_credit_check_flag_on_without_enough_credits_halts(
+    def test_token_billed_without_enough_credits_halts(
         self,
         mock_resolve_user: MagicMock,
         mock_agent_cls: MagicMock,
@@ -584,9 +595,7 @@ class ProcessMentionSeerCreditsTest(TestCase):
         mock_operator_cls.has_access.return_value = True
         mock_check.return_value = MagicMock(has_enough_credits=False)
 
-        with self.feature(
-            ["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"]
-        ):
+        with self.feature("organizations:token-billed-seer-enabled"):
             self._run_task(
                 user_id=self.user.id,
                 mock_agent_cls=mock_agent_cls,
@@ -594,7 +603,7 @@ class ProcessMentionSeerCreditsTest(TestCase):
             )
 
         mock_operator_cls.assert_not_called()
-        assert self._sent_text() == AGENT_OUT_OF_CREDITS_MEMBER_MESSAGE
+        assert self._sent_text() == AGENT_OUT_OF_CREDITS_MESSAGE
 
 
 class LinkedMessagesContextTest(TestCase):

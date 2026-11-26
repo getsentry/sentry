@@ -29,9 +29,7 @@ describe('UnsubscribeProject', () => {
       initialRouterConfig: {
         location: {
           pathname: '/unsubscribe/acme/project/9876/',
-          query: {
-            _: 'signature-value',
-          },
+          query: {_: 'signature-value'},
         },
         route: '/unsubscribe/:orgId/project/:id/',
       },
@@ -47,9 +45,7 @@ describe('UnsubscribeProject', () => {
       initialRouterConfig: {
         location: {
           pathname: '/unsubscribe/acme/project/9876/',
-          query: {
-            _: 'signature-value',
-          },
+          query: {_: 'signature-value'},
         },
         route: '/unsubscribe/:orgId/project/:id/',
       },
@@ -61,10 +57,7 @@ describe('UnsubscribeProject', () => {
 
     expect(mockUpdate).toHaveBeenCalledWith(
       '/organizations/acme/unsubscribe/project/9876/',
-      expect.objectContaining({
-        data: {cancel: 1},
-        query: {_: 'signature-value'},
-      })
+      expect.objectContaining({data: {cancel: 1}, query: {_: 'signature-value'}})
     );
   });
 });

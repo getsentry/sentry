@@ -25,9 +25,7 @@ describe('PasswordReset', () => {
       statusCode: 204,
     });
 
-    render(<PasswordReset />, {
-      initialRouterConfig: routerConfig,
-    });
+    render(<PasswordReset />, {initialRouterConfig: routerConfig});
 
     const password = await screen.findByLabelText('New password');
     expect(password).toHaveAttribute('type', 'password');
@@ -57,18 +55,12 @@ describe('PasswordReset', () => {
     expect(screen.queryByLabelText('New password')).not.toBeInTheDocument();
     expect(validate).toHaveBeenCalledWith(
       '/auth/recovery/confirm/',
-      expect.objectContaining({
-        query: {userId: '1', token: 'recovery-token'},
-      })
+      expect.objectContaining({query: {userId: '1', token: 'recovery-token'}})
     );
     expect(reset).toHaveBeenCalledWith(
       '/auth/recovery/confirm/',
       expect.objectContaining({
-        data: {
-          userId: '1',
-          token: 'recovery-token',
-          password: ' a-secure-password ',
-        },
+        data: {userId: '1', token: 'recovery-token', password: ' a-secure-password '},
       })
     );
   });
@@ -76,18 +68,13 @@ describe('PasswordReset', () => {
   it('counts down before navigating to sign-in', async () => {
     jest.useFakeTimers();
     const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
-    MockApiClient.addMockResponse({
-      url: '/auth/recovery/confirm/',
-      body: {valid: true},
-    });
+    MockApiClient.addMockResponse({url: '/auth/recovery/confirm/', body: {valid: true}});
     MockApiClient.addMockResponse({
       url: '/auth/recovery/confirm/',
       method: 'POST',
       statusCode: 204,
     });
-    const {router} = render(<PasswordReset />, {
-      initialRouterConfig: routerConfig,
-    });
+    const {router} = render(<PasswordReset />, {initialRouterConfig: routerConfig});
 
     await user.type(await screen.findByLabelText('New password'), 'a-secure-password');
     await user.click(screen.getByRole('button', {name: 'Reset password'}));
@@ -112,27 +99,17 @@ describe('PasswordReset', () => {
   });
 
   it('navigates back to sign-in from the form', async () => {
-    MockApiClient.addMockResponse({
-      url: '/auth/recovery/confirm/',
-      body: {valid: true},
-    });
-    const {router} = render(<PasswordReset />, {
-      initialRouterConfig: routerConfig,
-    });
+    MockApiClient.addMockResponse({url: '/auth/recovery/confirm/', body: {valid: true}});
+    const {router} = render(<PasswordReset />, {initialRouterConfig: routerConfig});
 
     await userEvent.click(await screen.findByRole('button', {name: 'Back to sign in'}));
     expect(router.location.pathname).toBe('/auth/login/');
   });
 
   it('shows an expired link before asking for a password', async () => {
-    MockApiClient.addMockResponse({
-      url: '/auth/recovery/confirm/',
-      body: {valid: false},
-    });
+    MockApiClient.addMockResponse({url: '/auth/recovery/confirm/', body: {valid: false}});
 
-    const {router} = render(<PasswordReset />, {
-      initialRouterConfig: routerConfig,
-    });
+    const {router} = render(<PasswordReset />, {initialRouterConfig: routerConfig});
 
     expect(
       await screen.findByText(
@@ -160,19 +137,13 @@ describe('PasswordReset', () => {
     expect(
       await screen.findByText('Unable to check this password reset link. Try again.')
     ).toBeVisible();
-    MockApiClient.addMockResponse({
-      url: '/auth/recovery/confirm/',
-      body: {valid: true},
-    });
+    MockApiClient.addMockResponse({url: '/auth/recovery/confirm/', body: {valid: true}});
     await userEvent.click(screen.getByRole('button', {name: 'Try again'}));
     expect(await screen.findByLabelText('New password')).toBeVisible();
   });
 
   it('preserves the form when password validation fails', async () => {
-    MockApiClient.addMockResponse({
-      url: '/auth/recovery/confirm/',
-      body: {valid: true},
-    });
+    MockApiClient.addMockResponse({url: '/auth/recovery/confirm/', body: {valid: true}});
     MockApiClient.addMockResponse({
       url: '/auth/recovery/confirm/',
       method: 'POST',
@@ -243,10 +214,7 @@ describe('PasswordReset', () => {
   );
 
   it('uses field errors when the response also includes a general message', async () => {
-    MockApiClient.addMockResponse({
-      url: '/auth/recovery/confirm/',
-      body: {valid: true},
-    });
+    MockApiClient.addMockResponse({url: '/auth/recovery/confirm/', body: {valid: true}});
     MockApiClient.addMockResponse({
       url: '/auth/recovery/confirm/',
       method: 'POST',
@@ -267,10 +235,7 @@ describe('PasswordReset', () => {
   });
 
   it('handles a link that expires while the form is open', async () => {
-    MockApiClient.addMockResponse({
-      url: '/auth/recovery/confirm/',
-      body: {valid: true},
-    });
+    MockApiClient.addMockResponse({url: '/auth/recovery/confirm/', body: {valid: true}});
     MockApiClient.addMockResponse({
       url: '/auth/recovery/confirm/',
       method: 'POST',
@@ -294,10 +259,7 @@ describe('PasswordReset', () => {
   });
 
   it('does not submit an empty password', async () => {
-    MockApiClient.addMockResponse({
-      url: '/auth/recovery/confirm/',
-      body: {valid: true},
-    });
+    MockApiClient.addMockResponse({url: '/auth/recovery/confirm/', body: {valid: true}});
     const reset = MockApiClient.addMockResponse({
       url: '/auth/recovery/confirm/',
       method: 'POST',

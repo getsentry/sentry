@@ -51,6 +51,7 @@ from sentry.tasks.on_demand_metrics import (
     set_or_create_on_demand_state,
 )
 from sentry.utils.dates import parse_stats_period
+from sentry.utils.sdk import sdk_logger
 from sentry.utils.snuba import UnqualifiedQueryError
 from sentry.utils.strings import oxfordize_list
 
@@ -696,16 +697,29 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
 
         return data
 
+    def _has_unified_tracemetrics_visualize_feature(self) -> bool:
+        return features.has(
+            "organizations:dashboards-trace-metrics-unified-visualize",
+            self.context["organization"],
+            actor=self.context["request"].user,
+        )
+
     def _validate_tracemetrics_constraints(self, data: dict[str, Any]) -> dict[str, Any]:
         if not data.get("widget_type") == DashboardWidgetTypes.TRACEMETRICS:
             return data
 
-        # Tracemetrics timeseries widgets only support a single equation per query
-        if data.get("display_type") in {
-            DashboardWidgetDisplayTypes.LINE_CHART,
-            DashboardWidgetDisplayTypes.AREA_CHART,
-            DashboardWidgetDisplayTypes.BAR_CHART,
-        }:
+        # The legacy builder shows a timeseries equation on its own, so it only
+        # supports a single equation per query. The unified list mixes metrics
+        # and equations, so the limit does not apply behind its feature.
+        if (
+            data.get("display_type")
+            in {
+                DashboardWidgetDisplayTypes.LINE_CHART,
+                DashboardWidgetDisplayTypes.AREA_CHART,
+                DashboardWidgetDisplayTypes.BAR_CHART,
+            }
+            and not self._has_unified_tracemetrics_visualize_feature()
+        ):
             for query in data.get("queries") or []:
                 aggregates = query.get("aggregates") or []
                 if any(is_equation(aggregate) for aggregate in aggregates) and len(aggregates) > 1:
@@ -760,15 +774,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
             "organizations:on-demand-metrics-extraction-widgets", organization
         )
 
-        if (
-            features.has(
-                "organizations:discover-saved-queries-deprecation",
-                self.context["organization"],
-                actor=self.context["request"].user,
-            )
-            and not data.get("id")
-            and data.get("widget_type") == DashboardWidgetTypes.TRANSACTION_LIKE
-        ):
+        if not data.get("id") and data.get("widget_type") == DashboardWidgetTypes.TRANSACTION_LIKE:
             raise serializers.ValidationError(
                 {
                     "widget_type": "The transactions dataset is being deprecated. Please use the spans dataset with the `is_transaction:true` filter instead."
@@ -1158,14 +1164,11 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         widget_errors: list[dict[str, Any]] = [{} for _ in widgets]
         for widget_index, widget in enumerate(widgets):
             queries = widget.get("queries", [])
-            queries = cast("list[dict[str, Any]]", queries)
             query_errors: list[dict[str, Any] | list[Any]] = [{} for _ in queries]
             for query_index, data in enumerate(queries):
                 if "aggregates" not in data and "transformations" not in data:
                     continue
-                query = existing_queries.get(
-                    (cast("int | None", widget.get("id")), cast("int | None", data.get("id")))
-                )
+                query = existing_queries.get((widget.get("id"), data.get("id")))
                 try:
                     validate_transformation_indices(
                         data.get("transformations", query.transformations if query else None) or {},
@@ -1367,25 +1370,17 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
                     # Create a new widget.
                     self.create_widget(instance, data)
                 else:
-                    sentry_sdk.set_context(
-                        "dashboard",
-                        {
-                            "org_slug": instance.organization.slug,
-                            "dashboard_id": instance.id,
-                            "widget_id": widget_id,
-                            "existing_widget_ids": list(existing_map.keys()),
-                            "requested_widget_ids": widget_ids,
+                    # Usually a client saving a stale copy of the dashboard after one of its
+                    # widgets was deleted elsewhere, so log it instead of creating an error.
+                    sdk_logger.info(
+                        "dashboard.update_widgets.widget_not_in_dashboard",
+                        attributes={
+                            "dashboard.org_slug": instance.organization.slug,
+                            "dashboard.dashboard_id": instance.id,
+                            "dashboard.widget_id": widget_id,
+                            "dashboard.existing_widget_ids": str(list(existing_map.keys())),
+                            "dashboard.requested_widget_ids": str(widget_ids),
                         },
-                    )
-                    sentry_sdk.set_attribute("dashboard.org_slug", instance.organization.slug)
-                    sentry_sdk.set_attribute("dashboard.dashboard_id", instance.id)
-                    sentry_sdk.set_attribute("dashboard.widget_id", widget_id)
-                    sentry_sdk.set_attribute(
-                        "dashboard.existing_widget_ids", str(list(existing_map.keys()))
-                    )
-                    sentry_sdk.set_attribute("dashboard.requested_widget_ids", str(widget_ids))
-                    sentry_sdk.capture_message(
-                        "Attempted to update widget not belonging to dashboard."
                     )
                     raise serializers.ValidationError(
                         "You cannot update widgets that are not part of this dashboard."
@@ -1407,13 +1402,12 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
             description=widget_data.get("description", None),
             thresholds=widget_data.get("thresholds", None),
             interval=widget_data.get("interval", "5m"),
-            widget_type=cast(
-                "int",
+            widget_type=(
                 None
                 if is_text_widget
-                else widget_data.get("widget_type", DashboardWidgetTypes.ERROR_EVENTS),
+                else widget_data.get("widget_type", DashboardWidgetTypes.ERROR_EVENTS)
             ),
-            discover_widget_split=cast("int", widget_data.get("discover_widget_split", None)),
+            discover_widget_split=widget_data.get("discover_widget_split", None),
             limit=widget_data.get("limit", None),
             detail={
                 "layout": widget_data.get("layout"),
