@@ -23,13 +23,18 @@ from snuba_sdk import (
     Request,
 )
 
+from sentry import options
 from sentry.models.files.file import File
 from sentry.models.files.fileblobindex import FileBlobIndex
 from sentry.replays.lib.storage import RecordingSegmentStorageMeta, filestore, storage
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.replays.usecases.pack import unpack
+from sentry.utils import metrics
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.snuba import raw_snql_query
+
+# Max number of decompressed segments held in memory at once per request.
+SEGMENT_DOWNLOAD_WINDOW = 4
 
 # METADATA QUERY BEHAVIOR.
 
@@ -271,14 +276,14 @@ def download_segments(segments: list[RecordingSegmentStorageMeta]) -> Iterator[b
 def iter_segment_data(
     segments: list[RecordingSegmentStorageMeta],
 ) -> Generator[tuple[int, memoryview]]:
-    with ContextPropagatingThreadPoolExecutor(max_workers=10) as pool:
-        segment_data = pool.map(_download_segment, segments)
-
-    for i, result in enumerate(segment_data):
-        if result is None:
-            yield i, memoryview(b"[]")
-        else:
-            yield i, result[1]
+    with ContextPropagatingThreadPoolExecutor(max_workers=SEGMENT_DOWNLOAD_WINDOW) as pool:
+        for start in range(0, len(segments), SEGMENT_DOWNLOAD_WINDOW):
+            batch = segments[start : start + SEGMENT_DOWNLOAD_WINDOW]
+            for offset, result in enumerate(pool.map(_download_segment, batch)):
+                if result is None:
+                    yield start + offset, memoryview(b"[]")
+                else:
+                    yield start + offset, result[1]
 
 
 def download_segment(segment: RecordingSegmentStorageMeta, span: Any) -> bytes:
@@ -304,12 +309,14 @@ def _download_segment(
         return None
 
     decompressed = decompress(result)
+    if decompressed is None:
+        return None
     return unpack(decompressed)
 
 
 @traces.trace
-def decompress(buffer: bytes) -> bytes:
-    """Return decompressed output."""
+def decompress(buffer: bytes) -> bytes | None:
+    """Return decompressed output, or None if it is malformed or exceeds the ingest size limit."""
     # If the file starts with a valid JSON character we assume its uncompressed.
     #
     # Going forward all replays are compressed by Relay regardless of their SDK compression
@@ -317,4 +324,16 @@ def decompress(buffer: bytes) -> bytes:
     if buffer.startswith(b"["):
         return buffer
 
-    return zlib.decompress(buffer, zlib.MAX_WBITS | 32)
+    max_size = options.get("replay.consumer.max-segment-decompressed-size")
+    decompressor = zlib.decompressobj(zlib.MAX_WBITS | 32)
+    try:
+        # One byte past the limit is enough to detect an oversized segment.
+        decompressed = decompressor.decompress(buffer, max_size + 1)
+    except zlib.error:
+        decompressed = b""
+
+    # `eof` is false for truncated or invalid streams, matching `zlib.decompress` raising.
+    if len(decompressed) > max_size or not decompressor.eof:
+        metrics.incr("replays.reader.segment_dropped")
+        return None
+    return decompressed
