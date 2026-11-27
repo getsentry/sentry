@@ -1,105 +1,106 @@
-import {Component, Fragment} from 'react';
 import moment from 'moment-timezone';
+import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
-import {NumberField} from 'sentry/components/forms/fields/numberField';
-
-import type {
-  AdminConfirmParams,
-  AdminConfirmRenderProps,
+import type {AdminActionModalProps} from 'admin/components/adminConfirmationModal';
+import {
+  AdminAuditFields,
+  adminAuditDefaults,
+  adminAuditParams,
+  adminAuditSchema,
 } from 'admin/components/adminConfirmationModal';
 import type {Subscription} from 'getsentry/types';
-import {isTrial} from 'getsentry/utils/billing';
 
-type Props = AdminConfirmRenderProps & {
+type Props = AdminActionModalProps & {
   subscription: Subscription;
   startEnterpriseTrial?: boolean;
 };
 
-type State = {trialDays: number};
+const schema = z.object({
+  trialDays: z
+    .number({error: 'Enter a number of days greater than zero'})
+    .int()
+    .positive('Enter a number of days greater than zero'),
+  audit: adminAuditSchema,
+});
 
 /**
- * Rendered as part of a openAdminConfirmModal call
+ * Modal for starting or extending a subscription trial
  */
-export class TrialSubscriptionAction extends Component<Props, State> {
-  state: State = {
-    trialDays:
-      this.props.subscription.isEnterpriseTrial || this.props.startEnterpriseTrial
-        ? 28
-        : 14,
+export function TrialSubscriptionAction({
+  Header,
+  Body,
+  Footer,
+  closeModal,
+  header,
+  onConfirm,
+  subscription,
+  startEnterpriseTrial,
+}: Props) {
+  const defaultValues: {audit: typeof adminAuditDefaults; trialDays: number | null} = {
+    trialDays: subscription.isEnterpriseTrial || startEnterpriseTrial ? 28 : 14,
+    audit: adminAuditDefaults,
   };
 
-  componentDidMount() {
-    this.props.setConfirmCallback(this.handleConfirm);
-  }
-
-  handleConfirm = (_params: AdminConfirmParams) => {
-    const {trialDays} = this.state;
-    const {startEnterpriseTrial, onConfirm} = this.props;
-
-    // XXX(epurkhiser): In the original implementation none of the audit params
-    // were passed, is that an oversight?
-    //
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues,
+    validators: {onDynamic: schema},
     // The trial plan is resolved server-side: new enterprise trials always
     // start on the latest tier.
-    const data = {trialDays, ...(startEnterpriseTrial && {startEnterpriseTrial})};
+    onSubmit: ({value}) => {
+      onConfirm({
+        trialDays: value.trialDays,
+        ...(startEnterpriseTrial && {startEnterpriseTrial}),
+        ...adminAuditParams(value.audit),
+      });
+      closeModal();
+    },
+  });
 
-    onConfirm?.(data);
-  };
+  return (
+    <form.AppForm form={form}>
+      {header && <Header>{header}</Header>}
+      <Body>
+        <Stack gap="xl">
+          {startEnterpriseTrial && (
+            <Alert.Container>
+              <Alert variant="info">
+                Spike protection will need to be manually disabled.
+              </Alert>
+            </Alert.Container>
+          )}
+          <form.AppField name="trialDays">
+            {field => {
+              const trialEndDate = moment(
+                (!startEnterpriseTrial && subscription.trialEnd) || undefined
+              )
+                .add(field.state.value ?? 0, 'days')
+                .format('MMMM Do YYYY');
 
-  onDaysChange = (value: string) => {
-    const trialDays = parseInt(value, 10) || 0;
-    this.setState({trialDays});
-    this.props.disableConfirmButton(trialDays <= 0);
-  };
-
-  get actionLabel(): string {
-    const {subscription, startEnterpriseTrial} = this.props;
-
-    if (startEnterpriseTrial) {
-      return 'Start Enterprise Trial';
-    }
-    return isTrial(subscription) ? 'Extend Trial' : 'Start Trial';
-  }
-
-  render() {
-    const {subscription, startEnterpriseTrial} = this.props;
-    const {trialDays} = this.state;
-
-    if (!subscription) {
-      return null;
-    }
-
-    const currentTrialEnd = moment(
-      (!startEnterpriseTrial && subscription.trialEnd) || undefined
-    );
-    const trialEndDate = currentTrialEnd.add(trialDays, 'days').format('MMMM Do YYYY');
-
-    return (
-      <Fragment>
-        {startEnterpriseTrial && (
-          <Alert.Container>
-            <Alert variant="info">
-              Spike protection will need to be manually disabled.
-            </Alert>
-          </Alert.Container>
-        )}
-        <NumberField
-          inline={false}
-          stacked
-          flexibleControlStateSize
-          label="Number of Days"
-          help={
-            <Fragment>
-              Their trial will end on <strong>{trialEndDate}</strong>
-            </Fragment>
-          }
-          name="days"
-          value={trialDays}
-          onChange={this.onDaysChange}
-        />
-      </Fragment>
-    );
-  }
+              return (
+                <field.Layout.Stack
+                  label="Number of Days"
+                  hintText={`Their trial will end on ${trialEndDate}`}
+                >
+                  <field.Number value={field.state.value} onChange={field.handleChange} />
+                </field.Layout.Stack>
+              );
+            }}
+          </form.AppField>
+          <AdminAuditFields form={form} fields="audit" />
+        </Stack>
+      </Body>
+      <Footer>
+        <Flex align="center" gap="xl">
+          <Button onClick={closeModal}>Cancel</Button>
+          <form.SubmitButton>Confirm</form.SubmitButton>
+        </Flex>
+      </Footer>
+    </form.AppForm>
+  );
 }
