@@ -26,7 +26,7 @@ interface RelativeZoomRangeMs {
   statsPeriod: string;
 }
 
-type ZoomRangeMs = AbsoluteZoomRangeMs | RelativeZoomRangeMs;
+export type ZoomRangeMs = AbsoluteZoomRangeMs | RelativeZoomRangeMs;
 
 interface LimitDateTimeParamsToMaxPointsOptions {
   end?: string | null;
@@ -137,6 +137,50 @@ export function computeZoomRangeMs({
   const end = Math.ceil(zoomEndMs / 60_000) * 60_000;
 
   return {start, end};
+}
+
+/**
+ * Start of the first interval a detector evaluated for an open period.
+ * Includes one extra minute to account for processing delay.
+ */
+export function calculateStartOfInterval({
+  openPeriodStart,
+  timeWindow,
+}: {
+  openPeriodStart: string;
+  timeWindow: number;
+}) {
+  const eventTimestamp = new Date(openPeriodStart).getTime();
+  const startOfInterval = new Date(
+    eventTimestamp -
+      // Subtract the time window (which is in seconds)
+      timeWindow * 1000 -
+      // Subtract one extra minute to account for delay in processing
+      60 * 1000
+  );
+  // Start from the beginning of the minute
+  startOfInterval.setSeconds(0, 0);
+
+  return startOfInterval;
+}
+
+/**
+ * Compute a zoom window that visibly centers an open period on the detector chart.
+ */
+export function getOpenPeriodZoomRange({
+  openPeriodStart,
+  openPeriodEnd,
+  timeWindow,
+}: {
+  openPeriodEnd: string | null;
+  openPeriodStart: string;
+  timeWindow: number;
+}): ZoomRangeMs {
+  return computeZoomRangeMs({
+    startMs: calculateStartOfInterval({openPeriodStart, timeWindow}).getTime(),
+    endMs: openPeriodEnd ? new Date(openPeriodEnd).getTime() : Date.now(),
+    intervalSeconds: timeWindow,
+  });
 }
 
 /**

@@ -1,17 +1,8 @@
-import {
-  type ComponentProps,
-  Fragment,
-  useEffect,
-  useEffectEvent,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import {type ComponentProps, Fragment, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {IconSeer} from '@sentry/icons/seer';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 import type {LocationDescriptor} from 'history';
-import {parseAsString} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -41,14 +32,9 @@ import type {
 import {defined} from 'sentry/utils/defined';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {getExactDuration} from 'sentry/utils/duration/getExactDuration';
-import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {
-  buildDetectorZoomQuery,
-  computeZoomRangeMs,
-} from 'sentry/views/detectors/components/details/common/buildDetectorZoomQuery';
+import {calculateStartOfInterval} from 'sentry/views/detectors/components/details/common/buildDetectorZoomQuery';
 import {getConditionDescription} from 'sentry/views/detectors/components/details/metric/detect';
 import {getDetectorOpenInDestination} from 'sentry/views/detectors/components/details/metric/getDetectorOpenInDestination';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
@@ -60,7 +46,6 @@ import {
 } from 'sentry/views/detectors/hooks/useOpenPeriods';
 import {getMetricDetectorSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
 import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
-import {loadQueryParamsFromLocation} from 'sentry/views/explore/queryParams/parsers';
 import {
   investigationCandidatesQueryOptions,
   getInvestigationDetailQueryOptions,
@@ -78,7 +63,6 @@ import type {
 } from 'sentry/views/investigations/types';
 import {getInvestigationPath} from 'sentry/views/investigations/utils';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
-import {useGroupId} from 'sentry/views/issueDetails/groupIdContext';
 
 import {AttributeComparisonSection} from './attributeComparisonSection';
 import {OpenPeriodTimelineSection} from './openPeriodTimelineSection';
@@ -141,27 +125,6 @@ interface RelatedIssuesProps {
   start: string;
 }
 
-function calculateStartOfInterval({
-  openPeriodStart,
-  timeWindow,
-}: {
-  openPeriodStart: string;
-  timeWindow: number;
-}) {
-  const eventTimestamp = new Date(openPeriodStart).getTime();
-  const startOfInterval = new Date(
-    eventTimestamp -
-      // Subtract the time window (which is in seconds)
-      timeWindow * 1000 -
-      // Subtract one extra minute to account for delay in processing
-      60 * 1000
-  );
-  // Start from the beginning of the minute
-  startOfInterval.setSeconds(0, 0);
-
-  return startOfInterval;
-}
-
 function getFormattedEvaluatedValue({
   aggregate,
   detectionType,
@@ -177,75 +140,6 @@ function getFormattedEvaluatedValue({
 
   const unitSuffix = getMetricDetectorSuffix(detectionType, aggregate);
   return `${value.toLocaleString()}${unitSuffix}`;
-}
-
-const timePeriodParsers = {
-  statsPeriod: parseAsString,
-  start: parseAsString,
-  end: parseAsString,
-};
-
-/**
- * Once the open period loads, this hook will set the time range to visibly center the open period.
- * If the URL already has a time period, this hook will do nothing
- */
-function useZoomTimeRangeToOpenPeriod({
-  eventId,
-  intervalSeconds,
-  openPeriodStart,
-  openPeriodEnd,
-}: {
-  eventId: string;
-  intervalSeconds: number | undefined;
-  openPeriodEnd: string | null;
-  openPeriodStart: string | null;
-}) {
-  const organization = useOrganization();
-  const groupId = useGroupId();
-  const location = useLocation();
-  const navigate = useNavigate();
-
-  const zoomTimeRangeToOpenPeriod = useEffectEvent(() => {
-    const {statsPeriod, start, end} = loadQueryParamsFromLocation(
-      timePeriodParsers,
-      location
-    );
-
-    if (statsPeriod !== null || start !== null || end !== null) {
-      return;
-    }
-
-    if (openPeriodStart) {
-      const zoomRange = computeZoomRangeMs({
-        startMs: new Date(openPeriodStart).getTime(),
-        endMs: openPeriodEnd ? new Date(openPeriodEnd).getTime() : Date.now(),
-        intervalSeconds,
-      });
-
-      const query = buildDetectorZoomQuery(location.query, zoomRange);
-
-      navigate(
-        {
-          pathname: normalizeUrl(
-            `/organizations/${organization.slug}/issues/${groupId}/events/${eventId}/`
-          ),
-          query,
-        },
-        {replace: true}
-      );
-    }
-  });
-
-  useEffect(() => {
-    zoomTimeRangeToOpenPeriod();
-    // oxlint-disable-next-line react/exhaustive-effect-dependencies
-  }, [openPeriodStart, openPeriodEnd, intervalSeconds]);
-}
-
-function ZoomToOpenPeriod(props: Parameters<typeof useZoomTimeRangeToOpenPeriod>[0]) {
-  useZoomTimeRangeToOpenPeriod(props);
-
-  return null;
 }
 
 /**
@@ -443,14 +337,6 @@ function TriggeredConditionDetails({
 
   return (
     <Fragment>
-      {!isOpenPeriodLoading && (
-        <ZoomToOpenPeriod
-          eventId={eventId}
-          intervalSeconds={snubaQuery?.timeWindow}
-          openPeriodStart={startDate}
-          openPeriodEnd={endDate}
-        />
-      )}
       <FoldSection
         title="Triggered Condition"
         sectionKey="triggered_condition"
