@@ -9290,8 +9290,8 @@ describe('SearchQueryBuilder', () => {
         .fn()
         .mockResolvedValue([
           {
-            key: 'app.vitals.start.warm.value',
-            name: 'app.vitals.start.warm.value',
+            key: 'some.attribute.value',
+            name: 'some.attribute.value',
             kind: FieldKind.MEASUREMENT,
           },
         ]);
@@ -9306,13 +9306,13 @@ describe('SearchQueryBuilder', () => {
       );
 
       await userEvent.click(getLastInput());
-      await userEvent.keyboard('app.vitals');
+      await userEvent.keyboard('some.attribute');
       await userEvent.click(
-        await screen.findByRole('option', {name: 'app.vitals.start.warm.value'})
+        await screen.findByRole('option', {name: 'some.attribute.value'})
       );
 
       expect(
-        await screen.findByRole('row', {name: 'app.vitals.start.warm.value:>100'})
+        await screen.findByRole('row', {name: 'some.attribute.value:>100'})
       ).toBeInTheDocument();
     });
 
