@@ -41,6 +41,8 @@ interface ConnectScmModalProps extends ModalRenderProps {
   repoName: string | null;
   /** The chat's paused input. Not set when a link opened the modal. */
   inputId?: string;
+  /** Whether a link opened the modal, rather than the chat. Its installs are recorded apart. */
+  isFromLink?: boolean;
   /** When the modal closes after an install because Seer can access the repo now. */
   onAccess?: () => void;
   onInstall?: () => void;
@@ -50,8 +52,12 @@ export function openConnectScmModal({
   repoName,
   onInstall,
   inputId,
+  isFromLink,
   onAccess,
-}: Pick<ConnectScmModalProps, 'repoName' | 'onInstall' | 'inputId' | 'onAccess'>) {
+}: Pick<
+  ConnectScmModalProps,
+  'repoName' | 'onInstall' | 'inputId' | 'isFromLink' | 'onAccess'
+>) {
   openModal(
     modalProps => (
       <ConnectScmModal
@@ -59,6 +65,7 @@ export function openConnectScmModal({
         repoName={repoName}
         onInstall={onInstall}
         inputId={inputId}
+        isFromLink={isFromLink}
         onAccess={onAccess}
       />
     ),
@@ -104,6 +111,7 @@ export function useConnectScmModalFromUrl() {
         }
         openConnectScmModal({
           repoName,
+          isFromLink: true,
           // In the chat, the chat going on is the sign it worked. Here, nothing else says so.
           onAccess: () =>
             toast.success(
@@ -120,6 +128,7 @@ function ConnectScmModal({
   repoName,
   onInstall,
   inputId,
+  isFromLink,
   onAccess,
   ...modalProps
 }: ConnectScmModalProps) {
@@ -217,7 +226,7 @@ function ConnectScmModal({
             </Alert>
           ) : (
             <ScmProviderPills
-              analyticsFlow="seer-explorer"
+              analyticsFlow={isFromLink ? 'seer-explorer-link' : 'seer-explorer'}
               providers={providers}
               onInstall={handleInstall}
               openInstallPipeline={setInstallPipeline}
