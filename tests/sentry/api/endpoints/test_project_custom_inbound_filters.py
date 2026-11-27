@@ -3,7 +3,7 @@ from typing import Any
 from unittest.mock import patch
 from uuid import uuid4
 
-from django.db import connections
+from django.db import connections, router
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 
@@ -16,9 +16,7 @@ from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_ke
 from sentry.ingest.legacy_filter_lists import served_legacy_filters
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.custominboundfilter import CustomInboundFilter, LegacyFilter
-from sentry.service_accounts.models import ServiceAccount, ServiceAccountToken
-from sentry.service_accounts.tokens import generate_token as generate_service_account_token
-from sentry.service_accounts.tokens import stored_token_fields
+from sentry.service_accounts.models import ServiceAccount
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
@@ -1635,24 +1633,23 @@ class CustomInboundFilterUpdatedByTest(APITestCase):
             scope_list=["project:write"],
             project_ids=[self.project.id],
         )
-        token = generate_service_account_token(
-            self.organization.slug, "https://test-region.sentry.io"
+        _, token = self.create_service_account_token(
+            service_account, scope_list=["project:write"], created_by=self.user
         )
-        stored = stored_token_fields(token)
-        with assume_test_silo_mode_of(ServiceAccountToken), outbox_runner():
-            ServiceAccountToken.objects.create(
-                service_account=service_account,
-                organization_id=self.organization.id,
-                name="filters",
-                token_hashed=stored.token_hashed,
-                token_last_characters=stored.token_last_characters,
-                scope_list=["project:write"],
-                created_by=self.user,
-            )
         return service_account, f"Bearer {token}"
 
     def assert_user_editor(self, updated_by: dict[str, Any] | None, user: User) -> None:
         assert updated_by is not None
+        # Only what shows the editor, not the account details of the users API.
+        assert updated_by.keys() == {
+            "type",
+            "id",
+            "name",
+            "username",
+            "email",
+            "avatarUrl",
+            "avatar",
+        }
         assert updated_by["type"] == "user"
         assert updated_by["id"] == str(user.id)
         assert updated_by["name"] == user.get_display_name()
@@ -1779,11 +1776,16 @@ class CustomInboundFilterUpdatedByTest(APITestCase):
         self.login_as(user=self.user)
         assert self.get_filter(created["id"])["updatedBy"] is None
 
-    def list_query_count(self) -> int:
-        with self.feature(self.features), CaptureQueriesContext(connections["default"]) as queries:
+    def list_query_count(self) -> tuple[int, int]:
+        """The queries of a list request, on the cell and on the control database."""
+        with (
+            self.feature(self.features),
+            CaptureQueriesContext(connections[router.db_for_read(CustomInboundFilter)]) as cell,
+            CaptureQueriesContext(connections[router.db_for_read(User)]) as control,
+        ):
             response = self.client.get(self.list_url(), format="json")
         assert response.status_code == 200, response.content
-        return len(queries)
+        return len(cell), len(control)
 
     def add_edited_filters(self, count: int) -> None:
         """Filters edited by `count` different users and `count` service accounts."""

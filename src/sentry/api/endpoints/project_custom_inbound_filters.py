@@ -24,6 +24,7 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.examples.project_examples import ProjectExamples
+from sentry.apidocs.formats import NumericId
 from sentry.apidocs.parameters import GlobalParams, ProjectParams
 from sentry.apidocs.response_types import (
     DetailResponse,
@@ -44,6 +45,7 @@ from sentry.models.custominboundfilter import (
     ConditionType,
     CustomInboundFilter,
     DataType,
+    editor_columns,
 )
 from sentry.models.project import Project
 from sentry.service_accounts.models import ServiceAccountReplica
@@ -51,7 +53,7 @@ from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.timeseries_annotations.producers.inbound_filter_change import (
     record_custom_filter_change_as_annotation,
 )
-from sentry.users.api.serializers.user import UserSerializerResponse
+from sentry.users.api.serializers.user import SerializedAvatarFields
 from sentry.users.services.user.service import user_service
 
 MAX_CONDITIONS_PER_FILTER = 10
@@ -85,10 +87,21 @@ class CustomInboundFilterCondition(TypedDict):
     value: list[str]
 
 
-class CustomInboundFilterUserEditor(UserSerializerResponse):
-    """A user who last saved a filter, serialized as the users API returns them."""
+class CustomInboundFilterUserEditor(TypedDict):
+    """A user who last saved a filter, with what it takes to show their name and avatar."""
 
     type: Annotated[Literal["user"], ApiDescription("The kind of editor: a user")]
+    id: Annotated[NumericId, ApiDescription("The ID of the user")]
+    name: Annotated[
+        str,
+        ApiDescription(
+            "Display name: the user's name, or their email or username if no name is set"
+        ),
+    ]
+    username: Annotated[str, ApiDescription("The username of the user")]
+    email: Annotated[str, ApiDescription("The primary email address of the user")]
+    avatarUrl: Annotated[str, ApiDescription("Gravatar URL for the primary email address")]
+    avatar: Annotated[SerializedAvatarFields, ApiDescription("The avatar of the user")]
 
 
 class CustomInboundFilterServiceAccountEditor(TypedDict):
@@ -527,10 +540,15 @@ def _editors_by_filter(
     users: dict[int, CustomInboundFilterUserEditor] = {}
     if user_ids:
         for user in user_service.serialize_many(filter={"user_ids": list(user_ids)}):
-            # The user service returns the users API's shape, which the editor extends.
-            editor: CustomInboundFilterUserEditor = user
-            editor["type"] = "user"
-            users[int(editor["id"])] = editor
+            users[int(user["id"])] = {
+                "type": "user",
+                "id": user["id"],
+                "name": user["name"],
+                "username": user["username"],
+                "email": user["email"],
+                "avatarUrl": user["avatarUrl"],
+                "avatar": user["avatar"],
+            }
 
     service_accounts: dict[int, CustomInboundFilterServiceAccountEditor] = {}
     if service_account_ids:
@@ -740,11 +758,8 @@ class CustomInboundFiltersEndpoint(ProjectCustomInboundFilterEndpoint):
         if not serializer.is_valid():
             return Response(as_validation_errors(serializer), status=400)
 
-        actor = get_actor_reference(request)
         custom_filter = serializer.save(
-            project=project,
-            updated_by_id=actor.user_id,
-            updated_by_service_account_id=actor.service_account_id,
+            project=project, **editor_columns(get_actor_reference(request))
         )
 
         if custom_filter.active:
@@ -873,16 +888,11 @@ class CustomInboundFilterDetailsEndpoint(ProjectCustomInboundFilterEndpoint):
                 setattr(custom_filter, field, new_value)
 
         if changes:
-            # Every save records who made it, replacing the previous editor.
             actor = get_actor_reference(request)
-            custom_filter.updated_by_id = actor.user_id
-            custom_filter.updated_by_service_account_id = actor.service_account_id
-            update_fields = [
-                *changes.keys(),
-                "date_updated",
-                "updated_by_id",
-                "updated_by_service_account_id",
-            ]
+            editor = editor_columns(actor)
+            for column, value in editor.items():
+                setattr(custom_filter, column, value)
+            update_fields = [*changes.keys(), "date_updated", *editor.keys()]
             if legacy_list and "conditions" in changes:
                 # The lines of a legacy list change in the row and in its option together.
                 legacy_filter_lists.set_list(

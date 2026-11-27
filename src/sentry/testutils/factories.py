@@ -955,7 +955,8 @@ class Factories:
         data_type: str = DataType.ERROR,
         conditions: list[dict[str, object]] | None = None,
         legacy_filter: str | None = None,
-        **kwargs: Any,
+        updated_by_id: int | None = None,
+        updated_by_service_account_id: int | None = None,
     ) -> CustomInboundFilter:
         if conditions is None:
             conditions = [{"type": "release", "value": ["1.*"]}]
@@ -967,7 +968,8 @@ class Factories:
             data_type=data_type,
             conditions=conditions,
             legacy_filter=legacy_filter,
-            **kwargs,
+            updated_by_id=updated_by_id,
+            updated_by_service_account_id=updated_by_service_account_id,
         )
 
     @staticmethod
