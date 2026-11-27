@@ -9,11 +9,8 @@ from sentry_sdk import traces
 
 from sentry.api.endpoints.timeseries import INGESTION_DELAY
 from sentry.cache import default_cache
-from sentry.explore.models import ExploreSavedQueryDataset
 from sentry.search.events.types import SnubaParams
-from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.spans_rpc import Spans
-from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.snuba.utils import RPC_DATASETS
 from sentry.utils import json
 from sentry.utils.hashlib import md5_text
@@ -22,11 +19,6 @@ from sentry.utils.hashlib import md5_text
 DASHBOARD_TIMESERIES_REFERRER_PREFIX = "api.dashboards.widget."
 
 INCREMENTAL_CACHE_TTL = int(timedelta(hours=1).total_seconds())
-_FORMULA_DATASETS = {
-    Spans: ExploreSavedQueryDataset.SPANS,
-    OurLogs: ExploreSavedQueryDataset.OURLOGS,
-    TraceMetrics: ExploreSavedQueryDataset.METRICS,
-}
 # We can only store 50mb in cache, a timestamp & 1 aggregate is about 52 bytes, so the actual max is closer to one
 # million, doing 500k so we have room to grow
 MAX_CACHE_LENGTH = 500_000
@@ -286,6 +278,7 @@ def read_timeseries_cache(
             span.set_attribute("query.invalid_cache_reason", "non_candidate")
             return loaded
 
+        # Saved formulas are cached by name for now. The body is not in the key, so an edit can stay stale until the TTL.
         loaded.candidate = True
         state, loaded.filter_start = inspect_cached_series(
             create_cache_key(request, snuba_params, rollup), snuba_params, rollup

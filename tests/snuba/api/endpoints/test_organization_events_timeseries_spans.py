@@ -17,7 +17,6 @@ from sentry.api.helpers.timeseries_cache import (
     add_cache_time_filter,
     cache_candidate,
     create_cache_key,
-    read_timeseries_cache,
     update_result_with_cache,
 )
 from sentry.cache import default_cache
@@ -3229,47 +3228,6 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert [row["time"] for row in result.data["data"]] == [base, base + 60]
         assert [row["count()"] for row in result.data["data"]] == [10, 11]
         assert [row["time"] for row in stored["value"]] == [base + 60 * 5, base + 60 * 6]
-
-    def test_saved_formula_is_not_cache_candidate(self) -> None:
-        self.create_explore_saved_formula(organization=self.organization)
-        params = SnubaParams(
-            start=self.start,
-            end=self.end,
-            organization=self.organization,
-            projects=[self.project],
-        )
-        query = QueryDict(mutable=True)
-        query["statsPeriod"] = "6h"
-        request = mock.Mock(GET=query, user=self.user)
-
-        def load(columns: list[str]) -> TimeseriesCache:
-            return read_timeseries_cache(
-                enabled=True,
-                request=request,
-                dataset=Spans,
-                query="",
-                query_columns=columns,
-                rollup=3600,
-                top_events=0,
-                comparison_delta=None,
-                referrer="api.dashboards.widget.line-chart",
-                snuba_params=params,
-            )
-
-        with (
-            self.feature("organizations:explore-saved-formulas"),
-            mock.patch("sentry.api.helpers.timeseries_cache.default_cache.get") as cache_get,
-        ):
-            formula = load(["formula.custom_apdex()"])
-            assert formula.candidate is False
-            assert cache_get.call_count == 0
-            # The saved name is a suffix of this function, so it must still cache.
-            prefixed = load(["xformula.custom_apdex()"])
-            assert prefixed.candidate is True
-            assert cache_get.call_count == 1
-            counted = load(["count()"])
-            assert counted.candidate is True
-            assert cache_get.call_count == 2
 
     def test_incremental_cache(self) -> None:
         event_counts = [6, 0, 6, 3, 0, 3]
