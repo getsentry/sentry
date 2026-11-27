@@ -136,7 +136,7 @@ class SeerApiError(Exception):
 
 
 class SeerUnavailableError(SeerApiError):
-    """Seer kept answering with a server error (5xx) after retrying."""
+    """Seer answered with a server error (5xx) or did not answer in time."""
 
 
 class SeerApiResponseValidationError(Exception):
