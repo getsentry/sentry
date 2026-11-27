@@ -201,16 +201,16 @@ function InstallWizardForm({
                           );
                         case 'radio':
                           return (
-                            <field.RadioGroup
-                              value={typeof value === 'string' ? value : ''}
-                              onChange={field.handleChange}
+                            <field.Layout.Row
+                              label={definition.label}
+                              hintText={definition.help}
+                              required={required}
                             >
-                              {({Item}) => (
-                                <field.Layout.Row
-                                  label={definition.label}
-                                  hintText={definition.help}
-                                  required={required}
-                                >
+                              <field.RadioGroup
+                                value={typeof value === 'string' ? value : ''}
+                                onChange={field.handleChange}
+                              >
+                                {({Item}) => (
                                   <Stack gap="sm">
                                     {definition.choices.map(([choice, choiceLabel]) => (
                                       <Item key={choice} value={choice}>
@@ -218,9 +218,9 @@ function InstallWizardForm({
                                       </Item>
                                     ))}
                                   </Stack>
-                                </field.Layout.Row>
-                              )}
-                            </field.RadioGroup>
+                                )}
+                              </field.RadioGroup>
+                            </field.Layout.Row>
                           );
                         case 'email':
                         case 'text':
