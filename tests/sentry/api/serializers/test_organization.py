@@ -65,8 +65,6 @@ granular_scopes = [
     "dashboard:write",
     "saved_query:read",
     "saved_query:write",
-    "user_preference:read",
-    "user_preference:write",
 ]
 # Accepted by endpoints, but no role grants them yet.
 ungranted_scopes = [
@@ -123,7 +121,6 @@ class OrganizationSummarySerializerTest(TestCase):
             "integrations-vercel",
             "invite-members",
             "open-membership",
-            "performance-view",
             "relay",
             "session-replay-ui",
             "shared-issues",

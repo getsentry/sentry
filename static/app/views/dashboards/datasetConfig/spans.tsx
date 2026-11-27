@@ -386,6 +386,12 @@ function renderTransactionAsLinkable(data: EventData, baggage: RenderFunctionBag
   if (data[SpanFields.REQUEST_METHOD]) {
     filters.addFilterValue('request.method', data[SpanFields.REQUEST_METHOD]);
   }
+  if (data[SpanFields.HTTP_REQUEST_METHOD]) {
+    filters.addFilterValue(
+      SpanFields.HTTP_REQUEST_METHOD,
+      data[SpanFields.HTTP_REQUEST_METHOD]
+    );
+  }
 
   const target = transactionSummaryRouteWithQuery({
     organization,

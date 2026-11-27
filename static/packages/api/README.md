@@ -148,7 +148,7 @@ const logOperations = operations.filter(operation =>
 console.log(logOperations.map(({ functionName, method, path }) => ({ functionName, method, path })));
 ```
 
-Each `ApiOperation` records the actual exported `functionName`, original OpenAPI `operationId`, method, path (relative to `API_BASE_PATH`), summary, description, tags, path parameter names, query metadata, explicit deprecation flag, `experimental` flag, `idempotent` flag, and `routing` declaration. `ApiQueryParameter` includes the name, required flag, description, type, and declared enum values (item values for arrays). Operation parameters override inherited path parameters.
+Each `ApiOperation` records the actual exported `functionName`, original OpenAPI `operationId`, method, path (relative to `API_BASE_PATH`), summary, description, tags, path parameter names, query metadata, explicit deprecation flag, `experimental` flag, `idempotent` flag, `routing` declaration, and `projectScope` declaration when Sentry has one. `ApiQueryParameter` includes the name, required flag, description, type, and declared enum values (item values for arrays). Operation parameters override inherited path parameters.
 
 `experimental` is `true` when Sentry marks the operation with the `x-sentry-experimental` OpenAPI extension, which it sets for endpoints under active development that may change. Their SDK docs also start with an **Experimental:** note. To find or reject experimental operations, for example in a lint rule or build check:
 
@@ -184,6 +184,22 @@ match?.params; // { organization_id_or_slug: "acme" }
 The path may include `API_BASE_PATH`, an origin or a query string, and a missing trailing slash still matches. Where templates overlap, a literal segment wins over a parameter at the first segment where they differ, so `/snapshots/latest-base/` is not read as a `{snapshot_id}`. Only operations in the public catalog match; `matchOperation` returns `undefined` for others. To match a filtered catalog or your own templates, build a matcher with `createOperationMatcher`, which accepts any `{ method, path }` list and throws on first use if two templates for one method differ only in parameter names.
 
 `idempotent` tells retrying clients whether resending an identical request after a timeout or 5xx response is safe. It is always `true` for `GET`, `HEAD`, `OPTIONS`, and `TRACE`. Other methods are `true` only when Sentry marks the operation with the `x-sentry-idempotent` OpenAPI extension; `false` means not known to be idempotent, not known to be unsafe.
+
+`projectScope` copies Sentry's `x-sentry-project-scope` declaration, which says how a request names the projects whose data it returns or changes. Clients that limit a caller to some projects read it instead of keeping their own endpoint list. `ApiProjectScope` is one of:
+
+- `path`: the path names the project.
+- `filter`: an organization endpoint that takes the `project` query parameter (numeric project IDs) and returns or changes only those projects' data.
+- `org-metadata`: a read-only organization endpoint whose response holds no project's telemetry, such as settings, members, or integrations. Only on `GET`.
+- `response:<pointer>`: a `GET` that looks something up by ID alone. The numeric ID of the project it belongs to is at `<pointer>` in the response body. `<pointer>` is an RFC 6901 JSON pointer in which a `*` segment matches every element of an array, such as `response:/projects/*/id`.
+
+An operation without a declaration has no `projectScope`, which means it is not known to respect a project limit. The build fails on any other value, and on `org-metadata` or `response:` for a method other than `GET`:
+
+```ts
+import { matchOperation, type ApiProjectScope } from "@sentry/api/operations";
+
+const scope: ApiProjectScope | undefined = matchOperation("GET", "/api/0/projects/acme/backend/")?.operation.projectScope;
+scope; // "path"
+```
 
 The catalog is generated from the same schema and SDK output as each release. Consumers own search, grouping, ranking, and command aliases; the catalog does not fetch a live schema or infer undocumented API behavior.
 
@@ -456,7 +472,7 @@ Failures throw `ObjectstoreError`, an `ApiError` with the failing object or requ
 
 ## Runtime validation
 
-The root `@sentry/api` entry imports no other package at runtime, and neither do `@sentry/api/browser`, `@sentry/api/operations`, and `@sentry/api/docs`. It provides the API client and pure TypeScript types without installing a validation library. Only `@sentry/api/client` imports packages, `p-limit` and `http-cache-semantics`. They are regular dependencies, so npm installs them with `@sentry/api` even when you never import `/client`.
+The root `@sentry/api` entry imports no other package at runtime, and neither do `@sentry/api/browser`, `@sentry/api/operations`, and `@sentry/api/docs`. It provides the API client and pure TypeScript types without installing a validation library. Only `@sentry/api/client` imports a package, `p-limit`. It is a regular dependency, so npm installs it with `@sentry/api` even when you never import `/client`.
 
 Valibot 1 runtime schemas are available through a separate optional entry point:
 
@@ -838,9 +854,9 @@ Generic helpers delegate cancellation to your fetcher. Pass its signal through t
 
 `@sentry/api/client` is the request layer the Sentry CLI and MCP servers share, built on the generated operations. It uses only web-standard APIs (`fetch`, `Request`, `Headers`, `URL`, `AbortSignal`, `crypto.subtle`), so it runs in Node, Cloudflare Workers, and browsers. Hosts inject what differs between them:
 
-- **Transport.** `createApiTransport` sets `Authorization` from a `CredentialProvider`, refreshes the credential once after a 401, times out each attempt, retries through the shared retry policy (429 for any method; 500, 502, 503, 504, timeouts, and network errors only for GET, HEAD, OPTIONS, or writes marked idempotent), follows redirects only to trusted origins, and serves and invalidates cached GETs. `CredentialProvider.current` receives the request URL and the organization and project its path targets (`parseApiPathScope`), so a host with several logins can pick the one that can reach that organization. The host passes credentials, a `TransportCache`, the request-scoped `fresh` hook, a logger, a span hook, and its error classes.
+- **Transport.** `createApiTransport` sets `Authorization` from a `CredentialProvider`, refreshes the credential once after a 401 and replays the request, times out each attempt, follows redirects only to trusted origins, serves and invalidates cached GETs, and retries failed attempts when the host passes a `retry` policy. Without one it sends each request once. `CredentialProvider.current` receives the request URL and the organization and project its path targets (`parseApiPathScope`), so a host with several logins can pick the one that can reach that organization. The host passes credentials, a `TransportCache`, a `retry` policy, the request-scoped `fresh` hook, a logger, a span hook, and its error classes.
 - **Request core.** `createApiClientCore` sends `<origin><API_BASE_PATH><path>` through the transport and throws the status's `ApiError` subclass for an error response. `sdkClient` gives a generated operation a client that sends through the same path.
-- **Response cache.** The cache policy (`lookupResponse`, `storeResponse`, tiers, identity-scoped keys, invalidation) works on any `CacheStore` and `BodyCodec`. `createMemoryStore` is a byte-budgeted in-memory store. Compressing codecs need host APIs such as `node:zlib`, so hosts supply them.
+- **Caching and retries.** The host owns its cache and retry policy and plugs them in through `TransportCache` and `retry`. The transport calls `retry(attempt, { method, url, idempotent, signal })` once per request, after the cache lookup and credential preparation. The hook calls `attempt()` as often as its policy allows and returns the final response. Each attempt keeps the transport's timeout, body buffering, and 401 refresh, and resolves with the response, failed or not, or throws, such as `ApiTimeoutError` for the transport's own timeout. The cache store, write invalidation, `errors.rateLimited`, and `errors.timeout` apply once, to the hook's result. `@sentry/http`'s `fetchWithRetry` fits it as is. The client gives them Sentry's rules: `classifyUrl` and `FALLBACK_TTL_MS` are the fallback TTL tiers for responses without freshness headers, `computeInvalidationPrefixes` lists the cached URL prefixes a write makes stale, `parseRetryDelayMs` reads the wait from `Retry-After` or `X-Sentry-Rate-Limit-Reset`, and `createIdempotentOperationMatcher` matches the writes Sentry marks safe to replay.
 - **Validation.** Endpoint wrappers validate responses with any [Standard Schema](https://standardschema.dev) validator the host passes in, such as the `@sentry/api/zod` or `@sentry/api/valibot` schemas. The client depends on neither.
 - **Pagination.** `paginate` and `fetchAllPages` walk list endpoints on top of `paginateUpTo` and `consumePage`. Their cursors are Sentry cursors that also record rows already returned from a page, so a resumed walk neither repeats nor skips rows.
 
@@ -856,7 +872,6 @@ import { createApiClientCore, createApiTransport } from "@sentry/api/client";
 
 const transport = createApiTransport({
   fetch: createBrowserFetch(),
-  retry: { maxRetries: 2, baseDelayMs: 500, maxDelayMs: 5000, maxTotalDelayMs: 10000 },
 });
 const core = createApiClientCore({ transport, headers: () => ({}), logger: console });
 const projects = await core.requestJson("https://sentry.example.com", "/organizations/acme/projects/");
@@ -930,7 +945,7 @@ pnpm --filter @sentry/api pack --out /tmp/sentry-api.tgz
 node static/packages/api/test/consumers/check.mjs /tmp/sentry-api.tgz
 ```
 
-CI also runs `test/consumers/exports.mjs` on the same tarball. It fails when an entry point or export of the latest `@sentry/api` on npm is gone, since that breaks code written against the release. A renamed operation counts as a removed one.
+CI also runs `test/consumers/exports.mjs` on the same tarball. It fails when an entry point or export of the latest `@sentry/api` on npm is gone, since that breaks code written against the release. A renamed operation counts as a removed one. A breaking change, marked `type(scope)!:` in the PR title or a `BREAKING CHANGE:` footer, releases as a major, so the check lists its removals without failing.
 
 ## License
 

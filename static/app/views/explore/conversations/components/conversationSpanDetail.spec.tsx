@@ -168,11 +168,17 @@ describe('ConversationSpanDetail', () => {
       'a failed tool call',
       'tool',
       [
-        {name: 'span.status', type: 'str', value: 'internal_error'},
+        {name: 'span.status', type: 'str', value: 'error'},
         {name: 'error.type', type: 'str', value: 'RateLimitError'},
         {name: 'span.status.message', type: 'str', value: 'Rate limit exceeded'},
       ],
       ['RateLimitError', 'Rate limit exceeded'],
+    ],
+    [
+      'a failed tool call without a message',
+      'tool',
+      [{name: 'span.status', type: 'str', value: 'error'}],
+      ['Tool Error', 'This tool call failed but has no associated issue.'],
     ],
     [
       'an MCP tool result flagged as an error',
@@ -193,7 +199,16 @@ describe('ConversationSpanDetail', () => {
     [
       'a failed span that is not a tool call',
       'ai_client',
-      [{name: 'span.status', type: 'str', value: 'internal_error'}],
+      [
+        {name: 'span.status', type: 'str', value: 'error'},
+        {name: 'span.status.message', type: 'str', value: 'Context window exceeded'},
+      ],
+      ['Error', 'Context window exceeded'],
+    ],
+    [
+      'a failed span that is not a tool call and has no message',
+      'ai_client',
+      [{name: 'span.status', type: 'str', value: 'error'}],
       null,
     ],
   ] as const)('shows the error of %s', async (_, operationType, attributes, expected) => {
@@ -215,6 +230,7 @@ describe('ConversationSpanDetail', () => {
       }
     } else {
       expect(screen.queryByText('Tool Error')).not.toBeInTheDocument();
+      expect(screen.queryByText('Error')).not.toBeInTheDocument();
       expect(
         screen.queryByText('This tool call failed but has no associated issue.')
       ).not.toBeInTheDocument();

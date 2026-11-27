@@ -30,13 +30,15 @@ export interface Conversation {
   lastOutput: string | null;
   llmCalls: number;
   outputTokens: number;
-  // Project the conversation's first span belongs to (null when unknown).
+  // A conversation can span several projects, but the API exposes only one of
+  // them (null when unknown).
   projectId: number | null;
   startTimestamp: number;
+  // Elapsed time (ms) between the conversation's first and last AI span.
+  timeSpan: number;
   // AI-generated summary of the conversation. Not always available (title
   // generation is gated and asynchronous), so consumers must fall back to the
   // first input message.
-  timeSpan: number;
   title: string | null;
   toolCalls: number;
   toolErrors: number;

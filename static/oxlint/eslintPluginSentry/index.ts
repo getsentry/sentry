@@ -22,6 +22,7 @@ import {noStaticTranslations} from './noStaticTranslations.ts';
 import {noStyledShortcut} from './noStyledShortcut.ts';
 import {noUnnecessaryUseCallback} from './noUnnecessaryUseCallback.ts';
 import {noUselessCssInterpolationSemicolon} from './noUselessCssInterpolationSemicolon.ts';
+import {preferAriaDisabledAssertion} from './preferAriaDisabledAssertion.ts';
 import {preferFakeTimers} from './preferFakeTimers.ts';
 import {preferNuqs} from './preferNuqs.ts';
 import {preferReactComponent} from './preferReactComponent.ts';
@@ -50,6 +51,7 @@ export const rules = {
   'no-unnecessary-use-callback': noUnnecessaryUseCallback,
   'no-useless-css-interpolation-semicolon': noUselessCssInterpolationSemicolon,
   'no-vanilla-emotion': noVanillaEmotion,
+  'prefer-aria-disabled-assertion': preferAriaDisabledAssertion,
   'prefer-fake-timers': preferFakeTimers,
   'prefer-nuqs': preferNuqs,
   'prefer-react-component': preferReactComponent,

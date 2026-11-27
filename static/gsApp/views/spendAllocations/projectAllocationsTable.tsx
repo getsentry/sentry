@@ -13,14 +13,12 @@ import {AllocationRow} from './components/allocationRow';
 import {Centered, Divider, HalvedWithDivider} from './components/styles';
 import type {SpendAllocation} from './components/types';
 import type {BigNumUnits} from './utils';
-import {midPeriod} from './utils';
 
 type Props = {
   deleteSpendAllocation: (
     selectedMetric: DataCategory | null,
     targetId: number,
-    targetType: string,
-    timestamp: number
+    targetType: string
   ) => (e: React.MouseEvent) => void;
   metricUnit: BigNumUnits;
   openForm: (formData?: SpendAllocation) => (e: React.MouseEvent) => void;
@@ -103,12 +101,7 @@ export function ProjectAllocationsTable({
           <AllocationRow
             key={a.id}
             allocation={a}
-            deleteAction={deleteSpendAllocation(
-              selectedMetric,
-              a.targetId,
-              a.targetType,
-              midPeriod(a.period)
-            )}
+            deleteAction={deleteSpendAllocation(selectedMetric, a.targetId, a.targetType)}
             openForm={openForm(a)}
             metricUnit={metricUnit}
           />

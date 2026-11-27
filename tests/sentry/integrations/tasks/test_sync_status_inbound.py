@@ -3,16 +3,27 @@ from unittest import mock
 
 import pytest
 from django.utils import timezone as django_timezone
+from sentry_protos.taskbroker.v1.taskbroker_pb2 import RetryState, TaskActivation
+from taskbroker_client.state import clear_current_task, set_current_task
+from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.example import ExampleIntegration
 from sentry.integrations.mixins import ResolveSyncAction
 from sentry.integrations.models import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.project_management.metrics import (
+    InboundStatusSyncFailureReason,
+    InboundStatusSyncHaltReason,
+    ProjectManagementEvent,
+)
 from sentry.integrations.tasks.sync_status_inbound import (
+    SYNC_STATUS_INBOUND_RETRY_TIMES,
     get_resolutions_and_activity_data_for_groups,
     sync_status_inbound,
 )
+from sentry.integrations.types import EventLifecycleOutcome
+from sentry.integrations.utils.status_sync import INTEGRATION_PROVIDER_KEY
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouplink import GroupLink
@@ -232,7 +243,7 @@ class TestSyncStatusInbound(TestCase):
             integration_id=self.integration.id,
             organization_id=self.organization.id,
             issue_key=TEST_ISSUE_KEY,
-            data=fake_data,
+            data={**fake_data, INTEGRATION_PROVIDER_KEY: self.integration.provider},
         )
 
         self._assert_group_resolved(self.group.id)
@@ -261,8 +272,13 @@ class TestSyncStatusInbound(TestCase):
         auto_resolve_project_issues(self.project.id)
         self._assert_group_unresolved(self.group.id)
 
+    @mock.patch.object(ProjectManagementEvent, "record_outcome")
     @mock.patch.object(ExampleIntegration, "get_resolve_sync_action")
-    def test_noop(self, mock_get_resolve_sync_action: mock.MagicMock) -> None:
+    def test_noop(
+        self,
+        mock_get_resolve_sync_action: mock.MagicMock,
+        mock_record_outcome: mock.MagicMock,
+    ) -> None:
         original_status = self.group.status
         mock_get_resolve_sync_action.return_value = ResolveSyncAction.NOOP
 
@@ -270,11 +286,19 @@ class TestSyncStatusInbound(TestCase):
             integration_id=self.integration.id,
             organization_id=self.organization.id,
             issue_key=TEST_ISSUE_KEY,
-            data=fake_data,
+            data={**fake_data, INTEGRATION_PROVIDER_KEY: self.integration.provider},
         )
 
         self.group.refresh_from_db()
         assert self.group.status == original_status
+        mock_record_outcome.assert_called_once_with(
+            EventLifecycleOutcome.SUCCESS,
+            extra={
+                "integration_id": self.integration.id,
+                "organization_id": self.organization.id,
+                "issue_key": TEST_ISSUE_KEY,
+            },
+        )
 
     def test_integration_not_found(self) -> None:
         with pytest.raises(Integration.DoesNotExist):
@@ -284,6 +308,45 @@ class TestSyncStatusInbound(TestCase):
                 issue_key=TEST_ISSUE_KEY,
                 data=fake_data,
             )
+
+    @mock.patch.object(ProjectManagementEvent, "record_outcome")
+    @mock.patch.object(ExampleIntegration, "get_resolve_sync_action")
+    def test_legacy_queued_task_does_not_emit_unmatched_terminal_outcome(
+        self,
+        mock_get_resolve_sync_action: mock.MagicMock,
+        mock_record_outcome: mock.MagicMock,
+    ) -> None:
+        mock_get_resolve_sync_action.return_value = ResolveSyncAction.NOOP
+
+        sync_status_inbound(
+            integration_id=self.integration.id,
+            organization_id=self.organization.id,
+            issue_key=TEST_ISSUE_KEY,
+            data=fake_data,
+        )
+
+        mock_record_outcome.assert_not_called()
+
+    @mock.patch.object(ProjectManagementEvent, "record_outcome")
+    def test_integration_removed_after_queueing_records_halt(
+        self, mock_record_outcome: mock.MagicMock
+    ) -> None:
+        sync_status_inbound(
+            integration_id=99999,
+            organization_id=self.organization.id,
+            issue_key=TEST_ISSUE_KEY,
+            data={**fake_data, INTEGRATION_PROVIDER_KEY: "example"},
+        )
+
+        mock_record_outcome.assert_called_once_with(
+            EventLifecycleOutcome.HALTED,
+            outcome_reason=InboundStatusSyncHaltReason.INTEGRATION_MISSING,
+            extra={
+                "integration_id": 99999,
+                "organization_id": self.organization.id,
+                "issue_key": TEST_ISSUE_KEY,
+            },
+        )
 
     def test_integration_inactive(self) -> None:
         integration = self.create_integration(
@@ -311,14 +374,24 @@ class TestSyncStatusInbound(TestCase):
         self.group.refresh_from_db()
         assert self.group.status == GroupStatus.UNRESOLVED
 
-    def test_no_affected_groups(self) -> None:
+    @mock.patch.object(ProjectManagementEvent, "record_outcome")
+    def test_no_affected_groups(self, mock_record_outcome: mock.MagicMock) -> None:
         sync_status_inbound(
             integration_id=self.integration.id,
             organization_id=self.organization.id,
             issue_key="NONEXISTENT-123",
-            data=fake_data,
+            data={**fake_data, INTEGRATION_PROVIDER_KEY: self.integration.provider},
         )
 
+        mock_record_outcome.assert_called_once_with(
+            EventLifecycleOutcome.HALTED,
+            outcome_reason=InboundStatusSyncHaltReason.NO_LINKED_GROUPS,
+            extra={
+                "integration_id": self.integration.id,
+                "organization_id": self.organization.id,
+                "issue_key": "NONEXISTENT-123",
+            },
+        )
         self._assert_group_unresolved(self.group.id)
 
     @mock.patch.object(ExampleIntegration, "get_resolve_sync_action")
@@ -581,18 +654,111 @@ class TestSyncStatusInbound(TestCase):
         self._assert_group_resolved(self.group.id)
         self._assert_group_resolved(group2.id)
 
+    @mock.patch.object(ProjectManagementEvent, "record_outcome")
     @mock.patch.object(ExampleIntegration, "get_resolve_sync_action")
-    def test_api_error(self, mock_get_resolve_sync_action: mock.MagicMock) -> None:
-        mock_get_resolve_sync_action.side_effect = Exception("API Error")
-
-        sync_status_inbound(
-            integration_id=self.integration.id,
-            organization_id=self.organization.id,
-            issue_key=TEST_ISSUE_KEY,
-            data=fake_data,
+    def test_api_error_records_failure_on_final_attempt(
+        self,
+        mock_get_resolve_sync_action: mock.MagicMock,
+        mock_record_outcome: mock.MagicMock,
+    ) -> None:
+        error = Exception("API Error")
+        mock_get_resolve_sync_action.side_effect = error
+        set_current_task(
+            TaskActivation(
+                retry_state=RetryState(
+                    attempts=SYNC_STATUS_INBOUND_RETRY_TIMES - 1,
+                    max_attempts=SYNC_STATUS_INBOUND_RETRY_TIMES + 1,
+                )
+            )
         )
+        self.addCleanup(clear_current_task)
 
+        with pytest.raises(Exception, match="API Error"):
+            sync_status_inbound(
+                integration_id=self.integration.id,
+                organization_id=self.organization.id,
+                issue_key=TEST_ISSUE_KEY,
+                data={**fake_data, INTEGRATION_PROVIDER_KEY: self.integration.provider},
+            )
+
+        mock_record_outcome.assert_called_once_with(
+            EventLifecycleOutcome.FAILURE,
+            outcome_reason=InboundStatusSyncFailureReason.ACTION_LOOKUP_FAILED,
+            extra={
+                "integration_id": self.integration.id,
+                "organization_id": self.organization.id,
+                "issue_key": TEST_ISSUE_KEY,
+                "exception_summary": repr(error),
+            },
+        )
         self._assert_group_unresolved(self.group.id)
+
+    @mock.patch.object(ProjectManagementEvent, "record_outcome")
+    @mock.patch.object(ExampleIntegration, "get_resolve_sync_action")
+    def test_api_error_does_not_record_terminal_outcome_before_final_attempt(
+        self,
+        mock_get_resolve_sync_action: mock.MagicMock,
+        mock_record_outcome: mock.MagicMock,
+    ) -> None:
+        mock_get_resolve_sync_action.side_effect = Exception("API Error")
+        set_current_task(
+            TaskActivation(
+                retry_state=RetryState(
+                    attempts=0,
+                    max_attempts=SYNC_STATUS_INBOUND_RETRY_TIMES,
+                )
+            )
+        )
+        self.addCleanup(clear_current_task)
+
+        with pytest.raises(Exception, match="API Error"):
+            sync_status_inbound(
+                integration_id=self.integration.id,
+                organization_id=self.organization.id,
+                issue_key=TEST_ISSUE_KEY,
+                data={**fake_data, INTEGRATION_PROVIDER_KEY: self.integration.provider},
+            )
+
+        mock_record_outcome.assert_not_called()
+        self._assert_group_unresolved(self.group.id)
+
+    @mock.patch.object(ProjectManagementEvent, "record_outcome")
+    @mock.patch.object(ExampleIntegration, "get_resolve_sync_action")
+    def test_processing_deadline_records_failure_on_final_attempt(
+        self,
+        mock_get_resolve_sync_action: mock.MagicMock,
+        mock_record_outcome: mock.MagicMock,
+    ) -> None:
+        error = ProcessingDeadlineExceeded("deadline exceeded")
+        mock_get_resolve_sync_action.side_effect = error
+        set_current_task(
+            TaskActivation(
+                retry_state=RetryState(
+                    attempts=SYNC_STATUS_INBOUND_RETRY_TIMES - 1,
+                    max_attempts=SYNC_STATUS_INBOUND_RETRY_TIMES + 1,
+                )
+            )
+        )
+        self.addCleanup(clear_current_task)
+
+        with pytest.raises(ProcessingDeadlineExceeded):
+            sync_status_inbound(
+                integration_id=self.integration.id,
+                organization_id=self.organization.id,
+                issue_key=TEST_ISSUE_KEY,
+                data={**fake_data, INTEGRATION_PROVIDER_KEY: self.integration.provider},
+            )
+
+        mock_record_outcome.assert_called_once_with(
+            EventLifecycleOutcome.FAILURE,
+            outcome_reason=InboundStatusSyncFailureReason.ACTION_LOOKUP_FAILED,
+            extra={
+                "integration_id": self.integration.id,
+                "organization_id": self.organization.id,
+                "issue_key": TEST_ISSUE_KEY,
+                "exception_summary": repr(error),
+            },
+        )
 
     @mock.patch.object(ExampleIntegration, "get_resolve_sync_action")
     def test_resolve_ignored_group(self, mock_get_resolve_sync_action: mock.MagicMock) -> None:
@@ -633,7 +799,11 @@ class TestSyncStatusInbound(TestCase):
             integration_id=self.integration.id,
             organization_id=self.organization.id,
             issue_key=TEST_ISSUE_KEY,
-            data={**fake_data, "provider_event_time": provider_event_time},
+            data={
+                **fake_data,
+                "provider_event_time": provider_event_time,
+                INTEGRATION_PROVIDER_KEY: self.integration.provider,
+            },
         )
 
     @mock.patch.object(ExampleIntegration, "get_resolve_sync_action")
@@ -652,9 +822,12 @@ class TestSyncStatusInbound(TestCase):
         self._assert_group_unresolved(self.group.id)
         self._assert_no_resolve_activity()
 
+    @mock.patch.object(ProjectManagementEvent, "record_outcome")
     @mock.patch.object(ExampleIntegration, "get_resolve_sync_action")
     def test_replayed_event_does_not_reapply(
-        self, mock_get_resolve_sync_action: mock.MagicMock
+        self,
+        mock_get_resolve_sync_action: mock.MagicMock,
+        mock_record_outcome: mock.MagicMock,
     ) -> None:
         mock_get_resolve_sync_action.return_value = ResolveSyncAction.UNRESOLVE
         self._sync("2023-01-01T00:00:00Z")
@@ -665,6 +838,19 @@ class TestSyncStatusInbound(TestCase):
         self._sync("2023-01-01T00:00:00Z")
 
         self._assert_group_resolved(self.group.id)
+        log_context = {
+            "integration_id": self.integration.id,
+            "organization_id": self.organization.id,
+            "issue_key": TEST_ISSUE_KEY,
+        }
+        assert mock_record_outcome.call_args_list == [
+            mock.call(EventLifecycleOutcome.SUCCESS, extra=log_context),
+            mock.call(
+                EventLifecycleOutcome.HALTED,
+                outcome_reason=InboundStatusSyncHaltReason.STALE_EVENT,
+                extra=log_context,
+            ),
+        ]
 
     @mock.patch.object(ExampleIntegration, "get_resolve_sync_action")
     def test_newer_event_is_applied(self, mock_get_resolve_sync_action: mock.MagicMock) -> None:
@@ -709,7 +895,8 @@ class TestSyncStatusInbound(TestCase):
     ) -> None:
         # The event was never applied, so a redelivery of it has to be allowed through.
         mock_get_resolve_sync_action.side_effect = Exception("API Error")
-        self._sync("2023-01-01T00:00:00Z")
+        with pytest.raises(Exception, match="API Error"):
+            self._sync("2023-01-01T00:00:00Z")
 
         mock_get_resolve_sync_action.side_effect = None
         mock_get_resolve_sync_action.return_value = ResolveSyncAction.RESOLVE

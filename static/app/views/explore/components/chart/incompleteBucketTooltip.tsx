@@ -48,6 +48,7 @@ export function useIncompleteBucketTooltipDetails(
 
     const delayLine = t('Event ingestion is incomplete.');
     const retentionLine = t('Some of this data is outside your retention period.');
+    const queryRangeLine = t('Part of this interval is outside the selected time range.');
 
     const notes = new Map<number, string>();
     for (const {meta, values} of series) {
@@ -57,6 +58,10 @@ export function useIncompleteBucketTooltipDetails(
         }
         if (incompleteReason === 'OUTSIDE_RETENTION') {
           notes.set(timestamp, renderNote(theme, retentionLine));
+          continue;
+        }
+        if (incompleteReason === 'EXCEEDS_QUERY_RANGE') {
+          notes.set(timestamp, renderNote(theme, queryRangeLine));
           continue;
         }
         const secondsRemaining = (timestamp + meta.interval - completeThrough) / 1000;

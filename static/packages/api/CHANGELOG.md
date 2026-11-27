@@ -1,3 +1,28 @@
+## 3.3.0
+
+### New Features ✨
+
+- (api) Carry x-sentry-project-scope as ApiOperation.projectScope by @BYK with @sentry-junior in [#132723](https://github.com/getsentry/sentry/pull/132723)
+
+## 3.2.0
+
+- No documented changes.
+
+## 3.1.0
+
+- No documented changes.
+
+## 3.0.0
+
+### Breaking Changes 🛠
+
+- (api) Move the response cache and retry policy out of @sentry/api/client by @BYK with @sentry-junior in [#132687](https://github.com/getsentry/sentry/pull/132687)
+
+### Internal Changes 🔧
+
+- (api) Read and write Objectstore batches with FormData by @BYK with @sentry-junior in [#131779](https://github.com/getsentry/sentry/pull/131779)
+- (frontend) Use tsrs for standalone type checks by @TkDodo in [#131670](https://github.com/getsentry/sentry/pull/131670)
+
 ## 2.16.0
 
 - No documented changes.

@@ -8,7 +8,7 @@ import {ReleaseFixture} from 'sentry-fixture/release';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {GroupStatus} from 'sentry/types/group';
+import {GroupStatus, ProgressState} from 'sentry/types/group';
 
 import {InboxIssuePreview} from './inboxIssuePreview';
 
@@ -108,6 +108,97 @@ describe('InboxIssuePreview', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('shows the impact assessment in the sidebar', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/`,
+      body: {
+        ...group,
+        derivedData: {
+          hasOpenFixPr: false,
+          hasRootCause: false,
+          isAssigned: false,
+          lastProgressedAt: null,
+          progress: ProgressState.IDENTIFIED,
+          status: 'open',
+          viewCount: 0,
+          impact: {
+            level: 'super_high',
+            score: 91,
+            description: 'Checkout is broken for all users.',
+            citations: [],
+            sourceEventId: event.id,
+          },
+        },
+      },
+    });
+
+    render(<InboxIssuePreview groupId={group.id} />, {
+      organization: OrganizationFixture({features: ['seer-impact-assessment']}),
+    });
+
+    const sidebar = await screen.findByRole('complementary', {name: 'Issue overview'});
+    expect(within(sidebar).getByRole('heading', {name: 'Impact'})).toBeInTheDocument();
+    expect(within(sidebar).getByText('Super High (91)')).toBeInTheDocument();
+    expect(within(sidebar).getByLabelText('alpha')).toBeInTheDocument();
+    // Once in the header and once in the sidebar.
+    expect(screen.getAllByText('Super High (91)')).toHaveLength(2);
+    expect(sidebar).toHaveTextContent(/Assignee.*Impact.*Priority/);
+    expect(
+      within(sidebar).queryByRole('button', {name: 'Assess impact'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('starts an impact assessment from the sidebar', async () => {
+    const assessRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/impact/assess/`,
+      method: 'POST',
+      body: {runId: '1'},
+    });
+
+    render(<InboxIssuePreview groupId={group.id} />, {
+      organization: OrganizationFixture({features: ['seer-impact-assessment']}),
+    });
+
+    const sidebar = await screen.findByRole('complementary', {name: 'Issue overview'});
+    await userEvent.click(within(sidebar).getByRole('button', {name: 'Assess impact'}));
+
+    expect(await screen.findByText('Starting impact assessment…')).toBeInTheDocument();
+    expect(assessRequest).toHaveBeenCalled();
+  });
+
+  it('hides impact assessments without the impact assessment feature', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/`,
+      body: {
+        ...group,
+        derivedData: {
+          hasOpenFixPr: false,
+          hasRootCause: false,
+          isAssigned: false,
+          lastProgressedAt: null,
+          progress: ProgressState.IDENTIFIED,
+          status: 'open',
+          viewCount: 0,
+          impact: {
+            level: 'super_high',
+            score: 91,
+            description: 'Checkout is broken for all users.',
+            citations: [],
+            sourceEventId: event.id,
+          },
+        },
+      },
+    });
+
+    render(<InboxIssuePreview groupId={group.id} />, {organization});
+
+    const sidebar = await screen.findByRole('complementary', {name: 'Issue overview'});
+    expect(
+      within(sidebar).queryByRole('heading', {name: 'Impact'})
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Super High (91)')).not.toBeInTheDocument();
+  });
+
   it('pairs each timestamp with its release', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/first-last-release/`,
@@ -127,8 +218,13 @@ describe('InboxIssuePreview', () => {
 
   it('links to the linked investigation and the top related issues', async () => {
     const relatedIssues = ['11', '12', '13'].map(id => ({
-      issue: GroupFixture({id, shortId: `CHECKOUT-${id}`, title: `Checkout error ${id}`}),
-      relations: [{type: 'same_trace'}],
+      issue: GroupFixture({
+        id,
+        shortId: `CHECKOUT-${id}`,
+        title: `Checkout error ${id}`,
+        metadata: {type: 'TimeoutError', value: `Checkout timed out after ${id}s`},
+      }),
+      relations: [{type: 'similar_stacktrace', score: 0.9432}, {type: 'same_trace'}],
     }));
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/related/`,
@@ -143,6 +239,7 @@ describe('InboxIssuePreview', () => {
         ],
         meta: {
           types: [
+            {type: 'similar_stacktrace', status: 'ok'},
             {type: 'same_trace', status: 'ok'},
             {type: 'investigations', status: 'ok'},
           ],
@@ -153,9 +250,10 @@ describe('InboxIssuePreview', () => {
     render(<InboxIssuePreview groupId={group.id} />, {organization});
 
     const sidebar = await screen.findByRole('complementary', {name: 'Issue overview'});
-    expect(
-      await within(sidebar).findByRole('link', {name: 'Payment timeouts'})
-    ).toHaveAttribute(
+    const investigationLink = await within(sidebar).findByRole('link', {
+      name: 'Payment timeouts',
+    });
+    expect(investigationLink).toHaveAttribute(
       'href',
       `/organizations/${organization.slug}/seer/investigations/5172/`
     );
@@ -169,6 +267,21 @@ describe('InboxIssuePreview', () => {
     expect(
       within(sidebar).queryByRole('link', {name: 'CHECKOUT-13 – Checkout error 13'})
     ).not.toBeInTheDocument();
+
+    // Hovering a row explains why it's related
+    await userEvent.hover(investigationLink);
+    expect(
+      await screen.findByText('Its timeouts start with the deploy.')
+    ).toBeInTheDocument();
+    await userEvent.hover(
+      within(sidebar).getByRole('link', {name: 'CHECKOUT-11 – Checkout error 11'})
+    );
+    expect(
+      await screen.findByText('Similar stack trace (94%) · Same trace')
+    ).toBeInTheDocument();
+    // Shown like the issue stream: the error type, then the message
+    expect(screen.getByText('TimeoutError')).toBeInTheDocument();
+    expect(screen.getByText('Checkout timed out after 11s')).toBeInTheDocument();
   });
 
   it('shows an error when every related issue type that applies failed', async () => {

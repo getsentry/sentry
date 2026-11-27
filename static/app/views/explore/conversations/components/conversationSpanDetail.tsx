@@ -64,7 +64,7 @@ import {
   getAIToolOutput,
 } from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiOutput';
 import {AttributesContent} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/attributes';
-import {ToolErrorCard} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/sections/toolErrorCard';
+import {AISpanErrorCard} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/sections/aiSpanErrorCard';
 import {TraceDrawerComponents} from 'sentry/views/performance/traceDetails/traceDrawer/details/styles';
 import {isEAPSpanNode} from 'sentry/views/performance/traceDetails/traceGuards';
 import {traceGridCssVariables} from 'sentry/views/performance/traceDetails/traceWaterfallStyles';
@@ -277,10 +277,10 @@ export function ConversationSpanDetail({
         organization={organization}
         traceSlug={traceId}
       />
-      {/* Tool errors aren't always application errors, so they rarely have an
-       * issue. Show them in the issue slot when there isn't one. */}
+      {/* AI span errors (e.g. tool failures) aren't always application errors, so
+       * they rarely have an issue. Show them in the issue slot when there isn't one. */}
       {node.uniqueIssues.length === 0 ? (
-        <StyledToolErrorCard node={node} attributes={attributes} />
+        <AISpanErrorCard node={node} attributes={attributes} />
       ) : null}
 
       {/*
@@ -630,10 +630,6 @@ function AttributesTab({
 // under the waterfall, so scope those variables here.
 const StyledIssueList = styled(IssueList)`
   ${traceGridCssVariables}
-  flex-shrink: 0;
-`;
-
-const StyledToolErrorCard = styled(ToolErrorCard)`
   flex-shrink: 0;
 `;
 

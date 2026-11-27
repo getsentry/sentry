@@ -9,6 +9,10 @@ import pytest
 from django.urls import reverse
 from rest_framework.response import Response
 
+from sentry.api.bases.organization_events import (
+    LEGACY_DATASETS_DEPRECATION_DATE,
+    LEGACY_DATASETS_GONE_MESSAGE,
+)
 from sentry.api.endpoints.timeseries import IncompleteReason
 from sentry.ingestion_delay.status import IngestionDelayStatus, IngestionStatus
 from sentry.testutils.cases import APITestCase, SnubaTestCase
@@ -347,7 +351,8 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
                 "value": 2,
             },
             {
-                "incomplete": False,
+                "incomplete": True,
+                "incompleteReason": IncompleteReason.EXCEEDS_QUERY_RANGE,
                 "timestamp": self.start.timestamp() * 1000 + 3_600_000 * 2,
                 "value": 0,
             },
@@ -411,7 +416,8 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
                 "value": 2,
             },
             {
-                "incomplete": False,
+                "incomplete": True,
+                "incompleteReason": IncompleteReason.EXCEEDS_QUERY_RANGE,
                 "timestamp": self.start.timestamp() * 1000 + 3_600_000 * 2,
                 "value": 0,
             },
@@ -437,7 +443,8 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
                 "value": 1,
             },
             {
-                "incomplete": False,
+                "incomplete": True,
+                "incompleteReason": IncompleteReason.EXCEEDS_QUERY_RANGE,
                 "timestamp": self.start.timestamp() * 1000 + 3_600_000 * 2,
                 "value": 0,
             },
@@ -492,7 +499,8 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
                 "value": 1,
             },
             {
-                "incomplete": False,
+                "incomplete": True,
+                "incompleteReason": IncompleteReason.EXCEEDS_QUERY_RANGE,
                 "timestamp": self.start.timestamp() * 1000 + 3_600_000 * 2,
                 "value": 0,
             },
@@ -521,7 +529,8 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
                 "value": 120000.0,
             },
             {
-                "incomplete": False,
+                "incomplete": True,
+                "incompleteReason": IncompleteReason.EXCEEDS_QUERY_RANGE,
                 "timestamp": self.start.timestamp() * 1000 + 3_600_000 * 2,
                 "value": 0,
             },
@@ -550,7 +559,8 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
                 "value": 1,
             },
             {
-                "incomplete": False,
+                "incomplete": True,
+                "incompleteReason": IncompleteReason.EXCEEDS_QUERY_RANGE,
                 "timestamp": self.start.timestamp() * 1000 + 3_600_000 * 2,
                 "value": 0,
             },
@@ -579,7 +589,8 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
                 "value": 120000.0,
             },
             {
-                "incomplete": False,
+                "incomplete": True,
+                "incompleteReason": IncompleteReason.EXCEEDS_QUERY_RANGE,
                 "timestamp": self.start.timestamp() * 1000 + 3_600_000 * 2,
                 "value": 0,
             },
@@ -620,13 +631,20 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
                 "valueUnit": "1/minute",
                 "interval": 3_600_000,
             }
-            expected_values = [
+            expected_values: list[dict[str, Any]] = [
                 {
                     "incomplete": False,
                     "timestamp": (self.start + timedelta(hours=hour)).timestamp() * 1000,
                     "value": 0,
                 }
-                for hour in range(3)
+                for hour in range(2)
+            ] + [
+                {
+                    "incomplete": True,
+                    "incompleteReason": IncompleteReason.EXCEEDS_QUERY_RANGE,
+                    "timestamp": self.end.timestamp() * 1000,
+                    "value": 0,
+                }
             ]
             assert count["values"] == expected_values
             assert unique_users["values"] == expected_values
@@ -844,6 +862,21 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
 
         mock_sdk_logger.warning.assert_not_called()
 
+    def test_legacy_dataset_brownout(self) -> None:
+        data = {"interval": "1h", "statsPeriod": "1d", "project": [self.project.id]}
+        brownout = LEGACY_DATASETS_DEPRECATION_DATE.replace(hour=12)
+        with self.settings(SENTRY_SELF_HOSTED=False), freeze_time(brownout):
+            response = self._api_token_request(
+                data,
+                features={
+                    "organizations:discover-basic": True,
+                    "organizations:legacy-datasets-api-brownout": True,
+                },
+            )
+
+        assert response.status_code == 410
+        assert response.data == {"message": LEGACY_DATASETS_GONE_MESSAGE}
+
 
 class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
     endpoint = "sentry-api-0-organization-events-timeseries"
@@ -993,7 +1026,11 @@ class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
         )
         assert response.status_code == 200, response.content
         assert "completeThrough" not in response.data["meta"]["ingestion"]
-        assert not any(row["incomplete"] for row in response.data["timeSeries"][0]["values"])
+        assert not any(
+            row.get("incompleteReason")
+            in (IncompleteReason.INGESTION_PENDING, IncompleteReason.NOT_ELAPSED)
+            for row in response.data["timeSeries"][0]["values"]
+        )
 
     @mock.patch("sentry.quotas.backend.get_event_retention")
     @mock.patch("sentry.api.helpers.ingestion_delay.compute_ingestion_delay_status")

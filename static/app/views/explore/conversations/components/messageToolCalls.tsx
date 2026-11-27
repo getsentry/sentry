@@ -1,13 +1,10 @@
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
+import {Stack} from '@sentry/scraps/layout';
 
-import {CollapsibleChatRow} from 'sentry/components/ai/chat/collapsibleContent';
 import {TurnMeta, TurnMetaValue} from 'sentry/components/ai/chat/turnMeta';
-import {t, tn} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useSelectionOpenState} from 'sentry/views/explore/conversations/hooks/useSelectionOpenState';
 import {
   isSubAgentCall,
   type ToolCall,
@@ -36,18 +33,9 @@ interface MessageToolCallsProps {
 }
 
 /**
- * A turn with fewer tool calls than this reads fine as a plain list, so it is
- * left expanded; longer runs are the ones that bury the surrounding reasoning.
- */
-const COLLAPSE_THRESHOLD = 5;
-
-/**
- * Tool-call list for the redesigned transcript. Runs of at least
- * `COLLAPSE_THRESHOLD` calls collapse behind a `N tool calls` summary (with an
- * error count, plus the combined output size and time across the run) that is
- * collapsed by default, to keep tool-heavy turns compact; shorter runs render
- * inline. Each row is an accent wrench + `ToolTag` capped at the message width,
- * with the size and duration right-aligned. Selection shows an outline.
+ * Tool-call list for the redesigned transcript. Each row is an accent wrench +
+ * `ToolTag` capped at the message width, with the size and duration
+ * right-aligned. Selection shows an outline.
  * Sub-agents the turn's tools started share the list as collapsed rows.
  */
 export function MessageToolCalls({
@@ -57,12 +45,7 @@ export function MessageToolCalls({
   onSelectNode,
   renderMessages,
 }: MessageToolCallsProps) {
-  const organization = useOrganization();
-  // Keeps the group open when one of its calls is (or holds) the selection, so
-  // a deep-linked or timeline-selected row stays visible instead of hidden.
-  const [isOpen, setIsOpen] = useSelectionOpenState(selectedToolCallId);
-
-  const rows = (
+  return (
     <Stack gap="xs" width="100%">
       {toolCalls.map(call => {
         if (isSubAgentCall(call)) {
@@ -87,76 +70,6 @@ export function MessageToolCalls({
         );
       })}
     </Stack>
-  );
-
-  // Short runs read fine as a plain list — only collapse the long ones.
-  if (toolCalls.length < COLLAPSE_THRESHOLD) {
-    return rows;
-  }
-
-  const errorCount = toolCalls.filter(call => call.hasError).length;
-  const subAgentCount = toolCalls.filter(isSubAgentCall).length;
-  const toolCount = toolCalls.length - subAgentCount;
-
-  // Aggregate the same per-row values into a run-level total so the summary
-  // hints at how heavy the collapsed group is. Duration is the sum of each
-  // call's own duration (parallel calls are counted separately), matching the
-  // numbers on the rows rather than wall-clock elapsed time.
-  const totalDuration = toolCalls.reduce(
-    (sum, call) => sum + (call.duration && call.duration > 0 ? call.duration : 0),
-    0
-  );
-  const totalBytes = toolCalls.reduce((sum, call) => {
-    if (isSubAgentCall(call)) {
-      return sum;
-    }
-    const node = nodeMap.get(call.nodeId);
-    return sum + (node ? getToolOutputBytes(node) : 0);
-  }, 0);
-
-  return (
-    <CollapsibleChatRow
-      open={isOpen}
-      title={
-        <Flex align="center" gap="sm" minWidth={0}>
-          <Text size="sm" variant="muted">
-            {[
-              toolCount > 0 ? tn('%s tool call', '%s tool calls', toolCount) : null,
-              subAgentCount > 0
-                ? tn('%s sub-agent', '%s sub-agents', subAgentCount)
-                : null,
-            ]
-              .filter(Boolean)
-              .join(', ')}
-          </Text>
-          {errorCount > 0 && (
-            <Text size="sm" variant="danger">
-              {tn('%s error', '%s errors', errorCount)}
-            </Text>
-          )}
-        </Flex>
-      }
-      // The run-level totals line up over the per-row values in the same column.
-      meta={
-        <TurnMeta
-          metric={
-            totalBytes > 0 ? (
-              <TurnMetaValue>{formatBytesBase10(totalBytes)}</TurnMetaValue>
-            ) : null
-          }
-          duration={totalDuration}
-        />
-      }
-      onOpenChange={open => {
-        setIsOpen(open);
-        trackAnalytics('conversations.detail.expand-tool-calls', {
-          organization,
-          expanded: open,
-        });
-      }}
-    >
-      <Container paddingTop="xs">{rows}</Container>
-    </CollapsibleChatRow>
   );
 }
 

@@ -5,10 +5,12 @@ import {IconIssues} from '@sentry/icons/issues';
 import {IconSeer} from '@sentry/icons/seer';
 import {useQuery} from '@tanstack/react-query';
 
+import {FeatureBadge} from '@sentry/scraps/badge';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tabs} from '@sentry/scraps/tabs';
 import {Heading, Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {AnsiText} from 'sentry/components/ansiText';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
@@ -22,6 +24,7 @@ import type {Event} from 'sentry/types/event';
 import type {Group, TeamParticipant, UserParticipant} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getMessage, getTitle} from 'sentry/utils/events';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -33,8 +36,17 @@ import {IssueDetailsContextProvider} from 'sentry/views/issueDetails/context';
 import {EventDetailsHeader} from 'sentry/views/issueDetails/eventDetailsHeader';
 import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
 import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
+import {
+  AssessImpactButton,
+  GroupImpactBadge,
+  useAssessedImpact,
+  useHasImpactAssessment,
+} from 'sentry/views/issueDetails/groupImpact';
 import {GroupPriority} from 'sentry/views/issueDetails/groupPriority';
-import {relatedIssuesApiOptions} from 'sentry/views/issueDetails/groupRelatedIssues/relatedIssuesApiOptions';
+import {
+  relatedIssuesApiOptions,
+  type RelatedIssue,
+} from 'sentry/views/issueDetails/groupRelatedIssues/relatedIssuesApiOptions';
 import {GroupHeaderAssigneeSelector} from 'sentry/views/issueDetails/header/assigneeSelector';
 import {EventUserCounts} from 'sentry/views/issueDetails/header/eventUserCounts';
 import {issueFirstLastReleaseQueryOptions} from 'sentry/views/issueDetails/issueFirstLastReleaseQueryOptions';
@@ -179,13 +191,16 @@ function InboxIssuePreviewHeader({group, project, event}: InboxIssueSectionProps
       </Grid>
       <Flex justify="between" align="center" gap="md" wrap="wrap">
         <GroupActions group={group} project={project} event={event ?? null} />
-        {hasParticipants && (
-          <ParticipantList
-            users={userParticipants}
-            teams={teamParticipants}
-            hideTimestamp
-          />
-        )}
+        <Flex align="center" gap="md">
+          <GroupImpactBadge group={group} />
+          {hasParticipants && (
+            <ParticipantList
+              users={userParticipants}
+              teams={teamParticipants}
+              hideTimestamp
+            />
+          )}
+        </Flex>
       </Flex>
     </Stack>
   );
@@ -237,6 +252,9 @@ function InboxIssueSidebar({group, project, event}: InboxIssueSectionProps) {
           />
         </Flex>
       </SidebarField>
+      <ErrorBoundary mini>
+        <InboxImpactField group={group} />
+      </ErrorBoundary>
       <SidebarField label={t('Priority')}>
         <GroupPriority group={group} />
       </SidebarField>
@@ -252,6 +270,27 @@ function InboxIssueSidebar({group, project, event}: InboxIssueSectionProps) {
         <InboxIssueExternalLinks group={group} event={event} />
       </ErrorBoundary>
     </Stack>
+  );
+}
+
+function InboxImpactField({group}: {group: Group}) {
+  const hasImpact = useAssessedImpact(group) !== null;
+  const canAssessImpact = useHasImpactAssessment();
+
+  if (!hasImpact && !canAssessImpact) {
+    return null;
+  }
+
+  return (
+    <SidebarField label={t('Impact')} leadingItems={<FeatureBadge type="alpha" />}>
+      {hasImpact ? (
+        <Flex>
+          <GroupImpactBadge group={group} />
+        </Flex>
+      ) : (
+        <AssessImpactButton group={group} />
+      )}
+    </SidebarField>
   );
 }
 
@@ -304,23 +343,27 @@ function InboxIssueRelated({group}: Pick<InboxIssueSectionProps, 'group'>) {
 
   // Investigations come before issues
   const rows = [
-    ...data.investigations.map(({investigation}) => (
+    ...data.investigations.map(({investigation, reason, hypothesisStatement}) => (
       <InboxIssueRelatedRow
         key={`investigation-${investigation.id}`}
         icon={<IconSeer size="sm" />}
         to={getInvestigationPath(organization.slug, investigation.id)}
-      >
-        {investigation.title}
-      </InboxIssueRelatedRow>
+        label={investigation.title}
+        title={investigation.title}
+        reason={reason ?? t('Hypothesis: %s', hypothesisStatement)}
+      />
     )),
-    ...data.data.map(({issue}) => (
+    ...data.data.map(({issue, relations}) => (
       <InboxIssueRelatedRow
         key={`issue-${issue.id}`}
         icon={<IconIssues size="sm" />}
         to={normalizeUrl(`/organizations/${organization.slug}/issues/${issue.id}/`)}
-      >
-        {issue.shortId} – {issue.title}
-      </InboxIssueRelatedRow>
+        label={`${issue.shortId} – ${issue.title}`}
+        // Matches how the issue stream shows an issue: its type, then its message
+        title={getTitle(issue).title ?? issue.title}
+        message={getMessage(issue)}
+        reason={relations.map(getRelationLabel).join(' · ')}
+      />
     )),
   ].slice(0, RELATED_SHOWN);
 
@@ -344,22 +387,68 @@ function InboxIssueRelated({group}: Pick<InboxIssueSectionProps, 'group'>) {
   return <Stack gap="md">{rows}</Stack>;
 }
 
+/**
+ * Why the endpoint matched a related issue, for its tooltip.
+ */
+function getRelationLabel(relation: RelatedIssue['relations'][number]) {
+  switch (relation.type) {
+    case 'similar_stacktrace':
+      return t('Similar stack trace (%s)', formatPercentage(relation.score, 0));
+    case 'same_trace':
+      return t('Same trace');
+    case 'same_title':
+      return t('Same title');
+    case 'same_supergroup':
+      return t('Same supergroup');
+    case 'contributing':
+      return t('Contributed to this alert');
+  }
+}
+
+/**
+ * A related issue or investigation. The row cuts off a long label, so its tooltip shows the
+ * title, the message when there is one, and why it's related.
+ */
 function InboxIssueRelatedRow({
   icon,
   to,
-  children,
+  label,
+  title,
+  reason,
+  message,
 }: {
-  children: ReactNode;
   icon: ReactNode;
+  label: string;
+  reason: string;
+  title: string;
   to: string;
+  message?: string;
 }) {
   return (
-    <Flex gap="sm" align="center" minWidth={0}>
+    <Flex gap="sm" align="center" alignSelf="start" minWidth={0} maxWidth="100%">
       {linkProps => (
-        <IssueTitleLink {...linkProps} to={to}>
-          {icon}
-          <Text ellipsis>{children}</Text>
-        </IssueTitleLink>
+        <Tooltip
+          skipWrapper
+          maxWidth={350}
+          title={
+            <Stack gap="xs">
+              <Text bold>
+                <AnsiText>{title}</AnsiText>
+              </Text>
+              {message ? (
+                <Text>
+                  <AnsiText>{message}</AnsiText>
+                </Text>
+              ) : null}
+              <Text variant="muted">{reason}</Text>
+            </Stack>
+          }
+        >
+          <IssueTitleLink {...linkProps} to={to}>
+            {icon}
+            <Text ellipsis>{label}</Text>
+          </IssueTitleLink>
+        </Tooltip>
       )}
     </Flex>
   );
@@ -385,15 +474,19 @@ interface SidebarFieldProps {
   children: React.ReactNode;
   label: string;
   actions?: React.ReactNode;
+  leadingItems?: React.ReactNode;
 }
 
-function SidebarField({label, actions, children}: SidebarFieldProps) {
+function SidebarField({label, actions, leadingItems, children}: SidebarFieldProps) {
   return (
     <Stack gap="md">
       <Flex justify="between" align="center" gap="md">
-        <Heading as="h3" size="md">
-          {label}
-        </Heading>
+        <Flex align="center" gap="md">
+          {leadingItems}
+          <Heading as="h3" size="md">
+            {label}
+          </Heading>
+        </Flex>
         {actions}
       </Flex>
       <Container>{children}</Container>

@@ -482,6 +482,129 @@ describe('useSeerExplorer', () => {
       ]);
     });
 
+    it('shows where the run is when another answer got there first', async () => {
+      const runId = 'run-answered-elsewhere';
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/${runId}/`,
+        method: 'GET',
+        body: {
+          session: {
+            blocks: [],
+            status: 'awaiting_user_input',
+            pending_user_input: {
+              id: 'input-1',
+              input_type: 'ask_user_question',
+              data: {questions: [{question: 'Which one?', options: [{label: 'A'}]}]},
+            },
+          },
+        },
+      });
+      const onError = jest.fn();
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+        additionalWrapper: SeerExplorerChatStateProvider,
+      });
+      act(() => {
+        result.current.switchToRun(runId);
+      });
+      await waitFor(() => {
+        expect(result.current.sessionData?.status).toBe('awaiting_user_input');
+      });
+
+      // Another tab answered, and the run moved on.
+      MockApiClient.clearMockResponses();
+      const reload = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/${runId}/`,
+        method: 'GET',
+        body: {session: {blocks: [], status: 'processing'}},
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-update/${runId}/`,
+        method: 'POST',
+        statusCode: 409,
+        body: {detail: 'This input was already answered.', code: 'input_not_pending'},
+      });
+      act(() => {
+        result.current.respondToUserInput('input-1', {answers: ['A']}, {onError});
+      });
+
+      await waitFor(() => expect(reload).toHaveBeenCalled());
+      await waitFor(() => {
+        expect(result.current.sessionData?.status).toBe('processing');
+      });
+      expect(result.current.sessionData?.pending_user_input).toBeUndefined();
+      expect(result.current.requestError).toBeNull();
+      expect(onError).not.toHaveBeenCalled();
+    });
+
+    it('clears an earlier error when another answer got there first', async () => {
+      const runId = 'run-failed-then-answered-elsewhere';
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/${runId}/`,
+        method: 'GET',
+        body: {
+          session: {
+            blocks: [],
+            status: 'awaiting_user_input',
+            pending_user_input: {
+              id: 'input-1',
+              input_type: 'ask_user_question',
+              data: {questions: [{question: 'Which one?', options: [{label: 'A'}]}]},
+            },
+          },
+        },
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-update/${runId}/`,
+        method: 'POST',
+        statusCode: 500,
+        body: {detail: 'Server error'},
+      });
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+        additionalWrapper: SeerExplorerChatStateProvider,
+      });
+      act(() => {
+        result.current.switchToRun(runId);
+      });
+      await waitFor(() => {
+        expect(result.current.sessionData?.status).toBe('awaiting_user_input');
+      });
+
+      // The first answer fails, which shows the error alert.
+      act(() => {
+        result.current.respondToUserInput('input-1', {answers: ['A']});
+      });
+      await waitFor(() => {
+        expect(result.current.requestError).toEqual({});
+      });
+
+      // Before the retry, another tab answered and the run moved on.
+      MockApiClient.clearMockResponses();
+      const reload = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/${runId}/`,
+        method: 'GET',
+        body: {session: {blocks: [], status: 'processing'}},
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-update/${runId}/`,
+        method: 'POST',
+        statusCode: 409,
+        body: {detail: 'This input was already answered.', code: 'input_not_pending'},
+      });
+      act(() => {
+        result.current.respondToUserInput('input-1', {answers: ['A']});
+      });
+
+      await waitFor(() => expect(reload).toHaveBeenCalled());
+      await waitFor(() => {
+        expect(result.current.sessionData?.status).toBe('processing');
+      });
+      expect(result.current.requestError).toBeNull();
+    });
+
     it('keeps a newer send in another chat when an older send fails', async () => {
       const runId = 'run-a';
       let failOldSend!: () => void;
@@ -1307,7 +1430,35 @@ describe('useSeerExplorer', () => {
       await act(() => jest.advanceTimersByTimeAsync(500));
       await waitFor(() =>
         expect(errorSpy).toHaveBeenCalledWith(
-          "Seer couldn't open a pull request in acme/web because your organization is out of credits."
+          "Seer couldn't open a pull request in acme/web because your organization does not have enough credits."
+        )
+      );
+    });
+
+    it('toasts daily usage limit copy when the push hit the limit', async () => {
+      const errorSpy = jest.spyOn(toast, 'error');
+      mockPRState({pr_creation_status: 'creating'});
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+        additionalWrapper: SeerExplorerChatStateProvider,
+      });
+      act(() => {
+        result.current.switchToRun(runId);
+      });
+      await waitFor(() => expect(result.current.isPolling).toBe(true));
+
+      mockPRState({
+        pr_creation_status: 'error',
+        pr_creation_error: "Your organization doesn't have enough Seer credits for this.",
+        pr_creation_error_code: 'out_of_credits',
+        credit_denial_reason: 'daily_cap_exceeded',
+      });
+
+      await act(() => jest.advanceTimersByTimeAsync(500));
+      await waitFor(() =>
+        expect(errorSpy).toHaveBeenCalledWith(
+          "Seer couldn't open a pull request in acme/web because your organization hit its daily usage limit."
         )
       );
     });

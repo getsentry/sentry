@@ -1,5 +1,6 @@
 import type {SelectOption} from '@sentry/scraps/compactSelect';
 
+import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import type {TraceMetricTypeValue} from 'sentry/views/explore/metrics/types';
 
 export interface MetricSelectorOption extends SelectOption<string> {
@@ -9,6 +10,11 @@ export interface MetricSelectorOption extends SelectOption<string> {
   count?: number;
   lastSeen?: number;
   metricUnit?: string | null;
+  /**
+   * For a virtual metric, the stored metric its attribute lives on. Details
+   * such as attributes are looked up on it.
+   */
+  sourceMetric?: TraceMetric;
   tooltip?: string;
 }
 

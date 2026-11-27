@@ -41,8 +41,14 @@ export function IntegrationButton({
   buttonProps,
 }: Props) {
   const organization = useOrganization();
-  const {provider, type, installStatus, analyticsParams, suppressSuccessMessage} =
-    useContext(IntegrationContext) ?? {};
+  const {
+    provider,
+    type,
+    installStatus,
+    analyticsParams,
+    suppressSuccessMessage,
+    modalParams,
+  } = useContext(IntegrationContext) ?? {};
   if (!provider || !type) {
     return null;
   }
@@ -70,6 +76,7 @@ export function IntegrationButton({
         installStatus={installStatus}
         analyticsParams={analyticsParams}
         suppressSuccessMessage={suppressSuccessMessage}
+        modalParams={modalParams}
         {...buttonProps}
         organization={organization}
       />

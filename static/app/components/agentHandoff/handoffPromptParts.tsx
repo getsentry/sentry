@@ -1,12 +1,10 @@
-import {Fragment, useId, useState, type PointerEventHandler} from 'react';
-import {css, ThemeProvider, useTheme, type Theme} from '@emotion/react';
+import {useState, type PointerEventHandler} from 'react';
+import {css, ThemeProvider, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {AnimatePresence, motion} from 'framer-motion';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Checkbox} from '@sentry/scraps/checkbox';
-import {InfoText, InfoTip} from '@sentry/scraps/info';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {InfoText} from '@sentry/scraps/info';
+import {Container} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {darkTheme} from '@sentry/scraps/theme';
@@ -17,85 +15,8 @@ import {getHandoffGuideUrl, getHandoffPrompt} from './handoffPrompt';
 import {AgentHandoffFlow, type AgentHandoffContext} from './types';
 import {useHandoffPromptInteractions} from './useHandoffPromptInteractions';
 
-interface HandoffIpPinningCheckboxProps {
-  disabled: boolean;
-  onToggle: () => void;
-  useIpPinning: boolean;
-}
-
-export function HandoffIpPinningCheckbox({
-  disabled,
-  useIpPinning,
-  onToggle,
-}: HandoffIpPinningCheckboxProps) {
-  const checkboxId = useId();
-  const descriptionId = useId();
-
-  return (
-    <Flex align="start" gap="md">
-      <Checkbox
-        id={checkboxId}
-        aria-describedby={descriptionId}
-        checked={useIpPinning}
-        disabled={disabled}
-        onChange={onToggle}
-      />
-      <Stack gap="sm">
-        <Flex align="center" gap="xs">
-          <Text as="label" htmlFor={checkboxId} size="md">
-            {t('Only allow this network')}
-          </Text>
-          <InfoTip
-            size="xs"
-            title={t('Keeps your secret token safe if the prompt leaks.')}
-          />
-        </Flex>
-        <IpPinningDescription id={descriptionId} size="sm" variant="muted">
-          {t('Uncheck if your agent runs in the cloud, or you use iCloud Private Relay.')}
-        </IpPinningDescription>
-      </Stack>
-    </Flex>
-  );
-}
-
-// Help text reads best a little looser than the largest density token (1.4).
-const IpPinningDescription = styled(Text)`
-  line-height: 1.5;
-`;
-
-interface HandoffPromptAlertsProps {
-  error: Error | null;
-  useIpPinning: boolean;
-}
-
-export function HandoffPromptAlerts({useIpPinning, error}: HandoffPromptAlertsProps) {
-  const theme = useTheme();
-  // Both prompts render the alerts in a Stack with an md gap. Pulling the warning
-  // up by that gap while collapsed lets the gap animate with it instead of popping.
-  const collapsedOffset = `-${theme.space.md}`;
-
-  return (
-    <Fragment>
-      <AnimatePresence initial={false}>
-        {!useIpPinning && (
-          <motion.div
-            initial={{height: 0, opacity: 0, marginTop: collapsedOffset}}
-            animate={{height: 'auto', opacity: 1, marginTop: '0px'}}
-            exit={{height: 0, opacity: 0, marginTop: collapsedOffset}}
-            transition={{duration: 0.12, ease: 'easeOut'}}
-            style={{overflow: 'hidden'}}
-          >
-            <Alert variant="warning">
-              {t(
-                'Without IP pinning, anyone with this prompt can use its handoff code from any IP address to authorize an agent on your behalf. Avoid pasting your prompt when streaming or screen sharing.'
-              )}
-            </Alert>
-          </motion.div>
-        )}
-      </AnimatePresence>
-      {error && <Alert variant="danger">{error.message}</Alert>}
-    </Fragment>
-  );
+export function HandoffPromptError({error}: {error: Error | null}) {
+  return error && <Alert variant="danger">{error.message}</Alert>;
 }
 
 interface HandoffPromptBoxProps<Flow extends AgentHandoffFlow> {

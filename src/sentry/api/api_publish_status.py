@@ -3,7 +3,9 @@ from enum import Enum
 
 class ApiPublishStatus(Enum):
     """
-    Used to track if an API is publicly documented
+    Used to track if an API is publicly documented. Mirrored by PublishStatus in
+    tools/flake8_plugin.py, which can't import it, and in
+    .github/workflows/scripts/new-api-findings-comment.ts, so keep them in sync
     """
 
     # A promotion ladder, least to most committed. Only the members for which

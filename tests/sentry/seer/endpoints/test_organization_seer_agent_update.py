@@ -83,6 +83,35 @@ class TestOrganizationSeerAgentUpdate(APITestCase):
 
     @patch("sentry.seer.endpoints.organization_seer_agent_update.has_seer_agent_access_with_detail")
     @patch("sentry.seer.endpoints.organization_seer_agent_update.make_signed_seer_api_request")
+    def test_teammate_can_interrupt_issue_run(
+        self, mock_request: MagicMock, mock_has_access: MagicMock
+    ) -> None:
+        mock_has_access.return_value = (True, None)
+        mock_request.return_value.status = 200
+        mock_request.return_value.json.return_value = {"run_id": 124}
+        for run_state_id, owner_id in ((124, self.user.id), (125, None)):
+            run = self.create_seer_run(
+                organization=self.organization, seer_run_state_id=run_state_id, user_id=owner_id
+            )
+            project = self.create_project(organization=self.organization)
+            self.create_seer_agent_run(
+                run=run, source="autofix", group=self.create_group(project=project)
+            )
+        member = self.create_user()
+        self.create_member(user=member, organization=self.organization, role="member")
+        self.login_as(user=member)
+
+        for run_state_id in (124, 125):
+            response = self.client.post(
+                f"/api/0/organizations/{self.organization.slug}/seer/explorer-update/{run_state_id}/",
+                data={"payload": {"type": "interrupt"}},
+                format="json",
+            )
+            assert response.status_code == status.HTTP_202_ACCEPTED
+        assert mock_request.call_count == 2
+
+    @patch("sentry.seer.endpoints.organization_seer_agent_update.has_seer_agent_access_with_detail")
+    @patch("sentry.seer.endpoints.organization_seer_agent_update.make_signed_seer_api_request")
     def test_explorer_update_with_org_auth_token_is_denied(
         self, mock_request: MagicMock, mock_has_access: MagicMock
     ) -> None:
@@ -157,6 +186,52 @@ class TestOrganizationSeerAgentUpdate(APITestCase):
 
         assert response.status_code == status.HTTP_409_CONFLICT
         mock_request.assert_not_called()
+
+    @patch("sentry.seer.endpoints.organization_seer_agent_update.has_seer_agent_access_with_detail")
+    @patch("sentry.seer.endpoints.organization_seer_agent_update.make_signed_seer_api_request")
+    def test_answer_to_an_input_seer_is_not_waiting_on_returns_409(
+        self, mock_request: MagicMock, mock_has_access: MagicMock
+    ) -> None:
+        """Another answer (say, from a second tab) got to Seer first."""
+        mock_has_access.return_value = (True, None)
+        mock_request.return_value.status = 409
+
+        response = self.client.post(
+            self.url,
+            data={
+                "payload": {
+                    "type": "user_input_response",
+                    "input_id": "input-1",
+                    "response_data": {"decision": "retry"},
+                },
+            },
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_409_CONFLICT
+        assert response.data["code"] == "input_not_pending"
+
+    @patch("sentry.seer.endpoints.organization_seer_agent_update.has_seer_agent_access_with_detail")
+    @patch("sentry.seer.endpoints.organization_seer_agent_update.make_signed_seer_api_request")
+    def test_other_conflicts_from_seer_still_fail(
+        self, mock_request: MagicMock, mock_has_access: MagicMock
+    ) -> None:
+        mock_has_access.return_value = (True, None)
+        mock_request.return_value.status = 409
+
+        response = self.client.post(
+            self.url,
+            data={
+                "payload": {
+                    "type": "create_pr",
+                    "repo_name": "acme/app",
+                    "idempotency_key": "key-1",
+                },
+            },
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
 
     @patch("sentry.seer.endpoints.organization_seer_agent_update.has_seer_agent_access_with_detail")
     @patch("sentry.seer.endpoints.organization_seer_agent_update.make_signed_seer_api_request")

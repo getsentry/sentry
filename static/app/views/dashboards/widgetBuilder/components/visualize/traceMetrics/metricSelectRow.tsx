@@ -11,6 +11,7 @@ import {
   type Column,
   type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/useWidgetBuilderContext';
 import {
@@ -29,6 +30,7 @@ import {
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {MetricSelector} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/metricSelector';
 import type {MetricSelectorOption} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/types';
+import {WEB_VITAL_SCORE_METRICS} from 'sentry/views/explore/metrics/virtualMetrics';
 
 import {AggregateSelector} from './aggregateSelector';
 
@@ -105,7 +107,17 @@ export function MetricSelectRow({
   onFieldChange?: (field: QueryFieldValue) => void;
 }) {
   const {state, dispatch} = useWidgetBuilderContext();
+  const organization = useOrganization();
   const [shouldAutoSelectFirstColumn, setShouldAutoSelectFirstColumn] = useState(false);
+
+  // Web vital scores live on the vital metrics as attributes. Offer them as
+  // metrics of their own where the trace metrics web vitals dashboards are on.
+  // Heat maps cannot display virtual metrics.
+  const virtualMetrics =
+    organization.features.includes('dashboards-web-vitals-trace-metrics') &&
+    state.displayType !== DisplayType.HEATMAP
+      ? WEB_VITAL_SCORE_METRICS
+      : undefined;
 
   const displayFields = getTraceMetricDisplayFields(
     state.displayType,
@@ -228,6 +240,7 @@ export function MetricSelectRow({
       <MetricSelectorWrapper isFieldSelected={field.kind === FieldValueKind.FIELD}>
         <MetricSelector
           traceMetric={traceMetric}
+          virtualMetrics={virtualMetrics}
           usePortal
           skipDefaultOption={excludeDefaultAggregates ? skipDefaultOption : undefined}
           getDisabledOptionReason={
@@ -235,7 +248,11 @@ export function MetricSelectRow({
               ? getDisabledOptionReason
               : undefined
           }
-          fieldOption={state.displayType === DisplayType.TABLE ? fieldOption : undefined}
+          fieldOption={
+            state.displayType === DisplayType.TABLE && index >= 0
+              ? fieldOption
+              : undefined
+          }
           onChange={onMetricChange}
         />
       </MetricSelectorWrapper>

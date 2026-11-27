@@ -2811,7 +2811,7 @@ describe('out of credits', () => {
     expect(screen.getByText('The cache key omits the org slug.')).toBeInTheDocument();
     expect(
       screen.getByText(
-        'Seer stopped before finishing the root cause because your organization ran out of credits.'
+        'Seer stopped before finishing the root cause because your organization does not have enough credits.'
       )
     ).toBeInTheDocument();
     expect(screen.queryByText(/This one is on us/)).not.toBeInTheDocument();
@@ -2847,6 +2847,33 @@ describe('out of credits', () => {
       userContext: undefined,
       insertIndex: undefined,
     });
+  });
+
+  it('does not open the rethink prompt when a re-run is rejected for credits', async () => {
+    mockCreditCheck('autofix_root_cause', true);
+    const startStep = jest.fn().mockRejectedValue(new Error('402'));
+    render(
+      <RootCauseCard
+        autofix={{...mockAutofix, startStep, runState: stoppedRunState}}
+        groupId="1"
+        section={rootCauseSection}
+      />,
+      {organization}
+    );
+
+    await waitFor(() =>
+      expect(screen.getByRole('button', {name: 'Re-run'})).toHaveAttribute(
+        'aria-disabled',
+        'false'
+      )
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Re-run'}));
+
+    expect(startStep).toHaveBeenCalled();
+    expect(await screen.findByRole('button', {name: 'Re-run'})).toBeInTheDocument();
+    expect(
+      screen.queryByText('How can this root cause be improved?')
+    ).not.toBeInTheDocument();
   });
 
   describe("a stopped step's transcript", () => {
@@ -3036,7 +3063,7 @@ describe('out of credits', () => {
     expect(screen.getByText('Seed the reduction with zero.')).toBeInTheDocument();
     expect(
       screen.getByText(
-        'Seer stopped before finishing the plan because your organization ran out of credits.'
+        'Seer stopped before finishing the plan because your organization does not have enough credits.'
       )
     ).toBeInTheDocument();
 
@@ -3058,7 +3085,7 @@ describe('out of credits', () => {
     expect(screen.getByTestId('file-diff-viewer')).toBeInTheDocument();
     expect(
       screen.getByText(
-        'Seer stopped before finishing the code changes because your organization ran out of credits.'
+        'Seer stopped before finishing the code changes because your organization does not have enough credits.'
       )
     ).toBeInTheDocument();
     expect(
@@ -3180,7 +3207,7 @@ describe('out of credits', () => {
 
       expect(
         screen.getByText(
-          'Seer stopped before updating the pull request because your organization ran out of credits.'
+          'Seer stopped before updating the pull request because your organization does not have enough credits.'
         )
       ).toBeInTheDocument();
       // Only the iteration that stopped is replayed, not the original step.
@@ -3223,7 +3250,7 @@ describe('out of credits', () => {
 
     expect(
       screen.getByText(
-        'Seer stopped before updating the pull request because your organization ran out of credits.'
+        'Seer stopped before updating the pull request because your organization does not have enough credits.'
       )
     ).toBeInTheDocument();
     expect(screen.queryByText(/Seer couldn't start on/)).not.toBeInTheDocument();
@@ -3232,7 +3259,7 @@ describe('out of credits', () => {
   it.each([
     [
       null,
-      "Seer couldn't start on 2 feedback items because your organization ran out of credits. Seer continues the next time it iterates on the pull request.",
+      "Seer couldn't start on 2 feedback items because your organization does not have enough credits. Seer continues the next time it iterates on the pull request.",
     ],
     [
       'daily_cap_exceeded' as const,
@@ -3273,6 +3300,169 @@ describe('out of credits', () => {
     expect(screen.getByText(message)).toBeInTheDocument();
   });
 
+  describe('at the daily usage limit', () => {
+    const dailyCapRunState = {
+      ...stoppedRunState,
+      credit_denial_reason: 'daily_cap_exceeded' as const,
+    };
+
+    function atDailyCap(section: AutofixSection): AutofixSection {
+      return {...section, creditDenialReason: 'daily_cap_exceeded'};
+    }
+
+    it('says the root cause stopped at the daily usage limit', () => {
+      mockCreditCheck('autofix_root_cause', false);
+      render(
+        <RootCauseCard
+          autofix={{...mockAutofix, runState: dailyCapRunState}}
+          groupId="1"
+          section={atDailyCap(rootCauseSection)}
+        />,
+        {organization}
+      );
+
+      expect(
+        screen.getByText(
+          'Seer stopped before finishing the root cause because your organization hit its daily usage limit.'
+        )
+      ).toBeInTheDocument();
+    });
+
+    it('says the plan stopped at the daily usage limit', () => {
+      mockCreditCheck('autofix_solution', false);
+      render(
+        <SolutionCard
+          autofix={{...mockAutofix, runState: dailyCapRunState}}
+          section={atDailyCap(
+            makeOutOfCreditsSection('solution', [
+              makeBlock('block-1', 'Seed the reduction with zero.', {step: 'solution'}),
+              seerErrorBlock,
+            ])
+          )}
+        />,
+        {organization}
+      );
+
+      expect(
+        screen.getByText(
+          'Seer stopped before finishing the plan because your organization hit its daily usage limit.'
+        )
+      ).toBeInTheDocument();
+    });
+
+    it('says the code changes stopped at the daily usage limit', () => {
+      mockCreditCheck('autofix_code_changes', false);
+      render(
+        <CodeChangesCard
+          autofix={{...mockAutofix, runState: dailyCapRunState}}
+          groupId="1"
+          section={atDailyCap(codeChangesSection)}
+        />,
+        {organization}
+      );
+
+      expect(
+        screen.getByText(
+          'Seer stopped before finishing the code changes because your organization hit its daily usage limit.'
+        )
+      ).toBeInTheDocument();
+    });
+
+    it('says a PR iteration stopped at the daily usage limit', () => {
+      mockCreditCheck('autofix_pr_iteration', false);
+      render(
+        <CodeChangesCard
+          autofix={{
+            ...mockAutofix,
+            runState: {...dailyCapRunState, repo_pr_states: {'org/repo': makePR()}},
+          }}
+          groupId="1"
+          section={atDailyCap(
+            makeOutOfCreditsSection('code_changes', [
+              makePrIterationBlock(0, {text: 'Please add a test'}),
+              seerErrorBlock,
+            ])
+          )}
+        />,
+        {organization}
+      );
+
+      expect(
+        screen.getByText(
+          'Seer stopped before updating the pull request because your organization hit its daily usage limit.'
+        )
+      ).toBeInTheDocument();
+    });
+
+    it('says a PR failed at the daily usage limit', () => {
+      mockCreditCheck('autofix_open_pr', true);
+      render(
+        <PullRequestsCard
+          autofix={mockAutofixWithRunState}
+          section={makeSection('pull_request', 'completed', [
+            [
+              makePR({
+                repo_name: 'org/api',
+                pr_creation_status: 'error',
+                pr_creation_error_code: 'out_of_credits',
+                credit_denial_reason: 'daily_cap_exceeded',
+                pr_number: null,
+                pr_url: null,
+              }),
+            ],
+          ])}
+        />,
+        {organization}
+      );
+
+      expect(
+        screen.getByText(
+          "Seer couldn't open a pull request in org/api because your organization hit its daily usage limit."
+        )
+      ).toBeInTheDocument();
+    });
+
+    it.each([
+      [
+        'daily_cap_exceeded' as const,
+        "Seer couldn't finish 2 pull requests because your organization hit its daily usage limit.",
+      ],
+      [
+        null,
+        "Seer couldn't finish 2 pull requests because your organization does not have enough credits.",
+      ],
+    ])('says why 2 PRs failed when one was denied for %s', (denialReason, message) => {
+      mockCreditCheck('autofix_open_pr', true);
+      render(
+        <PullRequestsCard
+          autofix={mockAutofixWithRunState}
+          section={makeSection('pull_request', 'completed', [
+            [
+              makePR({
+                repo_name: 'org/api',
+                pr_creation_status: 'error',
+                pr_creation_error_code: 'out_of_credits',
+                pr_number: null,
+                pr_url: null,
+              }),
+              makePR({
+                repo_name: 'org/web',
+                pr_creation_status: 'error',
+                pr_creation_error_code: 'out_of_credits',
+                credit_denial_reason: denialReason,
+                pr_number: null,
+                pr_url: null,
+              }),
+            ],
+          ])}
+        />,
+        {organization}
+      );
+
+      expect(screen.getByText(message)).toBeInTheDocument();
+    });
+  });
+
   describe('a PR that failed for credits', () => {
     const section = makeSection('pull_request', 'completed', [
       [
@@ -3302,7 +3492,7 @@ describe('out of credits', () => {
 
       expect(
         screen.getByText(
-          "Seer couldn't open a pull request in org/api because your organization ran out of credits."
+          "Seer couldn't open a pull request in org/api because your organization does not have enough credits."
         )
       ).toBeInTheDocument();
 

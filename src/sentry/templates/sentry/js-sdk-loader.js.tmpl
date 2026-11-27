@@ -38,14 +38,10 @@
     }
     function onError() {
         // Use keys as "data type" to save some characters"
-        enqueue({
-            e: [].slice.call(arguments),
-        });
+        enqueue({ e: [].slice.call(arguments) });
     }
     function onUnhandledRejection(p) {
-        enqueue({
-            p: p,
-        });
+        enqueue({ p: p });
     }
     function onSentryCDNScriptLoaded() {
         try {
@@ -75,6 +71,22 @@
             console.error(o_O);
         }
     }
+    /**
+     * Returns the CDN bundle URL as a `TrustedScriptURL` where Trusted Types are supported.
+     */
+    function getTrustedSdkBundleUrl() {
+        try {
+            return _window
+                .trustedTypes.createPolicy('sentry-loader', {
+                createScriptURL: function () { return _sdkBundleUrl; },
+            })
+                .createScriptURL('');
+        }
+        catch (_a) {
+            // Trusted Types are not supported, or the page's CSP does not allow this policy
+            return _sdkBundleUrl;
+        }
+    }
     var injectedCDNScriptTag = false;
     /**
      * Injects script tag into the page pointing to the CDN bundle.
@@ -92,7 +104,7 @@
         // https://www.html5rocks.com/en/tutorials/speed/script-loading/
         var firstScriptTagInDom = _document.scripts[0];
         var cdnScriptTag = _document.createElement('script');
-        cdnScriptTag.src = _sdkBundleUrl;
+        cdnScriptTag.src = getTrustedSdkBundleUrl();
         cdnScriptTag.crossOrigin = 'anonymous';
         // Once our SDK is loaded
         cdnScriptTag.addEventListener('load', onSentryCDNScriptLoaded, {

@@ -225,6 +225,7 @@ export interface ExplorerAutofixState {
   /** The saved SeerBillingFeature. Null means the run has no attribution. */
   billing_feature?: number | null;
   coding_agents?: Record<string, ExplorerCodingAgentState>;
+  credit_denial_reason?: SeerCreditDenialReason | null;
   failure_reason?: ExplorerFailureReason | null;
   feature_id?: string | null;
   pending_user_input?: {
@@ -450,6 +451,10 @@ export interface AutofixSection {
   status: 'processing' | 'completed' | 'error';
   step: string;
   /**
+   * Why billing refused credit, on the section a credit stop ended.
+   */
+  creditDenialReason?: SeerCreditDenialReason | null;
+  /**
    * Why the run stopped, on the section it stopped in.
    */
   failureReason?: ExplorerFailureReason | null;
@@ -493,6 +498,7 @@ function buildSection(
   if (currentStep && runState?.status === 'error') {
     section.status = 'error';
     section.failureReason = runState.failure_reason;
+    section.creditDenialReason = runState.credit_denial_reason;
   } else if (
     (!currentStep && runState?.status !== 'processing') ||
     isLastBlockOfSection(blocks[blocks.length - 1]) ||
@@ -604,6 +610,7 @@ function getSingleRunSections(
   for (const section of sections) {
     if (section.status === 'error') {
       section.failureReason = runState.failure_reason;
+      section.creditDenialReason = runState.credit_denial_reason;
     }
   }
   return sections;

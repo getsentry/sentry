@@ -1,6 +1,7 @@
 import time
 from collections.abc import Sequence
 from typing import Any
+from urllib.parse import parse_qsl
 
 from django.utils.http import urlencode
 
@@ -98,7 +99,7 @@ def get_integration_link(
 
 
 def get_issue_replay_link(group: Group, sentry_query_params: str = "") -> str:
-    return str(group.get_absolute_url() + "replays/" + sentry_query_params)
+    return group.get_absolute_replays_url(params=dict(parse_qsl(sentry_query_params.lstrip("?"))))
 
 
 def get_rules(

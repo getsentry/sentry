@@ -360,7 +360,10 @@ describe('LogsTabContent', () => {
     });
 
     await userEvent.click(screen.getByRole('button', {name: 'Save as'}));
-    expect(screen.getByRole('menuitemradio', {name: 'New Query'})).toBeEnabled();
+    expect(screen.getByRole('menuitemradio', {name: 'New Query'})).not.toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
     expect(screen.getByRole('menuitem', {name: 'Dashboard widget'})).not.toHaveAttribute(
       'aria-disabled',
       'true'
@@ -1075,6 +1078,130 @@ describe('LogsTabContent', () => {
     await screen.findByText('No logs found');
 
     expect(screen.queryByText(/may be incomplete/)).not.toBeInTheDocument();
+  });
+
+  describe('search key intersection', () => {
+    function mockAttributes() {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/trace-items/attributes/`,
+        method: 'GET',
+        body: [
+          {
+            attributeType: 'string',
+            key: 'http.method',
+            name: 'http.method',
+            attributeSource: {source_type: 'user'},
+          },
+        ],
+      });
+      return MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/trace-items/attributes/`,
+        method: 'GET',
+        match: [MockApiClient.matchQuery({query: 'severity:error'})],
+        body: [
+          {
+            attributeType: 'string',
+            key: 'db.system',
+            name: 'db.system',
+            attributeSource: {source_type: 'user'},
+          },
+        ],
+      });
+    }
+
+    it('only suggests keys on logs matching the search query', async () => {
+      mockAttributes();
+
+      render(<LogsTabContentHarness datePageFilterProps={datePageFilterProps} />, {
+        initialRouterConfig,
+        organization: {
+          ...organization,
+          features: [...organization.features, 'explore-search-attribute-intersection'],
+        },
+        additionalWrapper: ProviderWrapper,
+      });
+
+      await userEvent.click(screen.getByTestId('query-builder-input'));
+
+      expect(await screen.findByRole('option', {name: 'db.system'})).toBeInTheDocument();
+      expect(screen.queryByRole('option', {name: 'http.method'})).not.toBeInTheDocument();
+    });
+
+    it('suggests every key when the search query is invalid', async () => {
+      mockAttributes();
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events/validate/`,
+        method: 'GET',
+        body: {
+          dataset: [],
+          environment: [],
+          field: [],
+          orderby: [],
+          projects: [],
+          query: {error: 'Invalid query', fields: [], valid: false},
+          valid: false,
+        },
+      });
+
+      render(<LogsTabContentHarness datePageFilterProps={datePageFilterProps} />, {
+        initialRouterConfig,
+        organization: {
+          ...organization,
+          features: [...organization.features, 'explore-search-attribute-intersection'],
+        },
+        additionalWrapper: ProviderWrapper,
+      });
+
+      await userEvent.click(screen.getByTestId('query-builder-input'));
+
+      expect(
+        await screen.findByRole('option', {name: 'http.method'})
+      ).toBeInTheDocument();
+      expect(screen.queryByRole('option', {name: 'db.system'})).not.toBeInTheDocument();
+    });
+
+    it('suggests every key without the feature flag', async () => {
+      const matchingAttributesMock = mockAttributes();
+
+      render(<LogsTabContentHarness datePageFilterProps={datePageFilterProps} />, {
+        initialRouterConfig,
+        organization,
+        additionalWrapper: ProviderWrapper,
+      });
+
+      await userEvent.click(screen.getByTestId('query-builder-input'));
+
+      expect(
+        await screen.findByRole('option', {name: 'http.method'})
+      ).toBeInTheDocument();
+      expect(matchingAttributesMock).not.toHaveBeenCalled();
+    });
+
+    it('suggests every key while the search query is validating', async () => {
+      const matchingAttributesMock = mockAttributes();
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events/validate/`,
+        method: 'GET',
+        body: {},
+        asyncDelay: new Promise(() => {}),
+      });
+
+      render(<LogsTabContentHarness datePageFilterProps={datePageFilterProps} />, {
+        initialRouterConfig,
+        organization: {
+          ...organization,
+          features: [...organization.features, 'explore-search-attribute-intersection'],
+        },
+        additionalWrapper: ProviderWrapper,
+      });
+
+      await userEvent.click(screen.getByTestId('query-builder-input'));
+
+      expect(
+        await screen.findByRole('option', {name: 'http.method'})
+      ).toBeInTheDocument();
+      expect(matchingAttributesMock).not.toHaveBeenCalled();
+    });
   });
 
   describe('dropped data layer', () => {

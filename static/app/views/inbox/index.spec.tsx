@@ -1245,13 +1245,18 @@ describe('Inbox', () => {
       expect(router.location.query).toEqual({});
     });
 
-    it('keeps filters when following an item URL with a query and fragment', async () => {
+    it('keeps the organization, filters, query and fragment when following a subdomain item URL', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/inbox/',
         match: [
           MockApiClient.matchQuery({subject_type: ['notebook'], recipient: ['team']}),
         ],
-        body: [{...notebookItem, url: `${notebookItem.url}?comment=1#comment-1`}],
+        body: [
+          {
+            ...notebookItem,
+            url: 'https://org-slug.sentry.example.com/inbox/notebook/1000210/?comment=1#comment-1',
+          },
+        ],
       });
 
       const {router} = render(<Inbox />, {

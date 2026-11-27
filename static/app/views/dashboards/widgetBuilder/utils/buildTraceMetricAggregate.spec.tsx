@@ -47,4 +47,63 @@ describe('buildTraceMetricAggregate', () => {
       'sum(value,foo,counter,none)'
     );
   });
+
+  describe('virtual metrics', () => {
+    const LCP_SCORE = {name: 'browser.web_vital.lcp.score', type: 'distribution'};
+    const LCP_SCORE_AGGREGATE =
+      'avg(tags[score.ratio.lcp,number],browser.web_vital.lcp,distribution,millisecond)';
+
+    it('builds an aggregate of the attribute on the stored metric', () => {
+      expect(generateFieldAsString(buildTraceMetricAggregate('avg', LCP_SCORE))).toBe(
+        LCP_SCORE_AGGREGATE
+      );
+      expect(
+        generateFieldAsString(
+          buildTraceMetricAggregate('count', {
+            name: 'browser.web_vital.cls.score',
+            type: 'distribution',
+          })
+        )
+      ).toBe(
+        'count(tags[score.ratio.cls,number],browser.web_vital.cls,distribution,none)'
+      );
+    });
+
+    it('keeps the filter on a virtual metric aggregate', () => {
+      expect(
+        generateFieldAsString(
+          buildTraceMetricAggregate('avg', LCP_SCORE, 'browser.name:Chrome')
+        )
+      ).toBe(
+        'avg_if(`browser.name:Chrome`,tags[score.ratio.lcp,number],browser.web_vital.lcp,distribution,millisecond)'
+      );
+    });
+
+    it('extracts the virtual metric from an attribute aggregate', () => {
+      expect(
+        extractTraceMetricFromColumn(explodeFieldString(LCP_SCORE_AGGREGATE))
+      ).toEqual({
+        name: 'browser.web_vital.lcp.score',
+        type: 'distribution',
+        unit: 'ratio',
+      });
+    });
+
+    it('does not resolve an attribute no virtual metric stands for', () => {
+      expect(
+        extractTraceMetricFromColumn(
+          explodeFieldString('avg(tags[foo,number],bar,distribution,none)')
+        )
+      ).toBeUndefined();
+    });
+
+    it('moves a stored score metric aggregate onto the attribute', () => {
+      const metric = extractTraceMetricFromColumn(
+        explodeFieldString('avg(value,browser.web_vital.lcp.score,distribution,ratio)')
+      );
+      expect(generateFieldAsString(buildTraceMetricAggregate('avg', metric!))).toBe(
+        LCP_SCORE_AGGREGATE
+      );
+    });
+  });
 });

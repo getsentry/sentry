@@ -152,8 +152,7 @@ therefore use the stateful handler's default `OK` priority. A missing trigger gr
 invalid and produces no transition.
 
 Detectors that decide without the trigger condition group inherit `BaseDetectorHandler` and
-implement `evaluate`. Detectors that extend the condition evaluation override `evaluate` and
-call `super().evaluate()`, then own the orchestration they add.
+implement `evaluate`.
 
 ### 5. Produce detector output
 
@@ -167,6 +166,13 @@ assign another supported outcome dispatcher or override `on_complete` for custom
 Supported outcome implementations register their `DetectorOutcomeHandler` class with
 `@detector_outcome_registry.add(DetectorOutcome.<KEY>)`. The closed, typed set of keys
 lives in `supported_outcomes.py`; the registry maps each key to its handler implementation.
+
+`DetectorOutcome.SEER_INVESTIGATION` starts a Seer investigation for each occurrence instead
+of creating an issue, and ignores status changes. Each occurrence is one trigger: its UUID
+(`IssueOccurrence.id`) keys the investigation, so task retries reuse it and every new
+occurrence, priority changes included, starts another. The detector's config names the
+service account that creates it (`service_account_id`). Pair it with a detector that only
+produces an occurrence when a group triggers; the anomaly detector does this.
 
 Issue Platform ingestion creates or updates a group. The detector ID in occurrence
 evidence allows ingestion to create a

@@ -16,11 +16,6 @@ from sentry.api.base import Endpoint, cell_silo_endpoint
 from sentry.constants import ObjectStatus
 from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.mixins.issues import IssueSyncIntegration
-from sentry.integrations.project_management.metrics import (
-    ProjectManagementActionType,
-    ProjectManagementEvent,
-    ProjectManagementHaltReason,
-)
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import IntegrationWebhookEvent, IntegrationWebhookEventType
@@ -162,42 +157,29 @@ def handle_status_change(
     project: str | None,
     changed_date: str | None,
 ) -> None:
-    with ProjectManagementEvent(
-        action_type=ProjectManagementActionType.INBOUND_STATUS_SYNC, integration=integration
-    ).capture() as lifecycle:
-        if status_change is None:
-            return
+    if status_change is None:
+        return
 
-        org_integrations = integration_service.get_organization_integrations(
-            integration_id=integration.id
-        )
+    org_integrations = integration_service.get_organization_integrations(
+        integration_id=integration.id
+    )
 
-        logging_context = {
-            "org_integration_ids": [oi.id for oi in org_integrations],
-            "integration_id": integration.id,
-            "status_change": status_change,
-        }
-        for org_integration in org_integrations:
-            with webhook_viewer_context(org_integration.organization_id):
-                installation = integration.get_installation(
-                    organization_id=org_integration.organization_id
+    for org_integration in org_integrations:
+        with webhook_viewer_context(org_integration.organization_id):
+            installation = integration.get_installation(
+                organization_id=org_integration.organization_id
+            )
+            if isinstance(installation, IssueSyncIntegration):
+                installation.sync_status_inbound(
+                    external_issue_key,
+                    {
+                        "new_state": status_change["newValue"],
+                        # old_state is None when the issue is New
+                        "old_state": status_change.get("oldValue"),
+                        "project": project,
+                        PROVIDER_EVENT_TIME_KEY: changed_date,
+                    },
                 )
-                if isinstance(installation, IssueSyncIntegration):
-                    installation.sync_status_inbound(
-                        external_issue_key,
-                        {
-                            "new_state": status_change["newValue"],
-                            # old_state is None when the issue is New
-                            "old_state": status_change.get("oldValue"),
-                            "project": project,
-                            PROVIDER_EVENT_TIME_KEY: changed_date,
-                        },
-                    )
-                else:
-                    lifecycle.record_halt(
-                        ProjectManagementHaltReason.SYNC_NON_SYNC_INTEGRATION_PROVIDED,
-                        extra=logging_context,
-                    )
 
 
 def handle_updated_workitem(data: Mapping[str, Any], integration: RpcIntegration) -> None:

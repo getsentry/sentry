@@ -4,7 +4,7 @@ from typing import Callable
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, Function
 
 from sentry.search.eap import constants
-from sentry.search.eap.aggregate_utils import apply_combinators, count_processor, if_query_validator
+from sentry.search.eap.aggregate_utils import apply_combinators, count_processor, if_combinator
 from sentry.search.eap.columns import (
     AggregateDefinition,
     AttributeArgumentDefinition,
@@ -95,24 +95,6 @@ LOG_AGGREGATE_DEFINITIONS = {
         ],
     ),
 }
-
-
-def if_combinator(definition: AggregateDefinition) -> AggregateDefinition:
-    return definition.__class__(
-        internal_function=definition.internal_function,
-        default_search_type=definition.default_search_type,
-        infer_search_type_from_arguments=definition.infer_search_type_from_arguments,
-        internal_type=definition.internal_type,
-        extrapolation_mode_override=definition.extrapolation_mode_override,
-        processor=definition.processor,
-        private=definition.private,
-        attribute_resolver=definition.attribute_resolver,
-        arguments=[
-            ValueArgumentDefinition(argument_types={"query"}, validator=if_query_validator),
-            *definition.arguments,
-        ],
-        valid_arithmetic=definition.valid_arithmetic,
-    )
 
 
 LOG_AGGREGATE_COMBINATORS: dict[str, Callable[[AggregateDefinition], AggregateDefinition]] = {

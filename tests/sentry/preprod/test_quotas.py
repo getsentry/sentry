@@ -86,7 +86,7 @@ class ShouldRunDistributionTest(TestCase):
 
 
 class GetSizeRetentionCutoffTest(TestCase):
-    @patch("sentry.preprod.quotas.quotas.backend.get_event_retention", return_value=None)
+    @patch("sentry.quotas.backend.get_event_retention", return_value=None)
     def test_default_retention_when_none(self, mock_quota: MagicMock) -> None:
         from django.utils import timezone
 
@@ -96,7 +96,7 @@ class GetSizeRetentionCutoffTest(TestCase):
         expected = timezone.now() - timedelta(days=90)
         assert abs((cutoff - expected).total_seconds()) < 2
 
-    @patch("sentry.preprod.quotas.quotas.backend.get_event_retention", return_value=30)
+    @patch("sentry.quotas.backend.get_event_retention", return_value=30)
     def test_custom_retention(self, mock_quota: MagicMock) -> None:
         from django.utils import timezone
 

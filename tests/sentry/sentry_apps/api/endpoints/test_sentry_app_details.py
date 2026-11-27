@@ -1,6 +1,8 @@
 from unittest.mock import MagicMock, patch
 
 import orjson
+from django.test import override_settings
+from django.urls import reverse
 from rest_framework.response import Response
 
 from sentry import audit_log, deletions
@@ -24,6 +26,7 @@ from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 from sentry.workflow_engine.models.action import Action
 
 
@@ -239,6 +242,35 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             assert not ServiceHook.objects.filter(
                 application_id=self.unpublished_app.application_id
             ).exists()
+
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    def test_service_account_cannot_update_app(self) -> None:
+        service_account = self.create_service_account(
+            organization=self.organization,
+            scope_list=["org:read", "org:write", "org:integrations"],
+            all_projects=True,
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.organization.id,
+            ),
+            key="service-account-secret",
+        )
+        original_webhook_url = self.internal_integration.webhook_url
+
+        response = self.client.put(
+            reverse(self.endpoint, args=[self.internal_integration.slug]),
+            data={"webhookUrl": "https://example.com/new"},
+            format="json",
+            HTTP_X_VIEWER_CONTEXT=viewer_context,
+        )
+
+        assert response.status_code == 403, response.content
+        assert response.data["detail"]["code"] == "user-required"
+        self.internal_integration.refresh_from_db()
+        assert self.internal_integration.webhook_url == original_webhook_url
 
     @override_options({"staff.ga-rollout": True})
     def test_update_internal_app(self) -> None:

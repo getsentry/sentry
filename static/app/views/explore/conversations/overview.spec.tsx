@@ -163,9 +163,7 @@ describe('ConversationsOverviewPage', () => {
 
     await userEvent.click(screen.getByRole('tab', {name: 'LLM Calls'}));
     expect(
-      await screen.findByPlaceholderText(
-        'Search by model, provider, tokens, or operation'
-      )
+      await screen.findByRole('row', {name: 'has:gen_ai.output.messages'})
     ).toBeInTheDocument();
     expect(conversationsRequest).not.toHaveBeenCalled();
 
@@ -175,6 +173,55 @@ describe('ConversationsOverviewPage', () => {
     await userEvent.click(screen.getByRole('tab', {name: 'Traces'}));
     await userEvent.click(screen.getByRole('tab', {name: 'LLM Calls'}));
     expect(conversationsRequest).toHaveBeenCalledTimes(1);
+  });
+
+  it('lets people remove the pre-filled LLM Calls filter', async () => {
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
+    const spansRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: {data: []},
+      match: [
+        MockApiClient.matchQuery({
+          query: LLM_QUERY,
+          referrer: 'api.explore.spans-samples-table',
+        }),
+      ],
+    });
+    render(<ConversationsOverviewPage />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/explore/agents/`,
+          query: {table: 'spans'},
+        },
+      },
+    });
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Remove filter: has'})
+    );
+    await waitFor(() => expect(spansRequest).toHaveBeenCalled());
+  });
+
+  it('keeps the pre-filled LLM Calls filter after switching tabs', async () => {
+    render(<ConversationsOverviewPage />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/explore/agents/`,
+          query: {table: 'spans'},
+        },
+      },
+    });
+
+    expect(
+      await screen.findByRole('row', {name: 'has:gen_ai.output.messages'})
+    ).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('tab', {name: 'Traces'}));
+    await userEvent.click(screen.getByRole('tab', {name: 'LLM Calls'}));
+    expect(
+      await screen.findByRole('row', {name: 'has:gen_ai.output.messages'})
+    ).toBeInTheDocument();
   });
 
   it('filters conversations to those with errors', async () => {
@@ -231,7 +278,7 @@ describe('ConversationsOverviewPage', () => {
     expect(screen.queryByRole('checkbox', {name: 'Errors only'})).not.toBeInTheDocument();
   });
 
-  it('tailors the search placeholder to the selected table', async () => {
+  it('tailors the search bar to the selected table', async () => {
     render(<ConversationsOverviewPage />, {organization});
 
     expect(
@@ -249,9 +296,7 @@ describe('ConversationsOverviewPage', () => {
 
     await userEvent.click(screen.getByRole('tab', {name: 'LLM Calls'}));
     expect(
-      await screen.findByPlaceholderText(
-        'Search by model, provider, tokens, or operation'
-      )
+      await screen.findByRole('row', {name: 'has:gen_ai.output.messages'})
     ).toBeInTheDocument();
   });
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 import itertools
 import logging
 from collections.abc import Callable, Iterable, Sequence
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any, cast
 from urllib.parse import quote as urlquote
 
@@ -11,6 +11,7 @@ import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
 from django.http.request import HttpRequest
 from django.utils import timezone
+from drf_spectacular.utils import OpenApiResponse
 from rest_framework.exceptions import ParseError, ValidationError
 from rest_framework.request import Request
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import ExtrapolationMode
@@ -77,6 +78,56 @@ from sentry.utils.http import absolute_uri
 from sentry.utils.snuba import MAX_FIELDS, SnubaTSResult
 
 logger = logging.getLogger(__name__)
+
+LEGACY_DATASETS_DEPRECATION_DATE = datetime(2026, 12, 4, tzinfo=UTC)
+LEGACY_DATASETS_BROWNOUT_KEY = "api.deprecation.legacy-datasets"
+LEGACY_DATASETS_GONE_MESSAGE = (
+    "The transactions, discover, and events datasets are no longer available through the API. "
+    "Query the spans or errors dataset instead: "
+    "https://www.sentry.help/en/articles/17632566-migrating-from-the-transactions-and-discover-api-datasets"
+)
+LEGACY_DATASETS_GONE_RESPONSE = OpenApiResponse(
+    description="The transactions, discover, and events datasets are deprecated and no longer available."
+)
+_LEGACY_DATASET_LABELS = frozenset(
+    {Dataset.Discover.value, Dataset.Events.value, Dataset.Transactions.value}
+)
+_LEGACY_DATASET_REQUESTED_DATASET_ATTRIBUTE = "api.deprecated.legacy_dataset.requested_dataset"
+
+
+def _requests_legacy_dataset(request: Request, organization: Organization, param_name: str) -> bool:
+    """
+    Whether a request asks for one of the legacy datasets, from any caller, the Sentry UI
+    included. Leaving the parameter out counts, because these endpoints default to discover.
+
+    Organizations outside the brownout feature flag's rollout are excluded.
+    """
+    if request.GET.get(param_name, Dataset.Discover.value) not in _LEGACY_DATASET_LABELS:
+        return False
+    return features.has(
+        "organizations:legacy-datasets-api-brownout", organization, actor=request.user
+    )
+
+
+def requests_legacy_dataset(request: Request, organization: Organization) -> bool:
+    return _requests_legacy_dataset(request, organization, "dataset")
+
+
+def requests_legacy_replay_data_source(request: Request, organization: Organization) -> bool:
+    return _requests_legacy_dataset(request, organization, "data_source")
+
+
+def legacy_dataset_metric_attributes(
+    request: Request, organization: Organization
+) -> dict[str, str]:
+    # An empty value means the caller left the parameter out and got the discover default.
+    return {_LEGACY_DATASET_REQUESTED_DATASET_ATTRIBUTE: request.GET.get("dataset", "(none)")}
+
+
+def legacy_replay_data_source_metric_attributes(
+    request: Request, organization: Organization
+) -> dict[str, str]:
+    return {_LEGACY_DATASET_REQUESTED_DATASET_ATTRIBUTE: request.GET.get("data_source", "(none)")}
 
 
 def get_query_columns(columns: list[str], rollup: int) -> list[str]:

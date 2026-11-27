@@ -35,7 +35,7 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: read
-      pull-requests: read
+      pull-requests: write # used to comment new API findings
     steps:
       - # get a non-default github token so that any changes are verified by CI
         if: env.SECRET_ACCESS == 'true'
@@ -76,6 +76,8 @@ jobs:
               - 'pnpm-lock.yaml'
               - 'scripts/oxlint-suppressions.ts'
               - 'stylelint.config.js'
+            api_python:
+              - added|modified: 'src/**/*.py'
             lint_config:
               - '.pre-commit-config.yaml'
               - 'pyproject.toml'
@@ -113,6 +115,51 @@ jobs:
           # New lint configurations should lint every file to avoid silently missing violations
           LINT_CONFIG_CHANGED: ${{ steps.changes.outputs.lint_config }}
         run: .github/workflows/scripts/run-prek.sh
+
+      - name: Find the PR's merge base
+        id: merge-base
+        # the check skips PRs that change no src/ python, so it only needs a merge base for the rest
+        if: github.event_name == 'pull_request' && !cancelled() && (steps.prek.outcome == 'success' || steps.prek.outcome == 'failure') && steps.changes.outputs.api_python == 'true'
+        # the next step fails without it, which the PR comment reports
+        continue-on-error: true
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const {setMergeBase} = await import(
+              `${process.env.GITHUB_WORKSPACE}/.github/workflows/scripts/merge-base.ts`
+            );
+            await setMergeBase({github, context, core});
+
+      - name: Flag new API findings (report-only)
+        id: check-new
+        if: github.event_name == 'pull_request' && !cancelled() && (steps.prek.outcome == 'success' || steps.prek.outcome == 'failure')
+        continue-on-error: true
+        env:
+          CHANGED_FILES: ${{ fromJSON(steps.changes.outputs.changed_count) <= 1000 && steps.changes.outputs.changed_files || '' }}
+          MERGE_BASE: ${{ steps.merge-base.outputs.sha }}
+        run: .venv/bin/python -m tools.api_guidelines.check_new
+
+      - name: Comment new API findings (report-only)
+        # a fork PR's token is read-only, so it can't comment
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && !cancelled() && steps.check-new.outcome != 'skipped'
+        continue-on-error: true
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          NEW_API_FINDINGS_PATH: .artifacts/new-api-findings.json
+          # outcome, since continue-on-error makes a failed step's conclusion success
+          CHECK_OUTCOME: ${{ steps.check-new.outcome }}
+        with:
+          script: |
+            const {syncNewApiFindingsComment} = await import(
+              `${process.env.GITHUB_WORKSPACE}/.github/workflows/scripts/new-api-findings-comment.ts`
+            );
+            await syncNewApiFindingsComment({
+              github,
+              context,
+              core,
+              findingsPath: process.env.NEW_API_FINDINGS_PATH,
+              checkFailed: process.env.CHECK_OUTCOME === 'failure',
+            });
 
       - name: Prune suppression budgets
         if: github.event_name == 'pull_request' && !cancelled() && (steps.prek.outcome == 'success' || steps.prek.outcome == 'failure') && steps.changes.outputs.frontend == 'true'

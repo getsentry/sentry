@@ -1050,7 +1050,7 @@ class FromSentryAppTest(AccessFactoryTestCase):
         assert result.has_scope("org:read")
         assert result.has_scope("dashboard:write")
         assert result.has_scope("saved_query:write")
-        assert result.has_scope("user_preference:write")
+        assert not result.has_scope("user_preference:write")
 
 
 @all_silo_test

@@ -1,0 +1,119 @@
+---
+title: Impact Assessment
+description: Show Seer's assessment of how much an issue affects users, and start a new assessment.
+source: sentry/views/issueDetails/groupImpact
+status: in-progress
+---
+
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+import * as Storybook from 'sentry/stories';
+import {OrganizationContext} from 'sentry/utils/organizationContext';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {
+  AssessImpactButton,
+  GroupImpactBadge,
+  ImpactChip,
+} from 'sentry/views/issueDetails/groupImpact';
+
+export const examples = [
+  {
+    level: 'super_low',
+    score: 4,
+    description: 'Only internal health checks hit this error. No users are affected.',
+  },
+  {
+    level: 'low',
+    score: 22.5,
+    description:
+      'A retry succeeds on the next request, so users rarely notice the failure.',
+  },
+  {
+    level: 'moderate',
+    score: 48,
+    description:
+      'Some users on older clients see a blank settings page until they reload.',
+  },
+  {
+    level: 'high',
+    score: 73.5,
+    description: 'Users on the checkout page cannot submit an order.',
+  },
+  {
+    level: 'super_high',
+    score: 96,
+    description:
+      'Every sign-in attempt fails, which locks all users out of the application.',
+  },
+];
+
+export function makeGroup(example) {
+  return {
+    id: '0',
+    derivedData: example
+      ? {
+          impact: {
+            ...example,
+            citations: [],
+            sourceEventId: '00000000000000000000000000000000',
+          },
+        }
+      : {},
+  };
+}
+
+export function WithImpactAssessment({children}) {
+  const organization = useOrganization();
+  return (
+    <OrganizationContext
+      value={{
+        ...organization,
+        features: [...organization.features, 'seer-impact-assessment'],
+      }}
+    >
+      {children}
+    </OrganizationContext>
+  );
+}
+
+Seer scores how much an issue affects users from 0 to 100, and buckets the score into one of five levels. The bucketting is determined from the API response, not the frontend. Each level has its own icon and color, so the level reads at a glance.
+
+All impact UI is internal for now, and only renders for organizations with the `seer-impact-assessment` feature. The demos below turn the feature on for themselves.
+
+## Inline Chip
+
+The activity feed uses the inline chip within the sentence describing the assessment.
+
+<Storybook.Demo>
+  <Stack gap="md">
+    {examples.map(({level, score}) => (
+      <Text key={level}>
+        Impact assessed as <ImpactChip level={level} score={score} />
+      </Text>
+    ))}
+  </Stack>
+</Storybook.Demo>
+
+```tsx
+<ImpactChip level="high" score={73.5} />
+```
+
+## Badge and Hovercard
+
+The issue details header and the universal inbox show the badge. Hover a badge to see the hovercard, which states the level and Seer's description of the impact.
+
+<Storybook.Demo>
+  <WithImpactAssessment>
+    <Flex gap="md" wrap="wrap">
+      {examples.map(example => (
+        <GroupImpactBadge key={example.level} group={makeGroup(example)} />
+      ))}
+    </Flex>
+  </WithImpactAssessment>
+</Storybook.Demo>
+
+```tsx
+<GroupImpactBadge group={group} />
+```
+
+The badge reads the assessment from the group's derived data, and renders nothing when the group has no assessment.

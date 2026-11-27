@@ -1,175 +1,157 @@
 ---
 name: lint-new
-description: Create a new ESLint rule with tests for eslintPluginScraps. Use when asked to "create a lint rule", "add an eslint rule", "scaffold a rule", "write a new scraps rule", or "new design system lint rule". Covers rule creation, test authoring, registration, and autofix implementation.
+description: Create or extend a custom oxlint rule in Sentry's eslintPluginSentry or eslintPluginScraps plugins. Use when asked to "add a lint rule", "add an eslint rule", "create a lint rule", "change an existing lint rule", or "new design system lint rule".
 ---
 
-Create a new ESLint rule named `$ARGUMENTS` in the eslintPluginScraps plugin.
+Create or extend the oxlint rule named `$ARGUMENTS` (kebab-case, e.g. `no-foo-bar`). To change an existing rule, skip to [Extending an Existing Rule](#extending-an-existing-rule).
 
-## Step 1: Choose Your Archetype
+Oxlint runs our custom rules as JS plugins through `@oxlint/plugins`. The API mirrors ESLint's (`create(context)`, AST visitors, `context.report`, fixers), but the imports, file layout, and config are oxlint's.
 
-Read [references/rule-archetypes.md](references/rule-archetypes.md) and pick the archetype that matches your rule's intent:
+## Step 1: Choose the Plugin
 
-| You want to...                              | Archetype              | Reference to load                                                |
-| ------------------------------------------- | ---------------------- | ---------------------------------------------------------------- |
-| Rewrite import paths                        | Import rewrite         | Inline — simple pattern                                          |
-| Validate token/value usage per CSS property | Property validation    | [style-collector-guide.md](references/style-collector-guide.md)  |
-| Restrict JSX elements in specific props     | JSX structural         | [rule-archetypes.md](references/rule-archetypes.md) §Archetype 3 |
-| Detect patterns in static CSS text          | Template text analysis | [rule-archetypes.md](references/rule-archetypes.md) §Archetype 4 |
+| Plugin | Directory                                     | Rule key prefix   | Rules about                                                                                                      |
+| ------ | --------------------------------------------- | ----------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Scraps | `static/oxlint/eslintPluginScraps/src/rules/` | `@sentry/scraps/` | The design system: `@sentry/scraps` component usage, theme tokens, styles that a Scraps primitive should replace |
+| Sentry | `static/oxlint/eslintPluginSentry/`           | `@sentry/`        | Everything else: general Emotion syntax, test files, i18n, imports, React patterns, query/routing conventions    |
 
-Read the relevant reference before writing code. The archetypes document which AST visitors to use, which shared utilities apply, and which patterns are NOT appropriate for each approach.
+Before writing anything, read the closest existing rule in the chosen plugin and its spec. Its structure is the template to follow; the snippets below are the skeleton.
 
-## Step 2: Check Shared Utilities
+For Scraps rules, also read [references/rule-archetypes.md](references/rule-archetypes.md) and pick the archetype that matches. Scraps has shared AST helpers in `src/ast/` (import tracking, styled-call detection, CSS template parsing); reuse them rather than re-walking the AST. Rules that inspect Emotion styles also need [references/styled-css-guide.md](references/styled-css-guide.md).
 
-Before writing AST traversal logic, check `static/oxlint/eslintPluginScraps/src/ast/` for reusable code:
+For Sentry rules, `utils/styled.ts` detects styled and `css` templates, and `fixtures/` holds real files for specs whose rule reads other files or depends on the file path (see `noDefaultExports.spec.ts`). For a rule that only applies to test files, start from `preferFakeTimers.ts` or `requireFakeTimerCleanup.ts`.
 
-| Utility                 | Location                                 | Use for                                                             |
-| ----------------------- | ---------------------------------------- | ------------------------------------------------------------------- |
-| `getStyledCallInfo`     | `src/ast/utils/styled.ts`                | Classifying styled/css calls as element, component, or css          |
-| `createQuasiScanner`    | `src/ast/scanner/index.ts`               | Scanning static CSS text in template literals (Archetype 4)         |
-| `createImportTracker`   | `src/ast/tracker/imports.ts`             | Resolving where a local name was imported from                      |
-| `createStyleCollector`  | `src/ast/extractor/index.ts`             | Collecting CSS-in-JS _dynamic value_ declarations (NOT static text) |
-| `shouldAnalyze`         | `src/ast/extractor/index.ts`             | Fast pre-scan to skip files without Emotion usage                   |
-| `normalizePropertyName` | `src/ast/utils/normalizePropertyName.ts` | Normalizing CSS property names                                      |
-| `decomposeValue`        | `src/ast/extractor/value-decomposer.ts`  | Breaking complex expressions into all possible values               |
-| Theme tracker           | `src/ast/tracker/theme.ts`               | Tracking `useTheme()` and callback theme bindings                   |
+## Step 2: Create the Files
 
-If another rule already solves a similar problem, extract shared logic into `src/ast/utils/` and reuse it.
+File names are the camelCase form of the rule name:
 
-## Step 3: Create Files
+| Plugin | Rule                                                     | Test                                                          |
+| ------ | -------------------------------------------------------- | ------------------------------------------------------------- |
+| Scraps | `static/oxlint/eslintPluginScraps/src/rules/noFooBar.ts` | `static/oxlint/eslintPluginScraps/src/rules/noFooBar.spec.ts` |
+| Sentry | `static/oxlint/eslintPluginSentry/noFooBar.ts`           | `static/oxlint/eslintPluginSentry/noFooBar.spec.ts`           |
 
-1. **Rule**: `static/oxlint/eslintPluginScraps/src/rules/$ARGUMENTS.ts`
-2. **Test**: `static/oxlint/eslintPluginScraps/src/rules/$ARGUMENTS.spec.ts`
-
-### Rule Template
+### Rule
 
 ```typescript
-import {ESLintUtils} from '@typescript-eslint/utils';
+import {defineRule} from '@oxlint/plugins';
 
-export const $RULE_NAME = ESLintUtils.RuleCreator.withoutDocs({
+export const noFooBar = defineRule({
   meta: {
-    type: 'problem',
+    type: 'problem', // or 'suggestion'
     docs: {description: '[Rule description]'},
-    fixable: 'code', // include if rule has autofix — see Autofix Guidance
+    fixable: 'code', // only if the rule autofixes; see Autofix
     schema: [],
-    messages: {forbidden: 'Error message shown to user'},
+    messages: {forbidden: 'Error message shown to the user'},
   },
   create(context) {
     return {
-      // AST visitor methods — see your chosen archetype
+      // AST visitors, e.g. ImportDeclaration(node) {...}
     };
   },
 });
 ```
 
-If your rule needs configurable options, load [references/schema-patterns.md](references/schema-patterns.md).
+- Import node types with `import {defineRule, type ESTree} from '@oxlint/plugins';`.
+- Read source text and scopes through `context.sourceCode` (`getText`, `getScope`, `ast`).
+- In rule and helper files, local imports use the `.ts` extension (`'../ast/tracker/imports.ts'`). Specs import the rule without it.
+- Configurable options: [references/schema-patterns.md](references/schema-patterns.md).
 
-### Test Template
+### Test
 
 ```typescript
-import {RuleTester} from '@typescript-eslint/rule-tester';
+import {RuleTester} from 'oxlint/plugins-dev';
 
-import {$RULE_NAME} from './$ARGUMENTS';
+import {noFooBar} from './noFooBar';
 
-const ruleTester = new RuleTester();
+const ruleTester = new RuleTester({languageOptions: {parserOptions: {lang: 'tsx'}}});
 
-ruleTester.run('$ARGUMENTS', $RULE_NAME, {
-  valid: [{code: '// valid code', filename: '/project/src/file.tsx'}],
+ruleTester.run('no-foo-bar', noFooBar, {
+  valid: [{code: '// valid code'}],
   invalid: [
     {
       code: '// invalid code',
-      filename: '/project/src/file.tsx',
       errors: [{messageId: 'forbidden'}],
-      output: '// expected output after autofix', // REQUIRED for fixable rules
+      output: '// code after autofix', // required when the rule is fixable
     },
   ],
 });
 ```
 
-Run tests:
+Parser: `new RuleTester()` parses plain JS; set `lang: 'ts'` for type syntax and `lang: 'tsx'` for TSX. Pass `filename` on a case when the rule depends on the file path, and `options` when it takes options. A `filename` overrides `lang`: the language comes from its extension, so use `.tsx` when the case has JSX.
 
-```bash
-pnpm test-ci "static/oxlint/eslintPluginScraps/src/rules/$ARGUMENTS.spec.ts"
-```
+Cover the false positives you can think of in `valid`: aliased imports, shadowed names, type-only imports, and look-alike paths or identifiers.
 
-## Autofix Guidance
+## Autofix
 
-**Default stance: implement autofix** unless the transformation is ambiguous or could change runtime behavior.
+Implement an autofix when the transformation is unambiguous and keeps runtime behavior:
 
-### Safe autofix patterns
+- Import path rewrites (Scraps `noCoreImport.ts` is the canonical example)
+- Adding or removing JSX attributes with known values
+- Wrapping an expression in a known component
+- Renames with no shadowing risk
 
-- Import path rewrites (see `no-core-import.ts` as canonical example)
-- Adding/removing JSX attributes with known values
-- Wrapping expressions in a known component
-- Identifier renames with no shadowing risk
-
-### Do NOT autofix when
-
-- Multiple valid fixes exist and the right choice requires human judgment
-- The fix requires type information not available from the AST alone
-- The transformation alters control flow or runtime behavior
-- The change spans multiple files
-
-### Fixer API
+Leave the rule report-only when more than one fix is plausible, the fix needs type information, it changes control flow, or it spans files. A report-only rule can still offer `suggest` entries in `context.report`; set `meta.hasSuggestions: true` when it does.
 
 ```typescript
 context.report({
   node,
   messageId: 'forbidden',
-  fix(fixer) {
-    return fixer.replaceText(node, newText);
-    // Also: fixer.replaceTextRange([start, end], text)
-    //        fixer.insertTextBefore(node, text)
-    //        fixer.insertTextAfter(node, text)
-    //        fixer.remove(node)
-    // Return single fix or array of fixes
-  },
+  fix: fixer => fixer.replaceText(node, newText),
+  // Also: replaceTextRange, insertTextBefore, insertTextAfter, remove.
+  // Return one fix or an array of fixes.
 });
 ```
 
-When a rule is fixable, every invalid test case MUST include `output` showing the expected code after the fix.
+Keep fixes from dropping comments inside the replaced range, and report on the narrowest node that explains the problem.
 
-## Step 4: Register the Rule
+## Step 3: Register the Rule
 
-### 1. Rule Index
+1. **Plugin index**: import the rule and add it to `rules` under its kebab-case key, in alphabetical order.
+   - Scraps: `static/oxlint/eslintPluginScraps/src/rules/index.ts`
+   - Sentry: `static/oxlint/eslintPluginSentry/index.ts`
 
-Add to `static/oxlint/eslintPluginScraps/src/rules/index.ts`:
+2. **Config**: enable it as `'@sentry/scraps/no-foo-bar'` or `'@sentry/no-foo-bar'`. Where depends on the existing violations:
 
-```typescript
-import {$RULE_NAME} from './$ARGUMENTS';
+   | Situation                                             | Where                                                                                                              |
+   | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+   | No violations, applies everywhere                     | `rules` of `base` in `oxlint.base.ts` (shared with the Scraps, Icons, and search-syntax packages)                  |
+   | No violations, app code only                          | top-level `rules` in `oxlint.config.ts`                                                                            |
+   | Only for some files (tests, stories, core components) | an `overrides` entry with `files` in the matching config; test-only rules go in `testOverride` in `oxlint.base.ts` |
+   | Existing violations you are not fixing in this PR     | the `incubator` config at the top of `oxlint.config.ts`, then enroll (Step 4)                                      |
 
-export const rules = {
-  // existing rules...
-  $ARGUMENTS: $RULE_NAME,
-};
-```
+   Fix a handful of violations in the PR when that is cheap. For a large rollout, use the incubator and fix the backlog later with the `lint-fix` skill.
 
-### 2. ESLint Config
+## Step 4: Enroll Incubator Rules
 
-Add to `eslint.config.ts` inside the `name: 'plugin/@sentry/scraps'` block:
-
-```typescript
-'@sentry/scraps/$ARGUMENTS': 'error',
-// or with options:
-'@sentry/scraps/$ARGUMENTS': ['error', { /* options */ }],
-```
-
-### 3. Verify
+Only for rules added to `incubator`. Suppression budgets are explained under Linting in `static/AGENTS.md`. To record the existing violations as the new rule's budget:
 
 ```bash
-pnpm test-ci "static/oxlint/eslintPluginScraps/src/rules/$ARGUMENTS.spec.ts"
+pnpm run lint:suppressions --enroll --base origin/master
 ```
+
+Commit the updated `oxlint-suppressions.json` files with the rule. Use per-file `overrides` in `incubator` to turn the rule off where it never applies, rather than suppressing those files.
+
+## Step 5: Verify
+
+Done when all of these pass:
+
+```bash
+pnpm test-ci static/oxlint/eslintPluginSentry/noFooBar.spec.ts   # or the Scraps path
+pnpm run typecheck
+pnpm run lint:js static/oxlint                                   # lints the plugin itself
+pnpm run lint:js                                                 # the new rule over the codebase
+```
+
+For an incubator rule, also run `pnpm run lint:suppressions --ci --base origin/master` (without `--base`, stale budgets only warn) and read through `pnpm run lint:suppressions --backlog --rule @sentry/no-foo-bar` for false positives.
 
 ## Extending an Existing Rule
 
-If modifying an existing rule rather than creating a new one:
+1. Read the rule, its spec, and its config entry.
+2. Config-driven rules (e.g. `use-semantic-token`) often need only a change to their config file (`src/config/tokenRules.ts`). See the reverse-mapping note in [references/schema-patterns.md](references/schema-patterns.md).
+3. Update the spec for changed behavior, then add new cases.
+4. If the change adds violations to an incubator rule, re-enroll; otherwise fix them in the same PR.
+5. Run [Step 5: Verify](#step-5-verify).
 
-1. Read the existing rule and its config files to understand the architecture
-2. For **config-driven rules** (like `use-semantic-token`): changes often only require editing the config file (e.g., `src/config/tokenRules.ts`), not the rule logic
-3. Watch for reverse-mapping side effects — adding a new category can change which category is _suggested_ for shared properties (last writer wins in `buildPropertyToRule`)
-4. Update existing tests for any changed behavior, then add new test cases
+## Naming
 
-## Naming Convention
-
-- **Rule name** (kebab-case): `my-rule-name` — verb-noun pattern (e.g., `no-token-import`, `use-semantic-token`)
-- **Export name** (camelCase): `myRuleName`
-- **File name**: matches rule name exactly (`my-rule-name.ts`, `my-rule-name.spec.ts`)
+- **Rule key** (kebab-case, verb-noun): `no-token-import`, `prefer-info-text`, `require-field-component`, `use-semantic-token`
+- **Export and file name** (camelCase): `noTokenImport` in `noTokenImport.ts` and `noTokenImport.spec.ts`

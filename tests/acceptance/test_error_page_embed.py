@@ -1,8 +1,10 @@
-from urllib.parse import quote
+from unittest.mock import patch
+from urllib.parse import quote, urlencode
 from uuid import uuid4
 
 from django.urls import reverse
 
+from sentry.feedback.lib.html_tree import html_to_tree
 from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.silo import no_silo_test
 
@@ -20,12 +22,13 @@ class ErrorPageEmbedTest(AcceptanceTestCase):
             quote(self.key.dsn_public),
         )
 
-    def wait_for_error_page_embed(self) -> None:
+    def wait_for_error_page_embed(self, **params: str) -> None:
+        path = f"{self.path}&{urlencode(params)}" if params else self.path
         script = f"""
             const script = window.document.createElement('script');
             script.async = true;
             script.crossOrigin = 'anonymous';
-            script.src = '{self.path}';
+            script.src = '{path}';
             const injectionPoint = window.document.head || window.document.body;
             injectionPoint.appendChild(script);
 
@@ -52,3 +55,26 @@ class ErrorPageEmbedTest(AcceptanceTestCase):
             self.wait_for_error_page_embed()
             self.browser.click("body")
             self.wait_for_reportdialog_closed_message()
+
+    def test_matches_rendered_template(self) -> None:
+        with patch(
+            "sentry.feedback.endpoints.error_page_embed.html_to_tree", wraps=html_to_tree
+        ) as spy:
+            self.wait_for_error_page_embed(
+                title='<b>Oops</b> &amp; "quotes"', name='Jane "<i>" O\'Doe'
+            )
+
+        spy.assert_called_once()
+        rendered_html = spy.call_args.args[0]
+
+        assert self.browser.driver.execute_script(
+            """
+            const expected = document.createElement('div');
+            expected.className = 'sentry-error-embed-wrapper';
+            expected.innerHTML = arguments[0];
+            return expected.isEqualNode(
+                document.querySelector('.sentry-error-embed-wrapper')
+            );
+            """,
+            rendered_html,
+        )

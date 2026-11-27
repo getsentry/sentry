@@ -88,6 +88,19 @@ class EnableDisableDetectorTest(TestCase, BaseIncidentsTest):
 
         self.assert_detector_status(detector=self.detector, enabled=False)
 
+    def test_enable_keeps_disabled_detector_subscriptions_off(self) -> None:
+        with self.tasks():
+            update_detector(detector=self.detector, enabled=False)
+        self.detector.update(enabled=False)
+
+        with self.tasks():
+            update_detector(detector=self.detector, enabled=True)
+
+        self.detector.refresh_from_db()
+        self.query_subscription.refresh_from_db()
+        assert self.detector.status == ObjectStatus.ACTIVE
+        assert self.query_subscription.status == QuerySubscription.Status.DISABLED.value
+
     def test_multiple_data_sources_enable_disable(self) -> None:
         with self.tasks():
             self.snuba_query = create_snuba_query(

@@ -2,6 +2,7 @@ import {defineConfig, type OxlintConfig} from 'oxlint';
 
 import base, {
   CSS_TYPES_MESSAGE,
+  ariaDisabledAssertionRules,
   coreComponentRules,
   fakeTimerRules,
   restrictedConventionsImportPattern,
@@ -138,7 +139,6 @@ const config = defineConfig({
       // Sentry application and assets.
       {type: 'sentry-images', pattern: 'static/images'},
       {type: 'sentry-logos', pattern: 'src/sentry/static/sentry/images/logos'},
-      {type: 'sentry-fonts', pattern: 'static/fonts'},
       {type: 'sentry', pattern: 'static/app'},
       // GetSentry application.
       {type: 'getsentry', pattern: 'static/gsApp'},
@@ -418,6 +418,7 @@ const config = defineConfig({
         'static/oxlint/oxlintCompat/*.ts',
         'tests/js/*-transform.*',
         'tests/js/test-*/*',
+        'tests/js/sentry-test/testCountReporter.ts',
       ],
       rules: {'@sentry/no-default-exports': 'off'},
     },
@@ -517,6 +518,7 @@ const config = defineConfig({
         'static/oxlint/**/*.js',
         'scripts/**/*.{js,ts}',
         'tests/js/test-balancer/*.ts',
+        'tests/js/sentry-test/testCountReporter.ts',
       ],
       rules: {'no-console': 'off', 'import/no-nodejs-modules': 'off'},
       env: {node: true},
@@ -603,6 +605,7 @@ const config = defineConfig({
         'no-loss-of-precision': 'off',
         '@sentry/no-relative-api-url': 'off',
         '@sentry/prefer-react-component': 'off',
+        ...ariaDisabledAssertionRules,
         'no-restricted-imports': [
           'error',
           {

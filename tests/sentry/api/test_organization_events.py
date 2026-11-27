@@ -5,12 +5,24 @@ from unittest import mock
 from django.urls import reverse
 from rest_framework.response import Response
 
+from sentry.api.bases.organization_events import (
+    LEGACY_DATASETS_DEPRECATION_DATE,
+    LEGACY_DATASETS_GONE_MESSAGE,
+)
 from sentry.search.events import constants
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.utils.snuba import QueryExecutionError, QueryIllegalTypeOfArgument, RateLimitExceeded
 
 MAX_QUERYABLE_TRANSACTION_THRESHOLDS = 1
+
+
+# The default legacy dataset brownout schedule blocks requests at noon UTC.
+LEGACY_DATASETS_BROWNOUT = LEGACY_DATASETS_DEPRECATION_DATE.replace(hour=12)
+BROWNOUT_FEATURES = {
+    "organizations:discover-basic": True,
+    "organizations:legacy-datasets-api-brownout": True,
+}
 
 
 class OrganizationEventsEndpointTest(APITestCase):
@@ -118,6 +130,58 @@ class OrganizationEventsEndpointTest(APITestCase):
 
         _, kwargs = mock.call_args
         self.assertEqual(kwargs["referrer"], "api.auth-token.events")
+
+    def _api_token_referrer(self, referrer: str) -> str:
+        api_key = self.create_api_key(organization=self.organization, scope_list=["org:read"])
+        query = {"field": ["user"], "project": [self.project.id], "referrer": referrer}
+        with (
+            mock.patch(
+                "sentry.snuba.discover.query", return_value={"data": [], "meta": {"fields": {}}}
+            ) as mock_query,
+            self.feature({"organizations:discover-basic": True, **self.features}),
+        ):
+            response = self.client_get(
+                self.reverse_url(),
+                query,
+                format="json",
+                HTTP_AUTHORIZATION=self.create_basic_auth_header(api_key.key),
+            )
+        assert response.status_code == 200, response.content
+        _, kwargs = mock_query.call_args
+        return kwargs["referrer"]
+
+    def test_api_token_referrer_forced_when_client_supplies_valid_referrer(self) -> None:
+        referrer = self._api_token_referrer("api.insights.transaction-summary")
+
+        assert referrer == "api.auth-token.events"
+
+    def test_api_token_referrer_forced_when_client_supplies_server_only_referrer(self) -> None:
+        referrer = self._api_token_referrer("subscriptions_executor")
+
+        assert referrer == "api.auth-token.events"
+
+    def test_api_token_referrer_kept_when_client_supplies_seer_referrer(self) -> None:
+        referrer = self._api_token_referrer("seer.rpc")
+
+        assert referrer == "seer.rpc"
+
+    def test_api_token_referrer_kept_when_client_supplies_mcp_referrer(self) -> None:
+        referrer = self._api_token_referrer("api.mcp.search-events")
+
+        assert referrer == "api.mcp.search-events"
+
+    @mock.patch("sentry.snuba.discover.query")
+    def test_server_only_referrer(self, mock: mock.MagicMock) -> None:
+        mock.return_value = {}
+
+        query = {
+            "field": ["user"],
+            "referrer": "subscriptions_executor",
+            "project": [self.project.id],
+        }
+        self.do_request(query)
+        _, kwargs = mock.call_args
+        self.assertEqual(kwargs["referrer"], self.referrer)
 
     @mock.patch("sentry.snuba.discover.query")
     def test_invalid_referrer(self, mock: mock.MagicMock) -> None:
@@ -307,3 +371,60 @@ class OrganizationEventsEndpointTest(APITestCase):
         )
 
         mock_sdk_logger.warning.assert_not_called()
+
+    @mock.patch("sentry.api.helpers.deprecation.sentry_sdk.metrics.count")
+    def test_legacy_dataset_brownout(self, mock_count: mock.MagicMock) -> None:
+        query = {"field": ["user"], "project": [self.project.id], "dataset": "transactions"}
+        with self.settings(SENTRY_SELF_HOSTED=False), freeze_time(LEGACY_DATASETS_BROWNOUT):
+            response = self._api_token_request(query, features=dict(BROWNOUT_FEATURES))
+
+        assert response.status_code == 410
+        assert response.data == {"message": LEGACY_DATASETS_GONE_MESSAGE}
+        assert "X-Sentry-Deprecation-Date" in response
+
+        attributes = mock_count.call_args.kwargs["attributes"]
+        assert attributes["api.deprecated.action"] == "gone"
+        assert attributes["api.deprecated.url_name"] == "sentry-api-0-organization-events"
+        assert attributes["api.deprecated.legacy_dataset.requested_dataset"] == "transactions"
+        assert attributes["api.deprecated.organization_id"] == self.organization.id
+        assert attributes["api.deprecated.brownout_key"] == "api.deprecation.legacy-datasets"
+
+    @mock.patch("sentry.snuba.errors.query")
+    def test_legacy_dataset_brownout_skips_replacement_datasets(
+        self, mock_query: mock.MagicMock
+    ) -> None:
+        mock_query.return_value = {"data": [], "meta": {"fields": {}}}
+
+        query = {"field": ["user"], "project": [self.project.id], "dataset": "errors"}
+        with self.settings(SENTRY_SELF_HOSTED=False), freeze_time(LEGACY_DATASETS_BROWNOUT):
+            response = self._api_token_request(query, features=dict(BROWNOUT_FEATURES))
+
+        assert response.status_code == 200
+        assert "X-Sentry-Deprecation-Date" not in response
+
+    def test_legacy_dataset_brownout_includes_session_requests(self) -> None:
+        query = {"field": ["user"], "project": [self.project.id]}
+        with self.settings(SENTRY_SELF_HOSTED=False), freeze_time(LEGACY_DATASETS_BROWNOUT):
+            response = self.do_request(query, features=dict(BROWNOUT_FEATURES))
+
+        assert response.status_code == 410
+        assert response.data == {"message": LEGACY_DATASETS_GONE_MESSAGE}
+
+    @mock.patch("sentry.snuba.transactions.query")
+    def test_legacy_dataset_brownout_skips_orgs_without_flag(
+        self, mock_query: mock.MagicMock
+    ) -> None:
+        mock_query.return_value = {"data": [], "meta": {"fields": {}}}
+
+        query = {"field": ["user"], "project": [self.project.id], "dataset": "transactions"}
+        with self.settings(SENTRY_SELF_HOSTED=False), freeze_time(LEGACY_DATASETS_BROWNOUT):
+            response = self._api_token_request(
+                query,
+                features={
+                    "organizations:discover-basic": True,
+                    "organizations:legacy-datasets-api-brownout": False,
+                },
+            )
+
+        assert response.status_code == 200
+        assert "X-Sentry-Deprecation-Date" not in response

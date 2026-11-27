@@ -615,3 +615,33 @@ def test_launchdarkly_long_flag_name() -> None:
 
     with pytest.raises(DeserializationError):
         LaunchDarklyProvider(123, None).handle({**request_data, "name": "a" * 257})
+
+
+def test_launchdarkly_comment_null_still_writes() -> None:
+    """Explicit JSON null on comment must not drop the audit-log row."""
+    request_data = {
+        "_id": "1234",
+        "_accountId": "1234",
+        "date": 1729123465221,
+        "accesses": [
+            {"action": "createFlag", "resource": "proj/default:env/test:flag/test-flag"},
+        ],
+        "kind": "flag",
+        "name": "test flag",
+        "description": "flag was created",
+        "shortDescription": "",
+        "comment": None,
+        "member": {
+            "_id": "1234",
+            "email": "michelle@example.com",
+            "firstName": "Michelle",
+            "lastName": "Doe",
+        },
+        "titleVerb": "created the flag",
+        "title": "Michelle created the flag",
+    }
+
+    res = LaunchDarklyProvider(123, None).handle(request_data)
+    assert len(res) == 1
+    assert res[0]["tags"]["description"] == "flag was created"
+    assert "comment" not in res[0]["tags"]

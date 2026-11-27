@@ -30,13 +30,12 @@ from sentry.models.dashboard import Dashboard, DashboardFavoriteUser
 from sentry.models.organization import Organization
 
 
-class MemberPermission(OrganizationPermission):
+class StarredDashboardPermission(OrganizationPermission):
     scope_map = {
-        "GET": ["member:read", "member:write", "dashboard:read", "user_preference:read"],
-        "PUT": ["member:read", "member:write", "dashboard:write", "user_preference:write"],
+        "GET": ["user_preference:read"],
+        "PUT": ["user_preference:write"],
     }
 
-    # user_preference:read and user_preference:write replace member:read in orgs with granular scopes.
     rejects_deprecated_scopes = True
 
 
@@ -45,7 +44,7 @@ class MemberPermission(OrganizationPermission):
 class OrganizationDashboardsStarredEndpoint(OrganizationEndpoint):
     publish_status = {"GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL}
     owner = ApiOwner.DASHBOARDS
-    permission_classes = (MemberPermission,)
+    permission_classes = (StarredDashboardPermission,)
 
     def has_feature(self, organization: Organization, request: Request) -> bool:
         return features.has("organizations:dashboards-starred", organization, actor=request.user)
@@ -113,7 +112,7 @@ class OrganizationDashboardsStarredEndpoint(OrganizationEndpoint):
 class OrganizationDashboardsStarredOrderEndpoint(OrganizationEndpoint):
     publish_status = {"PUT": ApiPublishStatus.PRIVATE}
     owner = ApiOwner.DASHBOARDS
-    permission_classes = (MemberPermission,)
+    permission_classes = (StarredDashboardPermission,)
 
     def has_feature(self, organization: Organization, request: Request) -> bool:
         return features.has("organizations:dashboards-starred", organization, actor=request.user)

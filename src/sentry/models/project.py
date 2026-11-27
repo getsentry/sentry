@@ -260,7 +260,7 @@ class Project(Model):
     forced_color = models.CharField(max_length=6, null=True, blank=True)
     organization = FlexibleForeignKey("sentry.Organization")
     teams = models.ManyToManyField("sentry.Team", related_name="teams", through=ProjectTeam)
-    public = models.BooleanField(default=False)
+    public = models.BooleanField(default=False, db_default=False)
     date_added = models.DateTimeField(default=timezone.now)
     status = BoundedPositiveIntegerField(
         default=0,

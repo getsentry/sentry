@@ -19,7 +19,7 @@ export interface ConversationUserIdentity {
   scrubbingRule?: ScrubbingRule;
 }
 
-function normalizeUserValue(value: string | undefined): string | null {
+export function normalizeUserValue(value: string | null | undefined): string | null {
   if (!value || value.toLowerCase() === 'none') {
     return null;
   }

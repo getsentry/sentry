@@ -130,6 +130,22 @@ declare const __LOADER__QUEUEABLE_APIS__: any;
     }
   }
 
+  /**
+   * Returns the CDN bundle URL as a `TrustedScriptURL` where Trusted Types are supported.
+   */
+  function getTrustedSdkBundleUrl(): string {
+    try {
+      return _window
+        .trustedTypes!.createPolicy('sentry-loader', {
+          createScriptURL: () => _sdkBundleUrl,
+        })
+        .createScriptURL('') as string;
+    } catch {
+      // Trusted Types are not supported, or the page's CSP does not allow this policy
+      return _sdkBundleUrl;
+    }
+  }
+
   let injectedCDNScriptTag = false;
 
   /**
@@ -149,7 +165,7 @@ declare const __LOADER__QUEUEABLE_APIS__: any;
     // https://www.html5rocks.com/en/tutorials/speed/script-loading/
     const firstScriptTagInDom = _document.scripts[0];
     const cdnScriptTag = _document.createElement('script') as HTMLScriptElement;
-    cdnScriptTag.src = _sdkBundleUrl;
+    cdnScriptTag.src = getTrustedSdkBundleUrl();
     cdnScriptTag.crossOrigin = 'anonymous';
 
     // Once our SDK is loaded
@@ -330,6 +346,12 @@ declare const __LOADER__QUEUEABLE_APIS__: any;
       Sentry?: any;
       __SENTRY__?: any;
       sentryOnLoad?: () => void;
+      trustedTypes?: {
+        createPolicy: (
+          name: string,
+          rules: {createScriptURL: () => string}
+        ) => {createScriptURL: (input: string) => unknown};
+      };
     },
   document,
   'error' as const,

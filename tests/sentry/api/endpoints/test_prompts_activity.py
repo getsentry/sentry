@@ -69,7 +69,7 @@ class GetPromptsActivityTest(PromptsActivityTestBase):
             data={"dismissed_ts": 1},
         )
         service_account = self.create_service_account(
-            organization=self.org, scope_list=["org:read"]
+            organization=self.org, scope_list=["user_preference:read"]
         )
         viewer_context = encode_viewer_context(
             ViewerContext(
@@ -105,7 +105,9 @@ class PutPromptsActivityTest(PromptsActivityTestBase):
 
     def test_api_key_cannot_dismiss(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
-            key = ApiKey.objects.create(organization_id=self.org.id, scope_list=["org:read"])
+            key = ApiKey.objects.create(
+                organization_id=self.org.id, scope_list=["user_preference:write"]
+            )
             self.client.logout()
 
         resp = self._dismiss(HTTP_AUTHORIZATION=self.create_basic_auth_header(key.key))
@@ -117,7 +119,7 @@ class PutPromptsActivityTest(PromptsActivityTestBase):
     @with_feature("organizations:service-accounts")
     def test_service_account_cannot_dismiss(self) -> None:
         service_account = self.create_service_account(
-            organization=self.org, scope_list=["org:read"]
+            organization=self.org, scope_list=["user_preference:write"]
         )
         viewer_context = encode_viewer_context(
             ViewerContext(

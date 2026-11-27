@@ -61,6 +61,8 @@ export const ALLOWED_SCOPES = [
   'team:admin',
   'team:read',
   'team:write',
+  'user_preference:read',
+  'user_preference:write',
 ] as const;
 
 export type Scope = (typeof ALLOWED_SCOPES)[number];

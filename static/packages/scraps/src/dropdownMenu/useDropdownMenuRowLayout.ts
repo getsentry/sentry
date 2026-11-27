@@ -1,5 +1,5 @@
 import type * as React from 'react';
-import {useCallback, useLayoutEffect, useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import type {Key, Node} from '@react-types/shared';
 
@@ -7,6 +7,7 @@ import {SECTION_ITEM_SPACE} from '@sentry/scraps/menu';
 import {
   estimateRowHeight,
   useVirtualCollection,
+  useVirtualMenuWidth,
 } from '@sentry/scraps/useVirtualCollection';
 
 import type {MenuItemProps} from './item';
@@ -100,27 +101,13 @@ export function useDropdownMenuRowLayout({
     widestKey,
   });
 
-  // A virtualized menu only mounts some of its rows, so its natural width would
-  // change as rows scroll in and out. Measure it once, when the `widestKey` row
-  // has mounted, and keep that width until the menu closes, including while a
-  // search filters the items. A label that does not fit is truncated.
-  //
-  // The virtualizer mounts no rows on its first render, so measuring earlier
-  // would lock the width of an empty list. Measure the rows' own width
-  // (`max-content`) rather than the menu's current one, which its container
-  // may still be squeezing before the overlay is positioned.
-  const isWidestRowMounted = virtual.rows.some(row => row.node.key === widestKey);
-  useLayoutEffect(() => {
-    const menu = menuRef.current;
-    if (!virtualized || !isWidestRowMounted || isWidthLocked || !menu) {
-      return;
-    }
-    const {width} = menu.style;
-    menu.style.width = 'max-content';
-    // Round up, so a fractional width does not cut off the widest label.
-    onLockWidth(Math.ceil(menu.getBoundingClientRect().width));
-    menu.style.width = width;
-  }, [virtualized, isWidestRowMounted, isWidthLocked, menuRef, onLockWidth]);
+  useVirtualMenuWidth({
+    enabled: virtualized,
+    isWidthCandidateMounted: virtual.rows.some(row => row.node.key === widestKey),
+    isWidthLocked,
+    menuRef,
+    onLockWidth,
+  });
 
   return {itemsAfterSections, virtual};
 }
