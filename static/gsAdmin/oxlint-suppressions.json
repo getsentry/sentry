@@ -14,7 +14,6 @@
     "@sentry/scraps/prefer-primitives": {"count": 1}
   },
   "components/customers/customerOverview.tsx": {
-    "@sentry/scraps/no-manual-table": {"count": 6},
     "@sentry/scraps/prefer-primitives": {"count": 1}
   },
   "components/customers/customerStats.tsx": {
@@ -26,7 +25,6 @@
   "components/docIntegrationModal.tsx": {
     "@sentry/scraps/prefer-primitives": {"count": 2}
   },
-  "components/dropdownActions.tsx": {"@sentry/scraps/prefer-primitives": {"count": 1}},
   "components/eventUsers.tsx": {"@sentry/scraps/prefer-primitives": {"count": 1}},
   "components/migrateLegacySeerAction.tsx": {
     "@sentry/scraps/prefer-primitives": {"count": 1}

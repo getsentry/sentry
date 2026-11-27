@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 import upperFirst from 'lodash/upperFirst';
 import moment from 'moment-timezone';
@@ -8,8 +7,9 @@ import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {InfoText} from '@sentry/scraps/info';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import {ConfigStore} from 'sentry/stores/configStore';
 import {DataCategory} from 'sentry/types/core';
@@ -75,7 +75,7 @@ function SoftCapTypeDetail({
   plan: Plan;
 }) {
   if (!categories) {
-    return <span>None</span>;
+    return <Text>None</Text>;
   }
   const shouldUseDsNames = plan.categories.includes(DataCategory.SPANS_INDEXED);
   const softCapTypes = sortCategories(categories)
@@ -85,47 +85,42 @@ function SoftCapTypeDetail({
         : null;
       if (softCapName) {
         return (
-          <Fragment key={`test-soft-cap-type-${categoryHistory.category}`}>
-            <small>
-              {`${getPlanCategoryName({
-                plan,
-                category: categoryHistory.category,
-                hadCustomDynamicSampling: shouldUseDsNames,
-              })}: `}
-              {softCapName}
-            </small>
-            <br />
-          </Fragment>
+          <Text as="div" size="sm" key={`test-soft-cap-type-${categoryHistory.category}`}>
+            {`${getPlanCategoryName({
+              plan,
+              category: categoryHistory.category,
+              hadCustomDynamicSampling: shouldUseDsNames,
+            })}: `}
+            {softCapName}
+          </Text>
         );
       }
       return null;
     })
     .filter(Boolean);
-  return <Fragment>{softCapTypes.length ? softCapTypes : <span>None</span>}</Fragment>;
+  return <Fragment>{softCapTypes.length ? softCapTypes : <Text>None</Text>}</Fragment>;
 }
 
 function SubscriptionSummary({customer, onAction}: SubscriptionSummaryProps) {
   return (
-    <div>
+    <Container>
       <DescriptionList gap="md">
         <DetailLabel title="Balance">
           {formatBalance(customer.accountBalance)}
           {customer.type === BillingType.INVOICED && (
-            <Fragment>
-              <br />
-              <small>
-                Note: this is an invoiced account, please send any questions about this
-                balance to <a href="mailto:salesops@sentry.io">salesops@sentry.io</a>
-              </small>
-            </Fragment>
+            <Text as="div" size="sm">
+              Note: this is an invoiced account, please send any questions about this
+              balance to <a href="mailto:salesops@sentry.io">salesops@sentry.io</a>
+            </Text>
           )}
         </DetailLabel>
         <DetailLabel title="Billing Period">
           {`${moment(customer.billingPeriodStart).format('ll')} › ${moment(
             customer.billingPeriodEnd
           ).format('ll')}`}
-          <br />
-          <small>{customer.billingInterval}</small>
+          <Text as="div" size="sm">
+            {customer.billingInterval}
+          </Text>
         </DetailLabel>
         {customer.billingPeriodStart && (
           <DetailLabel title="Contract Period">
@@ -138,9 +133,9 @@ function SubscriptionSummary({customer, onAction}: SubscriptionSummaryProps) {
                 />
               )) ||
               moment(customer.billingPeriodEnd).format('ll')}
-
-            <br />
-            <small>{customer.billingInterval}</small>
+            <Text as="div" size="sm">
+              {customer.billingInterval}
+            </Text>
           </DetailLabel>
         )}
         {/* TODO(billing): Should we start calling On-Demand periods "Pay-as-you-go" periods? */}
@@ -161,7 +156,7 @@ function SubscriptionSummary({customer, onAction}: SubscriptionSummaryProps) {
           />
         )}
       </DescriptionList>
-    </div>
+    </Container>
   );
 }
 
@@ -250,7 +245,7 @@ function ReservedBudgetsData({customer}: ReservedDataProps) {
   }
 
   return (
-    <div data-test-id="reserved-budgets-data">
+    <Container data-test-id="reserved-budgets-data">
       {customer.reservedBudgets.map(reservedBudget => {
         return (
           <Fragment key={reservedBudget.id}>
@@ -258,7 +253,7 @@ function ReservedBudgetsData({customer}: ReservedDataProps) {
           </Fragment>
         );
       })}
-    </div>
+    </Container>
   );
 }
 
@@ -337,7 +332,7 @@ function SeerPlanSummary({customer}: {customer: Subscription}) {
   );
 
   return (
-    <div data-test-id="seer-plan-summary">
+    <Container data-test-id="seer-plan-summary">
       <DetailsHeading>Seer</DetailsHeading>
       <DescriptionList gap="md">
         {!seatStatus && !legacyStatus && (
@@ -403,7 +398,7 @@ function SeerPlanSummary({customer}: {customer: Subscription}) {
           </Fragment>
         )}
       </DescriptionList>
-    </div>
+    </Container>
   );
 }
 
@@ -424,35 +419,29 @@ function OnDemandSummary({customer}: OnDemandSummaryProps) {
       return (
         <Fragment>
           {onDemandPeriod}
-          <br />
-          <small>
-            <em>Per-category budget strategy</em>
-          </small>
-          <br />
+          <Text as="div" size="sm" italic>
+            Per-category budget strategy
+          </Text>
           {customer.planDetails.onDemandCategories.map(category => {
             return (
-              <Fragment key={`test-ondemand-${category}`}>
-                <small>
-                  {`${getPlanCategoryName({plan: customer.planDetails, category})}: `}
-                  {`${displayPriceWithCents({
-                    cents: onDemandBudgets.usedSpends[category] ?? 0,
-                  })} / ${displayPriceWithCents({
-                    cents: onDemandBudgets.budgets[category] ?? 0,
-                  })}`}
-                </small>
-                <br />
-              </Fragment>
+              <Text as="div" size="sm" key={`test-ondemand-${category}`}>
+                {`${getPlanCategoryName({plan: customer.planDetails, category})}: `}
+                {`${displayPriceWithCents({
+                  cents: onDemandBudgets.usedSpends[category] ?? 0,
+                })} / ${displayPriceWithCents({
+                  cents: onDemandBudgets.budgets[category] ?? 0,
+                })}`}
+              </Text>
             );
           })}
-
-          <small>
+          <Text as="div" size="sm">
             Total:{' '}
             {customer.onDemandMaxSpend > 0
               ? `${displayPriceWithCents({
                   cents: customer.onDemandSpendUsed,
                 })} / ${displayPriceWithCents({cents: customer.onDemandMaxSpend})}`
               : displayPriceWithCents({cents: customer.onDemandSpendUsed})}
-          </small>
+          </Text>
         </Fragment>
       );
     }
@@ -460,19 +449,17 @@ function OnDemandSummary({customer}: OnDemandSummaryProps) {
     return (
       <Fragment>
         {onDemandPeriod}
-        <br />
-        <small>
-          <em>Shared budget strategy</em>
-        </small>
-        <br />
-        <small>
+        <Text as="div" size="sm" italic>
+          Shared budget strategy
+        </Text>
+        <Text as="div" size="sm">
           Total:{' '}
           {customer.onDemandMaxSpend > 0
             ? `${displayPriceWithCents({
                 cents: customer.onDemandSpendUsed,
               })} / ${displayPriceWithCents({cents: customer.onDemandMaxSpend})}`
             : displayPriceWithCents({cents: customer.onDemandSpendUsed})}
-        </small>
+        </Text>
       </Fragment>
     );
   }
@@ -480,10 +467,9 @@ function OnDemandSummary({customer}: OnDemandSummaryProps) {
   return (
     <Fragment>
       {onDemandPeriod}
-      <br />
-      <small>
-        <em>Disabled</em>
-      </small>
+      <Text as="div" size="sm" italic>
+        Disabled
+      </Text>
     </Fragment>
   );
 }
@@ -806,17 +792,15 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
 
   return (
     <DetailsContainer>
-      <div>
+      <Container>
         <DescriptionList gap="md">
           <DetailLabel title="Status">
             <CustomerStatus customer={customer} />
             {isTrial(customer) && (
-              <div>
-                <small>
-                  <strong>{moment(customer.trialEnd).fromNow(true)} remaining</strong>{' '}
-                  (ends on {moment(customer.trialEnd).format('MMMM Do YYYY')})
-                </small>
-              </div>
+              <Text as="div" size="sm">
+                <Text bold>{moment(customer.trialEnd).fromNow(true)} remaining</Text>{' '}
+                (ends on {moment(customer.trialEnd).format('MMMM Do YYYY')})
+              </Text>
             )}
           </DetailLabel>
           <DetailLabel title="Members">
@@ -828,10 +812,10 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
           <DetailLabel title="ARR">
             {formatCurrency(customer.acv ?? 0)}
             {customer.type === 'invoiced' && customer.billingInterval === 'annual' && (
-              <span>
+              <Fragment>
                 {' | '}
                 <ChangeARRAction customer={customer} onAction={runAction} />
-              </span>
+              </Fragment>
             )}
           </DetailLabel>
         </DescriptionList>
@@ -856,8 +840,8 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
               : 'None'}
           </DetailLabel>
         </DescriptionList>
-      </div>
-      <div>
+      </Container>
+      <Container>
         <DescriptionList gap="md">
           <DetailLabel title="Short name">
             <ExternalLink href={orgUrl}>{customer.slug}</ExternalLink>
@@ -929,37 +913,37 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
                 {customer.partner.isActive ? (
                   <Fragment>
                     (active)
-                    <br />
-                    <Button
-                      variant="link"
-                      onClick={() => updateCustomerStatus('deactivatePartnerAccount')}
-                    >
-                      Deactivate Partner
-                    </Button>
+                    <Container>
+                      <Button
+                        variant="link"
+                        onClick={() => updateCustomerStatus('deactivatePartnerAccount')}
+                      >
+                        Deactivate Partner
+                      </Button>
+                    </Container>
                   </Fragment>
                 ) : (
                   <Fragment>
                     (migrated)
                     {customer.isPartner && customer.isManaged && (
-                      <Fragment>
-                        <br />
+                      <Container>
                         <Button
                           variant="link"
                           onClick={() => updateCustomerStatus('deactivatePartnerAccount')}
                         >
                           Reset partner billing to self-serve
                         </Button>
-                      </Fragment>
+                      </Container>
                     )}
                   </Fragment>
                 )}
-                <br />
-                <small>ID: {customer.partner.externalId}</small>
+                <Text as="div" size="sm">
+                  ID: {customer.partner.externalId}
+                </Text>
                 {customer.partner.partnership.id === 'HK' && (
-                  <span>
-                    <br />
-                    <small>Heroku ID: {customer.partner.name}</small>
-                  </span>
+                  <Text as="div" size="sm">
+                    Heroku ID: {customer.partner.name}
+                  </Text>
                 )}
               </Fragment>
             ) : (
@@ -1053,49 +1037,38 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
         )}
         <Fragment>
           <DetailsHeading>Retention Settings</DetailsHeading>
-          <table style={{borderSpacing: '15px', borderCollapse: 'separate'}}>
-            <thead>
-              <tr>
-                <th>Category</th>
-                <th>Standard</th>
-                <th>
-                  <InfoText
-                    variant="inherit"
-                    title="Null means use the Downsample default"
-                  >
-                    Downsampled
-                  </InfoText>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {sortCategories(customer.categories || {})
-                .filter(bmh => RETENTION_SETTINGS_CATEGORIES.has(bmh.category))
-                .map(bmh => (
-                  <tr key={bmh.category}>
-                    <td>
-                      {getPlanCategoryName({
-                        plan: customer.planDetails,
-                        category: bmh.category,
-                      })}
-                    </td>
-                    <td>
-                      {bmh.retention?.standard === null
-                        ? 'null'
-                        : bmh.retention?.standard}
-                    </td>
-                    <td>
-                      {bmh.retention?.downsampled === null
-                        ? 'null'
-                        : bmh.retention?.downsampled}
-                    </td>
-                  </tr>
-                ))}
-            </tbody>
-          </table>
+          <Grid columns="repeat(3, max-content)" gap="lg">
+            <Text bold>Category</Text>
+            <Text bold>Standard</Text>
+            <Text bold>
+              <InfoText variant="inherit" title="Null means use the Downsample default">
+                Downsampled
+              </InfoText>
+            </Text>
+            {sortCategories(customer.categories || {})
+              .filter(bmh => RETENTION_SETTINGS_CATEGORIES.has(bmh.category))
+              .map(bmh => (
+                <Fragment key={bmh.category}>
+                  <Text>
+                    {getPlanCategoryName({
+                      plan: customer.planDetails,
+                      category: bmh.category,
+                    })}
+                  </Text>
+                  <Text>
+                    {bmh.retention?.standard === null ? 'null' : bmh.retention?.standard}
+                  </Text>
+                  <Text>
+                    {bmh.retention?.downsampled === null
+                      ? 'null'
+                      : bmh.retention?.downsampled}
+                  </Text>
+                </Fragment>
+              ))}
+          </Grid>
         </Fragment>
         <SeerPlanSummary customer={customer} />
-      </div>
+      </Container>
     </DetailsContainer>
   );
 }
@@ -1106,11 +1079,9 @@ function ThresholdLabel({label, positive, children}: ThresholdLabelProps) {
   return (
     <Fragment>
       <DescriptionList.Term>{label}</DescriptionList.Term>
-      <ThresholdValue positive={positive}>{children}</ThresholdValue>
+      <DescriptionList.Details>
+        <Text variant={positive ? 'success' : 'danger'}>{children}</Text>
+      </DescriptionList.Details>
     </Fragment>
   );
 }
-
-const ThresholdValue = styled(DescriptionList.Details)<{positive: boolean}>`
-  color: ${p => (p.positive ? p.theme.colors.green500 : p.theme.colors.red500)};
-`;

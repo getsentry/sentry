@@ -1,8 +1,9 @@
-import styled from '@emotion/styled';
 import {IconNot} from '@sentry/icons/not';
 
 import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Heading} from '@sentry/scraps/text';
 
 import {openAdminConfirmModal} from 'admin/components/adminConfirmationModal';
 
@@ -37,10 +38,12 @@ function mapActionsToCompactSelect(
       return {
         value: action.key,
         label: (
-          <div>
+          <Flex as="span" align="center" gap="xs">
             {action.name}
-            {action.disabled && <StyledIconNot data-test-id="disabled-icon" size="xs" />}
-          </div>
+            {action.disabled && (
+              <IconNot data-test-id="disabled-icon" size="xs" variant="danger" />
+            )}
+          </Flex>
         ),
         // This is required for compact select searching to work
         textValue: action.name,
@@ -78,7 +81,7 @@ export function DropdownActions({actions, label}: Props) {
         // those defaults may be overridden
         openAdminConfirmModal({
           ...confirmModalOpts,
-          header: header ?? <h4>{action.name}</h4>,
+          header: header ?? <Heading as="h4">{action.name}</Heading>,
           modalSpecificContent: modalSpecificContent ?? action.help,
           showAuditFields: showAuditFields ?? true,
           onConfirm: action.onAction,
@@ -92,9 +95,3 @@ export function DropdownActions({actions, label}: Props) {
     />
   );
 }
-
-const StyledIconNot = styled(IconNot)`
-  color: ${p => p.theme.colors.red200};
-  margin-left: ${p => p.theme.space.xs};
-  transform: translateY(2px);
-`;
