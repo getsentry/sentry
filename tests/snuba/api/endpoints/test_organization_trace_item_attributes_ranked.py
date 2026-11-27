@@ -611,7 +611,9 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
 
         assert len(requests_by_cohort) == 2
         for requests in requests_by_cohort.values():
-            sent_names = [name for names in requests for name in names]
+            sent_names: list[str] = []
+            for names in requests:
+                sent_names.extend(names)
             assert sorted(sent_names) == sorted(rankable_names)
         return requests_by_cohort
 

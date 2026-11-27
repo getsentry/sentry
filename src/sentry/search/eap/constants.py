@@ -298,6 +298,8 @@ MAX_STATS_REQUEST_ATTRIBUTES = 140
 # frequent buckets across all attributes, so a request with too many attributes can
 # silently lose every bucket of some of them.
 MAX_STATS_RESPONSE_ROWS = 10_000
+# Snuba uses this many buckets per attribute when a request asks for zero
+DEFAULT_STATS_MAX_BUCKETS = 10
 
 
 class QueryPriorities(TypesClass):

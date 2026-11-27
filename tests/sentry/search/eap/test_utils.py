@@ -67,6 +67,8 @@ def test_get_stats_chunk_count(attribute_count: int, min_chunks: int, expected: 
         (3000, 75, 23),
         # 10_000 // 50 is above MAX_STATS_REQUEST_ATTRIBUTES, so that limit still applies
         (281, 50, 3),
+        # Snuba treats zero as 10 buckets, and MAX_STATS_REQUEST_ATTRIBUTES still applies
+        (281, 0, 3),
     ],
 )
 def test_get_stats_chunk_count_caps_response_rows(
