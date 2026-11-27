@@ -951,14 +951,16 @@ class TestPrIterationCompletionHook(TestCase):
         )
         return outcome is None
 
-    def _record_push(self, state: SeerRunState, queued_at: str, status: str) -> None:
+    def _record_push(
+        self, state: SeerRunState, queued_at: str, status: str, source: str = "pr_iteration"
+    ) -> None:
         state.pr_push_log = [
             PushLogEntry.parse_obj(
                 {
                     "request": {
                         "repo_name": "test-repo",
                         "action": "update",
-                        "source": "pr_iteration",
+                        "source": source,
                         "queued_at": queued_at,
                     },
                     "outcome": {"status": status},
@@ -1123,6 +1125,17 @@ class TestPrIterationCompletionHook(TestCase):
             mock_broadcast.call_args.kwargs["event_name"]
             == SeerActionType.ITERATION_COMPLETED.value
         )
+
+    @patch(f"{COMPLETION_PATH}.trigger_push_changes")
+    def test_an_empty_push_by_the_agent_does_not_cover_its_edits(
+        self, mock_push: MagicMock
+    ) -> None:
+        """The agent can push mid-step and keep editing, so its edits may be newer than the push."""
+        state = self._unsynced()
+        self._record_push(state, "2026-02-10T00:01:00Z", "no_changes", source="agent")
+
+        assert self._push(state) is True
+        mock_push.assert_called_once()
 
     @patch(f"{COMPLETION_PATH}.trigger_push_changes")
     def test_a_push_that_found_nothing_does_not_cover_later_edits(

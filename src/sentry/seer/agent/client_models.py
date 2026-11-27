@@ -525,6 +525,10 @@ class SeerRunState(BaseModel):
                 continue
             if entry.outcome is None or entry.outcome.status != "no_changes":
                 return False
+            # The agent can push mid-step, before that step's edits are saved, so its empty push
+            # doesn't cover them. Sentry only pushes once the agent has finished.
+            if entry.request.source == "agent":
+                return False
             if entry.request.queued_at is None:
                 return False
             try:
