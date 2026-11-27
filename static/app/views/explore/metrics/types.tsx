@@ -13,7 +13,6 @@ export enum TraceMetricKnownFieldKey {
   SPAN_ID = 'span_id',
   TIMESTAMP = 'timestamp',
   TIMESTAMP_PRECISE = 'timestamp_precise',
-  OBSERVED_TIMESTAMP_PRECISE = 'observed_timestamp',
 
   METRIC_NAME = 'metric.name',
   METRIC_TYPE = 'metric.type',
@@ -93,7 +92,6 @@ type TraceMetricsKnownFieldResponseMap = Record<
   [TraceMetricKnownFieldKey.METRIC_VALUE]: number;
   [TraceMetricKnownFieldKey.TIMESTAMP]: string;
   [TraceMetricKnownFieldKey.TIMESTAMP_PRECISE]: number;
-  [TraceMetricKnownFieldKey.OBSERVED_TIMESTAMP_PRECISE]: number;
   [TraceMetricKnownFieldKey.ORGANIZATION_ID]: number;
   [TraceMetricKnownFieldKey.PROJECT_ID]: string;
   [TraceMetricKnownFieldKey.PROJECT]: string;

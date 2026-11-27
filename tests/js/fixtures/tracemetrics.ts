@@ -27,8 +27,6 @@ function TraceMetricFixture({
   [TraceMetricKnownFieldKey.TRACE]: trace = '7b91699fd385d9fd52e0c4bc',
   [TraceMetricKnownFieldKey.SPAN_ID]: spanId = 'abc123def456',
   [TraceMetricKnownFieldKey.TIMESTAMP_PRECISE]: timestampPrecise = 1.744312870049196e18,
-  [TraceMetricKnownFieldKey.OBSERVED_TIMESTAMP_PRECISE]:
-    observedTimestampPrecise = 1.744312870049196e18,
   ...rest
 }: Partial<TraceMetricEventsResponseItem> &
   Required<
@@ -51,7 +49,6 @@ function TraceMetricFixture({
     [TraceMetricKnownFieldKey.TRACE]: trace,
     [TraceMetricKnownFieldKey.SPAN_ID]: spanId,
     [TraceMetricKnownFieldKey.TIMESTAMP_PRECISE]: timestampPrecise,
-    [TraceMetricKnownFieldKey.OBSERVED_TIMESTAMP_PRECISE]: observedTimestampPrecise,
   };
 
   return {...baseFields, ...rest} as TraceMetricEventsResponseItem;

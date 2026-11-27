@@ -2542,11 +2542,6 @@ const TRACEMETRIC_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.NUMBER,
   },
-  [TraceMetricKnownFieldKey.OBSERVED_TIMESTAMP_PRECISE]: {
-    desc: t('The timestamp at which an envelope was received by Relay, in nanoseconds.'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.NUMBER,
-  },
   [TraceMetricKnownFieldKey.PROJECT]: {
     desc: t('The project slug.'),
     kind: FieldKind.FIELD,
