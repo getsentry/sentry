@@ -45,6 +45,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
 )
 
 from sentry.exceptions import InvalidFunctionArgumentQuery, InvalidSearchQuery
+from sentry.search.eap import constants
 from sentry.search.eap import utils as eap_utils
 from sentry.search.eap.columns import ColumnDefinitions, ResolvedAttribute
 from sentry.search.eap.occurrences.definitions import OCCURRENCE_DEFINITIONS
@@ -488,14 +489,19 @@ class SearchResolverQueryTest(TestCase):
     def test_long_query_with_parens_is_flat(self) -> None:
         # Long AND chains must produce a flat AndFilter, otherwise the nested protobuf exceeds
         # protobuf's recursion limit when building the RPC request.
-        query = "(span.op:a or span.op:b) " + " ".join(f"!span.description:{i}*" for i in range(60))
+        query = "(span.op:a or span.op:b) " + " ".join(f"!span.description:{i}*" for i in range(48))
         where, having, _ = self.resolver.resolve_query(query)
         assert having is None
         assert where is not None
-        assert len(where.and_filter.filters) == 61
+        assert len(where.and_filter.filters) == 49
         assert len(where.and_filter.filters[0].or_filter.filters) == 2
         # Serializing and parsing back must not hit the recursion limit
         TraceItemFilter.FromString(where.SerializeToString())
+
+    def test_too_many_chained_conditions(self) -> None:
+        query = " ".join(f"span.description:{i}" for i in range(constants.MAX_BOOLEAN_DEPTH + 1))
+        with pytest.raises(InvalidSearchQuery, match="Maximum number of boolean conditions"):
+            self.resolver.resolve_query(f"({query})")
 
     def test_query_with_multiple_ors_is_flat(self) -> None:
         where, having, _ = self.resolver.resolve_query(

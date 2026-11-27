@@ -73,6 +73,8 @@ from sentry.utils.validators import WILDCARD_NOT_ALLOWED
 
 logger = logging.getLogger(__name__)
 
+MAX_BOOLEAN_CONDITIONS_ERROR = "Maximum number of boolean conditions reached, try reworking your to avoid this, for example multiple OR conditions to the same field can be replaced by field:[a,b,c]"
+
 
 def collect_issue_short_ids_from_parsed_terms(terms: Sequence[object]) -> set[str]:
     """Collect non-empty issue filter values from a parsed search tree (including OR/AND)."""
@@ -363,9 +365,7 @@ class SearchResolver:
         list[VirtualColumnDefinition | None],
     ]:
         if depth >= constants.MAX_BOOLEAN_DEPTH:
-            raise InvalidSearchQuery(
-                "Maximum number of boolean conditions reached, try reworking your to avoid this, for example multiple OR conditions to the same field can be replaced by field:[a,b,c]"
-            )
+            raise InvalidSearchQuery(MAX_BOOLEAN_CONDITIONS_ERROR)
         if len(terms) == 0:
             return None, None, []
         elif len(terms) == 1:
@@ -430,6 +430,11 @@ class SearchResolver:
         else:
             operator = "and"
             groups = [[term] for term in terms]
+
+        # The filters are flat, but keep limiting the number of chained conditions the same way the
+        # previous binary tree did (one level of depth per chained condition).
+        if depth + len(groups) > constants.MAX_BOOLEAN_DEPTH:
+            raise InvalidSearchQuery(MAX_BOOLEAN_CONDITIONS_ERROR)
 
         where_filters: list[TraceItemFilter] = []
         having_filters: list[AggregationFilter] = []
