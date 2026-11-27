@@ -1,3 +1,7 @@
+## 3.5.0
+
+- No documented changes.
+
 ## 3.4.1
 
 ### Bug Fixes 🐛
