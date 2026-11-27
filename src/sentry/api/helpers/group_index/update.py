@@ -38,7 +38,11 @@ from sentry.issues.action_log.read_metrics import activity_read_endpoint
 from sentry.issues.action_log.request import resolve_action_actor, resolve_action_source
 from sentry.issues.action_log.types import MergeIntoOtherAction
 from sentry.issues.grouptype import GroupCategory
-from sentry.issues.ignored import handle_archived_until_escalating, handle_ignored
+from sentry.issues.ignored import (
+    handle_archived_until_escalating,
+    handle_ignored,
+    prepare_ignored,
+)
 from sentry.issues.merge import MergedGroup, handle_merge
 from sentry.issues.priority import update_priority
 from sentry.issues.status_change import handle_status_update, infer_substatus
@@ -745,6 +749,10 @@ def handle_other_status_updates(
     if result.get("substatus"):
         new_substatus = SUBSTATUS_UPDATE_CHOICES[result["substatus"]]
     new_substatus = infer_substatus(new_status, new_substatus, status_details, group_list)
+    is_archive_until_escalating = new_substatus == GroupSubStatus.UNTIL_ESCALATING
+    prepared_ignore = None
+    if new_status == GroupStatus.IGNORED and not is_archive_until_escalating:
+        prepared_ignore = prepare_ignored(group_list, status_details, acting_user)
 
     with transaction.atomic(router.db_for_write(Group)):
         status_updated = queryset.exclude(status=new_status).update_with_returning(
@@ -761,12 +769,13 @@ def handle_other_status_updates(
                 relationship=GroupLink.Relationship.resolves,
             ).delete()
         if new_status == GroupStatus.IGNORED:
-            if new_substatus == GroupSubStatus.UNTIL_ESCALATING:
+            if is_archive_until_escalating:
                 result["statusDetails"] = handle_archived_until_escalating(
                     group_list, acting_user, projects, sender=update_groups
                 )
             else:
-                result["statusDetails"] = handle_ignored(group_list, status_details, acting_user)
+                assert prepared_ignore is not None
+                result["statusDetails"] = handle_ignored(group_list, prepared_ignore, acting_user)
             result["inbox"] = None
         else:
             result["statusDetails"] = {}
