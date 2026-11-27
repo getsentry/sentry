@@ -425,10 +425,9 @@ describe('VisualizationWidget dropped-data heatmap', () => {
     );
 
     expect(screen.getByText('Dropped spans ignore filters')).toBeInTheDocument();
-    expect(screen.queryByText('·')).not.toBeInTheDocument();
   });
 
-  it('separates the filter note from the low confidence marker', () => {
+  it('shows the filter note next to the low confidence marker', () => {
     const [result] = timeseriesResults;
     jest
       .mocked(WidgetCardDataLoader)
@@ -467,7 +466,6 @@ describe('VisualizationWidget dropped-data heatmap', () => {
     );
 
     expect(screen.getByText('Low confidence data')).toBeInTheDocument();
-    expect(screen.getByText('·')).toBeInTheDocument();
     expect(screen.getByText('Dropped spans ignore filters')).toBeInTheDocument();
   });
 

@@ -509,13 +509,8 @@ function VisualizationWidgetContent({
     <Container {...timeseriesContainerPadding}>
       <Flex align="center" gap="sm">
         {confidenceFooter}
-        {confidenceFooter && droppedDataFilterNote ? (
-          <Text size="sm" variant="muted">
-            ·
-          </Text>
-        ) : null}
         {droppedDataFilterNote ? (
-          <DroppedDataFilterNote {...droppedDataFilterNote} />
+          <DroppedDataFilterNote {...droppedDataFilterNote} showIcon={false} />
         ) : null}
       </Flex>
     </Container>
