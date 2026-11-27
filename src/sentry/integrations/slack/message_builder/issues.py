@@ -442,7 +442,8 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         has_action: bool,
         title_link: str | None = None,
     ) -> SlackBlock:
-        title = escape_slack_text(build_attachment_title(event_or_group))
+        # A newline in a Slack link label makes the whole link render as raw mrkdwn.
+        title = escape_slack_text(" ".join(build_attachment_title(event_or_group).split()))
         title_emojis = self.get_title_emoji(has_action)
         prefix = f"{title_emojis} <{title_link}|*"
         suffix = "*>"
