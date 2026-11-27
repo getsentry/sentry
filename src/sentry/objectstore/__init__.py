@@ -120,7 +120,8 @@ class UsecaseId(Enum):
             case UsecaseId.ARTIFACT_BUNDLES:
                 from sentry.models.artifactbundle import artifact_bundle_retention
 
-                # Bundles are ZIP archives, which are already compressed.
+                # Bundles are ZIP archives, which are usually compressed already. Assembly compresses the ones
+                # that are not.
                 return ObjectstoreClientUsecase(
                     self.value,
                     compression="none",

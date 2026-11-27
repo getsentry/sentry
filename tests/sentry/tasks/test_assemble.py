@@ -288,6 +288,43 @@ class ArtifactBundleBackendChangeTest(BaseAssembleTest):
         with bundle.get_file() as contents:
             assert contents.read() == self.payload
 
+    def get_stored_bundle_compression(self) -> str | None:
+        bundle = ArtifactBundle.objects.get(
+            organization_id=self.organization.id, bundle_id=self.bundle_id
+        )
+        assert bundle.storage_path is not None
+        response = bundle.get_objectstore_session().get(bundle.storage_path, decompress=False)
+        assert response is not None
+        response.payload.close()
+        return response.metadata.compression
+
+    def test_deflated_bundle_is_stored_uncompressed(self) -> None:
+        with self.feature("organizations:objectstore-artifact-bundles-exclusive-write"):
+            self.assemble()
+
+        assert self.get_stored_bundle_compression() is None
+
+    def test_stored_bundle_is_compressed(self) -> None:
+        stored = io.BytesIO()
+        with (
+            zipfile.ZipFile(io.BytesIO(self.payload)) as source,
+            zipfile.ZipFile(stored, "w", zipfile.ZIP_STORED) as target,
+        ):
+            for info in source.infolist():
+                target.writestr(info.filename, source.read(info))
+        payload = stored.getvalue()
+
+        with self.feature("organizations:objectstore-artifact-bundles-exclusive-write"):
+            self.assemble(payload)
+
+        assert self.get_stored_bundle_compression() == "zstd"
+        bundle = ArtifactBundle.objects.get(
+            organization_id=self.organization.id, bundle_id=self.bundle_id
+        )
+        assert bundle.get_file_size() == len(payload)
+        with bundle.get_file() as contents:
+            assert contents.read() == payload
+
     def test_reupload_moves_bundle_to_objectstore_with_flag_enabled(self) -> None:
         bundle = self.create_artifact_bundle(
             bundle_id=self.bundle_id, use_objectstore=False, payload=self.payload
