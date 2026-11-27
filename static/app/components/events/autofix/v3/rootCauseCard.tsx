@@ -8,7 +8,6 @@ import {Text} from '@sentry/scraps/text';
 
 import {
   getAutofixArtifactFromSection,
-  getSingleRunStop,
   isOutOfCreditsSection,
   isRootCauseArtifact,
   isSingleRunAutofix,
@@ -45,20 +44,11 @@ export function RootCauseCard({autofix, groupId, section}: RootCauseCardProps) {
     const sectionArtifact = getAutofixArtifactFromSection(section);
     return isRootCauseArtifact(sectionArtifact) ? sectionArtifact : null;
   }, [section]);
-  const stop = getSingleRunStop(section);
-  const stopDetails = stop ? (
-    <ArtifactDetails>
-      <Text bold>{t('Why Seer stopped')}</Text>
-      <SeerMarkdown raw={stop.reason} />
-      <Text bold>{t('Suggestion')}</Text>
-      <SeerMarkdown raw={stop.suggestion} />
-    </ArtifactDetails>
-  ) : null;
 
   const {copy} = useCopyToClipboard();
   const isSingleRun = isSingleRunAutofix(autofix.runState);
   const singleRunRerun = useRerunSingleRun(autofix, {
-    enabled: isSingleRun && section.status !== 'processing' && !artifact?.data && !stop,
+    enabled: isSingleRun && section.status !== 'processing' && !artifact?.data,
   });
   const markdown = useMemo(
     () => (artifact ? artifactToMarkdown(artifact) : null),
@@ -164,7 +154,6 @@ export function RootCauseCard({autofix, groupId, section}: RootCauseCardProps) {
             </Fragment>
           ) : null}
           {evidenceDetails}
-          {stopDetails}
         </Fragment>
       ) : isOutOfCredits ? (
         <Fragment>
@@ -191,8 +180,6 @@ export function RootCauseCard({autofix, groupId, section}: RootCauseCardProps) {
             )}
           </OutOfCreditsStatus>
         </Fragment>
-      ) : stopDetails ? (
-        stopDetails
       ) : (
         <ArtifactDetails>
           <Text>

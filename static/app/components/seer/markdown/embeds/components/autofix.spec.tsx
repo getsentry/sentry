@@ -9,6 +9,7 @@ import {
   screen,
   userEvent,
   waitFor,
+  within,
 } from 'sentry-test/reactTestingLibrary';
 
 import type {
@@ -23,6 +24,7 @@ import type {Group} from 'sentry/types/group';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {SeerCreditDenialReason} from 'sentry/utils/seer/useSeerCreditCheck';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import type {Artifact} from 'sentry/views/seerExplorer/types';
 
 import {AutofixRef} from './autofix';
 
@@ -501,6 +503,69 @@ describe('AutofixRef embed', () => {
       await waitFor(() => expect(getButtons('Try again')).toHaveLength(0));
     }
   );
+
+  describe('single run that stopped early', () => {
+    const stopArtifact = {
+      key: 'stop',
+      reason: 'stop',
+      data: {
+        reason: 'The error comes from a flaky upstream. It recovers on retry.',
+        suggestion: 'Ignore the issue until it escalates.',
+      },
+    };
+
+    function makeStoppedRun(artifacts: Artifact[]): ExplorerAutofixState {
+      return {
+        run_id: 42,
+        feature_id: 'autofix_single_run',
+        status: 'completed',
+        updated_at: '2026-01-01T00:00:00Z',
+        blocks: [
+          {
+            id: 'block-0',
+            timestamp: '2026-01-01T00:00:00Z',
+            message: {role: 'assistant', content: 'done', metadata: {step: 'single_run'}},
+            artifacts,
+          },
+        ],
+      };
+    }
+
+    it('shows the stop outside the collapsed root cause block', async () => {
+      mockRun(
+        makeStoppedRun([
+          {
+            key: 'single_run_root_cause',
+            reason: 'found',
+            data: {headline: 'Divides by zero', cause: 'Empty weights.'},
+          },
+          stopArtifact,
+        ])
+      );
+
+      render(<AutofixRefFor step="root_cause" />, {organization});
+
+      expect(await screen.findByTestId('autofix-single-run-stop')).toHaveTextContent(
+        'Seer stopped early: The error comes from a flaky upstream.'
+      );
+      expect(
+        within(screen.getByTestId('seer-autofix-embed')).queryByTestId(
+          'autofix-single-run-stop'
+        )
+      ).not.toBeInTheDocument();
+    });
+
+    it('shows only the stop when the run stopped before a root cause', async () => {
+      mockRun(makeStoppedRun([stopArtifact]));
+
+      render(<AutofixRefFor step="root_cause" />, {organization});
+
+      expect(await screen.findByTestId('autofix-single-run-stop')).toHaveTextContent(
+        'Next step: Ignore the issue until it escalates.'
+      );
+      expect(screen.queryByTestId('seer-autofix-embed')).not.toBeInTheDocument();
+    });
+  });
 
   describe('out of credits', () => {
     const creditsOrganization = OrganizationFixture({

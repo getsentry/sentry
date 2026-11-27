@@ -307,6 +307,64 @@ describe('SeerDrawerContent', () => {
         screen.queryByRole('button', {name: 'Chat with Seer about this step'})
       ).not.toBeInTheDocument();
     });
+
+    const stopArtifact = {
+      key: 'stop',
+      reason: 'stop',
+      data: {
+        reason: 'The error comes from a flaky upstream. It recovers on retry.',
+        suggestion: 'Ignore the issue until it escalates.',
+      },
+    };
+
+    it('shows why the run stopped beside the root cause, not inside it', () => {
+      render(
+        <SeerDrawerContent
+          aiConfig={makeAiConfig()}
+          autofix={makeAutofix({
+            runState: {
+              ...singleRun,
+              blocks: singleRun.blocks.map(block => ({
+                ...block,
+                artifacts: [...(block.artifacts ?? []), stopArtifact],
+              })),
+            },
+          })}
+          group={GroupFixture()}
+        />
+      );
+
+      const notice = screen.getByTestId('autofix-single-run-stop');
+      expect(screen.getByText('Divides by zero')).toBeInTheDocument();
+      expect(notice).toHaveTextContent(
+        'Seer stopped early: The error comes from a flaky upstream.'
+      );
+      expect(notice).toHaveTextContent('Next step: Ignore the issue until it escalates.');
+    });
+
+    it('shows only the stop when the run stopped before a root cause', () => {
+      render(
+        <SeerDrawerContent
+          aiConfig={makeAiConfig()}
+          autofix={makeAutofix({
+            runState: {
+              ...singleRun,
+              blocks: singleRun.blocks.map(block => ({
+                ...block,
+                artifacts: [stopArtifact],
+              })),
+            },
+          })}
+          group={GroupFixture()}
+        />
+      );
+
+      expect(screen.getByTestId('autofix-single-run-stop')).toBeInTheDocument();
+      expect(screen.queryByText('Root Cause')).not.toBeInTheDocument();
+      expect(
+        screen.queryByText(/Seer failed to generate a root cause/)
+      ).not.toBeInTheDocument();
+    });
   });
 
   it('hides Add Context without autofix-single-run', () => {

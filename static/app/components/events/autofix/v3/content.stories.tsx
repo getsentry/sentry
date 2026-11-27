@@ -342,7 +342,66 @@ function DrawerStory({
   );
 }
 
+const SINGLE_RUN_STOP = {
+  key: 'stop',
+  reason: 'stop',
+  data: {
+    reason:
+      'The `TypeError` comes from the payments provider returning an empty body during its outage window. Retries already succeed, and the checkout code handles the error correctly, so a code change would not prevent it.',
+    suggestion:
+      'Resolve the issue in Sentry and set an alert on the payments provider status instead.',
+  },
+};
+
+function makeStoppedSingleRun(withRootCause: boolean): ExplorerAutofixState {
+  return makeRun(
+    [
+      stepBlock('single_run', {
+        id: 'single-run',
+        message: {
+          role: 'assistant',
+          content: 'Seer stopped before changing code.',
+          metadata: {step: 'single_run'},
+        },
+        artifacts: [
+          ...(withRootCause
+            ? [
+                {
+                  key: 'single_run_root_cause',
+                  reason: 'found',
+                  data: {
+                    headline: 'The payments provider returned an empty body',
+                    cause:
+                      '`parseCharge()` reads `response.json()` on a 502 with no body, which throws `TypeError`.',
+                  },
+                },
+              ]
+            : []),
+          SINGLE_RUN_STOP,
+        ],
+      }),
+    ],
+    {feature_id: 'autofix_single_run'}
+  );
+}
+
 export default Storybook.story('SeerDrawerContent', story => {
+  story('Single run: stopped early after the root cause', () => (
+    <DrawerStory
+      description="A single run wrote a root cause, then stopped before changing code. Why it stopped sits in its own notice below the root cause card, with the next step right under the reason. Click the notice for the full reason."
+      runState={makeStoppedSingleRun(true)}
+      hasEnoughCredits
+    />
+  ));
+
+  story('Single run: stopped before a root cause', () => (
+    <DrawerStory
+      description="A single run stopped without naming a root cause. The drawer shows only the notice, instead of an empty root cause card."
+      runState={makeStoppedSingleRun(false)}
+      hasEnoughCredits
+    />
+  ));
+
   story('Out of credits: before a run', () => (
     <DrawerStory
       description="No run yet. The autofix-start alert sits at the top; the start card stays below it with Start Analysis disabled (autofix_root_cause)."

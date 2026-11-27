@@ -16,6 +16,7 @@ import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
 import {
   getAutofixArtifactFromSection,
   getOrderedAutofixSections,
+  getSingleRunStop,
   isCodeChangesSection,
   isCodingAgentsSection,
   isLastStepPrIteration,
@@ -39,6 +40,7 @@ import {SeerDrawerNextStep, SingleRunHandoffDropdown} from './nextStep';
 import {PullRequestsCard} from './pullRequestsCard';
 import {RootCauseCard} from './rootCauseCard';
 import {SeerEnableNotifications} from './seerEnableNotifications';
+import {SingleRunStopNotice} from './singleRunStopNotice';
 import {SolutionCard} from './solutionCard';
 import {useIsSingleRunChatOpen, useOpenSingleRunChat} from './useToggleSingleRunChat';
 
@@ -190,13 +192,15 @@ function SeerDrawerArtifacts({autofix, groupId, sections}: SeerDrawerArtifactsPr
         const key = `${section.step}-${section.blocks[0]?.id ?? null}`;
 
         if (isRootCauseSection(section)) {
+          const stop = getSingleRunStop(section);
+          const hasRootCause = !stop || defined(getAutofixArtifactFromSection(section));
           return (
-            <RootCauseCard
-              key={key}
-              autofix={autofix}
-              section={section}
-              groupId={groupId}
-            />
+            <Fragment key={key}>
+              {hasRootCause && (
+                <RootCauseCard autofix={autofix} section={section} groupId={groupId} />
+              )}
+              {stop && <SingleRunStopNotice stop={stop} />}
+            </Fragment>
           );
         }
 
