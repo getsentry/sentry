@@ -17,7 +17,8 @@ const Box = styled.div`
 
 - styled and `css` tagged templates (through `parseCssTemplate`, so `oxlint-disable` comments inside the CSS are honoured)
 - object styles passed to `styled(...)({...})` and `css({...})`
-- `css={...}` and `style={...}` JSX props, including arrays and theme callbacks
+- object literals in `style` props
+- object literals, arrays of object literals, and theme callbacks returning object literals in `css` props
 
 It calls `check(property, {node, tokenPath})` for each `theme.tokens.*` access in a value. It follows ternaries, logical expressions, template literals, and theme callbacks (`p => p.theme...`, `({theme}) => ...`, `useTheme()` bindings). `property` is normalized (`background-color`); `tokenPath` is the path after `tokens`.
 

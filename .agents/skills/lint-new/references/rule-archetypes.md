@@ -46,7 +46,7 @@ create(context) {
 }
 ```
 
-Type-only imports, mixed named imports, and re-exports keep working because only the path string changes.
+Type-only imports and mixed named imports keep working because only the path string changes. To also catch re-exports, add `ExportNamedDeclaration` and `ExportAllDeclaration` visitors.
 
 ## Token Validation
 

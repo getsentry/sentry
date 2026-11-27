@@ -149,6 +149,7 @@ For an incubator rule, also run `pnpm run lint:suppressions --ci --base origin/m
 2. Config-driven rules (e.g. `use-semantic-token`) often need only a change to their config file (`src/config/tokenRules.ts`). See the reverse-mapping note in [references/schema-patterns.md](references/schema-patterns.md).
 3. Update the spec for changed behavior, then add new cases.
 4. If the change adds violations to an incubator rule, re-enroll; otherwise fix them in the same PR.
+5. Run [Step 5: Verify](#step-5-verify).
 
 ## Naming
 
