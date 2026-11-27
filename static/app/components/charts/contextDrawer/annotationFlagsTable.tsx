@@ -1,62 +1,93 @@
-import {useQuery} from '@tanstack/react-query';
-import {parseAsString, useQueryState} from 'nuqs';
+import {parseAsInteger, useQueryState} from 'nuqs';
 
+import {useTimezone} from '@sentry/scraps/dateTime';
 import {EmptyState} from '@sentry/scraps/emptyState';
+import {Stack} from '@sentry/scraps/layout';
+import {Pagination} from '@sentry/scraps/pagination';
+import type {TableColumnConfig} from '@sentry/scraps/table';
+import {Text} from '@sentry/scraps/text';
 
-import {
-  FeatureFlagsLogTable,
-  type ColumnKey,
-} from 'sentry/components/featureFlags/featureFlagsLogTable';
-import {organizationFlagLogOptions} from 'sentry/components/featureFlags/hooks/useOrganizationFlagLog';
-import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import {formatAnnotationTime} from 'sentry/components/charts/annotations/summarizeAnnotation';
+import type {AnnotationItem} from 'sentry/components/charts/annotations/types';
+import {getFlagActionLabel} from 'sentry/components/featureFlags/utils';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import type {GridColumnOrder} from 'sentry/components/tables/dataGrid';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
-import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
-import {useOrganization} from 'sentry/utils/useOrganization';
 
-const COLUMNS: Array<GridColumnOrder<ColumnKey>> = [
-  {key: 'flag', name: t('Feature Flag')},
-  {key: 'action', name: t('Action')},
-  {key: 'createdAt', name: t('Date')},
+const PER_PAGE = 15;
+
+const COLUMNS: TableColumnConfig[] = [
+  {key: 'flag', width: 'minmax(0, 1fr)'},
+  {key: 'action', width: 'max-content'},
+  {key: 'time', width: 'minmax(0, max-content)'},
 ];
 
 interface AnnotationFlagsTableProps {
-  cursorKeyName: string;
+  items: readonly AnnotationItem[];
+  pageKeyName: string;
 }
 
-export function AnnotationFlagsTable({cursorKeyName}: AnnotationFlagsTableProps) {
-  const organization = useOrganization();
+export function AnnotationFlagsTable({items, pageKeyName}: AnnotationFlagsTableProps) {
   const {selection} = usePageFilters();
-  const [cursor] = useQueryState(cursorKeyName, parseAsString);
-  const {data, isPending, error} = useQuery({
-    ...organizationFlagLogOptions({
-      organization,
-      query: {
-        ...normalizeDateTimeParams(selection.datetime),
-        cursor: cursor ?? undefined,
-        sort: '-created_at',
-        per_page: 15,
-        queryReferrer: 'chartContextDrawer',
-      },
-    }),
-    select: selectJsonWithHeaders,
-  });
+  const userTimezone = useTimezone();
+  const timezone = selection.datetime.utc ? 'UTC' : userTimezone;
+  const [pageParam, setPage] = useQueryState(
+    pageKeyName,
+    parseAsInteger.withDefault(0).withOptions({history: 'push'})
+  );
+
+  if (items.length === 0) {
+    return (
+      <EmptyState
+        title={t('No flag changes')}
+        description={t('There are no flag changes within this timeframe.')}
+      />
+    );
+  }
+
+  const lastPage = Math.ceil(items.length / PER_PAGE) - 1;
+  const page = Math.min(Math.max(pageParam, 0), lastPage);
+  const rows = items
+    .toSorted((a, b) => b.start - a.start)
+    .slice(page * PER_PAGE, (page + 1) * PER_PAGE);
 
   return (
-    <FeatureFlagsLogTable
-      columns={COLUMNS}
-      flags={data?.json.data ?? []}
-      isPending={isPending}
-      error={error}
-      pageLinks={data?.headers.Link ?? null}
-      cursorKeyName={cursorKeyName}
-      emptyMessage={
-        <EmptyState
-          title={t('No flag changes')}
-          description={t('There are no flag changes within this timeframe.')}
+    <Stack>
+      <SimpleTable
+        aria-label={t('Flag changes')}
+        columns={COLUMNS}
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell>{t('Feature Flag')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>{t('Action')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>{t('Date')}</SimpleTable.HeaderCell>
+          </SimpleTable.HeaderRow>
+        }
+      >
+        {rows.map(item => (
+          <SimpleTable.Row key={item.id}>
+            <SimpleTable.RowCell>
+              <code>{item.title}</code>
+            </SimpleTable.RowCell>
+            <SimpleTable.RowCell>
+              {item.action ? getFlagActionLabel(item.action) : null}
+            </SimpleTable.RowCell>
+            <SimpleTable.RowCell>
+              <Text variant="muted">{formatAnnotationTime(item, timezone)}</Text>
+            </SimpleTable.RowCell>
+          </SimpleTable.Row>
+        ))}
+      </SimpleTable>
+      {items.length > PER_PAGE && (
+        <Pagination
+          previous={{cursor: String(page - 1), disabled: page === 0}}
+          next={{
+            cursor: String(page + 1),
+            disabled: (page + 1) * PER_PAGE >= items.length,
+          }}
+          onCursor={cursor => void setPage(Number(cursor))}
         />
-      }
-    />
+      )}
+    </Stack>
   );
 }

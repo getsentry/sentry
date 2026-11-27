@@ -7,7 +7,8 @@ type TimeseriesAnnotationType =
   | 'infrastructure_change'
   | 'sdk_update'
   | 'sentry_outage'
-  | 'custom';
+  | 'custom'
+  | 'feature_flag_change';
 
 export const TIMESERIES_ANNOTATION_TYPE_LABELS: Record<TimeseriesAnnotationType, string> =
   {
@@ -16,11 +17,15 @@ export const TIMESERIES_ANNOTATION_TYPE_LABELS: Record<TimeseriesAnnotationType,
     sdk_update: t('SDK update'),
     sentry_outage: t('Sentry outage'),
     custom: t('Custom'),
+    feature_flag_change: t('Feature flag change'),
   };
 
 const TIMESERIES_ANNOTATION_TYPE_FEATURES: Partial<
   Record<TimeseriesAnnotationType, string>
-> = {inbound_filter_change: 'timeseries-annotations-usecase-filter-change'};
+> = {
+  inbound_filter_change: 'timeseries-annotations-usecase-filter-change',
+  feature_flag_change: 'timeseries-annotations-usecase-feature-flag-change',
+};
 
 /**
  * Annotation types are shown only once their feature flag is on, and types

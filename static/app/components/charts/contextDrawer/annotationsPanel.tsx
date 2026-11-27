@@ -18,20 +18,15 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 
+import {AnnotationFlagsTable} from './annotationFlagsTable';
 import {AnnotationPinnedTable} from './annotationPinnedTable';
 import type {ChartContextSection} from './chartContextDrawer';
 
-export const ANNOTATION_FLAGS_CURSOR = 'contextFlagsCursor';
+export const ANNOTATION_FLAGS_PAGE = 'contextFlagsPage';
 
 const LazyReleasesDrawerTable = lazy(() =>
   import('sentry/views/explore/releases/drawer/releasesDrawerTable').then(module => ({
     default: module.ReleasesDrawerTable,
-  }))
-);
-
-const LazyAnnotationFlagsTable = lazy(() =>
-  import('./annotationFlagsTable').then(module => ({
-    default: module.AnnotationFlagsTable,
   }))
 );
 
@@ -79,30 +74,32 @@ export function AnnotationsPanel({items, kinds, section}: AnnotationsPanelProps)
         padding="2xl"
       >
         {activityKinds.length > 0 ? (
-          activityKinds.map(kind => (
-            <AnnotationsSection
-              key={kind}
-              title={ANNOTATION_KIND_LABELS[kind]}
-              count={activityItems.filter(item => item.kind === kind).length}
-            >
-              {kind === 'release' ? (
-                <LazyLoad
-                  LazyComponent={LazyReleasesDrawerTable}
-                  loadingFallback={<LoadingIndicator mini />}
-                  {...selection}
-                  releaseDrawerSource="chart-context-drawer"
-                />
-              ) : kind === 'flag' ? (
-                <LazyLoad
-                  LazyComponent={LazyAnnotationFlagsTable}
-                  loadingFallback={<LoadingIndicator mini />}
-                  cursorKeyName={ANNOTATION_FLAGS_CURSOR}
-                />
-              ) : (
-                <Text variant="muted">{t('Table coming soon')}</Text>
-              )}
-            </AnnotationsSection>
-          ))
+          activityKinds.map(kind => {
+            const kindItems = activityItems.filter(item => item.kind === kind);
+            return (
+              <AnnotationsSection
+                key={kind}
+                title={ANNOTATION_KIND_LABELS[kind]}
+                count={kindItems.length}
+              >
+                {kind === 'release' ? (
+                  <LazyLoad
+                    LazyComponent={LazyReleasesDrawerTable}
+                    loadingFallback={<LoadingIndicator mini />}
+                    {...selection}
+                    releaseDrawerSource="chart-context-drawer"
+                  />
+                ) : kind === 'flag' ? (
+                  <AnnotationFlagsTable
+                    items={kindItems}
+                    pageKeyName={ANNOTATION_FLAGS_PAGE}
+                  />
+                ) : (
+                  <Text variant="muted">{t('Table coming soon')}</Text>
+                )}
+              </AnnotationsSection>
+            );
+          })
         ) : (
           <Text variant="muted">{t('No annotations in this time range')}</Text>
         )}
