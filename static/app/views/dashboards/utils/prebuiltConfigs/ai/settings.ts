@@ -15,7 +15,7 @@ export const AI_AGENTS_MODELS_DASHBOARD_DESCRIPTION = t(
   'View AI agent token usage and costs by model.'
 );
 export const AI_AGENTS_TOOLS_DASHBOARD_DESCRIPTION = t(
-  'Track AI agent tool calls and error rates.'
+  'Track AI agent tool calls, errors, and duration.'
 );
 export const MCP_OVERVIEW_DASHBOARD_DESCRIPTION = t(
   'Monitor MCP server usage and performance.'
