@@ -17,6 +17,7 @@ import {Button} from '@sentry/scraps/button';
 import {GlobalDrawer} from '@sentry/scraps/drawer';
 import {PictureInPictureProvider} from '@sentry/scraps/pictureInPicture';
 
+import type {TimeseriesAnnotation} from 'sentry/components/charts/annotations/timeseriesAnnotation';
 import type {AnnotationKind} from 'sentry/components/charts/annotations/types';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -32,7 +33,10 @@ import {useChartContextDrawer} from './useChartContextDrawer';
 jest.mock('sentry/utils/analytics');
 
 const organization = OrganizationFixture({
-  features: ['explore-data-fidelity-annotations'],
+  features: [
+    'explore-data-fidelity-annotations',
+    'timeseries-annotations-usecase-feature-flag-change',
+  ],
 });
 
 function mockDroppedData(count: number, statsPeriod: string) {
@@ -791,7 +795,27 @@ describe('useChartContextDrawer', () => {
       });
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/timeseries-annotations/`,
-        body: [],
+        body: [
+          {
+            id: '1',
+            organizationId: '1',
+            projectId: null,
+            environmentId: null,
+            startTimestamp: '2026-11-03T13:00:00Z',
+            endTimestamp: null,
+            intervalType: 'point',
+            annotationType: 'feature_flag_change',
+            scope: 'global',
+            severity: 'low',
+            pinned: false,
+            description: "Feature flag 'new-checkout' updated via LaunchDarkly",
+            tags: {flag: 'new-checkout', action: 'updated'},
+            createdBy: null,
+            createdByLabel: 'feature-flag-webhook',
+            dateAdded: '2026-11-03T13:00:00Z',
+            dateUpdated: '2026-11-03T13:00:00Z',
+          } satisfies TimeseriesAnnotation,
+        ],
       });
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/releases/`,

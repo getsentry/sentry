@@ -6,10 +6,12 @@ import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {
   isTimeseriesAnnotationTypeEnabled,
   timeseriesAnnotationEnd,
+  type TimeseriesAnnotation,
 } from './timeseriesAnnotation';
 import type {AnnotationItem, AnnotationKind} from './types';
-import {useAnnotationFlagLog} from './useAnnotationFlagLog';
 import {useTimeseriesAnnotations} from './useTimeseriesAnnotations';
+
+const FLAG_CHANGE_TYPE: TimeseriesAnnotation['annotationType'] = 'feature_flag_change';
 
 type AnnotationItemsByKind = Partial<Record<AnnotationKind, AnnotationItem[]>>;
 
@@ -27,8 +29,17 @@ export function useAnnotationItems({
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const {releases} = useReleaseStats(selection, {enabled});
-  const {data: flagLog} = useAnnotationFlagLog({enabled});
-  const timeseriesAnnotations = useTimeseriesAnnotations({dataset, interval, enabled});
+  const timeseriesAnnotations = useTimeseriesAnnotations({
+    dataset,
+    interval,
+    enabled,
+  })?.filter(annotation =>
+    isTimeseriesAnnotationTypeEnabled(annotation.annotationType, organization)
+  );
+  const areFlagChangesEnabled = isTimeseriesAnnotationTypeEnabled(
+    FLAG_CHANGE_TYPE,
+    organization
+  );
 
   return {
     release: releases?.map(({date, version}): AnnotationItem => ({
@@ -37,17 +48,19 @@ export function useAnnotationItems({
       start: new Date(date).getTime(),
       title: version,
     })),
-    flag: flagLog?.map(({id, action, createdAt, flag}): AnnotationItem => ({
-      id: `flag:${id}`,
-      kind: 'flag',
-      start: new Date(createdAt).getTime(),
-      title: flag,
-      action,
-    })),
+    flag: areFlagChangesEnabled
+      ? timeseriesAnnotations
+          ?.filter(annotation => annotation.annotationType === FLAG_CHANGE_TYPE)
+          .map(({id, startTimestamp, description, tags}): AnnotationItem => ({
+            id: `flag:${id}`,
+            kind: 'flag',
+            start: new Date(startTimestamp).getTime(),
+            title: typeof tags?.flag === 'string' ? tags.flag : description,
+            action: typeof tags?.action === 'string' ? tags.action : undefined,
+          }))
+      : undefined,
     timeseriesAnnotation: timeseriesAnnotations
-      ?.filter(annotation =>
-        isTimeseriesAnnotationTypeEnabled(annotation.annotationType, organization)
-      )
+      ?.filter(annotation => annotation.annotationType !== FLAG_CHANGE_TYPE)
       .map((annotation): AnnotationItem => ({
         id: `timeseriesAnnotation:${annotation.id}`,
         kind: 'timeseriesAnnotation',

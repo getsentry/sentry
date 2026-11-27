@@ -4,8 +4,8 @@ import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import type {RawFlag} from 'sentry/components/featureFlags/utils';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 
@@ -96,18 +96,29 @@ describe('useChartLayers', () => {
         'explore-data-fidelity-annotations',
         'timeseries-annotations',
         'timeseries-annotations-usecase-filter-change',
+        'timeseries-annotations-usecase-feature-flag-change',
       ],
     });
 
     const release = {date: '2026-11-03T12:00:00Z', version: 'ui@1.0.0'};
-    const flagChange: RawFlag = {
-      id: 1,
-      action: 'updated',
-      createdAt: '2026-11-03T13:00:00Z',
-      createdBy: 'user@example.com',
-      createdByType: 'email',
-      flag: 'new-checkout',
-      tags: {},
+    const flagChange: TimeseriesAnnotation = {
+      id: '1',
+      organizationId: '1',
+      projectId: null,
+      environmentId: null,
+      startTimestamp: '2026-11-03T13:00:00Z',
+      endTimestamp: null,
+      intervalType: 'point',
+      annotationType: 'feature_flag_change',
+      scope: 'global',
+      severity: 'low',
+      pinned: false,
+      description: "Feature flag 'new-checkout' updated via LaunchDarkly",
+      tags: {flag: 'new-checkout', action: 'updated', provider: 'launchdarkly'},
+      createdBy: null,
+      createdByLabel: 'feature-flag-webhook',
+      dateAdded: '2026-11-03T13:00:00Z',
+      dateUpdated: '2026-11-03T13:00:00Z',
     };
 
     const releaseAnnotation: AnnotationItem = {
@@ -155,33 +166,28 @@ describe('useChartLayers', () => {
       severity: 'high',
     };
 
-    let flagLogRequest: jest.Mock;
     let annotationsRequest: jest.Mock;
 
     function renderAnnotationsHook({
       releases,
-      flags,
-      changes = [],
+      timeseriesAnnotations,
+      organization: hookOrganization = annotationsOrganization,
     }: {
-      flags: RawFlag[];
       releases: Array<{date: string; version: string}>;
-      changes?: TimeseriesAnnotation[];
+      timeseriesAnnotations: TimeseriesAnnotation[];
+      organization?: Organization;
     }) {
       MockApiClient.addMockResponse({
-        url: `/organizations/${annotationsOrganization.slug}/releases/stats/`,
+        url: `/organizations/${hookOrganization.slug}/releases/stats/`,
         body: releases,
       });
       MockApiClient.addMockResponse({
-        url: `/organizations/${annotationsOrganization.slug}/releases/`,
+        url: `/organizations/${hookOrganization.slug}/releases/`,
         body: [],
       });
-      flagLogRequest = MockApiClient.addMockResponse({
-        url: `/organizations/${annotationsOrganization.slug}/flags/logs/`,
-        body: {data: flags},
-      });
       annotationsRequest = MockApiClient.addMockResponse({
-        url: `/organizations/${annotationsOrganization.slug}/timeseries-annotations/`,
-        body: changes,
+        url: `/organizations/${hookOrganization.slug}/timeseries-annotations/`,
+        body: timeseriesAnnotations,
       });
 
       return renderHookWithProviders(
@@ -191,12 +197,15 @@ describe('useChartLayers', () => {
             interval: '1h',
             source: 'explore',
           }),
-        {organization: annotationsOrganization}
+        {organization: hookOrganization}
       );
     }
 
     it('feeds releases and flag changes into the annotations band', async () => {
-      const {result} = renderAnnotationsHook({releases: [release], flags: [flagChange]});
+      const {result} = renderAnnotationsHook({
+        releases: [release],
+        timeseriesAnnotations: [flagChange],
+      });
 
       await waitFor(() =>
         expect(result.current.annotations).toEqual([releaseAnnotation, flagAnnotation])
@@ -212,8 +221,10 @@ describe('useChartLayers', () => {
     it('feeds timeseries annotations whose type flag is on into the annotations band', async () => {
       const {result} = renderAnnotationsHook({
         releases: [],
-        flags: [],
-        changes: [change, {...change, id: '8', annotationType: 'sentry_outage'}],
+        timeseriesAnnotations: [
+          change,
+          {...change, id: '8', annotationType: 'sentry_outage'},
+        ],
       });
 
       await waitFor(() => expect(result.current.annotations).toEqual([changeAnnotation]));
@@ -228,19 +239,28 @@ describe('useChartLayers', () => {
       );
     });
 
-    it('requests the flag log in a stable order so its pages line up', async () => {
-      renderAnnotationsHook({releases: [], flags: [flagChange]});
+    it('has no Flags layer when flag change annotations are off', async () => {
+      const {result} = renderAnnotationsHook({
+        releases: [release],
+        timeseriesAnnotations: [flagChange],
+        organization: OrganizationFixture({
+          features: ['explore-data-fidelity-annotations', 'timeseries-annotations'],
+        }),
+      });
 
       await waitFor(() =>
-        expect(flagLogRequest).toHaveBeenCalledWith(
-          `/organizations/${annotationsOrganization.slug}/flags/logs/`,
-          expect.objectContaining({query: expect.objectContaining({sort: 'created_at'})})
-        )
+        expect(result.current.annotations).toEqual([releaseAnnotation])
+      );
+      expect(result.current.layerControl?.layers).not.toContainEqual(
+        expect.objectContaining({value: 'flags'})
       );
     });
 
     it('toggles releases in the annotations band from the Releases layer', async () => {
-      const {result} = renderAnnotationsHook({releases: [release], flags: []});
+      const {result} = renderAnnotationsHook({
+        releases: [release],
+        timeseriesAnnotations: [],
+      });
 
       await waitFor(() =>
         expect(result.current.annotations).toEqual([releaseAnnotation])
@@ -258,7 +278,10 @@ describe('useChartLayers', () => {
     });
 
     it('toggles flag changes in the annotations band from the Flags layer', async () => {
-      const {result} = renderAnnotationsHook({releases: [release], flags: [flagChange]});
+      const {result} = renderAnnotationsHook({
+        releases: [release],
+        timeseriesAnnotations: [flagChange],
+      });
 
       await waitFor(() =>
         expect(result.current.annotations).toEqual([releaseAnnotation, flagAnnotation])
@@ -279,7 +302,7 @@ describe('useChartLayers', () => {
       Element.prototype.scrollIntoView = jest.fn();
       const {result, router} = renderAnnotationsHook({
         releases: [release],
-        flags: [flagChange],
+        timeseriesAnnotations: [flagChange],
       });
       await waitFor(() => expect(result.current.annotations).toHaveLength(2));
 
@@ -298,7 +321,7 @@ describe('useChartLayers', () => {
     });
 
     it('disables the Releases and Flags layers when the range has neither', async () => {
-      const {result} = renderAnnotationsHook({releases: [], flags: []});
+      const {result} = renderAnnotationsHook({releases: [], timeseriesAnnotations: []});
 
       await waitFor(() =>
         expect(result.current.layerControl?.layers).toEqual(
