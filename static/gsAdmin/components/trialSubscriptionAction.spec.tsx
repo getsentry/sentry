@@ -4,7 +4,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {renderGlobalModal, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {openAdminConfirmModal} from 'admin/components/adminConfirmationModal';
+import {openModal} from '@sentry/scraps/modal';
+
 import {TrialSubscriptionAction} from 'admin/components/trialSubscriptionAction';
 
 describe('TrialSubscriptionAction', () => {
@@ -21,19 +22,17 @@ describe('TrialSubscriptionAction', () => {
 
     await userEvent.clear(daysInput);
     await userEvent.type(daysInput, days);
-    await userEvent.click(screen.getByTestId('confirm-button'));
+    await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
   }
 
   it('can pass trialDays onConfirm', async () => {
-    openAdminConfirmModal({
-      onConfirm,
-      renderModalSpecificContent: deps => (
-        <TrialSubscriptionAction
-          subscription={SubscriptionFixture({organization})}
-          {...deps}
-        />
-      ),
-    });
+    openModal(deps => (
+      <TrialSubscriptionAction
+        subscription={SubscriptionFixture({organization})}
+        {...deps}
+        onConfirm={onConfirm}
+      />
+    ));
 
     renderGlobalModal();
     await confirmTrialDays('30');
@@ -44,16 +43,14 @@ describe('TrialSubscriptionAction', () => {
   it('can pass trialDays and enterprise plan onConfirm', async () => {
     jest.mock('@sentry/scraps/alert');
 
-    openAdminConfirmModal({
-      onConfirm,
-      renderModalSpecificContent: deps => (
-        <TrialSubscriptionAction
-          subscription={SubscriptionFixture({organization, plan: 'mm2_f', isFree: true})}
-          startEnterpriseTrial
-          {...deps}
-        />
-      ),
-    });
+    openModal(deps => (
+      <TrialSubscriptionAction
+        subscription={SubscriptionFixture({organization, plan: 'mm2_f', isFree: true})}
+        startEnterpriseTrial
+        {...deps}
+        onConfirm={onConfirm}
+      />
+    ));
 
     renderGlobalModal();
 
@@ -68,20 +65,18 @@ describe('TrialSubscriptionAction', () => {
   it('can pass trialDays and extend enterprise plan onConfirm', async () => {
     jest.mock('@sentry/scraps/alert');
 
-    openAdminConfirmModal({
-      onConfirm,
-      renderModalSpecificContent: deps => (
-        <TrialSubscriptionAction
-          subscription={SubscriptionFixture({
-            organization,
-            plan: 'mm2_a_500k',
-            isFree: false,
-            isEnterpriseTrial: true,
-          })}
-          {...deps}
-        />
-      ),
-    });
+    openModal(deps => (
+      <TrialSubscriptionAction
+        subscription={SubscriptionFixture({
+          organization,
+          plan: 'mm2_a_500k',
+          isFree: false,
+          isEnterpriseTrial: true,
+        })}
+        {...deps}
+        onConfirm={onConfirm}
+      />
+    ));
 
     renderGlobalModal();
     await confirmTrialDays('21');
@@ -89,18 +84,56 @@ describe('TrialSubscriptionAction', () => {
     expect(onConfirm).toHaveBeenCalledWith({trialDays: 21});
   });
 
+  it('shows an error and does not confirm for zero days', async () => {
+    const onConfirmInvalid = jest.fn();
+    openModal(deps => (
+      <TrialSubscriptionAction
+        subscription={SubscriptionFixture({organization})}
+        {...deps}
+        onConfirm={onConfirmInvalid}
+      />
+    ));
+
+    renderGlobalModal();
+    await confirmTrialDays('0');
+
+    expect(
+      await screen.findByText('Enter a number of days greater than zero')
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Confirm'})).toBeEnabled();
+    expect(onConfirmInvalid).not.toHaveBeenCalled();
+  });
+
+  it('shows an error and does not confirm when days are cleared', async () => {
+    const onConfirmEmpty = jest.fn();
+    openModal(deps => (
+      <TrialSubscriptionAction
+        subscription={SubscriptionFixture({organization})}
+        {...deps}
+        onConfirm={onConfirmEmpty}
+      />
+    ));
+
+    renderGlobalModal();
+    await userEvent.clear(screen.getByRole('spinbutton', {name: 'Number of Days'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
+
+    expect(
+      await screen.findByText('Enter a number of days greater than zero')
+    ).toBeInTheDocument();
+    expect(onConfirmEmpty).not.toHaveBeenCalled();
+  });
+
   it('displays correct trial end date when starting trial', async () => {
     jest.mock('@sentry/scraps/alert');
 
-    openAdminConfirmModal({
-      onConfirm,
-      renderModalSpecificContent: deps => (
-        <TrialSubscriptionAction
-          subscription={SubscriptionFixture({organization, plan: 'mm2_f', isFree: true})}
-          {...deps}
-        />
-      ),
-    });
+    openModal(deps => (
+      <TrialSubscriptionAction
+        subscription={SubscriptionFixture({organization, plan: 'mm2_f', isFree: true})}
+        {...deps}
+        onConfirm={onConfirm}
+      />
+    ));
 
     renderGlobalModal();
 
@@ -116,16 +149,14 @@ describe('TrialSubscriptionAction', () => {
   it('displays correct trial end date when starting enterprise trial', async () => {
     jest.mock('@sentry/scraps/alert');
 
-    openAdminConfirmModal({
-      onConfirm,
-      renderModalSpecificContent: deps => (
-        <TrialSubscriptionAction
-          subscription={SubscriptionFixture({organization, plan: 'mm2_f', isFree: true})}
-          startEnterpriseTrial
-          {...deps}
-        />
-      ),
-    });
+    openModal(deps => (
+      <TrialSubscriptionAction
+        subscription={SubscriptionFixture({organization, plan: 'mm2_f', isFree: true})}
+        startEnterpriseTrial
+        {...deps}
+        onConfirm={onConfirm}
+      />
+    ));
 
     renderGlobalModal();
 
@@ -141,20 +172,18 @@ describe('TrialSubscriptionAction', () => {
   it('displays correct trial end date when extending trial', async () => {
     jest.mock('@sentry/scraps/alert');
 
-    openAdminConfirmModal({
-      onConfirm,
-      renderModalSpecificContent: deps => (
-        <TrialSubscriptionAction
-          subscription={SubscriptionFixture({
-            organization,
-            trialEnd: trialEnd.toISOString(),
-            plan: 'am1_t',
-            isFree: true,
-          })}
-          {...deps}
-        />
-      ),
-    });
+    openModal(deps => (
+      <TrialSubscriptionAction
+        subscription={SubscriptionFixture({
+          organization,
+          trialEnd: trialEnd.toISOString(),
+          plan: 'am1_t',
+          isFree: true,
+        })}
+        {...deps}
+        onConfirm={onConfirm}
+      />
+    ));
 
     renderGlobalModal();
 
@@ -170,21 +199,19 @@ describe('TrialSubscriptionAction', () => {
   it('displays correct trial end date when converting from trial to enterprise trial', async () => {
     jest.mock('@sentry/scraps/alert');
 
-    openAdminConfirmModal({
-      onConfirm,
-      renderModalSpecificContent: deps => (
-        <TrialSubscriptionAction
-          subscription={SubscriptionFixture({
-            organization,
-            trialEnd: trialEnd.toISOString(),
-            plan: 'am1_t',
-            isFree: true,
-          })}
-          startEnterpriseTrial
-          {...deps}
-        />
-      ),
-    });
+    openModal(deps => (
+      <TrialSubscriptionAction
+        subscription={SubscriptionFixture({
+          organization,
+          trialEnd: trialEnd.toISOString(),
+          plan: 'am1_t',
+          isFree: true,
+        })}
+        startEnterpriseTrial
+        {...deps}
+        onConfirm={onConfirm}
+      />
+    ));
 
     renderGlobalModal();
 
@@ -200,19 +227,17 @@ describe('TrialSubscriptionAction', () => {
   it('defaults 14-day trial for self-serve', () => {
     jest.mock('@sentry/scraps/alert');
 
-    openAdminConfirmModal({
-      onConfirm,
-      renderModalSpecificContent: deps => (
-        <TrialSubscriptionAction
-          subscription={SubscriptionFixture({
-            organization,
-            plan: 'am3_business',
-            isEnterpriseTrial: false,
-          })}
-          {...deps}
-        />
-      ),
-    });
+    openModal(deps => (
+      <TrialSubscriptionAction
+        subscription={SubscriptionFixture({
+          organization,
+          plan: 'am3_business',
+          isEnterpriseTrial: false,
+        })}
+        {...deps}
+        onConfirm={onConfirm}
+      />
+    ));
 
     renderGlobalModal();
     const daysInput = screen.getByRole('spinbutton', {name: 'Number of Days'});
@@ -222,19 +247,17 @@ describe('TrialSubscriptionAction', () => {
   it('defaults 28-day trial for isEnterpriseTrial', () => {
     jest.mock('@sentry/scraps/alert');
 
-    openAdminConfirmModal({
-      onConfirm,
-      renderModalSpecificContent: deps => (
-        <TrialSubscriptionAction
-          subscription={SubscriptionFixture({
-            organization,
-            plan: 'am3_business',
-            isEnterpriseTrial: true,
-          })}
-          {...deps}
-        />
-      ),
-    });
+    openModal(deps => (
+      <TrialSubscriptionAction
+        subscription={SubscriptionFixture({
+          organization,
+          plan: 'am3_business',
+          isEnterpriseTrial: true,
+        })}
+        {...deps}
+        onConfirm={onConfirm}
+      />
+    ));
 
     renderGlobalModal();
     const daysInput = screen.getByRole('spinbutton', {name: 'Number of Days'});
@@ -244,20 +267,18 @@ describe('TrialSubscriptionAction', () => {
   it('defaults 28-day trial for startEnterpriseTrial', () => {
     jest.mock('@sentry/scraps/alert');
 
-    openAdminConfirmModal({
-      onConfirm,
-      renderModalSpecificContent: deps => (
-        <TrialSubscriptionAction
-          subscription={SubscriptionFixture({
-            organization,
-            plan: 'am3_business',
-            isEnterpriseTrial: false,
-          })}
-          startEnterpriseTrial
-          {...deps}
-        />
-      ),
-    });
+    openModal(deps => (
+      <TrialSubscriptionAction
+        subscription={SubscriptionFixture({
+          organization,
+          plan: 'am3_business',
+          isEnterpriseTrial: false,
+        })}
+        startEnterpriseTrial
+        {...deps}
+        onConfirm={onConfirm}
+      />
+    ));
 
     renderGlobalModal();
     const daysInput = screen.getByRole('spinbutton', {name: 'Number of Days'});
