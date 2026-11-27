@@ -57,6 +57,61 @@ describe('InstallWizard', () => {
     ).not.toBeChecked();
   });
 
+  it('preserves stored settings when all options are set', async () => {
+    const options = InstallWizardFixture();
+    const storedValues = {
+      'system.admin-email': 'admin@example.com',
+      'mail.from': 'root@localhost',
+      'mail.host': 'smtp.example.com',
+      'mail.port': 587,
+      'mail.username': 'smtp-user',
+      'mail.password': 'example-password',
+      'mail.use-tls': true,
+      'mail.use-ssl': false,
+      'beacon.record_cpu_ram_usage': false,
+      'auth.allow-registration': true,
+    };
+    for (const [key, value] of Object.entries(storedValues)) {
+      options[key] = {field: {...requiredField, allowEmpty: true, isSet: true}, value};
+    }
+    MockApiClient.addMockResponse({
+      url: '/internal/options/',
+      match: [MockApiClient.matchQuery({query: 'is:required'})],
+      body: options,
+    });
+    const saveRequest = MockApiClient.addMockResponse({
+      url: '/internal/options/',
+      method: 'PUT',
+    });
+    const onConfigured = jest.fn();
+
+    render(<InstallWizard onConfigured={onConfigured} />);
+
+    expect(await screen.findByRole('textbox', {name: 'SMTP Host'})).toHaveValue(
+      'smtp.example.com'
+    );
+    expect(screen.getByRole('textbox', {name: 'SMTP Password'})).toHaveValue(
+      'example-password'
+    );
+    await userEvent.click(
+      screen.getByRole('radio', {name: 'Please keep my usage information anonymous'})
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
+
+    await waitFor(() => expect(onConfigured).toHaveBeenCalled());
+    expect(saveRequest).toHaveBeenCalledWith(
+      '/internal/options/',
+      expect.objectContaining({
+        data: {
+          ...storedValues,
+          'mail.port': '587',
+          'beacon.record_cpu_ram_usage': 'false',
+          'beacon.anonymous': 'true',
+        },
+      })
+    );
+  });
+
   it('has no option selected even when beacon.anonymous is set', async () => {
     MockApiClient.addMockResponse({
       url: '/internal/options/',

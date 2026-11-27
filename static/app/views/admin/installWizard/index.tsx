@@ -71,11 +71,8 @@ function getInitialValue(
 ): OptionValue | undefined {
   // The admin must explicitly choose beacon.anonymous, so a stored value never
   // preselects it.
-  const storedValue =
-    !option.field.isSet && definition.key !== 'beacon.anonymous'
-      ? option.value
-      : undefined;
-  const value = storedValue || definition.defaultValue?.();
+  const storedValue = definition.key === 'beacon.anonymous' ? undefined : option.value;
+  const value = storedValue ?? definition.defaultValue?.();
 
   if (definition.type === 'boolean') {
     return Boolean(value);
