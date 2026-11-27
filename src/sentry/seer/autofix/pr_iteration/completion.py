@@ -27,6 +27,7 @@ from sentry.seer.autofix.pr_iteration.emit import (
     PrIterationOutcome,
     complete_pr_iteration_details,
     outcome_for_failed_run,
+    record_pr_iteration_push_error,
 )
 from sentry.seer.autofix.pr_iteration.feedback import latest_iteration_feedback_kind
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTriggerSource, Decision
@@ -610,6 +611,9 @@ def _push_iteration_changes(
             reason="exception",
             error_type=type(e).__name__,
         )
+        record_pr_iteration_push_error(
+            log_ctx=log_ctx, run_state=state, organization_id=group.organization.id, error=e
+        )
         return PrIterationOutcome.PUSH_FAILED
 
     log_ctx.info("autofix.pr_iteration.push", outcome="pushed", reason="ok")
@@ -803,6 +807,9 @@ def _retry_push_on_moved_branch(
             outcome="not_pushed",
             reason="branch_moved_retry_failed",
             error_type=type(e).__name__,
+        )
+        record_pr_iteration_push_error(
+            log_ctx=log_ctx, run_state=state, organization_id=group.organization.id, error=e
         )
         return PrIterationOutcome.PR_CREATION_ERRORED
     log_ctx.info("autofix.pr_iteration.push", outcome="retrying", reason="branch_moved")

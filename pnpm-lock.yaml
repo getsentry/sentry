@@ -1014,9 +1014,6 @@ importers:
 
   static/packages/api:
     dependencies:
-      http-cache-semantics:
-        specifier: ^4.2.0
-        version: 4.3.0
       p-limit:
         specifier: ^7.3.3
         version: 7.3.3
@@ -1024,9 +1021,6 @@ importers:
       '@hey-api/openapi-ts':
         specifier: 0.98.0
         version: 0.98.0(@typescript/typescript6@6.0.2)
-      '@types/http-cache-semantics':
-        specifier: 4.2.0
-        version: 4.2.0
       '@types/node':
         specifier: 26.6.4
         version: 26.6.4
@@ -4899,9 +4893,6 @@ packages:
   '@types/html-minifier-terser@6.1.0':
     resolution: {integrity: sha512-oh/6byDPnL1zeNXFrDXFLyZjkr1MsBG667IM792caf1L2UPOOMf65NFzjUH/ltyfwjAGfs1rsX1eftK0jC/KIg==}
 
-  '@types/http-cache-semantics@4.2.0':
-    resolution: {integrity: sha512-L3LgimLHXtGkWikKnsPg0/VFx9OGZaC+eN1u4r+OB1XRqH3meBIAVC2zr1WdMH+RHmnRkqliQAOHNJ/E0j/e0Q==}
-
   '@types/invariant@2.2.37':
     resolution: {integrity: sha512-IwpIMieE55oGWiXkQPSBY1nw1nFs6bsKXTFskNY8sdS17K24vyEBRQZEwlRS7ZmXCWnJcQtbxWzly+cODWGs2A==}
 
@@ -6690,9 +6681,6 @@ packages:
 
   htmlparser2@6.1.0:
     resolution: {integrity: sha512-gyyPk6rgonLFEDGoeRgQNaEUvdJ4ktTmmUh/h2t7s+M8oPpIPxgNACWa+6ESR57kXstwqPiCut0V8NRpcwgU7A==}
-
-  http-cache-semantics@4.3.0:
-    resolution: {integrity: sha512-M5t5LlJpS1UHMjvwRQVdFHvPISGeLAxNcrWuJkeGh0KxsqCHZ1O3NXZU/8x7cD0BDcGW8kapxMKTvwlqrNkHkA==}
 
   human-signals@1.1.1:
     resolution: {integrity: sha512-SEQu7vl8KjNL2eoGBLF3+wAjpsNfA9XMlXAYj/3EdaNfAlxKthD1xjEQfGOUhllCGGJVNY34bRr6lPINhNjyZw==}
@@ -12556,8 +12544,6 @@ snapshots:
 
   '@types/html-minifier-terser@6.1.0': {}
 
-  '@types/http-cache-semantics@4.2.0': {}
-
   '@types/invariant@2.2.37': {}
 
   '@types/istanbul-lib-coverage@2.0.6': {}
@@ -14583,8 +14569,6 @@ snapshots:
       domhandler: 4.2.0
       domutils: 2.7.0
       entities: 2.2.0
-
-  http-cache-semantics@4.3.0: {}
 
   human-signals@1.1.1: {}
 

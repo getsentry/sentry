@@ -11,13 +11,13 @@ import pytest
 from tools.api_guidelines.check_new import (
     FINDINGS_PATH,
     Finding,
+    Key,
     base_counts,
     changed_paths,
     find_new,
     main,
 )
 from tools.api_guidelines.rules import RULES, ApiRule
-from tools.api_guidelines.signature import BaselineSignature
 
 PATH = "src/sentry/api/endpoints/example.py"
 
@@ -53,7 +53,7 @@ def repo(tmp_path: Path) -> Path:
     return tmp_path
 
 
-def _counts(tmp_path: Path, base_source: str) -> dict[BaselineSignature, int]:
+def _counts(tmp_path: Path, base_source: str) -> dict[Key, int]:
     """base_counts for PATH when its base version is `base_source`"""
     base = tmp_path / "base"
     (base / PATH).parent.mkdir(parents=True)
@@ -80,6 +80,41 @@ def test_a_finding_already_at_the_merge_base_is_not_new(repo: Path, tmp_path: Pa
     new, _ = find_new(repo, [PATH], _counts(tmp_path, EXAMPLE_ENDPOINT))
 
     assert new == []
+
+
+def test_a_private_endpoint_made_public_has_only_new_findings(repo: Path, tmp_path: Path) -> None:
+    private = EXAMPLE_ENDPOINT.replace("ApiPublishStatus.PUBLIC", "ApiPublishStatus.PRIVATE")
+
+    new, _ = find_new(repo, [PATH], _counts(tmp_path, private))
+
+    assert _lines(new) == [(PATH, 5), (PATH, 6)]
+
+
+def test_a_public_endpoint_made_private_has_no_new_findings(tmp_path: Path) -> None:
+    repo = tmp_path / "pr"
+    (repo / PATH).parent.mkdir(parents=True)
+    (repo / PATH).write_text(
+        EXAMPLE_ENDPOINT.replace("ApiPublishStatus.PUBLIC", "ApiPublishStatus.PRIVATE")
+    )
+
+    new, _ = find_new(repo, [PATH], _counts(tmp_path, EXAMPLE_ENDPOINT))
+
+    assert new == []
+
+
+def test_a_private_endpoint_made_public_experimental_has_only_new_findings(
+    tmp_path: Path,
+) -> None:
+    repo = tmp_path / "pr"
+    (repo / PATH).parent.mkdir(parents=True)
+    (repo / PATH).write_text(
+        EXAMPLE_ENDPOINT.replace("ApiPublishStatus.PUBLIC", "ApiPublishStatus.PUBLIC_EXPERIMENTAL")
+    )
+    private = EXAMPLE_ENDPOINT.replace("ApiPublishStatus.PUBLIC", "ApiPublishStatus.PRIVATE")
+
+    new, _ = find_new(repo, [PATH], _counts(tmp_path, private))
+
+    assert _lines(new) == [(PATH, 5), (PATH, 6)]
 
 
 def test_a_count_above_the_merge_base_flags_every_line_with_that_signature(
@@ -198,8 +233,22 @@ def test_new_findings_are_written_for_the_pr_comment(pr: tuple[Path, str]) -> No
     rows = json.loads((root / FINDINGS_PATH).read_text())
     s026 = RULES[ApiRule.S026]
     assert rows == [
-        {"path": PATH, "line": 5, "rule": "S026", "title": s026.title, "fix": s026.fix},
-        {"path": PATH, "line": 6, "rule": "S026", "title": s026.title, "fix": s026.fix},
+        {
+            "path": PATH,
+            "line": 5,
+            "rule": "S026",
+            "title": s026.title,
+            "fix": s026.fix,
+            "publish_status": "public",
+        },
+        {
+            "path": PATH,
+            "line": 6,
+            "rule": "S026",
+            "title": s026.title,
+            "fix": s026.fix,
+            "publish_status": "public",
+        },
     ]
 
 

@@ -3,23 +3,18 @@
  * Standard Web APIs only, so it runs in Node and Cloudflare Workers.
  *
  * Per request it sets the Authorization header, refreshes the credential once
- * after a 401 (any method), times out each attempt, retries through
- * `retry`, replays request bodies, optionally follows redirects only to
- * trusted origins, and serves and invalidates cached GETs through an injected
- * cache. The host supplies credentials, header rules, error classes, logging,
- * and spans.
+ * after a 401 (any method) and replays the request, times out each attempt,
+ * optionally follows redirects only to trusted origins, serves and
+ * invalidates cached GETs through an injected cache, and retries failed
+ * attempts through an injected retry policy. The host supplies credentials,
+ * header rules, the cache, the retry policy, error classes, logging, and
+ * spans.
  */
 
-import {
-  isIdempotentRequest,
-  nextRetryDelayMs,
-  parseRetryDelayMs,
-  type RetryPolicy,
-  sleep,
-} from "./retry.js";
 import { type ApiPathScope, parseApiPathScope } from "./api-path.js";
 import { sentryBearerHeader } from "./auth-token.js";
-import type { CacheLookup } from "./response-cache/policy.js";
+import { isIdempotentRequest } from "./idempotent-operations.js";
+import { parseRetryDelayMs } from "./rate-limit.js";
 
 type FetchInput = Request | string | URL;
 
@@ -59,7 +54,21 @@ export type CredentialProvider<C extends TransportCredential> = {
 /** How the caller reads a successful body; see {@link ApiTransportRequestOptions.responseBody}. */
 export type ResponseBodyMode = "auto" | "buffer" | "stream";
 
-/** The GET cache, keyed by the host. `CacheLookup` comes from `response-cache`. */
+/**
+ * What {@link TransportCache.lookup} found: a response to return as is, or a
+ * stale entry to revalidate with `conditionalHeaders`. On a 304,
+ * `revalidate` returns the refreshed response, or undefined when the entry
+ * cannot use that 304 and the transport fetches again unconditionally.
+ */
+export type CacheLookup =
+  | { kind: "hit"; response: Response }
+  | {
+      kind: "stale";
+      conditionalHeaders: Record<string, string>;
+      revalidate(response: Response): Promise<Response | undefined>;
+    };
+
+/** The GET cache, keyed and stored by the host. */
 export type TransportCache = {
   lookup(request: CachedRequest): Promise<CacheLookup | undefined>;
   /** Store a successful GET; `response` is a clone the cache may consume. */
@@ -75,6 +84,35 @@ export type CachedRequest = {
   identity: string;
 };
 
+/** The request a {@link TransportRetry} decides for. */
+export type RetryRequest = {
+  method: string;
+  url: string;
+  /**
+   * Whether the host marked the request safe to replay, through
+   * `options.idempotent` or `isIdempotent`. Safe methods such as GET are
+   * left to the policy.
+   */
+  idempotent: boolean;
+  /** The caller's abort signal: stop waiting between attempts when it aborts. */
+  signal: AbortSignal | undefined;
+};
+
+/**
+ * The host's retry policy. The transport calls it once per request, after
+ * the cache lookup and credential preparation, and it returns the final
+ * response or throws the final error. `attempt` sends the request once,
+ * with the transport's timeout, body buffering, and 401 refresh, and
+ * resolves with the response, failed or not. It throws
+ * {@link ApiTimeoutError} when the transport's own timeout fired, the
+ * caller's abort reason, the host's `errors.fatal` or redirect-rejection
+ * error, or what the fetch threw.
+ */
+export type TransportRetry = (
+  attempt: () => Promise<Response>,
+  request: RetryRequest,
+) => Promise<Response>;
+
 type TransportLogger = {
   debug(message: string, ...args: unknown[]): void;
 };
@@ -86,7 +124,6 @@ export type ApiTransportOptions<C extends TransportCredential> = {
    * credential's identity.
    */
   credentials?: CredentialProvider<C>;
-  retry: RetryPolicy;
   /** Per-attempt timeout, or a function of the request URL. Default: none. */
   timeoutMs?: number | ((url: string) => number);
   /** Underlying fetch, read on each call. Defaults to `globalThis.fetch`. */
@@ -118,15 +155,21 @@ export type ApiTransportOptions<C extends TransportCredential> = {
      * have been applied.
      */
     timeout?(info: { timeoutMs: number; idempotent: boolean }): Error;
-    /** A fetch error to throw at once, without retrying, such as a TLS failure. */
+    /** The error to throw for a failed fetch, such as a TLS failure. Undefined throws it as is. */
     fatal?(error: unknown): Error | undefined;
-    /** A 429 that is not retried. Undefined returns the response. */
+    /** The error to throw for a 429. Undefined returns the response. */
     rateLimited?(
       response: Response,
       info: { path: string; retryAfterMs: number | undefined },
     ): Promise<Error | undefined>;
   };
   cache?: TransportCache;
+  /**
+   * Retry failed attempts; see {@link TransportRetry}. Without it each
+   * request is sent once, plus the replay after a 401 refresh, which never
+   * counts as a retry.
+   */
+  retry?: TransportRetry;
   /**
    * Whether the current scope skips cache reads, such as a tool call with
    * `fresh: true`. Hosts back it with request-scoped state like
@@ -143,15 +186,16 @@ export type ApiTransportOptions<C extends TransportCredential> = {
 
 export type ApiTransportRequestOptions = {
   /**
-   * Replaying the request is harmless, so 5xx, timeouts, and network errors
-   * retry for any method. For writes the server dedupes, such as
-   * content-addressed chunk uploads.
+   * Replaying the request is harmless, such as a write the server dedupes
+   * (content-addressed chunk uploads), so a timeout reports it as
+   * idempotent and `retry` gets `idempotent: true`.
    */
   idempotent?: boolean;
   /**
-   * `buffer` reads a successful body within the attempt's timeout and retry
-   * budget; `auto` does so only when it has a `Content-Type`, as the
-   * `@sentry/api` auto parser returns a stream otherwise. Default `stream`.
+   * `buffer` reads a successful body within the attempt's timeout, so a body
+   * that fails mid-read fails the attempt, which `retry` can send again;
+   * `auto` does so only when it has a `Content-Type`, as the `@sentry/api`
+   * auto parser returns a stream otherwise. Default `stream`.
    */
   responseBody?: ResponseBodyMode;
   /**
@@ -221,7 +265,7 @@ export function extractUrlPath(input: FetchInput): string {
   }
 }
 
-/** Thrown inside an attempt for a host rejection that must not be retried. */
+/** Wraps a host rejection, such as an untrusted redirect, so it is thrown as is, not mapped by `errors.fatal`. */
 class Rejection {
   constructor(readonly error: unknown) {}
 }
@@ -230,13 +274,6 @@ class Rejection {
 type Outcome =
   | { response: Response }
   | { failed: unknown; timedOutAfterMs?: number };
-
-type AttemptResult =
-  | { action: "done"; response: Response }
-  | { action: "retry"; delayMs: number }
-  /** Send again at once, outside the retry budget: a credential refresh. */
-  | { action: "replay" }
-  | { action: "throw"; error: unknown };
 
 type Send<C> = {
   input: FetchInput;
@@ -254,7 +291,7 @@ type Send<C> = {
 export function createApiTransport<C extends TransportCredential>(
   config: ApiTransportOptions<C>,
 ): ApiTransport {
-  const { credentials, retry, logger } = config;
+  const { credentials, logger } = config;
   const cache = credentials && config.cache;
 
   const baseFetch = (input: FetchInput, init?: RequestInit) =>
@@ -331,8 +368,8 @@ export function createApiTransport<C extends TransportCredential>(
 
   /**
    * One fetch with a timeout. A buffered body is drained from a clone within
-   * the attempt, so a body failure can retry without consuming the caller's
-   * copy.
+   * the attempt, so a body failure rejects the request without consuming the
+   * caller's copy.
    */
   async function fetchOnce(
     input: FetchInput,
@@ -485,7 +522,10 @@ export function createApiTransport<C extends TransportCredential>(
     }
   }
 
-  /** Send with refresh, timeouts, and retries; the cache is handled by the caller. */
+  /**
+   * Send through the host's retry policy, then map a 429 and a timeout to
+   * host errors and update the cache once; the lookup is the caller's.
+   */
   async function send(sendArgs: Send<C>): Promise<Response> {
     const { input, init, method, url, path, options } = sendArgs;
     let credential = credentials?.prepare
@@ -510,158 +550,120 @@ export function createApiTransport<C extends TransportCredential>(
           ? input.signal
           : undefined;
     let refreshed = false;
-    let waitedMs = 0;
 
-    const retryDelay = (
-      attempt: number,
-      status: number | undefined,
-      serverDelayMs: number | undefined,
-    ) =>
-      nextRetryDelayMs({
-        policy: retry,
-        method,
-        idempotent,
-        status,
-        serverDelayMs,
-        attempt,
-        waitedMs,
-      });
-
-    async function onResponse(
-      response: Response,
-      attempt: number,
-    ): Promise<AttemptResult> {
-      if (response.status === 401) {
-        const next =
-          refreshed || !credentials?.refresh
-            ? undefined
-            : await credentials.refresh(credential);
-        if (!next) {
-          return { action: "done", response };
-        }
-        refreshed = true;
-        credential = next;
-        setAuthorization(headers, authorization(next));
-        if (config.refreshedRequestHeader) {
-          headers.set(config.refreshedRequestHeader, "1");
-        }
-        cancelBody(response);
-        return { action: "replay" };
+    /** Whether a 401 earned a replay with a refreshed credential. */
+    async function refreshAfter(response: Response): Promise<boolean> {
+      if (response.status !== 401 || refreshed || !credentials?.refresh) {
+        return false;
       }
-
-      const serverDelayMs = parseRetryDelayMs(
-        response.status,
-        response.headers,
-      );
-      const delayMs = retryDelay(attempt, response.status, serverDelayMs);
-      if (delayMs !== undefined) {
-        cancelBody(response);
-        return { action: "retry", delayMs };
+      const next = await credentials.refresh(credential);
+      if (!next) {
+        return false;
       }
-      if (response.status === 429 && config.errors?.rateLimited) {
-        const error = await config.errors.rateLimited(response, {
-          path,
-          retryAfterMs: serverDelayMs,
-        });
-        if (error) {
-          return { action: "throw", error };
-        }
+      refreshed = true;
+      credential = next;
+      setAuthorization(headers, authorization(next));
+      if (config.refreshedRequestHeader) {
+        headers.set(config.refreshedRequestHeader, "1");
       }
-      return { action: "done", response };
+      cancelBody(response);
+      return true;
     }
 
-    function onFailure(
-      { failed, timedOutAfterMs }: Extract<Outcome, { failed: unknown }>,
-      attempt: number,
-    ): AttemptResult {
+    function attemptError({
+      failed,
+      timedOutAfterMs,
+    }: Extract<Outcome, { failed: unknown }>): unknown {
       if (failed instanceof Rejection) {
-        return { action: "throw", error: failed.error };
+        return failed.error;
       }
       if (isAbort(failed, signal)) {
-        return { action: "throw", error: failed };
+        return failed;
       }
       const fatal = config.errors?.fatal?.(failed);
       if (fatal) {
-        return { action: "throw", error: fatal };
+        return fatal;
       }
-      const delayMs = retryDelay(attempt, undefined, undefined);
-      if (delayMs !== undefined) {
-        return { action: "retry", delayMs };
-      }
-      if (timedOutAfterMs === undefined) {
-        return { action: "throw", error: failed };
-      }
-      // Whether the endpoint may have run, for the host's error wording.
-      const replayable = isIdempotentRequest(method, idempotent);
-      return {
-        action: "throw",
-        error:
-          config.errors?.timeout?.({
-            timeoutMs: timedOutAfterMs,
-            idempotent: replayable,
-          }) ?? new ApiTimeoutError(timedOutAfterMs, replayable),
-      };
+      return timedOutAfterMs === undefined
+        ? failed
+        : new ApiTimeoutError(
+            timedOutAfterMs,
+            // Whether the endpoint may have run, for the host's error wording.
+            isIdempotentRequest(method, idempotent),
+          );
     }
 
-    for (let attempt = 0; ; ) {
-      const { input: attemptInput, init: attemptInit } = nextInput();
-      let outcome: Outcome;
-      try {
-        outcome = options.validateRedirects
-          ? await fetchValidated(
-              attemptInput,
-              attemptInit,
-              headers,
-              credential,
-              timeoutMs,
-              mode,
-            )
-          : await fetchOnce(
-              attemptInput,
-              { ...attemptInit, headers },
-              signal,
-              timeoutMs,
-              mode,
-            );
-      } catch (error) {
-        outcome = { failed: error };
-      }
-      // Outside the try: handling a response is not a fetch failure.
-      const result =
-        "response" in outcome
-          ? await onResponse(outcome.response, attempt)
-          : onFailure(outcome, attempt);
-
-      if (result.action === "done") {
-        storeInCache(
-          method,
-          url,
-          sendArgs.credential.identity,
-          headers,
-          result.response,
-        );
-        await invalidateAfterWrite(
-          method,
-          url,
-          sendArgs.credential.identity,
-          result.response,
-        );
-        return result.response;
-      }
-      if (result.action === "throw") {
-        throw result.error;
-      }
-      if (result.action === "replay") {
+    /** One attempt, plus the replay after a 401 refresh. */
+    async function attempt(): Promise<Response> {
+      for (;;) {
+        const { input: attemptInput, init: attemptInit } = nextInput();
+        let outcome: Outcome;
+        try {
+          outcome = options.validateRedirects
+            ? await fetchValidated(
+                attemptInput,
+                attemptInit,
+                headers,
+                credential,
+                timeoutMs,
+                mode,
+              )
+            : await fetchOnce(
+                attemptInput,
+                { ...attemptInit, headers },
+                signal,
+                timeoutMs,
+                mode,
+              );
+        } catch (error) {
+          outcome = { failed: error };
+        }
+        if (!("response" in outcome)) {
+          throw attemptError(outcome);
+        }
+        if (!(await refreshAfter(outcome.response))) {
+          return outcome.response;
+        }
         logger?.debug(`${method} ${path} → replay with a refreshed credential`);
-        continue;
       }
-      logger?.debug(
-        `${method} ${path} → retry ${attempt + 1}/${retry.maxRetries} after ${Math.round(result.delayMs)}ms`,
-      );
-      await sleep(result.delayMs, signal);
-      waitedMs += result.delayMs;
-      attempt++;
     }
+
+    let response: Response;
+    try {
+      response = config.retry
+        ? await config.retry(attempt, {
+            method,
+            url,
+            idempotent,
+            signal: signal ?? undefined,
+          })
+        : await attempt();
+    } catch (error) {
+      throw error instanceof ApiTimeoutError && config.errors?.timeout
+        ? config.errors.timeout({
+            timeoutMs: error.timeoutMs,
+            idempotent: error.idempotent,
+          })
+        : error;
+    }
+
+    if (response.status === 429 && config.errors?.rateLimited) {
+      const error = await config.errors.rateLimited(response, {
+        path,
+        retryAfterMs: parseRetryDelayMs(response.status, response.headers),
+      });
+      if (error) {
+        throw error;
+      }
+    }
+    storeInCache(method, url, sendArgs.credential.identity, headers, response);
+    await invalidateAfterWrite(
+      method,
+      url,
+      sendArgs.credential.identity,
+      response,
+    );
+    return response;
   }
 
   /** Fire-and-forget: a cache write never delays or fails the response. */
@@ -832,8 +834,9 @@ function shouldBuffer(response: Response, mode: ResponseBodyMode): boolean {
 }
 
 /**
- * A fresh `(input, init)` pair per attempt: `fetch` consumes a body, so a
- * retry would otherwise throw `Request body already used`. A `Request` is
+ * A fresh `(input, init)` pair per attempt: `fetch` consumes a body, so the
+ * replay after a credential refresh would otherwise throw `Request body
+ * already used`. A `Request` is
  * cloned; a `ReadableStream` body, the only single-use body type, is read
  * once into a buffer. Other bodies pass through, which keeps the
  * `multipart/form-data` boundary `fetch` derives from `FormData`.

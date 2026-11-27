@@ -140,7 +140,7 @@ await Promise.all([
   bundle("zod", { external: ["zod"] }),
   bundle("browser"),
   // Keep the package entries external so consumers share the root error classes.
-  bundle("api-client/index", { external: ["@sentry/api", "http-cache-semantics", "p-limit"] }),
+  bundle("api-client/index", { external: ["@sentry/api", "p-limit"] }),
   bundle("api-client/endpoints/index", { external: ["@sentry/api", "@sentry/api/client"] }),
   bundle("operations"),
   bundle("docs"),
