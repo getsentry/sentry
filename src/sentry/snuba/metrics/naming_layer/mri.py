@@ -1,7 +1,6 @@
 """
 This module introduces a single unique identifier (similar to a Uniform Resource Identifier, URI),
-called the Metric Resource Identifier (MRI) for each metric name extracted from sessions and
-transactions.
+called the Metric Resource Identifier (MRI) for each metric name extracted from sessions.
 
 MRIs have the format <type>:<ns>/<name>@<unit>, comprising the following components:
   - Type: counter (c), set (s), distribution (d), gauge (g), and evaluated (e) for derived numeric
@@ -37,8 +36,6 @@ from sentry.snuba.metrics.utils import (
 
 __all__ = (
     "SessionMRI",
-    "TransactionMRI",
-    "SpanMRI",
     "MRI_SCHEMA_REGEX",
     "MRI_EXPRESSION_REGEX",
     "parse_mri",
@@ -109,48 +106,6 @@ class SessionMRI(Enum):
     ERRORED_USER_RATE = "e:sessions/user.errored_rate@ratio"
     ABNORMAL_USER_RATE = "e:sessions/user.abnormal_rate@ratio"
     DURATION = "d:sessions/duration.exited@second"
-
-
-class TransactionMRI(Enum):
-    # Dynamic sampling. Relay no longer extracts other transaction metrics.
-    COUNT_PER_ROOT_PROJECT = "c:transactions/count_per_root_project@none"
-
-
-class SpanMRI(Enum):
-    USER = "s:spans/user@none"
-    DURATION = "d:spans/duration@millisecond"
-    COUNT_PER_ROOT_PROJECT = "c:spans/count_per_root_project@none"
-    SELF_TIME = "d:spans/exclusive_time@millisecond"
-    SELF_TIME_LIGHT = "d:spans/exclusive_time_light@millisecond"
-
-    # Measurement-based metrics
-    AI_TOTAL_TOKENS = "c:spans/ai.total_tokens.used@none"
-    AI_TOTAL_COST = "c:spans/ai.total_cost@usd"
-    CACHE_ITEM_SIZE = "d:spans/cache.item_size@byte"
-    DECODED_RESPONSE_CONTENT_LENGTH = "d:spans/http.decoded_response_content_length@byte"
-    MESSAGE_RECEIVE_LATENCY = "g:spans/messaging.message.receive.latency@millisecond"
-    MOBILE_FRAMES_DELAY = "g:spans/mobile.frames_delay@second"
-    MOBILE_FROZEN_FRAMES = "g:spans/mobile.frozen_frames@none"
-    MOBILE_SLOW_FRAMES = "g:spans/mobile.slow_frames@none"
-    MOBILE_TOTAL_FRAMES = "g:spans/mobile.total_frames@none"
-    RESPONSE_CONTENT_LENGTH = "d:spans/http.response_content_length@byte"
-    RESPONSE_TRANSFER_SIZE = "d:spans/http.response_transfer_size@byte"
-    WEB_VITALS_INP = "d:spans/webvital.inp@millisecond"
-    WEB_VITALS_SCORE_INP = "d:spans/webvital.score.inp@ratio"
-    WEB_VITALS_SCORE_TOTAL = "d:spans/webvital.score.total@ratio"
-    WEB_VITALS_SCORE_WEIGHT = "d:spans/webvital.score.weight.inp@ratio"
-
-    # Derived
-    ALL = "e:spans/all@none"
-    ALL_LIGHT = "e:spans_light/all@none"
-    HTTP_ERROR_COUNT = "e:spans/http_error_count@none"
-    HTTP_ERROR_RATE = "e:spans/http_error_rate@ratio"
-    HTTP_ERROR_COUNT_LIGHT = "e:spans/http_error_count_light@none"
-    HTTP_ERROR_RATE_LIGHT = "e:spans/http_error_rate_light@ratio"
-
-    COUNT_ON_DEMAND = "c:spans/on_demand@none"
-    DIST_ON_DEMAND = "d:spans/on_demand@none"
-    SET_ON_DEMAND = "s:spans/on_demand@none"
 
 
 @dataclass
@@ -276,22 +231,6 @@ def is_measurement(parsed_mri: ParsedMRI) -> bool:
     return parsed_mri.namespace == "transactions" and parsed_mri.name.startswith("measurements.")
 
 
-def is_custom_measurement(parsed_mri: ParsedMRI) -> bool:
-    """
-    A custom measurement won't use the custom namespace, but will be under the transaction namespace.
-
-    This checks the namespace, and name to match what we expect first before iterating through the
-    members of the transaction MRI enum to make sure it isn't a standard measurement.
-    """
-    return (
-        parsed_mri.namespace == "transactions"
-        and parsed_mri.name.startswith("measurements.")
-        and
-        # Iterate through the transaction MRI and check that this parsed_mri isn't in there
-        all(parsed_mri.mri_string != mri.value for mri in TransactionMRI.__members__.values())
-    )
-
-
 _ENTITY_KEY_MAPPING_GENERIC: dict[str, MetricEntity] = {
     "c": "generic_metrics_counters",
 }
@@ -303,7 +242,9 @@ _ENTITY_KEY_MAPPING_NON_GENERIC: dict[str, MetricEntity] = {
 
 
 def get_available_operations(parsed_mri: ParsedMRI) -> list[MetricOperationType]:
-    if parsed_mri.entity == "e":
+    if parsed_mri.entity == "e" or parsed_mri.namespace not in {
+        use_case_id.value for use_case_id in UseCaseID
+    }:
         return []
     elif parsed_mri.namespace == "sessions":
         entity_key = _ENTITY_KEY_MAPPING_NON_GENERIC.get(parsed_mri.entity)

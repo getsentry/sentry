@@ -103,7 +103,7 @@ def test_cache_validate_stale_timestamp() -> None:
         }
     ):
         namespace = "test"
-        key = "spans:1:key"
+        key = "profiles:1:key"
         cache.clear()
         cache.set(
             indexer_cache._make_namespaced_cache_key(namespace, key),
@@ -237,9 +237,9 @@ def test_separate_namespacing() -> None:
         namespace = "test"
         indexer_cache.set(namespace, "sessions:3:what", 1)
         assert indexer_cache.get(namespace, "sessions:3:what") == 1
-        indexer_cache.set(namespace, "transactions:3:what", 2)
+        indexer_cache.set(namespace, "profiles:3:what", 2)
         assert indexer_cache.get(namespace, "sessions:3:what") == 1
-        assert indexer_cache.get(namespace, "transactions:3:what") == 2
+        assert indexer_cache.get(namespace, "profiles:3:what") == 2
 
 
 def test_is_valid_timestamp() -> None:

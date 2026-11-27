@@ -16,8 +16,7 @@ from sentry.search.eap.trace_metrics.config import TraceMetricsSearchResolverCon
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.seer.anomaly_detection.types import TimeSeriesPoint
-from sentry.snuba import metrics_performance
-from sentry.snuba.metrics.extraction import MetricSpecType
+from sentry.snuba import metrics as session_metrics
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.referrer import Referrer
@@ -193,7 +192,7 @@ def format_historical_data(
     """
     Format Snuba data into the format the Seer API expects.
     """
-    if dataset == metrics_performance:
+    if dataset == session_metrics:
         return format_crash_free_data(data)
 
     return format_snuba_ts_data(
@@ -208,7 +207,7 @@ def get_dataset_from_label_and_event_types(
     dataset_label: str, event_types: list[SnubaQueryEventType.EventType] | None = None
 ) -> Any:
     dataset_label = get_dataset_name_from_label_and_event_types(dataset_label, event_types)
-    dataset = get_dataset(dataset_label)
+    dataset = session_metrics if dataset_label == "metrics" else get_dataset(dataset_label)
     if dataset is None:
         raise ParseError(detail=f"dataset must be one of: {', '.join(DATASET_OPTIONS.keys())}")
     return dataset
@@ -228,8 +227,7 @@ def get_dataset_name_from_label_and_event_types(
         else:
             dataset_label = "spans"
     elif dataset_label in ["generic_metrics", "transactions"]:
-        # XXX: performance alerts dataset differs locally vs in prod
-        dataset_label = "metricsEnhanced"
+        dataset_label = "transactions"
 
     return dataset_label
 
@@ -276,7 +274,7 @@ def fetch_historical_data(
         granularity_secs=granularity,
     )
 
-    if dataset == metrics_performance:
+    if dataset == session_metrics:
         return get_crash_free_historical_data(start, end, project, organization, granularity)
     elif dataset == Spans:
         results = Spans.run_timeseries_query(
@@ -344,6 +342,5 @@ def fetch_historical_data(
             ),
             zerofill_results=True,
             allow_metric_aggregates=True,
-            on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
         )
     return historical_data

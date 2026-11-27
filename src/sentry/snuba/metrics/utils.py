@@ -52,7 +52,6 @@ __all__ = (
 MAX_POINTS = 10000
 GRANULARITY = 24 * 60 * 60
 TS_COL_GROUP = "bucketed_time"
-METRICS_LAYER_GRANULARITIES = [86400, 3600, 60]
 
 TAG_REGEX = re.compile(r"^([\w.]+)$")
 
@@ -74,8 +73,6 @@ MetricOperationType = Literal[
     "histogram",
     "rate",
     "count_web_vitals",
-    "count_transaction_name",
-    "team_key_transaction",
     "sum_if_column",
     "uniq_if_column",
     "min_timestamp",
@@ -155,12 +152,6 @@ USE_CASE_ID_TO_ENTITY_KEYS = {
         EntityKey.MetricsSets,
         EntityKey.MetricsDistributions,
     },
-    UseCaseID.SPANS: {
-        EntityKey.GenericMetricsCounters,
-    },
-    UseCaseID.TRANSACTIONS: {
-        EntityKey.GenericMetricsCounters,
-    },
     UseCaseID.PROFILES: {
         EntityKey.GenericMetricsCounters,
     },
@@ -168,13 +159,6 @@ USE_CASE_ID_TO_ENTITY_KEYS = {
         EntityKey.GenericMetricsCounters,
     },
 }
-
-# This set contains all the operations that require the "rhs" condition to be resolved
-# in a "MetricConditionField". This solution is the simplest one and doesn't require any
-# changes in the transformer, however it requires this list to be discovered and updated
-# in case new operations are added, which is not ideal but given the fact that we already
-# define operations in this file, it is not a deal-breaker.
-REQUIRES_RHS_CONDITION_RESOLUTION = {"transform_null_to_unparameterized"}
 
 
 def get_entity_keys_of_use_case_id(use_case_id: UseCaseID) -> set[EntityKey] | None:
@@ -193,13 +177,6 @@ def get_timestamp_column_name() -> str:
     The name of the timestamp column can change based on the entity.
     """
     return "timestamp"
-
-
-def require_rhs_condition_resolution(op: MetricOperationType) -> bool:
-    """
-    Checks whether a given operation requires its right operand to be resolved.
-    """
-    return op in REQUIRES_RHS_CONDITION_RESOLUTION
 
 
 def generate_operation_regex() -> str:
@@ -238,9 +215,7 @@ METRIC_TYPE_TO_ENTITY: Mapping[MetricType, EntityKey] = {
 }
 
 FIELD_ALIAS_MAPPINGS = {"project": "project_id"}
-NON_RESOLVABLE_TAG_VALUES = (
-    {"team_key_transaction"} | set(FIELD_ALIAS_MAPPINGS.keys()) | set(FIELD_ALIAS_MAPPINGS.values())
-)
+NON_RESOLVABLE_TAG_VALUES = set(FIELD_ALIAS_MAPPINGS.keys()) | set(FIELD_ALIAS_MAPPINGS.values())
 FILTERABLE_TAGS = {
     "tags[environment]",
     "tags[transaction]",
@@ -300,23 +275,10 @@ OPERATIONS_PERCENTILES = (
 DERIVED_OPERATIONS = (
     "histogram",
     "rate",
-    "count_web_vitals",
-    "count_transaction_name",
-    "team_key_transaction",
-    "transform_null_to_unparameterized",
     "sum_if_column",
     "uniq_if_column",
     "min_timestamp",
     "max_timestamp",
-    # Custom operations used for on demand derived metrics.
-    "on_demand_apdex",
-    "on_demand_epm",
-    "on_demand_eps",
-    "on_demand_failure_count",
-    "on_demand_failure_rate",
-    "on_demand_count_unique",
-    "on_demand_count_web_vitals",
-    "on_demand_user_misery",
 )
 OPERATIONS = (
     ("avg", "count_unique", "count", "max", "min", "sum", "last")

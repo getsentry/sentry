@@ -11,7 +11,6 @@ from sentry.snuba.dataset import Dataset
 # coupling to individual dataset→feature mappings.
 METRIC_SUBSCRIPTION_FEATURE_FLAGS: dict[str, bool] = {
     "organizations:visibility-explore-view": True,
-    "organizations:on-demand-metrics-extraction": True,
 }
 
 
@@ -28,7 +27,7 @@ def is_metric_subscription_allowed(dataset: str, organization: Organization) -> 
         return features.has("organizations:visibility-explore-view", organization)
 
     if dataset == Dataset.PerformanceMetrics.value:
-        return features.has("organizations:on-demand-metrics-extraction", organization)
+        return False
 
     # Other datasets (e.g. Metrics/sessions) aren't gated here but probably should be.
     return True

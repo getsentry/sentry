@@ -13,7 +13,6 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
 )
 from snuba_sdk import Column, Condition, Entity, Join, Op, Request
 
-from sentry import features
 from sentry.api.helpers.error_upsampling import are_any_projects_error_upsampled
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
 from sentry.exceptions import InvalidQuerySubscription, UnsupportedQuerySubscription
@@ -29,7 +28,6 @@ from sentry.search.events.types import ParamsType, QueryBuilderConfig, SnubaPara
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import resolve, resolve_tag_key, resolve_tag_values
 from sentry.snuba.dataset import Dataset, EntityKey
-from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.models import ExtrapolationMode, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.ourlogs import OurLogs
@@ -384,11 +382,6 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
         self.org_id = extra_fields["org_id"]
         self.time_window = time_window
 
-        self.on_demand_metrics_enabled = features.has(
-            "organizations:on-demand-metrics-extraction",
-            Organization.objects.get_from_cache(id=self.org_id),
-        )
-
     @abstractmethod
     def get_snql_aggregations(self) -> list[str]:
         raise NotImplementedError
@@ -407,17 +400,11 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
             "granularity": self.get_granularity(),
         }
 
-    def _get_use_case_id(self) -> UseCaseID:
-        if self.dataset == Dataset.PerformanceMetrics:
-            return UseCaseID.TRANSACTIONS
-        else:
-            return UseCaseID.SESSIONS
-
     def resolve_tag_key_if_needed(self, string: str) -> str:
-        return resolve_tag_key(self._get_use_case_id(), self.org_id, string)
+        return resolve_tag_key(UseCaseID.SESSIONS, self.org_id, string)
 
     def resolve_tag_values_if_needed(self, strings: Sequence[str]) -> Sequence[str | int]:
-        return resolve_tag_values(self._get_use_case_id(), self.org_id, strings)
+        return resolve_tag_values(UseCaseID.SESSIONS, self.org_id, strings)
 
     def build_query_builder(
         self,
@@ -435,7 +422,7 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
 
         query = apply_dataset_query_conditions(self.query_type, query, None)
         params["project_id"] = project_ids
-        params["use_case_id"] = self._get_use_case_id().value
+        params["use_case_id"] = UseCaseID.SESSIONS.value
         qb = AlertMetricsQueryBuilder(
             dataset=Dataset(self.dataset.value),
             query=query,
@@ -446,8 +433,6 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
             time_range_window=self.time_window,
             config=QueryBuilderConfig(
                 skip_time_conditions=True,
-                on_demand_metrics_enabled=self.on_demand_metrics_enabled,
-                on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
                 skip_field_validation_for_entity_subscription_deletion=skip_field_validation_for_entity_subscription_deletion,
             ),
         )
@@ -456,34 +441,6 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
         qb.add_conditions(extra_conditions)
 
         return qb
-
-
-class PerformanceMetricsEntitySubscription(BaseMetricsEntitySubscription):
-    query_type = SnubaQuery.Type.PERFORMANCE
-    dataset = Dataset.PerformanceMetrics
-
-    def get_snql_aggregations(self) -> list[str]:
-        return [self.aggregate]
-
-    def get_snql_extra_conditions(self) -> list[Condition]:
-        return []
-
-    def aggregate_query_results(
-        self, data: list[dict[str, Any]], alias: str | None = None
-    ) -> list[dict[str, Any]]:
-        return data
-
-    def get_granularity(self) -> int:
-        # Both time_window and granularity are in seconds
-        # Time windows <= 1h -> Granularity 60s
-        # Time windows > 1h and <= 24h -> Granularity 1 hour
-        # Time windows > 24h -> Granularity 1 day
-        if self.time_window <= 3600:
-            return 60
-        elif 3600 < self.time_window <= 24 * 3600:
-            return 3600
-        else:
-            return 24 * 3600
 
 
 class BaseCrashRateMetricsEntitySubscription(BaseMetricsEntitySubscription):
@@ -583,7 +540,6 @@ EntitySubscription = Union[
     MetricsCountersEntitySubscription,
     MetricsSetsEntitySubscription,
     PerformanceTransactionsEntitySubscription,
-    PerformanceMetricsEntitySubscription,
     PerformanceSpansEAPRpcEntitySubscription,
 ]
 
@@ -606,8 +562,6 @@ def get_entity_subscription(
     if query_type == SnubaQuery.Type.PERFORMANCE:
         if dataset == Dataset.Transactions:
             entity_subscription_cls = PerformanceTransactionsEntitySubscription
-        elif dataset in (Dataset.Metrics, Dataset.PerformanceMetrics):
-            entity_subscription_cls = PerformanceMetricsEntitySubscription
         elif dataset == Dataset.EventsAnalyticsPlatform:
             entity_subscription_cls = PerformanceSpansEAPRpcEntitySubscription
     if query_type == SnubaQuery.Type.CRASH_RATE:

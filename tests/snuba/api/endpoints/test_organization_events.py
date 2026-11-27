@@ -6081,7 +6081,13 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert response.data["data"][0]["issue"] == "unknown"
         assert response.data["data"][0]["count()"] == 1
 
-    def test_metrics_enhanced_defaults_to_transactions_with_feature_flag(self) -> None:
+    def test_metrics_alias_queries_transactions(self) -> None:
+        self.assert_legacy_metrics_alias_queries_transactions("metrics")
+
+    def test_metrics_enhanced_alias_queries_transactions(self) -> None:
+        self.assert_legacy_metrics_alias_queries_transactions("metricsEnhanced")
+
+    def assert_legacy_metrics_alias_queries_transactions(self, dataset: str) -> None:
         # Store an error
         self.store_event(
             data={
@@ -6106,14 +6112,14 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             "field": ["count()"],
             "query": 'notMetrics:"this makes it not metrics"',
             "statsPeriod": "14d",
-            "dataset": "metricsEnhanced",
+            "dataset": dataset,
         }
         response = self.do_request(query, features=features)
 
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
 
-        # count() is 1 because it falls back to transactions
+        # Legacy metrics aliases query only the transaction, excluding the error.
         assert response.data["data"][0]["count()"] == 1
 
     def test_profiled_transaction_condition(self) -> None:

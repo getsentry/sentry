@@ -262,8 +262,6 @@ class QueryBuilderConfig:
     # Currently this is only used for avoiding conflicting values when doing the first query
     # of a top events request
     skip_tag_resolution: bool = False
-    on_demand_metrics_enabled: bool = False
-    on_demand_metrics_type: Any | None = None
     skip_field_validation_for_entity_subscription_deletion: bool = False
     allow_metric_aggregates: bool | None = False
     # Allow the errors query builder to use the entity prefix for fields

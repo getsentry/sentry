@@ -24,12 +24,9 @@ from sentry.snuba.metrics.fields.snql import (
     abnormal_users,
     addition,
     all_sessions,
-    all_spans,
     all_users,
     anr_users,
     complement,
-    count_transaction_name_snql_factory,
-    count_web_vitals_snql_factory,
     crashed_sessions,
     crashed_users,
     division_float,
@@ -37,32 +34,21 @@ from sentry.snuba.metrics.fields.snql import (
     errored_preaggr_sessions,
     foreground_anr_users,
     histogram_snql_factory,
-    http_error_count_span,
     max_timestamp,
     min_timestamp,
-    on_demand_apdex_snql_factory,
-    on_demand_count_unique_snql_factory,
-    on_demand_count_web_vitals_snql_factory,
-    on_demand_epm_snql_factory,
-    on_demand_eps_snql_factory,
-    on_demand_failure_count_snql_factory,
-    on_demand_failure_rate_snql_factory,
-    on_demand_user_misery_snql_factory,
     rate_snql_factory,
     session_duration_filters,
     subtraction,
     sum_if_column_snql,
-    team_key_transaction_snql,
     unhandled_sessions,
     unhandled_users,
     uniq_aggregation_on_metric,
     uniq_if_column_snql,
 )
 from sentry.snuba.metrics.naming_layer.mapping import get_public_name_from_mri
-from sentry.snuba.metrics.naming_layer.mri import SessionMRI, SpanMRI, TransactionMRI
+from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.metrics.utils import (
     DEFAULT_AGGREGATES,
-    GENERIC_OP_TO_SNUBA_FUNCTION,
     GRANULARITY,
     OP_TO_SNUBA_FUNCTION,
     OPERATIONS_PERCENTILES,
@@ -207,12 +193,6 @@ def _get_known_entity_of_metric_mri(metric_mri: str) -> MetricEntity | None:
     if entity_prefix in ("s", "g", "d") and not namespace.startswith("sessions"):
         raise InvalidParams(f"Generic metrics type '{entity_prefix}' is no longer supported")
 
-    try:
-        TransactionMRI(metric_mri)
-        return _PREFIX_TO_GENERIC_METRIC_ENTITY[entity_prefix]
-    except (ValueError, KeyError):
-        pass
-
     if namespace.startswith("custom"):
         try:
             return _PREFIX_TO_GENERIC_METRIC_ENTITY[entity_prefix]
@@ -237,9 +217,7 @@ def _get_entity_of_metric_mri(
         raise InvalidParams
 
     entity_keys_set: frozenset[EntityKey]
-    if use_case_id in [UseCaseID.TRANSACTIONS, UseCaseID.SPANS]:
-        entity_keys_set = frozenset({EntityKey.GenericMetricsCounters})
-    elif use_case_id is UseCaseID.SESSIONS:
+    if use_case_id is UseCaseID.SESSIONS:
         entity_keys_set = frozenset(
             {EntityKey.MetricsCounters, EntityKey.MetricsSets, EntityKey.MetricsDistributions}
         )
@@ -455,13 +433,7 @@ class RawOp(MetricOperation):
         org_id: int,
         params: MetricOperationParams | None = None,
     ) -> Function:
-        if use_case_id in [
-            UseCaseID.TRANSACTIONS,
-            UseCaseID.SPANS,
-        ]:
-            snuba_function = GENERIC_OP_TO_SNUBA_FUNCTION[entity][self.op]
-        else:
-            snuba_function = OP_TO_SNUBA_FUNCTION[entity][self.op]
+        snuba_function = OP_TO_SNUBA_FUNCTION[entity][self.op]
 
         function = Function(snuba_function, [Column("value"), aggregate_filter], alias=alias)
 
@@ -1675,66 +1647,6 @@ DERIVED_METRICS = {
             alias=None: subtraction(all_user_count, errored_user_all_count, alias=alias),
             post_query_func=lambda *args: max(0, *args),
         ),
-        SingularEntityDerivedMetric(
-            metric_mri=SpanMRI.ALL.value,
-            metrics=[SpanMRI.SELF_TIME.value],
-            unit="spans",
-            snql=lambda project_ids, org_id, metric_ids, alias=None: all_spans(
-                metric_ids=metric_ids, alias=alias
-            ),
-        ),
-        SingularEntityDerivedMetric(
-            metric_mri=SpanMRI.ALL_LIGHT.value,
-            metrics=[SpanMRI.SELF_TIME_LIGHT.value],
-            unit="spans",
-            snql=lambda project_ids, org_id, metric_ids, alias=None: all_spans(
-                metric_ids=metric_ids, alias=alias
-            ),
-        ),
-        SingularEntityDerivedMetric(
-            metric_mri=SpanMRI.HTTP_ERROR_COUNT.value,
-            metrics=[SpanMRI.SELF_TIME.value],
-            unit="spans",
-            snql=lambda project_ids, org_id, metric_ids, alias=None: http_error_count_span(
-                org_id, metric_ids=metric_ids, alias=alias
-            ),
-        ),
-        SingularEntityDerivedMetric(
-            metric_mri=SpanMRI.HTTP_ERROR_RATE.value,
-            metrics=[
-                SpanMRI.HTTP_ERROR_COUNT.value,
-                SpanMRI.ALL.value,
-            ],
-            unit="transactions",
-            snql=lambda http_error_count,
-            tx_count,
-            project_ids,
-            org_id,
-            metric_ids,
-            alias=None: division_float(http_error_count, tx_count, alias=alias),
-        ),
-        SingularEntityDerivedMetric(
-            metric_mri=SpanMRI.HTTP_ERROR_COUNT_LIGHT.value,
-            metrics=[SpanMRI.SELF_TIME_LIGHT.value],
-            unit="spans",
-            snql=lambda project_ids, org_id, metric_ids, alias=None: http_error_count_span(
-                org_id, metric_ids=metric_ids, alias=alias
-            ),
-        ),
-        SingularEntityDerivedMetric(
-            metric_mri=SpanMRI.HTTP_ERROR_RATE_LIGHT.value,
-            metrics=[
-                SpanMRI.HTTP_ERROR_COUNT_LIGHT.value,
-                SpanMRI.ALL_LIGHT.value,
-            ],
-            unit="transactions",
-            snql=lambda http_error_count,
-            tx_count,
-            project_ids,
-            org_id,
-            metric_ids,
-            alias=None: division_float(http_error_count, tx_count, alias=alias),
-        ),
     ]
 }
 
@@ -1753,49 +1665,6 @@ DERIVED_OPS: Mapping[MetricOperationType, DerivedOp] = {
             can_orderby=True,
             snql_func=rate_snql_factory,
             default_null_value=0,
-        ),
-        DerivedOp(
-            op="count_web_vitals",
-            can_orderby=True,
-            snql_func=count_web_vitals_snql_factory,
-            default_null_value=0,
-        ),
-        DerivedOp(
-            op="count_transaction_name",
-            can_orderby=True,
-            snql_func=count_transaction_name_snql_factory,
-            default_null_value=0,
-        ),
-        # This specific derived operation doesn't require a metric_mri supplied to the MetricField but
-        # in order to avoid breaking the contract we should always pass it. When using it in the orderby
-        # clause you should put a metric mri with the same entity as the only entity used in the select.
-        # E.g. if you have a select with user_misery which is a set entity and team_key_transaction and you want
-        # to order by team_key_transaction, you will have to supply to the team_key_transaction MetricField
-        # an mri that has the set entity.
-        #
-        # OrderBy(
-        #     field=MetricField(
-        #         op="team_key_transaction",
-        #         # This has entity type set, which is the entity type of the select (in the select you can only have
-        #         one entity type across selections if you use the team_key_transaction in the order by).
-        #         metric_mri=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
-        #         params={
-        #             "team_key_condition_rhs": [
-        #                 (self.project.id, "foo_transaction"),
-        #             ]
-        #         },
-        #         alias="team_key_transactions",
-        #     ),
-        #     direction=Direction.DESC,
-        # )
-        DerivedOp(
-            op="team_key_transaction",
-            can_orderby=True,
-            can_groupby=True,
-            can_filter=True,
-            snql_func=team_key_transaction_snql,
-            default_null_value=0,
-            meta_type="boolean",
         ),
         DerivedOp(
             op="sum_if_column",
@@ -1826,53 +1695,6 @@ DERIVED_OPS: Mapping[MetricOperationType, DerivedOp] = {
             snql_func=max_timestamp,
             meta_type="datetime",
             default_null_value=None,
-        ),
-        # Custom operations used for on demand derived metrics.
-        DerivedOp(
-            op="on_demand_apdex",
-            can_orderby=True,
-            snql_func=on_demand_apdex_snql_factory,
-            default_null_value=0,
-        ),
-        DerivedOp(
-            op="on_demand_epm",
-            can_orderby=True,
-            snql_func=on_demand_epm_snql_factory,
-            default_null_value=0,
-        ),
-        DerivedOp(
-            op="on_demand_eps",
-            can_orderby=True,
-            snql_func=on_demand_eps_snql_factory,
-            default_null_value=0,
-        ),
-        DerivedOp(
-            op="on_demand_failure_count",
-            can_orderby=True,
-            snql_func=on_demand_failure_count_snql_factory,
-            default_null_value=0,
-        ),
-        DerivedOp(
-            op="on_demand_failure_rate",
-            can_orderby=True,
-            snql_func=on_demand_failure_rate_snql_factory,
-            default_null_value=0,
-        ),
-        DerivedOp(
-            op="on_demand_count_unique",
-            can_orderby=True,
-            snql_func=on_demand_count_unique_snql_factory,
-        ),
-        DerivedOp(
-            op="on_demand_count_web_vitals",
-            can_orderby=True,
-            snql_func=on_demand_count_web_vitals_snql_factory,
-        ),
-        DerivedOp(
-            op="on_demand_user_misery",
-            can_orderby=True,
-            snql_func=on_demand_user_misery_snql_factory,
-            default_null_value=0,
         ),
     ]
 }

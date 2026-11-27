@@ -103,6 +103,12 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             return self.client_get(data=data, url=self.url if url is None else url)
 
     def test_count(self) -> None:
+        self.assert_count("spans")
+
+    def test_span_metrics_alias_count(self) -> None:
+        self.assert_count("spansMetrics")
+
+    def assert_count(self, dataset: str) -> None:
         event_counts = [6, 0, 6, 3, 0, 3]
         spans = []
         for hour, count in enumerate(event_counts):
@@ -124,7 +130,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                 "interval": "1h",
                 "yAxis": "count()",
                 "project": self.project.id,
-                "dataset": "spans",
+                "dataset": dataset,
             },
         )
         assert response.status_code == 200, response.content

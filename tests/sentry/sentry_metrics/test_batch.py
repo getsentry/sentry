@@ -2,6 +2,7 @@ import logging
 from collections.abc import MutableMapping, Sequence
 from datetime import datetime, timezone
 from typing import Any
+from unittest.mock import patch
 
 import pytest
 import sentry_kafka_schemas
@@ -28,9 +29,9 @@ from sentry.testutils.helpers.options import override_options
 from sentry.utils import json
 
 MOCK_METRIC_ID_AGG_OPTION = {
-    "d:transactions/measurements.fcp@millisecond": {AggregationOption.HIST: TimeWindow.NINETY_DAYS},
-    "d:transactions/measurements.lcp@millisecond": {AggregationOption.HIST: TimeWindow.NINETY_DAYS},
-    "d:transactions/alert@none": {AggregationOption.TEN_SECOND: TimeWindow.NINETY_DAYS},
+    SessionMRI.RAW_DURATION.value: {AggregationOption.HIST: TimeWindow.NINETY_DAYS},
+    SessionMRI.RAW_ERROR.value: {AggregationOption.TEN_SECOND: TimeWindow.NINETY_DAYS},
+    SessionMRI.RAW_USER.value: None,
 }
 
 pytestmark = pytest.mark.sentry_metrics
@@ -1008,80 +1009,40 @@ def test_one_org_limited(caplog: pytest.LogCaptureFixture) -> None:
     ]
 
 
-def test_aggregation_options() -> None:
+@pytest.mark.parametrize("ten_second_granularity", [False, True])
+@patch(
+    "sentry.sentry_metrics.aggregation_option_registry.METRIC_ID_AGG_OPTION",
+    MOCK_METRIC_ID_AGG_OPTION,
+)
+def test_aggregation_options(ten_second_granularity: bool) -> None:
     with override_options(
         {
-            "sentry-metrics.10s-granularity": False,
-            "sentry-metrics.drop-percentiles.per-use-case": ["transactions"],
+            "sentry-metrics.10s-granularity": ten_second_granularity,
+            "sentry-metrics.drop-percentiles.per-use-case": [UseCaseID.SESSIONS.value],
         }
     ):
-        assert get_aggregation_options("c:transactions/count@none") == {
+        assert get_aggregation_options(SessionMRI.RAW_SESSION.value) == {
             AggregationOption.DISABLE_PERCENTILES: TimeWindow.NINETY_DAYS
         }
-        assert get_aggregation_options("c:transactions/count@none") == {
-            AggregationOption.DISABLE_PERCENTILES: TimeWindow.NINETY_DAYS
-        }
-
-    with override_options(
-        {
-            "sentry-metrics.10s-granularity": True,
-            "sentry-metrics.drop-percentiles.per-use-case": ["transactions"],
-        }
-    ):
-        assert get_aggregation_options("c:transactions/count@none") == {
-            AggregationOption.DISABLE_PERCENTILES: TimeWindow.NINETY_DAYS
-        }
-        assert get_aggregation_options("c:transactions/count@none") == {
-            AggregationOption.DISABLE_PERCENTILES: TimeWindow.NINETY_DAYS
-        }
-
-    with override_options(
-        {
-            "sentry-metrics.10s-granularity": False,
-            "sentry-metrics.drop-percentiles.per-use-case": ["transactions", "spans"],
-        }
-    ):
-        assert get_aggregation_options("c:transactions/count@none") == {
-            AggregationOption.DISABLE_PERCENTILES: TimeWindow.NINETY_DAYS
-        }
-        assert get_aggregation_options("c:spans/count@none") == {
-            AggregationOption.DISABLE_PERCENTILES: TimeWindow.NINETY_DAYS
-        }
-
-        assert get_aggregation_options("c:transactions/count@none") == {
-            AggregationOption.DISABLE_PERCENTILES: TimeWindow.NINETY_DAYS
-        }
-        assert get_aggregation_options("c:transactions/count@none") == {
-            AggregationOption.DISABLE_PERCENTILES: TimeWindow.NINETY_DAYS
-        }
-        assert get_aggregation_options("c:spans/count@none") == {
-            AggregationOption.DISABLE_PERCENTILES: TimeWindow.NINETY_DAYS
-        }
-
-    with override_options(
-        {
-            "sentry-metrics.10s-granularity": False,
-            "sentry-metrics.drop-percentiles.per-use-case": ["transactions"],
-        }
-    ):
-        assert get_aggregation_options("d:transactions/measurements.fcp@millisecond") == {
+        assert get_aggregation_options(SessionMRI.RAW_DURATION.value) == {
             AggregationOption.HIST: TimeWindow.NINETY_DAYS
         }
+        assert get_aggregation_options(SessionMRI.RAW_ERROR.value) == {
+            AggregationOption.TEN_SECOND: TimeWindow.NINETY_DAYS
+        }
+        assert get_aggregation_options(SessionMRI.RAW_USER.value) is None
 
     with override_options(
         {
-            "sentry-metrics.10s-granularity": True,
-            "sentry-metrics.drop-percentiles.per-use-case": ["transactions", "spans"],
+            "sentry-metrics.10s-granularity": ten_second_granularity,
+            "sentry-metrics.drop-percentiles.per-use-case": [],
         }
     ):
-        assert get_aggregation_options("d:transactions/measurements.fcp@millisecond") == {
+        assert get_aggregation_options(SessionMRI.RAW_SESSION.value) is None
+        assert get_aggregation_options(SessionMRI.RAW_DURATION.value) == {
             AggregationOption.HIST: TimeWindow.NINETY_DAYS
         }
-
-        assert get_aggregation_options("c:transactions/count@none") == {
-            AggregationOption.DISABLE_PERCENTILES: TimeWindow.NINETY_DAYS
+        assert get_aggregation_options(SessionMRI.RAW_ERROR.value) == {
+            AggregationOption.TEN_SECOND: TimeWindow.NINETY_DAYS
         }
-
-        assert get_aggregation_options("c:spans/count@none") == {
-            AggregationOption.DISABLE_PERCENTILES: TimeWindow.NINETY_DAYS
-        }
+        assert get_aggregation_options(SessionMRI.RAW_USER.value) is None

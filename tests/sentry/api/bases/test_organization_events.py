@@ -9,7 +9,8 @@ from sentry.api.bases.organization_events import (
 )
 from sentry.auth import access
 from sentry.auth.services.auth import AuthenticatedToken
-from sentry.snuba import discover, metrics_enhanced_performance, metrics_performance, transactions
+from sentry.snuba import discover, transactions
+from sentry.snuba.spans_rpc import Spans
 from sentry.testutils.cases import TestCase
 from sentry.testutils.requests import drf_request_from_request
 
@@ -79,14 +80,17 @@ class OrganizationEventsEndpointBaseGetDatasetTest(TestCase):
         )
         return OrganizationEventsEndpointBase().get_dataset(request, self.organization)
 
-    def test_metrics_resolves_to_metrics_enhanced_performance(self) -> None:
-        assert self.resolve("metrics") is metrics_enhanced_performance
+    def test_metrics_resolves_to_transactions(self) -> None:
+        assert self.resolve("metrics") is transactions
 
-    def test_metrics_stays_on_metrics_performance_for_on_demand(self) -> None:
-        assert self.resolve("metrics", useOnDemandMetrics="true") is metrics_performance
+    def test_on_demand_flag_uses_indexed_events(self) -> None:
+        assert self.resolve("metrics", useOnDemandMetrics="true") is transactions
 
-    def test_metrics_enhanced_is_unchanged(self) -> None:
-        assert self.resolve("metricsEnhanced") is metrics_enhanced_performance
+    def test_metrics_enhanced_resolves_to_transactions(self) -> None:
+        assert self.resolve("metricsEnhanced") is transactions
+
+    def test_span_metrics_resolves_to_indexed_spans(self) -> None:
+        assert self.resolve("spansMetrics") is Spans
 
     def test_discover_is_unchanged(self) -> None:
         assert self.resolve("discover") is discover

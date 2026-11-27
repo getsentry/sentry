@@ -2,7 +2,7 @@ import re
 
 import pytest
 
-from sentry.snuba.metrics.naming_layer.mri import ParsedMRI, is_custom_measurement, parse_mri
+from sentry.snuba.metrics.naming_layer.mri import ParsedMRI, get_available_operations, parse_mri
 from sentry.snuba.metrics.naming_layer.public import PUBLIC_NAME_REGEX
 
 
@@ -95,26 +95,11 @@ def test_parse_mri_with_invalid_mri(name: str) -> None:
     assert parsed_mri is None
 
 
-@pytest.mark.parametrize(
-    "parsed_mri, expected",
-    [
-        (
-            ParsedMRI("d", "transactions", "measurements.stall_longest_time", "millisecond"),
-            True,
-        ),
-        (
-            ParsedMRI("d", "transactions", "breakdowns.span_ops.ops.http", "millisecond"),
-            False,
-        ),
-        (
-            ParsedMRI("c", "transactions", "measurements.db_calls", "none"),
-            True,
-        ),
-        (
-            ParsedMRI("s", "sessions", "error", "none"),
-            False,
-        ),
-    ],
-)
-def test_is_custom_measurement(parsed_mri: ParsedMRI, expected: bool) -> None:
-    assert is_custom_measurement(parsed_mri) == expected
+@pytest.mark.parametrize("namespace", ["spans", "transactions"])
+def test_removed_use_cases_have_no_available_operations(namespace: str) -> None:
+    assert get_available_operations(ParsedMRI("c", namespace, "count", "none")) == []
+
+
+@pytest.mark.parametrize("namespace", ["sessions", "profiles", "metric_stats"])
+def test_supported_use_cases_have_available_operations(namespace: str) -> None:
+    assert "sum" in get_available_operations(ParsedMRI("c", namespace, "count", "none"))

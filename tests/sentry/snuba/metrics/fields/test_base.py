@@ -43,7 +43,6 @@ from sentry.snuba.metrics.fields.snql import (
 )
 from sentry.snuba.metrics.naming_layer import (
     SessionMRI,
-    SpanMRI,
     get_public_name_from_mri,
 )
 from sentry.testutils.cases import TestCase
@@ -57,7 +56,6 @@ def indexer_record(use_case_id: UseCaseID, org_id: int, string: str) -> int:
     return ret
 
 
-perf_indexer_record = partial(indexer_record, UseCaseID.TRANSACTIONS)
 rh_indexer_record = partial(indexer_record, UseCaseID.SESSIONS)
 
 
@@ -66,15 +64,6 @@ def get_entity_of_metric_mocked(_: object, metric_mri: str, use_case_id: UseCase
         SessionMRI.RAW_SESSION.value: EntityKey.MetricsCounters,
         SessionMRI.RAW_USER.value: EntityKey.MetricsSets,
         SessionMRI.RAW_ERROR.value: EntityKey.MetricsSets,
-        "d:transactions/duration@millisecond": EntityKey.MetricsDistributions,
-        "s:transactions/user@none": EntityKey.MetricsSets,
-        "d:transactions/measurements.lcp@millisecond": EntityKey.MetricsDistributions,
-        SpanMRI.SELF_TIME.value: EntityKey.MetricsDistributions,
-        SpanMRI.SELF_TIME_LIGHT.value: EntityKey.MetricsDistributions,
-        SpanMRI.RESPONSE_CONTENT_LENGTH.value: EntityKey.MetricsDistributions,
-        SpanMRI.DECODED_RESPONSE_CONTENT_LENGTH.value: EntityKey.MetricsDistributions,
-        SpanMRI.RESPONSE_TRANSFER_SIZE.value: EntityKey.MetricsDistributions,
-        SpanMRI.CACHE_ITEM_SIZE.value: EntityKey.MetricsDistributions,
     }[metric_mri].value
 
 

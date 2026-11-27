@@ -37,7 +37,7 @@ class PostgresIndexerV2Test(TestCase):
     def test_resolve_unsupported_use_case_returns_none(self) -> None:
         assert (
             PGStringIndexerV2().resolve(
-                UseCaseID.TRANSACTIONS, self.org2.id, "c:custom/checkout.failed@none"
+                UseCaseID.SESSIONS, self.org2.id, "c:custom/checkout.failed@none"
             )
             is None
         )

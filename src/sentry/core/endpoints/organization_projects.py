@@ -62,7 +62,7 @@ from sentry.search.utils import tokenize_query
 from sentry.seer.agent_token import is_agent_auth
 from sentry.service_accounts.auth import is_service_account_auth
 from sentry.signals import project_created, team_created
-from sentry.snuba import discover, metrics_enhanced_performance
+from sentry.snuba import discover
 from sentry.users.models.user import User
 from sentry.utils.snowflake import MaxSnowflakeRetryError
 
@@ -85,14 +85,13 @@ class _OrganizationProjectCreateResponse(OrganizationProjectResponse):
     team_slug: str
 
 
-# Only applies to the error `stats`; `transactionStats` always queries spans. Kept for
-# now until we have the frontend stop sending it, though every option resolves to discover for the error query anyway since the
-# metrics datasets is not compatible with `!event.type:transaction`.
+# Only applies to error `stats`; `transactionStats` always queries spans.
+# Accept legacy metrics labels from older frontends, but query errors with discover.
 DATASETS = {
     "": discover,  # in case they pass an empty query string fall back on default
     "discover": discover,
-    "metricsEnhanced": metrics_enhanced_performance,
-    "metrics": metrics_enhanced_performance,
+    "metricsEnhanced": discover,
+    "metrics": discover,
 }
 
 CONFLICTING_TEAM_SLUG_ERROR = "A team with this slug already exists."
