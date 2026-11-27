@@ -4,10 +4,17 @@ from django.test import override_settings
 from django.urls import reverse
 
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
+from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.service_accounts.models import ServiceAccountProject
+from sentry.seer.models.workflow import SeerWorkflowConfig, SeerWorkflowStrategy
+from sentry.service_accounts.models import (
+    ServiceAccount,
+    ServiceAccountOwnerKind,
+    ServiceAccountProject,
+)
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.factories import Factories
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, cell_silo_test
 from sentry.viewer_context import (
@@ -22,6 +29,14 @@ FEATURE_FLAG = "organizations:service-accounts"
 SECRET = "service-accounts-test-viewer-context-secret"
 
 
+def link_to_seer_automation(organization: Organization, service_account: ServiceAccount) -> None:
+    Factories.create_seer_workflow_config(
+        organization,
+        strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION,
+        service_account_id=service_account.id,
+    )
+
+
 @cell_silo_test
 @override_settings(SEER_API_SHARED_SECRET=SECRET)
 class OrganizationServiceAccountViewerContextTest(APITestCase):
@@ -34,6 +49,7 @@ class OrganizationServiceAccountViewerContextTest(APITestCase):
             name="seer-autofix",
             scope_list=["project:read", "event:read"],
         )
+        link_to_seer_automation(self.organization, self.service_account)
         self.seer_viewer_context = ViewerContext(
             actor=Actor(type=ActorType.SYSTEM), organization_id=self.organization.id
         )
@@ -87,7 +103,9 @@ class OrganizationServiceAccountViewerContextTest(APITestCase):
         assert response.status_code == 404
 
     def test_account_in_other_org_returns_404(self) -> None:
-        other = self.create_service_account(organization=self.create_organization())
+        other_org = self.create_organization()
+        other = self.create_service_account(organization=other_org)
+        link_to_seer_automation(other_org, other)
 
         response = self._post(service_account_id=other.id)
 
@@ -97,10 +115,32 @@ class OrganizationServiceAccountViewerContextTest(APITestCase):
         inactive = self.create_service_account(
             organization=self.organization, name="nightly-triage", is_active=False
         )
+        link_to_seer_automation(self.organization, inactive)
 
         response = self._post(service_account_id=inactive.id)
 
         assert response.status_code == 404
+
+    def test_org_owned_account_returns_404(self) -> None:
+        org_owned = self.create_service_account(
+            organization=self.organization,
+            name="deploy-bot",
+            scope_list=["org:admin", "project:admin"],
+            owner_kind=ServiceAccountOwnerKind.ORGANIZATION,
+        )
+
+        response = self._post(service_account_id=org_owned.id)
+
+        assert response.status_code == 404
+
+    def test_account_unlinked_from_automation_returns_404(self) -> None:
+        assert self._post().status_code == 200
+
+        SeerWorkflowConfig.objects.filter(service_account_id=self.service_account.id).update(
+            service_account_id=None
+        )
+
+        assert self._post().status_code == 404
 
     def test_changes_apply_to_next_request(self) -> None:
         assert self._post().status_code == 200
