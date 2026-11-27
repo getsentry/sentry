@@ -578,6 +578,8 @@ class ArtifactBundlePostAssembler:
         metrics.incr(
             "tasks.assemble.artifact_bundle.artifact_count", amount=self.archive.artifact_count
         )
+        stored_size = 0
+        total_size = 0
         for info in self.archive.infolist():
             if info.file_size > MAX_SOURCE_FILE_SIZE:
                 metrics.incr("tasks.assemble.artifact_bundle.file_size_exceeded")
@@ -585,11 +587,13 @@ class ArtifactBundlePostAssembler:
                     f"file {info.filename} exceeds the maximum uncompressed file size "
                     f"({info.file_size} > {MAX_SOURCE_FILE_SIZE} bytes)"
                 )
-        # The Sentry CLI writes only STORED entries when it compresses the uploaded chunks instead, so the assembled
-        # bundle is not compressed and we compress it at rest. Writers that compress entries use DEFLATE.
-        self.compress = all(
-            info.compress_type == zipfile.ZIP_STORED for info in self.archive.infolist()
-        )
+            total_size += info.file_size
+            if info.compress_type == zipfile.ZIP_STORED:
+                stored_size += info.file_size
+        # The Sentry CLI writes STORED entries when it compresses the uploaded chunks instead, so we compress bundles
+        # at rest when most of their bytes are STORED. Counting bytes ignores empty entries, which DEFLATE writers
+        # store as well.
+        self.compress = stored_size * 2 > total_size
 
     def _cleanup_invalid_bundle(self) -> None:
         metrics.incr("tasks.assemble.invalid_bundle")
