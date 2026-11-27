@@ -35,11 +35,15 @@ const StyledTabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})<{
     cursor: default;
   }
 
+  /**
+   * Overflowing tabs stay in the layout so the list keeps its full width.
+   * Removing them would shrink a content-sized list around the visible tabs,
+   * and the hidden tabs would never fit again.
+   */
   ${p =>
     p.overflowing &&
     css`
-      display: none;
-      pointer-events: none;
+      visibility: hidden;
     `}
 `;
 
@@ -294,7 +298,19 @@ export function Tab({
     </TabWrap>
   );
 
-  return tooltipProps ? <Tooltip {...tooltipProps}>{tab}</Tooltip> : tab;
+  // An overflowing tab keeps its place in the layout, so its tooltip would still
+  // open when hovering the empty space it leaves. Disabling the tooltip would
+  // drop its wrapper and remount the tab, so keep it closed instead.
+  return tooltipProps ? (
+    <Tooltip
+      {...tooltipProps}
+      forceVisible={overflowing ? false : tooltipProps.forceVisible}
+    >
+      {tab}
+    </Tooltip>
+  ) : (
+    tab
+  );
 }
 
 const TabWrap = StyledTabWrap;

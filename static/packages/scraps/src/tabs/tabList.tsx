@@ -25,6 +25,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {TabsContext} from './context';
+import {fitTabs, type TabFit} from './fitTabs';
 import type {InternalTabListItemProps} from './item';
 import {TabListItem} from './item';
 import {Tab} from './tab';
@@ -33,6 +34,7 @@ import {tabsShouldForwardProp} from './utils';
 
 const StyledTabListWrap = styled('ul', {shouldForwardProp: tabsShouldForwardProp})<{
   orientation: Orientation;
+  overflowing: boolean;
   variant: TabProps['variant'];
 }>`
   position: relative;
@@ -55,27 +57,21 @@ const StyledTabListWrap = styled('ul', {shouldForwardProp: tabsShouldForwardProp
           align-content: start;
           padding-right: ${p.theme.space.xs};
         `}
-`;
 
-const StyledTabListOverflowWrap = styled('div')`
-  position: absolute;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: ${p => p.theme.zIndex.dropdown};
+  /* Overflowing tabs keep their place in the layout, so clip them to keep them
+     from adding scrollable overflow. */
+  ${p =>
+    p.overflowing &&
+    css`
+      overflow-x: clip;
+    `}
 `;
-
-/**
- * Width (px) reserved on the right edge for the overflow menu trigger button.
- * Kept slightly larger than the actual button so the trigger never overlaps
- * the last visible tab.
- */
-const RESERVED_OVERFLOW_TRIGGER_WIDTH = 48;
 
 /**
  * Measures the tab list against the space available in its container and
- * returns the keys of the tabs that don't fit, as a contiguous suffix. Those
- * tabs are visually hidden (see `Tab`) and surfaced through an overflow menu.
+ * returns the tabs that don't fit and where to place the overflow trigger.
+ * Overflowing tabs are visually hidden (see `Tab`) and surfaced through an
+ * overflow menu.
  *
  * This uses direct measurement rather than an IntersectionObserver on purpose:
  * the result is deterministic, so for a given container width the same set of
@@ -104,16 +100,18 @@ function useOverflowTabs({
   tabItemsRef: RefObject<Record<string | number, HTMLLIElement | null>>;
   tabListRef: RefObject<HTMLUListElement | null>;
 }) {
-  const [overflowTabs, setOverflowTabs] = useState<Array<string | number>>([]);
-  // Cached intrinsic widths per tab key. Overflowing tabs render with
-  // `display: none` and measure 0, so we remember their last measured width to
-  // know when they would fit again as space grows.
-  const tabWidthsRef = useRef(new Map<string | number, number>());
+  const [fit, setFit] = useState<TabFit | null>(null);
 
-  // Measures the list against the available space and updates the overflow set.
+  // Tabs that participate in the layout, in render (visual) order. Tabs with
+  // the `hidden` prop render with `display: none` and take up no space.
+  const layoutKeys: Array<string | number> = tabItems
+    .filter(item => !item.hidden)
+    .map(item => item.key);
+
+  // Measures the list against the available space and updates the fit.
   const recompute = useEffectEvent(() => {
     if (disabled) {
-      setOverflowTabs(prev => (prev.length === 0 ? prev : []));
+      setFit(null);
       return;
     }
 
@@ -123,65 +121,24 @@ function useOverflowTabs({
       return;
     }
 
-    const elements = tabItemsRef.current ?? {};
-    const gap = parseFloat(getComputedStyle(tabList).columnGap) || 0;
-
-    // Tabs that participate in the layout, in render (visual) order. Tabs with
-    // the `hidden` prop render with `display: none` and take up no space.
-    const keys = tabItems.filter(item => !item.hidden).map(item => item.key);
-
-    // Refresh the cached width of every measurable (currently visible) tab.
-    // Overflowing tabs measure 0; their last known width is kept.
-    for (const key of keys) {
-      const measured = elements[key]?.getBoundingClientRect().width ?? 0;
-      if (measured > 0) {
-        tabWidthsRef.current.set(key, measured);
-      }
-    }
-
-    const available = outerWrap.getBoundingClientRect().width;
-
-    // Width required to render every tab, without reserving the trigger.
-    const fullWidth = keys.reduce(
-      (sum: number, key, index) =>
-        sum + (tabWidthsRef.current.get(key) ?? 0) + (index === 0 ? 0 : gap),
-      0
+    // Overflowing tabs are only visually hidden (see `Tab`), so every tab still
+    // measures its full width.
+    const widths = layoutKeys.map(
+      key => tabItemsRef.current[key]?.getBoundingClientRect().width ?? 0
     );
-
-    let nextOverflow: Array<string | number>;
-    if (fullWidth <= available) {
-      nextOverflow = [];
-    } else {
-      // Overflow is needed, so leave room for the trigger button.
-      const budget = available - RESERVED_OVERFLOW_TRIGGER_WIDTH;
-      nextOverflow = [];
-      let used = 0;
-      let isOverflowing = false;
-      keys.forEach((key, index) => {
-        if (isOverflowing) {
-          nextOverflow.push(key);
-          return;
-        }
-        const nextUsed =
-          used + (tabWidthsRef.current.get(key) ?? 0) + (index === 0 ? 0 : gap);
-        // Always keep the first tab visible so the tab bar never collapses to
-        // only the overflow trigger.
-        if (index === 0 || nextUsed <= budget) {
-          used = nextUsed;
-        } else {
-          isOverflowing = true;
-          nextOverflow.push(key);
-        }
-      });
-    }
+    const next = fitTabs(
+      widths,
+      parseFloat(getComputedStyle(tabList).columnGap) || 0,
+      outerWrap.getBoundingClientRect().width
+    );
 
     // Bail out when the result is unchanged to avoid re-render churn (and any
     // observer feedback from hiding/showing tabs).
-    setOverflowTabs(prev =>
-      prev.length === nextOverflow.length &&
-      prev.every((key, index) => key === nextOverflow[index])
+    setFit(prev =>
+      prev?.visibleCount === next.visibleCount &&
+      prev.triggerOffset === next.triggerOffset
         ? prev
-        : nextOverflow
+        : next
     );
   });
 
@@ -231,24 +188,29 @@ function useOverflowTabs({
     };
   }, [disabled, outerWrapRef, tabListRef]);
 
-  // Tabs with the `hidden` prop render with display: none; never surface them
-  // in the overflow menu.
-  const hiddenKeys = new Set<string | number>(
-    tabItems.filter(item => item.hidden).map(item => item.key)
-  );
-  return overflowTabs.filter(key => !hiddenKeys.has(key));
+  return {
+    overflowTabs: fit ? layoutKeys.slice(fit.visibleCount) : [],
+    triggerOffset: fit?.triggerOffset ?? 0,
+  };
 }
 
 interface OverflowMenuProps {
   disabled: boolean | undefined;
   overflowMenuItems: MenuItemProps[];
+  triggerOffset: number;
 }
 
-function OverflowMenu({overflowMenuItems, disabled}: OverflowMenuProps) {
+function OverflowMenu({overflowMenuItems, disabled, triggerOffset}: OverflowMenuProps) {
   const {t} = useTranslation();
 
   return (
-    <TabListOverflowWrap>
+    <Flex
+      position="absolute"
+      top="0"
+      bottom="0"
+      left={`${triggerOffset}px`}
+      align="center"
+    >
       <DropdownMenu
         items={overflowMenuItems}
         isDisabled={disabled}
@@ -264,7 +226,7 @@ function OverflowMenu({overflowMenuItems, disabled}: OverflowMenuProps) {
           />
         )}
       />
-    </TabListOverflowWrap>
+    </Flex>
   );
 }
 
@@ -322,7 +284,7 @@ function BaseTabList({
 
   // Detect tabs that overflow from the wrapper and put them in an overflow menu
   const tabItemsRef = useRef<Record<string | number, HTMLLIElement | null>>({});
-  const overflowTabs = useOverflowTabs({
+  const {overflowTabs, triggerOffset} = useOverflowTabs({
     outerWrapRef,
     tabListRef,
     tabItemsRef,
@@ -378,6 +340,7 @@ function BaseTabList({
       <TabListWrap
         {...tabListProps}
         orientation={orientation}
+        overflowing={overflowTabs.length > 0}
         ref={tabListRef}
         variant={variant}
       >
@@ -399,7 +362,11 @@ function BaseTabList({
       </TabListWrap>
 
       {orientation === 'horizontal' && overflowMenuItems.length > 0 && (
-        <OverflowMenu overflowMenuItems={overflowMenuItems} disabled={disabled} />
+        <OverflowMenu
+          overflowMenuItems={overflowMenuItems}
+          disabled={disabled}
+          triggerOffset={triggerOffset}
+        />
       )}
     </Container>
   );
@@ -448,8 +415,6 @@ export function TabList({variant, ...props}: TabListProps) {
 TabList.Item = TabListItem;
 
 const TabListWrap = StyledTabListWrap;
-
-const TabListOverflowWrap = StyledTabListOverflowWrap;
 
 const OverflowMenuTrigger = styled(OverlayTrigger.IconButton)`
   padding-left: ${p => p.theme.space.md};
