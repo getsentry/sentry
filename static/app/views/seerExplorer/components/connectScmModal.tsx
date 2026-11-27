@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, useEffect, useId, useState, type ReactNode} from 'react';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 import {parseAsString, useQueryState} from 'nuqs';
 
@@ -7,6 +7,8 @@ import {Stack} from '@sentry/scraps/layout';
 import {openModal, type ModalRenderProps} from '@sentry/scraps/modal';
 import {Text} from '@sentry/scraps/text';
 
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ScmProviderPills} from 'sentry/components/onboarding/scm/scmProviderPills';
 import {
   PipelineModal,
@@ -16,26 +18,43 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
 import type {Integration} from 'sentry/types/integrations';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {canManageIntegrations} from 'sentry/utils/integrationUtil';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useTimeout} from 'sentry/utils/useTimeout';
 import {organizationConfigIntegrationsQueryOptions} from 'sentry/views/settings/organizationRepositories/hooks/organizationConfigIntegrationsQueryOptions';
+
+import {
+  REPO_ACCESS_POLL_INTERVAL_MS,
+  REPO_ACCESS_WAIT_MS,
+  repoAccessInstallScope,
+  repoAccessQueryOptions,
+} from './repoAccessQuery';
 
 const SEER_SCM_PROVIDERS = new Set(['github', 'github_enterprise', 'gitlab']);
 
 const CONNECT_SCM_REPO_PARAM = 'connectScmRepo';
 
 interface ConnectScmModalProps extends ModalRenderProps {
-  onInstall: (integration: Integration) => void;
   repoName: string;
+  /** The chat's paused input. Not set when a link opened the modal. */
+  inputId?: string;
+  onInstall?: () => void;
 }
 
 export function openConnectScmModal({
   repoName,
   onInstall,
-}: Pick<ConnectScmModalProps, 'repoName' | 'onInstall'>) {
+  inputId,
+}: Pick<ConnectScmModalProps, 'repoName' | 'onInstall' | 'inputId'>) {
   openModal(
     modalProps => (
-      <ConnectScmModal {...modalProps} repoName={repoName} onInstall={onInstall} />
+      <ConnectScmModal
+        {...modalProps}
+        repoName={repoName}
+        onInstall={onInstall}
+        inputId={inputId}
+      />
     ),
     {closeEvents: 'escape-key'}
   );
@@ -43,7 +62,6 @@ export function openConnectScmModal({
 
 export function useConnectScmModalFromUrl() {
   const organization = useOrganization();
-  const queryClient = useQueryClient();
   const [repoName, setRepoName] = useQueryState(
     CONNECT_SCM_REPO_PARAM,
     parseAsString.withOptions({history: 'replace'})
@@ -60,21 +78,19 @@ export function useConnectScmModalFromUrl() {
     if (!name || !canInstall || !hasPrompt) {
       return;
     }
-    openConnectScmModal({
-      repoName: name,
-      onInstall: () =>
-        queryClient.invalidateQueries(
-          apiOptions.queryFilter('/organizations/$organizationIdOrSlug/integrations/', {
-            path: {organizationIdOrSlug: organization.slug},
-          })
-        ),
-    });
-  }, [repoName, setRepoName, canInstall, hasPrompt, queryClient, organization.slug]);
+    openConnectScmModal({repoName: name});
+  }, [repoName, setRepoName, canInstall, hasPrompt]);
 }
 
-function ConnectScmModal({repoName, onInstall, ...modalProps}: ConnectScmModalProps) {
-  const {Header, Body, closeModal} = modalProps;
+function ConnectScmModal({
+  repoName,
+  onInstall,
+  inputId,
+  ...modalProps
+}: ConnectScmModalProps) {
+  const {Header, Body} = modalProps;
   const organization = useOrganization();
+  const queryClient = useQueryClient();
   const {data, isPending, isLoadingError} = useQuery(
     organizationConfigIntegrationsQueryOptions({organization})
   );
@@ -83,12 +99,44 @@ function ConnectScmModal({repoName, onInstall, ...modalProps}: ConnectScmModalPr
   );
   const [installPipeline, setInstallPipeline] =
     useState<OpenPipelineModalOptions<'integration'>>();
+  const [installed, setInstalled] = useState<Integration>();
 
   useEffect(() => () => installPipeline?.onClose?.(), [installPipeline]);
 
   function handleInstall(integration: Integration) {
-    onInstall(integration);
-    closeModal();
+    if (inputId) {
+      queryClient.setQueryData(
+        repoAccessInstallScope(organization.slug, inputId).queryKey,
+        integration.id
+      );
+    }
+    onInstall?.();
+    setInstalled(integration);
+
+    // Refresh views behind the modal, independently of checking whether Seer can continue.
+    void queryClient.invalidateQueries({
+      ...apiOptions.queryFilter('/organizations/$organizationIdOrSlug/integrations/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+      predicate: ({queryKey}) => {
+        const query = safeParseQueryKey(queryKey)?.options.query;
+        return (
+          (!query?.providerKey || query.providerKey === integration.provider.key) &&
+          (!query?.integrationType || query.integrationType === 'source_code_management')
+        );
+      },
+    });
+  }
+
+  if (installed) {
+    return (
+      <ReposStep
+        {...modalProps}
+        integration={installed}
+        repoName={repoName}
+        inputId={inputId}
+      />
+    );
   }
 
   if (installPipeline) {
@@ -135,6 +183,145 @@ function ConnectScmModal({repoName, onInstall, ...modalProps}: ConnectScmModalPr
               openInstallPipeline={setInstallPipeline}
             />
           )}
+        </Stack>
+      </Body>
+    </Fragment>
+  );
+}
+
+interface ReposStepProps extends ModalRenderProps {
+  integration: Pick<Integration, 'id' | 'name'> & {
+    provider: Pick<Integration['provider'], 'name'>;
+  };
+  repoName: string;
+  inputId?: string;
+}
+
+function ReposStep({
+  integration,
+  repoName,
+  inputId,
+  Header,
+  Body,
+  closeModal,
+}: ReposStepProps) {
+  const organization = useOrganization();
+  const standaloneCheckId = useId();
+  const provider = integration.provider.name;
+  const [timedOut, setTimedOut] = useState(false);
+  const {start: startWaiting} = useTimeout({
+    timeMs: REPO_ACCESS_WAIT_MS,
+    onTimeout: () => setTimedOut(true),
+  });
+  useEffect(() => {
+    startWaiting();
+  }, [startWaiting]);
+
+  const {
+    data: access,
+    isError,
+    isFetching,
+    refetch,
+  } = useQuery({
+    ...repoAccessQueryOptions({
+      orgSlug: organization.slug,
+      repoName,
+      integrationId: integration.id,
+      checkId: inputId ?? standaloneCheckId,
+    }),
+    // In chat the popup starts and polls this query. The modal just reads its result.
+    enabled: !inputId,
+    refetchIntervalInBackground: true,
+    refetchInterval: query =>
+      !timedOut && query.state.data?.json.status === 'repos_syncing'
+        ? REPO_ACCESS_POLL_INTERVAL_MS
+        : false,
+  });
+
+  const canAccess = access?.status === 'found';
+  useEffect(() => {
+    if (canAccess) {
+      closeModal();
+    }
+  }, [canAccess, closeModal]);
+
+  const checkAgain = () => refetch({cancelRefetch: false});
+  const repo = <Text bold>{repoName}</Text>;
+
+  let message: ReactNode;
+  if (canAccess || (!isError && !access) || (isFetching && !access)) {
+    message = <LoadingIndicator>{t('Checking repository access…')}</LoadingIndicator>;
+  } else if (isError) {
+    message = (
+      <LoadingError
+        message={t("Couldn't check repository access.")}
+        onRetry={checkAgain}
+      />
+    );
+  } else if (access?.status === 'repos_syncing' && !timedOut) {
+    message = (
+      <LoadingIndicator>
+        {t('Getting your repos from %s. This usually takes a few seconds.', provider)}
+      </LoadingIndicator>
+    );
+  } else if (access?.syncFailure || access?.status === 'repos_syncing') {
+    message = (
+      <LoadingError
+        message={
+          access.syncFailure
+            ? t("Couldn't get your repos from %s. Try again later.", provider)
+            : t('Still waiting for your repos from %s.', provider)
+        }
+        onRetry={checkAgain}
+      />
+    );
+  } else {
+    let detail: ReactNode;
+    switch (access?.status) {
+      case 'repo_ambiguous':
+        detail = t('More than one repository matches this name.');
+        break;
+      case 'scm_account_not_connected':
+        detail = t(
+          "This repo's source control account isn't connected to this organization."
+        );
+        break;
+      case 'repo_not_in_sentry':
+        detail = tct(
+          "[repo] isn't in Sentry. On [provider], check that Sentry has access to it, then check again.",
+          {repo, provider}
+        );
+        break;
+      default:
+        detail = t("Seer still can't access this repository.");
+        break;
+    }
+    message = (
+      <Alert
+        variant="warning"
+        trailingItems={
+          <Alert.Button onClick={checkAgain}>{t('Check again')}</Alert.Button>
+        }
+      >
+        {detail}
+      </Alert>
+    );
+  }
+
+  return (
+    <Fragment>
+      <Header closeButton>
+        <Text size="lg">{t('Connect source control')}</Text>
+      </Header>
+      <Body>
+        <Stack gap="lg">
+          <Text>
+            {tct('[provider] connected: [account]', {
+              provider,
+              account: <Text bold>{integration.name}</Text>,
+            })}
+          </Text>
+          {message}
         </Stack>
       </Body>
     </Fragment>
