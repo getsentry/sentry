@@ -137,7 +137,6 @@ class AgentRunOptions(TypedDict):
     is_context_engine_enabled: NotRequired[bool]
     enable_bash_mode: NotRequired[bool]
     enable_coding: NotRequired[bool]
-    enable_pr_context_tools: NotRequired[bool]
     enable_write_pull_request: NotRequired[bool]
     enable_investigation_tools: NotRequired[bool]
     enable_inbox_tools: NotRequired[bool]
