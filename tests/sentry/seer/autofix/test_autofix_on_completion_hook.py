@@ -16,6 +16,7 @@ from sentry.seer.agent.client_models import (
     FilePatch,
     MemoryBlock,
     Message,
+    PushLogEntry,
     RepoPRState,
     SeerRunState,
 )
@@ -950,6 +951,21 @@ class TestPrIterationCompletionHook(TestCase):
         )
         return outcome is None
 
+    def _record_push(self, state: SeerRunState, queued_at: str, status: str) -> None:
+        state.pr_push_log = [
+            PushLogEntry.parse_obj(
+                {
+                    "request": {
+                        "repo_name": "test-repo",
+                        "action": "update",
+                        "source": "pr_iteration",
+                        "queued_at": queued_at,
+                    },
+                    "outcome": {"status": status},
+                }
+            )
+        ]
+
     def _webhook(self, state: SeerRunState) -> None:
         iteration_fields = iteration_completed_webhook_fields(
             self.organization,
@@ -1079,6 +1095,48 @@ class TestPrIterationCompletionHook(TestCase):
 
         assert pushed is False
         mock_push.assert_not_called()
+
+    @patch(f"{COMPLETION_PATH}.complete_pr_iteration_details")
+    @patch(f"{COMPLETION_PATH}.consume_queued_feedback")
+    @patch(f"{COMPLETION_PATH}.trigger_push_changes")
+    @patch(f"{HOOK_PATH}.broadcast_webhooks_for_organization.delay")
+    def test_a_push_that_found_nothing_finishes_the_iteration(
+        self,
+        mock_broadcast: MagicMock,
+        mock_push: MagicMock,
+        mock_consume: MagicMock,
+        mock_complete: MagicMock,
+    ) -> None:
+        """Edits that cancel out make no commit, so the commit SHA never catches up. The push's
+        outcome ends the iteration instead of queueing the same push again, forever."""
+        state = self._unsynced()
+        self._record_push(state, "2026-02-10T00:01:00Z", "no_changes")
+
+        AutofixOnCompletionHook._complete_pr_iteration(
+            self.organization, state.run_id, state, self.group.id, AutofixReferrer.GITHUB_PR_COMMENT
+        )
+
+        mock_push.assert_not_called()
+        mock_consume.assert_called_once()
+        assert mock_complete.call_args.kwargs["outcome"] == PrIterationOutcome.NO_CODE_CHANGES.value
+        assert (
+            mock_broadcast.call_args.kwargs["event_name"]
+            == SeerActionType.ITERATION_COMPLETED.value
+        )
+
+    @patch(f"{COMPLETION_PATH}.trigger_push_changes")
+    def test_a_push_that_found_nothing_does_not_cover_later_edits(
+        self, mock_push: MagicMock
+    ) -> None:
+        state = self._unsynced()
+        self._record_push(state, "2026-02-10T00:01:00Z", "no_changes")
+        later_block = pr_iteration_memory_block(iteration_index=2)
+        later_block.id = "block-next-iteration"
+        later_block.timestamp = "2026-02-10T00:02:00Z"
+        state.blocks.append(later_block)
+
+        assert self._push(state) is True
+        mock_push.assert_called_once()
 
     @patch(f"{COMPLETION_PATH}.trigger_push_changes")
     def test_an_iteration_that_changed_nothing_does_not_push(self, mock_push: MagicMock) -> None:

@@ -133,6 +133,7 @@ class PushRequest(BaseModel):
     action: str
     source: str | None = None
     idempotency_key: str | None = None
+    queued_at: datetime | None = None
     # Set for an update: the PR the push lands on.
     target_pr_number: int | None = None
     target_pr_url: str | None = None
@@ -507,8 +508,30 @@ class SeerRunState(BaseModel):
         for block in reversed(self.blocks):
             if any(fp.repo_name == repo_name for fp in (block.merged_file_patches or [])):
                 block_sha = (block.pr_commit_shas or {}).get(repo_name)
-                return block_sha == pr_state.commit_sha
+                return block_sha == pr_state.commit_sha or self.found_nothing_to_push(
+                    repo_name, since=block.timestamp
+                )
         return True  # No patches found = synced
+
+    def found_nothing_to_push(self, repo_name: str, since: str) -> bool:
+        """Whether Seer's latest push to the repo was queued at or after `since` and found
+        nothing to push.
+
+        Edits can cancel out, e.g. creating a scratch file and deleting it again. Seer's push
+        then makes no commit, so the PR's commit SHA can't show that the edits were handled.
+        """
+        for entry in reversed(self.pr_push_log or []):
+            if entry.request.repo_name != repo_name:
+                continue
+            if entry.outcome is None or entry.outcome.status != "no_changes":
+                return False
+            if entry.request.queued_at is None:
+                return False
+            try:
+                return entry.request.queued_at >= datetime.fromisoformat(since)
+            except (TypeError, ValueError):
+                return False
+        return False
 
     def has_code_changes(self) -> tuple[bool, bool]:
         """
