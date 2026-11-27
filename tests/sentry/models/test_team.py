@@ -2,6 +2,8 @@ from django.db import connection
 from django.test import override_settings
 
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs_control
+from sentry.hybridcloud.models.outbox import CellOutbox, outbox_context
+from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.team import Team
@@ -70,6 +72,45 @@ class TeamTest(TestCase):
 
         assert team.id == seq_value
         assert Team.objects.filter(id=team.id).exists()
+
+
+class TeamOutboxTest(TestCase):
+    def setUp(self) -> None:
+        self.organization = self.create_organization()
+        # Drain the organization's own outboxes so the assertions below only see team rows.
+        with outbox_runner():
+            pass
+
+    def test_create_and_edit_produce_no_outbox(self) -> None:
+        with outbox_context(flush=False):
+            team = self.create_team(organization=self.organization, name="Platform")
+            team.update(name="Infra")
+            team.slug = "infra"
+            team.save()
+
+        assert CellOutbox.objects.count() == 0
+
+    def test_delete_writes_outbox_for_the_team(self) -> None:
+        # The first team's snowflake id can equal the organization's; the second's cannot.
+        self.create_team(organization=self.organization)
+        team = self.create_team(organization=self.organization)
+        team_id = team.id
+
+        team.delete()
+
+        outboxes = list(
+            CellOutbox.objects.values_list(
+                "shard_scope", "shard_identifier", "category", "object_identifier"
+            )
+        )
+        assert outboxes == [
+            (
+                OutboxScope.ORGANIZATION_SCOPE,
+                self.organization.id,
+                OutboxCategory.TEAM_UPDATE,
+                team_id,
+            )
+        ]
 
 
 class TeamDeletionTest(TestCase):

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable, Sequence
-from typing import TYPE_CHECKING, ClassVar, cast
+from typing import TYPE_CHECKING, Any, ClassVar, cast
 
 from django.conf import settings
 from django.db import models, router, transaction
@@ -15,14 +15,15 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
+    Model,
     cell_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.slug import SentrySlugField
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.utils import save_with_unique_slug, slugify_instance
-from sentry.hybridcloud.outbox.base import ReplicatedCellModel
-from sentry.hybridcloud.outbox.category import OutboxCategory
+from sentry.hybridcloud.models.outbox import CellOutbox, outbox_context
+from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.utils.snowflake import save_with_snowflake_id, snowflake_id_model
 
 if TYPE_CHECKING:
@@ -110,13 +111,12 @@ class TeamStatus:
 
 @snowflake_id_model
 @cell_silo_model
-class Team(ReplicatedCellModel):
+class Team(Model):
     """
     A team represents a group of individuals which maintain ownership of projects.
     """
 
     __relocation_scope__ = RelocationScope.Organization
-    category = OutboxCategory.TEAM_UPDATE
 
     organization = FlexibleForeignKey("sentry.Organization")
     slug = SentrySlugField()
@@ -186,6 +186,22 @@ class Team(ReplicatedCellModel):
             )
         else:
             save_callback()
+
+    @staticmethod
+    def outbox_for_update(team_identifier: int, organization_identifier: int) -> CellOutbox:
+        return CellOutbox(
+            shard_scope=OutboxScope.ORGANIZATION_SCOPE,
+            shard_identifier=organization_identifier,
+            category=OutboxCategory.TEAM_UPDATE,
+            object_identifier=team_identifier,
+        )
+
+    def delete(self, *args: Any, **kwargs: Any) -> tuple[int, dict[str, int]]:
+        # Nothing in the control silo copies team fields, so only deletes write an outbox:
+        # the tombstone it leads to cleans up control silo rows that point at the team.
+        with outbox_context(transaction.atomic(router.db_for_write(Team)), flush=False):
+            Team.outbox_for_update(self.id, self.organization_id).save()
+            return super().delete(*args, **kwargs)
 
     @property
     def member_set(self) -> QuerySet[OrganizationMember]:
