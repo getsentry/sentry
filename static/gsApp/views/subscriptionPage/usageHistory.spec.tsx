@@ -676,4 +676,34 @@ describe('PeriodUsageTable', () => {
       'Transactions100500020%',
     ]);
   });
+
+  it('names the categories from a plan that has only the display names', () => {
+    render(
+      <PeriodUsageTable
+        history={{
+          hadCustomDynamicSampling: false,
+          planDetails: {
+            categoryDisplayNames: {
+              errors: {singular: 'error event', plural: 'error events'},
+            },
+          },
+          categories: {
+            errors: {
+              category: DataCategory.ERRORS,
+              order: 0,
+              usage: 30_000,
+              reserved: 50_000,
+              prepaid: 60_000,
+              free: 0,
+              softCapType: null,
+            },
+          },
+        }}
+      />
+    );
+
+    expect(
+      screen.getByRole('row', {name: 'Error events 30,000 50,000 50%'})
+    ).toBeInTheDocument();
+  });
 });

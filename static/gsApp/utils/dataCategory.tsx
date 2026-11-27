@@ -68,7 +68,7 @@ export function getPlanCategoryName({
   hadCustomDynamicSampling = false,
   capitalize = true,
   title = false,
-}: CategoryNameProps) {
+}: Omit<CategoryNameProps, 'plan'> & {plan?: Pick<Plan, 'categoryDisplayNames'>}) {
   const displayNames = plan?.categoryDisplayNames?.[category];
   const categoryName =
     category === DataCategory.SPANS && hadCustomDynamicSampling

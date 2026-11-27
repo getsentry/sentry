@@ -737,8 +737,9 @@ export type BillingHistory = {
 
 /**
  * The period that one receipt billed, as one period of the Usage History page
- * without the pay-as-you-go spend, the budgets and the prices. A legacy period
- * without metric rows, or a copy of one, has no `categories`.
+ * without the pay-as-you-go spend, the budgets and the prices. Its plan has only
+ * the category names. A legacy period without metric rows, or a copy of one, has
+ * no `categories`.
  */
 export type InvoiceUsage = Omit<
   BillingHistory,
@@ -746,6 +747,7 @@ export type InvoiceUsage = Omit<
   | 'onDemandBudgetMode'
   | 'onDemandMaxSpend'
   | 'onDemandSpend'
+  | 'planDetails'
   | 'reserved'
   | 'reservedBudgets'
   | 'usage'
@@ -762,6 +764,7 @@ export type InvoiceUsage = Omit<
       | 'usageExceeded'
     >
   >;
+  planDetails?: Pick<Plan, 'categoryDisplayNames'>;
 };
 
 export type PreviewData = {

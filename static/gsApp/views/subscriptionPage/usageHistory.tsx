@@ -68,7 +68,7 @@ function usagePercentage(usage: number, prepaid: number | null): string {
 type DisplayProps = {
   metricHistory: Pick<BillingMetricHistory, 'category' | 'softCapType'>;
   hadCustomDynamicSampling?: boolean;
-  plan?: Plan;
+  plan?: Pick<Plan, 'categoryDisplayNames'>;
 };
 
 function getCategoryDisplay({
@@ -219,10 +219,10 @@ type PeriodUsageMetricHistory = Pick<
 /**
  * The fields of a billed period that the usage table reads.
  */
-type PeriodUsageHistory = Pick<
-  BillingHistory,
-  'hadCustomDynamicSampling' | 'planDetails'
-> & {categories: Record<string, PeriodUsageMetricHistory>};
+type PeriodUsageHistory = Pick<BillingHistory, 'hadCustomDynamicSampling'> & {
+  categories: Record<string, PeriodUsageMetricHistory>;
+  planDetails?: Pick<Plan, 'categoryDisplayNames'>;
+};
 
 /**
  * The usage table of one billed period: the accepted, reserved and gifted
