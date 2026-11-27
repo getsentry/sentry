@@ -9,6 +9,7 @@ import {
   waitFor,
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
@@ -91,6 +92,34 @@ describe('Onboarding Setup Docs', () => {
         `product-${ProductSolution.ERROR_MONITORING}-${ProductSolution.PERFORMANCE_MONITORING}-${ProductSolution.SESSION_REPLAY}`
       )
     ).not.toBeInTheDocument();
+  });
+
+  it('names the created project', async () => {
+    const organization = OrganizationFixture();
+    const project = ProjectFixture({
+      slug: 'my-repo',
+      name: 'my-repo',
+      platform: 'python',
+    });
+
+    ProjectsStore.init();
+    ProjectsStore.loadInitialData([project]);
+
+    renderMockRequests({project, orgSlug: organization.slug});
+
+    render(
+      <OnboardingContextProvider>
+        <SetupDocs onComplete={() => {}} recentCreatedProject={project} />
+      </OnboardingContextProvider>
+    );
+
+    expect(
+      await screen.findByText(
+        textWithMarkupMatcher(
+          'Your project my-repo is ready. Follow the steps below to send it your first event.'
+        )
+      )
+    ).toBeInTheDocument();
   });
 
   it('renders SDK version from the sentry release registry', async () => {

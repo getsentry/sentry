@@ -8,7 +8,7 @@ import {SdkDocumentation} from 'sentry/components/onboarding/gettingStartedDoc/s
 import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {otherPlatform, allPlatforms as platforms} from 'sentry/data/platforms';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
@@ -42,6 +42,10 @@ export function SetupDocs({recentCreatedProject: project, genBackButton}: StepPr
             <SetupIntroduction
               stepHeaderText={t('Configure %s SDK', currentPlatform.name)}
               platform={currentPlatformKey}
+              description={tct(
+                'Your project [projectName] is ready. Follow the steps below to send it your first event.',
+                {projectName: <strong>{project.name}</strong>}
+              )}
             />
             {currentPlatformKey === 'other' ? (
               <OtherPlatformsInfo
