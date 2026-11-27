@@ -534,4 +534,33 @@ describe('prettifyParsedFunction', () => {
       })
     ).toBe('avg(browser.web_vital.lcp.score)');
   });
+
+  it('prettifies conditional trace metric aggregates by the metric name', () => {
+    expect(
+      prettifyParsedFunction({
+        name: 'avg_if',
+        arguments: [
+          '`release:1.0`',
+          'value',
+          'request_duration',
+          'distribution',
+          'millisecond',
+        ],
+        filter: 'release:1.0',
+      })
+    ).toBe('avg_if(`release:1.0`,request_duration)');
+    expect(
+      prettifyParsedFunction({
+        name: 'avg_if',
+        arguments: [
+          '`release:1.0`',
+          'tags[score.ratio.lcp,number]',
+          'browser.web_vital.lcp',
+          'distribution',
+          'millisecond',
+        ],
+        filter: 'release:1.0',
+      })
+    ).toBe('avg_if(`release:1.0`,browser.web_vital.lcp.score)');
+  });
 });
