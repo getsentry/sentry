@@ -10,7 +10,6 @@ from sentry.db.models import (
 )
 from sentry.db.models.base import DefaultFieldsModel
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.telemetry_classifiers.compiled_prompt import CompiledClassifierPromptField
 from sentry.telemetry_classifiers.types import (
     Dataset,
     TelemetryClassifierOutputType,
@@ -42,7 +41,7 @@ class TelemetryClassifier(DefaultFieldsModel):
 
     # Custom classifier fields.
     natural_language_prompt = models.TextField(null=True)
-    compiled_prompt = CompiledClassifierPromptField(null=True)
+    compiled_prompt = models.JSONField(null=True)
     output_type = models.CharField(
         max_length=16,
         choices=TelemetryClassifierOutputType.choices,

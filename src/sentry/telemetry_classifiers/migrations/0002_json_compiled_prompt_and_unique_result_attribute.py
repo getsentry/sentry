@@ -2,7 +2,6 @@
 
 from django.db import migrations, models
 
-import sentry.telemetry_classifiers.compiled_prompt
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.new_migrations.monkey.special import SafeRunSQL
 
@@ -45,9 +44,7 @@ class Migration(CheckedMigration):
                 migrations.AlterField(
                     model_name="telemetryclassifier",
                     name="compiled_prompt",
-                    field=sentry.telemetry_classifiers.compiled_prompt.CompiledClassifierPromptField(
-                        null=True
-                    ),
+                    field=models.JSONField(null=True),
                 ),
             ],
         ),
