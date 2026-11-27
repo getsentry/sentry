@@ -2169,7 +2169,39 @@ class TestContinueFeatureRun(TestCase):
             "referrer": "autofix",
             "user_org_context": {"org_slug": self.organization.slug, "all_org_projects": []},
             "proxy_headers": {"X-Viewer-Context": "signed-viewer-context"},
+            "monitoring_providers": [],
         }
+
+    @patch("sentry.seer.agent.client.get_monitoring_provider_connections")
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
+    @patch("sentry.seer.agent.client.make_feature_run_request")
+    def test_attaches_only_org_monitoring_providers(
+        self, mock_request: MagicMock, _mock_access: MagicMock, mock_conns: MagicMock
+    ) -> None:
+        mock_request.return_value = Mock(status=200)
+        mock_conns.return_value = [
+            HeaderAuthConnectionData(
+                provider_key="datadog",
+                url="https://mcp.datadoghq.com/api/unstable/mcp-server/mcp",
+                encrypted_auth_headers={"DD-API-KEY": "x", "DD-APPLICATION-KEY": "y"},
+                identity_id=None,
+                auth_method="api_key",
+                refreshable=False,
+            )
+        ]
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=456)
+        client = SeerAgentClient(self.organization, self.user)
+
+        client.continue_feature_run(
+            existing_agent_run=self.create_seer_agent_run(run=run, source="autofix"),
+            payload={},
+            referrer="autofix",
+            user_org_context={"org_slug": self.organization.slug, "all_org_projects": []},
+        )
+
+        mock_conns.assert_called_once_with(self.organization, None)
+        providers = mock_request.call_args.args[0]["monitoring_providers"]
+        assert [provider["provider_key"] for provider in providers] == ["datadog"]
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
     @patch("sentry.seer.agent.client.make_feature_run_request")

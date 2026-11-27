@@ -155,6 +155,7 @@ class SeerFeatureRunRequest(TypedDict):
     agent_run_options: NotRequired[AgentRunOptions]
     user_org_context: NotRequired[UserOrgContext]
     proxy_headers: NotRequired[dict[str, str] | None]
+    monitoring_providers: NotRequired[list[dict[str, Any]]]
     referrer: str
 
 

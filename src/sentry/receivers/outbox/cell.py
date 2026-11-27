@@ -47,6 +47,7 @@ from sentry.seer.agent.client_utils import (
     make_feature_run_request,
 )
 from sentry.seer.agent.monitoring_providers import get_monitoring_provider_connections
+from sentry.seer.autofix.feature.models import AUTOFIX_FEATURE_IDS
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.seer.signed_seer_api import SearchAgentStartRequest, make_search_agent_start_request
 from sentry.seer.workflows.workflow import SEER_WORKFLOW_SERVICE_ACCOUNT_OWNER
@@ -328,8 +329,8 @@ def handle_seer_run_create(object_identifier: int, payload: Any, **kwds: Any) ->
     with scope:
         match run_type:
             case SeerRunType.EXPLORER:
-                try:
-                    organization = Organization.objects.get_from_cache(id=run.organization_id)
+                organization = _get_organization(run)
+                if organization is not None:
                     monitoring_provider_connections = get_monitoring_provider_connections(
                         organization, run.user_id
                     )
@@ -344,11 +345,6 @@ def handle_seer_run_create(object_identifier: int, payload: Any, **kwds: Any) ->
                         )
                         if available_monitoring_providers:
                             body["available_monitoring_providers"] = available_monitoring_providers
-                except Organization.DoesNotExist:
-                    logger.warning(
-                        "seer_run_create.organization_dne",
-                        extra={"organization_id": run.organization_id, "run_id": run.id},
-                    )
                 response = make_agent_chat_request(
                     cast(AgentChatRequest, body), viewer_context=viewer_context
                 )
@@ -373,6 +369,15 @@ def handle_seer_run_create(object_identifier: int, payload: Any, **kwds: Any) ->
                     cast(SearchAgentStartRequest, body), viewer_context=viewer_context
                 )
             case SeerRunType.FEATURE_RUN:
+                if body.get("feature_id") in AUTOFIX_FEATURE_IDS:
+                    organization = _get_organization(run)
+                    if organization is not None:
+                        body["monitoring_providers"] = [
+                            connection.dict()
+                            for connection in get_monitoring_provider_connections(
+                                organization, None
+                            )
+                        ]
                 wire_body = {**body, "ref": str(run.uuid)}
                 response = make_feature_run_request(
                     cast(SeerFeatureRunWireRequest, wire_body), viewer_context=viewer_context
@@ -425,6 +430,17 @@ def handle_seer_run_create(object_identifier: int, payload: Any, **kwds: Any) ->
                 )
 
         transaction.on_commit(_trigger_on_commit, using=router.db_for_write(SeerRun))
+
+
+def _get_organization(run: SeerRun) -> Organization | None:
+    try:
+        return Organization.objects.get_from_cache(id=run.organization_id)
+    except Organization.DoesNotExist:
+        logger.warning(
+            "seer_run_create.organization_dne",
+            extra={"organization_id": run.organization_id, "run_id": run.id},
+        )
+        return None
 
 
 def _mark_seer_run_failed(run: SeerRun, event: str, **extra: Any) -> None:

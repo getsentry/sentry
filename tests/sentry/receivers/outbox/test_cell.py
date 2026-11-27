@@ -171,19 +171,7 @@ class HandleSeerRunCreateTest(TestCase):
     @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
     def test_explorer_serializes_monitoring_providers_as_dicts(self, mock_request: Mock) -> None:
         mock_request.return_value = Mock(status=200, json=Mock(return_value={"run_id": 1}))
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = Integration.objects.create(
-                provider="datadog",
-                external_id="dd-org-uuid",
-                name="Datadog",
-                metadata={
-                    "api_key": "org-api-key",
-                    "app_key": "org-app-key",
-                    "site": "datadoghq.com",
-                },
-            )
-            org_integration = integration.add_organization(self.organization.id)
-            assert org_integration is not None
+        self._create_datadog_integration()
         run = self.create_seer_run(type=SeerRunType.EXPLORER)
 
         with self.feature("organizations:seer-infra-telemetry"):
@@ -198,6 +186,40 @@ class HandleSeerRunCreateTest(TestCase):
         assert providers, "expected an org monitoring connection in the body"
         assert all(isinstance(provider, dict) for provider in providers)
         assert providers[0]["provider_key"] == "datadog"
+
+    @override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)
+    @patch("sentry.receivers.outbox.cell.make_feature_run_request")
+    def test_feature_run_sends_org_monitoring_providers(self, mock_request: Mock) -> None:
+        mock_request.return_value = Mock(status=200, json=Mock(return_value={"run_id": 1}))
+        self._create_datadog_integration()
+        run = self.create_seer_run(type=SeerRunType.FEATURE_RUN)
+
+        with self.feature("organizations:seer-infra-telemetry"):
+            handle_seer_run_create(
+                object_identifier=run.id,
+                payload=self._make_payload(
+                    {"feature_id": "autofix", "payload": {}, "referrer": "autofix"}
+                ),
+                shard_identifier=run.id,
+            )
+
+        providers = mock_request.call_args.args[0]["monitoring_providers"]
+        assert [provider["provider_key"] for provider in providers] == ["datadog"]
+
+    def _create_datadog_integration(self) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = Integration.objects.create(
+                provider="datadog",
+                external_id="dd-org-uuid",
+                name="Datadog",
+                metadata={
+                    "api_key": "org-api-key",
+                    "app_key": "org-app-key",
+                    "site": "datadoghq.com",
+                },
+            )
+            org_integration = integration.add_organization(self.organization.id)
+            assert org_integration is not None
 
     @override_settings(SEER_API_SHARED_SECRET="viewer-context-test-secret")
     @patch("sentry.seer.signed_seer_api.seer_autofix_default_connection_pool.urlopen")
@@ -253,6 +275,7 @@ class HandleSeerRunCreateTest(TestCase):
         assert sent_body["ref"] == str(run.uuid)
         assert sent_body["external_idempotency_key"] == str(run.uuid)
         assert sent_body["referrer"] == "night_shift"
+        assert "monitoring_providers" not in sent_body
         assert observed_contexts == [
             ViewerContext(actor=Actor(type=ActorType.SYSTEM), organization_id=run.organization_id)
         ]

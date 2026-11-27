@@ -14,6 +14,7 @@ FEATURE_ID = "autofix"
 # In-flight runs started before the rename still deliver and persist this id.
 LEGACY_FEATURE_ID = "autofix_rca"
 SINGLE_RUN_FEATURE_ID = "autofix_single_run"
+AUTOFIX_FEATURE_IDS = frozenset({FEATURE_ID, LEGACY_FEATURE_ID, SINGLE_RUN_FEATURE_ID})
 
 
 class RepoPin(BaseModel):
