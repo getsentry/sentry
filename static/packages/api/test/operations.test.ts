@@ -162,6 +162,49 @@ describe("operation discovery", () => {
       .toThrow("organizationParameter organization_slug, which is not in its path");
   });
 
+  test("copies Sentry's project scope declarations and rejects malformed ones", async () => {
+    const response = { responses: { "200": { description: "OK" } } };
+    const scoped = (operationId: string, scope: unknown) => ({ operationId, ...response, "x-sentry-project-scope": scope });
+    const spec = (scope: unknown, method = "get") => ({
+      ...fixture(),
+      paths: {
+        ...fixture().paths,
+        "/project/": { get: scoped("retrieveProject", "path") },
+        "/issues/": { put: scoped("updateIssues", "filter") },
+        "/members/": { get: scoped("listMembers", "org-metadata") },
+        "/short-ids/": { get: scoped("resolveShortId", "response:/projects/*/id") },
+        "/escaped/": { get: scoped("readEscaped", "response:/a~0b/~1c") },
+        "/thing/": { [method]: scoped("thing", scope) },
+      },
+    });
+    const get = await generate(spec("response:/project/id"));
+    expect(Object.fromEntries(get.catalog.map(operation => [operation.functionName, operation.projectScope]))).toEqual({
+      listMembers: "org-metadata",
+      listOrganizationEvents: undefined,
+      readEscaped: "response:/a~0b/~1c",
+      resolveShortId: "response:/projects/*/id",
+      retrieveProject: "path",
+      thing: "response:/project/id",
+      updateIssues: "filter",
+    });
+    expect(get.catalog.find(operation => operation.path === eventsPath)).not.toHaveProperty("projectScope");
+    for (const pointer of ["", "project/id", "/project/~2", "/project~"]) {
+      expect(() => extractOperations(spec(`response:${pointer}`), get.source)).toThrow(
+        `GET /thing/ declares an unsupported x-sentry-project-scope "response:${pointer}": response: must be followed by a JSON pointer such as /project/id`,
+      );
+    }
+
+    const put = await generate(spec("filter", "put"));
+    expect(put.catalog.find(operation => operation.path === "/thing/")?.projectScope).toBe("filter");
+    const error = "PUT /thing/ declares an unsupported x-sentry-project-scope";
+    expect(() => extractOperations(spec("org-metadata", "put"), put.source)).toThrow(`${error} "org-metadata": org-metadata is only for GET`);
+    expect(() => extractOperations(spec("response:/project/id", "put"), put.source))
+      .toThrow(`${error} "response:/project/id": response: is only for GET`);
+    expect(() => extractOperations(spec("project", "put"), put.source))
+      .toThrow(`${error} "project": the value must be "path", "filter", "org-metadata", or "response:<JSON pointer>"`);
+    expect(() => extractOperations(spec(["filter"], "put"), put.source)).toThrow(`${error} ["filter"]: the value must be a string`);
+  });
+
   test("ships the released routing declarations", () => {
     expect(operations.find(operation => operation.functionName === "listOrganizationProjects")?.routing)
       .toEqual({ silo: "cell", organizationParameter: "organization_id_or_slug" });

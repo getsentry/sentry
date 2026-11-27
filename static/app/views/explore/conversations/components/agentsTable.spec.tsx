@@ -7,7 +7,11 @@ import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {useConversations} from 'sentry/views/explore/conversations/hooks/useConversations';
 
-import {AgentsTable, LLM_CALLS_SAVED_QUERY} from './agentsTable';
+import {
+  AgentsTable,
+  LLM_CALLS_DEFAULT_SEARCH,
+  LLM_CALLS_SAVED_QUERY,
+} from './agentsTable';
 
 const organization = OrganizationFixture();
 const project = ProjectFixture({id: '1'});
@@ -94,7 +98,7 @@ describe('AgentsTable', () => {
         expect.objectContaining({
           query: expect.objectContaining({
             field: expect.arrayContaining(LLM_CALLS_SAVED_QUERY.fields),
-            query: LLM_CALLS_SAVED_QUERY.query,
+            query: `(${LLM_CALLS_SAVED_QUERY.query}) and (${LLM_CALLS_DEFAULT_SEARCH})`,
           }),
         })
       )

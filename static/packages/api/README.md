@@ -148,7 +148,7 @@ const logOperations = operations.filter(operation =>
 console.log(logOperations.map(({ functionName, method, path }) => ({ functionName, method, path })));
 ```
 
-Each `ApiOperation` records the actual exported `functionName`, original OpenAPI `operationId`, method, path (relative to `API_BASE_PATH`), summary, description, tags, path parameter names, query metadata, explicit deprecation flag, `experimental` flag, `idempotent` flag, and `routing` declaration. `ApiQueryParameter` includes the name, required flag, description, type, and declared enum values (item values for arrays). Operation parameters override inherited path parameters.
+Each `ApiOperation` records the actual exported `functionName`, original OpenAPI `operationId`, method, path (relative to `API_BASE_PATH`), summary, description, tags, path parameter names, query metadata, explicit deprecation flag, `experimental` flag, `idempotent` flag, `routing` declaration, and `projectScope` declaration when Sentry has one. `ApiQueryParameter` includes the name, required flag, description, type, and declared enum values (item values for arrays). Operation parameters override inherited path parameters.
 
 `experimental` is `true` when Sentry marks the operation with the `x-sentry-experimental` OpenAPI extension, which it sets for endpoints under active development that may change. Their SDK docs also start with an **Experimental:** note. To find or reject experimental operations, for example in a lint rule or build check:
 
@@ -184,6 +184,22 @@ match?.params; // { organization_id_or_slug: "acme" }
 The path may include `API_BASE_PATH`, an origin or a query string, and a missing trailing slash still matches. Where templates overlap, a literal segment wins over a parameter at the first segment where they differ, so `/snapshots/latest-base/` is not read as a `{snapshot_id}`. Only operations in the public catalog match; `matchOperation` returns `undefined` for others. To match a filtered catalog or your own templates, build a matcher with `createOperationMatcher`, which accepts any `{ method, path }` list and throws on first use if two templates for one method differ only in parameter names.
 
 `idempotent` tells retrying clients whether resending an identical request after a timeout or 5xx response is safe. It is always `true` for `GET`, `HEAD`, `OPTIONS`, and `TRACE`. Other methods are `true` only when Sentry marks the operation with the `x-sentry-idempotent` OpenAPI extension; `false` means not known to be idempotent, not known to be unsafe.
+
+`projectScope` copies Sentry's `x-sentry-project-scope` declaration, which says how a request names the projects whose data it returns or changes. Clients that limit a caller to some projects read it instead of keeping their own endpoint list. `ApiProjectScope` is one of:
+
+- `path`: the path names the project.
+- `filter`: an organization endpoint that takes the `project` query parameter (numeric project IDs) and returns or changes only those projects' data.
+- `org-metadata`: a read-only organization endpoint whose response holds no project's telemetry, such as settings, members, or integrations. Only on `GET`.
+- `response:<pointer>`: a `GET` that looks something up by ID alone. The numeric ID of the project it belongs to is at `<pointer>` in the response body. `<pointer>` is an RFC 6901 JSON pointer in which a `*` segment matches every element of an array, such as `response:/projects/*/id`.
+
+An operation without a declaration has no `projectScope`, which means it is not known to respect a project limit. The build fails on any other value, and on `org-metadata` or `response:` for a method other than `GET`:
+
+```ts
+import { matchOperation, type ApiProjectScope } from "@sentry/api/operations";
+
+const scope: ApiProjectScope | undefined = matchOperation("GET", "/api/0/projects/acme/backend/")?.operation.projectScope;
+scope; // "path"
+```
 
 The catalog is generated from the same schema and SDK output as each release. Consumers own search, grouping, ranking, and command aliases; the catalog does not fetch a live schema or infer undocumented API behavior.
 

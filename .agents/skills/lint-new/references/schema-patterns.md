@@ -1,130 +1,58 @@
-# Rule Options Schema Patterns
+# Rule Options
 
-Load this reference when your rule needs configurable options.
+Load this when a rule takes configurable options. Most rules take none and keep `schema: []`.
 
-## No Options (Default)
+## Reading Options
 
-Most rules need no options. Use empty schema:
-
-```typescript
-ESLintUtils.RuleCreator.withoutDocs<never[], MessageIds>({
-  meta: { schema: [] },
-  defaultOptions: [],
-  create(context) { ... },
-});
-```
-
-**Note**: Use `never[]` not `[]` for the options type parameter — `[]` violates `@typescript-eslint/no-restricted-types`.
-
-## Simple Options: String Array
-
-For rules with a configurable set of enabled features:
+`defineRule` does not type options from the schema. Declare an `Options` type that mirrors the schema and cast `context.options` inside `create`, defaulting when the option is missing:
 
 ```typescript
+import {defineRule} from '@oxlint/plugins';
+
 interface Options {
   enabledCategories?: string[];
 }
 
-ESLintUtils.RuleCreator.withoutDocs<[Options], MessageIds>({
+export const useSemanticToken = defineRule({
   meta: {
-    schema: [{
-      type: 'object',
-      properties: {
-        enabledCategories: {
-          type: 'array',
-          items: { type: 'string' },
-        },
+    // ...
+    schema: [
+      {
+        type: 'object',
+        properties: {enabledCategories: {type: 'array', items: {type: 'string'}}},
+        additionalProperties: false,
       },
-      additionalProperties: false,
-    }],
+    ],
   },
-  defaultOptions: [{}],
-  create(context, [options = {}]) {
-    const enabled = options.enabledCategories
-      ? new Set(options.enabledCategories)
-      : null; // null = all enabled
-    ...
+  create(context) {
+    const options = (context.options[0] ?? {}) as Options;
+    const enabled = options.enabledCategories ? new Set(options.enabledCategories) : null; // null = all enabled
+    // ...
   },
 });
 ```
 
-**In eslint.config.ts**: `'@sentry/scraps/rule-name': ['error', {enabledCategories: ['background', 'border']}]`
+Each schema array entry is one positional option. `sortInterfaceKeys` takes a string then an object (`context.options[0]`, `context.options[1]`).
 
-## Complex Options: Nested Config
+Config: `'@sentry/scraps/use-semantic-token': ['error', {enabledCategories: ['background', 'border']}]`.
 
-For rules with rich, structured configuration (like slot restrictions):
+Tests: pass `options` on each case, e.g. `{code, options: [{enabledCategories: ['border']}]}`.
 
-```typescript
-interface Options {
-  slots: Array<{
-    propNames: [string, ...string[]];
-    allowed: Array<{source: string; names: [string, ...string[]]}>;
-    componentNames?: string[];
-  }>;
-}
-```
+## Nested Options
 
-Schema mirrors the TypeScript interface:
-
-```typescript
-schema: [{
-  type: 'object',
-  properties: {
-    slots: {
-      type: 'array',
-      items: {
-        type: 'object',
-        properties: {
-          propNames: { type: 'array', minItems: 1, items: { type: 'string' } },
-          allowed: {
-            type: 'array', minItems: 1,
-            items: {
-              type: 'object',
-              properties: {
-                source: { type: 'string' },
-                names: { type: 'array', minItems: 1, items: { type: 'string' } },
-              },
-              required: ['source', 'names'],
-              additionalProperties: false,
-            },
-          },
-          componentNames: { type: 'array', items: { type: 'string' } },
-        },
-        required: ['propNames', 'allowed'],
-        additionalProperties: false,
-      },
-    },
-  },
-  required: ['slots'],
-  additionalProperties: false,
-}],
-```
+For structured config, write the TypeScript type first and mirror it in the schema with `required`, `minItems`, and `additionalProperties: false` at every object level. `restrictJsxSlotChildren.ts` is the full example; its config lives in `oxlint.base.ts`.
 
 ## Config-Driven Rules
 
-For rules where the validation logic is generic but the data varies by category, extract the configuration into a separate file in `src/config/`:
+When the logic is generic but the data varies by category, keep the data in `src/config/` and the logic in the rule:
 
 ```
-src/config/tokenRules.ts   ← Category definitions, property mappings
-src/rules/use-semantic-token.ts  ← Generic validation logic
+src/config/tokenRules.ts       ← categories and their allowed properties
+src/rules/useSemanticToken.ts  ← generic validation
 ```
 
-This pattern means adding a new category requires only a config change — no rule logic changes. The rule imports and iterates the config.
+Adding a category is then a config change only.
 
-### Reverse Mapping Pattern
+### Reverse Mapping
 
-When your config maps categories → allowed properties, you often also need the reverse (property → expected category) for error messages:
-
-```typescript
-function buildPropertyToRule(rules: TokenRule[]) {
-  const result = new Map<string, string>();
-  for (const rule of rules) {
-    for (const property of rule.allowedProperties) {
-      result.set(property, rule.name); // Last writer wins
-    }
-  }
-  return result;
-}
-```
-
-**Ordering matters**: When multiple categories share a property (e.g., `box-shadow` in both `focus` and `shadow`), the last category in the array wins the reverse mapping. This affects which category is _suggested_ in error messages. Keep this in mind when adding new categories.
+`tokenRules.ts` also builds the reverse map (property → suggested category) for error messages. When several categories allow the same property, the first category in `TOKEN_RULES` wins. Adding or reordering categories can change which category the message suggests, so check the spec's message assertions after a config change.

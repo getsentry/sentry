@@ -1,93 +1,117 @@
 ---
 name: lint-fix
-description: Fix violations of an eslintPluginScraps rule across the codebase. Use when asked to "fix lint violations", "apply a lint rule", "fix scraps rule errors", "roll out a lint rule", "enforce a rule codebase-wide", or "fix design system lint". Covers manual fixes, autofix, batching, and codemod strategies for large-scale rollouts.
+description: Fix existing violations of a custom oxlint rule from eslintPluginSentry or eslintPluginScraps. Use when asked to "fix lint violations" or "fix the suppression backlog".
 ---
 
 Fix violations of rule `$0` on files matching `$1`.
 
 ## Arguments
 
-- `$0` — Rule name (e.g., `use-semantic-token`, `no-core-import`)
-- `$1` — File or glob pattern (e.g., `static/app/components/`, `static/app/views/alerts/`)
+- `$0`: full rule key, e.g. `@sentry/scraps/no-manual-table` or `@sentry/prefer-nuqs`
+- `$1`: repository-relative path prefix, e.g. `static/app/views/alerts/`
 
-## Step 1: Understand the Rule
+If `$0` is empty, ask for the rule. If `$1` is empty, the scope is the whole repository: the commands below then lint and list every file.
 
-Before fixing violations, know what the fix looks like. Load [references/fix-patterns.md](references/fix-patterns.md) for per-rule fix details:
+Linting runs through `pnpm run lint:js`, which always applies the committed config and rejects rule overrides (`-A`, `-W`, `-D`, `--config`). To find a rule's violations, the rule has to be in the config.
 
-| Rule                         | Has autofix? | Fix reference                                                                                     |
-| ---------------------------- | ------------ | ------------------------------------------------------------------------------------------------- |
-| `no-core-import`             | Yes          | [fix-patterns.md](references/fix-patterns.md) §no-core-import                                     |
-| `no-token-import`            | No           | [fix-patterns.md](references/fix-patterns.md) §no-token-import                                    |
-| `use-semantic-token`         | No           | [fix-patterns.md](references/fix-patterns.md) + [token-taxonomy.md](references/token-taxonomy.md) |
-| `restrict-jsx-slot-children` | No           | [fix-patterns.md](references/fix-patterns.md) §restrict-jsx-slot-children                         |
+## Step 1: Find Where the Rule Stands
 
-For `use-semantic-token` violations, you MUST load [references/token-taxonomy.md](references/token-taxonomy.md) to know which token category to use for each CSS property.
+Search for `$0` in `oxlint.config.ts`, `oxlint.base.ts`, and the package configs in `static/packages/*/oxlint.config.ts`. Configs can pull rules in through spread constants from `oxlint.base.ts`: `incubator` enables `@sentry/prefer-fake-timers` and `@sentry/require-fake-timer-cleanup` only through `...fakeTimerRules`. If `$0` only turns up in such a constant, check whether that constant is spread into `incubator`.
 
-## Step 2: Assess Scale
+| Where the rule is                                                                                      | Its violations                                                                                    | Next                                                                                          |
+| ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `incubator` at the top of `oxlint.config.ts`: in `incubator.rules` or enabled in `incubator.overrides` | Capped per file in `oxlint-suppressions.json` (`static/app/`, `static/gsApp/`, `static/gsAdmin/`) | Step 2                                                                                        |
+| In no config (only in the plugin's `index`)                                                            | Unreported                                                                                        | Register it first; see below.                                                                 |
+| Anywhere else (`base`, top-level `rules`, overrides)                                                   | No existing backlog: `pnpm run lint:js` fails CI on every violation                               | Fix any new violations on your branch (Step 3, regular rule); there is no backlog to clean up |
 
-Count violations before choosing a strategy:
+To register an unconfigured rule, count its violations first: enable it in top-level `rules` in `oxlint.config.ts` and run `pnpm run lint:js`, which prints the total. Then follow Step 3 of the `lint-new` skill:
+
+- Few enough to fix in this PR: keep it as a regular rule.
+- More than that: move it to `incubator` and enroll it (Step 4 of `lint-new`, `pnpm run lint:suppressions --enroll --base origin/master`).
+
+## Step 2: Understand the Fix
+
+The rule's error message names the replacement. For anything it leaves open, read the rule source and the `valid` cases in its spec. The plugin index imports each rule from its source file, usually `<camelName>.ts` next to `<camelName>.spec.ts` (some rules share a file, e.g. `emotionRules.ts`):
+
+- Scraps: `static/oxlint/eslintPluginScraps/src/rules/index.ts`
+- Sentry: `static/oxlint/eslintPluginSentry/index.ts`
+
+[references/fix-patterns.md](references/fix-patterns.md) has worked fixes for some Scraps rules. For `use-semantic-token`, you MUST load [references/token-taxonomy.md](references/token-taxonomy.md).
+
+The rule is autofixable when its `meta` sets `fixable`.
+
+## Step 3: List the Violations
+
+**Incubator rule.** `pnpm run lint:js` hides violations the budgets cover, so list them with the backlog instead:
 
 ```bash
-pnpm exec eslint --rule '@sentry/scraps/$0: error' "$1" 2>&1 | tail -5
+pnpm run lint:suppressions --backlog --rule $0 | grep '^$1'     # file:line:col rule message
+pnpm run lint:suppressions --backlog --rule $0 | grep -c '^$1'  # count
 ```
 
-The last line shows the count (e.g., "42 problems (42 errors, 0 warnings)").
+The backlog takes no path and scans the whole repository (about 30 seconds), so filter its output. Narrow to one file with `--file <path>`, or get JSON with `--json`.
 
-**Tip**: Running eslint on all of `static/app/` can take 2+ minutes. Narrow scope to a subdirectory first.
-
-## Step 3: Choose Strategy
-
-### Auto-fixable rule (any scale)
+**Regular rule** (just enabled for a small fix):
 
 ```bash
-pnpm exec eslint --fix --rule '@sentry/scraps/$0: error' "$1"
+pnpm run lint:js $1
 ```
 
-Always review the diff after `--fix` before committing. If the rule is partially auto-fixable, run `--fix` first, then manually fix remaining violations.
+A regular rule fails CI on every violation, so it must end up clean across the whole repository, not just under `$1`.
 
-### Under 100 violations — manual agent fix
+## Step 4: Choose a Strategy
 
-1. Run eslint on target path
-2. Fix violations 5-10 files at a time
-3. Re-run after each batch to verify
-4. Repeat until clean
+| Violations in scope | Strategy                                                                                                                                            |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Any, autofixable    | `pnpm run lint:js --fix $1`. This applies every autofixable rule on those files, not only `$0`, so review the diff. Fix whatever it leaves by hand. |
+| Under 100           | Fix by hand, 5-10 files at a time, re-listing after each batch                                                                                      |
+| 100-500             | Split `$1` into subdirectories and fix one per batch or PR                                                                                          |
+| 500+                | A throwaway codemod for mechanical transforms, or several PRs split by owner while the rule stays in the incubator                                  |
 
-### 100-500 violations — batched fix
+## Step 5: Lower the Budgets
 
-1. Split target into subdirectories (e.g., `static/app/views/`, `static/app/components/`)
-2. Fix one subdirectory at a time
-3. Commit after each batch for reviewable PRs
-4. Re-run count after each batch to track progress
+Only for incubator rules. Once violations are fixed, the budgets for those files are stale, and `pnpm run lint:suppressions --ci --base <ref>` fails CI on stale budgets your change made. Lower them:
 
-### 500+ violations — codemod or staged rollout
+```bash
+pnpm run lint:suppressions --prune
+```
 
-- **Mechanical transforms**: write a temporary jscodeshift codemod or a targeted script using `@typescript-eslint/typescript-estree`
-- **Import-path rules**: `--fix` usually handles these at any scale
-- **Complex transforms**: enable the rule as `warn` first, fix in batches across multiple PRs
+Commit the updated `oxlint-suppressions.json` files. A successful `pnpm run lint:js --fix <paths>` already lowers budgets for the files it checked, but run `--prune` anyway before you commit.
 
-## Fix Workflow (tight loop)
+## Step 6: Graduate the Rule
 
-1. Run: `pnpm exec eslint --rule '@sentry/scraps/$0: error' "$1"`
-2. Fix violations in reported files
-3. Re-run on changed files to verify
-4. Expand scope, repeat
+Only when the backlog for `$0` is empty everywhere, not just under `$1`:
+
+1. Move every entry for `$0` out of `incubator` into the regular config (where it goes follows the `lint-new` skill's Step 3 table):
+   - An entry in `incubator.rules` moves to the regular config.
+   - An enabled entry in `incubator.overrides` moves to a regular `overrides` entry with the same `files`. For example, `@sentry/prefer-fake-timers` and `@sentry/require-fake-timer-cleanup` are enabled only through `fakeTimerRules` in the test-files override. Test-only rules go in `testOverride` in `oxlint.base.ts`.
+   - An `off` entry in `incubator.overrides` moves to a matching regular `overrides` entry.
+
+   The rule leaves the incubator only when no enabled entry for it remains anywhere in `incubator`.
+
+2. Run `pnpm run lint:suppressions --prune`; it drops the rule's remaining budget entries.
+
+## Verify
+
+Done when all of these pass:
+
+```bash
+pnpm run lint:js $1
+pnpm run typecheck
+.venv/bin/prek run -q --files <changed files>
+```
+
+For an incubator rule, also:
+
+```bash
+pnpm run lint:suppressions --ci --base origin/master            # without --base, stale budgets only warn
+pnpm run lint:suppressions --backlog --rule $0 | grep -c '^$1'   # 0
+```
+
+For a regular rule, or after graduating the rule, run `pnpm run lint:js` with no path. `--backlog --rule` only accepts incubator rules.
 
 ## Coordinating Large Changes
 
-- Split PRs to **~50 changed files** based on ownership rules in @.github/CODEOWNERS.
-- PR title convention: `fix(lint): enforce @sentry/scraps/$0 for <codeowner>`
-- If the rule is new and not yet in `eslint.config.ts`, **fix all violations first**, then enable the rule in a follow-up PR
-- Run pre-commit on changed files before committing:
-  ```bash
-  .venv/bin/prek run -q --files <file1> [file2 ...]
-  ```
-
-## Verification
-
-After all fixes:
-
-```bash
-pnpm exec eslint --rule '@sentry/scraps/$0: error' static/app/ 2>&1 | tail -5
-```
-
-Should report 0 problems.
+- Split PRs to **~50 changed files**, grouped by owner in `.github/CODEOWNERS`.
+- PR title: `fix(lint): Fix $0 violations for <owner>`.
+- Each PR carries its own pruned `oxlint-suppressions.json` changes.

@@ -1,0 +1,168 @@
+import {RuleTester} from 'oxlint/plugins-dev';
+
+import {preferAriaDisabledAssertion} from './preferAriaDisabledAssertion';
+
+const ruleTester = new RuleTester({languageOptions: {parserOptions: {lang: 'ts'}}});
+
+const IS_ENABLED = ".not.toHaveAttribute('aria-disabled', 'true')";
+const IS_DISABLED = ".toHaveAttribute('aria-disabled', 'true')";
+
+function ariaDisabledError(output: string, replacement: string) {
+  return {
+    messageId: 'preferAriaDisabledAssertion',
+    suggestions: [{messageId: 'useAriaDisabled', data: {replacement}, output}],
+  };
+}
+
+ruleTester.run('prefer-aria-disabled-assertion', preferAriaDisabledAssertion, {
+  valid: [
+    {
+      name: 'role backed by a native disabled attribute',
+      code: `expect(screen.getByRole('button', {name: 'Save'})).toBeEnabled();`,
+    },
+    {
+      name: 'aria-disabled assertion on an enabled item',
+      code: `expect(screen.getByRole('menuitemradio', {name: 'New'})).not.toHaveAttribute('aria-disabled', 'true');`,
+    },
+    {
+      name: 'aria-disabled assertion on a disabled item',
+      code: `expect(screen.getByRole('option', {name: 'Bar'})).toHaveAttribute('aria-disabled', 'true');`,
+    },
+    {
+      name: 'role that is not a string literal',
+      code: `expect(screen.getByRole(role)).toBeEnabled();`,
+    },
+    {
+      name: 'let variable is not traced',
+      code: `let item = screen.getByRole('menuitem'); item = screen.getByRole('button'); expect(item).toBeEnabled();`,
+    },
+    {
+      name: 'element returned from a helper is not traced',
+      code: `function getItem() { return screen.getByRole('menuitem'); } expect(getItem()).toBeEnabled();`,
+    },
+    {
+      name: 'other queries are ignored',
+      code: `expect(screen.getByText('menuitem')).toBeDisabled();`,
+    },
+    {
+      name: 'other matchers on a menu item are fine',
+      code: `expect(screen.getByRole('menuitem')).toBeInTheDocument();`,
+    },
+  ],
+  invalid: [
+    {
+      name: 'toBeEnabled on screen.getByRole',
+      code: `expect(screen.getByRole('menuitemradio', {name: 'New Query'})).toBeEnabled();`,
+      errors: [
+        ariaDisabledError(
+          `expect(screen.getByRole('menuitemradio', {name: 'New Query'}))${IS_ENABLED};`,
+          IS_ENABLED
+        ),
+      ],
+    },
+    {
+      name: 'toBeDisabled on an option',
+      code: `expect(screen.getByRole('option', {name: 'Top 5'})).toBeDisabled();`,
+      errors: [
+        ariaDisabledError(
+          `expect(screen.getByRole('option', {name: 'Top 5'}))${IS_DISABLED};`,
+          IS_DISABLED
+        ),
+      ],
+    },
+    {
+      name: 'not.toBeEnabled asserts disabled',
+      code: `expect(screen.getByRole('menuitem')).not.toBeEnabled();`,
+      errors: [
+        ariaDisabledError(
+          `expect(screen.getByRole('menuitem'))${IS_DISABLED};`,
+          IS_DISABLED
+        ),
+      ],
+    },
+    {
+      name: 'not.toBeDisabled asserts enabled',
+      code: `expect(screen.getByRole('tab')).not.toBeDisabled();`,
+      errors: [
+        ariaDisabledError(`expect(screen.getByRole('tab'))${IS_ENABLED};`, IS_ENABLED),
+      ],
+    },
+    {
+      name: 'awaited findByRole inside within',
+      code: `async function f() { expect(await within(menu).findByRole('menuitemcheckbox')).toBeEnabled(); }`,
+      errors: [
+        ariaDisabledError(
+          `async function f() { expect(await within(menu).findByRole('menuitemcheckbox'))${IS_ENABLED}; }`,
+          IS_ENABLED
+        ),
+      ],
+    },
+    {
+      name: 'destructured queryByRole',
+      code: `expect(queryByRole('row')).toBeDisabled();`,
+      errors: [
+        ariaDisabledError(`expect(queryByRole('row'))${IS_DISABLED};`, IS_DISABLED),
+      ],
+    },
+    {
+      name: 'indexed getAllByRole',
+      code: `expect(screen.getAllByRole('treeitem')[0]).toBeEnabled();`,
+      errors: [
+        ariaDisabledError(
+          `expect(screen.getAllByRole('treeitem')[0])${IS_ENABLED};`,
+          IS_ENABLED
+        ),
+      ],
+    },
+    {
+      name: 'awaited findAllByRole with at()',
+      code: `async function f() { expect((await screen.findAllByRole('gridcell')).at(-1)).toBeDisabled(); }`,
+      errors: [
+        ariaDisabledError(
+          `async function f() { expect((await screen.findAllByRole('gridcell')).at(-1))${IS_DISABLED}; }`,
+          IS_DISABLED
+        ),
+      ],
+    },
+    {
+      name: 'const assigned from an awaited query',
+      code: `async function f() { const item = await screen.findByRole('menuitemradio', {name: 'Add'}); expect(item).toBeEnabled(); }`,
+      errors: [
+        ariaDisabledError(
+          `async function f() { const item = await screen.findByRole('menuitemradio', {name: 'Add'}); expect(item)${IS_ENABLED}; }`,
+          IS_ENABLED
+        ),
+      ],
+    },
+    {
+      name: 'const chain through an indexed list',
+      code: `const options = screen.getAllByRole('option'); const first = options[0]; expect(first).toBeDisabled();`,
+      errors: [
+        ariaDisabledError(
+          `const options = screen.getAllByRole('option'); const first = options[0]; expect(first)${IS_DISABLED};`,
+          IS_DISABLED
+        ),
+      ],
+    },
+    {
+      name: 'non-null assertion on an indexed list',
+      code: `expect(screen.getAllByRole('option')[0]!).toBeEnabled();`,
+      errors: [
+        ariaDisabledError(
+          `expect(screen.getAllByRole('option')[0]!)${IS_ENABLED};`,
+          IS_ENABLED
+        ),
+      ],
+    },
+    {
+      name: 'const with a non-null assertion and a cast',
+      code: `const rows = screen.getAllByRole('row') as HTMLElement[]; const first = rows[0]!; expect(first).toBeDisabled();`,
+      errors: [
+        ariaDisabledError(
+          `const rows = screen.getAllByRole('row') as HTMLElement[]; const first = rows[0]!; expect(first)${IS_DISABLED};`,
+          IS_DISABLED
+        ),
+      ],
+    },
+  ],
+});

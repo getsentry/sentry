@@ -2,6 +2,7 @@ import {defineConfig, type OxlintConfig} from 'oxlint';
 
 import base, {
   CSS_TYPES_MESSAGE,
+  ariaDisabledAssertionRules,
   coreComponentRules,
   fakeTimerRules,
   restrictedConventionsImportPattern,
@@ -604,6 +605,7 @@ const config = defineConfig({
         'no-loss-of-precision': 'off',
         '@sentry/no-relative-api-url': 'off',
         '@sentry/prefer-react-component': 'off',
+        ...ariaDisabledAssertionRules,
         'no-restricted-imports': [
           'error',
           {
