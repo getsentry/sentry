@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
+from datetime import datetime
 from enum import IntEnum, StrEnum
 from types import MappingProxyType
 from typing import (
@@ -11,7 +12,6 @@ from typing import (
     ClassVar,
     Generic,
     Protocol,
-    Sequence,
     TypeAlias,
     TypedDict,
     TypeVar,
@@ -80,6 +80,7 @@ class DetectorType(StrEnum):
     PERFORMANCE_SLOW_DB_QUERY = "performance_slow_db_query"
     PERFORMANCE_LARGE_HTTP_PAYLOAD = "performance_large_http_payload"
     QUERY_INJECTION_VULNERABILITY = "query_injection_vulnerability"
+    ANOMALY_DETECTION = "anomaly_detection"
 
 
 class DetectorPriorityLevel(IntEnum):
@@ -111,7 +112,28 @@ class ConditionError:
     msg: str
 
 
-type DetectorResult = IssueOccurrence | StatusChangeMessage | None
+@dataclass(frozen=True, kw_only=True)
+class DetectorInvestigation:
+    """
+    A detector finding to investigate with Seer instead of opening an issue.
+
+    `id` identifies the trigger and keys the investigation: each trigger gets its own, and
+    results with the same `id` (task retries) reuse it. Set it with the detector handler's
+    `get_occurrence_id`, the id the platform gives an occurrence. `evidence_display` holds
+    the name and value pairs shown in the investigation prompt; `evidence_data` is passed to
+    the investigation as structured seed data.
+    """
+
+    id: str
+    title: str
+    subtitle: str
+    detection_time: datetime
+    environment: str | None = None
+    evidence_display: Sequence[tuple[str, str]] = ()
+    evidence_data: Mapping[str, Any] = field(default_factory=dict)
+
+
+type DetectorResult = IssueOccurrence | StatusChangeMessage | DetectorInvestigation | None
 
 
 class _WorkflowEventLocalCache(TypedDict, total=False):

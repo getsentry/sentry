@@ -7,6 +7,7 @@ from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.workflow_engine.types import (
     ConditionError,
     DetectorGroupKey,
+    DetectorInvestigation,
     DetectorPriorityLevel,
     DetectorResult,
 )
@@ -56,8 +57,8 @@ class DetectorEvaluation(
 
     - `DetectorEvaluation.create_issue(...)`: the group triggered at a non-OK priority. The
       detector handler calls `create_occurrence` and sets the built `IssueOccurrence` as the result.
-    - `evaluation.with_result(...)`: carry an `IssueOccurrence` or `StatusChangeMessage` that
-      was already built, e.g. a resolution from a stateful detector. It is kept as-is.
+    - `evaluation.with_result(...)`: carry an already built `IssueOccurrence`, `StatusChangeMessage`,
+      or `DetectorInvestigation`, e.g. a resolution from a stateful detector. It is kept as-is.
     - `DetectorEvaluation.ok(...)`: the group evaluated as OK. It carries no result, so it is
       dropped unless a subclass acts on it.
 
@@ -68,8 +69,9 @@ class DetectorEvaluation(
     - priority: DetectorPriorityLevel - The resulting priority for the detector
 
     Inherited properties
-    - result: DetectorResult - An occurrence (IssueOccurrence) or a status change for an existing issue
-        (StatusChangeMessage), passed to the detector handler's `on_complete`.
+    - result: DetectorResult - An occurrence (IssueOccurrence), a status change for an existing issue
+        (StatusChangeMessage), or a finding to investigate (DetectorInvestigation), passed to the
+        detector handler's `on_complete`.
         None when there is no result yet: a `create_issue` evaluation before its occurrence is built,
         or an `ok` evaluation that no handler turned into a resolution.
     - data: DetectorEvaluationData - This data includes the group key (DetectorGroupKey), the evaluation of the Detector
@@ -133,7 +135,7 @@ class DetectorEvaluation(
 
     def with_result(
         self,
-        result: IssueOccurrence | StatusChangeMessage,
+        result: IssueOccurrence | StatusChangeMessage | DetectorInvestigation,
         *,
         event_data: dict[str, Any] | None = None,
     ) -> Self:
@@ -164,7 +166,7 @@ class DetectorEvaluation(
             return DetectorEvaluationOutcome.ERROR
         if isinstance(self.result, StatusChangeMessage):
             return DetectorEvaluationOutcome.RESOLVED
-        if self.triggered or isinstance(self.result, IssueOccurrence):
+        if self.triggered or isinstance(self.result, (IssueOccurrence, DetectorInvestigation)):
             return DetectorEvaluationOutcome.TRIGGERED
         return DetectorEvaluationOutcome.NOT_TRIGGERED
 

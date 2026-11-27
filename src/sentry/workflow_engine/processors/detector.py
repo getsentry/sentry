@@ -8,7 +8,7 @@ from sentry_sdk import traces
 from sentry import features, options
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
-from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.organization import Organization
@@ -349,7 +349,7 @@ def process_detectors[T](
         for result in detector_results.values():
             if result.result is not None:
                 metric_label = (
-                    "triggered" if isinstance(result.result, IssueOccurrence) else "resolved"
+                    "resolved" if isinstance(result.result, StatusChangeMessage) else "triggered"
                 )
                 metrics.incr(
                     f"workflow_engine.process_detector.{metric_label}",

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
+from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.utils import metrics
 from sentry.workflow_engine.handlers.detector_outcome.base import DetectorOutcomeHandler
 from sentry.workflow_engine.handlers.detector_outcome.supported_outcomes import (
@@ -37,7 +38,7 @@ class IssuePlatformOutcomeHandler(DetectorOutcomeHandler):
                 tags={"detector_type": detector.type},
                 sample_rate=1,
             )
-        else:
+        elif isinstance(result, StatusChangeMessage):
             status_change = result
             payload_type = PayloadType.STATUS_CHANGE
             metrics.incr(
@@ -45,6 +46,8 @@ class IssuePlatformOutcomeHandler(DetectorOutcomeHandler):
                 tags={"detector_type": detector.type},
                 sample_rate=1,
             )
+        else:
+            raise TypeError(f"Issue Platform can't deliver a {type(result).__name__}")
 
         produce_occurrence_to_kafka(
             payload_type=payload_type,
