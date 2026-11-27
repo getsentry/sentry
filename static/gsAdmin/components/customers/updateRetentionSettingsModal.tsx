@@ -1,15 +1,19 @@
-import {Fragment, useState} from 'react';
+import {Fragment} from 'react';
+import {useMutation} from '@tanstack/react-query';
+import {z} from 'zod';
 
+import {Button} from '@sentry/scraps/button';
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {Flex} from '@sentry/scraps/layout';
 import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {openModal} from '@sentry/scraps/modal';
 import {toast} from '@sentry/scraps/toast';
 
-import {SelectField} from 'sentry/components/forms/fields/selectField';
-import {Form} from 'sentry/components/forms/form';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
-import {useApi} from 'sentry/utils/useApi';
 
 import type {Subscription} from 'getsentry/types';
 
@@ -28,6 +32,41 @@ const RETENTION_DAY_CHOICES = Array.from(
   {length: MAX_RETENTION_DAYS / RETENTION_STEP_DAYS},
   (_, i) => (i + 1) * RETENTION_STEP_DAYS
 );
+
+const RETENTION_CATEGORIES = [
+  {category: DataCategory.LOG_BYTE, label: 'Logs'},
+  {category: DataCategory.TRACE_METRIC_BYTE, label: 'Metrics'},
+  {category: DataCategory.TRANSACTIONS, label: 'Transactions'},
+  {category: DataCategory.SPANS, label: 'Spans'},
+] as const;
+
+const RETENTION_TIERS = [
+  {tier: 'standard', label: 'Standard'},
+  {tier: 'downsampled', label: 'Downsampled'},
+] as const;
+
+type RetentionCategory = (typeof RETENTION_CATEGORIES)[number]['category'];
+
+const retentionDays = z.number().nullable();
+const retentionPair = z.object({standard: retentionDays, downsampled: retentionDays});
+
+const schema = z.object({
+  orgStandard: retentionDays,
+  retentions: z.object({
+    [DataCategory.LOG_BYTE]: retentionPair,
+    [DataCategory.TRACE_METRIC_BYTE]: retentionPair,
+    [DataCategory.TRANSACTIONS]: retentionPair,
+    [DataCategory.SPANS]: retentionPair,
+  }),
+});
+
+type RetentionValues = z.infer<typeof schema>;
+type RetentionPair = z.infer<typeof retentionPair>;
+
+type RetentionSettingsPayload = {
+  orgRetention: RetentionPair;
+  retentions: Partial<Record<RetentionCategory, RetentionPair>>;
+};
 
 type RetentionOption = {label: string; value: number};
 
@@ -49,27 +88,26 @@ function getRetentionOptions(currentValue: number | null): RetentionOption[] {
   return options;
 }
 
-type RetentionFieldProps = {
-  label: string;
-  name: string;
-  onChange: (value: number | null) => void;
-  value: number | null;
-};
+function getCategoryRetention(
+  subscription: Subscription,
+  category: RetentionCategory
+): RetentionPair {
+  const retention = subscription.categories[category]?.retention;
+  return {
+    standard: retention?.standard ?? null,
+    downsampled: retention?.downsampled ?? null,
+  };
+}
 
-function RetentionField({name, label, value, onChange}: RetentionFieldProps) {
-  const [options] = useState(() => getRetentionOptions(value));
-
-  return (
-    <SelectField
-      name={name}
-      label={label}
-      defaultValue={value}
-      options={options}
-      onChange={(newValue: number | null | undefined) => onChange(newValue ?? null)}
-      placeholder="Plan default"
-      allowClear
-    />
-  );
+function getErrorMessage(error: unknown): string {
+  const detail = error instanceof RequestError ? error.responseJSON?.detail : undefined;
+  if (typeof detail === 'string') {
+    return detail;
+  }
+  if (typeof detail === 'object' && detail?.message) {
+    return detail.message;
+  }
+  return 'Failed to update retention settings.';
 }
 
 function UpdateRetentionSettingsModal({
@@ -79,98 +117,64 @@ function UpdateRetentionSettingsModal({
   closeModal,
   Header,
   Body,
+  Footer,
 }: ModalProps) {
-  const api = useApi();
-
-  const [orgStandard, setOrgStandard] = useState<number | null>(
-    subscription.orgRetention?.standard ?? null
+  const planCategories = RETENTION_CATEGORIES.filter(({category}) =>
+    subscription.planDetails.categories.includes(category)
   );
 
-  const [logBytesStandard, setLogBytesStandard] = useState<number | null>(
-    subscription.categories.logBytes?.retention?.standard ?? null
-  );
-  const [logBytesDownsampled, setLogBytesDownsampled] = useState<number | null>(
-    subscription.categories.logBytes?.retention?.downsampled ?? null
-  );
+  const defaultValues: RetentionValues = {
+    orgStandard: subscription.orgRetention?.standard ?? null,
+    retentions: {
+      [DataCategory.LOG_BYTE]: getCategoryRetention(subscription, DataCategory.LOG_BYTE),
+      [DataCategory.TRACE_METRIC_BYTE]: getCategoryRetention(
+        subscription,
+        DataCategory.TRACE_METRIC_BYTE
+      ),
+      [DataCategory.TRANSACTIONS]: getCategoryRetention(
+        subscription,
+        DataCategory.TRANSACTIONS
+      ),
+      [DataCategory.SPANS]: getCategoryRetention(subscription, DataCategory.SPANS),
+    },
+  };
 
-  const [traceMetricBytesStandard, setTraceMetricBytesStandard] = useState<number | null>(
-    subscription.categories.traceMetricBytes?.retention?.standard ?? null
-  );
-  const [traceMetricBytesDownsampled, setTraceMetricBytesDownsampled] = useState<
-    number | null
-  >(subscription.categories.traceMetricBytes?.retention?.downsampled ?? null);
-
-  const [transactionsStandard, setTransactionsStandard] = useState<number | null>(
-    subscription.categories.transactions?.retention?.standard ?? null
-  );
-  const [transactionsDownsampled, setTransactionsDownsampled] = useState<number | null>(
-    subscription.categories.transactions?.retention?.downsampled ?? null
-  );
-
-  const [spansStandard, setSpansStandard] = useState<number | null>(
-    subscription.categories.spans?.retention?.standard ?? null
-  );
-  const [spansDownsampled, setSpansDownsampled] = useState<number | null>(
-    subscription.categories.spans?.retention?.downsampled ?? null
-  );
-
-  const onSubmit = async () => {
-    const retentions: Partial<
-      Record<DataCategory, {downsampled: number | null; standard: number | null}>
-    > = {};
-
-    if (subscription.planDetails.categories.includes(DataCategory.LOG_BYTE)) {
-      retentions.logBytes = {
-        standard: logBytesStandard,
-        downsampled: logBytesDownsampled,
-      };
-    }
-
-    if (subscription.planDetails.categories.includes(DataCategory.TRACE_METRIC_BYTE)) {
-      retentions.traceMetricBytes = {
-        standard: traceMetricBytesStandard,
-        downsampled: traceMetricBytesDownsampled,
-      };
-    }
-
-    if (subscription.planDetails.categories.includes(DataCategory.TRANSACTIONS)) {
-      retentions.transactions = {
-        standard: transactionsStandard,
-        downsampled: transactionsDownsampled,
-      };
-    }
-
-    if (subscription.planDetails.categories.includes(DataCategory.SPANS)) {
-      retentions.spans = {standard: spansStandard, downsampled: spansDownsampled};
-    }
-
-    const orgRetention = {standard: orgStandard, downsampled: null};
-
-    const data = {retentions, orgRetention};
-
-    try {
-      await api.requestPromise(
-        `/_admin/customers/${organization.slug}/retention-settings/`,
-        {method: 'POST', data, includeAllArgs: true}
-      );
+  const mutation = useMutation({
+    mutationFn: (data: RetentionSettingsPayload) =>
+      fetchMutation({
+        url: getApiUrl('/_admin/customers/$organizationIdOrSlug/retention-settings/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
+        method: 'POST',
+        data,
+      }),
+    onSuccess: () => {
       toast.success('Retention settings updated successfully.');
       closeModal();
       onSuccess();
-    } catch (e) {
-      const err = e instanceof RequestError ? e : undefined;
-      const detail = err?.responseJSON?.detail;
-      const message =
-        typeof detail === 'string'
-          ? detail
-          : typeof detail === 'object' && detail?.message
-            ? detail.message
-            : 'Failed to update retention settings.';
-      toast.error(message);
-    }
-  };
+    },
+    onError: error => {
+      toast.error(getErrorMessage(error));
+    },
+  });
+
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues,
+    validators: {onDynamic: schema},
+    onSubmit: ({value}) =>
+      mutation
+        .mutateAsync({
+          orgRetention: {standard: value.orgStandard, downsampled: null},
+          retentions: Object.fromEntries(
+            planCategories.map(({category}) => [category, value.retentions[category]])
+          ),
+        })
+        .catch(() => {}),
+  });
 
   return (
-    <Fragment>
+    <form.AppForm form={form}>
       <Header closeButton>Update Retention Settings</Header>
       <Body>
         <div>
@@ -181,85 +185,48 @@ function UpdateRetentionSettingsModal({
           </p>
         </div>
         <br />
-        <Form onSubmit={onSubmit} submitLabel="Update Settings" onCancel={closeModal}>
-          <RetentionField
-            name="orgStandard"
-            label="Org Retention"
-            value={orgStandard}
-            onChange={setOrgStandard}
-          />
-          {subscription.planDetails.categories.includes(DataCategory.LOG_BYTE) && (
-            <Fragment>
-              <RetentionField
-                name="logBytesStandard"
-                label="Logs Standard"
-                value={logBytesStandard}
-                onChange={setLogBytesStandard}
+        <form.AppField name="orgStandard">
+          {field => (
+            <field.Layout.Row label="Org Retention">
+              <field.Select
+                clearable
+                placeholder="Plan default"
+                value={field.state.value}
+                onChange={field.handleChange}
+                options={getRetentionOptions(defaultValues.orgStandard)}
               />
-              <RetentionField
-                name="logBytesDownsampled"
-                label="Logs Downsampled"
-                value={logBytesDownsampled}
-                onChange={setLogBytesDownsampled}
-              />
-            </Fragment>
+            </field.Layout.Row>
           )}
-
-          {subscription.planDetails.categories.includes(
-            DataCategory.TRACE_METRIC_BYTE
-          ) && (
-            <Fragment>
-              <RetentionField
-                name="traceMetricBytesStandard"
-                label="Metrics Standard"
-                value={traceMetricBytesStandard}
-                onChange={setTraceMetricBytesStandard}
-              />
-              <RetentionField
-                name="traceMetricBytesDownsampled"
-                label="Metrics Downsampled"
-                value={traceMetricBytesDownsampled}
-                onChange={setTraceMetricBytesDownsampled}
-              />
-            </Fragment>
-          )}
-
-          {subscription.planDetails.categories.includes(DataCategory.TRANSACTIONS) && (
-            <Fragment>
-              <RetentionField
-                name="transactionsStandard"
-                label="Transactions Standard"
-                value={transactionsStandard}
-                onChange={setTransactionsStandard}
-              />
-              <RetentionField
-                name="transactionsDownsampled"
-                label="Transactions Downsampled"
-                value={transactionsDownsampled}
-                onChange={setTransactionsDownsampled}
-              />
-            </Fragment>
-          )}
-
-          {subscription.planDetails.categories.includes(DataCategory.SPANS) && (
-            <Fragment>
-              <RetentionField
-                name="spansStandard"
-                label="Spans Standard"
-                value={spansStandard}
-                onChange={setSpansStandard}
-              />
-              <RetentionField
-                name="spansDownsampled"
-                label="Spans Downsampled"
-                value={spansDownsampled}
-                onChange={setSpansDownsampled}
-              />
-            </Fragment>
-          )}
-        </Form>
+        </form.AppField>
+        {planCategories.map(({category, label}) => (
+          <Fragment key={category}>
+            {RETENTION_TIERS.map(({tier, label: tierLabel}) => (
+              <form.AppField key={tier} name={`retentions.${category}.${tier}`}>
+                {field => (
+                  <field.Layout.Row label={`${label} ${tierLabel}`}>
+                    <field.Select
+                      clearable
+                      placeholder="Plan default"
+                      value={field.state.value}
+                      onChange={field.handleChange}
+                      options={getRetentionOptions(
+                        defaultValues.retentions[category][tier]
+                      )}
+                    />
+                  </field.Layout.Row>
+                )}
+              </form.AppField>
+            ))}
+          </Fragment>
+        ))}
       </Body>
-    </Fragment>
+      <Footer>
+        <Flex gap="md" justify="end">
+          <Button onClick={closeModal}>Cancel</Button>
+          <form.SubmitButton>Update Settings</form.SubmitButton>
+        </Flex>
+      </Footer>
+    </form.AppForm>
   );
 }
 

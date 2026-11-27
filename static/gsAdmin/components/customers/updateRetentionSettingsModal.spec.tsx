@@ -12,6 +12,8 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
+import {toast} from '@sentry/scraps/toast';
+
 import {openUpdateRetentionSettingsModal} from 'admin/components/customers/updateRetentionSettingsModal';
 
 describe('UpdateRetentionSettingsModal', () => {
@@ -595,5 +597,32 @@ describe('UpdateRetentionSettingsModal', () => {
         })
       );
     });
+  });
+  it('shows the API error detail and keeps the modal open on failure', async () => {
+    const subscription = SubscriptionFixture({
+      organization,
+      planDetails: PlanDetailsLookupFixture('am3_f'),
+      orgRetention: {standard: null, downsampled: null},
+    });
+    const errorMessage = jest.spyOn(toast, 'error');
+
+    MockApiClient.addMockResponse({
+      url: `/_admin/customers/${organization.slug}/retention-settings/`,
+      method: 'POST',
+      statusCode: 400,
+      body: {detail: 'Retention exceeds plan limit.'},
+    });
+
+    openUpdateRetentionSettingsModal({subscription, organization, onSuccess});
+
+    await loadModal();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Update Settings'}));
+
+    await waitFor(() => {
+      expect(errorMessage).toHaveBeenCalledWith('Retention exceeds plan limit.');
+    });
+    expect(screen.getByText('Update Retention Settings')).toBeInTheDocument();
+    expect(onSuccess).not.toHaveBeenCalled();
   });
 });
