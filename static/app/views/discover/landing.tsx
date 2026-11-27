@@ -5,7 +5,6 @@ import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Grid, Stack} from '@sentry/scraps/layout';
-import {Link} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import type {SelectValue} from '@sentry/scraps/select';
 import {Switch} from '@sentry/scraps/switch';
@@ -16,7 +15,7 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SearchBar} from 'sentry/components/searchBar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import type {SavedQuery} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
@@ -231,31 +230,15 @@ function DiscoverLanding() {
               ) : status === 'error' ? (
                 <LoadingError message={error.message} />
               ) : (
-                <Stack gap="xl">
-                  {organization.features.includes('expose-migrated-discover-queries') && (
-                    <Alert variant="info">
-                      {tct(
-                        'Your saved transactions queries are no longer available in this UI. Try them out in the [exploreLink:Explore Queries] page instead.',
-                        {
-                          exploreLink: (
-                            <Link
-                              to={`/organizations/${organization.slug}/explore/saved-queries/`}
-                            />
-                          ),
-                        }
-                      )}
-                    </Alert>
-                  )}
-                  <QueryList
-                    pageLinks={savedQueriesPageLinks ?? ''}
-                    savedQueries={savedQueries}
-                    savedQuerySearchQuery={savedSearchQuery}
-                    renderPrebuilt={renderPrebuilt}
-                    location={location}
-                    organization={organization}
-                    refetchSavedQueries={refreshSavedQueries}
-                  />
-                </Stack>
+                <QueryList
+                  pageLinks={savedQueriesPageLinks ?? ''}
+                  savedQueries={savedQueries}
+                  savedQuerySearchQuery={savedSearchQuery}
+                  renderPrebuilt={renderPrebuilt}
+                  location={location}
+                  organization={organization}
+                  refetchSavedQueries={refreshSavedQueries}
+                />
               )}
             </Layout.Main>
           </Layout.Body>
