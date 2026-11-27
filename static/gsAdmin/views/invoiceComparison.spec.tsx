@@ -68,7 +68,7 @@ describe('InvoiceComparison', () => {
     jest.restoreAllMocks();
   });
 
-  it('loads yesterday in UTC when the URL has no window', async () => {
+  it('loads the last 31 UTC days when the URL has no window', async () => {
     jest.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-11-10T05:25:00.000Z'));
     const mock = MockApiClient.addMockResponse({
       url: COMPARISON_URL,
@@ -79,9 +79,9 @@ describe('InvoiceComparison', () => {
 
     expect(await screen.findByRole('link', {name: 'org-slug'})).toBeInTheDocument();
     expect(mock.mock.calls[0][1].query).toEqual(
-      expect.objectContaining({start: '2026-11-09', end: '2026-11-09'})
+      expect.objectContaining({start: '2026-10-10', end: '2026-11-09'})
     );
-    expect(screen.getByLabelText('First day (UTC)')).toHaveValue('2026-11-09');
+    expect(screen.getByLabelText('First day (UTC)')).toHaveValue('2026-10-10');
     expect(screen.getByLabelText('Last day (UTC)')).toHaveValue('2026-11-09');
   });
 
@@ -195,7 +195,7 @@ describe('InvoiceComparison', () => {
 
     expect(await screen.findByRole('link', {name: 'org-slug'})).toBeInTheDocument();
     expect(mock.mock.calls[0][1].query).toEqual(
-      expect.objectContaining({start: '2026-11-09', end: '2026-11-09'})
+      expect.objectContaining({start: '2026-10-10', end: '2026-11-09'})
     );
   });
 
@@ -305,7 +305,7 @@ describe('InvoiceComparison', () => {
     await userEvent.click(await screen.findByRole('button', {name: 'Next'}));
 
     expect(router.location.query.rows_page).toBe('2');
-    expect(router.location.query.start).toBe('2026-11-09');
+    expect(router.location.query.start).toBe('2026-10-10');
     expect(router.location.query.end).toBe('2026-11-09');
   });
 
@@ -360,7 +360,7 @@ describe('InvoiceComparison', () => {
 
     expect(startInput).toHaveValue('2020-06-01');
     expect(router.location.query.rows_page).toBe('2');
-    expect(router.location.query.start).toBe('2026-11-09');
+    expect(router.location.query.start).toBe('2026-10-10');
     expect(router.location.query.end).toBe('2026-11-09');
   });
 
