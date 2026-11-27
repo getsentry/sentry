@@ -32,5 +32,18 @@ class SeerScmConnectResolvedEvent(analytics.Event):
     seconds_open: int
 
 
+@analytics.eventclass("seer.scm_connect.requested")
+class SeerScmConnectRequestedEvent(analytics.Event):
+    """A member, who can't install integrations, asked the organization's owners from the popup to
+    connect source control, and Sentry emailed them."""
+
+    organization_id: int
+    # The member who asked.
+    user_id: int | None
+    # The popup's `input_id`, as on its `seer.scm_connect.shown` and `seer.scm_connect.resolved`.
+    input_id: str
+
+
 analytics.register(SeerScmConnectShownEvent)
 analytics.register(SeerScmConnectResolvedEvent)
+analytics.register(SeerScmConnectRequestedEvent)
