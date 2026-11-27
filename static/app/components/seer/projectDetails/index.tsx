@@ -13,6 +13,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {AutofixAgent} from './autofixAgent';
 import {AutofixRepositoriesList} from './autofixRepositoriesList';
+import {ImpactAssessmentSettings} from './impactAssessmentSettings';
 
 export function SeerProjectDetails({project}: {project: DetailedProject}) {
   const organization = useOrganization();
@@ -55,6 +56,9 @@ export function SeerProjectDetails({project}: {project: DetailedProject}) {
           project={project}
         />
         <AutofixAgent canWrite={canWrite} project={project} />
+        {organization.features.includes('seer-impact-assessment') && (
+          <ImpactAssessmentSettings canWrite={canWrite} project={project} />
+        )}
       </Stack>
     </AnalyticsArea>
   );
