@@ -159,90 +159,92 @@ function InstallWizardForm({
 
   return (
     <form.AppForm form={form}>
-      <Container paddingBottom="xl">
+      <Stack gap="xl">
         <Text as="p">
           {t('Complete setup by filling out the required configuration.')}
         </Text>
-      </Container>
 
-      {wizardSections.map(section => (
-        <form.FieldGroup key={section.key} title={section.heading}>
-          {section.fields.map(wizardField => {
-            const {definition, name, required} = wizardField;
-            return (
-              <form.AppField
-                key={name}
-                name={name}
-                validators={{onDynamic: getOptionSchema(wizardField)}}
-              >
-                {field => {
-                  const value = field.state.value;
+        <Stack>
+          {wizardSections.map(section => (
+            <form.FieldGroup key={section.key} title={section.heading}>
+              {section.fields.map(wizardField => {
+                const {definition, name, required} = wizardField;
+                return (
+                  <form.AppField
+                    key={name}
+                    name={name}
+                    validators={{onDynamic: getOptionSchema(wizardField)}}
+                  >
+                    {field => {
+                      const value = field.state.value;
 
-                  switch (definition.type) {
-                    case 'boolean':
-                      return (
-                        <field.Layout.Row
-                          label={definition.label}
-                          hintText={definition.help}
-                          required={required}
-                        >
-                          <field.Switch
-                            checked={value === true}
-                            onChange={field.handleChange}
-                          />
-                        </field.Layout.Row>
-                      );
-                    case 'radio':
-                      return (
-                        <field.RadioGroup
-                          value={typeof value === 'string' ? value : ''}
-                          onChange={field.handleChange}
-                        >
-                          {({Item}) => (
-                            <field.Layout.Stack
+                      switch (definition.type) {
+                        case 'boolean':
+                          return (
+                            <field.Layout.Row
                               label={definition.label}
                               hintText={definition.help}
                               required={required}
                             >
-                              <Stack gap="sm">
-                                {definition.choices.map(([choice, choiceLabel]) => (
-                                  <Item key={choice} value={choice}>
-                                    {choiceLabel}
-                                  </Item>
-                                ))}
-                              </Stack>
-                            </field.Layout.Stack>
-                          )}
-                        </field.RadioGroup>
-                      );
-                    case 'email':
-                    case 'text':
-                    default:
-                      return (
-                        <field.Layout.Row
-                          label={definition.label}
-                          hintText={definition.help}
-                          required={required}
-                        >
-                          <field.Input
-                            type={definition.type}
-                            placeholder={definition.placeholder}
-                            value={typeof value === 'string' ? value : ''}
-                            onChange={field.handleChange}
-                          />
-                        </field.Layout.Row>
-                      );
-                  }
-                }}
-              </form.AppField>
-            );
-          })}
-        </form.FieldGroup>
-      ))}
+                              <field.Switch
+                                checked={value === true}
+                                onChange={field.handleChange}
+                              />
+                            </field.Layout.Row>
+                          );
+                        case 'radio':
+                          return (
+                            <field.RadioGroup
+                              value={typeof value === 'string' ? value : ''}
+                              onChange={field.handleChange}
+                            >
+                              {({Item}) => (
+                                <field.Layout.Stack
+                                  label={definition.label}
+                                  hintText={definition.help}
+                                  required={required}
+                                >
+                                  <Stack gap="sm">
+                                    {definition.choices.map(([choice, choiceLabel]) => (
+                                      <Item key={choice} value={choice}>
+                                        {choiceLabel}
+                                      </Item>
+                                    ))}
+                                  </Stack>
+                                </field.Layout.Stack>
+                              )}
+                            </field.RadioGroup>
+                          );
+                        case 'email':
+                        case 'text':
+                        default:
+                          return (
+                            <field.Layout.Row
+                              label={definition.label}
+                              hintText={definition.help}
+                              required={required}
+                            >
+                              <field.Input
+                                type={definition.type}
+                                placeholder={definition.placeholder}
+                                value={typeof value === 'string' ? value : ''}
+                                onChange={field.handleChange}
+                              />
+                            </field.Layout.Row>
+                          );
+                      }
+                    }}
+                  </form.AppField>
+                );
+              })}
+            </form.FieldGroup>
+          ))}
 
-      <Flex justify="end">
-        <form.SubmitButton>{t('Continue')}</form.SubmitButton>
-      </Flex>
+          <Flex justify="end">
+            <form.SubmitButton>{t('Continue')}</form.SubmitButton>
+          </Flex>
+        </Stack>
+      </Stack>
     </form.AppForm>
   );
 }
