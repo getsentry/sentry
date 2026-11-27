@@ -53,7 +53,7 @@ from sentry.explore.models import (
     ParamItemTypes,
 )
 from sentry.grouping.grouptype import ErrorGroupType
-from sentry.hybridcloud.models.outbox import CellOutbox, outbox_context
+from sentry.hybridcloud.models.outbox import CellOutbox, ControlOutbox, outbox_context
 from sentry.hybridcloud.models.webhookpayload import WebhookPayload
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.incidents.grouptype import MetricIssue
@@ -668,6 +668,9 @@ class Factories:
 
         om = OrganizationMember.objects.create(**kwargs)
 
+        if user_id is not None:
+            Factories._drain_user_outboxes(user_id)
+
         if team_roles:
             for team, role in team_roles:
                 Factories.create_team_membership(team=team, member=om, role=role)
@@ -701,15 +704,32 @@ class Factories:
         role: str | None = None,
     ) -> OrganizationMemberTeam:
         if member is None:
+            if user is not None:
+                user_id = user.id
+            else:
+                user_id = None
             member, created = OrganizationMember.objects.get_or_create(
-                user_id=user.id if user else None,
+                user_id=user_id,
                 organization=team.organization,
                 defaults={"role": "member"},
             )
+            if created and member.user_id is not None:
+                Factories._drain_user_outboxes(member.user_id)
 
         return OrganizationMemberTeam.objects.create(
             team=team, organizationmember=member, is_active=True, role=role
         )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def _drain_user_outboxes(user_id: int) -> None:
+        # A new member's row on the cell lacks its user's details until these outboxes drain
+        pending_user_outboxes = ControlOutbox.objects.filter(
+            shard_scope=OutboxScope.USER_SCOPE, shard_identifier=user_id
+        )
+        outbox_per_cell = {outbox.cell_name: outbox for outbox in pending_user_outboxes}
+        for outbox in outbox_per_cell.values():
+            outbox.drain_shard()
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
