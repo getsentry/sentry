@@ -408,15 +408,8 @@ describe('Subscription > PaymentHistory', () => {
     expect(
       screen.getByRole('row', {name: 'Errors 30,000 50,000 10,000 50%'})
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole('row', {name: 'Pay-as-you-go Spend Amount Spent Maximum Used (%)'})
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('row', {name: 'Errors $25.00 \u2014 25%'})
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('row', {name: 'Total $25.00 $100.00 25%'})
-    ).toBeInTheDocument();
+    // The body has spend fields, and the receipt still shows no spend.
+    expect(screen.queryByRole('columnheader', {name: /Spend/})).not.toBeInTheDocument();
     expect(usageRequest).toHaveBeenCalledTimes(1);
 
     await userEvent.click(usageButton);

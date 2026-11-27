@@ -41,7 +41,7 @@ import {formatCurrency} from 'getsentry/utils/formatCurrency';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 import {ContactBillingMembers} from 'getsentry/views/contactBillingMembers';
 import {SubscriptionPageContainer} from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
-import {UsageHistoryTables} from 'getsentry/views/subscriptionPage/usageHistory';
+import {PeriodUsageTable} from 'getsentry/views/subscriptionPage/usageHistory';
 
 enum ReceiptStatus {
   PAID = 'paid',
@@ -172,7 +172,8 @@ function UsageNotAvailable() {
 }
 
 /**
- * The period that a receipt billed, as the Usage History page shows a period.
+ * The usage table of the period that a receipt billed, as the Usage History page
+ * shows it. A receipt shows no pay-as-you-go spend.
  */
 function ReceiptUsage({invoiceId}: {invoiceId: string}) {
   const organization = useOrganization();
@@ -213,7 +214,7 @@ function ReceiptUsage({invoiceId}: {invoiceId: string}) {
         </Text>
         <Text bold>{tct('[planName] Plan', {planName: data.planName})}</Text>
       </Stack>
-      <UsageHistoryTables history={{...data, categories}} />
+      <PeriodUsageTable history={{...data, categories}} />
     </Stack>
   );
 }
@@ -436,7 +437,7 @@ function ReceiptRow({
       </SimpleTable.Row>
       {isExpanded && (
         <SimpleTable.FullWidthRow id={usageRowId}>
-          {/* Keep the fixed-layout usage tables from sizing the receipt columns. */}
+          {/* Keep the fixed-layout usage table from sizing the receipt columns. */}
           <Container padding="xl" contain="inline-size">
             <ReceiptUsage invoiceId={payment.id} />
           </Container>

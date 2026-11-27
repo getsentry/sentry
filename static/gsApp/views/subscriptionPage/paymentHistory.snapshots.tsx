@@ -11,7 +11,7 @@ import {ContainerQueryContext} from '@sentry/scraps/layout';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 
-import {OnDemandBudgetMode, type InvoiceUsage} from 'getsentry/types';
+import type {InvoiceUsage} from 'getsentry/types';
 import {ReceiptTable} from 'getsentry/views/subscriptionPage/paymentHistory';
 
 const organization = OrganizationFixture({
@@ -38,16 +38,12 @@ const usage = BillingHistoryFixture({
   isCurrent: false,
   periodStart: '2026-10-01',
   periodEnd: '2026-10-31',
-  onDemandMaxSpend: 10_000,
-  onDemandSpend: 2_500,
-  onDemandBudgetMode: OnDemandBudgetMode.SHARED,
   categories: {
     errors: MetricHistoryFixture({
       usage: 30_000,
       reserved: 50_000,
       free: 10_000,
       prepaid: 60_000,
-      onDemandSpendUsed: 2_500,
     }),
   },
 });
