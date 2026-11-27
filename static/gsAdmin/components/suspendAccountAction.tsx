@@ -36,9 +36,6 @@ const defaultValues: z.input<typeof schema> = {
   audit: adminAuditDefaults,
 };
 
-/**
- * Modal for suspending an account
- */
 export function SuspendAccountAction({
   Header,
   Body,

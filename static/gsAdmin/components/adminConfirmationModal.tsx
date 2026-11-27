@@ -31,9 +31,6 @@ export const adminAuditDefaults: z.input<typeof adminAuditSchema> = {
   notes: '',
 };
 
-/**
- * Drops empty audit fields so they are not sent with the action.
- */
 export function adminAuditParams({
   ticketURL,
   notes,
@@ -41,11 +38,6 @@ export function adminAuditParams({
   return {...(notes && {notes}), ...(ticketURL && {ticketURL})};
 }
 
-/**
- * The ticket URL and notes fields. Add an `audit` field to the form values
- * with `adminAuditDefaults` and `adminAuditSchema`, then render
- * `<AdminAuditFields form={form} fields="audit" />`.
- */
 const adminAuditFieldsProps: {showTicketURL?: boolean} = {};
 
 export const AdminAuditFields = withFieldGroup({
@@ -83,10 +75,6 @@ export const AdminAuditFields = withFieldGroup({
   },
 });
 
-/**
- * Props for an admin action modal that owns its form. The modal calls
- * `onConfirm` with its params and the audit params, then closes.
- */
 export type AdminActionModalProps = ModalRenderProps & {
   onConfirm: (params: AdminConfirmParams) => void;
   header?: React.ReactNode;

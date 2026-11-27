@@ -667,6 +667,7 @@ export function CustomerDetails() {
             name: 'Suspend Account',
             help: 'Suspend this account for abuse.',
             visible: !subscription.isSuspended,
+            // onAction opens the suspension confirmation modal, so skip the shared one.
             skipConfirmModal: true,
             onAction: () =>
               openModal(deps => (
