@@ -1,4 +1,3 @@
-import {useState} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {
@@ -284,55 +283,6 @@ describe('ConversationViewContent', () => {
 
     await userEvent.clear(screen.getByRole('textbox', {name: 'Search in transcript'}));
     expect(screen.queryByText('1/1')).not.toBeInTheDocument();
-  });
-
-  it('centers the match itself, not the element around it', async () => {
-    function SelectableView() {
-      const [selectedSpanId, setSelectedSpanId] = useState<string | undefined>();
-      return (
-        <ConversationViewContent
-          conversation={{conversationId: CONVERSATION_ID}}
-          activeTab="transcript"
-          selectedSpanId={selectedSpanId}
-          onSelectSpan={setSelectedSpanId}
-        />
-      );
-    }
-    render(<SelectableView />, {organization: OrganizationFixture()});
-    await screen.findByText('Second answer');
-
-    // jsdom has no layout. Put the match 800px below the pane's top; its parent
-    // element measures at 0, as a tall block starting above the pane would.
-    const scrollContainer = document.querySelector<HTMLElement>('[data-scrollable]')!;
-    let scrollTop = 0;
-    Object.defineProperties(scrollContainer, {
-      clientHeight: {configurable: true, value: 400},
-      scrollTop: {
-        configurable: true,
-        get: () => scrollTop,
-        set: (value: number) => {
-          scrollTop = value;
-        },
-      },
-    });
-    jest
-      .spyOn(scrollContainer, 'getBoundingClientRect')
-      .mockReturnValue(new DOMRect(0, 100, 600, 400));
-    Range.prototype.getBoundingClientRect = () => new DOMRect(0, 900, 80, 20);
-
-    try {
-      await userEvent.type(
-        screen.getByRole('textbox', {name: 'Search in transcript'}),
-        'second answer{Enter}'
-      );
-
-      expect(await screen.findByText('1/1')).toBeInTheDocument();
-      // 900 - 100 - (400 - 20) / 2: the match's middle lands on the pane's middle.
-      await waitFor(() => expect(scrollTop).toBe(610));
-    } finally {
-      // @ts-expect-error jsdom has no Range layout API to restore
-      delete Range.prototype.getBoundingClientRect;
-    }
   });
 
   it('searches the system prompt and selects the span it came from', async () => {

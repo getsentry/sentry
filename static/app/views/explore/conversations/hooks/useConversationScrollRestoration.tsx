@@ -12,13 +12,11 @@ interface UseConversationScrollRestorationOptions {
   selectedNodeId: string | null;
 }
 
-function scrollToCenter(container: HTMLElement, target: Range) {
-  // Measure the range itself, not its parent element: a long message or code block
-  // can be taller than the pane, so centering it can leave the match off-screen.
-  const targetRect = target.getBoundingClientRect();
+function scrollToCenter(container: HTMLElement, range: Range) {
+  const rangeRect = range.getBoundingClientRect();
   const containerRect = container.getBoundingClientRect();
   container.scrollTop +=
-    targetRect.top - containerRect.top - (container.clientHeight - targetRect.height) / 2;
+    rangeRect.top - containerRect.top - (container.clientHeight - rangeRect.height) / 2;
 }
 
 /**
