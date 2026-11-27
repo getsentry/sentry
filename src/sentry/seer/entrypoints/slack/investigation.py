@@ -50,6 +50,7 @@ from sentry.seer.entrypoints.slack.messaging import (
 )
 from sentry.seer.entrypoints.slack.types import SlackThreadDetails
 from sentry.seer.entrypoints.types import SeerEntrypointKey, SeerInvestigationEntrypoint
+from sentry.seer_workflow_outputs.models import SeerWorkflowOutputLink
 from sentry.shared_integrations.exceptions import IntegrationConfigurationError, IntegrationError
 from sentry.utils.locking import UnableToAcquireLock
 
@@ -193,14 +194,14 @@ class SlackInvestigationEntrypoint(
             lifecycle.add_extras({"investigation_id": investigation_id})
             try:
                 with lock.blocking_acquire(initial_delay=0.1, timeout=10):
-                    SlackInvestigationEntrypoint._send_started_to_alert_threads(
+                    SlackInvestigationEntrypoint._send_started_to_threads(
                         cache_payload=cache_payload, run=run
                     )
                     if cache_payload is not None:
                         SlackInvestigationEntrypoint._update_investigation_status(
                             cache_payload=cache_payload, run_id=run.id, lifecycle=lifecycle
                         )
-                    SlackInvestigationEntrypoint._send_conclusion_to_alert_threads(run_id=run.id)
+                    SlackInvestigationEntrypoint._send_conclusion_to_threads(run_id=run.id)
             except UnableToAcquireLock as e:
                 lifecycle.record_halt(halt_reason=e)
                 # The holder may have read an older run, so retry once it lets go.
@@ -256,7 +257,7 @@ class SlackInvestigationEntrypoint(
             investigation_thread.update(provider_data={**state, "started_sent": True})
 
     @staticmethod
-    def _send_started_to_alert_threads(
+    def _send_started_to_threads(
         *, cache_payload: SlackInvestigationCachePayload | None, run: InvestigationOrchestrationRun
     ) -> None:
         try:
@@ -277,13 +278,11 @@ class SlackInvestigationEntrypoint(
                     cache_payload["thread_ts"],
                 )
             ] = cache_payload["slack_user_id"]
-        open_period = _get_metric_open_period(run.investigation)
-        if open_period is not None:
-            for thread in _get_alert_threads(open_period):
-                if thread.integration_id is not None:
-                    destinations.setdefault(
-                        (thread.integration_id, thread.target_id, thread.thread_identifier), None
-                    )
+        for thread in _get_destination_threads(run.investigation):
+            if thread.integration_id is not None:
+                destinations.setdefault(
+                    (thread.integration_id, thread.target_id, thread.thread_identifier), None
+                )
 
         organization_id = run.investigation.organization_id
         installs: dict[int, SlackIntegration | None] = {}
@@ -421,9 +420,9 @@ class SlackInvestigationEntrypoint(
             )
 
     @staticmethod
-    def _send_conclusion_to_alert_threads(*, run_id: int) -> None:
+    def _send_conclusion_to_threads(*, run_id: int) -> None:
         """
-        Posts the conclusion of a completed metric open period run in each Slack alert thread
+        Posts the conclusion of a completed investigation in each subscribed Slack thread
         that doesn't have it yet.
         """
         try:
@@ -435,13 +434,11 @@ class SlackInvestigationEntrypoint(
         if run.status != InvestigationOrchestrationStatus.COMPLETED:
             return
         organization_id = run.investigation.organization_id
-        open_period = _get_metric_open_period(run.investigation)
-        if open_period is None:
+        threads = _get_destination_threads(run.investigation)
+        if not threads:
             return
-
-        threads = _get_alert_threads(open_period)
         data = build_investigation_conclusion(run)
-        if not threads or data is None:
+        if data is None:
             return
 
         installs: dict[int, SlackIntegration | None] = {}
@@ -510,6 +507,23 @@ def _get_metric_open_period(investigation: Notebook) -> GroupOpenPeriod | None:
         )
     except GroupOpenPeriod.DoesNotExist:
         return None
+
+
+def _get_destination_threads(investigation: Notebook) -> list[NotificationThread]:
+    open_period = _get_metric_open_period(investigation)
+    threads = _get_alert_threads(open_period) if open_period else []
+    linked_runs = SeerWorkflowOutputLink.objects.filter(
+        notebook=investigation, execution__run__organization_id=investigation.organization_id
+    ).values("execution__run_id")
+    threads.extend(
+        NotificationThread.objects.filter(
+            object_type=NotificationThreadObjectType.SEER_WORKFLOW_RUN,
+            object_id__in=linked_runs,
+            key_type=NotificationSource.SEER_AUTOMATION_RUN_STARTED,
+            provider_key=NotificationProviderKey.SLACK,
+        )
+    )
+    return threads
 
 
 def _get_alert_threads(open_period: GroupOpenPeriod) -> list[NotificationThread]:

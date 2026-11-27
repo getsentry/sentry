@@ -124,6 +124,7 @@ class OrganizationSeerWorkflowConfigsTest(APITestCase):
             "serviceAccount": None,
             "environments": ["production"],
             "filters": {"minEventCount": 10},
+            "slackChannel": None,
             "outputPolicy": {"review_mode": "manual"},
             "seededDefault": "scheduled_investigation",
             "actionSettings": {},
@@ -391,6 +392,102 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
                 projectIds=[self.project.id],
                 status_code=404,
             )
+
+    @patch(
+        "sentry.integrations.slack.utils.channel._get_channel_info",
+        return_value={"channel": {"is_channel": True, "name": "ops"}},
+    )
+    def test_update_slack_destination(self, lookup: MagicMock) -> None:
+        config = self.create_config()
+        integration = self.create_integration(
+            self.organization, provider="slack", external_id="T123"
+        )
+        args = (self.organization.slug, config.id)
+        dest = {"integrationId": str(integration.id), "channelId": "C123"}
+        saved = self.get_success_response(*args, method="put", slackChannel=dest)
+        expected = {**dest, "channelName": "ops"}
+        assert saved.data["slackChannel"] == expected
+        self.get_success_response(*args, method="put", slackChannel=expected)
+        self.get_error_response(
+            *args, method="put", slackChannel={**dest, "channelName": "wrong"}, status_code=400
+        )
+        lookup.return_value = {"channel": {"is_im": True}}
+        self.get_error_response(
+            *args, method="put", slackChannel={**dest, "channelId": "D123"}, status_code=400
+        )
+        assert (
+            self.get_success_response(*args, method="put", name="Renamed").data["slackChannel"]
+            == expected
+        )
+        self.get_success_response(*args, method="put", slackChannel=None)
+        assert self.get_success_response(*args).data["slackChannel"] is None
+
+    @patch("sentry.integrations.slack.utils.channel.check_for_channel", return_value=None)
+    @patch("sentry.integrations.slack.utils.channel.get_slack_user_list")
+    @patch("sentry.integrations.slack.utils.channel._get_user_info")
+    def test_slack_user_destination(
+        self, user_info: MagicMock, list_users: MagicMock, channel_lookup: MagicMock
+    ) -> None:
+        config = self.create_config()
+        integration = self.create_integration(
+            self.organization,
+            provider="slack",
+            external_id="T123",
+            metadata={"access_token": "test-token"},
+        )
+        args = (self.organization.slug, config.id)
+        user = {"id": "U123", "name": "alex", "profile": {"display_name": "Alex Example"}}
+        list_users.return_value = [[user]]
+        user_info.return_value = {"user": user}
+        expected = {
+            "integrationId": str(integration.id),
+            "channelId": "U123",
+            "channelName": "alex",
+        }
+
+        for destination in (
+            {"channelName": "@alex"},
+            {"channelId": "U123"},
+            {"channelId": "U123", "channelName": "Alex Example"},
+        ):
+            response = self.get_success_response(
+                *args, method="put", slackChannel={"integrationId": integration.id, **destination}
+            )
+            assert response.data["slackChannel"] == expected
+        channel_lookup.assert_called_once()
+        assert channel_lookup.call_args.args[1] == "alex"
+        user_info.assert_called_with(integration_id=integration.id, input_user_id="U123")
+        self.get_error_response(
+            *args,
+            method="put",
+            slackChannel={**expected, "channelName": "@someone-else"},
+            status_code=400,
+        )
+
+    @patch(
+        "sentry.integrations.slack.utils.channel._get_channel_info",
+        return_value={"channel": {"is_channel": True, "name": "ops"}},
+    )
+    def test_rejects_invalid_slack_workspace(self, lookup: MagicMock) -> None:
+        foreign = self.create_integration(
+            self.create_organization(), provider="slack", external_id="T123"
+        )
+        disabled = self.create_integration(
+            self.organization,
+            provider="slack",
+            external_id="T456",
+            oi_params={"status": ObjectStatus.DISABLED},
+        )
+        github = self.create_integration(self.organization, provider="github", external_id="123")
+        args = (self.organization.slug, self.create_config().id)
+        for integration in (foreign, disabled, github):
+            self.get_error_response(
+                *args,
+                method="put",
+                slackChannel={"integrationId": integration.id, "channelId": "C123"},
+                status_code=400,
+            )
+        lookup.assert_not_called()
 
     def test_get_matches_list_item(self) -> None:
         config = self.create_config()
@@ -758,6 +855,13 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
 
         config.refresh_from_db()
         assert config.filters["environments"] == ["production"]
+        self.get_error_response(
+            self.organization.slug,
+            config.id,
+            method="put",
+            slackChannel=None,
+            status_code=403,
+        )
 
     def test_member_can_put_unchanged_environments_with_partial_project_access(self) -> None:
         self.organization.flags.allow_joinleave = False
@@ -1404,6 +1508,37 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
             )
         assert not SeerWorkflowConfig.objects.filter(organization=self.organization).exists()
 
+    @patch("sentry.integrations.slack.utils.channel.SlackSdkClient")
+    @patch("sentry.integrations.slack.utils.channel.check_for_channel")
+    def test_create_metric_config_with_slack_channel_name(
+        self, check_for_channel: MagicMock, client_cls: MagicMock
+    ) -> None:
+        integration = self.create_integration(
+            self.organization, provider="slack", external_id="T123"
+        )
+        client = client_cls.return_value
+        check_for_channel.return_value = "C123"
+        client.conversations_info.return_value.data = {
+            "channel": {"name": "ops", "is_channel": True}
+        }
+        # Alerts resolve a matching channel first even when the name starts with @.
+        destination = {"integrationId": integration.id, "channelName": "@ops"}
+        created = self.get_success_response(
+            self.organization.slug,
+            strategy="breached_metric_investigation",
+            slackChannel=destination,
+            status_code=201,
+        )
+        assert created.data["slackChannel"] == {
+            "integrationId": str(integration.id),
+            "channelId": "C123",
+            "channelName": "ops",
+        }
+        listed = self.client.get(
+            f"/api/0/organizations/{self.organization.slug}/seer/workflows/configs/"
+        )
+        assert listed.data["configs"][0]["slackChannel"] == created.data["slackChannel"]
+
     def test_creates_config_with_defaults(self) -> None:
         response = self.get_success_response(
             self.organization.slug,
@@ -1429,6 +1564,7 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
             },
             "environments": [],
             "filters": {},
+            "slackChannel": None,
             "outputPolicy": {},
             "seededDefault": None,
             "actionSettings": PROMPT,

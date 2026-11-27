@@ -11,6 +11,7 @@ from django.utils.translation import gettext_lazy as _
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.utils.channel import (
     get_channel_id,
+    get_slack_entity_info,
     get_slack_entity_name,
     strip_channel_name,
     validate_slack_entity_id,
@@ -83,9 +84,8 @@ class SlackNotifyServiceForm(forms.Form):
                     )
                 else:
                     # Only the ID was provided: resolve the name from Slack.
-                    cleaned_data["channel"] = get_slack_entity_name(
-                        integration_id=workspace, input_id=channel_id
-                    )
+                    info = get_slack_entity_info(integration_id=workspace, input_id=channel_id)
+                    cleaned_data["channel"] = get_slack_entity_name(info)
             except ValidationError as e:
                 params = {"channel": self.data.get("channel"), "channel_id": channel_id}
                 raise forms.ValidationError(

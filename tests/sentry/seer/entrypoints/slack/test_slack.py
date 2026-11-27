@@ -44,6 +44,7 @@ from sentry.notifications.platform.templates.seer import (
     SeerAgentWriteApproval,
     SeerAutofixUpdate,
 )
+from sentry.notifications.platform.threading import ThreadingService
 from sentry.notifications.platform.tracking import NotificationLink, NotificationTrackingContext
 from sentry.notifications.platform.types import (
     NotificationCategory,
@@ -112,6 +113,7 @@ from sentry.shared_integrations.exceptions import (
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_halt_metric
 from sentry.testutils.cases import TestCase
+from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
@@ -2760,6 +2762,36 @@ class SlackInvestigationEntrypointTest(TestCase):
             )
             for call in self.mock_post_message.call_args_list
         ]
+
+    def test_alert_and_linked_runs_receive_start_and_conclusion_once(self) -> None:
+        self._use_open_period()
+        self._alert_thread(self.channel_id)
+        for ts in ("10.1", "20.1"):
+            run = Factories.create_seer_workflow_run(self.organization)
+            execution = Factories.create_seer_workflow_run_execution(run)
+            Factories.create_seer_workflow_output_link(execution, notebook=self.investigation)
+            ThreadingService.get_or_create_thread(
+                threading_config={
+                    "key_type": NotificationSource.SEER_AUTOMATION_RUN_STARTED,
+                    "provider_key": NotificationProviderKey.SLACK,
+                    "key_data": {"run_id": run.id, "integration_id": self.integration.id},
+                    "object_type": NotificationThreadObjectType.SEER_WORKFLOW_RUN,
+                    "object_id": run.id,
+                    "integration_id": self.integration.id,
+                    "target_id": self.channel_id,
+                    "thread_identifier": ts,
+                    "provider_data": None,
+                }
+            )
+        self._update_alert_threads()
+        self._complete_with_conclusion()
+        self._update_alert_threads()
+        self._update_alert_threads()
+        assert sorted(self._posts()) == sorted(
+            (self.channel_id, ts, message)
+            for ts in (self.message_ts, "10.1", "20.1")
+            for message in ("started", "conclusion")
+        )
 
     def test_alert_threads_get_conclusion(self) -> None:
         self._use_open_period()

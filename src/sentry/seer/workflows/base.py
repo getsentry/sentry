@@ -303,9 +303,14 @@ class AutomationDefinition[Inputs: BaseModel](Protocol):
             if self.has_quota_available(config)
             else RejectedAdmission(reason="quota_exceeded", decided_at=decided_at)
         )
+        slack_destination = SeerWorkflowConfigExtras.parse_obj(config.extras).slack_destination
         extras = AdmittedRunExtras(
             snapshot=WorkflowRunSnapshot(
                 config_version=config.version,
+                slack_destination=slack_destination,
+                automation_name=config.backing_workflow.name
+                if slack_destination and config.backing_workflow
+                else None,
                 strategy=SeerWorkflowStrategy(config.strategy),
                 filters=config.filters,
                 project_ids=tuple(self.project_ids(config)),

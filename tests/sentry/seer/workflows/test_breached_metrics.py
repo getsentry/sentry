@@ -22,6 +22,7 @@ from sentry.investigations.models import InvestigationOrchestrationStatus
 from sentry.models.groupopenperiod import get_latest_open_period
 from sentry.models.project import Project
 from sentry.notebooks.models import Notebook, NotebookSourceType
+from sentry.seer.entrypoints.operator import process_investigation_updates
 from sentry.seer.models.workflow import (
     SeerWorkflowConfig,
     SeerWorkflowExecutionStatus,
@@ -40,6 +41,7 @@ from sentry.seer.workflows.base import (
     SelectedProjects,
 )
 from sentry.seer.workflows.breached_metrics import MetricBreachInputs, get_config_monitors_bulk
+from sentry.seer.workflows.slack import announce_workflow_run
 from sentry.seer.workflows.workflow import SeerWorkflow
 from sentry.seer_workflow_outputs.models import SeerWorkflowOutputLink
 from sentry.seer_workflow_outputs.tasks import finish_investigation_executions
@@ -609,14 +611,51 @@ class BreachedMetricWorkflowWFEIntegrationTest(BreachedMetricWorkflowTestCase):
         assert run.status == SeerWorkflowRunStatus.COMPLETE
         assert execution.status == SeerWorkflowExecutionStatus.COMPLETE
 
-    @with_feature(["organizations:investigations", "organizations:service-accounts"])
+    @with_feature(
+        [
+            "organizations:investigations",
+            "organizations:investigations-slack",
+            "organizations:service-accounts",
+        ]
+    )
     def test_breach_completes_at_once_when_the_linked_investigation_already_finished(
         self,
     ) -> None:
         self.attach_service_account()
         notebook = self.create_active_investigation(InvestigationOrchestrationStatus.COMPLETED)
-
-        self.process_breach_workflow(self.breach_event(detector_id=self.detector.id))
+        notebook.update(summary="A deployment slowed checkout.")
+        install = self.create_integration(self.organization, provider="slack", external_id="T123")
+        self.config.update(
+            extras={
+                "slack_destination": {
+                    "integration_id": install.id,
+                    "channel_id": "U123",
+                    "channel_name": "alex",
+                }
+            }
+        )
+        with (
+            mock.patch(
+                "sentry.integrations.slack.integration.SlackIntegration.send_notification",
+                return_value={"ts": "20.0", "channel": "D123"},
+            ) as parent,
+            mock.patch(
+                "sentry.integrations.slack.integration.SlackIntegration.send_threaded_message",
+                return_value={"ts": "30.0"},
+            ) as reply,
+            mock.patch.object(announce_workflow_run, "delay", side_effect=announce_workflow_run),
+            mock.patch.object(
+                process_investigation_updates, "delay", side_effect=process_investigation_updates
+            ),
+            self.captureOnCommitCallbacks(execute=True),
+        ):
+            self.process_breach_workflow(self.breach_event(detector_id=self.detector.id))
+        parent.assert_called_once()
+        assert parent.call_args.args[0].resource_id == "U123"
+        reply.assert_called_once()
+        assert reply.call_args.kwargs["channel_id"] == "D123"
+        assert reply.call_args.kwargs["thread_ts"] == "20.0"
+        assert reply.call_args.kwargs["renderable"]["text"] == "Seer finished the investigation"
 
         run = SeerWorkflowRun.objects.get(workflow_config=self.config)
         assert run.status == SeerWorkflowRunStatus.COMPLETE

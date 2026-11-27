@@ -346,6 +346,30 @@ class SeerAgentWriteApprovalTemplate(NotificationTemplate[SeerAgentWriteApproval
         return NotificationRenderedTemplate(subject="Seer Agent Write Approval", body=[])
 
 
+class SeerAutomationRunStarted(NotificationData):
+    automation_name: str
+    runs_url: str
+    source: NotificationSource = NotificationSource.SEER_AUTOMATION_RUN_STARTED
+
+
+@template_registry.register(NotificationSource.SEER_AUTOMATION_RUN_STARTED)
+class SeerAutomationRunStartedTemplate(NotificationTemplate[SeerAutomationRunStarted]):
+    category = NotificationCategory.SEER
+    example_data = SeerAutomationRunStarted(
+        organization_id=1,
+        automation_name="Latency investigation",
+        runs_url="https://example.sentry.io/seer/automations/1/runs/",
+    )
+    hide_from_debugger = True
+
+    def render(self, data: SeerAutomationRunStarted) -> NotificationRenderedTemplate:
+        return NotificationRenderedTemplate(
+            subject=f"{data.automation_name} started a run",
+            body=[],
+            actions=[NotificationRenderedAction(label="View runs", link=data.runs_url)],
+        )
+
+
 class SeerInvestigationStarted(NotificationData):
     """Posted in an alert's Slack thread when a Seer investigation starts."""
 

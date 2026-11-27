@@ -75,6 +75,7 @@ class NotificationSource(StrEnum):
     SEER_AGENT_ERROR = "seer-agent-error"
     SEER_AGENT_WRITE_APPROVAL = "seer-agent-write-approval"
     SEER_AGENT_OUT_OF_CREDITS = "seer-agent-out-of-credits"
+    SEER_AUTOMATION_RUN_STARTED = "seer-automation-run-started"
     SEER_INVESTIGATION_STARTED = "seer-investigation-started"
     SEER_INVESTIGATION_ERROR = "seer-investigation-error"
     SEER_INVESTIGATION_STATUS = "seer-investigation-status"
@@ -146,6 +147,7 @@ NOTIFICATION_SOURCE_MAP: dict[NotificationCategory, list[NotificationSource]] = 
         NotificationSource.SEER_AGENT_ERROR,
         NotificationSource.SEER_AGENT_WRITE_APPROVAL,
         NotificationSource.SEER_AGENT_OUT_OF_CREDITS,
+        NotificationSource.SEER_AUTOMATION_RUN_STARTED,
         NotificationSource.SEER_INVESTIGATION_STARTED,
         NotificationSource.SEER_INVESTIGATION_ERROR,
         NotificationSource.SEER_INVESTIGATION_STATUS,
