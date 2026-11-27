@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 170.58 237.4">
+  <defs>
+    <filter id="goo" x="0" y="40" width="170.58" height="197.4" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="2.4"/>
+      <feColorMatrix values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 18 -7"/>
+    </filter>
+    <linearGradient id="reverse" x1="0" y1="50" x2="0" y2="237.4" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#9fe54f" stop-opacity="0"/>
+      <stop offset=".33" stop-color="#afea6f"/>
+      <stop offset="1" stop-color="#c2f195"/>
+    </linearGradient>
+    <mask id="blobs-far" x="0" y="40" width="170.58" height="197.4" maskUnits="userSpaceOnUse" mask-type="alpha">
+      <g fill="#fff" filter="url(#goo)">
+        <circle cx="26" cy="233" r="4.5" style="--pull:53px;--rise:-183px;--duration:16.5s;--delay:-3s"/>
+        <circle cx="143" cy="233" r="5.5" style="--pull:-49px;--rise:-183px;--duration:18s;--delay:-9.4s"/>
+      </g>
+    </mask>
+    <mask id="blobs-mid" x="0" y="40" width="170.58" height="197.4" maskUnits="userSpaceOnUse" mask-type="alpha">
+      <g fill="#fff" filter="url(#goo)">
+        <circle cx="47" cy="208" r="7" style="--pull:35px;--rise:-158px;--duration:13.2s;--delay:-6s"/>
+        <circle cx="64" cy="216" r="9" style="--pull:20px;--rise:-166px;--duration:13.2s;--delay:-7.3s"/>
+      </g>
+    </mask>
+    <mask id="blobs-near" x="0" y="40" width="170.58" height="197.4" maskUnits="userSpaceOnUse" mask-type="alpha">
+      <g fill="#fff" filter="url(#goo)">
+        <circle cx="83" cy="232" r="10" style="--pull:3px;--rise:-182px;--duration:10.5s;--delay:-3s"/>
+        <circle cx="100" cy="203" r="8" style="--pull:-12px;--rise:-153px;--duration:10.5s;--delay:-1.3s"/>
+        <circle cx="120" cy="224" r="7" style="--pull:-29px;--rise:-174px;--duration:10.5s;--delay:-.8s"/>
+      </g>
+    </mask>
+  </defs>
+  <style>
+    circle{opacity:0;transform-box:fill-box;transform-origin:center}
+    @media(prefers-reduced-motion:no-preference){circle{animation:rise var(--duration) linear infinite;animation-delay:var(--delay)}}
+    @keyframes rise{
+      0%{transform:translate(0,0) scale(.65,.8);opacity:0}
+      8%{opacity:1}
+      40%{transform:translate(calc(var(--pull)*.4),calc(var(--rise)*.4)) scale(1.1,.9)}
+      75%{transform:translate(calc(var(--pull)*.75),calc(var(--rise)*.75)) scale(.75,1)}
+      90%{opacity:1}
+      100%{transform:translate(var(--pull),var(--rise)) scale(.6,.75);opacity:0}
+    }
+  </style>
+  <g fill="url(#reverse)">
+    <path opacity=".06" mask="url(#blobs-far)" d="M0 40h170.58v197.4H0z"/>
+    <path opacity=".11" mask="url(#blobs-mid)" d="M0 40h170.58v197.4H0z"/>
+    <path opacity=".16" mask="url(#blobs-near)" d="M0 40h170.58v197.4H0z"/>
+  </g>
+  <g fill="#c2f195" opacity=".12">
+    <circle cx="12" cy="218" r="1.6" style="--pull:20px;--rise:-60px;--duration:11s;--delay:-2.7s"/>
+    <circle cx="28" cy="170" r="1.2" style="--pull:18px;--rise:-60px;--duration:15s;--delay:-6.3s"/>
+    <circle cx="47" cy="127" r="1.1" style="--pull:11px;--rise:-45px;--duration:14s;--delay:-9.6s"/>
+    <circle cx="145" cy="160" r="1.4" style="--pull:-17px;--rise:-60px;--duration:12.5s;--delay:-3.7s"/>
+    <circle cx="159" cy="212" r="1.8" style="--pull:-16px;--rise:-60px;--duration:13s;--delay:-8.1s"/>
+  </g>
+</svg>

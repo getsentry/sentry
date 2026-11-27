@@ -1,6 +1,6 @@
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
@@ -35,37 +35,35 @@ export function UpdateSlackAlert({num_configurations}: UpdateSlackAlertProps) {
     (num_configurations === 1 ? '&showInstallModal=1' : '');
 
   return (
-    <Container padding="lg">
-      <Alert
-        variant="muted"
-        trailingItems={
-          <Flex gap="md">
-            <LinkButton
-              to={to}
-              variant="primary"
-              size="xs"
-              onClick={() => {
-                trackAnalytics('seer.explorer.update_slack_clicked', {
-                  organization,
-                  num_configurations,
-                });
-                setIsDismissed(true);
-              }}
-            >
-              {t('Update Now')}
-            </LinkButton>
-            <Button variant="secondary" size="xs" onClick={() => setIsDismissed(true)}>
-              {t('Dismiss')}
-            </Button>
-          </Flex>
-        }
-      >
-        <Text>
-          {t(
-            'Chat, ask questions, and debug with Sentry in the new Slack app. Please reinstall the Slack app to get started.'
-          )}
-        </Text>
-      </Alert>
-    </Container>
+    <Alert
+      variant="muted"
+      trailingItems={
+        <Flex gap="md">
+          <LinkButton
+            to={to}
+            variant="primary"
+            size="xs"
+            onClick={() => {
+              trackAnalytics('seer.explorer.update_slack_clicked', {
+                organization,
+                num_configurations,
+              });
+              setIsDismissed(true);
+            }}
+          >
+            {t('Update Now')}
+          </LinkButton>
+          <Button variant="secondary" size="xs" onClick={() => setIsDismissed(true)}>
+            {t('Dismiss')}
+          </Button>
+        </Flex>
+      }
+    >
+      <Text>
+        {t(
+          'Chat, ask questions, and debug with Sentry in the new Slack app. Please reinstall the Slack app to get started.'
+        )}
+      </Text>
+    </Alert>
   );
 }

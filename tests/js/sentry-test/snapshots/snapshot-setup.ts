@@ -29,7 +29,13 @@ if (globalThis.window === undefined) {
     navigator: {userAgent: ''},
     addEventListener: () => {},
     removeEventListener: () => {},
-    matchMedia: () => ({matches: false, addListener: () => {}, removeListener: () => {}}),
+    matchMedia: () => ({
+      matches: false,
+      addListener: () => {},
+      removeListener: () => {},
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    }),
     getComputedStyle: () => ({}),
     requestAnimationFrame: (cb: () => void) => setTimeout(cb, 0),
   } as any;
