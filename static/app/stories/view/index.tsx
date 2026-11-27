@@ -18,6 +18,7 @@ import {StoryLanding} from './landing';
 import {StoryExports} from './storyExports';
 import {StoryHeader} from './storyHeader';
 import {StorySidebar} from './storySidebar';
+import {StoryTableOfContents} from './storyTableOfContents';
 import {StoryTreeNode, useFlatStoryList, type StoryCategory} from './storyTree';
 import {useStoryDarkModeTheme} from './useStoriesDarkMode';
 import {useStoriesLoader} from './useStoriesLoader';
@@ -92,19 +93,26 @@ function StoryDetail() {
           </Alert.Container>
         </Container>
       ) : story.isSuccess ? (
-        <StoryMainContainer
-          as="main"
+        <Grid
+          key={story.data[0]?.filename}
           area="main"
-          containerType="size"
-          gap="xl"
-          overflowY="auto"
-          paddingBottom="3xl"
-          onClick={handleExpressiveCodeCopyClick}
+          columns="minmax(0, 1fr) auto"
+          containerType="inline-size"
+          rows="minmax(0, 1fr)"
         >
-          {story.data.map(s => {
-            return <StoryExports key={s.filename} story={s} />;
-          })}
-        </StoryMainContainer>
+          <StoryMainContainer
+            as="main"
+            gap="xl"
+            overflowY="auto"
+            paddingBottom="3xl"
+            onClick={handleExpressiveCodeCopyClick}
+          >
+            {story.data.map(s => {
+              return <StoryExports key={s.filename} story={s} />;
+            })}
+          </StoryMainContainer>
+          <StoryTableOfContents />
+        </Grid>
       ) : (
         <Container as="main" area="main" padding="xl" overflowY="auto">
           <strong>The file you selected does not export a story.</strong>
