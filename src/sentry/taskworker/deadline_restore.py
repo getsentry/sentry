@@ -17,10 +17,13 @@ from collections.abc import Iterator
 from contextvars import ContextVar
 from types import CodeType, TracebackType
 
+from django.db import DEFAULT_DB_ALIAS
 from django.db.transaction import Atomic
+from taskbroker_client.state import current_task
 from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
 from sentry import options
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +32,8 @@ MODE_OFF = "off"
 MODE_REPORT = "report"
 MODE_ENFORCE = "enforce"
 ACTIVE_MODES = frozenset({MODE_REPORT, MODE_ENFORCE})
+
+MATCHED_METRIC = "taskworker.deadline_restore.matched"
 
 DJANGO_ATOMIC_EXIT_QUALNAME = "Atomic.__exit__"
 
@@ -75,14 +80,19 @@ def patch_atomic_exit_to_restore_deadlines() -> None:
         try:
             django_exit(self, exc_type, exc_value, traceback)
         except Exception as error:
-            if current_mode() != MODE_ENFORCE:
+            mode = current_mode()
+            if mode == MODE_OFF:
                 raise
 
             deadline = _deadline_hidden_by(error, exc_value, handled_before_exit, django_exit_code)
             if deadline is None:
                 raise
 
-            raise deadline
+            _count_match(self.using)
+
+            if mode == MODE_ENFORCE:
+                raise deadline
+            raise
 
     Atomic.__exit__ = exit_restoring_deadlines  # type: ignore[method-assign]
 
@@ -138,3 +148,21 @@ def _stopped_in(error: BaseException, code: CodeType) -> bool:
     if traceback is None:
         return False
     return traceback.tb_frame.f_code is code
+
+
+def _count_match(using: str | None) -> None:
+    try:
+        if using is None:
+            alias = DEFAULT_DB_ALIAS
+        else:
+            alias = using
+
+        task = current_task()
+        if task is None:
+            taskname = "unknown"
+        else:
+            taskname = task.taskname
+
+        metrics.incr(MATCHED_METRIC, tags={"taskname": taskname, "using": alias}, sample_rate=1.0)
+    except Exception:
+        logger.exception("taskworker.deadline_restore.metric_failed")
