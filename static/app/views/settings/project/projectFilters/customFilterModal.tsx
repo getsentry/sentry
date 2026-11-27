@@ -1,8 +1,6 @@
-import {Fragment, useMemo, useRef, useState} from 'react';
-import {css, useTheme} from '@emotion/react';
-import {IconCheckmark} from '@sentry/icons/checkmark';
-import {IconClose} from '@sentry/icons/close';
-import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
+import {useMemo, useRef, useState} from 'react';
+import {css} from '@emotion/react';
+import {useMutation, useQueries, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -15,7 +13,6 @@ import {openModal} from '@sentry/scraps/modal';
 import {Heading, Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
-import {MiniBarChart} from 'sentry/components/charts/miniBarChart';
 import {Placeholder} from 'sentry/components/placeholder';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import {
@@ -37,7 +34,6 @@ import {
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {getKeyName} from 'sentry/components/searchSyntax/utils';
-import {TimeSince} from 'sentry/components/timeSince';
 import {android, gaming, sourceMaps} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
@@ -48,11 +44,16 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {FieldKind, FieldValueType} from 'sentry/utils/fields';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
-import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
-import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {
+  FilteredVolumeChart,
+  sumVolume,
+  VOLUME_CHART_HEIGHT,
+  VOLUME_CHART_WIDTH,
+} from './filteredVolumeChart';
 
 // Condition types accepted by the custom inbound filters API. The values match
 // the `type` field on the backend serializer exactly. `CONDITIONS` below
@@ -811,23 +812,19 @@ export function getCustomFilterUrl(
   });
 }
 
-// The data types the preview can show. The others have no source yet.
-type PreviewDataType = 'error';
+// The data types the preview shows: every one a filter can name but the catch-all,
+// which previews each of the others.
+type PreviewDataType = Exclude<FilterDataType, 'all'>;
 
 // Where the preview reads the stored data of one data type, and what a search can
 // check there. Stored data is not what Relay checks, so every count is an estimate.
 type PreviewSource = {
-  // The count aggregate of the dataset. Metrics count values, so theirs takes one.
+  // The count aggregate of the dataset.
   countAxis: string;
   dataset: string;
   // The stored fields that hold what a condition reads at ingestion. A condition
   // matches when any of them does. A condition without fields has no stored copy.
   fields: Partial<Record<ConditionType, string[]>>;
-  // The field that names a row in the list of examples, and its column header.
-  titleField: string;
-  titleLabel: string;
-  // Rows belong to an issue, so an example links to its event.
-  issueLinks?: boolean;
   // The field search compares as a version. Absent where search cannot.
   versionField?: string;
 };
@@ -836,9 +833,6 @@ const PREVIEW_SOURCES: Record<PreviewDataType, PreviewSource> = {
   error: {
     dataset: 'errors',
     countAxis: 'count()',
-    titleField: 'title',
-    titleLabel: t('Title'),
-    issueLinks: true,
     versionField: 'release.version',
     fields: {
       error_message: ['error.type', 'error.value'],
@@ -848,36 +842,52 @@ const PREVIEW_SOURCES: Record<PreviewDataType, PreviewSource> = {
       ip_address: ['user.ip'],
     },
   },
+  metric: {
+    dataset: 'tracemetrics',
+    countAxis: 'count(value)',
+    fields: {
+      metric_name: ['metric.name'],
+      release: ['release'],
+    },
+  },
+  log: {
+    dataset: 'ourlogs',
+    countAxis: 'count(message)',
+    fields: {
+      log_message: ['message'],
+      release: ['release'],
+    },
+  },
+  span: {
+    dataset: 'spans',
+    countAxis: 'count(span.duration)',
+    fields: {
+      release: ['release'],
+      ip_address: ['user.ip'],
+    },
+  },
 };
 
-// A filter on every data type previews each data type that has a source.
-function getPreviewDataTypes(dataType: FilterDataType): PreviewDataType[] {
-  return dataType === 'error' || dataType === 'all' ? ['error'] : [];
+// A filter on every data type previews each data type the organization ingests.
+function getPreviewDataTypes(
+  dataType: FilterDataType,
+  organization: Organization
+): PreviewDataType[] {
+  return dataType === 'all'
+    ? getAvailableDataTypeOptions(organization)
+        .map(option => option.value)
+        .filter(value => value !== 'all')
+    : [dataType];
 }
 
-// The search query that finds the stored data a filter matches, and the one that
-// finds the rest, or why search cannot express the filter.
+// The search query that finds the stored data a filter matches, or why search
+// cannot express the filter.
 type PreviewQuery =
-  | {query: string; unmatchedQuery: string; problem?: undefined}
-  | {problem: string; query?: undefined; unmatchedQuery?: undefined};
-
-const INVERSE_COMPARISONS: Partial<Record<ConditionOperator, ConditionOperator>> = {
-  gt: 'lte',
-  gte: 'lt',
-  lt: 'gte',
-  lte: 'gt',
-};
-
-function negateToken(token: string): string {
-  return token.startsWith('!') ? token.slice(1) : `!${token}`;
-}
+  | {query: string; problem?: undefined}
+  | {problem: string; query?: undefined};
 
 function anyOf(queries: string[]): string {
   return queries.length === 1 ? queries[0]! : `(${queries.join(' OR ')})`;
-}
-
-function allOf(queries: string[]): string {
-  return queries.length === 1 ? queries[0]! : `(${queries.join(' ')})`;
 }
 
 // The search patterns that cover an address or a range of them, since search has
@@ -925,24 +935,17 @@ function conditionToPreviewQuery(
     condition = {...condition, value: patterns.flatMap(pattern => pattern ?? [])};
   }
   const operator = getConditionOperator(condition);
-  const inverse = INVERSE_COMPARISONS[operator];
-  if (inverse) {
+  if (COMPARISON_OPERATORS.has(operator)) {
     if (!source.versionField) {
-      return {problem: t('Search cannot compare release versions on this data type.')};
+      return {problem: t('A preview cannot compare release versions.')};
     }
     // Search compares versions on a field that holds no package name.
     const version = escapeTagValue((condition.value[0] ?? '').split('@').pop()!);
-    return {
-      query: `${source.versionField}:${OPERATOR_PREFIXES[operator]}${version}`,
-      unmatchedQuery: `${source.versionField}:${OPERATOR_PREFIXES[inverse]}${version}`,
-    };
+    return {query: `${source.versionField}:${OPERATOR_PREFIXES[operator]}${version}`};
   }
   // A condition matches when any field does, and a negated one when no field does.
   const tokens = fields.map(field => conditionToToken(condition, field));
-  const negatedTokens = tokens.map(negateToken);
-  return NEGATED_OPERATORS.has(operator)
-    ? {query: tokens.join(' '), unmatchedQuery: anyOf(negatedTokens)}
-    : {query: anyOf(tokens), unmatchedQuery: allOf(negatedTokens)};
+  return {query: NEGATED_OPERATORS.has(operator) ? tokens.join(' ') : anyOf(tokens)};
 }
 
 function getPreviewQuery(
@@ -950,317 +953,116 @@ function getPreviewQuery(
   source: PreviewSource
 ): PreviewQuery {
   const queries: string[] = [];
-  const unmatchedQueries: string[] = [];
   for (const condition of conditions) {
     const translation = conditionToPreviewQuery(condition, source);
     if (translation.query === undefined) {
       return translation;
     }
     queries.push(translation.query);
-    unmatchedQueries.push(translation.unmatchedQuery);
   }
   // A filter matches when every condition does.
-  return {query: queries.join(' '), unmatchedQuery: anyOf(unmatchedQueries)};
+  return {query: queries.join(' ')};
 }
 
-type PreviewExample = {id: string; timestamp: string} & Record<
-  string,
-  string | number | string[] | null
->;
-
-type PreviewColumn = {fields: string[]; label: string};
-
-// The columns of the list of examples: one per condition, with the stored values
-// the condition matched. The title leads unless a condition already shows it.
-function getPreviewColumns(
-  conditions: CustomInboundFilterCondition[],
-  source: PreviewSource
-): PreviewColumn[] {
-  const columns = Array.from(
-    new Set(conditions.map(condition => condition.type)),
-    type => ({label: getCondition(type).label, fields: source.fields[type] ?? []})
-  );
-  return columns.some(column => column.fields.includes(source.titleField))
-    ? columns
-    : [{label: source.titleLabel, fields: [source.titleField]}, ...columns];
-}
-
-function formatPreviewValue(row: PreviewExample, fields: string[]): string {
-  return fields.flatMap(field => row[field] ?? []).join(', ') || '\u2014';
-}
-
-const PREVIEW_CHART_HEIGHT = 80;
-const PREVIEW_EXAMPLE_COUNT = 3;
-const EVENTS_STATS_PATH = '/organizations/$organizationIdOrSlug/events-stats/';
-
-function sumCounts(stats: EventsStats | undefined): number {
-  return (stats?.data ?? []).reduce(
-    (sum, [, counts]) => sum + (counts[0]?.count ?? 0),
-    0
-  );
-}
-
-function PreviewSummary({
-  dataType,
-  children,
-}: {
-  children: React.ReactNode;
-  dataType: PreviewDataType;
-}) {
-  return (
-    <Flex gap="sm" align="baseline">
-      <Text size="sm" bold>
-        {DATA_TYPES[dataType].label}
-      </Text>
-      <Text size="sm" variant="muted">
-        {children}
-      </Text>
-    </Flex>
-  );
-}
-
-// Shows what `query` matches in the stored data of one data type over the last 24
-// hours: how much of it, when it arrived, and the latest few rows on each side.
-function SourcePreview({
-  project,
-  dataType,
-  conditions,
-  query,
-  unmatchedQuery,
-}: {
-  conditions: CustomInboundFilterCondition[];
-  dataType: PreviewDataType;
-  project: Project;
-  // What search finds for `conditions` in the stored data of `dataType`, and the
-  // query for everything else there.
-  query: string;
-  unmatchedQuery: string;
-}) {
-  const organization = useOrganization();
-  const theme = useTheme();
-  const source = PREVIEW_SOURCES[dataType];
-  const columns = getPreviewColumns(conditions, source);
-
-  const path = {organizationIdOrSlug: organization.slug};
-  const scope = {
-    dataset: source.dataset,
-    project: project.id,
-    statsPeriod: '24h',
-    referrer: 'api.settings.inbound-filter-preview',
-  };
-  const statsOptions = (statsQuery: string) =>
-    apiOptions.as<EventsStats>()(EVENTS_STATS_PATH, {
-      path,
-      query: {
-        ...scope,
-        query: statsQuery,
-        yAxis: source.countAxis,
-        interval: '1h',
-        partial: 1,
-      },
-      staleTime: 60_000,
-    });
-  const totalStats = useQuery(statsOptions(''));
-  const matchedStats = useQuery(statsOptions(query));
-  const examplesOptions = (examplesQuery: string) =>
-    apiOptions.as<{data: PreviewExample[]}>()(
-      '/organizations/$organizationIdOrSlug/events/',
-      {
-        path,
-        query: {
-          ...scope,
-          query: examplesQuery,
-          field: [
-            'id',
-            ...new Set(columns.flatMap(column => column.fields)),
-            'timestamp',
-            ...(source.issueLinks ? ['issue.id'] : []),
-          ],
-          sort: '-timestamp',
-          per_page: PREVIEW_EXAMPLE_COUNT,
-        },
-        staleTime: 60_000,
-      }
-    );
-  const matchedExamples = useQuery(examplesOptions(query));
-  const unmatchedExamples = useQuery(examplesOptions(unmatchedQuery));
-
-  const queries = [totalStats, matchedStats, matchedExamples, unmatchedExamples];
-  const failed = queries.find(result => result.isError);
-  if (failed) {
-    return (
-      <PreviewSummary dataType={dataType}>
-        {getErrorDetail(failed.error, t('Unable to load the preview'))}
-      </PreviewSummary>
-    );
-  }
-  if (queries.some(result => result.isPending)) {
-    return <Placeholder height={`${PREVIEW_CHART_HEIGHT}px`} />;
-  }
-
-  const total = sumCounts(totalStats.data);
-  if (total === 0) {
-    return (
-      <PreviewSummary dataType={dataType}>
-        {t('None stored in the last 24 hours.')}
-      </PreviewSummary>
-    );
-  }
-  const matched = sumCounts(matchedStats.data);
-  const matchedByTime = new Map(
-    (matchedStats.data?.data ?? []).map(([time, counts]) => [time, counts[0]?.count ?? 0])
-  );
-  const buckets = (totalStats.data?.data ?? []).map(([time, counts]) => {
-    const dropped = matchedByTime.get(time) ?? 0;
-    return {
-      name: time * 1000,
-      dropped,
-      kept: Math.max((counts[0]?.count ?? 0) - dropped, 0),
-    };
-  });
-
-  return (
-    <Stack gap="sm">
-      <PreviewSummary dataType={dataType}>
-        {t(
-          '%s of %s match (%s) in the last 24 hours.',
-          formatAbbreviatedNumber(matched),
-          formatAbbreviatedNumber(total),
-          formatPercentage(matched / total, 1)
-        )}
-      </PreviewSummary>
-      <Container
-        height={`${PREVIEW_CHART_HEIGHT}px`}
-        role="img"
-        aria-label={t('Matched and kept data per hour')}
-      >
-        <MiniBarChart
-          stacked
-          showXAxisLine
-          hideZeros
-          isGroupedByDate
-          showTimeInTooltip
-          height={PREVIEW_CHART_HEIGHT}
-          barOpacity={1}
-          colors={[
-            theme.tokens.graphics.danger.vibrant,
-            theme.tokens.graphics.neutral.muted,
-          ]}
-          tooltip={{appendToBody: true}}
-          series={[
-            {
-              seriesName: t('Would be dropped'),
-              data: buckets.map(({name, dropped}) => ({name, value: dropped})),
-            },
-            {
-              seriesName: t('Kept'),
-              data: buckets.map(({name, kept}) => ({name, value: kept})),
-            },
-          ]}
-        />
-      </Container>
-      <Grid
-        columns={`max-content repeat(${columns.length}, minmax(0, 1fr)) max-content`}
-        gap="xs md"
-        align="center"
-      >
-        <span />
-        {columns.map(column => (
-          <Text key={column.label} size="xs" variant="muted" bold>
-            {column.label}
-          </Text>
-        ))}
-        <Text size="xs" variant="muted" bold>
-          {t('Stored')}
-        </Text>
-        {[
-          {
-            icon: <IconCheckmark size="xs" variant="success" aria-label={t('Matches')} />,
-            rows: matchedExamples.data?.data ?? [],
-          },
-          {
-            icon: (
-              <IconClose size="xs" variant="danger" aria-label={t('Does not match')} />
-            ),
-            rows: unmatchedExamples.data?.data ?? [],
-          },
-        ].flatMap(({icon, rows}) =>
-          rows.map(row => {
-            const issueId = row['issue.id'];
-            return (
-              <Fragment key={row.id}>
-                {icon}
-                {columns.map((column, index) => {
-                  const value = formatPreviewValue(row, column.fields);
-                  return (
-                    <Text key={column.label} size="sm" ellipsis>
-                      {index === 0 && issueId ? (
-                        <ExternalLink
-                          href={normalizeUrl(
-                            `/organizations/${organization.slug}/issues/${issueId}/events/${row.id}/`
-                          )}
-                        >
-                          {value}
-                        </ExternalLink>
-                      ) : (
-                        value
-                      )}
-                    </Text>
-                  );
-                })}
-                <Text size="sm" variant="muted">
-                  <TimeSince date={row.timestamp} />
-                </Text>
-              </Fragment>
-            );
-          })
-        )}
-      </Grid>
-    </Stack>
-  );
-}
-
-// Estimates what the filter would have dropped in the last 24 hours, per data type
-// it applies to.
+// Estimates what the filter would have dropped in the last 24 hours: the stored
+// data it matches per hour, stacked by data type. A data type that search cannot
+// check is left out of the chart and named below it. Without conditions there is
+// nothing to estimate, and the preview shows muted.
 function FilterPreview({
   project,
   dataType,
   conditions,
 }: {
-  conditions: CustomInboundFilterCondition[];
   dataType: FilterDataType;
   project: Project;
+  // Absent until the form holds conditions the API would accept.
+  conditions?: CustomInboundFilterCondition[];
 }) {
-  const dataTypes = getPreviewDataTypes(dataType);
-  if (dataTypes.length === 0) {
-    return null;
-  }
+  const organization = useOrganization();
+  const dataTypes = conditions ? getPreviewDataTypes(dataType, organization) : [];
+  const previews = dataTypes.map(type => ({
+    label: DATA_TYPES[type].label,
+    source: PREVIEW_SOURCES[type],
+    ...getPreviewQuery(conditions ?? [], PREVIEW_SOURCES[type]),
+  }));
+  const searchable = previews.filter(preview => preview.query !== undefined);
+
+  const results = useQueries({
+    queries: searchable.map(({source, query}) =>
+      apiOptions.as<EventsStats>()('/organizations/$organizationIdOrSlug/events-stats/', {
+        path: {organizationIdOrSlug: organization.slug},
+        query: {
+          dataset: source.dataset,
+          project: project.id,
+          statsPeriod: '24h',
+          referrer: 'api.settings.inbound-filter-preview',
+          query,
+          yAxis: source.countAxis,
+          interval: '1h',
+          partial: 1,
+        },
+        staleTime: 60_000,
+      })
+    ),
+  });
+
+  const problems = [
+    ...previews.flatMap(({label, problem}) => (problem ? [{label, problem}] : [])),
+    ...results.flatMap((result, index) =>
+      result.isError
+        ? [
+            {
+              label: searchable[index]!.label,
+              problem: getErrorDetail(result.error, t('Unable to load the preview')),
+            },
+          ]
+        : []
+    ),
+  ];
+  const loaded = results.flatMap((result, index) =>
+    result.data ? [{label: searchable[index]!.label, buckets: result.data.data}] : []
+  );
+  // Every data type answers for the same hours.
+  const intervals = (loaded[0]?.buckets ?? []).map(([time]) => time * 1000);
+  const series = loaded.map(({label, buckets}) => ({
+    name: label,
+    values: buckets.map(([, counts]) => counts[0]?.count ?? 0),
+  }));
+
+  const total = sumVolume(series);
 
   return (
-    <Stack gap="md">
-      <Text bold>{t('Matching Example Issues')}</Text>
-      <Stack gap="lg">
-        {dataTypes.map(type => {
-          const {query, unmatchedQuery, problem} = getPreviewQuery(
-            conditions,
-            PREVIEW_SOURCES[type]
-          );
-          return query === undefined ? (
-            <PreviewSummary key={type} dataType={type}>
-              {problem}
-            </PreviewSummary>
-          ) : (
-            <SourcePreview
-              key={type}
-              project={project}
-              dataType={type}
-              conditions={conditions}
-              query={query}
-              unmatchedQuery={unmatchedQuery}
-            />
-          );
-        })}
-      </Stack>
+    <Stack gap="sm">
+      <Flex
+        justify="between"
+        align="center"
+        gap="md"
+        minHeight={`${VOLUME_CHART_HEIGHT}px`}
+      >
+        <Text bold variant={conditions ? 'primary' : 'muted'}>
+          {t('Estimated Drop, Last 24 Hours')}
+        </Text>
+        {conditions === undefined ? (
+          <Text variant="muted">{'\u2014'}</Text>
+        ) : results.some(result => result.isPending) ? (
+          <Placeholder
+            height={`${VOLUME_CHART_HEIGHT}px`}
+            width={`${VOLUME_CHART_WIDTH}px`}
+          />
+        ) : loaded.length === 0 ? null : total === 0 ? (
+          <Text>{t('No matches')}</Text>
+        ) : (
+          <Flex align="center" gap="md">
+            <FilteredVolumeChart intervals={intervals} series={series} />
+            <Text tabular>{formatAbbreviatedNumber(total)}</Text>
+          </Flex>
+        )}
+      </Flex>
+      {problems.map(({label, problem}) => (
+        <Text key={label} size="sm" variant="muted">
+          {`${label}: ${problem}`}
+        </Text>
+      ))}
     </Stack>
   );
 }
@@ -1550,14 +1352,16 @@ function CustomFilterModal({
           )}
 
           {/* A preview answers for the data type it ran on, so a data type change
-              hides it until focus leaves the field. */}
+              mutes it until focus leaves the field. */}
           <form.Subscribe selector={state => state.values.dataType}>
             {dataType =>
-              canPreview && previewedConditions && previewed.dataType === dataType ? (
+              canPreview ? (
                 <FilterPreview
                   project={project}
                   dataType={dataType}
-                  conditions={previewedConditions}
+                  conditions={
+                    previewed.dataType === dataType ? previewedConditions : undefined
+                  }
                 />
               ) : null
             }

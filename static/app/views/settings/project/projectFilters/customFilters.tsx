@@ -1,5 +1,4 @@
 import {Fragment, useState} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconAdd} from '@sentry/icons/add';
 import {IconDelete} from '@sentry/icons/delete';
@@ -22,8 +21,6 @@ import {toast} from '@sentry/scraps/toast';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Feature} from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
-import {markLine as createMarkLine} from 'sentry/components/charts/components/markLine';
-import {MiniBarChart} from 'sentry/components/charts/miniBarChart';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Placeholder} from 'sentry/components/placeholder';
@@ -55,6 +52,12 @@ import {
   openCustomFilterModal,
   OPERATOR_LABELS,
 } from './customFilterModal';
+import {
+  FilteredVolumeChart,
+  sumVolume,
+  VOLUME_CHART_HEIGHT,
+  VOLUME_CHART_WIDTH,
+} from './filteredVolumeChart';
 
 // Values a condition shows in the table before the rest fold into a count.
 const MAX_VISIBLE_VALUES = 3;
@@ -169,24 +172,6 @@ const STATS_PERIOD = '30d';
 const STATS_INTERVAL = '1d';
 const STATS_FIELD = 'sum(quantity)';
 
-// The trend chart keeps this box whatever a row dropped, so that every row in the
-// table lines up. The number beside it centers on the same box.
-const CHART_HEIGHT = 36;
-const CHART_WIDTH = 160;
-
-// Headroom above the tallest bar of a row, which leaves room for the mark line and
-// its label. The chart scales to the row it draws, so the same ratio on every row
-// puts every tallest bar at one height. The default axis instead rounds a maximum
-// below ten up to ten, which makes a row that dropped five look shorter than a row
-// that dropped five hundred.
-const CHART_HEADROOM = 1.3;
-
-// Plot area inside the chart box. `containLabel` would size it around the labels of
-// the row it draws, which puts the bars of one row at a different height from the
-// next. Fixed insets hold the baseline at one height, level with the number beside
-// it, and keep the right edge clear for the mark line label.
-const CHART_GRID = {top: 6, bottom: 6, left: 0, right: 25, containLabel: false};
-
 // The categories a custom filter drops data in. `error` covers default and security
 // events too, which the stats endpoint folds into it. Transactions, replays, and
 // profile chunks are here because Relay reads an error's release field on those as
@@ -243,18 +228,6 @@ function getCategoryName(category: string): string {
   return startCase(info?.displayName ?? category);
 }
 
-// The categories a filter dropped data in, largest first, so that the tallest one
-// sits at the bottom of the stack.
-function getCategorySeries(seriesByCategory: SeriesByCategory | undefined) {
-  return Array.from(seriesByCategory ?? [], ([category, values]) => ({
-    category,
-    values,
-    total: values.reduce((sum, value) => sum + value, 0),
-  }))
-    .filter(({total}) => total > 0)
-    .sort((a, b) => b.total - a.total);
-}
-
 // Renders the trend and the total, one table cell each.
 function FilteredVolumeCells({
   intervals,
@@ -267,16 +240,17 @@ function FilteredVolumeCells({
   isPending: boolean;
   seriesByCategory: SeriesByCategory | undefined;
 }) {
-  const theme = useTheme();
-
   if (isPending) {
     return (
       <Fragment>
         <SimpleTable.RowCell>
-          <Placeholder height={`${CHART_HEIGHT}px`} width={`${CHART_WIDTH}px`} />
+          <Placeholder
+            height={`${VOLUME_CHART_HEIGHT}px`}
+            width={`${VOLUME_CHART_WIDTH}px`}
+          />
         </SimpleTable.RowCell>
         <SimpleTable.RowCell>
-          <Flex height={`${CHART_HEIGHT}px`} align="center">
+          <Flex height={`${VOLUME_CHART_HEIGHT}px`} align="center">
             <Placeholder height="16px" width="40px" />
           </Flex>
         </SimpleTable.RowCell>
@@ -288,12 +262,12 @@ function FilteredVolumeCells({
     return (
       <Fragment>
         <SimpleTable.RowCell>
-          <Flex height={`${CHART_HEIGHT}px`} align="center">
+          <Flex height={`${VOLUME_CHART_HEIGHT}px`} align="center">
             <Text variant="muted">{'—'}</Text>
           </Flex>
         </SimpleTable.RowCell>
         <SimpleTable.RowCell>
-          <Flex height={`${CHART_HEIGHT}px`} align="center">
+          <Flex height={`${VOLUME_CHART_HEIGHT}px`} align="center">
             <Text variant="muted">{'—'}</Text>
           </Flex>
         </SimpleTable.RowCell>
@@ -301,88 +275,19 @@ function FilteredVolumeCells({
     );
   }
 
-  const categories = getCategorySeries(seriesByCategory);
-  const total = categories.reduce(
-    (sum, {total: categoryTotal}) => sum + categoryTotal,
-    0
-  );
-
-  // The mark line sits at the tallest stack, which is higher than any one category.
-  // A filter that dropped nothing keeps the empty chart, and shows no mark line.
-  const peak = Math.max(
-    0,
-    ...intervals.map((_, index) =>
-      categories.reduce((sum, {values}) => sum + (values[index] ?? 0), 0)
-    )
-  );
-
-  const markLine = createMarkLine({
-    silent: true,
-    animation: false,
-    lineStyle: {
-      color: theme.tokens.border.transparent.neutral.moderate,
-      type: [4, 3], // Sets line type to "dashed" with 4 length and 3 gap
-      opacity: 0.6,
-      cap: 'round', // Rounded edges for the dashes
-    },
-    data: [{yAxis: peak}],
-    label: {
-      show: true,
-      position: 'end',
-      opacity: 1,
-      color: theme.tokens.content.secondary,
-      fontFamily: 'Rubik',
-      fontSize: 10,
-      formatter: formatAbbreviatedNumber(peak),
-    },
-  });
-
-  const colors = theme.chart.getColorPalette(Math.max(categories.length, 1));
-
-  const series = categories.length
-    ? categories.map(({category, values}, index) => ({
-        seriesName: getCategoryName(category),
-        markLine: index === 0 && peak > 0 ? markLine : undefined,
-        data: intervals.map((name, i) => ({name, value: values[i] ?? 0})),
-      }))
-    : [
-        {
-          seriesName: t('Filtered'),
-          data: intervals.map(name => ({name, value: 0})),
-        },
-      ];
+  const series = Array.from(seriesByCategory ?? [], ([category, values]) => ({
+    name: getCategoryName(category),
+    values,
+  }));
+  const total = sumVolume(series);
 
   return (
     <Fragment>
       <SimpleTable.RowCell>
-        <Container
-          width={`${CHART_WIDTH}px`}
-          height={`${CHART_HEIGHT}px`}
-          role="img"
-          aria-label={t('Filtered volume trend, peak %s', formatAbbreviatedNumber(peak))}
-        >
-          <MiniBarChart
-            stacked
-            animateBars
-            showXAxisLine
-            showMarkLineLabel
-            hideZeros
-            isGroupedByDate
-            showTimeInTooltip
-            height={CHART_HEIGHT}
-            barOpacity={1}
-            hideDelay={50}
-            markLineLabelSide="right"
-            grid={CHART_GRID}
-            colors={colors}
-            tooltip={{appendToBody: true}}
-            yAxisMax={peak > 0 ? peak * CHART_HEADROOM : undefined}
-            series={series}
-          />
-        </Container>
+        <FilteredVolumeChart intervals={intervals} series={series} />
       </SimpleTable.RowCell>
       <SimpleTable.RowCell>
-        <Flex height={`${CHART_HEIGHT}px`} align="center">
+        <Flex height={`${VOLUME_CHART_HEIGHT}px`} align="center">
           <Text tabular variant={total === 0 ? 'muted' : 'primary'}>
             {formatAbbreviatedNumber(total)}
           </Text>

@@ -1122,7 +1122,7 @@ describe('ProjectFilters', () => {
     expect(await screen.findByText('Updated name')).toBeInTheDocument();
   });
 
-  it('previews what the filter matches and what it does not', async () => {
+  it('previews how much stored data the filter matches', async () => {
     renderInboundFilters(
       [
         CustomInboundFilterFixture({
@@ -1140,49 +1140,99 @@ describe('ProjectFilters', () => {
       })
     );
 
-    const matchedQuery = '(error.type:*Error* OR error.value:*Error*) user.ip:10.1.*';
-    const unmatchedQuery =
-      '((!error.type:*Error* !error.value:*Error*) OR !user.ip:10.1.*)';
-    const statsUrl = `/organizations/${organization.slug}/events-stats/`;
-    const eventsUrl = `/organizations/${organization.slug}/events/`;
-    const example = (id: string, type: string, ip: string) => ({
-      id,
-      title: `${type}: boom`,
-      'error.type': [type],
-      'error.value': ['boom'],
-      'user.ip': ip,
-      'issue.id': 5,
-      timestamp: '2026-11-11T10:00:00+00:00',
-    });
     MockApiClient.addMockResponse({
-      url: statsUrl,
-      body: {data: [[1700000000, [{count: 10}]]]},
-      match: [MockApiClient.matchQuery({query: ''})],
-    });
-    MockApiClient.addMockResponse({
-      url: statsUrl,
-      body: {data: [[1700000000, [{count: 3}]]]},
-      match: [MockApiClient.matchQuery({query: matchedQuery})],
-    });
-    MockApiClient.addMockResponse({
-      url: eventsUrl,
-      body: {data: [example('a1', 'TypeError', '10.1.2.3')]},
-      match: [MockApiClient.matchQuery({query: matchedQuery})],
-    });
-    MockApiClient.addMockResponse({
-      url: eventsUrl,
-      body: {data: [example('b2', 'TypeError', '192.168.0.1')]},
-      match: [MockApiClient.matchQuery({query: unmatchedQuery})],
+      url: `/organizations/${organization.slug}/events-stats/`,
+      body: {
+        data: [
+          [1700000000, [{count: 3}]],
+          [1700003600, [{count: 4}]],
+        ],
+      },
+      match: [
+        MockApiClient.matchQuery({
+          dataset: 'errors',
+          query: '(error.type:*Error* OR error.value:*Error*) user.ip:10.1.*',
+        }),
+      ],
     });
 
     await userEvent.click(await screen.findByRole('button', {name: 'Edit filter'}));
     const dialog = await screen.findByRole('dialog');
 
-    expect(await within(dialog).findByText(/3 of 10 match/)).toBeInTheDocument();
-    expect(within(dialog).getByLabelText('Matches')).toBeInTheDocument();
-    expect(within(dialog).getByText('10.1.2.3')).toBeInTheDocument();
-    expect(within(dialog).getByLabelText('Does not match')).toBeInTheDocument();
-    expect(within(dialog).getByText('192.168.0.1')).toBeInTheDocument();
+    expect(
+      await within(dialog).findByRole('img', {name: 'Filtered volume trend, peak 4'})
+    ).toBeInTheDocument();
+    expect(within(dialog).getByText('7')).toBeInTheDocument();
+  });
+
+  it('tells a filter that matches nothing from a filter without conditions', async () => {
+    renderInboundFilters(
+      [CustomInboundFilterFixture({id: '1'})],
+      businessProject,
+      OrganizationFixture({
+        ...inboundFiltersV2Org,
+        features: [...inboundFiltersV2Org.features, 'inbound-filters-preview'],
+      })
+    );
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-stats/`,
+      body: {data: [[1700000000, [{count: 0}]]]},
+    });
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Edit filter'}));
+    expect(
+      await within(await screen.findByRole('dialog')).findByText('No matches')
+    ).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
+
+    await userEvent.click(screen.getByRole('button', {name: 'Add Filter'}));
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText('Estimated Drop, Last 24 Hours')).toBeInTheDocument();
+    expect(within(dialog).queryByText('No matches')).not.toBeInTheDocument();
+  });
+
+  it('previews a filter on every data type in one chart', async () => {
+    renderInboundFilters(
+      [
+        CustomInboundFilterFixture({
+          id: '1',
+          dataType: 'all',
+          conditions: [{type: 'ip_address', value: ['10.1.0.0/16']}],
+        }),
+      ],
+      businessProject,
+      OrganizationFixture({
+        ...inboundFiltersV2Org,
+        features: [
+          ...inboundFiltersV2Org.features,
+          'inbound-filters-preview',
+          'ourlogs-ingestion',
+        ],
+      })
+    );
+
+    const mockStats = (dataset: string, count: number) =>
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events-stats/`,
+        body: {data: [[1700000000, [{count}]]]},
+        match: [MockApiClient.matchQuery({dataset, query: 'user.ip:10.1.*'})],
+      });
+    mockStats('errors', 3);
+    mockStats('spans', 50);
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Edit filter'}));
+    const dialog = await screen.findByRole('dialog');
+
+    // The stack of the one hour holds the errors and the spans.
+    expect(
+      await within(dialog).findByRole('img', {name: 'Filtered volume trend, peak 53'})
+    ).toBeInTheDocument();
+    expect(within(dialog).getByText('53')).toBeInTheDocument();
+    // Logs store no sender address, and the organization does not ingest metrics.
+    expect(
+      within(dialog).getByText('Logs: A preview cannot check IP Address.')
+    ).toBeInTheDocument();
+    expect(within(dialog).queryByText(/^Metrics:/)).not.toBeInTheDocument();
   });
 
   it('keeps an IP address condition when the data type changes', async () => {
