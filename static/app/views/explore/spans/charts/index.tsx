@@ -328,6 +328,7 @@ function Chart({
     useChartLayers({
       dataset,
       interval: chartInterval,
+      layers: ['dropped-data', 'confidence', 'releases', 'flags', 'changes'],
       source: 'explore',
       enabled: !isHeatMap,
     });

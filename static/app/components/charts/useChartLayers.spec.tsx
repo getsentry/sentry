@@ -11,9 +11,17 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 
 import type {TimeseriesAnnotation} from './annotations/timeseriesAnnotation';
 import type {AnnotationItem} from './annotations/types';
-import {useChartLayers} from './useChartLayers';
+import {useChartLayers, type ChartLayerName} from './useChartLayers';
 
 jest.mock('sentry/utils/analytics');
+
+const ALL_LAYERS: ChartLayerName[] = [
+  'dropped-data',
+  'confidence',
+  'releases',
+  'flags',
+  'changes',
+];
 
 const organization = OrganizationFixture({
   features: ['explore-data-fidelity-annotations'],
@@ -40,6 +48,7 @@ describe('useChartLayers', () => {
         useChartLayers({
           dataset: DiscoverDatasets.SPANS,
           interval: '1h',
+          layers: ALL_LAYERS,
           source: 'explore',
         }),
       {organization}
@@ -56,7 +65,13 @@ describe('useChartLayers', () => {
     'toggles the dropped data band and tracks it with the %s source',
     async source => {
       const {result} = renderHookWithProviders(
-        () => useChartLayers({dataset: DiscoverDatasets.SPANS, interval: '1h', source}),
+        () =>
+          useChartLayers({
+            dataset: DiscoverDatasets.SPANS,
+            interval: '1h',
+            layers: ALL_LAYERS,
+            source,
+          }),
         {organization}
       );
 
@@ -80,6 +95,7 @@ describe('useChartLayers', () => {
         useChartLayers({
           dataset: DiscoverDatasets.SPANS,
           interval: '1h',
+          layers: ALL_LAYERS,
           source: 'explore',
           hidden: true,
         }),
@@ -183,6 +199,7 @@ describe('useChartLayers', () => {
           useChartLayers({
             dataset: DiscoverDatasets.SPANS,
             interval: '1h',
+            layers: ALL_LAYERS,
             source: 'explore',
           }),
         {organization: annotationsOrganization}
@@ -317,7 +334,7 @@ describe('useChartLayers', () => {
       expect(result.current.annotations).toBeUndefined();
     });
 
-    it('skips releases, flags, and changes without annotations', async () => {
+    it('fetches and offers only the listed layers', async () => {
       const releasesRequest = MockApiClient.addMockResponse({
         url: `/organizations/${annotationsOrganization.slug}/releases/stats/`,
         body: [release],
@@ -326,14 +343,18 @@ describe('useChartLayers', () => {
         url: `/organizations/${annotationsOrganization.slug}/flags/logs/`,
         body: {data: [flagChange]},
       });
+      annotationsRequest = MockApiClient.addMockResponse({
+        url: `/organizations/${annotationsOrganization.slug}/timeseries-annotations/`,
+        body: [change],
+      });
 
       const {result} = renderHookWithProviders(
         () =>
           useChartLayers({
             dataset: DiscoverDatasets.OURLOGS,
             interval: '1h',
+            layers: ['dropped-data', 'confidence'],
             source: 'explore',
-            withAnnotations: false,
           }),
         {organization: annotationsOrganization}
       );
@@ -346,6 +367,7 @@ describe('useChartLayers', () => {
       expect(result.current.annotations).toBeUndefined();
       expect(releasesRequest).not.toHaveBeenCalled();
       expect(flagLogRequest).not.toHaveBeenCalled();
+      expect(annotationsRequest).not.toHaveBeenCalled();
     });
   });
 
@@ -355,6 +377,7 @@ describe('useChartLayers', () => {
         useChartLayers({
           dataset: DiscoverDatasets.SPANS,
           interval: '1h',
+          layers: ALL_LAYERS,
           source: 'explore',
           enabled: false,
         }),
@@ -377,6 +400,7 @@ describe('useChartLayers', () => {
         useChartLayers({
           dataset: DiscoverDatasets.SPANS,
           interval: '1h',
+          layers: ALL_LAYERS,
           source: 'explore',
         }),
       {organization: confidenceOrganization}

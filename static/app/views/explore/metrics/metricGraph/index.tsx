@@ -270,9 +270,9 @@ function Graph({
   const {droppedData, layerControl, showConfidence} = useChartLayers({
     dataset: DiscoverDatasets.TRACEMETRICS,
     interval,
+    layers: ['dropped-data', 'confidence'],
     source: 'explore',
     enabled: showChart,
-    withAnnotations: false,
   });
   const height = visualize.visible ? STACKED_GRAPH_HEIGHT : MINIMIZED_GRAPH_HEIGHT;
 

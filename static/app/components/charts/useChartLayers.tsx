@@ -20,16 +20,25 @@ const FLAGS_LAYER = 'flags';
 const CONFIDENCE_LAYER = 'confidence';
 const CHANGES_LAYER = 'changes';
 
+export type ChartLayerName =
+  | typeof DROPPED_DATA_LAYER
+  | typeof CONFIDENCE_LAYER
+  | typeof RELEASES_LAYER
+  | typeof FLAGS_LAYER
+  | typeof CHANGES_LAYER;
+
 interface UseChartLayersParams {
   dataset: DiscoverDatasets;
   interval: string;
+  /**
+   * The layers this chart offers. A layer that is not listed fetches nothing
+   * and is left out of the Layers control. A listed layer that is behind a
+   * feature flag also needs the flag.
+   */
+  layers: readonly ChartLayerName[];
   source: DroppedDataAnalyticsSource;
   enabled?: boolean;
   hidden?: boolean;
-  /**
-   * Whether to fetch and draw the releases, flags, and changes annotations.
-   */
-  withAnnotations?: boolean;
 }
 
 /**
@@ -39,21 +48,32 @@ interface UseChartLayersParams {
 export function useChartLayers({
   dataset,
   interval,
+  layers: offeredLayers,
   source,
   enabled = true,
   hidden = false,
-  withAnnotations = true,
 }: UseChartLayersParams) {
   const organization = useOrganization();
-  const areAnnotationsEnabled =
-    enabled &&
-    withAnnotations &&
-    organization.features.includes('timeseries-annotations');
+  const hasAnnotationsFeature =
+    enabled && organization.features.includes('timeseries-annotations');
+  const areReleasesOffered =
+    hasAnnotationsFeature && offeredLayers.includes(RELEASES_LAYER);
+  const areFlagsOffered = hasAnnotationsFeature && offeredLayers.includes(FLAGS_LAYER);
+  const areChangesOffered =
+    hasAnnotationsFeature && offeredLayers.includes(CHANGES_LAYER);
   const {
     release: releaseItems,
     flag: flagItems,
     timeseriesAnnotation: changeItems,
-  } = useAnnotationItems({dataset, interval, enabled: areAnnotationsEnabled});
+  } = useAnnotationItems({
+    dataset,
+    interval,
+    kinds: [
+      ...(areReleasesOffered ? ['release' as const] : []),
+      ...(areFlagsOffered ? ['flag' as const] : []),
+      ...(areChangesOffered ? ['timeseriesAnnotation' as const] : []),
+    ],
+  });
 
   const [isReleasesLayerOn, setIsReleasesLayerOn] = useState(true);
   const hasReleases = (releaseItems?.length ?? 0) > 0;
@@ -80,12 +100,20 @@ export function useChartLayers({
   );
 
   const isConfidenceEnabled =
-    enabled && organization.features.includes('data-browsing-time-series-confidence');
+    enabled &&
+    offeredLayers.includes(CONFIDENCE_LAYER) &&
+    organization.features.includes('data-browsing-time-series-confidence');
   const [isConfidenceLayerOn, setIsConfidenceLayerOn] = useState(true);
 
   const droppedData = useDroppedDataLayer(
     {dataset, interval},
-    {source, annotationKinds, enabled, hidden, showAnnotationTabs: areAnnotationsEnabled}
+    {
+      source,
+      annotationKinds,
+      enabled: enabled && offeredLayers.includes(DROPPED_DATA_LAYER),
+      hidden,
+      showAnnotationTabs: areReleasesOffered || areFlagsOffered || areChangesOffered,
+    }
   );
 
   const annotations = useMemo(() => {
@@ -105,7 +133,7 @@ export function useChartLayers({
   ]);
 
   const releasesLayer: ChartLayer | undefined =
-    areAnnotationsEnabled && defined(releaseItems)
+    areReleasesOffered && defined(releaseItems)
       ? {
           value: RELEASES_LAYER,
           label: t('Releases'),
@@ -116,7 +144,7 @@ export function useChartLayers({
       : undefined;
 
   const flagsLayer: ChartLayer | undefined =
-    areAnnotationsEnabled && defined(flagItems)
+    areFlagsOffered && defined(flagItems)
       ? {
           value: FLAGS_LAYER,
           label: t('Flags'),
@@ -131,7 +159,7 @@ export function useChartLayers({
     : undefined;
 
   const changesLayer: ChartLayer | undefined =
-    areAnnotationsEnabled && defined(changeItems)
+    areChangesOffered && defined(changeItems)
       ? {
           value: CHANGES_LAYER,
           label: t('Changes'),

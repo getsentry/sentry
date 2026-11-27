@@ -11,19 +11,26 @@ type AnnotationItemsByKind = Partial<Record<AnnotationKind, AnnotationItem[]>>;
 
 interface UseAnnotationItemsParams {
   dataset: DiscoverDatasets;
-  enabled: boolean;
   interval: string;
+  /**
+   * The kinds to fetch. Kinds that are not listed make no requests.
+   */
+  kinds: readonly AnnotationKind[];
 }
 
 export function useAnnotationItems({
   dataset,
   interval,
-  enabled,
+  kinds,
 }: UseAnnotationItemsParams): AnnotationItemsByKind {
   const {selection} = usePageFilters();
-  const {releases} = useReleaseStats(selection, {enabled});
-  const {data: flagLog} = useAnnotationFlagLog({enabled});
-  const timeseriesAnnotations = useTimeseriesAnnotations({dataset, interval, enabled});
+  const {releases} = useReleaseStats(selection, {enabled: kinds.includes('release')});
+  const {data: flagLog} = useAnnotationFlagLog({enabled: kinds.includes('flag')});
+  const timeseriesAnnotations = useTimeseriesAnnotations({
+    dataset,
+    interval,
+    enabled: kinds.includes('timeseriesAnnotation'),
+  });
 
   return {
     release: releases?.map(({date, version}): AnnotationItem => ({
