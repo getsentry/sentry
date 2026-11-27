@@ -7,7 +7,8 @@ import sentryPattern from 'sentry-images/pattern/sentry-pattern.png';
 
 import {Alert} from '@sentry/scraps/alert';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -99,9 +100,7 @@ function getOptionSchema({definition, required}: WizardField) {
       return required ? z.string({error: requiredMessage}) : z.string().optional();
     case 'email': {
       const email = z.email(t('Enter a valid email address'));
-      return required
-        ? z.string({error: requiredMessage}).min(1, requiredMessage).pipe(email)
-        : email.or(z.literal('')).optional();
+      return required ? email : email.or(z.literal('')).optional();
     }
     case 'text':
     default:
@@ -160,7 +159,11 @@ function InstallWizardForm({
 
   return (
     <form.AppForm form={form}>
-      <p>{t('Complete setup by filling out the required configuration.')}</p>
+      <Container paddingBottom="xl">
+        <Text as="p">
+          {t('Complete setup by filling out the required configuration.')}
+        </Text>
+      </Container>
 
       {wizardSections.map(section => (
         <form.FieldGroup key={section.key} title={section.heading}>
@@ -275,15 +278,32 @@ export default function InstallWizard({onConfigured}: InstallWizardProps) {
   const version = ConfigStore.get('version');
   return (
     <SentryDocumentTitle noSuffix title={t('Setup Sentry')}>
-      <Flex justify="center">
+      <Flex justify="center" padding="2xl">
         <Pattern />
-        <SetupWizard>
-          <Heading>
-            <span>{t('Welcome to Sentry')}</span>
-            <Version>{version.current}</Version>
-          </Heading>
+        <Container
+          background="primary"
+          radius="md"
+          maxWidth="1000px"
+          css={theme => css`
+            box-shadow: ${theme.shadow.high};
+            padding: 40px 40px 20px;
+            z-index: ${theme.zIndex.initial};
+          `}
+        >
+          <Grid
+            flow="column"
+            gap="md"
+            justify="between"
+            align="baseline"
+            paddingBottom="xl"
+          >
+            <Heading as="h1">{t('Welcome to Sentry')}</Heading>
+            <Text size="xl" bold>
+              {version.current}
+            </Text>
+          </Grid>
           <InstallWizardForm options={options} onConfigured={onConfigured} />
-        </SetupWizard>
+        </Container>
       </Flex>
     </SentryDocumentTitle>
   );
@@ -318,27 +338,4 @@ const Pattern = styled('div')`
     background-size: 400px;
     opacity: 0.8;
   }
-`;
-
-const Heading = styled('h1')`
-  display: grid;
-  gap: ${p => p.theme.space.md};
-  justify-content: space-between;
-  grid-auto-flow: column;
-  line-height: 36px;
-`;
-
-const Version = styled('small')`
-  font-size: ${p => p.theme.font.size.xl};
-  line-height: inherit;
-`;
-
-const SetupWizard = styled('div')`
-  background: ${p => p.theme.tokens.background.primary};
-  border-radius: ${p => p.theme.radius.md};
-  box-shadow: ${p => p.theme.shadow.high};
-  padding: 40px 40px 20px;
-  max-width: 1000px;
-  margin: ${p => p.theme.space['2xl']};
-  z-index: ${p => p.theme.zIndex.initial};
 `;
