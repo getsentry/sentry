@@ -1,13 +1,18 @@
 from __future__ import annotations
 
+import html
 import re
-from collections.abc import Mapping, Sequence
+from collections.abc import Collection, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 from urllib.parse import parse_qs, urlsplit
 
+import orjson
+
 from sentry.integrations.slack.unfurl.handlers import match_link
 from sentry.integrations.slack.unfurl.types import LinkType
+from sentry.models.group import Group
+from sentry.models.organization import Organization
 
 
 @dataclass(frozen=True)
@@ -37,6 +42,13 @@ _SLACK_PERMALINK_PATH_RE = re.compile(
 _MAX_LINKED_MESSAGES = 5
 
 _ANY_MENTION_RE = re.compile(r"<@[^>]+>")
+
+# Slack link syntax: <https://url|label>, <https://url>, <mailto:addr|label>
+_SLACK_LINK_RE = re.compile(r"<((?:https?|mailto):[^|>]+)(?:\|([^>]*))?>")
+
+# Bounds the extra DB lookups and keeps alert-heavy threads from flooding the context.
+_MAX_REFERENCED_ISSUES = 3
+_MAX_ISSUE_IDS_TO_LOOK_UP = 50
 
 
 def has_prompt_content(text: str) -> bool:
@@ -102,6 +114,18 @@ def _parse_slack_permalink(url: str, expected_host: str | None) -> SlackMessageL
     )
 
 
+def _find_unfurl(
+    link: SlackMessageLink,
+    attachments: Sequence[Mapping[str, Any]] | None,
+) -> Mapping[str, Any] | None:
+    for attachment in attachments or []:
+        if not isinstance(attachment, dict):
+            continue
+        if attachment.get("channel_id") == link.channel_id and attachment.get("ts") == link.ts:
+            return attachment
+    return None
+
+
 def find_message_in_attachments(
     link: SlackMessageLink,
     attachments: Sequence[Mapping[str, Any]] | None,
@@ -110,25 +134,35 @@ def find_message_in_attachments(
     auto-unfurl that Slack generates when a permalink is shared.
 
     The shape mirrors what ``conversations.replies`` returns so callers can
-    feed it to ``build_thread_context``.
+    feed it to ``build_thread_context``. Block metadata is left out: the
+    poster of the mention controls its attachments.
     """
-    if not attachments:
+    attachment = _find_unfurl(link, attachments)
+    if attachment is None:
         return None
+    return {
+        "user": attachment.get("author_id", ""),
+        "ts": attachment.get("ts", ""),
+        "text": _extract_attachment_text(attachment),
+    }
 
-    for attachment in attachments:
-        if not isinstance(attachment, dict):
-            continue
-        if attachment.get("channel_id") != link.channel_id:
-            continue
-        if attachment.get("ts") != link.ts:
-            continue
-        return {
-            "user": attachment.get("author_id", ""),
-            "ts": attachment.get("ts", ""),
-            "text": _extract_attachment_text(attachment),
-        }
 
-    return None
+def unfurl_has_block_metadata(
+    link: SlackMessageLink,
+    attachments: Sequence[Mapping[str, Any]] | None,
+) -> bool:
+    """Whether the unfurl of ``link`` shows JSON ``block_id`` metadata, as Sentry alerts carry.
+
+    Callers should fetch such a message from Slack to read metadata they can trust.
+    """
+    attachment = _find_unfurl(link, attachments)
+    if attachment is None:
+        return False
+    for message_block in attachment.get("message_blocks") or []:
+        inner = message_block.get("message") if isinstance(message_block, dict) else None
+        if isinstance(inner, dict) and _block_id_payloads(inner):
+            return True
+    return False
 
 
 def extract_slack_message_links(
@@ -304,50 +338,206 @@ def _extract_text_from_attachments(attachments: Sequence[Mapping[str, Any]]) -> 
     return "\n".join(parts)
 
 
-def build_thread_context(messages: Sequence[Mapping[str, Any]]) -> str:
-    """Build a context string from thread history for Seer Agent."""
+def _extract_message_text(msg: Mapping[str, Any]) -> str:
+    text_parts: list[str] = []
+    if blocks := msg.get("blocks"):
+        if block_text := _extract_text_from_blocks(blocks):
+            text_parts.append(block_text)
+
+    if not text_parts and (top_level_text := msg.get("text", "")):
+        text_parts.append(top_level_text)
+
+    if attachments := msg.get("attachments"):
+        if attachment_text := _extract_text_from_attachments(attachments):
+            text_parts.append(attachment_text)
+
+    return "\n".join(text_parts)
+
+
+def _slack_link_to_markdown(match: re.Match[str]) -> str:
+    url, label = match.group(1), match.group(2)
+    if url.startswith("mailto:"):
+        return label or url.removeprefix("mailto:")
+    if not label or label == url:
+        return url
+    return f"[{label}]({url})"
+
+
+def _slack_mrkdwn_to_text(text: str, bot_user_id: str | None) -> str:
+    """Make Slack mrkdwn readable for the model: markdown links, no HTML entities.
+
+    Slack escapes ``&``, ``<`` and ``>`` in message text, so links have to be
+    converted before the entities are unescaped.
+    """
+    if bot_user_id:
+        text = text.replace(f"<@{bot_user_id}>", "@Sentry")
+    text = _SLACK_LINK_RE.sub(_slack_link_to_markdown, text)
+    return html.unescape(text)
+
+
+def _block_id_payloads(msg: Mapping[str, Any]) -> list[dict[str, Any]]:
+    """The JSON objects Sentry wrote into the ``block_id`` of a message's blocks."""
+    payloads: list[dict[str, Any]] = []
+    for block in msg.get("blocks") or []:
+        block_id = block.get("block_id") if isinstance(block, dict) else None
+        if not isinstance(block_id, str) or not block_id.startswith("{"):
+            continue
+        try:
+            payload = orjson.loads(block_id)
+        except orjson.JSONDecodeError:
+            continue
+        if isinstance(payload, dict):
+            payloads.append(payload)
+    return payloads
+
+
+def _alert_issue_ids(msg: Mapping[str, Any]) -> list[int]:
+    """Group ids from a message's ``block_id`` metadata, from issue alerts and Autofix updates."""
+    return [
+        issue_id
+        for payload in _block_id_payloads(msg)
+        if isinstance(issue_id := payload.get("issue"), int)
+    ]
+
+
+def _is_autofix_update(msg: Mapping[str, Any]) -> bool:
+    # Autofix updates carry ``run_id`` next to ``issue``; issue alerts never do.
+    return any("run_id" in payload for payload in _block_id_payloads(msg))
+
+
+def _is_own_message(msg: Mapping[str, Any], bot_user_id: str | None) -> bool:
+    return bot_user_id is not None and msg.get("user") == bot_user_id
+
+
+def extract_alert_issue_ids(
+    messages: Sequence[Mapping[str, Any]], *, bot_user_id: str | None
+) -> list[int]:
+    """Deduped group ids from the alert metadata of messages our Slack app posted.
+
+    Only the app's own messages are read: anyone can post a message with a
+    crafted ``block_id``.
+    """
+    issue_ids = (
+        issue_id
+        for msg in messages
+        if _is_own_message(msg, bot_user_id)
+        for issue_id in _alert_issue_ids(msg)
+    )
+    return list(dict.fromkeys(issue_ids))
+
+
+def build_referenced_issues_context(*, organization: Organization, issue_ids: Sequence[int]) -> str:
+    """List the alerted issues that belong to ``organization`` by their identifiers only.
+
+    Titles and other user-controlled text are left out on purpose; the agent
+    can fetch the issue itself.
+    """
+    # Cap after the org filter, so issues from other orgs can't use up the budget.
+    issue_ids = list(issue_ids)[:_MAX_ISSUE_IDS_TO_LOOK_UP]
+    if not issue_ids:
+        return ""
+
+    groups_by_id = {
+        group.id: group
+        for group in Group.objects.filter(
+            id__in=issue_ids, project__organization_id=organization.id
+        ).select_related("project")
+    }
+    lines: list[str] = []
+    for issue_id in issue_ids:
+        group = groups_by_id.get(issue_id)
+        if group is None:
+            continue
+        if len(lines) == _MAX_REFERENCED_ISSUES:
+            break
+        group.project.set_cached_field_value("organization", organization)
+        lines.append(
+            f"- org: {organization.slug}, issue_id: {group.id}, "
+            f"short_id: {group.qualified_short_id}, project: {group.project.slug}, "
+            f"category: {group.issue_category.name.lower()}, url: {group.get_absolute_url()}"
+        )
+    if not lines:
+        return ""
+
+    header = (
+        "Sentry issues referenced by alerts in this Slack thread or in messages linked "
+        "from it. Sentry resolved these "
+        "from the alert metadata, not from the message text, and all of them are in the "
+        f"connected organization ({organization.slug}):"
+    )
+    return "\n".join([header, *lines])
+
+
+def build_thread_context(
+    messages: Sequence[Mapping[str, Any]],
+    *,
+    bot_user_id: str | None = None,
+    seer_reply_ts: Collection[str] = (),
+    omit_ts: Collection[str] = (),
+) -> str:
+    """Build a context string from thread history for Seer Agent.
+
+    Messages posted by our Slack app (``bot_user_id``) are Seer Autofix
+    updates or Sentry issue alerts, both recognized by their ``block_id``
+    metadata, or Seer's own earlier replies, whose timestamps are in
+    ``seer_reply_ts``. Any other app message gets a neutral label: once the
+    reply caches expire it may still be an earlier reply. Messages whose
+    timestamps are in ``omit_ts`` are left out, such as replies a continued
+    run already holds in its history.
+
+    Each message starts its own line with its label, and its continuation
+    lines are indented, so a message body can't start a line that looks like
+    another message.
+    """
     if not messages:
         return ""
 
     parts: list[str] = []
     for msg in messages:
-        user = msg.get("user", "unknown")
-
-        text_parts: list[str] = []
-        if blocks := msg.get("blocks"):
-            if block_text := _extract_text_from_blocks(blocks):
-                text_parts.append(block_text)
-
-        if not text_parts and (top_level_text := msg.get("text", "")):
-            text_parts.append(top_level_text)
-
-        if attachments := msg.get("attachments"):
-            if attachment_text := _extract_text_from_attachments(attachments):
-                text_parts.append(attachment_text)
-
-        if not text_parts:
+        if msg.get("ts") in omit_ts:
             continue
-        text = "\n".join(text_parts)
-        parts.append(f"<@{user}>: {text}")
+        if _is_own_message(msg, bot_user_id):
+            if _is_autofix_update(msg):
+                author = "Seer Autofix update"
+            elif _alert_issue_ids(msg):
+                author = "Sentry alert"
+            elif msg.get("ts") in seer_reply_ts:
+                author = "Sentry (you), earlier reply"
+            else:
+                author = "Sentry app message (may be one of your earlier replies)"
+        else:
+            author = f"User <@{msg.get('user', 'unknown')}>"
+
+        if text := _extract_message_text(msg):
+            body = _slack_mrkdwn_to_text(text, bot_user_id).replace("\n", "\n  ")
+            parts.append(f"{author}: {body}")
 
     return "\n".join(parts)
 
 
+def extract_thread_text(messages: Sequence[Mapping[str, Any]]) -> str:
+    """The raw Slack mrkdwn of every message, for scanning links in Slack's ``<url|label>`` syntax."""
+    return "\n".join(text for msg in messages if (text := _extract_message_text(msg)))
+
+
 def build_linked_messages_context(
     blocks: Sequence[tuple[SlackMessageLink, Sequence[Mapping[str, Any]]]],
+    *,
+    bot_user_id: str | None = None,
+    seer_reply_ts: Collection[str] = (),
 ) -> str:
     """Render messages fetched from Slack permalinks into a Seer context block.
 
     Each ``(link, messages)`` pair becomes a labeled section:
 
         User linked a Slack message in <#C123>:
-        <@U456>: ...
+        User <@U456>: ...
 
     Empty message lists (fetch failed / scope missing) are skipped.
     """
     sections: list[str] = []
     for link, messages in blocks:
-        body = build_thread_context(messages)
+        body = build_thread_context(messages, bot_user_id=bot_user_id, seer_reply_ts=seer_reply_ts)
         if not body:
             continue
         sections.append(f"User linked a Slack message in <#{link.channel_id}>:\n{body}")

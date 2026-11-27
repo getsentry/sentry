@@ -1610,6 +1610,47 @@ class TestSeerAgentOperatorCodeMode(TestCase):
             == SEER_BILLING_FEATURE_SEER_AGENT_SLACK
         )
 
+    @patch("sentry.seer.entrypoints.operator.SeerAgentClient")
+    def test_continue_uses_continue_on_page_context(self, mock_client_cls: MagicMock) -> None:
+        mock_client = Mock()
+        mock_client.latest_run.return_value = Mock(run=Mock(seer_run_state_id=5))
+        mock_client.continue_run.return_value = Mock(seer_run_state_id=5)
+        mock_client_cls.return_value = mock_client
+
+        self.operator.trigger_agent(
+            organization=self.organization,
+            user=self.user,
+            prompt="hi",
+            on_page_context="full",
+            continue_on_page_context=lambda run_id: f"without replies of {run_id}",
+            category_key="slack_thread",
+            category_value="thread-123",
+        )
+
+        assert (
+            mock_client.continue_run.call_args.kwargs["on_page_context"] == "without replies of 5"
+        )
+        mock_client.start_run.assert_not_called()
+
+    @patch("sentry.seer.entrypoints.operator.SeerAgentClient")
+    def test_start_uses_on_page_context(self, mock_client_cls: MagicMock) -> None:
+        mock_client = Mock()
+        mock_client.latest_run.return_value = None
+        mock_client.start_run.return_value = Mock(seer_run_state_id=1)
+        mock_client_cls.return_value = mock_client
+
+        self.operator.trigger_agent(
+            organization=self.organization,
+            user=self.user,
+            prompt="hi",
+            on_page_context="full",
+            continue_on_page_context=lambda run_id: "without replies",
+            category_key="slack_thread",
+            category_value="thread-123",
+        )
+
+        assert mock_client.start_run.call_args.kwargs["on_page_context"] == "full"
+
     def _trigger_slack(self, mock_client_cls: Mock) -> None:
         mock_client = Mock()
         mock_client.start_run.return_value = Mock(seer_run_state_id=1)

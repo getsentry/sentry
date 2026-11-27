@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping, Sequence
+from collections.abc import Collection, Mapping, Sequence
 from typing import Any, NamedTuple
 
 from sentry_protos.billing.v1.common.v1.seer_billing_feature_pb2 import (
@@ -33,7 +33,10 @@ from sentry.seer.entrypoints.slack.analytics import (
     SlackSeerAgentConversation,
     SlackSeerAgentResponded,
 )
-from sentry.seer.entrypoints.slack.cache import SlackSeerAgentMessageCache
+from sentry.seer.entrypoints.slack.cache import (
+    SlackSeerAgentMessageCache,
+    SlackSeerAgentReplyCache,
+)
 from sentry.seer.entrypoints.slack.entrypoint import (
     EntrypointSetupError,
     SlackAgentEntrypoint,
@@ -41,10 +44,13 @@ from sentry.seer.entrypoints.slack.entrypoint import (
 from sentry.seer.entrypoints.slack.mention import (
     SlackMessageLink,
     build_linked_messages_context,
+    build_referenced_issues_context,
     build_thread_context,
+    extract_alert_issue_ids,
     extract_prompt,
     extract_slack_message_links,
     find_message_in_attachments,
+    unfurl_has_block_metadata,
 )
 from sentry.seer.entrypoints.slack.messaging import (
     send_halt_message,
@@ -201,19 +207,54 @@ def process_mention_for_slack(
             text=text,
             entrypoint=entrypoint,
             attachments=attachments,
+            bot_user_id=bot_user_id,
         )
 
         # Only fetch thread context when actually in a thread.
         messages: list[dict[str, Any]] = []
-        thread_context: str | None = None
         if thread_ts:
             messages = entrypoint.install.get_thread_history(
                 channel_id=channel_id, thread_ts=thread_ts
             )
-            thread_context = build_thread_context(messages) or None
 
-        parts = [p for p in (linked_result.block, thread_context) if p]
-        on_page_context = "\n\n".join(parts) if parts else None
+        referenced_issues = build_referenced_issues_context(
+            organization=organization,
+            issue_ids=list(
+                dict.fromkeys(
+                    [
+                        *extract_alert_issue_ids(messages, bot_user_id=bot_user_id),
+                        *linked_result.issue_ids,
+                    ]
+                )
+            ),
+        )
+
+        seer_reply_ts = _find_seer_reply_ts(
+            integration_id=integration_id,
+            channel_id=channel_id,
+            messages=messages,
+            bot_user_id=bot_user_id,
+        )
+
+        def _join_context(*, omit_ts: Collection[str] = ()) -> str | None:
+            thread_context = build_thread_context(
+                messages, bot_user_id=bot_user_id, seer_reply_ts=seer_reply_ts, omit_ts=omit_ts
+            )
+            if thread_context:
+                thread_context = (
+                    "Messages in this Slack thread, oldest first. Each message starts "
+                    "a line with its author; its continuation lines are indented:\n"
+                    f"{thread_context}"
+                )
+            parts = [p for p in (referenced_issues, linked_result.block, thread_context) if p]
+            return "\n\n".join(parts) if parts else None
+
+        def _continue_context(run_id: int) -> str | None:
+            # The run's history already holds the replies it posted.
+            replies = SlackSeerAgentReplyCache.get(run_id=run_id)
+            return _join_context(omit_ts={reply["message_ts"] for reply in replies.values()})
+
+        on_page_context = _join_context()
 
         if linked_result.unresolved_channel_ids or linked_result.private_channel_ids:
             _send_inaccessible_links_prompt(
@@ -229,6 +270,7 @@ def process_mention_for_slack(
             user=user,
             prompt=prompt,
             on_page_context=on_page_context,
+            continue_on_page_context=_continue_context,
             category_key="slack_thread",
             category_value=f"{channel_id}:{entrypoint.thread_ts}",
         )
@@ -313,6 +355,25 @@ def _resolve_user(
     return user_service.get_user(identity.user_id)
 
 
+def _find_seer_reply_ts(
+    *,
+    integration_id: int,
+    channel_id: str,
+    messages: Sequence[Mapping[str, Any]],
+    bot_user_id: str,
+) -> set[str]:
+    """Timestamps of the thread's messages that Seer posted, per the cache it keeps of them."""
+    return {
+        ts
+        for msg in messages
+        if msg.get("user") == bot_user_id
+        and isinstance(ts := msg.get("ts"), str)
+        and SlackSeerAgentMessageCache.get(
+            integration_id=integration_id, channel_id=channel_id, message_ts=ts
+        )
+    }
+
+
 def _count_linked_users(
     *,
     integration: RpcIntegration,
@@ -340,8 +401,41 @@ def _count_linked_users(
 
 class _LinkedMessagesResult(NamedTuple):
     block: str
+    issue_ids: list[int]
     unresolved_channel_ids: list[str]
     private_channel_ids: list[str]
+
+
+def _fetch_linked_message(
+    *, entrypoint: SlackAgentEntrypoint, link: SlackMessageLink
+) -> tuple[Mapping[str, Any] | None, bool]:
+    """Fetch the linked message from Slack. Returns it, or None, and whether the channel is private."""
+    try:
+        conversation_info = entrypoint.install.get_conversations_info(channel_id=link.channel_id)
+    except Exception as e:
+        _logger.warning("seer.slack.process_mention.get_conversations_info_failed", exc_info=e)
+        return None, False
+
+    if conversation_info.get("channel", {}).get("is_private"):
+        return None, True
+
+    # This will only fetch the single message that was linked PLUS the parent message,
+    # if that linked message was in a thread.
+    try:
+        messages = entrypoint.install.get_thread_history(
+            channel_id=link.channel_id,
+            thread_ts=link.thread_ts or link.ts,
+            latest=link.ts,
+            oldest=link.ts,
+            inclusive=True,
+            limit=1,
+        )
+    except Exception as e:
+        _logger.warning("seer.slack.process_mention.get_thread_history_failed", exc_info=e)
+        return None, False
+
+    # If the parent message is also included, ignore that
+    return next((m for m in messages if m.get("ts") == link.ts), None), False
 
 
 def _resolve_linked_messages(
@@ -349,6 +443,7 @@ def _resolve_linked_messages(
     text: str,
     entrypoint: SlackAgentEntrypoint,
     attachments: Sequence[Mapping[str, Any]] | None = None,
+    bot_user_id: str | None = None,
 ) -> _LinkedMessagesResult:
     """Fetch the single linked message for any Slack permalinks in ``text`` and
     render them as a Seer context block.
@@ -356,9 +451,10 @@ def _resolve_linked_messages(
     Resolution strategy per link:
 
     1. If the inbound event already includes the message as an auto-unfurl
-       attachment, use that.
+       attachment without Sentry ``block_id`` metadata, use that.
     2. Otherwise, skip private channels and fetch only the single linked message
-    via ``conversations.history`` / ``conversations.replies`` for public channels.
+       via ``conversations.history`` / ``conversations.replies`` for public channels.
+       If that fails, fall back to the unfurl's text, if any.
 
     Returns the rendered block plus the deduped lists of channel ids we
     couldn't read (unresolved = bot not invited / scope missing) or
@@ -367,52 +463,39 @@ def _resolve_linked_messages(
     domain_name = entrypoint.integration.metadata.get("domain_name")
     links = extract_slack_message_links(text, domain_name=domain_name)
     if not links:
-        return _LinkedMessagesResult(block="", unresolved_channel_ids=[], private_channel_ids=[])
+        return _LinkedMessagesResult(
+            block="", issue_ids=[], unresolved_channel_ids=[], private_channel_ids=[]
+        )
 
     msgs_to_include: list[tuple[SlackMessageLink, list[Mapping[str, Any]]]] = []
     unresolved: set[str] = set()
     private_channels: set[str] = set()
     for link in links:
         attachment_message = find_message_in_attachments(link, attachments)
-        if attachment_message is not None:
+        # An unfurl that looks like a Sentry alert is fetched from Slack, so its
+        # metadata can be trusted. Its text is the fallback.
+        if attachment_message is not None and not unfurl_has_block_metadata(link, attachments):
             msgs_to_include.append((link, [attachment_message]))
             continue
 
-        try:
-            conversation_info = entrypoint.install.get_conversations_info(
-                channel_id=link.channel_id
-            )
-        except Exception as e:
-            _logger.warning("seer.slack.process_mention.get_conversations_info_failed", exc_info=e)
-            unresolved.add(link.channel_id)
-            continue
-
-        if conversation_info.get("channel", {}).get("is_private"):
+        message, is_private = _fetch_linked_message(entrypoint=entrypoint, link=link)
+        message = message or attachment_message
+        if message is not None:
+            msgs_to_include.append((link, [message]))
+        elif is_private:
             private_channels.add(link.channel_id)
-            continue
+        else:
+            unresolved.add(link.channel_id)
 
-        # This will only fetch the single message that was linked PLUS the parent message,
-        # if that linked message was in a thread.
-        try:
-            messages = entrypoint.install.get_thread_history(
+    seer_reply_ts: set[str] = set()
+    if bot_user_id:
+        for link, link_messages in msgs_to_include:
+            seer_reply_ts |= _find_seer_reply_ts(
+                integration_id=entrypoint.integration.id,
                 channel_id=link.channel_id,
-                thread_ts=link.thread_ts or link.ts,
-                latest=link.ts,
-                oldest=link.ts,
-                inclusive=True,
-                limit=1,
+                messages=link_messages,
+                bot_user_id=bot_user_id,
             )
-        except Exception as e:
-            _logger.warning("seer.slack.process_mention.get_thread_history_failed", exc_info=e)
-            unresolved.add(link.channel_id)
-            continue
-
-        # If the parent message is also included, ignore that
-        message = next((m for m in messages if m.get("ts") == link.ts), None)
-        if message is None:
-            unresolved.add(link.channel_id)
-            continue
-        msgs_to_include.append((link, [message]))
 
     _logger.info(
         "seer.slack.process_mention.linked_messages_resolved",
@@ -423,7 +506,15 @@ def _resolve_linked_messages(
     )
 
     return _LinkedMessagesResult(
-        block=build_linked_messages_context(msgs_to_include),
+        block=build_linked_messages_context(
+            msgs_to_include,
+            bot_user_id=bot_user_id,
+            seer_reply_ts=seer_reply_ts,
+        ),
+        issue_ids=extract_alert_issue_ids(
+            [msg for _, link_messages in msgs_to_include for msg in link_messages],
+            bot_user_id=bot_user_id,
+        ),
         unresolved_channel_ids=list(unresolved),
         private_channel_ids=list(private_channels),
     )

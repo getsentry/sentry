@@ -24,6 +24,10 @@ from sentry.seer.entrypoints.slack.analytics import (
     SlackSeerAgentFeedback,
     SlackSeerAgentResponded,
 )
+from sentry.seer.entrypoints.slack.cache import (
+    SlackSeerAgentMessageCache,
+    SlackSeerAgentReplyCache,
+)
 from sentry.seer.entrypoints.slack.entrypoint import EntrypointSetupError
 from sentry.seer.entrypoints.slack.metrics import (
     ProcessMentionFailureReason,
@@ -260,9 +264,9 @@ class ProcessMentionForSlackTest(TestCase):
         mock_entrypoint.thread_ts = "1234567890.000001"
         mock_entrypoint.install.get_thread_history.return_value = [
             {"user": "U111", "text": "help me debug this"},
-            {"user": "U0BOT", "text": "let me take a look"},
+            {"user": "U0BOT", "text": "let me take a look", "ts": "1234567890.000002"},
             {"user": "U222", "text": "sure, what's the error?"},
-            {"user": "U0BOT", "text": "I'm on it"},
+            {"user": "U0BOT", "text": "I'm on it", "ts": "1234567890.000003"},
             {"user": "U1234567890", "text": "<@U0BOT> What is causing this issue?"},
         ]
         mock_agent_cls.return_value = mock_entrypoint
@@ -272,6 +276,18 @@ class ProcessMentionForSlackTest(TestCase):
         mock_operator_cls.return_value = mock_operator
 
         mock_count_linked.return_value = 1
+
+        # Both replies came from Seer; only the second belongs to the run being continued.
+        for ts, run_id in (("1234567890.000002", 6), ("1234567890.000003", 7)):
+            SlackSeerAgentMessageCache.set(
+                integration_id=123,
+                channel_id="C1234567890",
+                message_ts=ts,
+                payload={"thread_ts": "1234567890.000001", "run_id": run_id},
+            )
+        SlackSeerAgentReplyCache.set(
+            run_id=7, key="answer", reply={"message_ts": "1234567890.000003"}
+        )
 
         self._run_task(
             thread_ts="1234567890.000001",
@@ -283,9 +299,18 @@ class ProcessMentionForSlackTest(TestCase):
             thread_ts="1234567890.000001",
         )
         call_kwargs = mock_operator.trigger_agent.call_args[1]
-        assert call_kwargs["on_page_context"] is not None
-        assert "<@U111>: help me debug this" in call_kwargs["on_page_context"]
-        assert "<@U222>: sure, what's the error?" in call_kwargs["on_page_context"]
+        on_page_context = call_kwargs["on_page_context"]
+        assert on_page_context is not None
+        assert "User <@U111>: help me debug this" in on_page_context
+        assert "User <@U222>: sure, what's the error?" in on_page_context
+        assert "Sentry (you), earlier reply: let me take a look" in on_page_context
+        assert "Sentry (you), earlier reply: I'm on it" in on_page_context
+        assert "User <@U1234567890>: @Sentry What is causing this issue?" in on_page_context
+
+        continue_on_page_context = call_kwargs["continue_on_page_context"](7)
+        assert "User <@U111>: help me debug this" in continue_on_page_context
+        assert "Sentry (you), earlier reply: let me take a look" in continue_on_page_context
+        assert "I'm on it" not in continue_on_page_context
 
         mock_count_linked.assert_called_once()
         assert mock_count_linked.call_args.kwargs["slack_user_ids"] == {
@@ -312,6 +337,52 @@ class ProcessMentionForSlackTest(TestCase):
                 conversation_type=SlackSeerAgentConversation.DIRECT_MESSAGE,
             ),
         )
+
+    @patch("sentry.seer.entrypoints.slack.tasks._count_linked_users", return_value=0)
+    @patch("sentry.seer.entrypoints.slack.tasks.SeerAgentOperator")
+    @patch("sentry.seer.entrypoints.slack.tasks.SlackAgentEntrypoint")
+    @patch("sentry.seer.entrypoints.slack.tasks._resolve_user")
+    def test_alert_thread_lists_referenced_issues_from_the_org(
+        self,
+        mock_resolve_user: MagicMock,
+        mock_agent_cls: MagicMock,
+        mock_operator_cls: MagicMock,
+        mock_count_linked: MagicMock,
+    ) -> None:
+        group = self.create_group(project=self.project)
+        other_org_group = self.create_group(
+            project=self.create_project(organization=self.create_organization())
+        )
+        mock_resolve_user.return_value = MagicMock(id=self.user.id, username="alice")
+        mock_operator_cls.has_access.return_value = True
+        mock_entrypoint = MagicMock()
+        mock_entrypoint.thread_ts = "1234567890.123456"
+        mock_entrypoint.install.get_thread_history.return_value = [
+            {
+                "user": "U0BOT",
+                "blocks": [
+                    {
+                        "type": "section",
+                        "block_id": f'{{"issue": {issue_id}}}',
+                        "text": {"type": "mrkdwn", "text": "alert body"},
+                    }
+                ],
+            }
+            for issue_id in (group.id, other_org_group.id)
+        ] + [{"user": "U1234567890", "text": "<@U0BOT> What is causing this issue?"}]
+        mock_agent_cls.return_value = mock_entrypoint
+        mock_operator = MagicMock()
+        mock_operator.trigger_agent.return_value = 1
+        mock_operator_cls.return_value = mock_operator
+
+        self._run_task()
+
+        call_kwargs = mock_operator.trigger_agent.call_args[1]
+        for context in (call_kwargs["on_page_context"], call_kwargs["continue_on_page_context"](1)):
+            assert context.startswith("Sentry issues referenced by alerts in this Slack thread")
+            assert f"issue_id: {group.id}, short_id: {group.qualified_short_id}" in context
+            assert f"issue_id: {other_org_group.id}" not in context
+            assert "Sentry alert: alert body" in context
 
     @patch("sentry.seer.entrypoints.slack.tasks.SeerAgentOperator")
     @patch("sentry.seer.entrypoints.slack.tasks.SlackAgentEntrypoint")
@@ -647,6 +718,7 @@ class LinkedMessagesContextTest(TestCase):
         self.mock_entrypoint.slack_user_id = TASK_KWARGS["slack_user_id"]
         self.mock_entrypoint.integration.metadata = {"domain_name": "acme.slack.com"}
         self.mock_entrypoint.integration.external_id = "T0TEAM"
+        self.mock_entrypoint.integration.id = TASK_KWARGS["integration_id"]
 
         # Default: every channel is public unless the test overrides this.
         self.mock_entrypoint.install.get_conversations_info.side_effect = (
@@ -701,6 +773,54 @@ class LinkedMessagesContextTest(TestCase):
         assert on_page_context is not None
         assert "User linked a Slack message in <#C9999LINKED>:" in on_page_context
         assert "<@ULINK>: linked body" in on_page_context
+
+    def test_linked_seer_reply_is_labeled_as_own_reply(self) -> None:
+        def history(*, channel_id: str, thread_ts: str, **kwargs: object) -> list[dict[str, str]]:
+            if channel_id == "C9999LINKED":
+                return [{"user": "U0BOT", "text": "earlier answer", "ts": "1700000000.222222"}]
+            return []
+
+        self._build_mocks(thread_history_side_effect=history)
+        SlackSeerAgentMessageCache.set(
+            integration_id=TASK_KWARGS["integration_id"],
+            channel_id="C9999LINKED",
+            message_ts="1700000000.222222",
+            payload={"thread_ts": "1700000000.222222", "run_id": 3},
+        )
+
+        self._run(text=f"<@U0BOT> what about <{self.LINKED_PERMALINK}>", thread_ts=None)
+
+        on_page_context = self.mock_operator.trigger_agent.call_args[1]["on_page_context"]
+        assert "Sentry (you), earlier reply: earlier answer" in on_page_context
+
+    def test_linked_alert_adds_its_issue_to_referenced_issues(self) -> None:
+        group = self.create_group(project=self.project)
+
+        def history(*, channel_id: str, thread_ts: str, **kwargs: object) -> list[dict[str, Any]]:
+            if channel_id == "C9999LINKED":
+                return [
+                    {
+                        "user": "U0BOT",
+                        "blocks": [
+                            {
+                                "type": "section",
+                                "block_id": f'{{"issue": {group.id}}}',
+                                "text": {"type": "mrkdwn", "text": "alert body"},
+                            }
+                        ],
+                        "ts": "1700000000.222222",
+                    }
+                ]
+            return []
+
+        self._build_mocks(thread_history_side_effect=history)
+
+        self._run(text=f"<@U0BOT> what about <{self.LINKED_PERMALINK}>", thread_ts=None)
+
+        on_page_context = self.mock_operator.trigger_agent.call_args[1]["on_page_context"]
+        assert on_page_context.startswith("Sentry issues referenced by alerts")
+        assert f"issue_id: {group.id}, short_id: {group.qualified_short_id}" in on_page_context
+        assert "Sentry alert: alert body" in on_page_context
 
     def test_threaded_permalink_fetches_only_the_linked_reply(self) -> None:
         """A permalink into a thread reply must NOT pull the whole thread —
@@ -812,6 +932,72 @@ class LinkedMessagesContextTest(TestCase):
         assert on_page_context is not None
         assert "<@ULINK>: rich body" in on_page_context
         assert "fallback flat text" not in on_page_context
+
+    def _alert_unfurl(self, block_id: str) -> list[dict[str, Any]]:
+        return [
+            {
+                "is_msg_unfurl": True,
+                "channel_id": "C9999LINKED",
+                "ts": "1700000000.222222",
+                "author_id": "U0BOT",
+                "message_blocks": [
+                    {
+                        "message": {
+                            "blocks": [
+                                {
+                                    "type": "section",
+                                    "block_id": block_id,
+                                    "text": {"type": "mrkdwn", "text": "unfurled alert"},
+                                }
+                            ]
+                        }
+                    }
+                ],
+            }
+        ]
+
+    def test_alert_unfurl_is_fetched_for_trusted_metadata(self) -> None:
+        group = self.create_group(project=self.project)
+
+        def history(*, channel_id: str, thread_ts: str, **kwargs: object) -> list[dict[str, Any]]:
+            if channel_id == "C9999LINKED":
+                return [
+                    {
+                        "user": "U0BOT",
+                        "blocks": [
+                            {
+                                "type": "section",
+                                "block_id": f'{{"issue": {group.id}}}',
+                                "text": {"type": "mrkdwn", "text": "fetched alert"},
+                            }
+                        ],
+                        "ts": "1700000000.222222",
+                    }
+                ]
+            return []
+
+        self._build_mocks(thread_history_side_effect=history)
+        # The unfurl's own block_id is never read; only the fetched message's is.
+        attachments = self._alert_unfurl('{"issue": 999999}')
+
+        self._run(text=f"<@U0BOT> what about <{self.LINKED_PERMALINK}>", attachments=attachments)
+
+        on_page_context = self.mock_operator.trigger_agent.call_args[1]["on_page_context"]
+        assert f"issue_id: {group.id}, short_id: {group.qualified_short_id}" in on_page_context
+        assert "Sentry alert: fetched alert" in on_page_context
+        assert "unfurled alert" not in on_page_context
+
+    def test_alert_unfurl_in_private_channel_falls_back_to_its_text(self) -> None:
+        self._build_mocks(
+            conversations_info_side_effect=lambda **_: {"channel": {"is_private": True}}
+        )
+        attachments = self._alert_unfurl('{"issue": 999999}')
+
+        self._run(text=f"<@U0BOT> what about <{self.LINKED_PERMALINK}>", attachments=attachments)
+
+        on_page_context = self.mock_operator.trigger_agent.call_args[1]["on_page_context"]
+        assert "unfurled alert" in on_page_context
+        assert "Sentry issues referenced" not in on_page_context
 
     def test_attachment_for_other_link_falls_through_to_api(self) -> None:
         """When the attachment's (channel_id, ts) doesn't match any link in
