@@ -13,6 +13,12 @@ import {toast} from '@sentry/scraps/toast';
 
 import * as llmContextModule from 'sentry/views/seerExplorer/contexts/llmContext';
 import {
+  type SeerSelection,
+  SeerSelectionProvider,
+  usePublishSeerSelection,
+  useSeerSelection,
+} from 'sentry/views/seerExplorer/contexts/seerSelection';
+import {
   SeerExplorerChatStateProvider,
   useSeerExplorerChatDispatch,
   useSeerExplorerChatState,
@@ -1023,6 +1029,111 @@ describe('useSeerExplorer', () => {
         result.current.switchToRun(runId);
       });
       expect(result.current.requestError).toBeNull();
+    });
+  });
+
+  describe('table selection', () => {
+    const selection: SeerSelection = {
+      itemType: 'issue',
+      count: 2,
+      items: [
+        {shortId: 'PROJ-1', title: 'TypeError'},
+        {shortId: 'PROJ-2', title: 'KeyError'},
+      ],
+    };
+
+    function useExplorerWithSelection() {
+      usePublishSeerSelection(selection);
+      return {explorer: useSeerExplorer(), selection: useSeerSelection()};
+    }
+
+    function mockChat() {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/`,
+        method: 'GET',
+        body: {session: null},
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/1/`,
+        method: 'GET',
+        body: {session: {blocks: [], run_id: 1, status: 'completed', updated_at: ''}},
+      });
+      return MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/`,
+        method: 'POST',
+        body: {run_id: 1},
+      });
+    }
+
+    it('sends the selected rows with the page context', async () => {
+      const postMock = mockChat();
+      const {result} = renderHookWithProviders(useExplorerWithSelection, {
+        organization,
+        additionalWrapper: SeerSelectionProvider,
+      });
+      await waitFor(() => expect(result.current.selection.selection).not.toBeNull());
+
+      act(() => {
+        result.current.explorer.sendMessage('what do these have in common?');
+      });
+
+      await waitFor(() => expect(postMock).toHaveBeenCalled());
+      const snapshot = JSON.parse(postMock.mock.calls[0][1].data.on_page_context);
+      expect(snapshot.nodes).toContainEqual(
+        expect.objectContaining({
+          nodeType: 'selection',
+          priority: 0,
+          data: expect.objectContaining({
+            itemType: 'issue',
+            selectedCount: 2,
+            allSelected: false,
+            selectedItems: selection.items,
+          }),
+        })
+      );
+    });
+
+    it('sends no selection on a page without structured page context', async () => {
+      jest
+        .spyOn(seerExplorerUtils, 'usePageReferrer')
+        .mockReturnValue({getPageReferrer: () => '/settings/account/details/'});
+      const postMock = mockChat();
+      const {result} = renderHookWithProviders(useExplorerWithSelection, {
+        organization,
+        additionalWrapper: SeerSelectionProvider,
+      });
+      await waitFor(() => expect(result.current.selection.selection).not.toBeNull());
+
+      act(() => {
+        result.current.explorer.sendMessage('what is on this page?');
+      });
+
+      await waitFor(() => expect(postMock).toHaveBeenCalled());
+      const pageContext = postMock.mock.calls[0][1].data.on_page_context;
+      expect(() => JSON.parse(pageContext)).toThrow();
+      expect(pageContext).not.toContain('selectedCount');
+    });
+
+    it('leaves the selection out when it is turned off', async () => {
+      const postMock = mockChat();
+      const {result} = renderHookWithProviders(useExplorerWithSelection, {
+        organization,
+        additionalWrapper: SeerSelectionProvider,
+      });
+      await waitFor(() => expect(result.current.selection.selection).not.toBeNull());
+
+      act(() => {
+        result.current.selection.setIncluded(false);
+      });
+      act(() => {
+        result.current.explorer.sendMessage('what is on this page?');
+      });
+
+      await waitFor(() => expect(postMock).toHaveBeenCalled());
+      const snapshot = JSON.parse(postMock.mock.calls[0][1].data.on_page_context);
+      expect(snapshot.nodes).not.toContainEqual(
+        expect.objectContaining({nodeType: 'selection'})
+      );
     });
   });
 

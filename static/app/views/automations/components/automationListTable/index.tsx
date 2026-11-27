@@ -21,6 +21,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {AUTOMATION_LIST_PAGE_LIMIT} from 'sentry/views/automations/constants';
 import {hasOrganizationAutomationWriteAccess} from 'sentry/views/automations/utils/permissions';
 import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
+import {useSeerTableSelection} from 'sentry/views/seerExplorer/contexts/seerSelection';
 
 import {AutomationsTableActions, AutomationsTableActionsBanner} from './actions';
 import {AutomationListRow, AutomationListRowSkeleton} from './row';
@@ -90,6 +91,17 @@ export function AutomationListTable({
   const [query] = useQueryState('query', parseAsString);
   const [selected, setSelectedIds] = useState(new Set<string>());
   const [allInQuerySelected, setAllInQuerySelected] = useState(false);
+  useSeerTableSelection(
+    {
+      itemType: 'alert',
+      rows: automations,
+      toSummary: automationToSeerSummary,
+      // queryCount reads like "1234", or "100+" once capped, which makes 100 a floor.
+      total: Number.parseInt(queryCount, 10) || undefined,
+    },
+    selected,
+    allInQuerySelected
+  );
 
   // Selecting every match only holds while something is selected, so emptying the
   // selection has to clear it too.
@@ -241,3 +253,7 @@ const AUTOMATION_COLUMNS: TableColumnConfig[] = [
 const AutomationsSimpleTable = styled(SimpleTable)`
   margin-bottom: ${p => p.theme.space.xl};
 `;
+
+function automationToSeerSummary(automation: Automation) {
+  return {id: automation.id, name: automation.name, enabled: automation.enabled};
+}

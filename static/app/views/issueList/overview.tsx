@@ -86,6 +86,15 @@ const DYNAMIC_COUNTS_STATS_PERIODS = new Set(['14d', '24h', 'auto']);
 const DEFAULT_GRAPH_STATS_PERIOD = 'auto';
 const MAX_ISSUES_COUNT = 100;
 
+function issueToSeerSummary(group: BaseGroup) {
+  return {
+    shortId: group.shortId,
+    title: group.title,
+    issueType: group.issueType,
+    project: group.project.slug,
+  };
+}
+
 interface Props {
   headerActions?: ReactNode;
   initialQuery?: string;
@@ -916,7 +925,15 @@ function IssueListOverviewInner({
   });
 
   return (
-    <IssueSelectionProvider visibleGroupIds={groupIds}>
+    <IssueSelectionProvider
+      visibleGroupIds={groupIds}
+      seerContext={{
+        itemType: 'issue',
+        rows: groups,
+        toSummary: issueToSeerSummary,
+        total: modifiedQueryCount,
+      }}
+    >
       <Stack flex={1}>
         <IssueListCommandPaletteActions
           groupIds={groupIds}

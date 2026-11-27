@@ -9,6 +9,7 @@ import type {
   LLMContextNodeType,
   LLMContextSnapshot,
 } from 'sentry/views/seerExplorer/contexts/llmContextTypes';
+import {useAddSeerSelectionToSnapshot} from 'sentry/views/seerExplorer/contexts/seerSelection';
 
 import {useAsciiSnapshot} from './useAsciiSnapshot';
 
@@ -74,6 +75,14 @@ const PAGE_CONTEXT_READY_NODES = new Map<string, LLMContextNodeType[]>([
   ['/seer/investigations/:investigationId/', ['investigation']],
 ]);
 
+/**
+ * Whether the route sends the structured snapshot as page context. Only that
+ * snapshot carries a table selection; other routes send an ASCII rendering.
+ */
+export function hasStructuredPageContext(route: string): boolean {
+  return STRUCTURED_CONTEXT_ROUTES.has(route);
+}
+
 type CapturedPageContext = {
   /** Whether `screenshot` is the structured snapshot rather than an ASCII rendering. */
   isStructured: boolean;
@@ -88,6 +97,7 @@ type CapturedPageContext = {
 export function usePageContextCapture() {
   const captureAsciiSnapshot = useAsciiSnapshot();
   const {getLLMContext} = useLLMContext();
+  const addSelection = useAddSeerSelectionToSnapshot();
 
   return useCallback(
     ({
@@ -101,14 +111,14 @@ export function usePageContextCapture() {
       // once here rather than only on the structured path.
       let snapshot: LLMContextSnapshot | undefined;
       try {
-        snapshot = getLLMContext();
+        snapshot = addSelection(getLLMContext());
       } catch (e) {
         Sentry.captureException(e);
       }
 
       // Send structured LLMContext JSON on allowlisted pages; fall back to a
       // coarse ASCII screenshot everywhere else.
-      if (snapshot && allowStructured && STRUCTURED_CONTEXT_ROUTES.has(route)) {
+      if (snapshot && allowStructured && hasStructuredPageContext(route)) {
         try {
           return {snapshot, screenshot: JSON.stringify(snapshot), isStructured: true};
         } catch (e) {
@@ -121,7 +131,7 @@ export function usePageContextCapture() {
         isStructured: false,
       };
     },
-    [captureAsciiSnapshot, getLLMContext]
+    [addSelection, captureAsciiSnapshot, getLLMContext]
   );
 }
 

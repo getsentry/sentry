@@ -90,6 +90,7 @@ import {
 } from './pendingUserInputDock';
 import {SeerExplorerHeader} from './seerExplorerHeader';
 import {SeerExplorerSettingsMenu} from './seerExplorerSettingsMenu';
+import {SeerSelectionToggle} from './seerSelectionToggle';
 import {UpdateSlackAlert} from './updateSlackAlert';
 
 export const INPUT_STORAGE_KEY_PREFIX = 'seer-explorer-draft';
@@ -1029,6 +1030,7 @@ export function SeerExplorerContent({
                 onOverrideBashModeToggle={() => setOverrideBashModeEnabled(v => !v)}
                 conversationsUrl={conversationsUrl}
               />
+              <SeerSelectionToggle />
             </Flex>
           }
           interruptState={interruptState}

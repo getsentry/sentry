@@ -94,6 +94,7 @@ export function ReplayIndexTable({
         hits={hasMoreResults ? replays.length + 1 : replays.length}
         knownIds={replays.map(replay => replay.id)}
         endpointOptions={endpointOptions}
+        seerContext={{itemType: 'replay', rows: replays, toSummary: replayToSeerSummary}}
       >
         {needsSDKUpdateForClickSearch ? (
           <Fragment>
@@ -121,6 +122,16 @@ export function ReplayIndexTable({
       </ListItemCheckboxProvider>
     </Fragment>
   );
+}
+
+function replayToSeerSummary(replay: ReplayListRecord) {
+  return {
+    id: replay.id,
+    projectId: replay.project_id,
+    startedAt: replay.started_at?.toISOString() ?? null,
+    durationSeconds: replay.duration?.asSeconds() ?? null,
+    errors: replay.count_errors,
+  };
 }
 
 function useNeedsSDKUpdateForClickSearch({search}: {search: undefined | string}) {

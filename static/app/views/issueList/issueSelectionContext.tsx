@@ -2,6 +2,12 @@ import type {ReactNode} from 'react';
 import {createContext, useCallback, useContext, useMemo, useReducer, useRef} from 'react';
 import isEqual from 'lodash/isEqual';
 
+import type {BaseGroup} from 'sentry/types/group';
+import {
+  type SeerTableSelectionConfig,
+  useSeerTableSelection,
+} from 'sentry/views/seerExplorer/contexts/seerSelection';
+
 interface IssueSelectionState {
   allInQuerySelected: boolean;
   lastSelected: string | null;
@@ -32,7 +38,12 @@ interface IssueSelectionActions {
   toggleSelectAllVisible: () => void;
 }
 
-type IssueSelectionProviderProps = {children: ReactNode; visibleGroupIds: string[]};
+type IssueSelectionProviderProps = {
+  children: ReactNode;
+  visibleGroupIds: string[];
+  /** Lets the user ask Seer about the selected issues. */
+  seerContext?: SeerTableSelectionConfig<BaseGroup>;
+};
 
 const IssueSelectionSummaryContext = createContext<IssueSelectionSummary | null>(null);
 const IssueSelectionActionsContext = createContext<IssueSelectionActions | null>(null);
@@ -191,6 +202,7 @@ function issueSelectionReducer(
 export function IssueSelectionProvider({
   children,
   visibleGroupIds,
+  seerContext,
 }: IssueSelectionProviderProps) {
   const [state, dispatch] = useReducer(
     issueSelectionReducer,
@@ -237,6 +249,7 @@ export function IssueSelectionProvider({
     () => new Set([...state.records.keys()].filter(id => state.records.get(id))),
     [state.records]
   );
+  useSeerTableSelection(seerContext, selectedIdsSet, state.allInQuerySelected);
   const anySelected = selectedIdsSet.size > 0;
   const multiSelected = selectedIdsSet.size > 1;
   const pageSelected = anySelected && selectedIdsSet.size === state.records.size;
