@@ -1,23 +1,38 @@
+from datetime import UTC, datetime, timedelta
 from functools import cached_property
+from time import time
 from typing import Any
 from unittest.mock import MagicMock, patch
 
-from django.http import HttpRequest
+from django.conf import settings
+from django.contrib.auth import SESSION_KEY
+from django.contrib.sessions.backends.signed_cookies import SessionStore
+from django.http import HttpRequest, HttpResponse
 from django.test import RequestFactory, override_settings
 from rest_framework.request import Request
 
 from sentry.auth.principal import acting_user_id
 from sentry.auth.services.auth import AuthenticatedToken
-from sentry.middleware.auth import AuthenticationMiddleware
+from sentry.middleware.auth import (
+    SESSION_RENEWED_AT_KEY,
+    AuthenticationMiddleware,
+    get_session_renew_interval,
+)
 from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
 from sentry.seer import agent_token
 from sentry.service_accounts.auth import is_service_account_auth
 from sentry.silo.base import SiloMode
-from sentry.testutils.cases import TestCase
+from sentry.testutils.cases import APITestCase, TestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, cell_silo_test
+from sentry.testutils.silo import (
+    all_silo_test,
+    assume_test_silo_mode,
+    cell_silo_test,
+    control_silo_test,
+)
 from sentry.users.models.user import User
 from sentry.users.models.userip import UserIP
 from sentry.users.services.user.service import user_service
@@ -270,3 +285,258 @@ class ServiceAccountAuthenticationMiddlewareTest(TestCase):
         # Only DRF puts the account on request.user, so Django views never treat it as logged in.
         assert request.user.is_anonymous
         assert is_service_account_auth(request.auth)
+
+
+@all_silo_test
+class RenewSessionTest(TestCase):
+    middleware = cached_property(AuthenticationMiddleware)
+
+    def make_session_request(self) -> Any:
+        request = RequestFactory().get("/")
+        request.session = self.session
+        # Organization endpoints set the organization
+        request.organization = self.organization
+        return request
+
+    def sign_in(self, request: Any) -> None:
+        with assume_test_silo_mode(SiloMode.MONOLITH):
+            assert login(request, self.user)
+        request.session.modified = False
+
+    def handle(self, request: Any, response: HttpResponse | None = None) -> None:
+        self.middleware.process_request(request)
+        # A view resolves the user
+        acting_user_id(request.user)
+        self.middleware.process_response(request, response or HttpResponse())
+
+    def test_does_not_renew_by_default(self) -> None:
+        request = self.make_session_request()
+        self.sign_in(request)
+
+        self.handle(request)
+
+        assert SESSION_RENEWED_AT_KEY not in request.session
+        assert not request.session.modified
+
+    @with_feature("organizations:sliding-session-expiry")
+    def test_renews_session(self) -> None:
+        request = self.make_session_request()
+        self.sign_in(request)
+
+        self.handle(request)
+
+        assert request.session[SESSION_RENEWED_AT_KEY] == int(time())
+        assert request.session.modified
+
+    @with_feature("organizations:sliding-session-expiry")
+    def test_does_not_renew_recently_renewed_session(self) -> None:
+        request = self.make_session_request()
+        self.sign_in(request)
+        renewed_at = int(time()) - get_session_renew_interval() + 60
+        request.session[SESSION_RENEWED_AT_KEY] = renewed_at
+        request.session.modified = False
+
+        self.handle(request)
+
+        assert request.session[SESSION_RENEWED_AT_KEY] == renewed_at
+        assert not request.session.modified
+
+    @with_feature("organizations:sliding-session-expiry")
+    def test_renews_session_after_interval(self) -> None:
+        request = self.make_session_request()
+        self.sign_in(request)
+        request.session[SESSION_RENEWED_AT_KEY] = int(time()) - get_session_renew_interval() - 60
+        request.session.modified = False
+
+        self.handle(request)
+
+        assert request.session[SESSION_RENEWED_AT_KEY] == int(time())
+        assert request.session.modified
+
+    @with_feature("organizations:sliding-session-expiry")
+    def test_does_not_renew_without_organization(self) -> None:
+        request = self.make_session_request()
+        del request.organization
+        self.sign_in(request)
+
+        self.handle(request)
+
+        assert SESSION_RENEWED_AT_KEY not in request.session
+        assert not request.session.modified
+
+    def test_does_not_renew_for_organization_without_feature(self) -> None:
+        other_organization = self.create_organization()
+        request = self.make_session_request()
+        self.sign_in(request)
+
+        with self.feature({"organizations:sliding-session-expiry": [other_organization.slug]}):
+            self.handle(request)
+
+        assert SESSION_RENEWED_AT_KEY not in request.session
+        assert not request.session.modified
+
+    def test_renew_interval(self) -> None:
+        assert get_session_renew_interval() == 24 * 60 * 60
+
+        # A session that lasts less than two days is renewed halfway through
+        with override_settings(SESSION_COOKIE_AGE=60 * 60):
+            assert get_session_renew_interval() == 30 * 60
+
+    @with_feature("organizations:sliding-session-expiry")
+    def test_does_not_renew_anonymous_session(self) -> None:
+        request = self.make_session_request()
+
+        self.handle(request)
+
+        assert request.user.is_anonymous
+        assert list(request.session.keys()) == []
+
+    @with_feature("organizations:sliding-session-expiry")
+    def test_does_not_start_session_for_token(self) -> None:
+        token = self.create_user_auth_token(self.user)
+        request: Any = RequestFactory().get("/", HTTP_AUTHORIZATION=f"Bearer {token.token}")
+        request.session = SessionStore()
+        request.organization = self.organization
+
+        self.handle(request)
+
+        assert request.user.is_authenticated
+        assert not request.session.accessed
+        assert not request.session.modified
+
+    @with_feature("organizations:sliding-session-expiry")
+    def test_does_not_use_session_when_user_is_not_resolved(self) -> None:
+        request: Any = RequestFactory().get("/")
+        request.session = SessionStore()
+        request.organization = self.organization
+
+        self.middleware.process_request(request)
+        self.middleware.process_response(request, HttpResponse())
+
+        assert not request.session.accessed
+
+    @with_feature("organizations:sliding-session-expiry")
+    def test_does_not_renew_session_that_was_signed_out(self) -> None:
+        request = self.make_session_request()
+        self.sign_in(request)
+
+        self.middleware.process_request(request)
+        acting_user_id(request.user)
+        # Signing out flushes the session
+        request.session.flush()
+        self.middleware.process_response(request, HttpResponse())
+
+        assert SESSION_KEY not in request.session
+        assert SESSION_RENEWED_AT_KEY not in request.session
+
+    @with_feature("organizations:sliding-session-expiry")
+    def test_does_not_renew_session_with_invalid_nonce(self) -> None:
+        request = self.make_session_request()
+        self.sign_in(request)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.user.refresh_session_nonce()
+            self.user.save()
+
+        self.handle(request)
+
+        assert request.user.is_anonymous
+        assert SESSION_RENEWED_AT_KEY not in request.session
+        assert not request.session.modified
+
+    @with_feature("organizations:sliding-session-expiry")
+    def test_does_not_renew_on_server_error(self) -> None:
+        request = self.make_session_request()
+        self.sign_in(request)
+
+        self.handle(request, HttpResponse(status=500))
+
+        assert SESSION_RENEWED_AT_KEY not in request.session
+        assert not request.session.modified
+
+    @with_feature("organizations:sliding-session-expiry")
+    def test_does_not_renew_on_cacheable_response(self) -> None:
+        request = self.make_session_request()
+        self.sign_in(request)
+
+        self.handle(request, HttpResponse(headers={"Cache-Control": "max-age=3600"}))
+
+        assert SESSION_RENEWED_AT_KEY not in request.session
+        assert not request.session.modified
+
+
+class SlidingSessionTestMixin:
+    signed_in_at = datetime(2024, 1, 1, tzinfo=UTC)
+
+    def is_signed_in(self, after: timedelta) -> bool:
+        raise NotImplementedError
+
+    def test_session_ends_after_cookie_age_by_default(self) -> None:
+        assert self.is_signed_in(after=timedelta(days=13))
+        # Being active on day 13 doesn't keep the session past day 14
+        assert not self.is_signed_in(after=timedelta(days=15))
+
+    @with_feature("organizations:sliding-session-expiry")
+    def test_active_session_is_renewed(self) -> None:
+        assert self.is_signed_in(after=timedelta(days=13))
+        assert self.is_signed_in(after=timedelta(days=20))
+        assert self.is_signed_in(after=timedelta(days=33))
+
+    @with_feature("organizations:sliding-session-expiry")
+    def test_inactive_session_ends(self) -> None:
+        assert self.is_signed_in(after=timedelta(days=1))
+        # Last active on day 1, so the session ends on day 15
+        assert not self.is_signed_in(after=timedelta(days=16))
+
+
+@control_silo_test
+class SlidingSessionTest(SlidingSessionTestMixin, APITestCase):
+    endpoint = "sentry-api-0-organization-api-key-index"
+
+    def setUp(self) -> None:
+        super().setUp()
+        with freeze_time(self.signed_in_at):
+            self.login_as(self.user)
+        # The first request saves the organization in the session
+        assert self.is_signed_in(after=timedelta())
+
+    def is_signed_in(self, after: timedelta) -> bool:
+        with freeze_time(self.signed_in_at + after):
+            return self.get_response(self.organization.slug).status_code == 200
+
+    @with_feature("organizations:sliding-session-expiry")
+    def test_session_cookie_is_set_once_per_interval(self) -> None:
+        with freeze_time(self.signed_in_at + timedelta(days=2)):
+            response = self.get_success_response(self.organization.slug)
+        assert response.cookies[settings.SESSION_COOKIE_NAME]["max-age"] == (
+            settings.SESSION_COOKIE_AGE
+        )
+
+        with freeze_time(self.signed_in_at + timedelta(days=2, hours=1)):
+            response = self.get_success_response(self.organization.slug)
+        assert settings.SESSION_COOKIE_NAME not in response.cookies
+
+        with freeze_time(self.signed_in_at + timedelta(days=3, hours=1)):
+            response = self.get_success_response(self.organization.slug)
+        assert settings.SESSION_COOKIE_NAME in response.cookies
+
+    def test_session_cookie_is_not_set_by_default(self) -> None:
+        with freeze_time(self.signed_in_at + timedelta(days=2)):
+            response = self.get_success_response(self.organization.slug)
+
+        assert settings.SESSION_COOKIE_NAME not in response.cookies
+
+
+@cell_silo_test
+class CellSlidingSessionTest(SlidingSessionTestMixin, APITestCase):
+    endpoint = "sentry-api-0-organization-details"
+
+    def setUp(self) -> None:
+        super().setUp()
+        with freeze_time(self.signed_in_at):
+            self.login_as(self.user)
+        # The first request saves the organization in the session
+        assert self.is_signed_in(after=timedelta())
+
+    def is_signed_in(self, after: timedelta) -> bool:
+        with freeze_time(self.signed_in_at + after):
+            return self.get_response(self.organization.slug).status_code == 200
