@@ -15,9 +15,10 @@ from snuba_sdk import Column, Function, Op
 from sentry.anomaly_detection.contracts import (
     Metric,
     SeriesRow,
+    Service,
     Signal,
 )
-from sentry.anomaly_detection.inputs import measurements
+from sentry.anomaly_detection.inputs import measurements, new_failures
 from sentry.anomaly_detection.inputs.measurements import (
     ERROR_RELEASE,
     ERROR_USER,
@@ -28,6 +29,7 @@ from sentry.anomaly_detection.inputs.measurements import (
     collect,
 )
 from sentry.anomaly_detection.inputs.query import ScopedSpans
+from sentry.anomaly_detection.inputs.shapes import DailyShapes
 from sentry.anomaly_detection.state import client
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
@@ -380,3 +382,20 @@ class TestCollection(TestCase):
                 f"{self.project.id}:{dataset}:60"
             )
             assert 0 < client().ttl(key) <= 600
+
+
+def test_failure_thresholds_scale_with_each_days_median_users() -> None:
+    day = START + timedelta(days=1)
+    prod, stage = Service(10, "prod"), Service(10, "stage")
+    thresholds = new_failures.new_failure_thresholds(
+        DailyShapes(
+            day, frozenset({10}), {}, {START: {prod: 300.0}, day: {prod: 400.0, stage: 5.0}}
+        )
+    )
+    # 5% of the day's median hourly users, at least 10.
+    assert thresholds.at(prod, day - MINUTE) == 15.0
+    assert thresholds.at(prod, day) == 20.0
+    assert thresholds.at(stage, day + timedelta(hours=5)) == 10.0
+    assert thresholds.at(Service(10, "unobserved"), day) == 10.0
+    # Neither covered day: no audience to scale by.
+    assert thresholds.at(prod, day + timedelta(days=1)) == 10.0
