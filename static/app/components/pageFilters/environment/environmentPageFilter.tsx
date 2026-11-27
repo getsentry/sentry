@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useRef} from 'react';
+import {Fragment, useCallback, useMemo, useRef} from 'react';
 import {useMatches} from 'react-router';
 import {isAppleDevice} from '@react-aria/utils';
 import isEqual from 'lodash/isEqual';
@@ -226,6 +226,14 @@ export function EnvironmentPageFilter({
     onReset?.();
   };
 
+  const handleSelectAll = () => {
+    trackAnalytics('environmentselector.select_all', {
+      path: getRouteStringFromRoutes({matches}),
+      organization,
+    });
+    dispatch({type: 'set staged', value: environments});
+  };
+
   return (
     <CompactSelect
       mode="grid"
@@ -242,7 +250,7 @@ export function EnvironmentPageFilter({
           <InfoTip
             size="xs"
             title={tct(
-              '[rangeModifier] + click to select a range of environments or [multiModifier] + click to select multiple environments at once.',
+              '[rangeModifier] + click to select a range of environments or [multiModifier] + click to select multiple environments at once. Use Select All to stage every environment and uncheck the ones you want to exclude.',
               {
                 rangeModifier: t('Shift'),
                 multiModifier: isAppleDevice() ? t('Cmd') : t('Ctrl'),
@@ -253,7 +261,14 @@ export function EnvironmentPageFilter({
       }
       menuWidth={menuWidth ?? defaultMenuWidth}
       menuHeaderTrailingItems={
-        shouldShowReset ? <MenuComponents.ResetButton onClick={handleReset} /> : null
+        <Fragment>
+          {environments.length > 0 ? (
+            <MenuComponents.HeaderButton onClick={handleSelectAll}>
+              {t('Select All')}
+            </MenuComponents.HeaderButton>
+          ) : null}
+          {shouldShowReset ? <MenuComponents.ResetButton onClick={handleReset} /> : null}
+        </Fragment>
       }
       menuFooter={
         hasStagedChanges ? (
