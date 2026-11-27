@@ -501,6 +501,48 @@ describe('InvoiceDetails', () => {
       ).not.toBeInTheDocument();
     });
 
+    it('names the categories from the display names in the plan details', async () => {
+      MockApiClient.addMockResponse({
+        url: usageUrl,
+        method: 'GET',
+        body: {
+          ...BillingHistoryFixture({
+            plan: 'am3_team',
+            categories: {
+              errors: MetricHistoryFixture({
+                category: DataCategory.ERRORS,
+                usage: 62_000,
+                reserved: 50_000,
+                prepaid: 50_000,
+              }),
+            },
+          }),
+          // The endpoint sends only the display names of the plan.
+          planDetails: {
+            categoryDisplayNames: {
+              errors: {singular: 'error event', plural: 'error events'},
+            },
+          },
+        },
+      });
+      render(<InvoiceDetails />, {
+        organization: usageOrganization,
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/invoices/${params.invoiceGuid}/`,
+          },
+          route: '/organizations/:orgId/invoices/:invoiceGuid/',
+        },
+      });
+
+      const usage = await screen.findByRole('region', {
+        name: 'Usage billed on this receipt',
+      });
+      expect(
+        within(usage).getByRole('row', {name: 'Error events 62,000 50,000 >100%'})
+      ).toBeInTheDocument();
+    });
+
     it('shows no usage when the receipt billed none', async () => {
       const usageRequest = MockApiClient.addMockResponse({
         url: usageUrl,
