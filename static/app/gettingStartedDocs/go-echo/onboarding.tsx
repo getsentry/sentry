@@ -22,12 +22,6 @@ import (
 // To initialize Sentry's handler, you need to initialize Sentry itself beforehand
 if err := sentry.Init(sentry.ClientOptions{
   Dsn: "${params.dsn.public}",${
-    params.isLogsSelected
-      ? `
-  // Enable structured logs to Sentry
-  EnableLogs: true,`
-      : ''
-  }${
     params.isPerformanceSelected
       ? `
   // Set TracesSampleRate to 1.0 to capture 100%

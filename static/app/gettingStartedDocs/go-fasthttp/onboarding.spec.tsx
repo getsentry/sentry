@@ -32,10 +32,7 @@ describe('fasthttp onboarding docs', () => {
   it('renders logs onboarding docs correctly', async () => {
     renderWithOnboardingLayout(docs, {selectedProducts: [ProductSolution.LOGS]});
 
-    const elements = await screen.findAllByText(textWithMarkupMatcher(/EnableLogs/));
-    for (const element of elements) {
-      expect(element).toBeInTheDocument();
-    }
+    expect(await screen.findByText('Logging Integrations')).toBeInTheDocument();
   });
 
   it('renders performance and logs onboarding docs correctly', async () => {
@@ -50,9 +47,6 @@ describe('fasthttp onboarding docs', () => {
       expect(element).toBeInTheDocument();
     }
 
-    const logElements = await screen.findAllByText(textWithMarkupMatcher(/EnableLogs/));
-    for (const element of logElements) {
-      expect(element).toBeInTheDocument();
-    }
+    expect(await screen.findByText('Logging Integrations')).toBeInTheDocument();
   });
 });

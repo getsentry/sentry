@@ -27,12 +27,6 @@ if err := sentry.Init(sentry.ClientOptions{
   // We recommend adjusting this value in production,
   TracesSampleRate: 1.0,`
       : ''
-  }${
-    params.isLogsSelected
-      ? `
-  // Enable structured logs to Sentry
-  EnableLogs: true,`
-      : ''
   }
 }); err != nil {
   fmt.Printf("Sentry initialization failed: %v\\n", err)
