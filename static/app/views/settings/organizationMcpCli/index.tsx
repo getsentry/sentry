@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 
 import {LinkButton} from '@sentry/scraps/button';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {Container, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -14,6 +15,15 @@ export default function OrganizationMcpCli() {
   const organization = useOrganization();
   const orgScopedMcpUrl = `https://mcp.sentry.dev/mcp/${organization.slug}`;
   const projectScopedMcpUrl = `${orgScopedMcpUrl}/your-project`;
+  const cliMcpScope = `${organization.slug}/`;
+  const cliMcpConfig = `{
+  "mcpServers": {
+    "sentry": {
+      "command": "sentry",
+      "args": ["mcp", ${JSON.stringify(cliMcpScope)}]
+    }
+  }
+}`;
 
   return (
     <Fragment>
@@ -64,6 +74,14 @@ export default function OrganizationMcpCli() {
             </Text>
             <TextCopyInput>curl https://cli.sentry.dev/install -fsS | bash</TextCopyInput>
             <TextCopyInput>sentry auth login</TextCopyInput>
+            <Text variant="muted">
+              {t(
+                'Then register the CLI as a local MCP server. It uses your CLI login, so the MCP config needs no token.'
+              )}
+            </Text>
+            <TextCopyInput>{`claude mcp add sentry -- sentry mcp ${cliMcpScope}`}</TextCopyInput>
+            <Text variant="muted">{t('Other MCP clients take the same command:')}</Text>
+            <CodeBlock language="json">{cliMcpConfig}</CodeBlock>
             <div>
               <LinkButton href="https://cli.sentry.dev" external variant="secondary">
                 {t('CLI Documentation')}
