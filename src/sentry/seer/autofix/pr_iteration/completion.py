@@ -287,10 +287,16 @@ def iteration_completed_webhook_fields(
         )
         return None
 
+    if not is_synced:
+        outcome, reason = "push_failed", "pr_creation_errored"
+    elif _iteration_found_nothing_to_push(state):
+        outcome, reason = "no_changes", "empty_delta"
+    else:
+        outcome, reason = "changes_pushed", "all_repos_synced"
     log_ctx.info(
         "autofix.pr_iteration.iteration_outcome",
-        outcome="changes_pushed" if is_synced else "push_failed",
-        reason="all_repos_synced" if is_synced else "pr_creation_errored",
+        outcome=outcome,
+        reason=reason,
         webhook_emitted=True,
         iteration_index=iteration_index,
         errored_repos=errored_repos,
@@ -485,6 +491,22 @@ def _latest_iteration_touched_files(log_ctx: PrIterationLogContext, state: SeerR
     return bool(iteration_repos(iterations[-1]))
 
 
+def _iteration_found_nothing_to_push(state: SeerRunState) -> bool:
+    """Whether Seer's push found nothing to push for every repo the latest iteration edited."""
+    try:
+        iterations = get_iterations(state)
+    except Exception:
+        logger.exception("autofix.pr_iteration.get_iterations_failed")
+        return False
+    if not iterations:
+        return False
+    started_at = iterations[-1].blocks[0].timestamp
+    repos = iteration_repos(iterations[-1])
+    return bool(repos) and all(
+        state.found_nothing_to_push(repo, since=started_at) for repo in repos
+    )
+
+
 @traces.trace
 def pr_iteration_push_outcome(
     log_ctx: PrIterationLogContext,
@@ -518,6 +540,19 @@ def pr_iteration_push_outcome(
     _, is_synced = state.has_code_changes()
 
     if is_synced:
+        if _iteration_found_nothing_to_push(state):
+            # Its edits cancelled out, e.g. a scratch file created and deleted again.
+            log_ctx.info("autofix.pr_iteration.push", outcome="not_pushed", reason="empty_delta")
+            metrics.incr(
+                "autofix.pr_iteration.step",
+                tags={
+                    "checkpoint": "empty_delta",
+                    "referrer": referrer.value,
+                    "feedback_kind": latest_iteration_feedback_kind(state),
+                },
+                sample_rate=1.0,
+            )
+            return PrIterationOutcome.NO_CODE_CHANGES
         log_ctx.info("autofix.pr_iteration.push", outcome="not_pushed", reason="already_synced")
         return PrIterationOutcome.ALREADY_PUSHED
 
