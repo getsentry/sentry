@@ -2288,7 +2288,7 @@ describe('Customer Details', () => {
         const input = await screen.findByRole('textbox', {
           name: `How many ${dataCategory} in multiples of 1,000s? (50 is 50,000 ${dataCategory})`,
         });
-        await userEvent.type(input, '26{enter}');
+        await userEvent.type(input, '26');
 
         expect(screen.getByText('Total: 26,000')).toBeInTheDocument();
         await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
@@ -2337,7 +2337,7 @@ describe('Customer Details', () => {
       name: 'How many replays? (50 is 50 replays)',
     });
 
-    await userEvent.type(input, '50{enter}');
+    await userEvent.type(input, '50');
 
     expect(screen.getByText('Total: 50')).toBeInTheDocument();
 
@@ -2385,7 +2385,7 @@ describe('Customer Details', () => {
       name: 'How many spans in multiples of 100,000s? (50 is 5,000,000 spans)',
     });
 
-    await userEvent.type(input, '50{enter}');
+    await userEvent.type(input, '50');
 
     expect(screen.getByText('Total: 5,000,000')).toBeInTheDocument();
 
@@ -2454,7 +2454,7 @@ describe('Customer Details', () => {
       name: 'How many cron monitors? (50 is 50 cron monitors)',
     });
 
-    await userEvent.type(input, '50{enter}');
+    await userEvent.type(input, '50');
 
     expect(screen.getByText('Total: 50')).toBeInTheDocument();
 

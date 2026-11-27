@@ -1,12 +1,18 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
-import {renderGlobalModal, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
+
+import {openModal} from '@sentry/scraps/modal';
 
 import {DataCategory, DataCategoryExact} from 'sentry/types/core';
 
 import {AddGiftEventsAction} from 'admin/components/addGiftEventsAction';
-import {openAdminConfirmModal} from 'admin/components/adminConfirmationModal';
 import {BILLED_DATA_CATEGORY_INFO} from 'getsentry/constants';
 import {getCategoryInfoFromPlural} from 'getsentry/utils/dataCategory';
 
@@ -19,16 +25,15 @@ describe('AddGiftEventsAction', () => {
     const billedCategoryInfo = categoryOverride
       ? getCategoryInfoFromPlural(categoryOverride)
       : BILLED_DATA_CATEGORY_INFO[DataCategoryExact.SPAN];
-    openAdminConfirmModal({
-      renderModalSpecificContent: deps => (
-        <AddGiftEventsAction
-          subscription={mockSub}
-          dataCategory={categoryOverride ?? DataCategory.SPANS}
-          billedCategoryInfo={billedCategoryInfo}
-          {...deps}
-        />
-      ),
-    });
+    openModal(deps => (
+      <AddGiftEventsAction
+        subscription={mockSub}
+        dataCategory={categoryOverride ?? DataCategory.SPANS}
+        billedCategoryInfo={billedCategoryInfo}
+        {...deps}
+        onConfirm={jest.fn()}
+      />
+    ));
   };
 
   function getInput() {
@@ -72,10 +77,65 @@ describe('AddGiftEventsAction', () => {
     expect(input).toHaveAccessibleDescription('Total: 500,000');
   });
 
-  it('disables confirm button when no number is entered', () => {
+  it('keeps confirm enabled and shows an error when no number is entered', async () => {
     triggerGiftModal();
     renderGlobalModal();
-    expect(screen.getByTestId('confirm-button')).toBeDisabled();
+
+    const confirmButton = screen.getByRole('button', {name: 'Confirm'});
+    expect(confirmButton).toBeEnabled();
+    await userEvent.click(confirmButton);
+
+    expect(
+      await screen.findByText('Enter a number greater than zero')
+    ).toBeInTheDocument();
+    expect(confirmButton).toBeInTheDocument();
+  });
+
+  it('confirms the gifted total with the audit params', async () => {
+    const onConfirm = jest.fn();
+    openModal(deps => (
+      <AddGiftEventsAction
+        subscription={mockSub}
+        dataCategory={DataCategory.SPANS}
+        billedCategoryInfo={BILLED_DATA_CATEGORY_INFO[DataCategoryExact.SPAN]}
+        {...deps}
+        onConfirm={onConfirm}
+      />
+    ));
+    renderGlobalModal();
+
+    await setNumEvents('5');
+    await userEvent.type(screen.getByRole('textbox', {name: 'Notes'}), 'gift');
+    await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
+
+    await waitFor(() =>
+      expect(onConfirm).toHaveBeenCalledWith({addFreeSpans: 500_000, notes: 'gift'})
+    );
+  });
+
+  it('does not confirm while the ticket URL is invalid', async () => {
+    const onConfirm = jest.fn();
+    openModal(deps => (
+      <AddGiftEventsAction
+        subscription={mockSub}
+        dataCategory={DataCategory.SPANS}
+        billedCategoryInfo={BILLED_DATA_CATEGORY_INFO[DataCategoryExact.SPAN]}
+        {...deps}
+        onConfirm={onConfirm}
+      />
+    ));
+    renderGlobalModal();
+
+    await setNumEvents('5');
+    await userEvent.type(screen.getByRole('textbox', {name: 'TicketURL'}), '1invalid');
+    await setNumEvents('6');
+
+    const confirmButton = screen.getByRole('button', {name: 'Confirm'});
+    expect(confirmButton).toBeEnabled();
+    await userEvent.click(confirmButton);
+    expect(await screen.findByText('Invalid ticket URL')).toBeInTheDocument();
+    expect(confirmButton).toBeInTheDocument();
+    expect(onConfirm).not.toHaveBeenCalled();
   });
 
   it('allows gifts of any size', async () => {
