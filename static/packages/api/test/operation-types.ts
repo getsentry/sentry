@@ -1,5 +1,5 @@
 /** Public discovery types are readonly, including nested parameter metadata. */
-import { operations, type ApiOperation, type ApiQueryParameter } from "@sentry/api/operations";
+import { operations, type ApiOperation, type ApiProjectScope, type ApiQueryParameter } from "@sentry/api/operations";
 
 const operation: ApiOperation | undefined = operations[0];
 const parameter: ApiQueryParameter | undefined = operation?.queryParameters[0];
@@ -15,4 +15,9 @@ if (operation) {
 }
 // @ts-expect-error Enum values must not be changed by consumers.
 parameter?.enum?.push("added");
+const scope: ApiProjectScope | undefined = operation?.projectScope;
+// @ts-expect-error Only Sentry's declared project scopes are values.
+const unknownScope: ApiProjectScope = "project";
 void value;
+void scope;
+void unknownScope;
