@@ -10,7 +10,6 @@ from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 from sentry.constants import ObjectStatus
 from sentry.integrations.example import ExampleIntegration
 from sentry.integrations.mixins import ResolveSyncAction
-from sentry.integrations.models import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.project_management.metrics import (
     InboundStatusSyncFailureReason,
@@ -19,6 +18,7 @@ from sentry.integrations.project_management.metrics import (
 )
 from sentry.integrations.tasks.sync_status_inbound import (
     SYNC_STATUS_INBOUND_RETRY_TIMES,
+    MissingProviderContext,
     get_resolutions_and_activity_data_for_groups,
     sync_status_inbound,
 )
@@ -47,6 +47,9 @@ fake_data = {
         "id": "some_status",
     }
 }
+
+# The payload as the producer enqueues it: provider data plus the provider context.
+queued_data = {**fake_data, INTEGRATION_PROVIDER_KEY: "example"}
 
 fake_activity_data = {
     "provider": "test",
@@ -129,7 +132,7 @@ def test_resolve_next_release_skips_archived_successor(
             integration_id=integration.id,
             organization_id=project.organization_id,
             issue_key=TEST_ISSUE_KEY,
-            data=fake_data,
+            data=queued_data,
         )
 
     default_group.refresh_from_db()
@@ -263,7 +266,7 @@ class TestSyncStatusInbound(TestCase):
             integration_id=self.integration.id,
             organization_id=self.organization.id,
             issue_key=TEST_ISSUE_KEY,
-            data=fake_data,
+            data=queued_data,
         )
 
         self._assert_group_unresolved(self.group.id)
@@ -300,31 +303,22 @@ class TestSyncStatusInbound(TestCase):
             },
         )
 
-    def test_integration_not_found(self) -> None:
-        with pytest.raises(Integration.DoesNotExist):
+    @mock.patch.object(ProjectManagementEvent, "record_outcome")
+    @mock.patch.object(ExampleIntegration, "get_resolve_sync_action")
+    def test_payload_without_provider_context_is_rejected(
+        self,
+        mock_get_resolve_sync_action: mock.MagicMock,
+        mock_record_outcome: mock.MagicMock,
+    ) -> None:
+        with pytest.raises(MissingProviderContext, match="missing the integration provider"):
             sync_status_inbound(
-                integration_id=99999,
+                integration_id=self.integration.id,
                 organization_id=self.organization.id,
                 issue_key=TEST_ISSUE_KEY,
                 data=fake_data,
             )
 
-    @mock.patch.object(ProjectManagementEvent, "record_outcome")
-    @mock.patch.object(ExampleIntegration, "get_resolve_sync_action")
-    def test_legacy_queued_task_does_not_emit_unmatched_terminal_outcome(
-        self,
-        mock_get_resolve_sync_action: mock.MagicMock,
-        mock_record_outcome: mock.MagicMock,
-    ) -> None:
-        mock_get_resolve_sync_action.return_value = ResolveSyncAction.NOOP
-
-        sync_status_inbound(
-            integration_id=self.integration.id,
-            organization_id=self.organization.id,
-            issue_key=TEST_ISSUE_KEY,
-            data=fake_data,
-        )
-
+        mock_get_resolve_sync_action.assert_not_called()
         mock_record_outcome.assert_not_called()
 
     @mock.patch.object(ProjectManagementEvent, "record_outcome")
@@ -360,7 +354,7 @@ class TestSyncStatusInbound(TestCase):
             integration_id=integration.id,
             organization_id=self.organization.id,
             issue_key=TEST_ISSUE_KEY,
-            data=fake_data,
+            data=queued_data,
         )
         self._assert_group_unresolved(self.group.id)
 
@@ -369,7 +363,7 @@ class TestSyncStatusInbound(TestCase):
             integration_id=self.integration.id,
             organization_id=99999,
             issue_key=TEST_ISSUE_KEY,
-            data=fake_data,
+            data=queued_data,
         )
         self.group.refresh_from_db()
         assert self.group.status == GroupStatus.UNRESOLVED
@@ -406,7 +400,7 @@ class TestSyncStatusInbound(TestCase):
             integration_id=self.integration.id,
             organization_id=self.organization.id,
             issue_key=TEST_ISSUE_KEY,
-            data=fake_data,
+            data=queued_data,
         )
 
         self._assert_group_unresolved(self.group.id)
@@ -439,7 +433,7 @@ class TestSyncStatusInbound(TestCase):
             integration_id=self.integration.id,
             organization_id=self.organization.id,
             issue_key=TEST_ISSUE_KEY,
-            data=fake_data,
+            data=queued_data,
         )
 
         self._assert_group_resolved(self.group.id)
@@ -488,7 +482,7 @@ class TestSyncStatusInbound(TestCase):
             integration_id=self.integration.id,
             organization_id=self.organization.id,
             issue_key=TEST_ISSUE_KEY,
-            data=fake_data,
+            data=queued_data,
         )
 
         self._assert_group_resolved(self.group.id)
@@ -560,7 +554,7 @@ class TestSyncStatusInbound(TestCase):
             integration_id=self.integration.id,
             organization_id=self.organization.id,
             issue_key=TEST_ISSUE_KEY,
-            data=fake_data,
+            data=queued_data,
         )
 
         self._assert_group_resolved(self.group.id)
@@ -602,7 +596,7 @@ class TestSyncStatusInbound(TestCase):
             integration_id=self.integration.id,
             organization_id=self.organization.id,
             issue_key=TEST_ISSUE_KEY,
-            data=fake_data,
+            data=queued_data,
         )
 
         self._assert_group_resolved(self.group.id)
@@ -625,7 +619,7 @@ class TestSyncStatusInbound(TestCase):
             integration_id=self.integration.id,
             organization_id=self.organization.id,
             issue_key=TEST_ISSUE_KEY,
-            data=fake_data,
+            data=queued_data,
         )
 
         self._assert_group_resolved(self.group.id)
@@ -648,7 +642,7 @@ class TestSyncStatusInbound(TestCase):
             integration_id=self.integration.id,
             organization_id=self.organization.id,
             issue_key=TEST_ISSUE_KEY,
-            data=fake_data,
+            data=queued_data,
         )
 
         self._assert_group_resolved(self.group.id)
@@ -769,7 +763,7 @@ class TestSyncStatusInbound(TestCase):
             integration_id=self.integration.id,
             organization_id=self.organization.id,
             issue_key=TEST_ISSUE_KEY,
-            data=fake_data,
+            data=queued_data,
         )
 
         group = Group.objects.get(id=self.group.id)
@@ -787,7 +781,7 @@ class TestSyncStatusInbound(TestCase):
                 integration_id=self.integration.id,
                 organization_id=self.organization.id,
                 issue_key=TEST_ISSUE_KEY,
-                data=fake_data,
+                data=queued_data,
             )
 
         self._assert_group_unresolved(self.group.id)
