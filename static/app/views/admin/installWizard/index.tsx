@@ -37,6 +37,30 @@ type WizardField = {definition: OptionDefinition; name: string; required: boolea
 
 type WizardSection = {fields: WizardField[]; key: string; heading?: string};
 
+function WizardFieldLayout({
+  label,
+  hintText,
+  children,
+}: {
+  children: React.ReactNode;
+  label: React.ReactNode;
+  hintText?: React.ReactNode;
+}) {
+  return (
+    <Grid
+      columns={{zero: 'minmax(0, 1fr)', md: 'repeat(2, minmax(0, 1fr))'}}
+      gap="xl"
+      align="center"
+    >
+      <Stack gap="xs" minWidth="0">
+        {label}
+        {hintText}
+      </Stack>
+      <Container minWidth="0">{children}</Container>
+    </Grid>
+  );
+}
+
 function getWizardSections(options: InstallWizardOptions): WizardSection[] {
   const optionKeys = Object.keys(options);
   const missingKeys = optionKeys.filter(key => !options[key]!.field.isSet);
@@ -163,7 +187,7 @@ function InstallWizardForm({
 
   return (
     <form.AppForm form={form}>
-      <Stack gap="xl">
+      <Stack gap="xl" containerType="inline-size">
         <Text as="p">
           {t('Complete setup by filling out the required configuration.')}
         </Text>
@@ -185,23 +209,41 @@ function InstallWizardForm({
                       switch (definition.type) {
                         case 'boolean':
                           return (
-                            <field.Layout.Row
-                              label={definition.label}
-                              hintText={definition.help}
-                              required={required}
+                            <WizardFieldLayout
+                              label={
+                                <field.Meta.Label required={required}>
+                                  {definition.label}
+                                </field.Meta.Label>
+                              }
+                              hintText={
+                                definition.help ? (
+                                  <field.Meta.HintText>
+                                    {definition.help}
+                                  </field.Meta.HintText>
+                                ) : undefined
+                              }
                             >
                               <field.Switch
                                 checked={value === true}
                                 onChange={field.handleChange}
                               />
-                            </field.Layout.Row>
+                            </WizardFieldLayout>
                           );
                         case 'radio':
                           return (
-                            <field.Layout.Row
-                              label={definition.label}
-                              hintText={definition.help}
-                              required={required}
+                            <WizardFieldLayout
+                              label={
+                                <field.Meta.Label required={required}>
+                                  {definition.label}
+                                </field.Meta.Label>
+                              }
+                              hintText={
+                                definition.help ? (
+                                  <field.Meta.HintText>
+                                    {definition.help}
+                                  </field.Meta.HintText>
+                                ) : undefined
+                              }
                             >
                               <field.RadioGroup
                                 value={typeof value === 'string' ? value : ''}
@@ -217,16 +259,25 @@ function InstallWizardForm({
                                   </Stack>
                                 )}
                               </field.RadioGroup>
-                            </field.Layout.Row>
+                            </WizardFieldLayout>
                           );
                         case 'email':
                         case 'text':
                         default:
                           return (
-                            <field.Layout.Row
-                              label={definition.label}
-                              hintText={definition.help}
-                              required={required}
+                            <WizardFieldLayout
+                              label={
+                                <field.Meta.Label required={required}>
+                                  {definition.label}
+                                </field.Meta.Label>
+                              }
+                              hintText={
+                                definition.help ? (
+                                  <field.Meta.HintText>
+                                    {definition.help}
+                                  </field.Meta.HintText>
+                                ) : undefined
+                              }
                             >
                               <field.Input
                                 type={definition.type}
@@ -234,7 +285,7 @@ function InstallWizardForm({
                                 value={typeof value === 'string' ? value : ''}
                                 onChange={field.handleChange}
                               />
-                            </field.Layout.Row>
+                            </WizardFieldLayout>
                           );
                       }
                     }}
