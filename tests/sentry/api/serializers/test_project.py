@@ -853,6 +853,19 @@ class DetailedProjectSerializerTest(TestCase):
         assert "sentry:token" not in result["options"]
         assert "sentry:symbol_sources" not in result["options"]
 
+    def test_impact_assessment_project_context_requires_feature(self) -> None:
+        self.project.update_option("sentry:impact_assessment_project_context", "Internal tool")
+        result = serialize(self.project, self.user, DetailedProjectSerializer())
+
+        assert "impactAssessmentProjectContext" not in result
+
+    @with_feature("organizations:seer-impact-assessment")
+    def test_impact_assessment_project_context(self) -> None:
+        self.project.update_option("sentry:impact_assessment_project_context", "Internal tool")
+        result = serialize(self.project, self.user, DetailedProjectSerializer())
+
+        assert result["impactAssessmentProjectContext"] == "Internal tool"
+
     def test_feedback_flag_with_epochs(self) -> None:
         result = serialize(self.project, self.user, DetailedProjectSerializer())
         # new projects with default epoch should have feedback_user_report_notifications enabled

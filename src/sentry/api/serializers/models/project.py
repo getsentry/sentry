@@ -1207,10 +1207,6 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
             "Context keys highlighted on the project's issues, as a mapping of context types to lists of keys"
         ),
     ]
-    impactAssessmentProjectContext: Annotated[
-        str | None,
-        ApiDescription("Customer-provided guidance about the project's user-facing purpose"),
-    ]
     highlightPreset: Annotated[
         HighlightPreset,
         ApiDescription("Default highlighted tags and context for the project's platform"),
@@ -1317,6 +1313,14 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
             str | None,
             ApiDescription(
                 "Role required to download debug information files, ProGuard mappings and source maps. Null inherits the organization setting"
+            ),
+        ]
+    ]
+    impactAssessmentProjectContext: NotRequired[
+        Annotated[
+            str | None,
+            ApiDescription(
+                "Customer-provided guidance about the project's user-facing purpose. Only included when the organization has Impact Assessment access"
             ),
         ]
     ]
@@ -1434,9 +1438,6 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                     "sentry:highlight_context",
                     attrs["highlight_preset"].get("context", {}),
                 ),
-                "impactAssessmentProjectContext": attrs["options"].get(
-                    "sentry:impact_assessment_project_context"
-                ),
                 "highlightPreset": attrs["highlight_preset"],
                 "groupingConfig": self.get_value_with_default(attrs, "sentry:grouping_config"),
                 "groupingEnhancements": self.get_value_with_default(
@@ -1493,6 +1494,11 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
         if has_tempest_access(obj.organization):
             data["tempestFetchScreenshots"] = attrs["options"].get(
                 "sentry:tempest_fetch_screenshots", False
+            )
+
+        if features.has("organizations:seer-impact-assessment", obj.organization):
+            data["impactAssessmentProjectContext"] = attrs["options"].get(
+                "sentry:impact_assessment_project_context"
             )
 
         return data
