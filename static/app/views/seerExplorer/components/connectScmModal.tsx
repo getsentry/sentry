@@ -36,7 +36,8 @@ const SEER_SCM_PROVIDERS = new Set(['github', 'github_enterprise', 'gitlab']);
 const CONNECT_SCM_REPO_PARAM = 'connectScmRepo';
 
 interface ConnectScmModalProps extends ModalRenderProps {
-  repoName: string;
+  /** Null when there's no repo: Seer's list of repos came back empty. */
+  repoName: string | null;
   /** The chat's paused input. Not set when a link opened the modal. */
   inputId?: string;
   onInstall?: () => void;
@@ -164,10 +165,14 @@ function ConnectScmModal({
       <Body>
         <Stack gap="xl">
           <Text>
-            {tct(
-              'Seer needs access to [repoName]. Connect the source control account it belongs to.',
-              {repoName: <Text bold>{repoName}</Text>}
-            )}
+            {repoName
+              ? tct(
+                  'Seer needs access to [repoName]. Connect the source control account it belongs to.',
+                  {repoName: <Text bold>{repoName}</Text>}
+                )
+              : t(
+                  "Seer can't see this organization's repos. Connect the source control account they're on."
+                )}
           </Text>
           {isPending ? (
             <Placeholder height="36px" width="240px" />
@@ -193,7 +198,7 @@ interface ReposStepProps extends ModalRenderProps {
   integration: Pick<Integration, 'id' | 'name'> & {
     provider: Pick<Integration['provider'], 'name'>;
   };
-  repoName: string;
+  repoName: string | null;
   inputId?: string;
 }
 
@@ -293,7 +298,7 @@ function ReposStep({
         );
         break;
       default:
-        detail = t("Seer still can't access this repository.");
+        detail = t("Seer still can't access the repositories for this organization.");
         break;
     }
     message = (

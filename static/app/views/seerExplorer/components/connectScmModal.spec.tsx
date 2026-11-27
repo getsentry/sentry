@@ -110,6 +110,25 @@ describe('ConnectScmModal after the install', () => {
     });
   });
 
+  it('with no repo, closes once Seer can re-list the repos', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/repo-access/`,
+      body: {status: 'found', connectedAccounts: []},
+    });
+    renderGlobalModal({organization});
+    act(() => openConnectScmModal({repoName: null, onInstall: jest.fn()}));
+
+    expect(
+      await screen.findByText(
+        "Seer can't see this organization's repos. Connect the source control account they're on."
+      )
+    ).toBeInTheDocument();
+
+    await finishInstall();
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  });
+
   it("says when the repo isn't in Sentry, and checks again", async () => {
     const access = mockRepoAccess('repo_not_in_sentry');
     openModalForRepo();
