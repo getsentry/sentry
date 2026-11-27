@@ -10,15 +10,24 @@ from sentry_protos.snuba.v1.endpoint_time_series_pb2 import (
     TimeSeriesRequest,
     TimeSeriesResponse,
 )
-from snuba_sdk import Column, Function, Op
+from snuba_sdk import Column, Condition, Function, Op
 
 from sentry.anomaly_detection.contracts import (
+    ChangeEvent,
+    ChangeType,
     Metric,
+    SeriesKey,
     SeriesRow,
     Service,
     Signal,
 )
-from sentry.anomaly_detection.inputs import measurements, new_failures
+from sentry.anomaly_detection.correlation.footprint import (
+    FOOTPRINT_DEFERRED,
+    CallEdge,
+    Footprint,
+    Slice,
+)
+from sentry.anomaly_detection.inputs import measurements, new_failures, trace_lookup
 from sentry.anomaly_detection.inputs.measurements import (
     ERROR_RELEASE,
     ERROR_USER,
@@ -34,6 +43,7 @@ from sentry.anomaly_detection.state import client
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.rpc_dataset_common import LimitBy as SpanLimitBy
+from sentry.snuba.rpc_dataset_common import TableQuery
 from sentry.snuba.spans_rpc import Spans
 from sentry.testutils.cases import TestCase
 from sentry.utils import snuba_rpc
@@ -42,6 +52,17 @@ from sentry.utils.snuba import SnubaError
 START = datetime(2025, 10, 1, tzinfo=UTC)
 MINUTE = timedelta(minutes=1)
 RAW_SNQL = "sentry.anomaly_detection.inputs.query.raw_snql_query"
+
+
+def _bulk(*replies: dict[str, list[dict[str, Any]]]) -> mock.Mock:
+    """Answer each bulk span call with its rows by query name; unnamed queries are empty."""
+    pending = list(replies)
+
+    def run(queries: list[TableQuery]) -> dict[str, dict[str, list[dict[str, Any]]]]:
+        reply = pending.pop(0) if pending else {}
+        return {str(query.name): {"data": reply.get(str(query.name), [])} for query in queries}
+
+    return mock.Mock(side_effect=run)
 
 
 class TestCollection(TestCase):
@@ -382,6 +403,150 @@ class TestCollection(TestCase):
                 f"{self.project.id}:{dataset}:60"
             )
             assert 0 < client().ttl(key) <= 600
+
+
+class TestEnrichment(TestCase):
+    def test_trace_footprint_joins_parent_only_in_same_trace(self) -> None:
+        project = self.project.id
+        key = SeriesKey(project, "prod", Signal.ENDPOINTS, Metric.P95_DURATION, "GET /x")
+        change = ChangeEvent(key, ChangeType.SLOWDOWN, START, 100, 10, 0.9)
+        trace1, trace2 = "a" * 32, "b" * 32
+        scope = {"project.id": self.project.id, "environment": "prod"}
+        observation_end = START + MINUTE
+        with (
+            mock.patch.object(Spans, "filter_project", return_value=True),
+            mock.patch.object(
+                Spans,
+                "run_bulk_table_queries",
+                _bulk(
+                    {"sample": [{"trace": trace1}, {"trace": trace2}]},
+                    {
+                        "slice-0": [
+                            {
+                                **scope,
+                                "count_unique(trace)": 1,
+                                "count_sample()": 3,
+                                "p95(span.duration)": 100,
+                            }
+                        ],
+                        "calls": [
+                            {
+                                **scope,
+                                "trace": trace1,
+                                "span_id": "parent",
+                                "span.domain": "backend",
+                            }
+                        ],
+                        "transactions": [
+                            {**scope, "trace": trace1, "span_id": "child", "parent_span": "parent"},
+                            {**scope, "trace": trace2, "span_id": "child", "parent_span": "parent"},
+                        ],
+                    },
+                ),
+            ) as bulk,
+        ):
+            lookup = trace_lookup.TraceLookup(self.organization, [self.project])
+            footprint = lookup.footprint(change, observation_end)
+            assert isinstance(footprint, Footprint)
+            assert lookup.footprint(change, observation_end) is footprint
+        (sample,), footprint_queries = (call.args[0] for call in bulk.call_args_list)
+        queries = [sample, *footprint_queries]
+        assert all(
+            (query.resolver.params.start, query.resolver.params.end)
+            == (START - MINUTE, observation_end)
+            for query in queries
+        )
+        service = Service(project, "prod")
+        assert footprint.slices[Slice(service, None, "")].trace_share == 0.5
+        assert footprint.edges == {CallEdge(service, "backend", service): 1}
+        # One sample, then the slices and both sides of the call join in one batch.
+        assert len(footprint_queries) == 6
+        assert sample.resolver.config.filters == (
+            ("environment", ("prod",)),
+            ("transaction", ("GET /x",)),
+        )
+        assert all(
+            query.resolver.config.filters == (("trace", (trace1, trace2)),)
+            for query in footprint_queries
+        )
+
+    def test_late_new_issue_samples_near_detection_with_typed_issue_ids(self) -> None:
+        detected = START + 35 * MINUTE
+        trace = "a" * 32
+        change = ChangeEvent(
+            SeriesKey(self.project.id, "prod", Signal.NEW_ISSUE, Metric.COUNT_UNIQUE_USER, "11"),
+            ChangeType.NEW_FAILURE_MODE,
+            START,
+            10,
+            10,
+            0.9,
+            detected_at=detected,
+            issue_ids=(11, 12),
+        )
+        with (
+            mock.patch.object(Spans, "filter_project", return_value=True),
+            mock.patch.object(
+                trace_lookup, "run_errors", return_value=[{"contexts[trace.trace_id]": trace}]
+            ) as errors,
+            mock.patch.object(Spans, "run_bulk_table_queries", _bulk()) as spans,
+        ):
+            lookup = trace_lookup.TraceLookup(self.organization, [self.project])
+            assert lookup.footprint(change, detected + MINUTE) is None
+
+        errors.assert_called_once()
+        snql = errors.call_args.args[1]
+        first, last, *_ = snql.where[1:]
+        assert first.rhs == detected - 15 * MINUTE
+        assert last.rhs == detected
+        assert last.op == Op.LT
+        assert snql.where[-1].lhs == Column("group_id")
+        assert snql.where[-1].rhs == [11, 12]
+        (queries,) = spans.call_args.args
+        assert len(queries) == 6
+        assert all(query.resolver.params.end == detected for query in queries)
+        assert all(query.resolver.config.filters == (("trace", (trace,)),) for query in queries)
+
+    def test_untraced_error_does_not_sample_matching_transaction_names(self) -> None:
+        change = ChangeEvent(
+            SeriesKey(self.project.id, "prod", Signal.ERRORS, Metric.COUNT),
+            ChangeType.SPIKE,
+            START,
+            10,
+            1,
+            0.9,
+        )
+        with (
+            mock.patch.object(Spans, "filter_project", return_value=True),
+            mock.patch.object(trace_lookup, "run_errors", return_value=[{}]) as errors,
+            mock.patch.object(Spans, "run_bulk_table_queries") as spans,
+        ):
+            lookup = trace_lookup.TraceLookup(self.organization, [self.project])
+            assert lookup.footprint(change, START + MINUTE) is None
+        errors.assert_called_once()
+        _, snql, referrer = errors.call_args.args
+        assert Condition(Column("contexts[trace.trace_id]"), Op.IS_NOT_NULL) in snql.where
+        assert referrer == Referrer.ANOMALY_DETECTION_ENRICH
+        spans.assert_not_called()
+
+    def test_exhausted_footprint_budget_does_not_cache_misses(self) -> None:
+        change = ChangeEvent(
+            SeriesKey(self.project.id, "prod", Signal.REQUESTS, Metric.COUNT),
+            ChangeType.SPIKE,
+            START,
+            10,
+            1,
+            0.9,
+        )
+        with (
+            mock.patch.object(Spans, "filter_project", return_value=True),
+            mock.patch.object(Spans, "run_bulk_table_queries", _bulk()) as spans,
+            mock.patch.object(trace_lookup, "_MAX_FOOTPRINTS", 1),
+        ):
+            lookup = trace_lookup.TraceLookup(self.organization, [self.project])
+            assert lookup.footprint(change, START + MINUTE) is None
+            assert lookup.footprint(change, START + 2 * MINUTE) is FOOTPRINT_DEFERRED
+            assert lookup.footprint(change, START + MINUTE) is None
+        spans.assert_called_once()
 
 
 def test_failure_thresholds_scale_with_each_days_median_users() -> None:
