@@ -21,12 +21,13 @@ import type {
 } from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
-import type {FieldDefinition} from 'sentry/utils/fields';
+import type {AggregateParameter, FieldDefinition} from 'sentry/utils/fields';
 import {FieldKind, FieldValueType} from 'sentry/utils/fields';
 
 import {FunctionDescription} from './functionDescription';
 import {replaceCommaSeparatedValue} from './replaceCommaSeparatedValue';
 import {useAggregateParamVisual} from './useAggregateParamVisual';
+import {getAggregateArgTexts, splitAggregateParameters} from './utils';
 
 type ParametersComboboxProps = {
   onCommit: () => void;
@@ -49,37 +50,6 @@ function getInitialInputValue(token: AggregateFilter) {
   return '';
 }
 
-function splitParameters(text: string): string[] {
-  const parameters = [];
-
-  let escaped = false;
-
-  let i = 0;
-  let j = 0;
-
-  for (j = 0; j < text.length; j++) {
-    const c = text[j];
-    if (escaped) {
-      if (c === ']') {
-        escaped = false;
-        continue;
-      }
-    } else {
-      if (c === '[') {
-        escaped = true;
-        continue;
-      } else if (c === ',') {
-        parameters.push(text.slice(i, j));
-        i = j + 1;
-      }
-    }
-  }
-
-  parameters.push(text.slice(i, j));
-
-  return parameters;
-}
-
 function getParameterAtCursorPosition(
   text: string,
   cursorPosition: number | null
@@ -88,7 +58,7 @@ function getParameterAtCursorPosition(
     return {parameterIndex: 0, textValue: ''};
   }
 
-  const items = splitParameters(text);
+  const items = splitAggregateParameters(text);
 
   let characterCount = 0;
   for (let i = 0; i < items.length; i++) {
@@ -102,7 +72,7 @@ function getParameterAtCursorPosition(
 }
 
 function getCursorPositionAtEndOfParameter(text: string, parameterIndex: number): number {
-  const items = splitParameters(text);
+  const items = splitAggregateParameters(text);
   const charactersBefore =
     items.slice(0, parameterIndex).join('').length + parameterIndex;
 
@@ -152,17 +122,12 @@ function useSelectionIndex({
   return {selectionIndex, updateSelectionIndex};
 }
 
-function useParameterSuggestions({
-  token,
-  parameterIndex,
+export function useParameterSuggestions({
+  parameterDefinition,
 }: {
-  parameterIndex: number;
-  token: AggregateFilter;
+  parameterDefinition: AggregateParameter | undefined;
 }): Array<SelectOptionWithKey<string>> {
   const {getFieldDefinition, filterKeys} = useSearchQueryBuilderConfig();
-  const fieldDefinition = getFieldDefinition(token.key.name.text);
-
-  const parameterDefinition = fieldDefinition?.parameters?.[parameterIndex];
 
   const parameterSuggestions = useMemo<SuggestionItem[]>(() => {
     switch (parameterDefinition?.kind) {
@@ -265,7 +230,12 @@ export function SearchQueryBuilderParametersCombobox({
     selectionIndex
   );
 
-  const items = useParameterSuggestions({token, parameterIndex});
+  const definition = getFieldDefinition(token.key.name.text, {
+    aggregateArgs: getAggregateArgTexts(token),
+  });
+  const items = useParameterSuggestions({
+    parameterDefinition: definition?.parameters?.[parameterIndex],
+  });
 
   const onKeyDown = useCallback(
     (
@@ -286,8 +256,7 @@ export function SearchQueryBuilderParametersCombobox({
   const handleInputValueConfirmed = useCallback(
     (value: string) => {
       if (inputChanged) {
-        const definition = getFieldDefinition(token.key.name.text);
-        const parameters = splitParameters(value).map((parameter, i) => {
+        const parameters = splitAggregateParameters(value).map((parameter, i) => {
           return definition?.parameters?.[i]?.kind === 'column'
             ? resolveFilterKey({key: parameter, filterKeys, getSuggestedFilterKey})
             : parameter;
@@ -305,12 +274,12 @@ export function SearchQueryBuilderParametersCombobox({
     },
     [
       inputChanged,
+      definition,
       dispatch,
       token,
       onCommit,
       state,
       filterKeys,
-      getFieldDefinition,
       getSuggestedFilterKey,
     ]
   );
@@ -323,11 +292,7 @@ export function SearchQueryBuilderParametersCombobox({
         option.value
       );
 
-      const focusOverride = calculateNextFocus(
-        state,
-        getFieldDefinition(token.key.name.text),
-        parameterIndex
-      );
+      const focusOverride = calculateNextFocus(state, definition, parameterIndex);
 
       dispatch({type: 'UPDATE_AGGREGATE_ARGS', token, value: newValue, focusOverride});
       updateInputValue(newValue);
@@ -343,15 +308,7 @@ export function SearchQueryBuilderParametersCombobox({
       }
     },
     // oxlint-disable-next-line react/memo-dependencies
-    [
-      dispatch,
-      inputValue,
-      parameterIndex,
-      selectionIndex,
-      token,
-      state,
-      getFieldDefinition,
-    ]
+    [dispatch, inputValue, parameterIndex, selectionIndex, token, state, definition]
   );
 
   return (

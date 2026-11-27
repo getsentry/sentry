@@ -195,6 +195,31 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
     expect(getFieldDefinition('tags[csv_headers[*],array]')?.kind).toBe(FieldKind.ARRAY);
   });
 
+  it('resolves span `_if` aggregates to the filter-first signature', () => {
+    const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
+      initialProps: defaultInitialProps,
+      organization,
+    });
+
+    const getFieldDefinition = result.current.fieldDefinitionGetter;
+    const getParameterNames = (aggregateArgs?: string[]) =>
+      getFieldDefinition('count_if', {aggregateArgs})?.parameters?.map(
+        parameter => parameter.name
+      );
+
+    expect(getParameterNames()).toEqual(['filter', 'column']);
+    expect(getParameterNames(['`span.op:db`', 'span.duration'])).toEqual([
+      'filter',
+      'column',
+    ]);
+    // Existing Discover-style queries keep their signature
+    expect(getParameterNames(['span.duration', 'greater', '300'])).toEqual([
+      'column',
+      'value',
+      'value',
+    ]);
+  });
+
   it('wires string attributes into filter keys and aliases', () => {
     const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
       initialProps: {

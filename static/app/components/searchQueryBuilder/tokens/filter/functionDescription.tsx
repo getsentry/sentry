@@ -6,6 +6,8 @@ import type {AggregateFilter} from 'sentry/components/searchSyntax/parser';
 import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import type {AggregateParameter} from 'sentry/utils/fields';
 
+import {getAggregateArgTexts} from './utils';
+
 type FunctionDescriptionProps = {parameterIndex: number; token: AggregateFilter};
 
 function getParameterType(param: AggregateParameter) {
@@ -23,7 +25,9 @@ function getParameterLabel(param: AggregateParameter) {
 export function FunctionDescription({token, parameterIndex}: FunctionDescriptionProps) {
   const {getFieldDefinition} = useSearchQueryBuilderConfig();
   const fnName = getKeyName(token.key);
-  const fieldDefinition = getFieldDefinition(fnName);
+  const fieldDefinition = getFieldDefinition(fnName, {
+    aggregateArgs: getAggregateArgTexts(token),
+  });
 
   if (!fieldDefinition) {
     return null;
