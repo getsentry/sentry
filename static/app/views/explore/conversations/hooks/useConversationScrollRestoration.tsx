@@ -12,13 +12,13 @@ interface UseConversationScrollRestorationOptions {
   selectedNodeId: string | null;
 }
 
-function scrollToCenter(container: HTMLElement, element: HTMLElement) {
-  const elementRect = element.getBoundingClientRect();
+function scrollToCenter(container: HTMLElement, target: Range) {
+  // Measure the range itself, not its parent element: a long message or code block
+  // can be taller than the pane, so centering it can leave the match off-screen.
+  const targetRect = target.getBoundingClientRect();
   const containerRect = container.getBoundingClientRect();
   container.scrollTop +=
-    elementRect.top -
-    containerRect.top -
-    (container.clientHeight - elementRect.height) / 2;
+    targetRect.top - containerRect.top - (container.clientHeight - targetRect.height) / 2;
 }
 
 /**
@@ -30,7 +30,7 @@ function scrollToCenter(container: HTMLElement, element: HTMLElement) {
  * stays visible across both views. The selected row is located by its
  * `data-selected="true"` attribute, which both views set on the highlighted row.
  *
- * `centerOnSelect` centers an element inside a span, e.g. a search match, once that
+ * `centerOnSelect` centers a range inside a span, e.g. a search match, once that
  * span is selected. It waits for the selection to commit, since opening the span's
  * details beside the transcript reflows it.
  */
@@ -49,7 +49,7 @@ export function useConversationScrollRestoration({
   // to always record against the tab that is currently visible.
   const activeTabRef = useRef(activeTab);
   const selectedNodeIdRef = useRef(selectedNodeId);
-  const pendingCenterRef = useRef<{element: HTMLElement; nodeId: string} | null>(null);
+  const pendingCenterRef = useRef<{nodeId: string; range: Range} | null>(null);
 
   useEffect(() => {
     const container = scrollContainerRef.current;
@@ -80,9 +80,9 @@ export function useConversationScrollRestoration({
     if (selectedNodeId) {
       if (
         pendingCenter?.nodeId === selectedNodeId &&
-        container.contains(pendingCenter.element)
+        container.contains(pendingCenter.range.startContainer)
       ) {
-        scrollToCenter(container, pendingCenter.element);
+        scrollToCenter(container, pendingCenter.range);
         offsetByTab.current[activeTab] = container.scrollTop;
         return;
       }
@@ -98,12 +98,12 @@ export function useConversationScrollRestoration({
     container.scrollTop = offsetByTab.current[activeTab];
   }, [activeTab, selectedNodeId]);
 
-  const centerOnSelect = useCallback((nodeId: string, element: HTMLElement) => {
+  const centerOnSelect = useCallback((nodeId: string, range: Range) => {
     const container = scrollContainerRef.current;
     if (nodeId !== selectedNodeIdRef.current) {
-      pendingCenterRef.current = {element, nodeId};
+      pendingCenterRef.current = {nodeId, range};
     } else if (container) {
-      scrollToCenter(container, element);
+      scrollToCenter(container, range);
     }
   }, []);
 
