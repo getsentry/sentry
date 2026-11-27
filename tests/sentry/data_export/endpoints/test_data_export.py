@@ -67,7 +67,12 @@ class DataExportTest(APITestCase):
         if payload_type == "issue":
             payload = {
                 "query_type": ExportQueryType.ISSUES_BY_TAG_STR,
-                "query_info": {"env": "test", "project": [self.project.id]},
+                "query_info": {
+                    "env": "test",
+                    "project": [self.project.id],
+                    "group": 1,
+                    "key": "foo",
+                },
             }
         elif payload_type == "discover":
             payload = {
@@ -365,11 +370,24 @@ class DataExportTest(APITestCase):
         with self.feature("organizations:discover-query"):
             self.get_success_response(self.org.slug, status_code=201, **payload)
 
+        # Issues-by-Tag exports are scoped to a single issue's project, so one is required.
         payload = self.make_payload(
             "issue", {"project": None, "start": "2020-05-18T14:00:00", "end": "2020-05-19T14:00:00"}
         )
         with self.feature("organizations:discover-query"):
-            self.get_success_response(self.org.slug, status_code=201, **payload)
+            self.get_error_response(self.org.slug, status_code=400, **payload)
+
+    def test_issues_by_tag_requires_project_group_and_key(self) -> None:
+        for missing in ("project", "group", "key"):
+            payload = self.make_payload("issue")
+            del payload["query_info"][missing]
+            with self.feature("organizations:discover-query"):
+                self.get_error_response(self.org.slug, status_code=400, **payload)
+
+        payload = self.make_payload("issue", {"bogus": True}, overwrite=True)
+        with self.feature("organizations:discover-query"):
+            self.get_error_response(self.org.slug, status_code=400, **payload)
+        assert not ExportedData.objects.exists()
 
     def test_equations(self) -> None:
         """
