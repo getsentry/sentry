@@ -28,6 +28,7 @@ from sentry.api.event_search import SearchFilter
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.activity_response_schemas import group_activity_schema
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
+from sentry.api.serializers.models.commit import CommitSerializerResponseWithReleases
 from sentry.api.serializers.models.event import SharedEventSerializerResponse
 from sentry.api.serializers.models.event_metadata import EventMetadataResponse
 from sentry.api.serializers.models.project import SharedProjectSerializerResponse
@@ -142,7 +143,9 @@ class GroupStatusDetailsResponseOptional(TypedDict, total=False):
         bool, ApiDescription("Whether the issue is resolved in the next release")
     ]
     inRelease: Annotated[str, ApiDescription("Version of the release the issue is resolved in")]
-    inCommit: Annotated[str, ApiDescription("Commit the issue is resolved in")]
+    inCommit: Annotated[
+        CommitSerializerResponseWithReleases, ApiDescription("Commit the issue is resolved in")
+    ]
     pendingEvents: Annotated[
         int, ApiDescription("Number of events still waiting to be reprocessed")
     ]
