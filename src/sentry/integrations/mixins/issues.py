@@ -13,13 +13,19 @@ from sentry.auth.principal import RequestPrincipal, acting_user_id, has_user
 from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.project_management.metrics import (
+    InboundStatusSyncFailureReason,
+    ProjectManagementActionType,
+    ProjectManagementEvent,
+)
 from sentry.integrations.services.assignment_source import AssignmentSource
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.tasks.sync_status_inbound import (
     sync_status_inbound as sync_status_inbound_task,
 )
-from sentry.integrations.types import IntegrationIssueConfigField
+from sentry.integrations.types import EventLifecycleOutcome, IntegrationIssueConfigField
 from sentry.integrations.utils.external_issues import maybe_generate_external_issue_details
+from sentry.integrations.utils.status_sync import INTEGRATION_PROVIDER_KEY
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.activity import Activity
@@ -507,14 +513,33 @@ class IssueSyncIntegration(IssueBasicIntegration, ABC):
         if not where_should_sync(self.model, "inbound_status", self.organization_id):
             return None
 
-        sync_status_inbound_task.apply_async(
-            kwargs={
-                "integration_id": self.model.id,
-                "organization_id": self.organization_id,
-                "issue_key": issue_key,
-                "data": data,
-            }
+        event = ProjectManagementEvent(
+            action_type=ProjectManagementActionType.INBOUND_STATUS_SYNC,
+            integration=self.model,
         )
+        log_context = {
+            "integration_id": self.model.id,
+            "organization_id": self.organization_id,
+            "issue_key": issue_key,
+        }
+        event.record_outcome(EventLifecycleOutcome.STARTED, extra=log_context)
+
+        try:
+            sync_status_inbound_task.apply_async(
+                kwargs={
+                    "integration_id": self.model.id,
+                    "organization_id": self.organization_id,
+                    "issue_key": issue_key,
+                    "data": {**data, INTEGRATION_PROVIDER_KEY: self.model.provider},
+                }
+            )
+        except Exception as error:
+            event.record_outcome(
+                EventLifecycleOutcome.FAILURE,
+                outcome_reason=InboundStatusSyncFailureReason.ENQUEUE_FAILED,
+                extra={**log_context, "exception_summary": repr(error)},
+            )
+            raise
 
     def migrate_issues(self) -> None:
         """

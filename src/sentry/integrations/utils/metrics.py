@@ -50,6 +50,30 @@ class EventLifecycleMetric(ABC):
         """Open a context to measure the event."""
         return EventLifecycle(self, assume_success, sample_log_rate)
 
+    def record_outcome(
+        self,
+        outcome: EventLifecycleOutcome,
+        outcome_reason: BaseException | str | None = None,
+        extra: Mapping[str, Any] | None = None,
+        create_issue: bool = False,
+        sample_log_rate: float = 1.0,
+    ) -> None:
+        """Record one phase of a lifecycle that crosses execution boundaries.
+
+        Use ``capture`` when the complete lifecycle fits in one execution context.
+        Use this method when, for example, a producer records ``started`` before
+        enqueueing a task and the task records the terminal outcome later.
+        """
+        lifecycle = self.capture(sample_log_rate=sample_log_rate)
+        if extra:
+            lifecycle.add_extras(extra)
+        lifecycle.record_event(
+            outcome,
+            outcome_reason=outcome_reason,
+            create_issue=create_issue,
+            sample_log_rate=sample_log_rate,
+        )
+
 
 class IntegrationEventLifecycleMetric(EventLifecycleMetric, ABC):
     """A metric relating to integrations that uses a standard naming structure."""

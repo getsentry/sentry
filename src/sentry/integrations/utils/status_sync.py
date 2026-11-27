@@ -14,6 +14,11 @@ logger = logging.getLogger(__name__)
 # per-provider payload shapes.
 PROVIDER_EVENT_TIME_KEY = "provider_event_time"
 
+# Internal context carried inside the existing task payload so producers remain compatible
+# with workers from the previous deployment. New workers remove it before passing the
+# provider-specific data to an integration.
+INTEGRATION_PROVIDER_KEY = "_sentry_integration_provider"
+
 
 def parse_provider_event_time(data: Mapping[str, Any]) -> datetime | None:
     """Read a payload's provider event time, or None if it carries no usable timestamp."""

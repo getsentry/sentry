@@ -7,6 +7,8 @@ import sentry_sdk
 from django.db.models import Q
 from django.utils import timezone as django_timezone
 from taskbroker_client.retry import Retry
+from taskbroker_client.state import current_task
+from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
 from sentry import analytics, features, options
 from sentry.analytics.events.issue_resolved import IssueResolvedEvent
@@ -15,8 +17,16 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.errors import OrganizationIntegrationNotFound
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.project_management.metrics import (
+    InboundStatusSyncFailureReason,
+    InboundStatusSyncHaltReason,
+    ProjectManagementActionType,
+    ProjectManagementEvent,
+)
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.types import EventLifecycleOutcome
 from sentry.integrations.utils.status_sync import (
+    INTEGRATION_PROVIDER_KEY,
     is_stale_status_event,
     parse_provider_event_time,
 )
@@ -38,6 +48,14 @@ logger = logging.getLogger(__name__)
 
 
 ResolutionParams = dict[str, Any]
+SYNC_STATUS_INBOUND_RETRY_TIMES = 5
+
+
+def _is_final_attempt() -> bool:
+    current = current_task()
+    if current is None:
+        return True
+    return current.attempt >= SYNC_STATUS_INBOUND_RETRY_TIMES - 1
 
 
 def get_resolutions_and_activity_data_for_groups(
@@ -209,17 +227,53 @@ def group_was_recently_resolved(group: Group) -> bool:
         return False
 
 
-@instrumented_task(
-    name="sentry.integrations.tasks.sync_status_inbound",
-    namespace=integrations_tasks,
-    processing_deadline_duration=150,
-    retry=Retry(times=5, delay=60 * 5, on=(Exception,), ignore=(Integration.DoesNotExist,)),
-    silo_mode=SiloMode.CELL,
-    silenced_exceptions=(Integration.DoesNotExist,),
-)
-@track_group_async_operation
-def sync_status_inbound(
-    integration_id: int, organization_id: int, issue_key: str, data: Mapping[str, Any]
+class _InboundStatusSyncLifecycle:
+    def __init__(
+        self,
+        event: ProjectManagementEvent | None,
+        *,
+        integration_id: int,
+        organization_id: int,
+        issue_key: str,
+    ) -> None:
+        self.event = event
+        self.failure_reason = InboundStatusSyncFailureReason.PROCESSING_FAILED
+        self.log_context = {
+            "integration_id": integration_id,
+            "organization_id": organization_id,
+            "issue_key": issue_key,
+        }
+
+    def record_halt(self, reason: InboundStatusSyncHaltReason) -> None:
+        if self.event is not None:
+            self.event.record_outcome(
+                EventLifecycleOutcome.HALTED,
+                outcome_reason=reason,
+                extra=self.log_context,
+            )
+
+    def record_success(self) -> None:
+        if self.event is not None:
+            self.event.record_outcome(
+                EventLifecycleOutcome.SUCCESS,
+                extra=self.log_context,
+            )
+
+    def record_final_failure(self, error: BaseException) -> None:
+        if self.event is not None and _is_final_attempt():
+            self.event.record_outcome(
+                EventLifecycleOutcome.FAILURE,
+                outcome_reason=self.failure_reason,
+                extra={**self.log_context, "exception_summary": repr(error)},
+            )
+
+
+def _sync_status_inbound(
+    integration_id: int,
+    organization_id: int,
+    issue_key: str,
+    data: Mapping[str, Any],
+    lifecycle: _InboundStatusSyncLifecycle,
 ) -> None:
     from sentry.integrations.mixins import ResolveSyncAction
 
@@ -228,17 +282,25 @@ def sync_status_inbound(
         using_replica=options.get("integration_service.get_integration.using_replica"),
     )
     if integration is None:
-        raise Integration.DoesNotExist
-    elif integration.status != ObjectStatus.ACTIVE:
+        if lifecycle.event is None:
+            # Preserve behavior for tasks queued before provider context was added.
+            raise Integration.DoesNotExist
+        lifecycle.record_halt(InboundStatusSyncHaltReason.INTEGRATION_MISSING)
+        return
+
+    if integration.status != ObjectStatus.ACTIVE:
+        lifecycle.record_halt(InboundStatusSyncHaltReason.INTEGRATION_INACTIVE)
         return
 
     try:
         organization = Organization.objects.get(id=organization_id)
     except Organization.DoesNotExist:
+        lifecycle.record_halt(InboundStatusSyncHaltReason.ORGANIZATION_MISSING)
         return
 
     installation = integration.get_installation(organization_id=organization_id)
     if not hasattr(installation, "get_resolve_sync_action"):
+        lifecycle.record_halt(InboundStatusSyncHaltReason.UNSUPPORTED_INSTALLATION)
         return
     try:
         org_integration = installation.org_integration
@@ -248,6 +310,7 @@ def sync_status_inbound(
             "sync_status_inbound.organization_integration_missing",
             extra={"integration_id": integration_id, "organization_id": organization_id},
         )
+        lifecycle.record_halt(InboundStatusSyncHaltReason.ORGANIZATION_INTEGRATION_MISSING)
         return
 
     affected_groups = list(
@@ -256,6 +319,7 @@ def sync_status_inbound(
         )
     )
     if not affected_groups:
+        lifecycle.record_halt(InboundStatusSyncHaltReason.NO_LINKED_GROUPS)
         return
 
     # Webhook delivery is not ordered, and every provider hands us a delta ("closed",
@@ -282,9 +346,11 @@ def sync_status_inbound(
                 "last_event_time": external_issue.provider_status_updated_at,
             },
         )
+        lifecycle.record_halt(InboundStatusSyncHaltReason.STALE_EVENT)
         return
 
     config = org_integration.config
+    lifecycle.failure_reason = InboundStatusSyncFailureReason.ACTION_LOOKUP_FAILED
     try:
         # This makes an API call.
         action = installation.get_resolve_sync_action(data)
@@ -294,7 +360,8 @@ def sync_status_inbound(
             exc_info=True,
             extra={"integration_id": integration_id, "organization_id": organization_id},
         )
-        return
+        raise
+    lifecycle.failure_reason = InboundStatusSyncFailureReason.PROCESSING_FAILED
 
     provider = installation.model.get_provider()
     activity_data = {
@@ -413,3 +480,54 @@ def sync_status_inbound(
     # reopen an issue a human resolved in Sentry, and destroying an intent is worse than
     # missing a sync.
     _record_provider_event_time(external_issue, event_time)
+    lifecycle.record_success()
+
+
+@instrumented_task(
+    name="sentry.integrations.tasks.sync_status_inbound",
+    namespace=integrations_tasks,
+    processing_deadline_duration=150,
+    retry=Retry(
+        times=SYNC_STATUS_INBOUND_RETRY_TIMES,
+        delay=60 * 5,
+        on=(Exception, ProcessingDeadlineExceeded),
+        ignore=(Integration.DoesNotExist,),
+    ),
+    silo_mode=SiloMode.CELL,
+    silenced_exceptions=(Integration.DoesNotExist,),
+)
+@track_group_async_operation
+def sync_status_inbound(
+    integration_id: int,
+    organization_id: int,
+    issue_key: str,
+    data: Mapping[str, Any],
+) -> None:
+    integration_provider = data.get(INTEGRATION_PROVIDER_KEY)
+    provider_data = {key: value for key, value in data.items() if key != INTEGRATION_PROVIDER_KEY}
+    event = (
+        ProjectManagementEvent(
+            action_type=ProjectManagementActionType.INBOUND_STATUS_SYNC,
+            provider_key=integration_provider,
+            event_integration_id=integration_id,
+        )
+        if isinstance(integration_provider, str)
+        else None
+    )
+    lifecycle = _InboundStatusSyncLifecycle(
+        event,
+        integration_id=integration_id,
+        organization_id=organization_id,
+        issue_key=issue_key,
+    )
+    try:
+        _sync_status_inbound(
+            integration_id=integration_id,
+            organization_id=organization_id,
+            issue_key=issue_key,
+            data=provider_data,
+            lifecycle=lifecycle,
+        )
+    except (Exception, ProcessingDeadlineExceeded) as error:
+        lifecycle.record_final_failure(error)
+        raise
