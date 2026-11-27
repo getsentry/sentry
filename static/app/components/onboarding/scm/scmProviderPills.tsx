@@ -22,15 +22,17 @@ import {partitionScmProviders} from './scmProviderOrder';
 
 // The install analytics for each host surface. The view identifies the surface. In
 // onboarding and project creation these providers only render in the SCM variant, so
-// their installs always set the variant to `scm`. The Seer chat has no variants.
+// their installs always set the variant to `scm`. The Seer chat has no variants. Its connect
+// modal records installs apart when a link (the one in a member's request email) opened it.
 const INSTALL_ANALYTICS = {
   onboarding: {view: 'onboarding', variant: 'scm'},
   'project-creation': {view: 'project_creation', variant: 'scm'},
   'seer-explorer': {view: 'seer_explorer_connect_scm'},
+  'seer-explorer-link': {view: 'seer_explorer_connect_scm_link'},
 } as const;
 
 interface ScmProviderPillsProps {
-  analyticsFlow: ScmAnalyticsFlow | 'seer-explorer';
+  analyticsFlow: ScmAnalyticsFlow | 'seer-explorer' | 'seer-explorer-link';
   onInstall: (data: Integration) => void;
   providers: IntegrationProvider[];
   // Horizontal alignment of the pill row. Left by default; hosts that center

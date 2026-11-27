@@ -22,6 +22,7 @@ export type IntegrationView = {
     | 'developer_settings'
     | 'new_integration_modal'
     | 'seer_explorer_connect_scm'
+    | 'seer_explorer_connect_scm_link'
     | 'seer_onboarding_github'
     | 'test_analytics_onboarding'
     | 'test_analytics_org_selector';
