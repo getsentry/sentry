@@ -2431,7 +2431,7 @@ requires-dist = [
     { name = "sentry-protos", specifier = ">=0.129.0" },
     { name = "sentry-redis-tools", specifier = ">=0.5.0" },
     { name = "sentry-relay", specifier = ">=0.10.3" },
-    { name = "sentry-scm", specifier = ">=4.1.0" },
+    { name = "sentry-scm", specifier = ">=4.2.0" },
     { name = "sentry-sdk", extras = ["http2"], specifier = ">=3.0.1b2" },
     { name = "sentry-usage-accountant", specifier = ">=0.0.10" },
     { name = "sentry-viewercontext", specifier = ">=0.2.0" },
@@ -2646,7 +2646,7 @@ wheels = [
 
 [[package]]
 name = "sentry-scm"
-version = "4.1.0"
+version = "4.2.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "cryptography" },
@@ -2656,7 +2656,7 @@ dependencies = [
     { name = "urllib3" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_scm-4.1.0-py3-none-any.whl", hash = "sha256:35d732e78ba05bb71962af0461d987a0dd46602bc440559155d2aaae2184f47b" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_scm-4.2.0-py3-none-any.whl", hash = "sha256:3ef0eae3b4a569a1a47afd4bf77c59c5ad3ea5b5b4284bb1f84246ae38d26713" },
 ]
 
 [[package]]
