@@ -82,7 +82,7 @@ export function ChartContextDrawer({
   const itemsByKind = useAnnotationItems({
     dataset,
     interval,
-    kinds: showAnnotationTabs ? annotationKinds : [],
+    enabled: showAnnotationTabs,
   });
   const annotationItems = annotationKinds.flatMap(kind => itemsByKind[kind] ?? []);
 

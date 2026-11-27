@@ -8,7 +8,7 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {DroppedDataAnalyticsSource} from 'sentry/utils/analytics/exploreAnalyticsEvents';
 import {defined} from 'sentry/utils/defined';
-import type {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import type {AnnotationItem, AnnotationKind} from './annotations/types';
@@ -20,22 +20,19 @@ const FLAGS_LAYER = 'flags';
 const CONFIDENCE_LAYER = 'confidence';
 const CHANGES_LAYER = 'changes';
 
-export type ChartLayerName =
-  | typeof DROPPED_DATA_LAYER
-  | typeof CONFIDENCE_LAYER
-  | typeof RELEASES_LAYER
-  | typeof FLAGS_LAYER
-  | typeof CHANGES_LAYER;
+// Logs and Metrics charts don't offer releases, flags, or changes yet.
+const ANNOTATION_DATASETS = new Set<DiscoverDatasets>([DiscoverDatasets.SPANS]);
+
+// Only sampled, extrapolated datasets have low-confidence data points.
+const CONFIDENCE_DATASETS = new Set<DiscoverDatasets>([
+  DiscoverDatasets.SPANS,
+  DiscoverDatasets.OURLOGS,
+  DiscoverDatasets.TRACEMETRICS,
+]);
 
 interface UseChartLayersParams {
   dataset: DiscoverDatasets;
   interval: string;
-  /**
-   * The layers this chart offers. A layer that is not listed fetches nothing
-   * and is left out of the Layers control. A listed layer that is behind a
-   * feature flag also needs the flag.
-   */
-  layers: readonly ChartLayerName[];
   source: DroppedDataAnalyticsSource;
   enabled?: boolean;
   hidden?: boolean;
@@ -43,37 +40,26 @@ interface UseChartLayersParams {
 
 /**
  * The context layers drawn on a time series chart, and the single Layers
- * control that toggles them.
+ * control that toggles them. The dataset and the organization's feature flags
+ * decide which layers the chart offers.
  */
 export function useChartLayers({
   dataset,
   interval,
-  layers: offeredLayers,
   source,
   enabled = true,
   hidden = false,
 }: UseChartLayersParams) {
   const organization = useOrganization();
-  const hasAnnotationsFeature =
-    enabled && organization.features.includes('timeseries-annotations');
-  const areReleasesOffered =
-    hasAnnotationsFeature && offeredLayers.includes(RELEASES_LAYER);
-  const areFlagsOffered = hasAnnotationsFeature && offeredLayers.includes(FLAGS_LAYER);
-  const areChangesOffered =
-    hasAnnotationsFeature && offeredLayers.includes(CHANGES_LAYER);
+  const areAnnotationsEnabled =
+    enabled &&
+    ANNOTATION_DATASETS.has(dataset) &&
+    organization.features.includes('timeseries-annotations');
   const {
     release: releaseItems,
     flag: flagItems,
     timeseriesAnnotation: changeItems,
-  } = useAnnotationItems({
-    dataset,
-    interval,
-    kinds: [
-      ...(areReleasesOffered ? ['release' as const] : []),
-      ...(areFlagsOffered ? ['flag' as const] : []),
-      ...(areChangesOffered ? ['timeseriesAnnotation' as const] : []),
-    ],
-  });
+  } = useAnnotationItems({dataset, interval, enabled: areAnnotationsEnabled});
 
   const [isReleasesLayerOn, setIsReleasesLayerOn] = useState(true);
   const hasReleases = (releaseItems?.length ?? 0) > 0;
@@ -101,19 +87,13 @@ export function useChartLayers({
 
   const isConfidenceEnabled =
     enabled &&
-    offeredLayers.includes(CONFIDENCE_LAYER) &&
+    CONFIDENCE_DATASETS.has(dataset) &&
     organization.features.includes('data-browsing-time-series-confidence');
   const [isConfidenceLayerOn, setIsConfidenceLayerOn] = useState(true);
 
   const droppedData = useDroppedDataLayer(
     {dataset, interval},
-    {
-      source,
-      annotationKinds,
-      enabled: enabled && offeredLayers.includes(DROPPED_DATA_LAYER),
-      hidden,
-      showAnnotationTabs: areReleasesOffered || areFlagsOffered || areChangesOffered,
-    }
+    {source, annotationKinds, enabled, hidden, showAnnotationTabs: areAnnotationsEnabled}
   );
 
   const annotations = useMemo(() => {
@@ -133,7 +113,7 @@ export function useChartLayers({
   ]);
 
   const releasesLayer: ChartLayer | undefined =
-    areReleasesOffered && defined(releaseItems)
+    areAnnotationsEnabled && defined(releaseItems)
       ? {
           value: RELEASES_LAYER,
           label: t('Releases'),
@@ -144,7 +124,7 @@ export function useChartLayers({
       : undefined;
 
   const flagsLayer: ChartLayer | undefined =
-    areFlagsOffered && defined(flagItems)
+    areAnnotationsEnabled && defined(flagItems)
       ? {
           value: FLAGS_LAYER,
           label: t('Flags'),
@@ -159,7 +139,7 @@ export function useChartLayers({
     : undefined;
 
   const changesLayer: ChartLayer | undefined =
-    areChangesOffered && defined(changeItems)
+    areAnnotationsEnabled && defined(changeItems)
       ? {
           value: CHANGES_LAYER,
           label: t('Changes'),

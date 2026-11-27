@@ -270,7 +270,6 @@ function Graph({
   const {droppedData, layerControl, showConfidence} = useChartLayers({
     dataset: DiscoverDatasets.TRACEMETRICS,
     interval,
-    layers: ['dropped-data', 'confidence'],
     source: 'explore',
     enabled: showChart,
   });

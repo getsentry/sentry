@@ -11,17 +11,9 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 
 import type {TimeseriesAnnotation} from './annotations/timeseriesAnnotation';
 import type {AnnotationItem} from './annotations/types';
-import {useChartLayers, type ChartLayerName} from './useChartLayers';
+import {useChartLayers} from './useChartLayers';
 
 jest.mock('sentry/utils/analytics');
-
-const ALL_LAYERS: ChartLayerName[] = [
-  'dropped-data',
-  'confidence',
-  'releases',
-  'flags',
-  'changes',
-];
 
 const organization = OrganizationFixture({
   features: ['explore-data-fidelity-annotations'],
@@ -48,7 +40,6 @@ describe('useChartLayers', () => {
         useChartLayers({
           dataset: DiscoverDatasets.SPANS,
           interval: '1h',
-          layers: ALL_LAYERS,
           source: 'explore',
         }),
       {organization}
@@ -65,13 +56,7 @@ describe('useChartLayers', () => {
     'toggles the dropped data band and tracks it with the %s source',
     async source => {
       const {result} = renderHookWithProviders(
-        () =>
-          useChartLayers({
-            dataset: DiscoverDatasets.SPANS,
-            interval: '1h',
-            layers: ALL_LAYERS,
-            source,
-          }),
+        () => useChartLayers({dataset: DiscoverDatasets.SPANS, interval: '1h', source}),
         {organization}
       );
 
@@ -95,7 +80,6 @@ describe('useChartLayers', () => {
         useChartLayers({
           dataset: DiscoverDatasets.SPANS,
           interval: '1h',
-          layers: ALL_LAYERS,
           source: 'explore',
           hidden: true,
         }),
@@ -199,7 +183,6 @@ describe('useChartLayers', () => {
           useChartLayers({
             dataset: DiscoverDatasets.SPANS,
             interval: '1h',
-            layers: ALL_LAYERS,
             source: 'explore',
           }),
         {organization: annotationsOrganization}
@@ -334,7 +317,14 @@ describe('useChartLayers', () => {
       expect(result.current.annotations).toBeUndefined();
     });
 
-    it('fetches and offers only the listed layers', async () => {
+    it('offers confidence but no releases, flags, or changes on logs charts', async () => {
+      const logsOrganization = OrganizationFixture({
+        ...annotationsOrganization,
+        features: [
+          ...annotationsOrganization.features,
+          'data-browsing-time-series-confidence',
+        ],
+      });
       const releasesRequest = MockApiClient.addMockResponse({
         url: `/organizations/${annotationsOrganization.slug}/releases/stats/`,
         body: [release],
@@ -353,15 +343,15 @@ describe('useChartLayers', () => {
           useChartLayers({
             dataset: DiscoverDatasets.OURLOGS,
             interval: '1h',
-            layers: ['dropped-data', 'confidence'],
             source: 'explore',
           }),
-        {organization: annotationsOrganization}
+        {organization: logsOrganization}
       );
 
       await waitFor(() =>
         expect(result.current.layerControl?.layers.map(layer => layer.value)).toEqual([
           'dropped-data',
+          'confidence',
         ])
       );
       expect(result.current.annotations).toBeUndefined();
@@ -377,7 +367,6 @@ describe('useChartLayers', () => {
         useChartLayers({
           dataset: DiscoverDatasets.SPANS,
           interval: '1h',
-          layers: ALL_LAYERS,
           source: 'explore',
           enabled: false,
         }),
@@ -400,7 +389,6 @@ describe('useChartLayers', () => {
         useChartLayers({
           dataset: DiscoverDatasets.SPANS,
           interval: '1h',
-          layers: ALL_LAYERS,
           source: 'explore',
         }),
       {organization: confidenceOrganization}

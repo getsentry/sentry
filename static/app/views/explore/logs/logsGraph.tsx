@@ -187,7 +187,6 @@ function Graph({
   const {droppedData, layerControl, showConfidence} = useChartLayers({
     dataset: DiscoverDatasets.OURLOGS,
     interval: chartInterval,
-    layers: ['dropped-data', 'confidence'],
     source: 'explore',
     hidden: tableIsEmpty || tableIsPending,
   });
