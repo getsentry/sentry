@@ -1,7 +1,9 @@
 from dataclasses import dataclass
-from enum import StrEnum
+from enum import StrEnum, unique
 
 
+# a duplicate code would otherwise become a silent alias of the first rule
+@unique
 class ApiRule(StrEnum):
     """
     Rule codes tracked by the API guidelines tooling
