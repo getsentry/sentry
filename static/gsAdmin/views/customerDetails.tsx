@@ -915,17 +915,18 @@ export function CustomerDetails() {
                 : isReservedBudgetQuota
                   ? 'Gift to the reserved budget'
                   : `Plan does not support gifted ${displayName}.`,
-              confirmModalOpts: {
-                renderModalSpecificContent: deps => (
+              skipConfirmModal: true,
+              onAction: () =>
+                openModal(deps => (
                   <AddGiftEventsAction
+                    {...deps}
                     billedCategoryInfo={categoryInfo}
                     dataCategory={dataCategory as DataCategory}
                     subscription={subscription}
-                    {...deps}
+                    header={<Heading as="h4">Gift {displayName}</Heading>}
+                    onConfirm={params => onUpdateMutation.mutate({...params})}
                   />
-                ),
-              },
-              onAction: params => onUpdateMutation.mutate({...params}),
+                )),
             })
           ),
           {
