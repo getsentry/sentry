@@ -506,7 +506,12 @@ export function ConnectScmBlock({
   const {pipWindow, closePipWindow} = usePictureInPicture();
 
   function openConnectModal() {
-    openConnectScmModal({inputId: pendingInput.id, repoName, onInstall: watchInstall});
+    openConnectScmModal({
+      organization,
+      inputId: pendingInput.id,
+      repoName,
+      onInstall: watchInstall,
+    });
   }
 
   if (canAccess) {

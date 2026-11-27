@@ -18,6 +18,8 @@ import {
 import {Placeholder} from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
 import type {Integration} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {canManageIntegrations} from 'sentry/utils/integrationUtil';
@@ -49,15 +51,22 @@ interface ConnectScmModalProps extends ModalRenderProps {
 }
 
 export function openConnectScmModal({
+  organization,
+  inputId,
   repoName,
   onInstall,
-  inputId,
   isFromLink,
   onAccess,
 }: Pick<
   ConnectScmModalProps,
   'repoName' | 'onInstall' | 'inputId' | 'isFromLink' | 'onAccess'
->) {
+> & {organization: Organization}) {
+  trackAnalytics('seer.explorer.connect_scm_modal.opened', {
+    organization,
+    source: isFromLink ? 'link' : 'chat',
+    has_repo: repoName !== null,
+    input_id: inputId ?? null,
+  });
   openModal(
     modalProps => (
       <ConnectScmModal
@@ -110,6 +119,7 @@ export function useConnectScmModalFromUrl() {
           return;
         }
         openConnectScmModal({
+          organization,
           repoName,
           isFromLink: true,
           // In the chat, the chat going on is the sign it worked. Here, nothing else says so.
@@ -121,7 +131,7 @@ export function useConnectScmModalFromUrl() {
             ),
         });
       });
-  }, [repoParam, setRepoParam, canInstall, hasPrompt, queryClient, organization.slug]);
+  }, [repoParam, setRepoParam, canInstall, hasPrompt, queryClient, organization]);
 }
 
 function ConnectScmModal({

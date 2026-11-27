@@ -187,6 +187,12 @@ export type SeerAnalyticsEventsParameters = {
     has_token_based_seer: boolean;
   };
   'seer.explorer.block_copied': Record<string, unknown>;
+  'seer.explorer.connect_scm_modal.opened': {
+    has_repo: boolean;
+    /** The chat's paused input, as on the backend's `seer.scm_connect.*` events. */
+    input_id: string | null;
+    source: 'chat' | 'link';
+  };
   'seer.explorer.feedback_submitted': {
     block_index: number;
     block_message: string;
@@ -280,6 +286,7 @@ export const seerAnalyticsEventsMap: Record<SeerAnalyticsEventKey, string | null
   'coding_integration.setup_handoff_clicked': 'Coding Integration: Setup Handoff Clicked',
   'seer.config_reminder.rendered': 'Seer: Config Reminder Rendered',
   'seer.explorer.block_copied': 'Seer Explorer: Block Content Copied',
+  'seer.explorer.connect_scm_modal.opened': 'Seer Explorer: Connect SCM Modal Opened',
   'seer.explorer.feedback_submitted': 'Seer Explorer: Feedback Submitted',
   'seer.explorer.global_panel.opened': 'Seer Explorer: Global Panel Opened',
   'seer.explorer.global_panel.tool_link_navigation': 'Seer Explorer: Tool Link Visited',

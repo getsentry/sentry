@@ -16,8 +16,11 @@ import {Button} from '@sentry/scraps/button';
 import {toast} from '@sentry/scraps/toast';
 
 import * as pipelineModal from 'sentry/components/pipeline/modal';
+import {trackAnalytics} from 'sentry/utils/analytics';
 
 import {openConnectScmModal, useConnectScmModalFromUrl} from './connectScmModal';
+
+jest.mock('sentry/utils/analytics');
 
 const organization = OrganizationFixture();
 const withPrompt = OrganizationFixture({features: ['ask-seer-scm-connect-prompt']});
@@ -64,7 +67,7 @@ describe('ConnectScmModal after the install', () => {
   function openModalForRepo() {
     const onInstall = jest.fn();
     renderGlobalModal({organization});
-    act(() => openConnectScmModal({repoName: 'acme/app', onInstall}));
+    act(() => openConnectScmModal({organization, repoName: 'acme/app', onInstall}));
     return {onInstall};
   }
 
@@ -117,7 +120,7 @@ describe('ConnectScmModal after the install', () => {
       body: {status: 'found', connectedAccounts: []},
     });
     renderGlobalModal({organization});
-    act(() => openConnectScmModal({repoName: null, onInstall: jest.fn()}));
+    act(() => openConnectScmModal({organization, repoName: null, onInstall: jest.fn()}));
 
     expect(
       await screen.findByText(
@@ -199,6 +202,10 @@ describe('useConnectScmModalFromUrl', () => {
 
     expect(await screen.findByRole('button', {name: 'Add GitHub'})).toBeInTheDocument();
     expect(screen.getByText('acme-labs/app')).toBeInTheDocument();
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'seer.explorer.connect_scm_modal.opened',
+      expect.objectContaining({source: 'link', has_repo: true, input_id: null})
+    );
     await waitFor(() =>
       expect(router.location.query).toEqual({category: 'source code management'})
     );
@@ -213,6 +220,10 @@ describe('useConnectScmModalFromUrl', () => {
       expect(success).toHaveBeenCalledWith('Seer can already access acme-labs/app.')
     );
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(trackAnalytics).not.toHaveBeenCalledWith(
+      'seer.explorer.connect_scm_modal.opened',
+      expect.anything()
+    );
   });
 
   it('says once Seer can access the repo after the install', async () => {
