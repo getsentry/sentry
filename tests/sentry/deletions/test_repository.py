@@ -47,6 +47,45 @@ class DeleteRepositoryTest(TransactionTestCase, HybridCloudTestMixin):
         )
         assert not Repository.objects.filter(id=repo.id).exists()
 
+    def test_seer_notification_uses_name_from_before_pending_deletion_rename(self) -> None:
+        org = self.create_organization()
+        repo = Repository.objects.create(
+            organization_id=org.id,
+            provider="integrations:github",
+            name="example/example",
+            external_id="123",
+            status=ObjectStatus.PENDING_DELETION,
+        )
+        repo.rename_on_pending_deletion()
+        assert repo.name != "example/example"
+
+        self.ScheduledDeletion.schedule(instance=repo, days=0)
+
+        with self.tasks():
+            run_scheduled_deletions()
+
+        self.mock_notify_seer_repository_deleted.delay.assert_called_once_with(
+            org.id, repo.id, "integrations:github", "example/example"
+        )
+        assert not Repository.objects.filter(id=repo.id).exists()
+
+    def test_no_seer_notification_without_provider(self) -> None:
+        org = self.create_organization()
+        repo = Repository.objects.create(
+            organization_id=org.id,
+            provider=None,
+            name="example/example",
+            status=ObjectStatus.PENDING_DELETION,
+        )
+
+        self.ScheduledDeletion.schedule(instance=repo, days=0)
+
+        with self.tasks():
+            run_scheduled_deletions()
+
+        self.mock_notify_seer_repository_deleted.delay.assert_not_called()
+        assert not Repository.objects.filter(id=repo.id).exists()
+
     def test_simple(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
