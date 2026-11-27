@@ -1,14 +1,16 @@
 import type {ReactNode} from 'react';
 import {useTheme} from '@emotion/react';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
-import {parseAsString, useQueryState} from 'nuqs';
+import {parseAsString, useQueryStates} from 'nuqs';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {useDrawer} from '@sentry/scraps/drawer';
 import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
@@ -20,6 +22,7 @@ import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {NotFound} from 'sentry/components/errors/notFound';
 import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
+import {ProgressBar} from 'sentry/components/progressBar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
@@ -49,13 +52,19 @@ import {
   causeTimeseriesOptions,
   failedEventsTimeseriesOptions,
   failureTrendsOptions,
+  filterValuesOptions,
+  issueStatusesOptions,
   issueVolumesOptions,
   issueVolumeTrendsOptions,
   OTHER_CAUSES,
+  REPROCESSING_POLL_MS,
   totalEventsTimeseriesOptions,
   symbolicationFailuresOptions,
   trendKey,
+  type FailureFilters,
   type FailureRow,
+  type FilterField,
+  type IssueStatus,
   type IssueVolume,
 } from './queries';
 
@@ -226,12 +235,32 @@ const COLUMNS: TableColumnConfig[] = [
   {key: 'actions', visible: {[WIDE]: true}, width: 'max-content'},
 ];
 
+function ReprocessingProgress({status}: {status: IssueStatus}) {
+  const total = status.statusDetails?.info?.totalEvents ?? 0;
+  const done = Math.max(0, total - (status.statusDetails?.pendingEvents ?? total));
+
+  return (
+    <Flex gap="md" align="center" paddingTop="xs">
+      <Container width="96px">
+        <ProgressBar value={total ? (done / total) * 100 : 0} />
+      </Container>
+      <Text size="xs" variant="muted" wrap="nowrap">
+        {total
+          ? t('Reprocessing: %s of %s events', done, total)
+          : t('Reprocessing\u2026')}
+      </Text>
+    </Flex>
+  );
+}
+
 function IssueCell({
   row,
   volume,
+  reprocessing,
   narrowTableCause,
 }: {
   narrowTableCause: ReactNode;
+  reprocessing: IssueStatus | undefined;
   row: FailureRow;
   volume: IssueVolume | undefined;
 }) {
@@ -249,6 +278,7 @@ function IssueCell({
       <Text size="xs" variant="muted" ellipsis>
         {volume?.issue ?? String(row.group_id)}
       </Text>
+      {reprocessing ? <ReprocessingProgress status={reprocessing} /> : null}
       <Container display={{zero: 'block', [WIDE]: 'none'}} paddingTop="xs">
         {narrowTableCause}
       </Container>
@@ -380,29 +410,109 @@ function FailureTrend({
   );
 }
 
+const FILTER_LABELS: Record<FilterField, string> = {
+  error_type: t('Cause'),
+  environment: t('Environment'),
+  release: t('Release'),
+  platform: t('Platform'),
+};
+
+function FailureFilter({
+  field,
+  project,
+  value,
+  onChange,
+}: {
+  field: FilterField;
+  onChange: (value: string | null) => void;
+  project: Project;
+  value: string | undefined;
+}) {
+  const organization = useOrganization();
+  const {data} = useQuery(filterValuesOptions({organization, project, field}));
+  const values = (data?.data ?? []).flatMap(row => row[field] ?? []);
+  const label = (option: string) =>
+    field === 'error_type' ? getSymbolicationErrorInfo(option).label : option;
+
+  return (
+    <CompactSelect
+      clearable
+      search
+      value={value}
+      options={values.map(option => ({value: option, label: label(option)}))}
+      onChange={option => onChange(option?.value ?? null)}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button {...triggerProps} size="sm" prefix={FILTER_LABELS[field]}>
+          {value ? label(value) : t('All')}
+        </OverlayTrigger.Button>
+      )}
+    />
+  );
+}
+
+// The filters are in the URL, so a filtered page has a link. A new filter
+// starts at the first page of rows.
+function useFailureFilters() {
+  const [params, setParams] = useQueryStates({
+    cause: parseAsString,
+    environment: parseAsString,
+    release: parseAsString,
+    platform: parseAsString,
+    cursor: parseAsString,
+  });
+  const filters: FailureFilters = {
+    cause: params.cause ?? undefined,
+    environment: params.environment ?? undefined,
+    release: params.release ?? undefined,
+    platform: params.platform ?? undefined,
+  };
+  const setFilter = (key: keyof FailureFilters, value: string | null) =>
+    setParams({[key]: value, cursor: null});
+
+  return {filters, setFilter, cursor: params.cursor ?? undefined};
+}
+
 function FailuresTable({
   project,
+  filters,
   cursor,
   causeColors,
 }: {
   causeColors: CauseColors;
   cursor: string | undefined;
+  filters: FailureFilters;
   project: Project;
 }) {
   const theme = useTheme();
   const organization = useOrganization();
   const {data, isPending, isError, refetch} = useQuery({
-    ...symbolicationFailuresOptions({organization, project, cursor}),
+    ...symbolicationFailuresOptions({organization, project, filters, cursor}),
     select: selectJsonWithHeaders,
     placeholderData: keepPreviousData,
   });
   const rows = data?.json.data ?? [];
   const groupIds = [...new Set(rows.map(row => String(row.group_id)))];
-  const volumes = useQuery(issueVolumesOptions({organization, project, groupIds}));
-  const trends = useQuery(failureTrendsOptions({organization, project, rows}));
+  const volumes = useQuery(
+    issueVolumesOptions({organization, project, filters, groupIds})
+  );
+  const trends = useQuery(failureTrendsOptions({organization, project, filters, rows}));
   const {openDrawer} = useDrawer();
   const volumeTrends = useQuery(
-    issueVolumeTrendsOptions({organization, project, groupIds})
+    issueVolumeTrendsOptions({organization, project, filters, groupIds})
+  );
+
+  // The poll runs only while an issue of the page is reprocessing.
+  const statuses = useQuery({
+    ...issueStatusesOptions({organization, project, groupIds}),
+    refetchInterval: query =>
+      query.state.data?.json.some(group => group.status === 'reprocessing')
+        ? REPROCESSING_POLL_MS
+        : false,
+  });
+  const reprocessingByGroup = new Map(
+    (statuses.data ?? [])
+      .filter(group => group.status === 'reprocessing')
+      .map(group => [group.id, group])
   );
 
   const volumeByGroup = new Map(
@@ -440,7 +550,9 @@ function FailuresTable({
         {isPending && <SimpleTable.Loading />}
         {!isPending && rows.length === 0 && (
           <SimpleTable.Empty>
-            {t('Every event in the last 30 days symbolicated without errors.')}
+            {Object.values(filters).some(Boolean)
+              ? t('No symbolication errors match the filters.')
+              : t('Every event in the last 30 days symbolicated without errors.')}
           </SimpleTable.Empty>
         )}
         {!isPending &&
@@ -458,6 +570,7 @@ function FailuresTable({
                         <FailureDetails
                           organization={organization}
                           project={project}
+                          filters={filters}
                           row={row}
                         />
                       </ErrorBoundary>
@@ -478,7 +591,12 @@ function FailuresTable({
                   <ProjectAvatar project={project} title={project.slug} hasTooltip />
                 </SimpleTable.RowCell>
                 <SimpleTable.RowCell align={CELL_ALIGN}>
-                  <IssueCell row={row} volume={volume} narrowTableCause={cause} />
+                  <IssueCell
+                    row={row}
+                    volume={volume}
+                    reprocessing={reprocessingByGroup.get(String(row.group_id))}
+                    narrowTableCause={cause}
+                  />
                 </SimpleTable.RowCell>
                 <SimpleTable.RowCell>{cause}</SimpleTable.RowCell>
                 <SimpleTable.RowCell align={CELL_ALIGN}>
@@ -525,21 +643,48 @@ function SymbolicationErrors() {
   const {project} = useProjectSettingsOutlet();
   const organization = useOrganization();
   const theme = useTheme();
-  const [cursor] = useQueryState('cursor', parseAsString);
-  const timeseries = useQuery(causeTimeseriesOptions({organization, project}));
+  const {filters, setFilter, cursor} = useFailureFilters();
+  const query = {organization, project, filters};
+  const timeseries = useQuery(causeTimeseriesOptions(query));
   const causeColors = useCauseColors(timeseries.data);
-  const failedEvents = useQuery(failedEventsTimeseriesOptions({organization, project}));
-  const totalEvents = useQuery(totalEventsTimeseriesOptions({organization, project}));
+  const failedEvents = useQuery(failedEventsTimeseriesOptions(query));
+  const totalEvents = useQuery(totalEventsTimeseriesOptions(query));
 
   return (
     <SentryDocumentTitle title={t('Symbolication Errors')} projectSlug={project.slug}>
       <SettingsPageHeader
         title={t('Symbolication Errors')}
         subtitle={t(
-          'Issues whose events did not fully symbolicate in the last 30 days. Find the missing upload here, then reprocess the affected issues.'
+          'Issues whose events did not fully symbolicate in the last 30 days. Find the missing upload here. Events that use debug files can be processed again after the upload.'
         )}
       />
       <Stack gap="xl">
+        <Flex gap="md" wrap="wrap">
+          <FailureFilter
+            field="error_type"
+            project={project}
+            value={filters.cause}
+            onChange={value => setFilter('cause', value)}
+          />
+          <FailureFilter
+            field="environment"
+            project={project}
+            value={filters.environment}
+            onChange={value => setFilter('environment', value)}
+          />
+          <FailureFilter
+            field="release"
+            project={project}
+            value={filters.release}
+            onChange={value => setFilter('release', value)}
+          />
+          <FailureFilter
+            field="platform"
+            project={project}
+            value={filters.platform}
+            onChange={value => setFilter('platform', value)}
+          />
+        </Flex>
         <ChartWidget
           title={t('Symbolication failures by cause')}
           project={project}
@@ -556,7 +701,8 @@ function SymbolicationErrors() {
         />
         <FailuresTable
           project={project}
-          cursor={cursor ?? undefined}
+          filters={filters}
+          cursor={cursor}
           causeColors={causeColors}
         />
       </Stack>

@@ -8,10 +8,16 @@ import {t} from 'sentry/locale';
 
 type SymbolicationCategory = 'native' | 'javascript' | 'jvm' | 'fetch';
 
-export type FixKey = 'debug-symbols' | 'source-maps' | 'proguard' | 'source-fetching';
+export type FixKey =
+  | 'debug-symbols'
+  | 'custom-repositories'
+  | 'source-maps'
+  | 'proguard'
+  | 'source-fetching';
 
 export const FIXES: Record<FixKey, {label: string; page: string}> = {
   'debug-symbols': {label: t('Upload debug files'), page: 'debug-symbols/'},
+  'custom-repositories': {label: t('Check custom repositories'), page: 'debug-symbols/'},
   'source-maps': {label: t('Upload source maps'), page: 'source-maps/'},
   proguard: {label: t('Upload ProGuard mapping'), page: 'proguard/'},
   'source-fetching': {label: t('Enable source fetching'), page: ''},
@@ -25,6 +31,7 @@ export type GuideKey =
   | 'broken-source-map'
   | 'fetching-off'
   | 'fetch-failed'
+  | 'symbol-source-failed'
   | 'unmappable'
   | 'no-action';
 
@@ -148,6 +155,23 @@ export const GUIDES: Record<GuideKey, GuideStep[]> = {
     {
       text: t('Better: upload the files, so that Sentry does not need to download them.'),
       command: uploadSourceMaps,
+    },
+  ],
+  'symbol-source-failed': [
+    {
+      text: t(
+        'Sentry tried to download the debug file from a custom repository of this project and failed. Open the Debug Files settings and check the URL and the credentials of each custom repository.'
+      ),
+    },
+    {
+      text: t(
+        'Check that the symbol server is reachable from the public internet and answers within a few seconds.'
+      ),
+    },
+    {
+      text: t(
+        'Alternatively, upload the debug files to Sentry, so that Sentry does not need to download them.'
+      ),
     },
   ],
   unmappable: [
@@ -353,10 +377,13 @@ const SYMBOLICATION_ERRORS: Record<string, SymbolicationErrorInfo> = {
     t('The web server did not answer the source request in time.'),
     'fetch-failed'
   ),
-  [HttpProcessingErrors.FETCH_GENERIC_ERROR]: fetchFailure(
-    t('Could not fetch file'),
-    t('Sentry could not download a source, source map or debug file.'),
-    'fetch-failed'
+  // Only native symbolication reports the next three causes: Symbolicator could
+  // not download a debug file from a symbol source.
+  [HttpProcessingErrors.FETCH_GENERIC_ERROR]: native(
+    t('Could not fetch debug file'),
+    t('Sentry could not download the debug file from a symbol source.'),
+    'symbol-source-failed',
+    'custom-repositories'
   ),
   [HttpProcessingErrors.FETCH_INVALID_HTTP_CODE]: fetchFailure(
     t('File returned an error status'),
@@ -368,15 +395,17 @@ const SYMBOLICATION_ERRORS: Record<string, SymbolicationErrorInfo> = {
     t('The fetched file used an encoding Sentry cannot read.'),
     'fetch-failed'
   ),
-  [HttpProcessingErrors.FETCH_TOO_LARGE]: fetchFailure(
-    t('File too large'),
-    t('The fetched file exceeded the size limit.'),
-    'fetch-failed'
+  [HttpProcessingErrors.FETCH_TOO_LARGE]: native(
+    t('Debug file too large'),
+    t('The debug file from a symbol source exceeded the size limit.'),
+    'symbol-source-failed',
+    'custom-repositories'
   ),
-  [HttpProcessingErrors.FETCH_TIMEOUT]: fetchFailure(
-    t('File fetch timed out'),
-    t('The server did not answer the file request in time.'),
-    'fetch-failed'
+  [HttpProcessingErrors.FETCH_TIMEOUT]: native(
+    t('Debug file fetch timed out'),
+    t('The symbol source did not answer the request for the debug file in time.'),
+    'symbol-source-failed',
+    'custom-repositories'
   ),
   [ProguardProcessingErrors.PROGUARD_MISSING_MAPPING]: jvm(
     t('Missing ProGuard mapping'),
