@@ -523,7 +523,22 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
             comparison_delta=comparison_delta,
             referrer=referrer,
             snuba_params=snuba_params,
+            additional_queries=additional_queries,
         )
+        config = None
+        if loaded_cache.candidate:
+            config = self.get_rpc_config(dataset, request, organization)
+            _, _, _, externally_scoped = dataset.get_timeseries_query(
+                search_resolver=dataset.get_resolver(snuba_params, config),
+                params=snuba_params,
+                query_string=query,
+                y_axes=query_columns,
+                groupby=[],
+                referrer=referrer,
+                sampling_mode=snuba_params.sampling_mode,
+                additional_queries=additional_queries,
+            )
+            loaded_cache.candidate = loaded_cache.candidate and not externally_scoped
 
         if top_events > 0:
             raw_groupby = self.get_field_list(organization, request, param_name="groupBy")
@@ -571,15 +586,17 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
             )
 
         if dataset in RPC_DATASETS:
+            if config is None:
+                config = self.get_rpc_config(dataset, request, organization)
             timeseries_query = query
-            if loaded_cache.filter_start is not None:
+            if loaded_cache.candidate and loaded_cache.filter_start is not None:
                 timeseries_query = add_cache_time_filter(query, loaded_cache.filter_start)
             result = dataset.run_timeseries_query(
                 params=snuba_params,
                 query_string=timeseries_query,
                 y_axes=query_columns,
                 referrer=referrer,
-                config=self.get_rpc_config(dataset, request, organization),
+                config=config,
                 sampling_mode=snuba_params.sampling_mode,
                 comparison_delta=comparison_delta,
                 additional_queries=additional_queries,

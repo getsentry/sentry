@@ -127,7 +127,7 @@ class EAPResponse(EventsResponse):
 
 @dataclass()
 class AdditionalQueries:
-    span: list[str] | None
-    log: list[str] | None
-    metric: list[str] | None
-    occurrences: list[str] | None
+    span: list[str] | None = None
+    log: list[str] | None = None
+    metric: list[str] | None = None
+    occurrences: list[str] | None = None

@@ -206,7 +206,7 @@ class Occurrences(rpc_dataset_common.RPCBase):
         search_resolver = cls.get_resolver(params, config)
 
         # Build and run the timeseries query with groupby
-        rpc_request, _aggregates, groupbys_resolved = cls.get_timeseries_query(
+        rpc_request, _aggregates, groupbys_resolved, _ = cls.get_timeseries_query(
             search_resolver=search_resolver,
             params=params,
             query_string=query_string,

@@ -924,6 +924,60 @@ class SearchResolverQueryTest(TestCase):
         )
         assert having is None
 
+    def test_starred_transaction_is_externally_scoped(self) -> None:
+        definition = SPAN_DEFINITIONS.contexts["is_starred_transaction"]
+        with mock.patch.object(
+            definition,
+            "constructor",
+            return_value=VirtualColumnContext(
+                from_column_name="span.description",
+                to_column_name="is_starred_transaction",
+                value_map={"checkout": "true"},
+                default_value="false",
+            ),
+        ):
+            _, _, contexts = self.resolver.resolve_query("is_starred_transaction:true")
+        assert any(context is not None and context.externally_scoped for context in contexts)
+
+    def test_timeseries_keeps_externally_scoped_starred_transaction(self) -> None:
+        resolver = SearchResolver(
+            params=SnubaParams(granularity_secs=3600),
+            config=SearchResolverConfig(),
+            definitions=SPAN_DEFINITIONS,
+        )
+        definition = SPAN_DEFINITIONS.contexts["is_starred_transaction"]
+        with mock.patch.object(
+            definition,
+            "constructor",
+            return_value=VirtualColumnContext(
+                from_column_name="span.description",
+                to_column_name="is_starred_transaction",
+                value_map={"checkout": "true"},
+                default_value="false",
+            ),
+        ):
+            _, _, contexts = resolver.resolve_query("is_starred_transaction:true")
+        assert any(context is not None and context.externally_scoped for context in contexts)
+
+    def test_saved_formula_is_externally_scoped(self) -> None:
+        formula = mock.Mock()
+        formula.name = "formula.custom_apdex"
+        resolver = SearchResolver(
+            params=SnubaParams(),
+            config=SearchResolverConfig(saved_formulas={"formula.custom_apdex": formula}),
+            definitions=SPAN_DEFINITIONS,
+        )
+        with mock.patch(
+            "sentry.search.eap.utils.resolve_and_parse_formula",
+            return_value="count(span.duration)",
+        ):
+            resolved, _ = resolver.resolve_function("formula.custom_apdex()")
+        assert resolved.externally_scoped
+
+    def test_count_is_not_externally_scoped(self) -> None:
+        resolved, _ = self.resolver.resolve_function("count(span.duration)")
+        assert not resolved.externally_scoped
+
 
 class SearchResolverColumnTest(TestCase):
     def setUp(self) -> None:

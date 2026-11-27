@@ -347,7 +347,7 @@ class PerformanceSpansEAPRpcEntitySubscription(BaseEntitySubscription):
             search_config,
         )
 
-        rpc_request, _, _ = dataset_module.get_timeseries_query(
+        rpc_request, _, _, _ = dataset_module.get_timeseries_query(
             search_resolver=search_resolver,
             params=snuba_params,
             query_string=query,

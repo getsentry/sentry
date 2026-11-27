@@ -83,6 +83,9 @@ class ResolvedColumn:
     # wrapping an indexed column like trace_id in lower() stops ClickHouse from narrowing by it.
     canonical_case: bool = False
     wildcard_allowed: bool = True
+    # The series depends on who is asking or on a formula body that is not in the request.
+    # The timeseries cache must not store it under a shared key.
+    externally_scoped: bool = False
     # Indicates this attribute is a secondary alias for the attribute.
     # It exists for compatibility or convenience reasons and should NOT be preferred.
     secondary_alias: bool = False
@@ -253,6 +256,8 @@ class VirtualColumnDefinition:
     sort_column: str | None = None
     # User-facing context (brief/examples) surfaced by the /attributes endpoint.
     context: AttributeContext | None = None
+    # The constructor reads the requesting user, so the resolved value is not shared.
+    externally_scoped: bool = False
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -533,6 +538,7 @@ class FunctionDefinition:
         query_result_cache: dict[str, EAPResponse],
         search_config: SearchResolverConfig,
         default_value: float | None = None,
+        externally_scoped: bool = False,
     ) -> ResolvedFunction:
         raise NotImplementedError()
 
@@ -555,6 +561,7 @@ class AggregateDefinition(FunctionDefinition):
         query_result_cache: dict[str, EAPResponse],
         search_config: SearchResolverConfig,
         default_value: float | None = None,
+        externally_scoped: bool = False,
     ) -> ResolvedFunction:
         if len(resolved_arguments) > len(self.arguments):
             raise InvalidSearchQuery(
@@ -592,6 +599,7 @@ class AggregateDefinition(FunctionDefinition):
                 ),
                 key=resolved_attribute,
                 default_value=default_value,
+                externally_scoped=externally_scoped,
             )
         else:
             return ResolvedAggregate(
@@ -605,6 +613,7 @@ class AggregateDefinition(FunctionDefinition):
                 ),
                 argument=resolved_attribute,
                 default_value=default_value,
+                externally_scoped=externally_scoped,
             )
 
 
@@ -619,6 +628,7 @@ class OrderedAggregationDefinition(AggregateDefinition):
         query_result_cache: dict[str, EAPResponse],
         search_config: SearchResolverConfig,
         default_value: float | None = None,
+        externally_scoped: bool = False,
     ) -> ResolvedFunction:
         if len(resolved_arguments) > len(self.arguments):
             raise InvalidSearchQuery(
@@ -664,6 +674,7 @@ class OrderedAggregationDefinition(AggregateDefinition):
                 key=resolved_key,
                 ranked_by=RankedBy(key=resolved_order_by),
                 default_value=default_value,
+                externally_scoped=externally_scoped,
             )
         else:
             return ResolvedAggregate(
@@ -678,6 +689,7 @@ class OrderedAggregationDefinition(AggregateDefinition):
                 argument=resolved_key,
                 ranked_by=RankedBy(key=resolved_order_by),
                 default_value=default_value,
+                externally_scoped=externally_scoped,
             )
 
 
@@ -698,6 +710,7 @@ class TraceMetricAggregateDefinition(AggregateDefinition):
         query_result_cache: dict[str, EAPResponse],
         search_config: SearchResolverConfig,
         default_value: float | None = None,
+        externally_scoped: bool = False,
     ) -> ResolvedFunction:
         if not isinstance(resolved_arguments[self.offset], AttributeKey):
             raise InvalidSearchQuery(
@@ -743,6 +756,7 @@ class TraceMetricAggregateDefinition(AggregateDefinition):
                 else None
             ),
             default_value=default_value,
+            externally_scoped=externally_scoped,
         )
 
 
@@ -773,6 +787,7 @@ class ConditionalAggregateDefinition(AggregateDefinition):
         query_result_cache: dict[str, EAPResponse],
         search_config: SearchResolverConfig,
         default_value: float | None = None,
+        externally_scoped: bool = False,
     ) -> ResolvedFunction:
         key, aggregate_filter = self.aggregate_resolver(resolved_arguments)
         return ResolvedConditionalAggregate(
@@ -787,6 +802,7 @@ class ConditionalAggregateDefinition(AggregateDefinition):
                 search_config, self.extrapolation_mode_override
             ),
             default_value=default_value,
+            externally_scoped=externally_scoped,
         )
 
 
@@ -811,6 +827,7 @@ class FormulaDefinition(FunctionDefinition):
         query_result_cache: dict[str, EAPResponse],
         search_config: SearchResolverConfig,
         default_value: float | None = None,
+        externally_scoped: bool = False,
     ) -> ResolvedFunction:
         resolver_settings = ResolverSettings(
             extrapolation_mode=resolve_extrapolation_mode(
@@ -830,6 +847,7 @@ class FormulaDefinition(FunctionDefinition):
             internal_type=self.internal_type,
             processor=self.processor,
             default_value=default_value,
+            externally_scoped=externally_scoped,
         )
 
 
@@ -852,6 +870,7 @@ class TraceMetricFormulaDefinition(FormulaDefinition):
         query_result_cache: dict[str, EAPResponse],
         search_config: SearchResolverConfig,
         default_value: float | None = None,
+        externally_scoped: bool = False,
     ) -> ResolvedFunction:
         resolver_settings = ResolverSettings(
             extrapolation_mode=resolve_extrapolation_mode(
@@ -879,6 +898,7 @@ class TraceMetricFormulaDefinition(FormulaDefinition):
             processor=self.processor,
             trace_metric=trace_metric,
             default_value=default_value,
+            externally_scoped=externally_scoped,
         )
 
 
@@ -907,6 +927,7 @@ class MultiTraceMetricFormulaDefinition(FormulaDefinition):
         query_result_cache: dict[str, EAPResponse],
         search_config: SearchResolverConfig,
         default_value: float | None = None,
+        externally_scoped: bool = False,
     ) -> ResolvedFunction:
         resolver_settings = ResolverSettings(
             extrapolation_mode=resolve_extrapolation_mode(
@@ -927,6 +948,7 @@ class MultiTraceMetricFormulaDefinition(FormulaDefinition):
             processor=self.processor,
             default_value=default_value,
             trace_metrics=self.trace_metrics_resolver(resolved_arguments),
+            externally_scoped=externally_scoped,
         )
 
 
