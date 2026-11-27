@@ -41,6 +41,8 @@ interface ConnectScmModalProps extends ModalRenderProps {
   repoName: string | null;
   /** The chat's paused input. Not set when a link opened the modal. */
   inputId?: string;
+  /** When the modal closes after an install because Seer can access the repo now. */
+  onAccess?: () => void;
   onInstall?: () => void;
 }
 
@@ -48,7 +50,8 @@ export function openConnectScmModal({
   repoName,
   onInstall,
   inputId,
-}: Pick<ConnectScmModalProps, 'repoName' | 'onInstall' | 'inputId'>) {
+  onAccess,
+}: Pick<ConnectScmModalProps, 'repoName' | 'onInstall' | 'inputId' | 'onAccess'>) {
   openModal(
     modalProps => (
       <ConnectScmModal
@@ -56,6 +59,7 @@ export function openConnectScmModal({
         repoName={repoName}
         onInstall={onInstall}
         inputId={inputId}
+        onAccess={onAccess}
       />
     ),
     {closeEvents: 'escape-key'}
@@ -98,7 +102,16 @@ export function useConnectScmModalFromUrl() {
           );
           return;
         }
-        openConnectScmModal({repoName});
+        openConnectScmModal({
+          repoName,
+          // In the chat, the chat going on is the sign it worked. Here, nothing else says so.
+          onAccess: () =>
+            toast.success(
+              repoName
+                ? t('Seer can access %s now.', repoName)
+                : t('Source control is connected.')
+            ),
+        });
       });
   }, [repoParam, setRepoParam, canInstall, hasPrompt, queryClient, organization.slug]);
 }
@@ -107,6 +120,7 @@ function ConnectScmModal({
   repoName,
   onInstall,
   inputId,
+  onAccess,
   ...modalProps
 }: ConnectScmModalProps) {
   const {Header, Body} = modalProps;
@@ -156,6 +170,7 @@ function ConnectScmModal({
         integration={installed}
         repoName={repoName}
         inputId={inputId}
+        onAccess={onAccess}
       />
     );
   }
@@ -220,12 +235,14 @@ interface ReposStepProps extends ModalRenderProps {
   };
   repoName: string | null;
   inputId?: string;
+  onAccess?: () => void;
 }
 
 function ReposStep({
   integration,
   repoName,
   inputId,
+  onAccess,
   Header,
   Body,
   closeModal,
@@ -266,9 +283,10 @@ function ReposStep({
   const canAccess = access?.status === 'found';
   useEffect(() => {
     if (canAccess) {
+      onAccess?.();
       closeModal();
     }
-  }, [canAccess, closeModal]);
+  }, [canAccess, onAccess, closeModal]);
 
   const checkAgain = () => refetch({cancelRefetch: false});
   const repo = <Text bold>{repoName}</Text>;
