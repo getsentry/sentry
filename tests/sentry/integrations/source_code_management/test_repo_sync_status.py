@@ -58,8 +58,48 @@ class RepoSyncStatusTest(RepoSyncStatusTestCase):
             record_synced(self.organization.id, INTEGRATION_ID)
         with freeze_time("2020-01-01 10:00:05"):
             record_sync_requested(self.organization.id, INTEGRATION_ID, RepoSyncTrigger.WEBHOOK)
+            assert self._status() == RepoSyncOk(state="syncing", trigger=RepoSyncTrigger.WEBHOOK)
 
-        assert self._status() == RepoSyncOk(state="syncing", trigger=RepoSyncTrigger.WEBHOOK)
+    def test_uncounted_batches_do_not_finish_counted_ones(self) -> None:
+        record_sync_requested(self.organization.id, INTEGRATION_ID, RepoSyncTrigger.MANUAL)
+        record_batch_finished(self.organization.id, INTEGRATION_ID)
+        record_batch_finished(self.organization.id, INTEGRATION_ID)
+
+        record_synced(self.organization.id, INTEGRATION_ID, batches=2)
+        record_batch_finished(self.organization.id, INTEGRATION_ID)
+        assert self._status() == RepoSyncOk(state="syncing", trigger=RepoSyncTrigger.MANUAL)
+
+        record_batch_finished(self.organization.id, INTEGRATION_ID)
+        assert self._status() == RepoSyncOk(state="done", trigger=RepoSyncTrigger.MANUAL)
+
+    def test_a_new_request_forgets_batches_that_never_finished(self) -> None:
+        record_sync_requested(self.organization.id, INTEGRATION_ID, RepoSyncTrigger.MANUAL)
+        record_synced(self.organization.id, INTEGRATION_ID, batches=2)
+        record_batch_finished(self.organization.id, INTEGRATION_ID)
+
+        record_sync_requested(self.organization.id, INTEGRATION_ID, RepoSyncTrigger.MANUAL)
+        record_synced(self.organization.id, INTEGRATION_ID)
+        assert self._status() == RepoSyncOk(state="done", trigger=RepoSyncTrigger.MANUAL)
+
+    def test_done_once_batches_take_too_long(self) -> None:
+        with freeze_time("2020-01-01 10:00:00"):
+            record_sync_requested(self.organization.id, INTEGRATION_ID, RepoSyncTrigger.MANUAL)
+        with freeze_time("2020-01-01 10:00:05"):
+            record_synced(self.organization.id, INTEGRATION_ID, batches=1)
+
+        with freeze_time("2020-01-01 10:05:05"):
+            assert self._status() == RepoSyncOk(state="syncing", trigger=RepoSyncTrigger.MANUAL)
+        with freeze_time("2020-01-01 10:05:06"):
+            assert self._status() == RepoSyncOk(state="done", trigger=RepoSyncTrigger.MANUAL)
+
+    def test_done_once_no_sync_reads_the_repositories_in_time(self) -> None:
+        with freeze_time("2020-01-01 10:00:00"):
+            record_sync_requested(self.organization.id, INTEGRATION_ID, RepoSyncTrigger.MANUAL)
+
+        with freeze_time("2020-01-01 10:05:00"):
+            assert self._status() == RepoSyncOk(state="syncing", trigger=RepoSyncTrigger.MANUAL)
+        with freeze_time("2020-01-01 10:05:01"):
+            assert self._status() == RepoSyncOk(state="done", trigger=RepoSyncTrigger.MANUAL)
 
     def test_failed_until_the_next_request(self) -> None:
         record_sync_requested(self.organization.id, INTEGRATION_ID, RepoSyncTrigger.INSTALL)
