@@ -98,7 +98,6 @@ from .pullrequest import *  # NOQA
 from .recentsearch import *  # NOQA
 from .relay import *  # NOQA
 from .release import *  # NOQA
-from .release_threshold import *  # NOQA
 from .releaseactivity import *  # NOQA
 from .releasecommit import *  # NOQA
 from .releaseenvironment import *  # NOQA

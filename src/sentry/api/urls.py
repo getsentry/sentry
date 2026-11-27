@@ -80,9 +80,6 @@ from sentry.api.endpoints.organization_unsubscribe import (
 )
 from sentry.api.endpoints.project_overview import ProjectOverviewEndpoint
 from sentry.api.endpoints.project_statistical_detectors import ProjectStatisticalDetectors
-from sentry.api.endpoints.release_thresholds.release_threshold_status_index import (
-    ReleaseThresholdStatusIndexEndpoint,
-)
 from sentry.api.endpoints.secret_scanning.github import SecretScanningGitHubEndpoint
 from sentry.api.endpoints.source_map_debug import SourceMapDebugEndpoint
 from sentry.auth_v2.urls import AUTH_V2_URLS
@@ -2342,12 +2339,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/releases/$",
         OrganizationReleasesEndpoint.as_view(),
         name="sentry-api-0-organization-releases",
-    ),
-    # TODO: also integrate release threshold status into the releases response?
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/release-threshold-statuses/$",
-        ReleaseThresholdStatusIndexEndpoint.as_view(),
-        name="sentry-api-0-organization-release-threshold-statuses",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/releases/stats/$",
