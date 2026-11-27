@@ -2,37 +2,42 @@ import keyBy from 'lodash/keyBy';
 
 import {ExternalLink} from '@sentry/scraps/link';
 
-import {BooleanField} from 'sentry/components/forms/fields/booleanField';
-import {EmailField} from 'sentry/components/forms/fields/emailField';
-import {RadioField} from 'sentry/components/forms/fields/radioField';
-import {TextField} from 'sentry/components/forms/fields/textField';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 
 type Section = {key: string; heading?: string};
 
-// TODO(epurkhiser): This should really use the types from the form system, but
-// they're still pretty bad so that's difficult I guess?
-export type Field = {
-  key: string;
-  label: React.ReactNode;
-  allowEmpty?: boolean;
-  choices?: Array<[value: string, label: string]>;
-  component?: React.ComponentType<any>;
-  defaultValue?: () => string | number | false;
-  disabled?: boolean;
-  disabledReason?: string;
-  help?: React.ReactNode;
-  isSet?: boolean;
-  max?: number;
-  min?: number;
-  placeholder?: string;
-  required?: boolean;
-  step?: number;
+export type OptionValue = string | boolean;
+
+/**
+ * Field metadata the `/internal/options/` endpoint returns for each option.
+ */
+export type OptionFieldMeta = {
+  allowEmpty: boolean;
+  disabled: boolean;
+  isSet: boolean;
+  required: boolean;
+  disabledReason?: string | null;
 };
 
+type BaseOptionDefinition = {
+  key: string;
+  label: React.ReactNode;
+  help?: React.ReactNode;
+  placeholder?: string;
+};
+
+export type OptionDefinition =
+  | (BaseOptionDefinition & {type: 'text' | 'email'; defaultValue?: () => string})
+  | (BaseOptionDefinition & {defaultValue: () => boolean; type: 'boolean'})
+  | (BaseOptionDefinition & {
+      choices: Array<[value: string, label: string]>;
+      type: 'radio';
+      defaultValue?: () => string;
+    });
+
 // This are ordered based on their display order visually
-const sections: Section[] = [
+export const sections: Section[] = [
   {key: 'system'},
   {key: 'mail', heading: t('Outbound email')},
   {key: 'auth', heading: t('Authentication')},
@@ -40,9 +45,10 @@ const sections: Section[] = [
 ];
 
 // This are ordered based on their display order visually
-const definitions: Field[] = [
+const definitions: OptionDefinition[] = [
   {
     key: 'system.url-prefix',
+    type: 'text',
     label: t('Root URL'),
     placeholder: 'https://sentry.example.com',
     help: t('The root web address which is used to communicate with the Sentry backend.'),
@@ -53,8 +59,7 @@ const definitions: Field[] = [
     label: t('Admin Email'),
     placeholder: 'admin@example.com',
     help: t('The technical contact for this Sentry installation.'),
-    // TODO(dcramer): this should not be hardcoded to a component
-    component: EmailField,
+    type: 'email',
     defaultValue: () => ConfigStore.get('user').email,
   },
   {
@@ -62,8 +67,7 @@ const definitions: Field[] = [
     label: t('Support Email'),
     placeholder: 'support@example.com',
     help: t('The support contact for this Sentry installation.'),
-    // TODO(dcramer): this should not be hardcoded to a component
-    component: EmailField,
+    type: 'email',
     defaultValue: () => ConfigStore.get('user').email,
   },
   {
@@ -71,19 +75,19 @@ const definitions: Field[] = [
     label: t('Security Email'),
     placeholder: 'security@example.com',
     help: t('The security contact for this Sentry installation.'),
-    // TODO(dcramer): this should not be hardcoded to a component
-    component: EmailField,
+    type: 'email',
     defaultValue: () => ConfigStore.get('user').email,
   },
   {
     key: 'auth.allow-registration',
     label: t('Allow Registration'),
     help: t('Allow anyone to create an account and access this Sentry installation.'),
-    component: BooleanField,
+    type: 'boolean',
     defaultValue: () => false,
   },
   {
     key: 'auth.ip-rate-limit',
+    type: 'text',
     label: t('IP Rate Limit'),
     placeholder: 'e.g. 10',
     help: t(
@@ -92,6 +96,7 @@ const definitions: Field[] = [
   },
   {
     key: 'auth.user-rate-limit',
+    type: 'text',
     label: t('User Rate Limit'),
     placeholder: 'e.g. 10',
     help: t(
@@ -100,6 +105,7 @@ const definitions: Field[] = [
   },
   {
     key: 'api.rate-limit.org-create',
+    type: 'text',
     label: t('Organization Creation Rate Limit'),
     placeholder: 'e.g. 5',
     help: t(
@@ -109,7 +115,7 @@ const definitions: Field[] = [
   {
     key: 'beacon.anonymous',
     label: 'Usage Statistics',
-    component: RadioField,
+    type: 'radio',
     // yes and no are inverted here due to the nature of this configuration
     choices: [
       ['false', t('Send my contact information along with usage statistics')],
@@ -123,7 +129,7 @@ const definitions: Field[] = [
   {
     key: 'beacon.record_cpu_ram_usage',
     label: 'RAM/CPU usage',
-    component: RadioField,
+    type: 'radio',
     defaultValue: () => 'true',
     choices: [
       [
@@ -143,20 +149,28 @@ const definitions: Field[] = [
   {
     key: 'mail.from',
     label: t('Email From'),
-    component: EmailField,
+    type: 'email',
     defaultValue: () => `sentry@${document.location.hostname}`,
     help: t('Email address to be used in From for all outbound email.'),
   },
   {
     key: 'mail.host',
+    type: 'text',
     label: t('SMTP Host'),
     placeholder: 'localhost',
     defaultValue: () => 'localhost',
   },
-  {key: 'mail.port', label: t('SMTP Port'), placeholder: '25', defaultValue: () => '25'},
-  {key: 'mail.username', label: t('SMTP Username'), defaultValue: () => ''},
+  {
+    key: 'mail.port',
+    type: 'text',
+    label: t('SMTP Port'),
+    placeholder: '25',
+    defaultValue: () => '25',
+  },
+  {key: 'mail.username', type: 'text', label: t('SMTP Username'), defaultValue: () => ''},
   {
     key: 'mail.password',
+    type: 'text',
     label: t('SMTP Password'),
     // TODO(mattrobenolt): We don't want to use a real password field unless
     // there's a way to reveal it. Without being able to see the password, it's
@@ -167,79 +181,23 @@ const definitions: Field[] = [
   {
     key: 'mail.use-tls',
     label: t('Use STARTTLS? (exclusive with SSL)'),
-    component: BooleanField,
+    type: 'boolean',
     defaultValue: () => false,
   },
   {
     key: 'mail.use-ssl',
     label: t('Use SSL? (exclusive with STARTTLS)'),
-    component: BooleanField,
+    type: 'boolean',
     defaultValue: () => false,
   },
 ];
 
 const definitionsMap = keyBy(definitions, def => def.key);
 
-const disabledReasons = {
-  diskPriority:
-    'This setting is defined in config.yml and may not be changed via the web UI.',
-  smtpDisabled: 'SMTP mail has been disabled, so this option is unavailable',
-};
-
-export function getOption(option: string): Field {
+export function getOption(option: string): OptionDefinition {
   return definitionsMap[option]!;
 }
 
-export function getOptionDefault(option: string): string | number | false | undefined {
-  const meta = getOption(option);
-  return meta.defaultValue ? meta.defaultValue() : undefined;
-}
-
-function optionsForSection(section: Section) {
+export function optionsForSection(section: Section) {
   return definitions.filter(option => option.key.split('.')[0] === section.key);
-}
-
-export function getOptionField(option: string, field: Field) {
-  const meta = {...getOption(option), ...field};
-  const Field = meta.component || TextField;
-  return (
-    <Field
-      {...meta}
-      name={option}
-      key={option}
-      defaultValue={getOptionDefault(option)}
-      required={meta.required && !meta.allowEmpty}
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      disabledReason={meta.disabledReason && disabledReasons[meta.disabledReason]}
-    />
-  );
-}
-
-function getSectionFieldSet(section: Section, fields: React.ReactNode[]) {
-  return (
-    <fieldset key={section.key}>
-      {section.heading && <legend>{section.heading}</legend>}
-      {fields}
-    </fieldset>
-  );
-}
-
-export function getForm(fieldMap: Record<string, React.ReactNode>) {
-  const sets: React.ReactNode[] = [];
-
-  for (const section of sections) {
-    const set: React.ReactNode[] = [];
-
-    for (const option of optionsForSection(section)) {
-      if (fieldMap[option.key]) {
-        set.push(fieldMap[option.key]);
-      }
-    }
-
-    if (set.length) {
-      sets.push(getSectionFieldSet(section, set));
-    }
-  }
-
-  return sets;
 }

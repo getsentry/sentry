@@ -1175,9 +1175,6 @@
   "views/admin/adminMail.tsx": {"@sentry/scraps/prefer-primitives": {"count": 2}},
   "views/admin/adminPackages.tsx": {"@sentry/scraps/prefer-primitives": {"count": 2}},
   "views/admin/adminWarnings.tsx": {"@sentry/scraps/prefer-primitives": {"count": 3}},
-  "views/admin/installWizard/index.tsx": {
-    "@sentry/scraps/prefer-primitives": {"count": 1}
-  },
   "views/alerts/rules/crons/details.tsx": {
     "@sentry/scraps/prefer-primitives": {"count": 1}
   },

@@ -14,12 +14,10 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 
+import type {OptionFieldMeta} from './options';
 import {getOption} from './options';
 
-type FieldDef = {
-  field: Partial<ReturnType<typeof getOption>>;
-  value?: boolean | number | string;
-};
+type FieldDef = {field: Partial<OptionFieldMeta>; value?: boolean | number | string};
 
 const optionsQueryOptions = apiOptions.as<Record<string, FieldDef>>()(
   '/internal/options/',
@@ -151,11 +149,13 @@ function RadioOptionField({name, option}: OptionFieldProps) {
           >
             {({Item}) => (
               <Stack gap="sm">
-                {definition.choices?.map(([value, label]) => (
-                  <Item key={value} value={value}>
-                    {label}
-                  </Item>
-                ))}
+                {(definition.type === 'radio' ? definition.choices : []).map(
+                  ([value, label]) => (
+                    <Item key={value} value={value}>
+                      {label}
+                    </Item>
+                  )
+                )}
               </Stack>
             )}
           </field.RadioGroup>
