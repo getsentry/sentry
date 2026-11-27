@@ -3785,14 +3785,10 @@ class TraceMetricsTestCase(BaseTestCase, TraceItemTestCase):
             "sentry.metric_type": AnyValue(string_value=metric_type),
             "sentry.value": AnyValue(double_value=metric_value),
             f"sentry._internal.cooccuring.name.{metric_name}": AnyValue(bool_value=True),
-            f"sentry._internal.cooccuring.type.{metric_type}": AnyValue(bool_value=True),
         }
 
         if metric_unit is not None:
             attributes_proto["sentry.metric_unit"] = AnyValue(string_value=metric_unit)
-            attributes_proto[f"sentry._internal.cooccuring.unit.{metric_unit}"] = AnyValue(
-                bool_value=True
-            )
 
         if attributes:
             for k, v in attributes.items():
