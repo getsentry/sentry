@@ -53,15 +53,15 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
 
         try:
             with outbox_context(
-                transaction.atomic(using=router.db_for_write(OrganizationMemberMapping))
+                transaction.atomic(using=router.db_for_write(OrganizationMemberMapping)),
+                flush=False,
             ):
-                orm_mapping = (
-                    self._find_organization_member(
-                        organization_id=organization_id,
-                        organizationmember_id=organizationmember_id,
-                    )
-                    or orm_mapping
+                found_mapping = self._find_organization_member(
+                    organization_id=organization_id,
+                    organizationmember_id=organizationmember_id,
                 )
+                if found_mapping is not None:
+                    orm_mapping = found_mapping
 
                 apply_update(orm_mapping)
                 return serialize_org_member_mapping(orm_mapping)
@@ -85,7 +85,8 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
                     orm_mapping = existing
 
             with outbox_context(
-                transaction.atomic(using=router.db_for_write(OrganizationMemberMapping))
+                transaction.atomic(using=router.db_for_write(OrganizationMemberMapping)),
+                flush=False,
             ):
                 apply_update(orm_mapping)
 

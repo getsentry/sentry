@@ -1,5 +1,9 @@
+from django.core.cache import cache
 from django.db import router, transaction
 
+from sentry.auth.authenticators.totp import TotpInterface
+from sentry.hybridcloud.models.outbox import ControlOutbox
+from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.hybridcloud.services.organizationmember_mapping import (
     RpcOrganizationMemberMappingUpdate,
     organizationmember_mapping_service,
@@ -11,6 +15,7 @@ from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.users.services.user.service import user_service
 
 
 @control_silo_test
@@ -127,6 +132,49 @@ class OrganizationMappingTest(TransactionTestCase, HybridCloudTestMixin):
             == orgmember_mapping.invite_status
             == InviteStatus.REQUESTED_TO_BE_INVITED.value
         )
+
+    def test_upsert_leaves_user_update_outboxes_pending(self) -> None:
+        user = self.create_user()
+
+        organizationmember_mapping_service.upsert_mapping(
+            organization_id=self.organization.id,
+            organizationmember_id=111111,
+            mapping=RpcOrganizationMemberMappingUpdate(
+                role=self.organization.default_role,
+                user_id=user.id,
+                email=None,
+                inviter_id=None,
+                invite_status=None,
+            ),
+        )
+
+        assert ControlOutbox.objects.filter(
+            category=OutboxCategory.USER_UPDATE, object_identifier=user.id
+        ).exists()
+
+    def test_attaching_user_clears_cached_user_on_cell(self) -> None:
+        cache.clear()
+        user = self.create_user()
+        member = self.create_member(organization=self.organization, email=user.email)
+        with assume_test_silo_mode(SiloMode.CELL):
+            cached_user = user_service.get_user(user_id=user.id)
+            cached_users = user_service.get_many_by_id(ids=[user.id])
+        assert cached_user is not None
+        assert not cached_user.has_2fa()
+        assert not cached_users[0].has_2fa()
+
+        # The user has no mapping yet, so this update is not sent to the cell
+        TotpInterface().enroll(user)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            member.set_user(user.id)
+            member.save()
+
+            current_user = user_service.get_user(user_id=user.id)
+            current_users = user_service.get_many_by_id(ids=[user.id])
+        assert current_user is not None
+        assert current_user.has_2fa()
+        assert current_users[0].has_2fa()
 
     def test_create_mapping_updates_org_members(self) -> None:
         assert self.user.is_active

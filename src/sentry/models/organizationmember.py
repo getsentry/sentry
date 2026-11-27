@@ -42,6 +42,7 @@ from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.hybridcloud.outbox.base import ReplicatedCellModel
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.hybridcloud.rpc import extract_id_from
+from sentry.hybridcloud.rpc.caching import cell_caching_service
 from sentry.hybridcloud.services.organizationmember_mapping import (
     RpcOrganizationMemberMappingUpdate,
     organizationmember_mapping_service,
@@ -51,8 +52,9 @@ from sentry.models.team import TeamStatus
 from sentry.roles import organization_roles
 from sentry.roles.manager import OrganizationRole
 from sentry.signals import member_invited
+from sentry.types.cell import get_local_cell
 from sentry.users.services.user import RpcUser
-from sentry.users.services.user.service import user_service
+from sentry.users.services.user.service import get_many_by_id, get_user, user_service
 from sentry.utils.http import absolute_uri
 
 if TYPE_CHECKING:
@@ -725,6 +727,14 @@ class OrganizationMember(ReplicatedCellModel):
             organization_id=shard_identifier,
             mapping=rpc_org_member_update,
         )
+
+        if self.user_id is not None:
+            # A cell gets no updates for a user until the mapping exists, so its cached user can be stale
+            cell_name = get_local_cell().name
+            cell_caching_service.clear_key(key=get_user.key_from(self.user_id), cell_name=cell_name)
+            cell_caching_service.clear_key(
+                key=get_many_by_id.key_from(self.user_id), cell_name=cell_name
+            )
 
     @classmethod
     def query_for_relocation_export(cls, q: Q, pk_map: PrimaryKeyMap) -> Q:
