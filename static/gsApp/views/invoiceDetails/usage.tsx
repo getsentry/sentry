@@ -14,7 +14,7 @@ import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import type {InvoiceUsage} from 'getsentry/types';
-import {UsageHistoryTables} from 'getsentry/views/subscriptionPage/usageHistory';
+import {PeriodUsageTable} from 'getsentry/views/subscriptionPage/usageHistory';
 
 type Props = {
   invoiceId: string;
@@ -27,7 +27,7 @@ type Props = {
 };
 
 /**
- * The period that a receipt billed, as the Usage History page shows a period.
+ * The section that shows the usage table of the period that a receipt billed.
  * Renders nothing without the invoice-usage-downloads feature, and nothing
  * when the receipt billed no usage.
  */
@@ -78,7 +78,9 @@ export function InvoiceDetailsUsage({invoiceId, isReceiptLoading}: Props) {
 }
 
 /**
- * The billed period, its plan and the usage tables of the Usage History page.
+ * The billed period, its plan and the usage table of the Usage History page.
+ * The receipt above lists the pay-as-you-go charges, so the section shows no
+ * spend table.
  */
 export function InvoiceUsagePeriod({usage}: {usage: InvoiceUsage}) {
   const {categories} = usage;
@@ -96,7 +98,7 @@ export function InvoiceUsagePeriod({usage}: {usage: InvoiceUsage}) {
         </Text>
         <Text bold>{tct('[planName] Plan', {planName: usage.planName})}</Text>
       </Stack>
-      <UsageHistoryTables history={{...usage, categories}} />
+      <PeriodUsageTable history={{...usage, categories}} />
     </UsageSection>
   );
 }

@@ -456,10 +456,11 @@ describe('InvoiceDetails', () => {
       });
     });
 
-    it('shows the billed period, the plan and both usage tables', async () => {
+    it('shows the billed period, the plan and the usage table', async () => {
       MockApiClient.addMockResponse({
         url: usageUrl,
         method: 'GET',
+        // A response with spend fields still shows no spend table.
         body: BillingHistoryFixture({
           plan: 'am1_team',
           periodStart: '2021-08-21',
@@ -496,8 +497,8 @@ describe('InvoiceDetails', () => {
         within(usage).getByRole('row', {name: 'Errors 62,000 50,000 >100%'})
       ).toBeInTheDocument();
       expect(
-        within(usage).getByRole('row', {name: 'Total $8.38 $50.00 17%'})
-      ).toBeInTheDocument();
+        within(usage).queryByRole('columnheader', {name: 'Amount Spent'})
+      ).not.toBeInTheDocument();
     });
 
     it('shows no usage when the receipt billed none', async () => {
