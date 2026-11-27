@@ -422,48 +422,6 @@ class TestSeerAgentClient(TestCase):
         assert body["agent_run_options"]["code_review_enabled"] is True
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
-    def test_client_init_leaves_pr_ctx_tools_gate_to_the_caller(
-        self, mock_access: MagicMock
-    ) -> None:
-        """No iteration flag is set: the client still honours what it was passed."""
-        mock_access.return_value = (True, None)
-
-        client = SeerAgentClient(self.organization, self.user, enable_pr_context_tools=True)
-        assert client.enable_pr_context_tools is True
-
-    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
-    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
-    @patch("sentry.seer.agent.client.collect_user_org_context")
-    def test_start_run_defaults_pr_context_tools_disabled(
-        self, mock_collect_context: MagicMock, mock_post: MagicMock, mock_access: MagicMock
-    ) -> None:
-        mock_access.return_value = (True, None)
-        mock_collect_context.return_value = {"user_id": self.user.id}
-        mock_post.return_value = self._mock_run_response()
-
-        client = SeerAgentClient(self.organization, self.user)
-        client.start_run("Test query")
-
-        body = mock_post.call_args[0][0]
-        assert body["agent_run_options"]["enable_pr_context_tools"] is False
-
-    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
-    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
-    @patch("sentry.seer.agent.client.collect_user_org_context")
-    def test_start_run_passes_enable_pr_context_tools(
-        self, mock_collect_context: MagicMock, mock_post: MagicMock, mock_access: MagicMock
-    ) -> None:
-        mock_access.return_value = (True, None)
-        mock_collect_context.return_value = {"user_id": self.user.id}
-        mock_post.return_value = self._mock_run_response()
-
-        client = SeerAgentClient(self.organization, self.user, enable_pr_context_tools=True)
-        client.start_run("Test query")
-
-        body = mock_post.call_args[0][0]
-        assert body["agent_run_options"]["enable_pr_context_tools"] is True
-
-    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
     @patch("sentry.seer.agent.client.collect_user_org_context")
     @with_feature("organizations:seer-explorer-embeds")
@@ -847,21 +805,6 @@ class TestSeerAgentClient(TestCase):
         assert run.seer_run_state_id == 789
         body = mock_post.call_args[0][0]
         assert body["agent_run_options"]["enable_frontend_code_search"] is True
-
-    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
-    @patch("sentry.seer.agent.client.make_agent_chat_request")
-    def test_continue_run_passes_enable_pr_context_tools(
-        self, mock_post: MagicMock, mock_access: MagicMock
-    ) -> None:
-        mock_access.return_value = (True, None)
-        mock_post.return_value = self._mock_run_response(run_id=789)
-        self.create_seer_run(organization=self.organization, seer_run_state_id=789)
-
-        client = SeerAgentClient(self.organization, self.user, enable_pr_context_tools=True)
-        client.continue_run(789, "Follow up")
-
-        body = mock_post.call_args[0][0]
-        assert body["agent_run_options"]["enable_pr_context_tools"] is True
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     @patch("sentry.seer.agent.client.make_agent_chat_request")

@@ -254,7 +254,6 @@ def continue_single_run(
         pr_internal_settings=(
             _single_run_pr_internal_settings(group, referrer) if open_pr else None
         ),
-        enable_pr_context_tools=False,
         referrer=referrer,
     )
 
@@ -288,7 +287,6 @@ def continue_single_run_from_pr_feedback(
             if enable_coding
             else None
         ),
-        enable_pr_context_tools=True,
         referrer=referrer,
         pr_feedback=PrIterationStepArgs(
             iteration_index=iteration_index,
@@ -306,7 +304,6 @@ def _continue_single_run(
     user: User | RpcUser | None,
     enable_coding: bool,
     pr_internal_settings: AutofixSingleRunPrInternalSettings | None,
-    enable_pr_context_tools: bool,
     referrer: AutofixReferrer,
     pr_feedback: PrIterationStepArgs | None = None,
 ) -> SeerRun:
@@ -330,7 +327,6 @@ def _continue_single_run(
         is_context_engine_enabled=False,
         enable_frontend_code_search=False,
         enable_coding=enable_coding,
-        enable_pr_context_tools=enable_pr_context_tools,
         enable_write_pull_request=pr_internal_settings is not None,
     )
 
@@ -490,7 +486,6 @@ def trigger_autofix_feature(
         is_context_engine_enabled=False,
         enable_frontend_code_search=False,
         enable_coding=enable_coding,
-        enable_pr_context_tools=args.step == AutofixStep.PR_ITERATION,
     )
     if args.step == AutofixStep.PR_ITERATION and features.has(
         "organizations:autofix-pr-iteration-pin-to-pr-head", group.organization
