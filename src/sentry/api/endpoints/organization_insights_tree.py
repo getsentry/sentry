@@ -59,6 +59,8 @@ class OrganizationInsightsTreeEndpoint(OrganizationEventsEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
+    # Not checked against this endpoint's handler, so don't inherit the parent's.
+    project_scope = {}
 
     def get(self, request: Request, organization: Organization) -> HttpResponseBase:
         if not request.GET.get("noPagination", False):

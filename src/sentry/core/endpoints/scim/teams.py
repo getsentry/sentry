@@ -339,6 +339,8 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         "PUT": ApiPublishStatus.EXPERIMENTAL,
         "PATCH": ApiPublishStatus.PUBLIC,
     }
+    # Not checked against this endpoint's handler, so don't inherit the parent's.
+    project_scope = {}
     idempotent_methods = frozenset()
     permission_classes = (OrganizationSCIMTeamPermission,)
     _allow_idp_changes = True

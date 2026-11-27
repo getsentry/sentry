@@ -105,7 +105,8 @@ The build fails for any other value, for `org-metadata` or `response:` on a
 method other than `GET`, for a method the endpoint does not declare in
 `publish_status`, and for a declaration on a path that contains
 `{project_id_or_slug}`. A method without a value is not known to respect a
-project limit. Subclasses inherit the declaration, like `idempotent_methods`.
+project limit. Subclasses inherit the declaration, like `idempotent_methods`;
+set `project_scope = {}` on a subclass whose handler it doesn't hold for.
 Declarations are collected for every endpoint and reset on every build.
 
 # Response fields
