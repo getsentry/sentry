@@ -970,10 +970,13 @@ describe('Dashboards > WidgetCard', () => {
       ],
     };
 
-    function renderWithDashboardFilters(dashboardFilters: DashboardFilters) {
+    function renderWithDashboardFilters(
+      dashboardFilters: DashboardFilters,
+      conditions = spanWidget.queries[0]!.conditions
+    ) {
       renderWithProviders(
         <WidgetCard
-          widget={spanWidget}
+          widget={{...spanWidget, queries: [{...spanWidget.queries[0]!, conditions}]}}
           selection={selection}
           onDelete={() => {}}
           onEdit={() => {}}
@@ -1001,19 +1004,56 @@ describe('Dashboards > WidgetCard', () => {
       expect(screen.queryByLabelText('Widget warnings')).not.toBeInTheDocument();
     });
 
-    it('shows conflict warning when global filter has non-empty value overlapping widget condition', async () => {
-      renderWithDashboardFilters({
-        [DashboardFilterKeys.GLOBAL_FILTER]: [
+    it.each([
+      ['span.op:queue', 'span.op:[http.client,db]'],
+      ['!span.op:http.client', 'span.op:http.client'],
+      ['span.op:\uF00DStartsWith\uF00Dcache', 'span.op:[http.client,db]'],
+    ])(
+      'shows conflict warning when global filter %s cannot match widget filter %s',
+      async (globalFilterValue, conditions) => {
+        renderWithDashboardFilters(
           {
-            dataset: WidgetType.SPANS,
-            tag: {key: 'span.op', name: 'span.op', kind: FieldKind.TAG},
-            value: 'span.op:http.client',
+            [DashboardFilterKeys.GLOBAL_FILTER]: [
+              {
+                dataset: WidgetType.SPANS,
+                tag: {key: 'span.op', name: 'span.op', kind: FieldKind.TAG},
+                value: globalFilterValue,
+              },
+            ],
           },
-        ],
-      });
+          conditions
+        );
 
-      expect(await screen.findByLabelText('Widget warnings')).toBeInTheDocument();
-    });
+        expect(await screen.findByLabelText('Widget warnings')).toBeInTheDocument();
+      }
+    );
+
+    it.each([
+      ['span.op:http.client', 'span.op:[http.client,db]'],
+      ['span.op:*.client', 'span.op:*example.client'],
+      ['span.op:\uF00DEndsWith\uF00D.client', 'span.op:http.client'],
+      ['!span.op:db', 'span.op:http.client'],
+      ['span.op:db', 'span.op:http.client OR span.op:db'],
+    ])(
+      'does not show conflict warning when global filter %s is compatible with widget filter %s',
+      async (globalFilterValue, conditions) => {
+        renderWithDashboardFilters(
+          {
+            [DashboardFilterKeys.GLOBAL_FILTER]: [
+              {
+                dataset: WidgetType.SPANS,
+                tag: {key: 'span.op', name: 'span.op', kind: FieldKind.TAG},
+                value: globalFilterValue,
+              },
+            ],
+          },
+          conditions
+        );
+
+        await screen.findByLabelText('Widget actions');
+        expect(screen.queryByLabelText('Widget warnings')).not.toBeInTheDocument();
+      }
+    );
 
     it('does not show conflict warning when global filter key does not overlap widget conditions', async () => {
       renderWithDashboardFilters({
