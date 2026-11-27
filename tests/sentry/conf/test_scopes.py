@@ -99,6 +99,14 @@ class ScopesTest(TestCase):
             granted = {role["id"] for role in roles if "service_account:read" in role["scopes"]}
             assert granted == {"member", "admin", "manager", "owner"}
 
+    def test_event_attachment_read_granted_to_roles_that_set_the_attachments_role(self) -> None:
+        # A role can grant it to a service account, so only roles that can already change
+        # the org's attachments role (org:write) hold it.
+        for roles in (settings.SENTRY_ROLES, settings.SENTRY_GRANULAR_ROLES):
+            granted = {role["id"] for role in roles if "event_attachment:read" in role["scopes"]}
+            assert granted == {"manager", "owner"}
+            assert all("org:write" in role["scopes"] for role in roles if role["id"] in granted)
+
     def test_service_account_scopes_not_grantable_to_non_humans(self) -> None:
         assert SERVICE_ACCOUNT_SCOPES <= SENTRY_SCOPES
         assert SERVICE_ACCOUNT_SCOPES.isdisjoint(GRANTABLE_SCOPES)
