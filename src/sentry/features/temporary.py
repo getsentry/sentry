@@ -284,6 +284,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:profiling-function-trends", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Produce function regression occurrences to Kafka in Sentry instead of vroom.
     manager.add("organizations:profiling-sentry-regression-occurrences", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Count people in Co-authored-by commit trailers as release authors.
+    manager.add("organizations:release-commit-coauthors", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Prefer finalized release dates for issue regression and next-release resolution.
     manager.add("organizations:release-resolution-finalized-order", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable replay AI summaries for mobile replays
