@@ -4,6 +4,7 @@ from dataclasses import dataclass, fields
 from datetime import datetime, timedelta, timezone
 from typing import Any, cast
 
+import sentry_sdk
 from rest_framework.request import Request
 from sentry_sdk import traces
 
@@ -278,7 +279,7 @@ def read_timeseries_cache(
     if not enabled:
         return loaded
 
-    with traces.start_span("get_cache") as span:
+    with traces.start_span("get_cache"):
         if not cache_candidate(
             request,
             dataset,
@@ -290,7 +291,8 @@ def read_timeseries_cache(
             referrer,
             additional_queries,
         ):
-            span.set_attribute("query.invalid_cache_reason", "non_candidate")
+            sentry_sdk.set_tag("query.cache.invalid_reason", "non_candidate")
+            sentry_sdk.set_tag("query.cache.hit", "false")
             return loaded
 
         loaded.candidate = True
@@ -302,17 +304,20 @@ def read_timeseries_cache(
         loaded.cached_timestamps = state.cached_timestamps
         loaded.merge_from = state.merge_from if loaded.filter_start is not None else None
         if loaded.cached is None:
-            span.set_attribute("query.cache_hit", "missing")
+            sentry_sdk.set_tag("query.cache.hit", "false")
         elif (
             loaded.cached_timestamps
             and loaded.cached_timestamps[0] > snuba_params.start_date.timestamp()
         ):
-            span.set_attribute("query.invalid_cache_reason", "missing_start")
-            span.set_attribute("query.truncated", "None")
+            sentry_sdk.set_tag("query.cache.hit", "false")
+            sentry_sdk.set_tag("query.cache.invalid_reason", "missing_start")
+            sentry_sdk.set_tag("query.cache.truncated", "None")
         elif loaded.filter_start is not None:
             # Re-read the tail through a query filter. Leave the metadata
             # range alone so Snuba keeps the same storage tier.
-            span.set_attribute("query.truncated", "by_cache")
+            sentry_sdk.set_tag("query.cache.hit", "true")
+            sentry_sdk.set_tag("query.cache.truncated", "by_cache")
         else:
-            span.set_attribute("query.truncated", "None")
+            sentry_sdk.set_tag("query.cache.hit", "false")
+            sentry_sdk.set_tag("query.cache.truncated", "None")
     return loaded
