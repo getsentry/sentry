@@ -101,12 +101,16 @@ export async function getReplay<T>(
 export type IssueReplayIdsParams = {
   organizationSlug: string;
   issueId: string | number;
-  dataSource: "discover" | "search_issues";
+  dataSource: "errors" | "discover" | "search_issues";
 };
 
 /**
  * The IDs of an issue's replays in the last 90 days, across all projects,
  * keyed by issue ID.
+ *
+ * The `discover` data source is deprecated and scheduled for removal from the API.
+ * Use `errors` for error issues. See the
+ * [dataset migration guide](https://www.sentry.help/en/articles/17632566-migrating-from-the-transactions-and-discover-api-datasets).
  */
 export async function listIssueReplayIds<T>(
   { core, origin }: ApiTarget,

@@ -48,19 +48,22 @@ describe("searchReplays", () => {
 });
 
 describe("listIssueReplayIds", () => {
-  it("asks for the issue's replay IDs over 90 days in all projects", async () => {
-    const { apiTarget, request } = scriptedTarget(jsonResponse({}));
+  it.each(["errors", "discover", "search_issues"] as const)(
+    "asks for the issue's replay IDs over 90 days in all projects using %s",
+    async (dataSource) => {
+      const { apiTarget, request } = scriptedTarget(jsonResponse({}));
 
-    await listIssueReplayIds(
-      apiTarget,
-      { organizationSlug: "acme", issueId: 42, dataSource: "discover" },
-      AnyJson,
-    );
+      await listIssueReplayIds(
+        apiTarget,
+        { organizationSlug: "acme", issueId: 42, dataSource },
+        AnyJson,
+      );
 
-    expect(request.mock.calls[0]?.[0]).toBe(
-      `${API}/organizations/acme/replay-count/?returnIds=true&query=issue.id%3A%5B42%5D&data_source=discover&statsPeriod=90d&project=-1`,
-    );
-  });
+      expect(request.mock.calls[0]?.[0]).toBe(
+        `${API}/organizations/acme/replay-count/?returnIds=true&query=issue.id%3A%5B42%5D&data_source=${dataSource}&statsPeriod=90d&project=-1`,
+      );
+    },
+  );
 });
 
 describe("visitReplayRecordingSegments", () => {
