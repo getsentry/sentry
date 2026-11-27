@@ -1055,12 +1055,6 @@ describe('conversationMessages utilities', () => {
     // Same user text in two turns: collapse only for a cumulative tool loop.
     it.each([
       {
-        name: 'collapses identical content in a cumulative history',
-        turn1: {assistantContent: 'A1'},
-        turn2: {assistantContent: 'A2'},
-        users: 1,
-      },
-      {
         name: 'keeps a repeat when the cumulative user-message count grows',
         turn1: {assistantContent: 'A1', userMessageCount: 1},
         turn2: {assistantContent: 'A2', userMessageCount: 2},

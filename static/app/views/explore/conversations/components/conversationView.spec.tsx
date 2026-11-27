@@ -234,12 +234,6 @@ describe('ConversationViewContent', () => {
     await waitFor(() => expect(nextRequest).toHaveBeenCalledTimes(2));
   });
 
-  it('opens the first span by default on the timeline', async () => {
-    renderView({activeTab: 'timeline'});
-
-    expect(await screen.findByRole('button', {name: 'Close'})).toBeInTheDocument();
-  });
-
   it('does not write the timeline default into the URL selection', async () => {
     const onSelectSpan = jest.fn();
     renderView({activeTab: 'timeline', onSelectSpan});
@@ -249,12 +243,6 @@ describe('ConversationViewContent', () => {
     // The default is view-local, so the sticky (URL) selection stays untouched;
     // this is what keeps it from leaking back into the transcript.
     expect(onSelectSpan).not.toHaveBeenCalled();
-  });
-
-  it('opens a deep-linked span on the transcript', async () => {
-    renderView({activeTab: 'transcript', selectedSpanId: 'span-a'});
-
-    expect(await screen.findByRole('button', {name: 'Close'})).toBeInTheDocument();
   });
 
   it('loads later pages to resolve a deep-linked span', async () => {

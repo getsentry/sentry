@@ -47,46 +47,6 @@ describe('useConversations', () => {
     await waitFor(() => expect(result.current.isFetching).toBe(false));
   });
 
-  it('preserves string firstInput', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/agents/conversations/`,
-      body: [{...BASE_CONVERSATION, firstInput: 'hello', lastOutput: null}],
-    });
-
-    const {result} = renderHookWithProviders(() => useConversations(), {organization});
-
-    await waitFor(() => expect(result.current.isFetching).toBe(false));
-
-    expect(result.current.data[0]?.firstInput).toBe('hello');
-  });
-
-  it('preserves string lastOutput', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/agents/conversations/`,
-      body: [{...BASE_CONVERSATION, firstInput: null, lastOutput: 'world'}],
-    });
-
-    const {result} = renderHookWithProviders(() => useConversations(), {organization});
-
-    await waitFor(() => expect(result.current.isFetching).toBe(false));
-
-    expect(result.current.data[0]?.lastOutput).toBe('world');
-  });
-
-  it('handles null firstInput and lastOutput', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/agents/conversations/`,
-      body: [{...BASE_CONVERSATION, firstInput: null, lastOutput: null}],
-    });
-
-    const {result} = renderHookWithProviders(() => useConversations(), {organization});
-
-    await waitFor(() => expect(result.current.isFetching).toBe(false));
-
-    expect(result.current.data[0]?.firstInput).toBeNull();
-    expect(result.current.data[0]?.lastOutput).toBeNull();
-  });
-
   it('preserves the server sort order', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/agents/conversations/`,

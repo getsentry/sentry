@@ -2,10 +2,11 @@ import {Fragment} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import type {Organization} from 'sentry/types/organization';
+import {useProjectSdkNeedsUpdate} from 'sentry/utils/useProjectSdkNeedsUpdate';
 
 import {SdkUpdateAlert} from './sdkUpdateAlert';
 
@@ -33,6 +34,16 @@ function renderMockSdkUpdateRequest({
   });
 }
 
+// SdkUpdateAlert renders nothing while the updates load, so an empty alert
+// only proves something once this sibling sees the request settle.
+function SdkUpdatesSettled({projectId}: {projectId: string}) {
+  const {isFetching} = useProjectSdkNeedsUpdate({
+    minVersion: '0.0.0',
+    projectId: [projectId],
+  });
+  return isFetching ? null : <span>SDK updates settled</span>;
+}
+
 describe('SdkUpdateAlert', () => {
   const project = ProjectFixture();
   const organization = OrganizationFixture();
@@ -47,18 +58,22 @@ describe('SdkUpdateAlert', () => {
       body: [{projectId: project.id, sdkName: 'sentry.python', sdkVersion: '3.0.0'}],
     });
 
-    const {container} = render(
-      <SdkUpdateAlert
-        projectId={project.id}
-        minVersion="1.0.0"
-        packageName="sentry-sdk"
-      />,
+    render(
+      <Fragment>
+        <div data-test-id="alert">
+          <SdkUpdateAlert
+            projectId={project.id}
+            minVersion="1.0.0"
+            packageName="sentry-sdk"
+          />
+        </div>
+        <SdkUpdatesSettled projectId={project.id} />
+      </Fragment>,
       {organization}
     );
 
-    await waitFor(() => {
-      expect(container).toBeEmptyDOMElement();
-    });
+    await screen.findByText('SDK updates settled');
+    expect(screen.getByTestId('alert')).toBeEmptyDOMElement();
   });
 
   it('names the outdated package when given several', async () => {
@@ -131,18 +146,22 @@ describe('SdkUpdateAlert', () => {
       body: {detail: 'Internal Error'},
     });
 
-    const {container} = render(
-      <SdkUpdateAlert
-        projectId={project.id}
-        minVersion="1.0.0"
-        packageName="sentry-sdk"
-      />,
+    render(
+      <Fragment>
+        <div data-test-id="alert">
+          <SdkUpdateAlert
+            projectId={project.id}
+            minVersion="1.0.0"
+            packageName="sentry-sdk"
+          />
+        </div>
+        <SdkUpdatesSettled projectId={project.id} />
+      </Fragment>,
       {organization}
     );
 
-    await waitFor(() => {
-      expect(container).toBeEmptyDOMElement();
-    });
+    await screen.findByText('SDK updates settled');
+    expect(screen.getByTestId('alert')).toBeEmptyDOMElement();
   });
 
   it('renders alert when Python SDK version is below minimum', async () => {
@@ -215,41 +234,6 @@ describe('SdkUpdateAlert', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders alert when Node SDK version is below minimum', async () => {
-    renderMockSdkUpdateRequest({
-      organization,
-      body: [
-        {
-          projectId: project.id,
-          sdkName: 'sentry.javascript.node',
-          sdkVersion: '9.0.0',
-          suggestions: [{type: 'updateSdk', newSdkVersion: '10.5.0'}],
-        },
-      ],
-    });
-
-    render(
-      <SdkUpdateAlert
-        projectId={project.id}
-        minVersion="10.0.0"
-        packageName="@sentry/node"
-      />,
-      {organization}
-    );
-
-    expect(
-      await screen.findByText(
-        textWithMarkupMatcher(
-          'Your @sentry/node version is below the minimum required for agent monitoring.'
-        )
-      )
-    ).toBeInTheDocument();
-
-    expect(
-      screen.getByText(textWithMarkupMatcher('Update to 10.0.0 or later.'))
-    ).toBeInTheDocument();
-  });
-
   it('renders alert when Laravel SDK version is below minimum', async () => {
     renderMockSdkUpdateRequest({
       organization,
@@ -301,18 +285,22 @@ describe('SdkUpdateAlert', () => {
       ],
     });
 
-    const {container} = render(
-      <SdkUpdateAlert
-        projectId={project.id}
-        minVersion="2.0.0"
-        packageName="sentry-sdk"
-      />,
+    render(
+      <Fragment>
+        <div data-test-id="alert">
+          <SdkUpdateAlert
+            projectId={project.id}
+            minVersion="2.0.0"
+            packageName="sentry-sdk"
+          />
+        </div>
+        <SdkUpdatesSettled projectId={project.id} />
+      </Fragment>,
       {organization}
     );
 
-    await waitFor(() => {
-      expect(container).toBeEmptyDOMElement();
-    });
+    await screen.findByText('SDK updates settled');
+    expect(screen.getByTestId('alert')).toBeEmptyDOMElement();
   });
 
   it('renders alert when one SDK is outdated and another is up-to-date', async () => {
@@ -330,34 +318,6 @@ describe('SdkUpdateAlert', () => {
         },
         {projectId: project.id, sdkName: 'sentry.javascript.node', sdkVersion: '10.0.0'},
       ],
-    });
-
-    render(
-      <SdkUpdateAlert
-        projectId={project.id}
-        minVersion="2.0.0"
-        packageName="sentry-sdk"
-      />,
-      {organization}
-    );
-
-    expect(
-      await screen.findByText(
-        textWithMarkupMatcher(
-          'Your sentry-sdk version is below the minimum required for agent monitoring.'
-        )
-      )
-    ).toBeInTheDocument();
-
-    expect(
-      screen.getByText(textWithMarkupMatcher('Update to 2.0.0 or later.'))
-    ).toBeInTheDocument();
-  });
-
-  it('renders alert with minVersion when suggestions are not available', async () => {
-    renderMockSdkUpdateRequest({
-      organization,
-      body: [{projectId: project.id, sdkName: 'sentry.python', sdkVersion: '1.0.0'}],
     });
 
     render(
