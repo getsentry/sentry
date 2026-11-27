@@ -12,7 +12,10 @@ from sentry.preprod.models import (
     PreprodArtifactMobileAppInfo,
     PreprodBuildConfiguration,
 )
-from sentry.preprod.vcs.pr_comments.tasks import create_preprod_pr_comment_task
+from sentry.preprod.vcs.pr_comments.tasks import (
+    create_or_update_pr_comment,
+    create_preprod_pr_comment_task,
+)
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import cell_silo_test
@@ -533,3 +536,79 @@ class CreatePreprodPrCommentTaskTest(TestCase):
 
         mock_client.create_comment.assert_not_called()
         mock_client.update_comment.assert_not_called()
+
+
+@cell_silo_test
+class CreateOrUpdatePrCommentLifecycleTest(TestCase):
+    def _post(self, client: Mock, existing_comment_id: str | None = None) -> str:
+        return create_or_update_pr_comment(
+            client,
+            provider="github",
+            organization_id=self.organization.id,
+            repo="owner/repo",
+            pr_number=42,
+            existing_comment_id=existing_comment_id,
+            body="body",
+        )
+
+    @staticmethod
+    def _outcomes(mock_incr: Mock) -> list[tuple[str, str]]:
+        return [
+            (call.args[0], call.kwargs["tags"]["interaction_type"])
+            for call in mock_incr.call_args_list
+            if call.args[0].startswith("integrations.slo.")
+        ]
+
+    @patch("sentry.integrations.utils.metrics.metrics.incr")
+    def test_create_records_create_comment_success(self, mock_incr: Mock) -> None:
+        client = Mock()
+        client.create_comment.return_value = {"id": 99999}
+
+        assert self._post(client) == "99999"
+
+        client.update_comment.assert_not_called()
+        assert self._outcomes(mock_incr) == [
+            ("integrations.slo.started", "create_comment"),
+            ("integrations.slo.success", "create_comment"),
+        ]
+
+    @patch("sentry.integrations.utils.metrics.metrics.incr")
+    def test_update_records_update_comment_success(self, mock_incr: Mock) -> None:
+        client = Mock()
+
+        assert self._post(client, existing_comment_id="existing_123") == "existing_123"
+
+        client.update_comment.assert_called_once_with(
+            repo="owner/repo", issue_id="42", comment_id="existing_123", data={"body": "body"}
+        )
+        client.create_comment.assert_not_called()
+        assert self._outcomes(mock_incr) == [
+            ("integrations.slo.started", "update_comment"),
+            ("integrations.slo.success", "update_comment"),
+        ]
+
+    @patch("sentry.integrations.utils.metrics.metrics.incr")
+    def test_provider_api_error_records_halt(self, mock_incr: Mock) -> None:
+        client = Mock()
+        client.create_comment.side_effect = ApiError("rate limited", code=429)
+
+        with pytest.raises(ApiError):
+            self._post(client)
+
+        assert self._outcomes(mock_incr) == [
+            ("integrations.slo.started", "create_comment"),
+            ("integrations.slo.halted", "create_comment"),
+        ]
+
+    @patch("sentry.integrations.utils.metrics.metrics.incr")
+    def test_unexpected_error_records_failure(self, mock_incr: Mock) -> None:
+        client = Mock()
+        client.create_comment.return_value = {}
+
+        with pytest.raises(KeyError):
+            self._post(client)
+
+        assert self._outcomes(mock_incr) == [
+            ("integrations.slo.started", "create_comment"),
+            ("integrations.slo.failure", "create_comment"),
+        ]

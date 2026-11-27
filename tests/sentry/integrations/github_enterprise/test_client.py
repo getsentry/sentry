@@ -127,7 +127,11 @@ class GitHubEnterpriseApiClientTest(TestCase):
         install = integration.get_installation(organization_id=self.organization.id)
         assert isinstance(install, GitHubEnterpriseIntegration)
         self.install = install
+        self.integration = integration
         self.gh_client = self.install.get_client()
+
+    def test_client_carries_integration_id(self) -> None:
+        assert self.gh_client.integration_id == self.integration.id
 
     @responses.activate
     def test_check_file(self) -> None:

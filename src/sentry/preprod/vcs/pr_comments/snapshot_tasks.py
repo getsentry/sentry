@@ -25,6 +25,7 @@ from sentry.preprod.vcs.pr_comments.snapshot_templates import (
     format_waiting_for_base_snapshot_pr_comment,
 )
 from sentry.preprod.vcs.pr_comments.tasks import (
+    create_or_update_pr_comment,
     lock_pr_comparisons_for_update,
     resolve_pr_comment_context,
     save_pr_comment_result,
@@ -391,20 +392,15 @@ def post_snapshot_pr_comment_task(
             is_update = comment_id is not None
 
             try:
-                if comment_id:
-                    client.update_comment(
-                        repo=repo_name,
-                        issue_id=str(pr_number),
-                        comment_id=str(comment_id),
-                        data={"body": comment_body},
-                    )
-                else:
-                    resp = client.create_comment(
-                        repo=repo_name,
-                        issue_id=str(pr_number),
-                        data={"body": comment_body},
-                    )
-                    comment_id = str(resp["id"])
+                comment_id = create_or_update_pr_comment(
+                    client,
+                    provider=provider,
+                    organization_id=organization.id,
+                    repo=repo_name,
+                    pr_number=pr_number,
+                    existing_comment_id=comment_id,
+                    body=comment_body,
+                )
             except Exception as e:
                 extra: dict[str, Any] = {
                     "commit_comparison_id": commit_comparison_id,

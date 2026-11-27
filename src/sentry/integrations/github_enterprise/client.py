@@ -31,7 +31,11 @@ class GitHubEnterpriseApiClient(GitHubBaseClient):
         self.integration = integration
         self.app_id = app_id
         self.private_key = private_key
-        super().__init__(verify_ssl=verify_ssl, org_integration_id=org_integration_id)
+        super().__init__(
+            integration_id=integration.id,
+            verify_ssl=verify_ssl,
+            org_integration_id=org_integration_id,
+        )
 
     def build_url(self, path: str) -> str:
         if self._is_cloud_style:
