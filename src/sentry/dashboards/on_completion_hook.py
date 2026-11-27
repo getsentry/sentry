@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from types import SimpleNamespace
 from typing import Any
 
@@ -43,6 +44,9 @@ MAX_VALIDATION_RETRIES = 3
 DRY_RUN_STATS_PERIOD = "1m"
 DRY_RUN_INTERVAL = "1m"
 DRY_RUN_API_KEY_SCOPES = ["org:read", "project:read", "event:read"]
+# Seer gives the completion hook RPC a 15 second read timeout and retries it when it
+# runs over, so the dry run stops starting queries well before that.
+DRY_RUN_TIME_BUDGET_SECONDS = 8.0
 # Some query timeouts come back as a 400 with one of these details.
 QUERY_TIMEOUT_DETAILS = frozenset(
     (TIMEOUT_ERROR_MESSAGE, TIMEOUT_RPC_ERROR_MESSAGE, TIMEOUT_SPAN_ERROR_MESSAGE)
@@ -185,10 +189,17 @@ def _build_widget_request(
     widget: GeneratedWidget, query: GeneratedWidgetQuery
 ) -> tuple[str, dict[str, Any]] | None:
     if widget.widget_type == "issue":
-        # Issue charts only take count(new_issues) and count(resolved_issues), which
-        # Pydantic already checks, so only the search conditions can still fail.
+        if widget.display_type in TIMESERIES_DISPLAY_TYPES:
+            # issues-timeseries ignores the search conditions, so a filter the issues
+            # endpoint rejects can't break the chart and must not be reported.
+            return "issues-timeseries", {
+                "query": query.conditions,
+                "yAxis": query.aggregates,
+                "interval": DRY_RUN_INTERVAL,
+                "category": "issue",
+            }
         params: dict[str, Any] = {"query": query.conditions, "limit": 1}
-        if widget.display_type == "table" and query.orderby:
+        if query.orderby:
             params["sort"] = query.orderby
         return "issues", params
 
@@ -220,7 +231,8 @@ def _dry_run_widget_queries(
     The serializer checks syntax and field names, but some queries only fail when
     they run, such as invalid issue search values or a sort on a column the query
     doesn't select. Failures other than a 400, and query timeouts, are logged and
-    skipped: they do not mean that the query is wrong.
+    skipped: they do not mean that the query is wrong. Queries left when the time
+    budget runs out are skipped and logged.
     """
     api_key = ApiKey(organization_id=organization.id, scope_list=DRY_RUN_API_KEY_SCOPES)
     shared_params: dict[str, Any] = {
@@ -235,36 +247,48 @@ def _dry_run_widget_queries(
     if artifact.environment:
         shared_params["environment"] = artifact.environment
 
+    requests = [
+        (widget_idx, widget, query_idx, request)
+        for widget_idx, widget in enumerate(artifact.widgets)
+        for query_idx, query in enumerate(widget.queries)
+        if (request := _build_widget_request(widget, query)) is not None
+    ]
+    deadline = time.monotonic() + DRY_RUN_TIME_BUDGET_SECONDS
     errors: list[str] = []
-    for widget_idx, widget in enumerate(artifact.widgets):
-        for query_idx, query in enumerate(widget.queries):
-            request = _build_widget_request(widget, query)
-            if request is None:
+    for checked, (widget_idx, widget, query_idx, (endpoint, params)) in enumerate(requests):
+        if time.monotonic() >= deadline:
+            logger.warning(
+                "dashboards.on_completion_hook.dry_run_budget_exhausted",
+                extra={
+                    "organization_id": organization.id,
+                    "checked": checked,
+                    "unchecked": len(requests) - checked,
+                },
+            )
+            break
+        try:
+            ApiClient().get(
+                auth=api_key,
+                user=user,
+                path=f"/organizations/{organization.slug}/{endpoint}/",
+                params={**shared_params, **params},
+            )
+        except ApiError as error:
+            detail = error.body.get("detail") if isinstance(error.body, dict) else None
+            if error.status_code != 400 or detail in QUERY_TIMEOUT_DETAILS:
+                logger.warning(
+                    "dashboards.on_completion_hook.dry_run_request_failed",
+                    extra={
+                        "organization_id": organization.id,
+                        "endpoint": endpoint,
+                        "status_code": error.status_code,
+                    },
+                )
                 continue
-            endpoint, params = request
-            try:
-                ApiClient().get(
-                    auth=api_key,
-                    user=user,
-                    path=f"/organizations/{organization.slug}/{endpoint}/",
-                    params={**shared_params, **params},
-                )
-            except ApiError as error:
-                detail = error.body.get("detail") if isinstance(error.body, dict) else None
-                if error.status_code != 400 or detail in QUERY_TIMEOUT_DETAILS:
-                    logger.warning(
-                        "dashboards.on_completion_hook.dry_run_request_failed",
-                        extra={
-                            "organization_id": organization.id,
-                            "endpoint": endpoint,
-                            "status_code": error.status_code,
-                        },
-                    )
-                    continue
-                errors.append(
-                    f"Widget {widget_idx} ({widget.title!r}), query {query_idx}: "
-                    f"{detail if detail is not None else error.body}"
-                )
+            errors.append(
+                f"Widget {widget_idx} ({widget.title!r}), query {query_idx}: "
+                f"{detail if detail is not None else error.body}"
+            )
     return errors
 
 

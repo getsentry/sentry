@@ -278,6 +278,24 @@ def test_build_widget_request_issue_widget_queries_issues() -> None:
     )
 
 
+def test_build_widget_request_issue_chart_queries_issues_timeseries() -> None:
+    widget = _make_artifact(
+        display_type="line",
+        widget_type="issue",
+        queries=[{"conditions": "is:unresolved", "aggregates": ["count(new_issues)"]}],
+    ).widgets[0]
+
+    assert _build_widget_request(widget, widget.queries[0]) == (
+        "issues-timeseries",
+        {
+            "query": "is:unresolved",
+            "yAxis": ["count(new_issues)"],
+            "interval": "1m",
+            "category": "issue",
+        },
+    )
+
+
 def test_build_widget_request_skips_text_widgets() -> None:
     widget = _make_artifact(display_type="text", widget_type=None, queries=[]).widgets[0]
     assert _build_widget_request(widget, GeneratedWidgetQuery()) is None
@@ -375,6 +393,28 @@ class DryRunWidgetQueriesTest(TestCase, SnubaTestCase):
             side_effect=ApiError(500, {"detail": "Internal error"}),
         ):
             assert _dry_run_widget_queries(_make_artifact(), self.organization, self.owner) == []
+
+    def test_issue_chart_ignores_conditions_the_chart_endpoint_ignores(self) -> None:
+        artifact = _make_artifact(
+            display_type="line",
+            widget_type="issue",
+            queries=[
+                {
+                    "conditions": "is:unresolved issue.category:anr",
+                    "aggregates": ["count(new_issues)"],
+                }
+            ],
+        )
+
+        assert _dry_run_widget_queries(artifact, self.organization, self.owner) == []
+
+    def test_stops_when_the_time_budget_runs_out(self) -> None:
+        with (
+            patch("sentry.dashboards.on_completion_hook.DRY_RUN_TIME_BUDGET_SECONDS", 0),
+            patch("sentry.dashboards.on_completion_hook.ApiClient.get") as mock_get,
+        ):
+            assert _dry_run_widget_queries(_make_artifact(), self.organization, self.owner) == []
+        mock_get.assert_not_called()
 
     def test_query_timeouts_are_skipped(self) -> None:
         with patch(
