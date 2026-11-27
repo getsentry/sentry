@@ -9,6 +9,7 @@ import {PlatformIcon} from 'platformicons';
 import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
 import type {GroupActivity} from 'sentry/types/group';
 
@@ -28,6 +29,10 @@ function platformLogo(platform: string) {
   return <PlatformIcon platform={platform} size={16} alt="" />;
 }
 
+function integrationLogo(provider: string) {
+  return <PluginIcon pluginId={provider} size={16} />;
+}
+
 const MCP_CLIENTS: Record<string, {icon: React.ReactNode; name: string}> = {
   claude: {name: 'Claude', icon: platformLogo('anthropic-claude')},
   'claude-code': {name: 'Claude', icon: platformLogo('anthropic-claude')},
@@ -38,8 +43,8 @@ const MCP_CLIENTS: Record<string, {icon: React.ReactNode; name: string}> = {
 };
 
 /**
- * Parses sources like `api`, `sentry-cli` and `mcp:cursor`. Other sources,
- * like `web`, aren't shown.
+ * Parses sources like `api`, `sentry-cli`, `mcp:cursor` and `slack`. Other
+ * sources, like `web` and `seer:explorer`, aren't shown.
  */
 export function getActivitySource(activity: GroupActivity): ActivitySource | null {
   // Sentry Apps act through the API and are attributed by name instead
@@ -59,6 +64,18 @@ export function getActivitySource(activity: GroupActivity): ActivitySource | nul
         ? {icon: mcpClient.icon, description: t('%s via MCP', mcpClient.name)}
         : {icon: glyph(IconBot), description: t('via MCP')};
     }
+    case 'slack':
+    case 'slack_staging':
+      return {icon: integrationLogo('slack'), description: t('via Slack')};
+    case 'seer':
+      // Seer acting on a request made in Slack. Other Seer sources aren't shown.
+      return client === 'slack'
+        ? {icon: integrationLogo('slack'), description: t('Seer via Slack')}
+        : null;
+    case 'discord':
+      return {icon: integrationLogo('discord'), description: t('via Discord')};
+    case 'msteams':
+      return {icon: integrationLogo('msteams'), description: t('via Microsoft Teams')};
     default:
       return null;
   }

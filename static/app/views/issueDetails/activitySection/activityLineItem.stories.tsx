@@ -292,6 +292,10 @@ const sourceActivities = [
     ...activity(GroupActivityType.SET_RESOLVED_IN_RELEASE, {version: 'frontend@1.0.0'}),
     source: 'sentry-cli',
   },
+  {...activity(GroupActivityType.SET_IGNORED), source: 'slack'},
+  {...activity(GroupActivityType.SET_RESOLVED), source: 'seer:slack'},
+  {...activity(GroupActivityType.SET_RESOLVED), source: 'discord'},
+  {...activity(GroupActivityType.SET_UNRESOLVED), source: 'msteams'},
 ];
 
 const seerPullRequest = {

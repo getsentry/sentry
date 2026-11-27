@@ -394,6 +394,89 @@ describe('ActivitySection', () => {
     expect(screen.getByText(`${user.name} (${user.email})`)).toBeInTheDocument();
   });
 
+  it('renders messaging integration activity sources', async () => {
+    const activityGroup = GroupFixture({
+      id: '1338',
+      activity: [
+        {
+          type: GroupActivityType.SET_RESOLVED,
+          id: 'resolved-1',
+          data: {},
+          dateCreated: '2020-01-01T00:00:00',
+          source: 'slack',
+          user,
+        },
+        {
+          type: GroupActivityType.SET_IGNORED,
+          id: 'ignored-1',
+          data: {},
+          dateCreated: '2020-01-02T00:00:00',
+          source: 'discord',
+          user,
+        },
+        {
+          type: GroupActivityType.SET_UNRESOLVED,
+          id: 'unresolved-1',
+          data: {},
+          dateCreated: '2020-01-03T00:00:00',
+          source: 'msteams',
+          user,
+        },
+        {
+          type: GroupActivityType.SET_RESOLVED,
+          id: 'resolved-2',
+          data: {},
+          dateCreated: '2020-01-04T00:00:00',
+          source: 'seer:slack',
+          user,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={activityGroup} project={activityGroup.project}>
+        <ActivitySection group={activityGroup} />
+      </GroupDataContextProvider>
+    );
+
+    expect(await screen.findByRole('img', {name: 'via Slack'})).toBeInTheDocument();
+    expect(screen.getByRole('img', {name: 'via Discord'})).toBeInTheDocument();
+    expect(screen.getByRole('img', {name: 'via Microsoft Teams'})).toBeInTheDocument();
+    expect(screen.getByRole('img', {name: 'Seer via Slack'})).toBeInTheDocument();
+    expect(screen.getAllByTestId('user-activity-actor')).toHaveLength(4);
+
+    await userEvent.hover(screen.getByRole('img', {name: 'via Slack'}));
+    expect(await screen.findByText('via Slack')).toBeInTheDocument();
+    expect(screen.getByText(`${user.name} (${user.email})`)).toBeInTheDocument();
+  });
+
+  it('renders Seer as the actor for Slack-sourced Seer activity without a user', async () => {
+    const activityGroup = GroupFixture({
+      id: '1338',
+      activity: [
+        {
+          type: GroupActivityType.SEER_RCA_STARTED,
+          id: 'seer-rca-1',
+          data: {},
+          dateCreated: '2020-01-01T00:00:00',
+          source: 'slack',
+          user: null,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={activityGroup} project={activityGroup.project}>
+        <ActivitySection group={activityGroup} />
+      </GroupDataContextProvider>
+    );
+
+    expect(await screen.findByRole('img', {name: 'Seer activity'})).toBeInTheDocument();
+    expect(screen.queryByRole('img', {name: 'via Slack'})).not.toBeInTheDocument();
+  });
+
   it('renders provider-specific icon for create issue in activity line items', async () => {
     const createIssueGroup = GroupFixture({
       id: '1345',
