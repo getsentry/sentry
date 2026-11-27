@@ -11,6 +11,7 @@ from tools.api_guidelines.report_card import (
     format_table,
     main,
     rule_columns,
+    rules_not_in_baseline,
     team_findings,
 )
 from tools.api_guidelines.rules import RULES, ApiRule
@@ -66,6 +67,12 @@ def exceptions(tmp_path: Path) -> Path:
 def test_columns_are_the_baselined_rules() -> None:
     # S027 has no findings but is still baselined, so it keeps its column
     assert rule_columns() == ["S025", "S026", "S027", "S028"]
+
+
+def test_openapi_response_rules_arent_listed_as_unbaselined() -> None:
+    # the OpenAPI response rules have their own baseline
+    assert ApiRule.S036 not in rules_not_in_baseline()
+    assert ApiRule.S037 not in rules_not_in_baseline()
 
 
 def test_table_sums_each_entrys_count_with_unowned_last() -> None:
