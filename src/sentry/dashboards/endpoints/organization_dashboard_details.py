@@ -258,11 +258,9 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
 
 class OrganizationDashboardVisitPermission(OrganizationDashboardsPermission):
     # Anyone who can read a dashboard can record a visit to it. A visit only updates
-    # metadata (visit count and last visited times), not the dashboard itself.
-    scope_map = {
-        **OrganizationDashboardsPermission.scope_map,
-        "POST": OrganizationDashboardsPermission.scope_map["GET"],
-    }
+    # metadata (visit count and last visited times), not the dashboard itself. Only the
+    # UI records visits, so the endpoint accepts dashboard:read alone; every role grants it.
+    scope_map = {"POST": ["dashboard:read"]}
 
 
 @extend_schema(tags=["Dashboards"])

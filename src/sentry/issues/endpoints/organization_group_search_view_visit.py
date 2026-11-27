@@ -9,23 +9,16 @@ from sentry.api.base import DEFAULT_DURATION_BUDGET, cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.utils import to_valid_int_id
 from sentry.auth.principal import require_user
-from sentry.issues.endpoints.bases.group_search_view import GroupSearchViewPermission
 from sentry.models.groupsearchview import GroupSearchView
 from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
 from sentry.models.organization import Organization
 
 
 class GroupSearchViewVisitPermission(OrganizationPermission):
-    scope_map = {
-        # Anyone who can read an issue view can record a visit to it. A visit only
-        # updates metadata (the requesting user's last visited time), not the view itself.
-        # member:read is kept because this endpoint accepted it before.
-        "POST": ["member:read", *GroupSearchViewPermission.scope_map["GET"]],
-    }
-
-    # Keeps accepting deprecated scopes in orgs with granular scopes until member:read
-    # translates to saved_query:read. Opting in before that would lock out member:read tokens.
-    rejects_deprecated_scopes = False
+    # Anyone who can read an issue view can record a visit to it. A visit only updates
+    # metadata (the requesting user's last visited time), not the view itself. Only the UI
+    # records visits, so the endpoint accepts saved_query:read alone; every role grants it.
+    scope_map = {"POST": ["saved_query:read"]}
 
 
 @cell_silo_endpoint

@@ -4,7 +4,7 @@ from django.utils import timezone
 from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
 from sentry.silo.base import SiloMode
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 from tests.sentry.issues.endpoints.test_organization_group_search_views import (
@@ -122,7 +122,7 @@ class OrganizationGroupSearchViewVisitTest(GroupSearchViewAPITestCase):
             name="token 1",
             token_hashed=hash_token(token_str),
             token_last_characters="ABCD",
-            scope_list=["member:read"],
+            scope_list=["saved_query:read"],
             date_last_used=None,
         )
 
@@ -145,7 +145,6 @@ class OrganizationGroupSearchViewVisitTest(GroupSearchViewAPITestCase):
             token = self.create_user_auth_token(user=self.user, scope_list=scope_list)
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
 
-    @with_feature("organizations:granular-permission-scopes")
     def test_saved_query_read_can_record_visit(self) -> None:
         self._use_token(["saved_query:read"])
         response = self.client.post(self.url)
@@ -154,8 +153,8 @@ class OrganizationGroupSearchViewVisitTest(GroupSearchViewAPITestCase):
             organization=self.organization, user_id=self.user.id, group_search_view=self.view
         ).exists()
 
-    def test_org_read_can_record_visit(self) -> None:
-        # Same scopes as reading an issue view.
+    @override_options({"auth.deprecated-scope-translation.enabled": True})
+    def test_org_read_token_is_translated(self) -> None:
         self._use_token(["org:read"])
         response = self.client.post(self.url)
         assert response.status_code == 204, response.content
@@ -163,8 +162,11 @@ class OrganizationGroupSearchViewVisitTest(GroupSearchViewAPITestCase):
             organization=self.organization, user_id=self.user.id, group_search_view=self.view
         ).exists()
 
-    @with_feature("organizations:granular-permission-scopes")
     def test_saved_query_write_cannot_record_visit(self) -> None:
         # Write does not imply read.
         self._use_token(["saved_query:write", "user_preference:read", "user_preference:write"])
+        assert self.client.post(self.url).status_code == 403
+
+    def test_member_read_cannot_record_visit(self) -> None:
+        self._use_token(["member:read"])
         assert self.client.post(self.url).status_code == 403

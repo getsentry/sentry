@@ -191,11 +191,9 @@ class ExploreSavedQueryDetailEndpoint(ExploreSavedQueryBase):
 
 class ExploreSavedQueryVisitPermission(ExploreSavedQueryPermission):
     # Anyone who can read a saved query can record a visit to it. A visit only updates
-    # metadata (visit count and last visited times), not the query itself.
-    scope_map = {
-        **ExploreSavedQueryPermission.scope_map,
-        "POST": ExploreSavedQueryPermission.scope_map["GET"],
-    }
+    # metadata (visit count and last visited times), not the query itself. Only the UI
+    # records visits, so the endpoint accepts saved_query:read alone; every role grants it.
+    scope_map = {"POST": ["saved_query:read"]}
 
 
 @extend_schema(tags=["Explore"])
