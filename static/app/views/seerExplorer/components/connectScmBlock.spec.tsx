@@ -362,6 +362,7 @@ describe('ConnectScmBlock', () => {
           message:
             "Seer can't access acme/app. This repo's account isn't connected to this organization. Connected: acme-labs.",
           repoName: 'acme/app',
+          seerInputId: 'input-id',
         },
       })
     );
@@ -1031,6 +1032,7 @@ describe('ConnectScmBlock', () => {
             providerSlug: 'source code management',
             message:
               "Seer can't see this organization's repos. No source control is connected to this organization.",
+            seerInputId: 'input-id',
           },
         })
       );

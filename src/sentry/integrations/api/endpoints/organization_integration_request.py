@@ -5,12 +5,13 @@ from typing import TYPE_CHECKING
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import analytics, features
+from sentry.analytics.events.seer_scm_connect_events import SeerScmConnectRequestedEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization_request_change import OrganizationRequestChangeEndpoint
-from sentry.auth.principal import is_acting_user
+from sentry.auth.principal import acting_user_id, is_acting_user
 from sentry.integrations.manager import default_manager as integrations
 from sentry.notifications.notifications.organization_request.integration_request import (
     CATEGORY_PROVIDER_TYPE,
@@ -76,12 +77,15 @@ class OrganizationIntegrationRequestEndpoint(OrganizationRequestChangeEndpoint):
         :param string repoName: With the "source code management" category, the repo source
                                 control is needed for, if any. The email's button opens the
                                 modal that connects source control, for this repo.
+        :param string seerInputId: When a Seer chat's source control popup sends the request,
+                                   the popup's id, for analytics.
         """
 
         provider_type = request.data.get("providerType")
         provider_slug = request.data.get("providerSlug")
         message_option = request.data.get("message", "").strip()
         repo_name = request.data.get("repoName")
+        seer_input_id = request.data.get("seerInputId")
 
         requester = request.user
         if any(is_acting_user(requester, user.id) for user in organization.get_owners()):
@@ -116,5 +120,14 @@ class OrganizationIntegrationRequestEndpoint(OrganizationRequestChangeEndpoint):
             message_option,
             **({"repo_name": repo_name} if repo_name is not None else {}),
         )
+
+        if isinstance(seer_input_id, str) and seer_input_id:
+            analytics.record(
+                SeerScmConnectRequestedEvent(
+                    organization_id=organization.id,
+                    user_id=acting_user_id(requester),
+                    input_id=seer_input_id,
+                )
+            )
 
         return Response(status=201)

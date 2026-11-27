@@ -159,6 +159,8 @@ function RequestInstallButton({
           providerSlug: SCM_CATEGORY,
           message: requestMessage,
           repoName: repoName ?? undefined,
+          // Links the request to the popup in analytics.
+          seerInputId: pauseId,
         },
       }),
     onSuccess: () => {
