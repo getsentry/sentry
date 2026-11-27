@@ -10,6 +10,12 @@ import {
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {
+  webVitalCountField,
+  webVitalP75Field,
+  webVitalScoreCountField,
+  webVitalScoreField,
+} from 'sentry/views/dashboards/utils/webVitalTraceMetricFields';
 import {MOBILE_BROWSER_TYPES} from 'sentry/views/insights/browser/webVitals/utils/deviceType';
 
 import {WebVitalsDetailPanel} from './webVitalsDetailPanel';
@@ -17,6 +23,8 @@ import {WebVitalsDetailPanel} from './webVitalsDetailPanel';
 const DESKTOP_FILTER = new MutableSearch('')
   .addFilterValueList('!browser.name', MOBILE_BROWSER_TYPES)
   .formatString();
+const LCP_OPPORTUNITY =
+  'equation|count(tags[score.ratio.lcp,number],browser.web_vital.lcp,distribution,millisecond) * (1 - avg(tags[score.ratio.lcp,number],browser.web_vital.lcp,distribution,millisecond))';
 
 describe('WebVitalsDetailPanel', () => {
   const organization = OrganizationFixture();
@@ -214,5 +222,94 @@ describe('WebVitalsDetailPanel', () => {
         }),
       })
     );
+  });
+
+  it('queries trace metrics with the given search', async () => {
+    eventsMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: {
+        data: [
+          {
+            transaction: '/home',
+            project: 'frontend',
+            'project.id': 1,
+            [webVitalP75Field('lcp')]: 2000,
+            [webVitalScoreField('lcp')]: 0.5,
+            [webVitalScoreCountField('lcp')]: 10,
+            [webVitalCountField('ttfb')]: 20,
+          },
+        ],
+      },
+    });
+
+    render(
+      <WebVitalsDetailPanel webVital="lcp" metricsQuery="user.geo.subregion:[21]" />,
+      {organization}
+    );
+
+    // Half of the page's 10 scores are missing, out of 10 scores overall
+    expect(await screen.findByRole('link', {name: '/home'})).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: '50'})).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: '20'})).toBeInTheDocument();
+
+    const query = `user.geo.subregion:[21] ${DESKTOP_FILTER}`;
+    expect(eventsMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          dataset: 'tracemetrics',
+          field: [
+            'project.id',
+            'project',
+            'transaction',
+            'p75(value,browser.web_vital.lcp,distribution,millisecond)',
+            'avg(tags[score.ratio.lcp,number],browser.web_vital.lcp,distribution,millisecond)',
+            'count(tags[score.ratio.lcp,number],browser.web_vital.lcp,distribution,millisecond)',
+            'count(value,browser.web_vital.ttfb,distribution,millisecond)',
+            LCP_OPPORTUNITY,
+          ],
+          sort: `-${LCP_OPPORTUNITY}`,
+          query,
+        }),
+      })
+    );
+    expect(eventsMock).not.toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({query: expect.objectContaining({dataset: 'spans'})})
+    );
+    expect(eventsStatsMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          dataset: 'tracemetrics',
+          yAxis: ['p75(value,browser.web_vital.lcp,distribution,millisecond)'],
+          query,
+        }),
+      })
+    );
+  });
+
+  it('shows no value when the trace metrics row lacks the vital', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: {
+        data: [
+          {
+            transaction: '/home',
+            project: 'frontend',
+            'project.id': 1,
+            [webVitalP75Field('lcp')]: 2000,
+            [webVitalP75Field('cls')]: null,
+            [webVitalScoreField('cls')]: 0.5,
+            [webVitalScoreCountField('cls')]: 10,
+          },
+        ],
+      },
+    });
+
+    render(<WebVitalsDetailPanel webVital="cls" metricsQuery="" />, {organization});
+
+    expect(await screen.findByRole('link', {name: '/home'})).toBeInTheDocument();
+    expect(screen.getByText('—')).toBeInTheDocument();
   });
 });

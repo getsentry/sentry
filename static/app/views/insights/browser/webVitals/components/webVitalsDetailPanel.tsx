@@ -69,9 +69,11 @@ const MAX_ROWS = 10;
 export function WebVitalsDetailPanel({
   webVital,
   dashboardFilters,
+  metricsQuery,
 }: {
   webVital: WebVitals | null;
   dashboardFilters?: DashboardFilters;
+  metricsQuery?: string;
 }) {
   const location = useLocation();
   const organization = useOrganization();
@@ -99,12 +101,14 @@ export function WebVitalsDetailPanel({
     browserTypes,
     deviceType,
     subregions,
+    metricsQuery,
   });
   const {data: projectScoresData} = useProjectWebVitalsScoresQuery({
     weightWebVital: webVital ?? 'total',
     browserTypes,
     deviceType,
     subregions,
+    metricsQuery,
   });
 
   const projectScore = getWebVitalScoresFromTableDataRow(projectScoresData?.[0]);
@@ -125,6 +129,7 @@ export function WebVitalsDetailPanel({
     browserTypes,
     deviceType,
     subregions,
+    metricsQuery,
   });
 
   const dataByOpportunity = useMemo(() => {
@@ -238,7 +243,8 @@ export function WebVitalsDetailPanel({
               organizationSlug: organization.slug,
               field: 'transaction',
               value: row.transaction,
-              widgetType: WidgetType.SPANS,
+              widgetType:
+                metricsQuery === undefined ? WidgetType.SPANS : WidgetType.TRACEMETRICS,
               dashboardFilters,
               locationQuery: location.query,
               projectIdOverride: String(row['project.id']),
@@ -311,6 +317,7 @@ export function WebVitalsDetailPanel({
                 browserTypes={browserTypes}
                 deviceType={deviceType}
                 subregions={subregions}
+                metricsQuery={metricsQuery}
               />
             )}
           </ChartContainer>

@@ -1,18 +1,30 @@
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {
+  getWebVitalScoresFromTraceMetricsRow,
+  WEB_VITAL_SCORE_COUNT_FIELDS,
+  WEB_VITAL_SCORE_FIELDS,
+  webVitalScoreCountField,
+  webVitalScoreField,
+} from 'sentry/views/dashboards/utils/webVitalTraceMetricFields';
 import {Referrer} from 'sentry/views/insights/browser/webVitals/referrers';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
-import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
+import {ORDER, type WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 import {
   addBrowserFilter,
+  getMetricsSearch,
   type DeviceType,
 } from 'sentry/views/insights/browser/webVitals/utils/deviceType';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
-import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {
+  useSpans,
+  useTraceMetrics,
+} from 'sentry/views/insights/common/queries/useDiscover';
 import {SpanFields, type SubregionCode} from 'sentry/views/insights/types';
 
 type Props = {
   browserTypes?: BrowserType[];
   deviceType?: DeviceType;
+  metricsQuery?: string;
   subregions?: SubregionCode[];
   transaction?: string;
   weightWebVital?: WebVitals | 'total';
@@ -24,7 +36,9 @@ export const useProjectWebVitalsScoresQuery = ({
   browserTypes,
   deviceType,
   subregions,
+  metricsQuery,
 }: Props = {}) => {
+  const isMetrics = metricsQuery !== undefined;
   const search = new MutableSearch([]);
   if (transaction) {
     search.addFilterValue('transaction', transaction);
@@ -36,6 +50,7 @@ export const useProjectWebVitalsScoresQuery = ({
 
   const result = useSpans(
     {
+      enabled: !isMetrics,
       cursor: '',
       limit: 50,
       search: [DEFAULT_QUERY_FILTER, search.formatString()].join(' ').trim(),
@@ -75,6 +90,41 @@ export const useProjectWebVitalsScoresQuery = ({
       'avg(measurements.score.total)': row['performance_score(measurements.score.total)'],
     };
   });
+
+  const metrics = useTraceMetrics(
+    {
+      enabled: isMetrics,
+      search: getMetricsSearch(metricsQuery, browserTypes, deviceType),
+      limit: 1,
+      fields: [...WEB_VITAL_SCORE_FIELDS, ...WEB_VITAL_SCORE_COUNT_FIELDS],
+    },
+    Referrer.WEB_VITAL_PROJECT_SCORES
+  );
+
+  if (isMetrics) {
+    // Key the rows like the spans rows so callers read one shape
+    const data = metrics.data.map(row => {
+      const totalScore =
+        (getWebVitalScoresFromTraceMetricsRow(row).totalScore ?? 0) / 100;
+      return {
+        ...Object.fromEntries(
+          ORDER.flatMap(vital => [
+            [
+              `performance_score(measurements.score.${vital})`,
+              Number(row[webVitalScoreField(vital)] ?? 0),
+            ],
+            [
+              `count_scores(measurements.score.${vital})`,
+              Number(row[webVitalScoreCountField(vital)] ?? 0),
+            ],
+          ])
+        ),
+        'performance_score(measurements.score.total)': totalScore,
+        'avg(measurements.score.total)': totalScore,
+      } as (typeof finalData)[number];
+    });
+    return {...metrics, data};
+  }
 
   return {...result, data: finalData};
 };

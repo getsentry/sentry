@@ -1,7 +1,10 @@
+import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
+
 import type {InitializeDataSettings} from 'sentry-test/performance/initializePerformanceData';
 import {initializeData as _initializeData} from 'sentry-test/performance/initializePerformanceData';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
@@ -70,6 +73,11 @@ describe('Performance > Widgets > WidgetContainer', () => {
   beforeEach(() => {
     localStorageWrapper.removeItem('landing-chart-container');
     ConfigStore.init();
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sdk-updates/',
+      body: [],
+    });
     eventStatsMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/events-stats/',

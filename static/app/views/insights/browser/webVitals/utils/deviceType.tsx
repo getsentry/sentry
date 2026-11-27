@@ -1,4 +1,4 @@
-import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {SpanFields} from 'sentry/views/insights/types';
 
 import {BrowserType} from './queryParameterDecoders/browserType';
@@ -56,4 +56,18 @@ export function addBrowserFilter(
   } else if (deviceType === 'desktop') {
     search.addFilterValueList(`!${SpanFields.BROWSER_NAME}`, MOBILE_BROWSER_TYPES);
   }
+}
+
+/**
+ * Search for the trace metrics variant of the panels: the dashboard's filters
+ * plus the device type.
+ */
+export function getMetricsSearch(
+  metricsQuery = '',
+  browserTypes?: BrowserType[],
+  deviceType?: DeviceType
+) {
+  const search = new MutableSearch('');
+  addBrowserFilter(search, browserTypes, deviceType);
+  return `${metricsQuery} ${search.formatString()}`.trim();
 }
