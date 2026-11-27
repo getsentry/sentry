@@ -67,6 +67,7 @@ from sentry.utils.snuba_rpc import trace_item_stats_rpc
 logger = logging.getLogger(__name__)
 
 PARALLELIZATION_FACTOR = 2
+STATS_MAX_BUCKETS = 75
 
 
 @extend_schema(tags=["Explore"])
@@ -426,7 +427,9 @@ def query_attribute_distributions(
         if get_rankable_public_alias(attr_proto.name) is not None
     ]
 
-    chunk_count = get_stats_chunk_count(max_attributes, PARALLELIZATION_FACTOR)
+    chunk_count = get_stats_chunk_count(
+        len(rankable_attribute_names), PARALLELIZATION_FACTOR, max_buckets=STATS_MAX_BUCKETS
+    )
     chunked_attributes: defaultdict[int, list[AttributeKey]] = defaultdict(list)
     for i, attribute_name in enumerate(rankable_attribute_names):
         chunked_attributes[i % chunk_count].append(
@@ -443,7 +446,7 @@ def query_attribute_distributions(
                 stats_types=[
                     StatsType(
                         attribute_distributions=AttributeDistributionsRequest(
-                            max_buckets=75,
+                            max_buckets=STATS_MAX_BUCKETS,
                             attributes=attributes,
                         )
                     )

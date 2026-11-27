@@ -5,8 +5,14 @@ from unittest.mock import MagicMock, patch
 import pytest
 from django.urls import reverse
 from rest_framework.response import Response
+from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import (
+    TraceItemAttributeNamesResponse,
+)
+from sentry_protos.snuba.v1.endpoint_trace_item_stats_pb2 import TraceItemStatsResponse
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 
 from sentry.api.endpoints.organization_trace_item_attributes_ranked import (
+    STATS_MAX_BUCKETS,
     get_attribute_names_window,
     get_rankable_public_alias,
 )
@@ -564,6 +570,63 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
         assert unrankable_names
         assert queried_names == fetched_names - unrankable_names
         assert "sentry.browser" in queried_names
+
+    def _stats_requests_by_cohort(self, rankable_count: int) -> dict[bytes, list[list[str]]]:
+        """
+        Run the endpoint with 3,000 discovered names, of which only `rankable_count` can be
+        shown, and return the attribute names of each stats request, grouped by cohort filter.
+        """
+        rankable_names = [f"attr_{i}" for i in range(rankable_count)]
+        hidden_names = [f"sentry._internal.attr_{i}" for i in range(3000 - rankable_count)]
+        names_response = TraceItemAttributeNamesResponse(
+            attributes=[
+                TraceItemAttributeNamesResponse.Attribute(name=name, type=AttributeKey.TYPE_STRING)
+                for name in hidden_names + rankable_names
+            ]
+        )
+        self._store_span(duration=100)
+
+        with (
+            override_options({"explore.trace-items.keys.max": 3000}),
+            patch(
+                "sentry.api.endpoints.organization_trace_item_attributes_ranked.snuba_rpc.attribute_names_rpc",
+                return_value=names_response,
+            ),
+            patch(
+                "sentry.api.endpoints.organization_trace_item_attributes_ranked.trace_item_stats_rpc",
+                return_value=TraceItemStatsResponse(),
+            ) as mock_trace_item_stats_rpc,
+        ):
+            response = self.do_request(query={"query_1": "span.duration:<=100", "query_2": ""})
+        assert response.status_code == 200, response.data
+
+        requests_by_cohort: dict[bytes, list[list[str]]] = {}
+        for call in mock_trace_item_stats_rpc.call_args_list:
+            request = call.args[0]
+            (stats_type,) = request.stats_types
+            assert stats_type.attribute_distributions.max_buckets == STATS_MAX_BUCKETS
+            requests_by_cohort.setdefault(request.filter.SerializeToString(), []).append(
+                [attribute.name for attribute in stats_type.attribute_distributions.attributes]
+            )
+
+        assert len(requests_by_cohort) == 2
+        for requests in requests_by_cohort.values():
+            sent_names = [name for names in requests for name in names]
+            assert sorted(sent_names) == sorted(rankable_names)
+        return requests_by_cohort
+
+    def test_chunks_stats_requests_from_rankable_attribute_count(self) -> None:
+        requests_by_cohort = self._stats_requests_by_cohort(rankable_count=220)
+
+        for requests in requests_by_cohort.values():
+            assert [len(names) for names in requests] == [110, 110]
+
+    def test_caps_attributes_per_stats_request_by_response_rows(self) -> None:
+        requests_by_cohort = self._stats_requests_by_cohort(rankable_count=267)
+
+        for requests in requests_by_cohort.values():
+            assert len(requests) == 3
+            assert all(len(names) <= 133 for names in requests)
 
     @patch(
         "sentry.api.endpoints.organization_trace_item_attributes_ranked.snuba_rpc.attribute_names_rpc",

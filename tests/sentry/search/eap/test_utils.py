@@ -57,6 +57,24 @@ def test_get_stats_chunk_count(attribute_count: int, min_chunks: int, expected: 
     assert get_stats_chunk_count(attribute_count, min_chunks) == expected
 
 
+@pytest.mark.parametrize(
+    ("attribute_count", "max_buckets", "expected"),
+    [
+        (0, 75, 2),
+        (220, 75, 2),
+        (266, 75, 2),
+        (267, 75, 3),
+        (3000, 75, 23),
+        # 10_000 // 50 is above MAX_STATS_REQUEST_ATTRIBUTES, so that limit still applies
+        (281, 50, 3),
+    ],
+)
+def test_get_stats_chunk_count_caps_response_rows(
+    attribute_count: int, max_buckets: int, expected: int
+) -> None:
+    assert get_stats_chunk_count(attribute_count, 2, max_buckets=max_buckets) == expected
+
+
 def test_attribute_name_exists_gives_up_past_the_page_bound() -> None:
     page_limit = 5
     # Every decoy contains the target name, so the substring match cannot narrow them away,

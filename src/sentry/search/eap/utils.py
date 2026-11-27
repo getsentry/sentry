@@ -20,6 +20,7 @@ from sentry.search.eap.constants import (
     ARRAY,
     BOOLEAN,
     MAX_STATS_REQUEST_ATTRIBUTES,
+    MAX_STATS_RESPONSE_ROWS,
     SENTRY_INTERNAL_PREFIXES,
     STRING,
     TYPE_MAP,
@@ -679,5 +680,16 @@ def parse_formula(
     return f"{final_equation}"
 
 
-def get_stats_chunk_count(attribute_count: int, min_chunks: int) -> int:
-    return max(min_chunks, math.ceil(attribute_count / MAX_STATS_REQUEST_ATTRIBUTES))
+def get_stats_chunk_count(
+    attribute_count: int, min_chunks: int, max_buckets: int | None = None
+) -> int:
+    """
+    Pass `max_buckets` when every attribute can fill its buckets, so that no chunk
+    asks for more rows than Snuba returns.
+    """
+    max_attributes_per_request = MAX_STATS_REQUEST_ATTRIBUTES
+    if max_buckets is not None:
+        max_attributes_per_request = min(
+            max_attributes_per_request, MAX_STATS_RESPONSE_ROWS // max_buckets
+        )
+    return max(min_chunks, math.ceil(attribute_count / max_attributes_per_request))
