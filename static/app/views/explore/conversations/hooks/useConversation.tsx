@@ -486,7 +486,7 @@ export function useConversation(
   const loadRemainingPages = async (signal: AbortSignal) => {
     let result = await fetchRemainingPages(queryClient, queryOptions, signal);
     while (result.hasFailedPage && !signal.aborted) {
-      // Retries on the live query, so a second failure shows its Retry button.
+      // The Retry button reads the live query's error, so retry the failed page there.
       const retry = await fetchNextPage({cancelRefetch: false});
       if (retry.isFetchNextPageError || !retry.hasNextPage) {
         return retry.data?.pages.length ?? result.pageCount;
