@@ -64,5 +64,7 @@ class ReleaseProject(Model):
             models.Index(fields=("project", "adopted")),
             models.Index(fields=("project", "unadopted")),
             models.Index(fields=("project", "first_seen_transaction")),
+            # Joins from a release to its projects, such as release lists filtered by project.
+            models.Index(fields=("release", "project")),
         )
         unique_together = (("project", "release"),)

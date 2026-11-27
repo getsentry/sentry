@@ -53,7 +53,10 @@ class GroupNotesEndpoint(GroupEndpoint):
         url_names=["sentry-api-0-group-notes"],
     )
     def get(self, request: Request, group: Group) -> Response:
-        notes = Activity.objects.filter(group=group, type=ActivityType.NOTE.value)
+        # The cursor resumes inside a run of tied timestamps by offset, so ties need a stable order.
+        notes = Activity.objects.filter(group=group, type=ActivityType.NOTE.value).order_by(
+            "-datetime", "-id"
+        )
 
         response = self.paginate(
             request=request,

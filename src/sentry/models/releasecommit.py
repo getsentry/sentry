@@ -1,3 +1,5 @@
+from django.db import models
+
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedBigIntegerField,
@@ -13,7 +15,8 @@ from sentry.db.models import (
 class ReleaseCommit(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
-    organization_id = BoundedBigIntegerField(db_index=True)
+    # The (organization_id, release) index covers lookups by organization.
+    organization_id = BoundedBigIntegerField()
     # DEPRECATED
     project_id = BoundedBigIntegerField(null=True)
     release = FlexibleForeignKey("sentry.Release")
@@ -24,5 +27,6 @@ class ReleaseCommit(Model):
         app_label = "sentry"
         db_table = "sentry_releasecommit"
         unique_together = (("release", "commit"), ("release", "order"))
+        indexes = (models.Index(fields=("organization_id", "release")),)
 
     __repr__ = sane_repr("release_id", "commit_id", "order")

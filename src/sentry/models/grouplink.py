@@ -84,6 +84,13 @@ class GroupLink(Model):
         indexes = [
             models.Index(fields=["project", "linked_id", "linked_type", "group"]),
             models.Index(fields=["linked_id", "linked_type"]),
+            # Finds the groups that a commit resolves: `LinkedType.commit` and
+            # `Relationship.resolves`, which this nested class cannot reference.
+            models.Index(
+                fields=["linked_id"],
+                condition=models.Q(linked_type=1, relationship=1),
+                name="sentry_grou_linked__bc5365_idx",
+            ),
         ]
 
     __repr__ = sane_repr("group_id", "linked_type", "linked_id", "relationship", "datetime")

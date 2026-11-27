@@ -218,7 +218,8 @@ class ProjectDebugFile(Model):
     checksum = models.CharField(max_length=40, null=True, db_index=True)
     object_name = models.TextField()
     cpu_name = models.CharField(max_length=40)
-    project_id = BoundedBigIntegerField(null=True, db_index=True)
+    # The (project_id, id) index covers lookups by project.
+    project_id = BoundedBigIntegerField(null=True)
     debug_id = models.CharField(max_length=64, db_column="uuid")
     code_id = models.CharField(max_length=64, null=True)
     data = LegacyTextJSONField(default=dict, null=True)
@@ -249,6 +250,7 @@ class ProjectDebugFile(Model):
             models.Index(fields=("project_id", "code_id")),
             models.Index(fields=("project_id", "wasm_legacy_debug_id")),
             models.Index(fields=("project_id", "wasm_legacy_code_id")),
+            models.Index(fields=("project_id", "id")),
         )
         db_table = "sentry_projectdsymfile"
         app_label = "sentry"

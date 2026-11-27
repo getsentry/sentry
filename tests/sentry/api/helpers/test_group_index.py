@@ -1110,8 +1110,9 @@ class MergeGroupsTest(TestCase):
         call_args = mock_handle_merge.call_args.args
 
         assert len(call_args) == 3
-        # Have to convert to ids because first argument is a queryset
-        assert [group.id for group in call_args[0]] == group_ids
+        # Have to convert to ids because first argument is a queryset. The query has no order, and
+        # handle_merge picks the primary group itself.
+        assert sorted(group.id for group in call_args[0]) == sorted(group_ids)
         assert call_args[1] == {project.id: project}
         assert call_args[2] == self.user
 
