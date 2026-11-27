@@ -31,7 +31,7 @@ export function AnnotationFlagsTable({items, pageKeyName}: AnnotationFlagsTableP
   const {selection} = usePageFilters();
   const userTimezone = useTimezone();
   const timezone = selection.datetime.utc ? 'UTC' : userTimezone;
-  const [page, setPage] = useQueryState(
+  const [pageParam, setPage] = useQueryState(
     pageKeyName,
     parseAsInteger.withDefault(0).withOptions({history: 'push'})
   );
@@ -45,6 +45,8 @@ export function AnnotationFlagsTable({items, pageKeyName}: AnnotationFlagsTableP
     );
   }
 
+  const lastPage = Math.ceil(items.length / PER_PAGE) - 1;
+  const page = Math.min(Math.max(pageParam, 0), lastPage);
   const rows = items
     .toSorted((a, b) => b.start - a.start)
     .slice(page * PER_PAGE, (page + 1) * PER_PAGE);
