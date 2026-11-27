@@ -346,15 +346,24 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
                 return top_events_result
 
             if use_rpc:
-                rpc_timeseries: SnubaTSResult = scoped_dataset.run_timeseries_query(
-                    params=snuba_params,
-                    query_string=query,
-                    y_axes=final_columns,
-                    referrer=referrer,
-                    config=get_rpc_config(),
-                    sampling_mode=snuba_params.sampling_mode,
-                    comparison_delta=comparison_delta,
-                )
+                rpc_config = get_rpc_config()
+                try:
+                    rpc_timeseries: SnubaTSResult = scoped_dataset.run_timeseries_query(
+                        params=snuba_params,
+                        query_string=query,
+                        y_axes=final_columns,
+                        referrer=referrer,
+                        config=rpc_config,
+                        sampling_mode=snuba_params.sampling_mode,
+                        comparison_delta=comparison_delta,
+                    )
+                except NotImplementedError:
+                    dataset_label = request.GET.get("dataset")
+                    raise ParseError(
+                        detail=f"Timeseries queries are not supported for dataset {dataset_label}. "
+                        "Use the events endpoint for table queries on this dataset, "
+                        "or choose a dataset that supports timeseries."
+                    ) from None
                 return rpc_timeseries
 
             timeseries: SnubaTSResult = scoped_dataset.timeseries_query(
