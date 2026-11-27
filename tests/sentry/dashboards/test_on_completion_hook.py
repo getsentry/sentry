@@ -6,17 +6,26 @@ from unittest.mock import MagicMock, patch
 import pytest
 from pydantic import ValidationError
 
-from sentry.dashboards.models.generate_dashboard_artifact import GeneratedDashboard
+from sentry.api.client import ApiError
+from sentry.dashboards.models.generate_dashboard_artifact import (
+    GeneratedDashboard,
+    GeneratedWidgetQuery,
+)
 from sentry.dashboards.on_completion_hook import (
     FIX_PROMPT,
     FIX_PROMPT_SECONDARY,
     MAX_VALIDATION_RETRIES,
     DashboardOnCompletionHook,
+    _build_widget_request,
+    _dry_run_widget_queries,
     _format_serializer_errors,
     _validate_with_serializer,
 )
+from sentry.search.events.constants import TIMEOUT_RPC_ERROR_MESSAGE
 from sentry.seer.agent.client_models import Artifact, MemoryBlock, Message, SeerRunState
-from sentry.testutils.cases import TestCase
+from sentry.seer.models.run import SeerRun
+from sentry.testutils.cases import SnubaTestCase, TestCase
+from sentry.users.services.user.service import user_service
 
 
 def _make_state(
@@ -192,10 +201,241 @@ class TestFormatSerializerErrors(TestCase):
         assert "bad_fn" in result
 
 
+def test_build_widget_request_table_queries_events() -> None:
+    widget = _make_artifact(
+        display_type="table",
+        widget_type="spans",
+        queries=[{"columns": ["span.op"], "aggregates": ["count()"], "orderby": "-count()"}],
+    ).widgets[0]
+
+    assert _build_widget_request(widget, widget.queries[0]) == (
+        "events",
+        {
+            "dataset": "spans",
+            "query": "",
+            "sampling": "NORMAL",
+            "field": ["span.op", "count()"],
+            "per_page": 1,
+            "sort": "-count()",
+        },
+    )
+
+
+def test_build_widget_request_grouped_chart_queries_top_events() -> None:
+    widget = _make_artifact(
+        display_type="bar",
+        limit=10,
+        queries=[{"columns": ["release"], "aggregates": ["count()"], "orderby": "-count()"}],
+    ).widgets[0]
+
+    assert _build_widget_request(widget, widget.queries[0]) == (
+        "events-timeseries",
+        {
+            "dataset": "errors",
+            "query": "",
+            "yAxis": ["count()"],
+            "interval": "1m",
+            "field": ["release", "count()"],
+            "groupBy": ["release", "count()"],
+            "topEvents": 10,
+            "sort": "-count()",
+        },
+    )
+
+
+def test_build_widget_request_grouped_chart_groups_by_unselected_sort() -> None:
+    widget = _make_artifact(
+        display_type="line",
+        widget_type="spans",
+        queries=[
+            {
+                "columns": ["span.op"],
+                "aggregates": ["avg(span.duration)"],
+                "orderby": "-count()",
+            }
+        ],
+    ).widgets[0]
+
+    request = _build_widget_request(widget, widget.queries[0])
+
+    assert request is not None
+    _, params = request
+    assert params["field"] == ["span.op", "avg(span.duration)", "count()"]
+    assert params["groupBy"] == ["span.op", "avg(span.duration)", "count()"]
+    assert params["sort"] == "-count()"
+
+
+def test_build_widget_request_issue_widget_queries_issues() -> None:
+    widget = _make_artifact(
+        display_type="table",
+        widget_type="issue",
+        queries=[{"conditions": "is:unresolved", "orderby": "freq"}],
+    ).widgets[0]
+
+    assert _build_widget_request(widget, widget.queries[0]) == (
+        "issues",
+        {"query": "is:unresolved", "limit": 1, "sort": "freq"},
+    )
+
+
+def test_build_widget_request_issue_chart_queries_issues_timeseries() -> None:
+    widget = _make_artifact(
+        display_type="line",
+        widget_type="issue",
+        queries=[{"conditions": "is:unresolved", "aggregates": ["count(new_issues)"]}],
+    ).widgets[0]
+
+    assert _build_widget_request(widget, widget.queries[0]) == (
+        "issues-timeseries",
+        {
+            "query": "is:unresolved",
+            "yAxis": ["count(new_issues)"],
+            "interval": "1m",
+            "category": "issue",
+        },
+    )
+
+
+def test_build_widget_request_skips_text_widgets() -> None:
+    widget = _make_artifact(display_type="text", widget_type=None, queries=[]).widgets[0]
+    assert _build_widget_request(widget, GeneratedWidgetQuery()) is None
+
+
+class DryRunWidgetQueriesTest(TestCase, SnubaTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.project
+        owner = user_service.get_user(user_id=self.user.id)
+        assert owner is not None
+        self.owner = owner
+
+    def test_valid_queries_return_no_errors(self) -> None:
+        artifact = GeneratedDashboard(
+            title="Dashboard",
+            widgets=[
+                {
+                    "title": "Errors",
+                    "description": "",
+                    "display_type": "line",
+                    "widget_type": "error-events",
+                    "queries": [{"aggregates": ["count()"]}],
+                    "layout": {"x": 0, "y": 0, "w": 3, "h": 2},
+                },
+                {
+                    "title": "Unresolved issues",
+                    "description": "",
+                    "display_type": "table",
+                    "widget_type": "issue",
+                    "queries": [{"conditions": "is:unresolved", "orderby": "freq"}],
+                    "layout": {"x": 3, "y": 0, "w": 3, "h": 2},
+                },
+            ],
+        )
+
+        assert _dry_run_widget_queries(artifact, self.organization, self.owner) == []
+
+    def test_logs_sort_outside_selected_columns_is_reported(self) -> None:
+        artifact = _make_artifact(
+            title="Recent logs",
+            display_type="table",
+            widget_type="logs",
+            queries=[{"columns": ["message"], "aggregates": [], "orderby": "-timestamp"}],
+        )
+
+        assert _validate_with_serializer(artifact, self.organization) is None
+        assert _dry_run_widget_queries(artifact, self.organization, self.owner) == [
+            "Widget 0 ('Recent logs'), query 0: orderby must also be in the selected columns or groupby"
+        ]
+
+    def test_invalid_issue_search_value_is_reported(self) -> None:
+        artifact = _make_artifact(
+            title="ANRs",
+            display_type="table",
+            widget_type="issue",
+            queries=[{"conditions": "is:unresolved issue.category:anr", "orderby": "freq"}],
+        )
+
+        assert _validate_with_serializer(artifact, self.organization) is None
+        assert _dry_run_widget_queries(artifact, self.organization, self.owner) == [
+            "Widget 0 ('ANRs'), query 0: Error parsing search query: Invalid category value of 'anr'"
+        ]
+
+    def test_grouped_chart_sorted_by_unselected_aggregate_passes(self) -> None:
+        artifact = _make_artifact(
+            display_type="line",
+            widget_type="spans",
+            queries=[
+                {
+                    "columns": ["span.op"],
+                    "aggregates": ["avg(span.duration)"],
+                    "orderby": "-count()",
+                }
+            ],
+        )
+
+        assert _dry_run_widget_queries(artifact, self.organization, self.owner) == []
+
+    def test_runs_with_the_owners_access(self) -> None:
+        outsider = user_service.get_user(user_id=self.create_user().id)
+        assert outsider is not None
+        artifact = _make_artifact(
+            display_type="table",
+            widget_type="issue",
+            queries=[{"conditions": "is:unresolved issue.category:anr", "orderby": "freq"}],
+        )
+
+        # A user outside the org gets a 403, not the query's 400, so nothing is reported.
+        assert _dry_run_widget_queries(artifact, self.organization, outsider) == []
+
+    def test_non_400_failures_are_skipped(self) -> None:
+        with patch(
+            "sentry.dashboards.on_completion_hook.ApiClient.get",
+            side_effect=ApiError(500, {"detail": "Internal error"}),
+        ):
+            assert _dry_run_widget_queries(_make_artifact(), self.organization, self.owner) == []
+
+    def test_issue_chart_ignores_conditions_the_chart_endpoint_ignores(self) -> None:
+        artifact = _make_artifact(
+            display_type="line",
+            widget_type="issue",
+            queries=[
+                {
+                    "conditions": "is:unresolved issue.category:anr",
+                    "aggregates": ["count(new_issues)"],
+                }
+            ],
+        )
+
+        assert _dry_run_widget_queries(artifact, self.organization, self.owner) == []
+
+    def test_stops_when_the_time_budget_runs_out(self) -> None:
+        with (
+            patch("sentry.dashboards.on_completion_hook.DRY_RUN_TIME_BUDGET_SECONDS", 0),
+            patch("sentry.dashboards.on_completion_hook.ApiClient.get") as mock_get,
+        ):
+            assert _dry_run_widget_queries(_make_artifact(), self.organization, self.owner) == []
+        mock_get.assert_not_called()
+
+    def test_query_timeouts_are_skipped(self) -> None:
+        with patch(
+            "sentry.dashboards.on_completion_hook.ApiClient.get",
+            side_effect=ApiError(400, {"detail": TIMEOUT_RPC_ERROR_MESSAGE}),
+        ):
+            assert _dry_run_widget_queries(_make_artifact(), self.organization, self.owner) == []
+
+
 class DashboardOnCompletionHookTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.project
+        self.create_seer_run(
+            organization=self.organization, user_id=self.user.id, seer_run_state_id=1
+        )
+        dry_run = patch(
+            "sentry.dashboards.on_completion_hook._dry_run_widget_queries", return_value=[]
+        )
+        self.mock_dry_run = dry_run.start()
+        self.addCleanup(dry_run.stop)
 
     @patch("sentry.dashboards.on_completion_hook.fetch_run_status")
     def test_valid_artifact_passes(self, mock_fetch: MagicMock) -> None:
@@ -308,3 +548,48 @@ class DashboardOnCompletionHookTest(TestCase):
         with patch.object(DashboardOnCompletionHook, "_request_fix") as mock_fix:
             DashboardOnCompletionHook.execute(self.organization, run_id=1)
             mock_fix.assert_called_once()
+
+    @patch("sentry.dashboards.on_completion_hook.fetch_run_status")
+    def test_query_dry_run_errors_trigger_fix(self, mock_fetch: MagicMock) -> None:
+        """An artifact that passes both validators but fails when its queries run should trigger a fix."""
+        mock_fetch.return_value = _make_state(artifact_data=VALID_ARTIFACT)
+        self.mock_dry_run.return_value = [
+            "Widget 0 ('Error Count'), query 0: Invalid characters in field total_delay_ms,number"
+        ]
+
+        with patch.object(DashboardOnCompletionHook, "_request_fix") as mock_fix:
+            DashboardOnCompletionHook.execute(self.organization, run_id=1)
+            mock_fix.assert_called_once_with(
+                self.organization,
+                1,
+                "Widget 0 ('Error Count'), query 0: Invalid characters in field total_delay_ms,number",
+            )
+
+    @patch("sentry.dashboards.on_completion_hook.fetch_run_status")
+    def test_query_dry_run_runs_as_the_run_owner(self, mock_fetch: MagicMock) -> None:
+        mock_fetch.return_value = _make_state(artifact_data=VALID_ARTIFACT)
+
+        DashboardOnCompletionHook.execute(self.organization, run_id=1)
+
+        self.mock_dry_run.assert_called_once()
+        assert self.mock_dry_run.call_args[0][2].id == self.user.id
+
+    @patch("sentry.dashboards.on_completion_hook.fetch_run_status")
+    def test_query_dry_run_skipped_without_run_owner(self, mock_fetch: MagicMock) -> None:
+        mock_fetch.return_value = _make_state(artifact_data=VALID_ARTIFACT)
+        SeerRun.objects.filter(seer_run_state_id=1).update(user_id=None)
+
+        with patch.object(DashboardOnCompletionHook, "_request_fix") as mock_fix:
+            DashboardOnCompletionHook.execute(self.organization, run_id=1)
+            mock_fix.assert_not_called()
+
+        self.mock_dry_run.assert_not_called()
+
+    @patch("sentry.dashboards.on_completion_hook.fetch_run_status")
+    def test_query_dry_run_skipped_when_serializer_fails(self, mock_fetch: MagicMock) -> None:
+        mock_fetch.return_value = _make_state(artifact_data=INVALID_SERIALIZER_ARTIFACT)
+
+        with patch.object(DashboardOnCompletionHook, "_request_fix"):
+            DashboardOnCompletionHook.execute(self.organization, run_id=1)
+
+        self.mock_dry_run.assert_not_called()
