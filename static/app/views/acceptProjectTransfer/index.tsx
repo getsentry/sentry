@@ -2,7 +2,7 @@ import {useMutation, useQuery} from '@tanstack/react-query';
 import {useQueryState} from 'nuqs';
 import {z} from 'zod';
 
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
@@ -98,9 +98,8 @@ function AcceptProjectTransferForm({
   const defaultValues: z.input<typeof schema> = {organization: options[0]?.value ?? null};
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues,
-    validators: {onDynamic: schema},
+    validators: defaultFormValidators(schema),
     onSubmit: ({value}) => {
       // schema.parse validates and narrows null away
       const {organization} = schema.parse(value);
@@ -109,24 +108,24 @@ function AcceptProjectTransferForm({
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Stack gap="xl">
-        <form.AppField name="organization">
+        <form.Field name="organization">
           {field => (
             <field.Layout.Stack label={t('Organization')} required>
               <field.Select
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 options={options}
               />
             </field.Layout.Stack>
           )}
-        </form.AppField>
+        </form.Field>
         <Flex justify="end" borderTop="secondary" paddingTop="xl" paddingBottom="xl">
           <form.SubmitButton variant="danger">{t('Transfer Project')}</form.SubmitButton>
         </Flex>
       </Stack>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 

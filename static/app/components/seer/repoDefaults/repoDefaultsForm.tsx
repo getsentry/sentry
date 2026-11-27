@@ -52,7 +52,7 @@ export function RepoDefaultsForm({organization}: Props) {
               )}
             >
               <field.Switch
-                checked={field.state.value}
+                checked={field.value}
                 onChange={field.handleChange}
                 disabled={!canWrite}
               />
@@ -77,7 +77,7 @@ export function RepoDefaultsForm({organization}: Props) {
             >
               <field.Select
                 multiple
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 disabled={!canWrite}
                 options={[

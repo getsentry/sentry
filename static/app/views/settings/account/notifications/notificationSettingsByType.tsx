@@ -120,7 +120,7 @@ function DefaultNotificationField({
       {field => (
         <field.Layout.Row label={label} hintText={help}>
           <field.Select
-            value={field.state.value}
+            value={field.value}
             onChange={field.handleChange}
             options={choicesToOptions(choices)}
           />
@@ -481,7 +481,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
                   >
                     <Flex justify="end">
                       <fieldApi.Switch
-                        checked={fieldApi.state.value}
+                        checked={fieldApi.value}
                         onChange={fieldApi.handleChange}
                       />
                     </Flex>
@@ -501,7 +501,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
             {field => (
               <Fragment>
                 <UnlinkedSlackAlerts
-                  providers={field.state.value}
+                  providers={field.value}
                   unlinkedSlackOrgs={unlinkedSlackOrgs}
                   unlinkedSlackStagingOrgs={unlinkedSlackStagingOrgs}
                 />
@@ -512,12 +512,12 @@ export function NotificationSettingsByType({notificationType}: Props) {
                   <Flex justify="end">
                     <field.CompactSelect
                       multiple
-                      value={field.state.value}
+                      value={field.value}
                       onChange={field.handleChange}
                       options={providerChoices}
                       trigger={triggerProps => (
                         <OverlayTrigger.Button {...triggerProps} style={{width: 'auto'}}>
-                          {getProviderTriggerLabel(providerChoices, field.state.value)}
+                          {getProviderTriggerLabel(providerChoices, field.value)}
                         </OverlayTrigger.Button>
                       )}
                     />
@@ -558,7 +558,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
                   {fieldApi => (
                     <fieldApi.Layout.Row label={field.label} hintText={field.help}>
                       <fieldApi.Select
-                        value={fieldApi.state.value}
+                        value={fieldApi.value}
                         onChange={fieldApi.handleChange}
                         options={choicesToOptions(field.choices)}
                       />
@@ -587,7 +587,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
             {field => (
               <Fragment>
                 <UnlinkedSlackAlerts
-                  providers={field.state.value ?? initialProviders}
+                  providers={field.value ?? initialProviders}
                   unlinkedSlackOrgs={unlinkedSlackOrgs}
                   unlinkedSlackStagingOrgs={unlinkedSlackStagingOrgs}
                 />
@@ -597,7 +597,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
                 >
                   <field.Select
                     multiple
-                    value={field.state.value}
+                    value={field.value}
                     onChange={field.handleChange}
                     options={providerChoices}
                   />

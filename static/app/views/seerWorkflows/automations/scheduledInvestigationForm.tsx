@@ -6,11 +6,11 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {
-  defaultFormOptions,
+  ScrapsForm,
+  defaultFormValidators,
   DisplayField,
-  setFieldErrors,
   useScrapsForm,
-  useStore,
+  useSelector,
 } from '@sentry/scraps/form';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
@@ -183,7 +183,6 @@ export function ScheduledInvestigationForm(
   };
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     ...(props.mode === 'edit' ? {formId: props.formId} : {}),
     defaultValues: {
       enabled: props.mode === 'edit' ? props.config.enabled : false,
@@ -200,8 +199,8 @@ export function ScheduledInvestigationForm(
         serviceAccount?.scopes ??
         DEFAULT_SERVICE_ACCOUNT_SCOPES.filter(scope => grantableScopes.has(scope)),
     },
-    validators: {onDynamic: schema},
-    onSubmit: async ({value, formApi}) => {
+    validators: defaultFormValidators(schema),
+    onSubmit: async ({value, formApi, createValidationError}) => {
       if (hasDuplicateCrontabs(value.crontabs)) {
         toast.error(t('Each crontab must be different. Remove the duplicates to save.'));
         return;
@@ -225,30 +224,34 @@ export function ScheduledInvestigationForm(
       } catch (error) {
         toast.error(getRequestErrorUserMessage(error, t('Unable to save automation.')));
         if (error instanceof RequestError) {
-          setFieldErrors(formApi, requestErrorToFieldErrors(error, formApi.state.values));
+          const fields = requestErrorToFieldErrors(error, value);
+          if (fields) {
+            return createValidationError({fields});
+          }
         }
       }
+      return;
     },
   });
   const formRef = props.mode === 'edit' ? props.formRef : undefined;
   // Lets the page header's Cancel button discard changes from outside the form
   useImperativeHandle(formRef, () => ({reset: () => form.reset()}), [form]);
-  const hasChanges = useStore(form.store, state => !state.isDefaultValue);
+  const hasChanges = useSelector(form.atom, state => !state.isDefaultValue);
   const setFormHasChanges = props.mode === 'edit' ? props.setFormHasChanges : undefined;
   useEffect(() => setFormHasChanges?.(hasChanges), [setFormHasChanges, hasChanges]);
 
-  const serviceAccountProjects = useStore(
-    form.store,
+  const serviceAccountProjects = useSelector(
+    form.atom,
     state => state.values.serviceAccountProjects
   );
-  const scopes = useStore(form.store, state => state.values.scopes);
+  const scopes = useSelector(form.atom, state => state.values.scopes);
   // Projects in the automation's scope are always granted to its service account
-  const scopeProjects = useStore(form.store, state => state.values.projects);
+  const scopeProjects = useSelector(form.atom, state => state.values.projects);
   const scopeProjectIds = scopeProjects.allProjects ? [] : scopeProjects.projectIds;
 
   return (
     <Container maxWidth="960px" width="100%" containerType="inline-size">
-      <form.AppForm form={form}>
+      <ScrapsForm form={form}>
         <Stack gap="lg">
           {mutationError && (
             <Alert variant="danger">
@@ -258,18 +261,18 @@ export function ScheduledInvestigationForm(
           <FormSection title={t('Description')}>
             <form.FieldGroup>
               {props.mode === 'create' && (
-                <form.AppField name="name">
+                <form.Field name="name">
                   {field => (
                     <field.Layout.Stack label={t('Name')} required>
                       <field.Input
-                        value={field.state.value}
+                        value={field.value}
                         onChange={field.handleChange}
                         placeholder={t('e.g. Investigate checkout errors')}
                         maxLength={64}
                       />
                     </field.Layout.Stack>
                   )}
-                </form.AppField>
+                </form.Field>
               )}
               <Container padding="lg xl">
                 <Text variant="muted">
@@ -281,55 +284,46 @@ export function ScheduledInvestigationForm(
 
           <FormSection title={t('Trigger')}>
             <form.FieldGroup>
-              <form.AppField name="crontabs" mode="array">
+              <form.ArrayField name="crontabs">
                 {field => {
-                  const atMax = field.state.value.length >= MAX_SCHEDULES;
+                  const atMax = field.value.length >= MAX_SCHEDULES;
                   return (
-                    <Flex
-                      direction={{zero: 'column', md: 'row'}}
-                      align={{zero: 'stretch', md: 'start'}}
-                      justify="between"
-                      gap={{zero: 'md', md: 'xl'}}
+                    <DisplayField.Row
+                      label={t('Schedule')}
+                      hintText={tct(
+                        'Runs on a schedule. Use [link:the crontab syntax].',
+                        {link: <ExternalLink href="https://en.wikipedia.org/wiki/Cron" />}
+                      )}
                     >
-                      <Stack gap="xs" width={{zero: '100%', md: '50%'}}>
-                        <field.Meta.Label>{t('Schedule')}</field.Meta.Label>
-                        <field.Meta.HintText>
-                          {tct('Runs on a schedule. Use [link:the crontab syntax].', {
-                            link: (
-                              <ExternalLink href="https://en.wikipedia.org/wiki/Cron" />
-                            ),
-                          })}
-                        </field.Meta.HintText>
-                      </Stack>
                       <Stack gap="md" flexGrow={1}>
-                        {field.state.value.map((_, index) => (
-                          <form.AppField key={index} name={`crontabs[${index}]`}>
+                        {field.value.map((_, index) => (
+                          <form.Field key={index} name={`crontabs[${index}]`}>
                             {crontabField => (
                               <crontabField.Base<HTMLInputElement>>
                                 {({disabled: _disabled, ...inputProps}) => (
                                   <ScheduleField
-                                    value={crontabField.state.value}
+                                    value={crontabField.value}
                                     onChange={crontabField.handleChange}
                                     onRemove={() => field.removeValue(index)}
                                     // An automation always has at least one schedule
-                                    canRemove={field.state.value.length > 1}
+                                    canRemove={field.value.length > 1}
                                     disabled={readOnly}
                                     inputProps={inputProps}
                                   />
                                 )}
                               </crontabField.Base>
                             )}
-                          </form.AppField>
+                          </form.Field>
                         ))}
                         <Grid columns="minmax(0, 1fr) max-content" gap="md">
-                          <form.AppField name="timezone">
+                          <form.Field name="timezone">
                             {timezoneField => (
                               <timezoneField.Base>
                                 {() => (
                                   <Stack width="100%">
                                     <Select
                                       aria-label={t('Timezone')}
-                                      value={timezoneField.state.value}
+                                      value={timezoneField.value}
                                       options={timezoneOptions}
                                       disabled={readOnly}
                                       onChange={option =>
@@ -340,7 +334,7 @@ export function ScheduledInvestigationForm(
                                 )}
                               </timezoneField.Base>
                             )}
-                          </form.AppField>
+                          </form.Field>
                           <Button
                             aria-label={t('Add schedule')}
                             icon={<IconAdd />}
@@ -354,16 +348,16 @@ export function ScheduledInvestigationForm(
                           />
                         </Grid>
                       </Stack>
-                    </Flex>
+                    </DisplayField.Row>
                   );
                 }}
-              </form.AppField>
+              </form.ArrayField>
             </form.FieldGroup>
           </FormSection>
 
           <FormSection title={t('Scope')}>
             <form.FieldGroup>
-              <form.AppField name="projects">
+              <form.Field name="projects">
                 {field => (
                   <field.Layout.Stack
                     label={t('Projects')}
@@ -372,7 +366,7 @@ export function ScheduledInvestigationForm(
                     <field.Base>
                       {() => (
                         <ProjectSelector
-                          value={field.state.value}
+                          value={field.value}
                           showReason={false}
                           disabled={readOnly}
                           onChange={next => {
@@ -402,12 +396,12 @@ export function ScheduledInvestigationForm(
                     </field.Base>
                   </field.Layout.Stack>
                 )}
-              </form.AppField>
-              <form.AppField name="environment">
+              </form.Field>
+              <form.Field name="environment">
                 {field => (
                   <field.Layout.Row label={t('Environments')}>
                     <field.Select
-                      value={field.state.value || ALL_ENVIRONMENTS}
+                      value={field.value || ALL_ENVIRONMENTS}
                       onChange={value =>
                         field.handleChange(value === ALL_ENVIRONMENTS ? '' : value)
                       }
@@ -422,7 +416,7 @@ export function ScheduledInvestigationForm(
                     />
                   </field.Layout.Row>
                 )}
-              </form.AppField>
+              </form.Field>
             </form.FieldGroup>
           </FormSection>
 
@@ -456,7 +450,7 @@ export function ScheduledInvestigationForm(
                   </Disclosure.Title>
                   <Disclosure.Content>
                     <Stack gap="2xl" paddingTop="md">
-                      <form.AppField name="serviceAccountProjects">
+                      <form.Field name="serviceAccountProjects">
                         {field => (
                           <field.Layout.Stack label={t('Project access')}>
                             <field.Base>
@@ -468,7 +462,7 @@ export function ScheduledInvestigationForm(
                                     )}
                                   </Text>
                                   <ProjectSelector
-                                    value={field.state.value}
+                                    value={field.value}
                                     scopeProjects={scopeProjects}
                                     disabled={readOnly}
                                     onChange={field.handleChange}
@@ -481,9 +475,9 @@ export function ScheduledInvestigationForm(
                             </field.Base>
                           </field.Layout.Stack>
                         )}
-                      </form.AppField>
+                      </form.Field>
                       <Container borderTop="primary" paddingTop="2xl">
-                        <form.AppField name="scopes">
+                        <form.Field name="scopes">
                           {field => (
                             <field.Layout.Stack label={t('Permissions')}>
                               <field.Base>
@@ -495,7 +489,7 @@ export function ScheduledInvestigationForm(
                                       )}
                                     </Text>
                                     <ServiceAccountPermissions
-                                      value={field.state.value}
+                                      value={field.value}
                                       disabled={readOnly}
                                       onChange={field.handleChange}
                                     />
@@ -504,7 +498,7 @@ export function ScheduledInvestigationForm(
                               </field.Base>
                             </field.Layout.Stack>
                           )}
-                        </form.AppField>
+                        </form.Field>
                       </Container>
                     </Stack>
                   </Disclosure.Content>
@@ -529,7 +523,7 @@ export function ScheduledInvestigationForm(
             )}
           </Flex>
         </Stack>
-      </form.AppForm>
+      </ScrapsForm>
     </Container>
   );
 }

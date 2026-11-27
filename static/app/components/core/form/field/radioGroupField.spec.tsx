@@ -3,7 +3,7 @@ import {z} from 'zod';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {AutoSaveForm, defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {AutoSaveForm, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 
 const testSchema = z.object({priority: z.enum(['low', 'medium', 'high'])});
 
@@ -24,17 +24,14 @@ function TestForm({
   defaultValue = 'low',
   disabled,
 }: TestFormProps) {
-  const form = useScrapsForm({
-    ...defaultFormOptions,
-    defaultValues: {priority: defaultValue},
-  });
+  const form = useScrapsForm({defaultValues: {priority: defaultValue}});
 
   return (
-    <form.AppForm form={form}>
-      <form.AppField name="priority">
+    <ScrapsForm form={form}>
+      <form.Field name="priority">
         {field => (
           <field.RadioGroup
-            value={field.state.value}
+            value={field.value}
             onChange={field.handleChange}
             disabled={disabled}
           >
@@ -49,8 +46,8 @@ function TestForm({
             )}
           </field.RadioGroup>
         )}
-      </form.AppField>
-    </form.AppForm>
+      </form.Field>
+    </ScrapsForm>
   );
 }
 
@@ -75,7 +72,7 @@ function AutoSaveTestForm({
       mutationOptions={{mutationFn, onError}}
     >
       {field => (
-        <field.RadioGroup value={field.state.value} onChange={field.handleChange}>
+        <field.RadioGroup value={field.value} onChange={field.handleChange}>
           {({Item}) => (
             <field.Layout.Row label={label}>
               <Item value="low">Low</Item>
@@ -95,10 +92,10 @@ describe('RadioGroupField types', () => {
       const form = useScrapsForm({defaultValues: {priority: value}});
 
       return (
-        <form.AppField name="priority">
+        <form.Field name="priority">
           {field => (
             <field.RadioGroup
-              value={field.state.value}
+              value={field.value}
               onChange={next => {
                 expectTypeOf(next).toEqualTypeOf<Priority>();
                 field.handleChange(next);
@@ -112,7 +109,7 @@ describe('RadioGroupField types', () => {
               }}
             </field.RadioGroup>
           )}
-        </form.AppField>
+        </form.Field>
       );
     }
     void TypeTest;
@@ -131,7 +128,7 @@ describe('RadioGroupField types', () => {
         >
           {field => (
             <field.RadioGroup
-              value={field.state.value}
+              value={field.value}
               onChange={next => {
                 expectTypeOf(next).toEqualTypeOf<Priority>();
                 field.handleChange(next);
@@ -159,9 +156,9 @@ describe('RadioGroupField types', () => {
       const form = useScrapsForm({defaultValues: {priority: value}});
 
       return (
-        <form.AppField name="priority">
+        <form.Field name="priority">
           {field => (
-            <field.RadioGroup value={field.state.value} onChange={(_value: string) => {}}>
+            <field.RadioGroup value={field.value} onChange={(_value: string) => {}}>
               {({Item}) => {
                 expectTypeOf<
                   React.ComponentProps<typeof Item>['value']
@@ -173,7 +170,7 @@ describe('RadioGroupField types', () => {
               }}
             </field.RadioGroup>
           )}
-        </form.AppField>
+        </form.Field>
       );
     }
     void TypeTest;
@@ -184,17 +181,17 @@ describe('RadioGroupField types', () => {
       const form = useScrapsForm({defaultValues: {priority: value}});
 
       return (
-        <form.AppField name="priority">
+        <form.Field name="priority">
           {field => (
             <field.RadioGroup
-              value={field.state.value}
+              value={field.value}
               // @ts-expect-error The callback must accept every value in the field's union.
               onChange={(_value: 'low') => {}}
             >
               {({Item}) => <Item value="high">High</Item>}
             </field.RadioGroup>
           )}
-        </form.AppField>
+        </form.Field>
       );
     }
     void TypeTest;
@@ -205,10 +202,10 @@ describe('RadioGroupField types', () => {
       const form = useScrapsForm({defaultValues: {priority: ''}});
 
       return (
-        <form.AppField name="priority">
+        <form.Field name="priority">
           {field => (
             <field.RadioGroup
-              value={field.state.value}
+              value={field.value}
               onChange={next => {
                 expectTypeOf(next).toEqualTypeOf<string>();
                 field.handleChange(next);
@@ -222,7 +219,7 @@ describe('RadioGroupField types', () => {
               }}
             </field.RadioGroup>
           )}
-        </form.AppField>
+        </form.Field>
       );
     }
     void TypeTest;

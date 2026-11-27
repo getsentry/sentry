@@ -343,7 +343,7 @@ export function SeerProjectTable() {
                               onChange={field.handleChange}
                               options={stoppingPointOptions}
                               size="xs"
-                              value={field.state.value}
+                              value={field.value}
                             />
                           )}
                         </AutoSaveForm>
@@ -365,7 +365,7 @@ export function SeerProjectTable() {
                           {field => (
                             <field.Switch
                               aria-label={t('Open PRs for %s', item.projectSlug)}
-                              checked={field.state.value}
+                              checked={field.value}
                               disabled={isRowDisabled}
                               onChange={field.handleChange}
                               size="sm"
@@ -470,7 +470,7 @@ function AgentSelectCell({
           }}
           options={agentSelectOptions}
           size="xs"
-          value={field.state.value}
+          value={field.value}
         />
       )}
     </AutoSaveForm>
@@ -511,7 +511,7 @@ function PrIterationSwitchCell({
       {field => (
         <field.Switch
           aria-label={t('Auto-iterate on PRs for %s', projectSlug)}
-          checked={unavailable ? false : field.state.value}
+          checked={unavailable ? false : field.value}
           disabled={unavailable ? NON_GITHUB_PR_ITERATION_WARNING : disabled}
           onChange={field.handleChange}
           size="sm"

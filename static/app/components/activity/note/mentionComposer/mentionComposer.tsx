@@ -3,7 +3,7 @@ import {IconMarkdown} from '@sentry/icons/markdown';
 
 import {Button} from '@sentry/scraps/button';
 import {Composer, type ComposerValue} from '@sentry/scraps/composer';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Markdown} from '@sentry/scraps/markdown';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
@@ -54,7 +54,6 @@ export function MentionComposer(props: MentionComposerProps) {
   const isCompact = variant === 'compact';
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {value: initialEditorValue},
     onSubmit: async ({value}) => {
       await onSubmit(serializeMentions(value.value));
@@ -64,7 +63,7 @@ export function MentionComposer(props: MentionComposerProps) {
           {value: {text: '', mentions: []}},
           {
             // Prevent a saved draft from being restored after reset.
-            keepDefaultValues: true,
+            updateDefaultValues: false,
           }
         );
         setEditorMode('write');
@@ -74,8 +73,8 @@ export function MentionComposer(props: MentionComposerProps) {
   });
 
   return (
-    <form.AppForm form={form}>
-      <form.AppField name="value">
+    <ScrapsForm form={form}>
+      <form.Field name="value">
         {field =>
           editorMode === 'write' || isCompact ? (
             <field.Base<HTMLDivElement>>
@@ -99,13 +98,13 @@ export function MentionComposer(props: MentionComposerProps) {
                       !event.shiftKey &&
                       !event.altKey &&
                       !event.defaultPrevented &&
-                      field.state.value.text.trim() !== ''
+                      field.value.text.trim() !== ''
                     ) {
                       event.preventDefault();
                       form.handleSubmit();
                     }
                   }}
-                  value={field.state.value}
+                  value={field.value}
                   minHeight={isCompact ? undefined : minHeight}
                   size={isCompact ? 'sm' : undefined}
                 />
@@ -122,11 +121,11 @@ export function MentionComposer(props: MentionComposerProps) {
               minHeight={`${minHeight}px`}
               overflow="auto"
             >
-              <Markdown raw={serializeMentions(field.state.value).text} />
+              <Markdown raw={serializeMentions(field.value).text} />
             </Container>
           )
         }
-      </form.AppField>
+      </form.Field>
       {hasFocusedEditor && (
         <Flex
           align="center"
@@ -171,7 +170,7 @@ export function MentionComposer(props: MentionComposerProps) {
           </Flex>
         </Flex>
       )}
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 

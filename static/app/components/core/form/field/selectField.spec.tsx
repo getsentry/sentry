@@ -3,7 +3,7 @@ import {z} from 'zod';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {AutoSaveForm, defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {AutoSaveForm, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import type {SelectValue} from '@sentry/scraps/select';
 
 const OPTIONS = [
@@ -19,6 +19,7 @@ interface TestFormProps {
   hintText?: string;
   placeholder?: string;
   required?: boolean;
+  submit?: boolean;
   validator?: z.ZodObject<{fruit: z.ZodString}>;
 }
 
@@ -30,20 +31,20 @@ function TestForm({
   disabled,
   placeholder,
   validator,
+  submit,
 }: TestFormProps) {
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {fruit: defaultValue},
-    validators: validator ? {onBlur: validator} : undefined,
+    validators: validator ? [{run: validator, triggers: ['blur']}] : undefined,
   });
 
   return (
-    <form.AppForm form={form}>
-      <form.AppField name="fruit">
+    <ScrapsForm form={form}>
+      <form.Field name="fruit">
         {field => (
           <field.Layout.Row label={label} hintText={hintText} required={required}>
             <field.Select
-              value={field.state.value}
+              value={field.value}
               onChange={field.handleChange}
               options={OPTIONS}
               disabled={disabled}
@@ -51,8 +52,9 @@ function TestForm({
             />
           </field.Layout.Row>
         )}
-      </form.AppField>
-    </form.AppForm>
+      </form.Field>
+      {submit ? <button type="submit">Submit</button> : null}
+    </ScrapsForm>
   );
 }
 
@@ -79,7 +81,7 @@ function AutoSaveTestForm({
       {field => (
         <field.Layout.Row label={label}>
           <field.Select
-            value={field.state.value}
+            value={field.value}
             onChange={field.handleChange}
             options={OPTIONS}
           />
@@ -93,14 +95,14 @@ describe('SelectField', () => {
   describe('types', () => {
     it('should enforce correct types for single select', () => {
       function TypeTestSingleSelect() {
-        const form = useScrapsForm({...defaultFormOptions, defaultValues: {fruit: ''}});
+        const form = useScrapsForm({defaultValues: {fruit: ''}});
 
         return (
-          <form.AppForm form={form}>
-            <form.AppField name="fruit">
+          <ScrapsForm form={form}>
+            <form.Field name="fruit">
               {field => (
                 <field.Select
-                  value={field.state.value}
+                  value={field.value}
                   onChange={val => {
                     expectTypeOf(val).toEqualTypeOf<string>();
                     field.handleChange(val);
@@ -111,8 +113,8 @@ describe('SelectField', () => {
                   ]}
                 />
               )}
-            </form.AppField>
-          </form.AppForm>
+            </form.Field>
+          </ScrapsForm>
         );
       }
       void TypeTestSingleSelect;
@@ -120,18 +122,15 @@ describe('SelectField', () => {
 
     it('should enforce array types for multiple select', () => {
       function TypeTestMultipleSelect() {
-        const form = useScrapsForm({
-          ...defaultFormOptions,
-          defaultValues: {tags: [] as string[]},
-        });
+        const form = useScrapsForm({defaultValues: {tags: [] as string[]}});
 
         return (
-          <form.AppForm form={form}>
-            <form.AppField name="tags">
+          <ScrapsForm form={form}>
+            <form.Field name="tags">
               {field => (
                 <field.Select
                   multiple
-                  value={field.state.value}
+                  value={field.value}
                   onChange={val => {
                     expectTypeOf(val).toEqualTypeOf<string[]>();
                     field.handleChange(val);
@@ -142,8 +141,8 @@ describe('SelectField', () => {
                   ]}
                 />
               )}
-            </form.AppField>
-          </form.AppForm>
+            </form.Field>
+          </ScrapsForm>
         );
       }
       void TypeTestMultipleSelect;
@@ -151,14 +150,11 @@ describe('SelectField', () => {
 
     it('should not allow string value with multiple=true', () => {
       function TypeTestInvalidMultiple() {
-        const form = useScrapsForm({
-          ...defaultFormOptions,
-          defaultValues: {tags: [] as string[]},
-        });
+        const form = useScrapsForm({defaultValues: {tags: [] as string[]}});
 
         return (
-          <form.AppForm form={form}>
-            <form.AppField name="tags">
+          <ScrapsForm form={form}>
+            <form.Field name="tags">
               {field => (
                 // @ts-expect-error value should be string[] when multiple is true
                 <field.Select
@@ -168,8 +164,8 @@ describe('SelectField', () => {
                   options={[{value: 'opt_one', label: 'Option One'}]}
                 />
               )}
-            </form.AppField>
-          </form.AppForm>
+            </form.Field>
+          </ScrapsForm>
         );
       }
       void TypeTestInvalidMultiple;
@@ -177,11 +173,11 @@ describe('SelectField', () => {
 
     it('should not allow array value with multiple=false', () => {
       function TypeTestInvalidSingle() {
-        const form = useScrapsForm({...defaultFormOptions, defaultValues: {fruit: ''}});
+        const form = useScrapsForm({defaultValues: {fruit: ''}});
 
         return (
-          <form.AppForm form={form}>
-            <form.AppField name="fruit">
+          <ScrapsForm form={form}>
+            <form.Field name="fruit">
               {field => (
                 // @ts-expect-error value should be string when multiple is false
                 <field.Select
@@ -190,8 +186,8 @@ describe('SelectField', () => {
                   options={[{value: 'opt_one', label: 'Option One'}]}
                 />
               )}
-            </form.AppField>
-          </form.AppForm>
+            </form.Field>
+          </ScrapsForm>
         );
       }
       void TypeTestInvalidSingle;
@@ -199,18 +195,15 @@ describe('SelectField', () => {
 
     it('should allow null in onChange when clearable is true', () => {
       function TypeTestClearable() {
-        const form = useScrapsForm({
-          ...defaultFormOptions,
-          defaultValues: {fruit: null as string | null},
-        });
+        const form = useScrapsForm({defaultValues: {fruit: null as string | null}});
 
         return (
-          <form.AppForm form={form}>
-            <form.AppField name="fruit">
+          <ScrapsForm form={form}>
+            <form.Field name="fruit">
               {field => (
                 <field.Select
                   clearable
-                  value={field.state.value}
+                  value={field.value}
                   onChange={val => {
                     expectTypeOf(val).toEqualTypeOf<string | null>();
                     field.handleChange(val);
@@ -218,8 +211,8 @@ describe('SelectField', () => {
                   options={[{value: 'apple', label: 'Apple'}]}
                 />
               )}
-            </form.AppField>
-          </form.AppForm>
+            </form.Field>
+          </ScrapsForm>
         );
       }
       void TypeTestClearable;
@@ -227,14 +220,14 @@ describe('SelectField', () => {
 
     it('should not allow null in onChange when clearable is false', () => {
       function TypeTestNotClearable() {
-        const form = useScrapsForm({...defaultFormOptions, defaultValues: {fruit: ''}});
+        const form = useScrapsForm({defaultValues: {fruit: ''}});
 
         return (
-          <form.AppForm form={form}>
-            <form.AppField name="fruit">
+          <ScrapsForm form={form}>
+            <form.Field name="fruit">
               {field => (
                 <field.Select
-                  value={field.state.value}
+                  value={field.value}
                   onChange={val => {
                     expectTypeOf(val).toEqualTypeOf<string>();
                     field.handleChange(val);
@@ -242,8 +235,8 @@ describe('SelectField', () => {
                   options={[{value: 'apple', label: 'Apple'}]}
                 />
               )}
-            </form.AppField>
-          </form.AppForm>
+            </form.Field>
+          </ScrapsForm>
         );
       }
       void TypeTestNotClearable;
@@ -254,11 +247,11 @@ describe('SelectField', () => {
         const form = useScrapsForm({defaultValues: {number: 0}});
 
         return (
-          <form.AppForm form={form}>
-            <form.AppField name="number">
+          <ScrapsForm form={form}>
+            <form.Field name="number">
               {field => (
                 <field.Select
-                  value={field.state.value}
+                  value={field.value}
                   onChange={val => {
                     expectTypeOf(val).toEqualTypeOf<number>();
                     field.handleChange(val);
@@ -275,8 +268,8 @@ describe('SelectField', () => {
                   }}
                 />
               )}
-            </form.AppField>
-          </form.AppForm>
+            </form.Field>
+          </ScrapsForm>
         );
       }
 
@@ -288,11 +281,11 @@ describe('SelectField', () => {
         const form = useScrapsForm({defaultValues: {number: {id: 0}}});
 
         return (
-          <form.AppForm form={form}>
-            <form.AppField name="number">
+          <ScrapsForm form={form}>
+            <form.Field name="number">
               {field => (
                 <field.Select
-                  value={field.state.value}
+                  value={field.value}
                   onChange={val => {
                     expectTypeOf(val).toEqualTypeOf<{id: number}>();
                     field.handleChange(val);
@@ -309,8 +302,8 @@ describe('SelectField', () => {
                   }}
                 />
               )}
-            </form.AppField>
-          </form.AppForm>
+            </form.Field>
+          </ScrapsForm>
         );
       }
 
@@ -358,24 +351,21 @@ it('shows an empty selection when the current object value has no matching optio
   ];
 
   function UnmatchedValueForm() {
-    const form = useScrapsForm({
-      ...defaultFormOptions,
-      defaultValues: {fruit: {id: '99', name: 'Mango'}},
-    });
+    const form = useScrapsForm({defaultValues: {fruit: {id: '99', name: 'Mango'}}});
 
     return (
-      <form.AppForm form={form}>
-        <form.AppField name="fruit">
+      <ScrapsForm form={form}>
+        <form.Field name="fruit">
           {field => (
             <field.Select
-              value={field.state.value}
+              value={field.value}
               onChange={field.handleChange}
               options={OBJECT_OPTIONS}
               isValueEqual={(a, b) => a.id === b.id}
             />
           )}
-        </form.AppField>
-      </form.AppForm>
+        </form.Field>
+      </ScrapsForm>
     );
   }
 
@@ -637,11 +627,12 @@ describe('SelectField a11y', () => {
   it('has aria-invalid true when validation fails', async () => {
     const validationSchema = z.object({fruit: z.string().min(1, 'Selection required')});
 
-    render(<TestForm label="Favorite Fruit" validator={validationSchema} />);
+    render(<TestForm label="Favorite Fruit" validator={validationSchema} submit />);
 
     const input = screen.getByRole('textbox');
     await userEvent.click(input);
     await userEvent.tab(); // blur to trigger validation
+    await userEvent.click(screen.getByRole('button', {name: 'Submit'}));
 
     await waitFor(() => {
       expect(input).toHaveAttribute('aria-invalid', 'true');
@@ -662,27 +653,24 @@ interface MultiTestFormProps {
 }
 
 function MultiTestForm({label, defaultValue = [], disabled}: MultiTestFormProps) {
-  const form = useScrapsForm({
-    ...defaultFormOptions,
-    defaultValues: {tags: defaultValue},
-  });
+  const form = useScrapsForm({defaultValues: {tags: defaultValue}});
 
   return (
-    <form.AppForm form={form}>
-      <form.AppField name="tags">
+    <ScrapsForm form={form}>
+      <form.Field name="tags">
         {field => (
           <field.Layout.Row label={label}>
             <field.Select
               multiple
-              value={field.state.value}
+              value={field.value}
               onChange={field.handleChange}
               options={MULTI_OPTIONS}
               disabled={disabled}
             />
           </field.Layout.Row>
         )}
-      </form.AppField>
-    </form.AppForm>
+      </form.Field>
+    </ScrapsForm>
   );
 }
 
@@ -776,7 +764,7 @@ function MultiAutoSaveTestForm({
         <field.Layout.Row label={label}>
           <field.Select
             multiple
-            value={field.state.value}
+            value={field.value}
             onChange={field.handleChange}
             options={MULTI_OPTIONS}
             clearable

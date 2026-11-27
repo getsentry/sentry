@@ -29,7 +29,7 @@ export function DataSecrecy() {
             )}
           >
             <field.Switch
-              checked={field.state.value}
+              checked={field.value}
               onChange={field.handleChange}
               disabled={!canEdit}
               aria-label={t(

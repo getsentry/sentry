@@ -162,7 +162,7 @@ function CodingAgentSettings({
               )}
             >
               <field.Select
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 options={integrationOptions}
                 disabled={fieldDisabled}
@@ -190,7 +190,7 @@ function CodingAgentSettings({
             )}
           >
             <field.Switch
-              checked={field.state.value}
+              checked={field.value}
               onChange={field.handleChange}
               disabled={fieldDisabled}
             />
@@ -432,7 +432,7 @@ function ProjectSeerGeneralForm({project}: {project: DetailedProject}) {
               )}
             >
               <field.Switch
-                checked={field.state.value}
+                checked={field.value}
                 onChange={field.handleChange}
                 disabled={!canWriteProject}
               />
@@ -462,7 +462,7 @@ function ProjectSeerGeneralForm({project}: {project: DetailedProject}) {
                 )}
               >
                 <field.Select
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   options={tuningOptions}
                   disabled={!canWriteProject}
@@ -494,7 +494,7 @@ function ProjectSeerGeneralForm({project}: {project: DetailedProject}) {
                 )}
               >
                 <field.Select
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   options={stoppingPointOptions}
                   disabled={!canWriteProject || isKnownAgentsPending}

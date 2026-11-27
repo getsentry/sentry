@@ -193,7 +193,7 @@ export function AutofixAgent({canWrite, project}: Props) {
                   multiple={false}
                   onChange={field.handleChange}
                   options={agentSelectOptions}
-                  value={restrictToSeer ? 'seer' : field.state.value}
+                  value={restrictToSeer ? 'seer' : field.value}
                 />
               </field.Layout.Row>
             </Stack>
@@ -224,7 +224,7 @@ export function AutofixAgent({canWrite, project}: Props) {
             >
               <field.Select
                 disabled={!canWrite}
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 options={stoppingPointOptions}
               />
@@ -251,7 +251,7 @@ export function AutofixAgent({canWrite, project}: Props) {
                 )}
               >
                 <field.Switch
-                  checked={field.state.value}
+                  checked={field.value}
                   disabled={!canWrite}
                   onChange={field.handleChange}
                 />
@@ -278,7 +278,7 @@ export function AutofixAgent({canWrite, project}: Props) {
               )}
             >
               <field.Switch
-                checked={prIterationUnavailable ? false : field.state.value}
+                checked={prIterationUnavailable ? false : field.value}
                 disabled={
                   prIterationUnavailable
                     ? NON_GITHUB_PR_ITERATION_WARNING

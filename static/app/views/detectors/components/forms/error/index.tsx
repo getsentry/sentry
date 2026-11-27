@@ -4,7 +4,7 @@ import {useTheme} from '@emotion/react';
 import {z} from 'zod';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
@@ -130,9 +130,8 @@ export function EditExistingErrorDetectorForm({
   });
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {workflowIds: detector.workflowIds},
-    validators: {onDynamic: z.object({workflowIds: z.array(z.string())})},
+    validators: defaultFormValidators(z.object({workflowIds: z.array(z.string())})),
     onSubmit: async ({value}) => {
       await submitEditDetector({
         detectorId: detector.id,
@@ -147,7 +146,7 @@ export function EditExistingErrorDetectorForm({
 
   return (
     <EditLayout>
-      <form.AppForm form={form}>
+      <ScrapsForm form={form}>
         <TopBar.Slot
           name="breadcrumbs"
           title={{type: 'page-title', label: detector.name}}
@@ -197,7 +196,7 @@ export function EditExistingErrorDetectorForm({
             {t('Save')}
           </form.SubmitButton>
         </EditLayout.Footer>
-      </form.AppForm>
+      </ScrapsForm>
     </EditLayout>
   );
 }

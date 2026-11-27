@@ -130,10 +130,7 @@ export function NotificationSettings() {
                   label={t('My Own Activity')}
                   hintText={t('Notifications about your own actions on Sentry.')}
                 >
-                  <field.Switch
-                    checked={field.state.value}
-                    onChange={field.handleChange}
-                  />
+                  <field.Switch checked={field.value} onChange={field.handleChange} />
                 </field.Layout.Row>
               )}
             </AutoSaveForm>
@@ -150,10 +147,7 @@ export function NotificationSettings() {
                     "When you resolve an unassigned issue, we'll auto-assign it to you."
                   )}
                 >
-                  <field.Switch
-                    checked={field.state.value}
-                    onChange={field.handleChange}
-                  />
+                  <field.Switch checked={field.value} onChange={field.handleChange} />
                 </field.Layout.Row>
               )}
             </AutoSaveForm>

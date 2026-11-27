@@ -1,7 +1,7 @@
 import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {toast} from '@sentry/scraps/toast';
 
@@ -66,9 +66,8 @@ export function RelocationPauseModal({
   });
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {atStep: ''},
-    validators: {onDynamic: schema},
+    validators: defaultFormValidators(schema),
     onSubmit: ({value}) => {
       const payload: {atStep?: string} = {};
       if (value.atStep !== 'ASAP') {
@@ -79,10 +78,10 @@ export function RelocationPauseModal({
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Header closeButton>Pause Relocation</Header>
       <Body>
-        <form.AppField name="atStep">
+        <form.Field name="atStep">
           {field => (
             <field.Layout.Stack
               label="Scheduled At"
@@ -90,17 +89,17 @@ export function RelocationPauseModal({
               required
             >
               <field.Select
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 options={options}
               />
             </field.Layout.Stack>
           )}
-        </form.AppField>
+        </form.Field>
       </Body>
       <Footer>
         <form.SubmitButton>Schedule</form.SubmitButton>
       </Footer>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }

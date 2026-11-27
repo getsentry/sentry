@@ -85,7 +85,7 @@ function LoadedHighlightsSettingsForm({project}: LoadedHighlightsSettingsFormPro
             hintText={t('Separate tag keys with a newline.')}
           >
             <field.TextArea
-              value={field.state.value}
+              value={field.value}
               onChange={field.handleChange}
               autosize
               monospace
@@ -119,7 +119,7 @@ function LoadedHighlightsSettingsForm({project}: LoadedHighlightsSettingsFormPro
             )}
           >
             <field.TextArea
-              value={field.state.value}
+              value={field.value}
               onChange={field.handleChange}
               autosize
               monospace

@@ -2,7 +2,7 @@ import moment from 'moment-timezone';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 import {openModal, type ModalRenderProps} from '@sentry/scraps/modal';
 import {Heading} from '@sentry/scraps/text';
@@ -23,9 +23,8 @@ function ChangeContractEndDateModal({
   closeModal,
 }: ChangeContractEndDateModalProps) {
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {contractPeriodEnd},
-    validators: {onDynamic: schema},
+    validators: defaultFormValidators(schema),
     onSubmit: ({value}) =>
       onAction(value)
         .then(() => closeModal())
@@ -33,12 +32,12 @@ function ChangeContractEndDateModal({
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Header closeButton>
         <Heading as="h3">Update Contract End Date</Heading>
       </Header>
       <Body>
-        <form.AppField name="contractPeriodEnd">
+        <form.Field name="contractPeriodEnd">
           {field => (
             <field.Layout.Stack
               label="End Date"
@@ -47,12 +46,12 @@ function ChangeContractEndDateModal({
             >
               <field.Input
                 type="date"
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
               />
             </field.Layout.Stack>
           )}
-        </form.AppField>
+        </form.Field>
       </Body>
       <Footer>
         <Flex gap="md" justify="end">
@@ -60,7 +59,7 @@ function ChangeContractEndDateModal({
           <form.SubmitButton>Submit</form.SubmitButton>
         </Flex>
       </Footer>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 

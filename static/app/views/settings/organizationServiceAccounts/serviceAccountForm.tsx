@@ -4,10 +4,10 @@ import {z} from 'zod';
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {
-  defaultFormOptions,
-  setFieldErrors,
+  ScrapsForm,
+  defaultFormValidators,
   useScrapsForm,
-  useStore,
+  useSelector,
 } from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {toast} from '@sentry/scraps/toast';
@@ -108,20 +108,20 @@ export function ServiceAccountForm({
   );
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues,
-    validators: {onDynamic: schema},
-    onSubmit: async ({value, formApi}) => {
+    validators: defaultFormValidators(schema),
+    onSubmit: async ({value, createValidationError}) => {
       const allProjects = value.projectAccess === 'all';
       if (allProjects && !hasGlobalRole) {
-        setFieldErrors(formApi, {
-          projectAccess: {
-            message: t(
-              'Only a role with access to all projects, such as Manager or Owner, can give a service account access to all projects.'
-            ),
+        return createValidationError({
+          fields: {
+            projectAccess: {
+              message: t(
+                'Only a role with access to all projects, such as Manager or Owner, can give a service account access to all projects.'
+              ),
+            },
           },
         });
-        return;
       }
       try {
         await onSubmit({
@@ -135,18 +135,22 @@ export function ServiceAccountForm({
           getRequestErrorUserMessage(error, t('Unable to save service account.'))
         );
         if (error instanceof RequestError) {
-          setFieldErrors(formApi, getDetailFieldErrors(error, FORM_FIELDS));
+          const fields = getDetailFieldErrors(error, FORM_FIELDS);
+          if (Object.keys(fields).length > 0) {
+            return createValidationError({fields});
+          }
         }
       }
+      return;
     },
   });
 
-  const projectAccess = useStore(form.store, state => state.values.projectAccess);
+  const projectAccess = useSelector(form.atom, state => state.values.projectAccess);
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <form.FieldGroup title={t('Details')}>
-        <form.AppField name="name">
+        <form.Field name="name">
           {field => (
             <field.Layout.Row
               label={t('Name')}
@@ -154,19 +158,19 @@ export function ServiceAccountForm({
               required
             >
               <field.Input
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 placeholder={t('e.g. github-actions-deploy')}
               />
             </field.Layout.Row>
           )}
-        </form.AppField>
+        </form.Field>
       </form.FieldGroup>
 
       <form.FieldGroup title={t('Project Access')}>
-        <form.AppField name="projectAccess">
+        <form.Field name="projectAccess">
           {field => (
-            <field.RadioGroup value={field.state.value} onChange={field.handleChange}>
+            <field.RadioGroup value={field.value} onChange={field.handleChange}>
               {({Item}) => (
                 <field.Layout.Row
                   label={t('Projects')}
@@ -182,13 +186,16 @@ export function ServiceAccountForm({
               )}
             </field.RadioGroup>
           )}
-        </form.AppField>
+        </form.Field>
         {projectAccess === 'specific' && (
-          <form.AppField
+          <form.Field
             name="projectIds"
-            validators={{
-              onDynamic: z.array(z.string()).min(1, t('Pick at least one project.')),
-            }}
+            validators={[
+              {
+                run: z.array(z.string()).min(1, t('Pick at least one project.')),
+                triggers: ['change'],
+              },
+            ]}
           >
             {field => (
               <field.Layout.Row label={t('Selected projects')} required>
@@ -196,19 +203,19 @@ export function ServiceAccountForm({
                   multiple
                   search
                   clearable
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   options={projectOptions}
                   menuTitle={t('Projects')}
                 />
               </field.Layout.Row>
             )}
-          </form.AppField>
+          </form.Field>
         )}
       </form.FieldGroup>
 
       <form.FieldGroup title={t('Permissions')}>
-        <form.AppField name="scopes">
+        <form.Field name="scopes">
           {field => (
             <field.Layout.Stack
               label={t('Permissions')}
@@ -217,7 +224,7 @@ export function ServiceAccountForm({
               <field.Base>
                 {() => (
                   <ServiceAccountPermissions
-                    value={field.state.value}
+                    value={field.value}
                     disabled={false}
                     onChange={field.handleChange}
                   />
@@ -225,13 +232,13 @@ export function ServiceAccountForm({
               </field.Base>
             </field.Layout.Stack>
           )}
-        </form.AppField>
+        </form.Field>
       </form.FieldGroup>
 
       <Flex justify="end" gap="md">
         <Button onClick={onCancel}>{t('Cancel')}</Button>
         <form.SubmitButton>{submitLabel}</form.SubmitButton>
       </Flex>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }

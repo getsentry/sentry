@@ -117,7 +117,7 @@ function BooleanOptionField({name, option}: OptionFieldProps) {
           required={required}
         >
           <field.Switch
-            checked={field.state.value}
+            checked={field.value}
             onChange={field.handleChange}
             disabled={disabled}
           />
@@ -145,7 +145,7 @@ function RadioOptionField({name, option}: OptionFieldProps) {
           required={required}
         >
           <field.RadioGroup
-            value={field.state.value}
+            value={field.value}
             onChange={field.handleChange}
             disabled={disabled}
           >
@@ -183,7 +183,7 @@ function TextOptionField({name, option}: OptionFieldProps) {
           required={required}
         >
           <field.Input
-            value={field.state.value}
+            value={field.value}
             onChange={field.handleChange}
             disabled={disabled}
             placeholder={definition.placeholder}

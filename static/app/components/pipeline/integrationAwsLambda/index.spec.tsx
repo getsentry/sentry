@@ -36,7 +36,7 @@ describe('ProjectSelectStep', () => {
   });
 
   it('auto-selects single project and calls advance when submitted', async () => {
-    const advance = jest.fn();
+    const advance = jest.fn().mockResolvedValue({status: 'advance'});
     const projects = [ProjectFixture({id: '42', slug: 'my-project'})];
     ProjectsStore.loadInitialData(projects);
 
@@ -91,7 +91,7 @@ describe('CloudFormationStep', () => {
   });
 
   it('calls advance with account_number and region', async () => {
-    const advance = jest.fn();
+    const advance = jest.fn().mockResolvedValue({status: 'advance'});
     render(<CloudFormationStep {...makeStepProps({stepData, advance})} />);
 
     await userEvent.type(
@@ -129,7 +129,7 @@ describe('CloudFormationStep', () => {
   });
 
   it('includes modified aws_external_id in advance', async () => {
-    const advance = jest.fn();
+    const advance = jest.fn().mockResolvedValue({status: 'advance'});
     render(<CloudFormationStep {...makeStepProps({stepData, advance})} />);
 
     await userEvent.click(
@@ -187,7 +187,7 @@ describe('InstrumentationStep', () => {
   });
 
   it('calls advance with enabled function names', async () => {
-    const advance = jest.fn();
+    const advance = jest.fn().mockResolvedValue({status: 'advance'});
     render(<InstrumentationStep {...makeStepProps({stepData: {functions}, advance})} />);
 
     await userEvent.click(screen.getByRole('button', {name: 'Instrument Functions'}));
@@ -198,7 +198,7 @@ describe('InstrumentationStep', () => {
   });
 
   it('can toggle individual functions off', async () => {
-    const advance = jest.fn();
+    const advance = jest.fn().mockResolvedValue({status: 'advance'});
     render(<InstrumentationStep {...makeStepProps({stepData: {functions}, advance})} />);
 
     const switches = screen.getAllByRole('checkbox');
@@ -271,7 +271,7 @@ describe('InstrumentationStep', () => {
   });
 
   it('calls advance with enabledFunctions on retry after failures', async () => {
-    const advance = jest.fn();
+    const advance = jest.fn().mockResolvedValue({status: 'advance'});
     render(
       <InstrumentationStep
         {...makeStepProps({

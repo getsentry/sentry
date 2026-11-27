@@ -3,7 +3,7 @@ import {useMutation, useQuery} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {openModal} from '@sentry/scraps/modal';
@@ -86,9 +86,8 @@ function DeleteBillingMetricHistoryModal({
   });
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues,
-    validators: {onDynamic: formSchema},
+    validators: defaultFormValidators(formSchema),
     onSubmit: ({value}) => {
       const data = formSchema.parse(value);
       return mutation.mutateAsync(data.dataCategory).catch(() => {});
@@ -114,12 +113,12 @@ function DeleteBillingMetricHistoryModal({
   );
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Header closeButton>Delete Billing Metric History</Header>
       <Body>
         <Stack gap="lg">
           <Text as="p">Delete billing metric history for a specific data category.</Text>
-          <form.AppField name="dataCategory">
+          <form.Field name="dataCategory">
             {field => (
               <field.Layout.Stack
                 label="Data Category"
@@ -127,13 +126,13 @@ function DeleteBillingMetricHistoryModal({
                 required
               >
                 <field.Select
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   options={dataCategoryOptions}
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
+          </form.Field>
         </Stack>
       </Body>
       <Footer>
@@ -142,7 +141,7 @@ function DeleteBillingMetricHistoryModal({
           <form.SubmitButton>Delete</form.SubmitButton>
         </Flex>
       </Footer>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 

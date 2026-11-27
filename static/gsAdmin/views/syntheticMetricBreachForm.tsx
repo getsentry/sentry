@@ -5,7 +5,12 @@ import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, useScrapsForm, useStore} from '@sentry/scraps/form';
+import {
+  ScrapsForm,
+  defaultFormValidators,
+  useScrapsForm,
+  useSelector,
+} from '@sentry/scraps/form';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
@@ -78,9 +83,8 @@ export function SyntheticMetricBreachForm() {
     monitor: null,
   };
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues,
-    validators: {onDynamic: breachSchema},
+    validators: defaultFormValidators(breachSchema),
     onSubmit: ({value}) => {
       const data = breachSchema.parse(value);
       if (!data.organization || !data.monitor) {
@@ -96,7 +100,7 @@ export function SyntheticMetricBreachForm() {
         .catch(() => {});
     },
   });
-  const values = useStore(form.store, state => state.values);
+  const values = useSelector(form.atom, state => state.values);
   const cell = getCells().find(candidate => candidate.locality_url === values.locality);
   const organizations = useInfiniteQuery({
     ...apiOptions.asInfinite<OrganizationChoice[]>()('/_admin/cells/$region/customers/', {
@@ -151,7 +155,7 @@ export function SyntheticMetricBreachForm() {
       : undefined;
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Container background="secondary" border="primary" radius="md" padding="lg">
         <Stack gap="lg" align="stretch">
           <Heading as="h3">Create test metric breach</Heading>
@@ -161,11 +165,11 @@ export function SyntheticMetricBreachForm() {
             use existing telemetry; creating an issue does not confirm automation
             execution.
           </Text>
-          <form.AppField name="locality">
+          <form.Field name="locality">
             {field => (
               <field.Layout.Stack label="Region" required>
                 <field.Select
-                  value={field.state.value}
+                  value={field.value}
                   options={localities.map(locality => ({
                     value: locality.url,
                     label: locality.name,
@@ -181,15 +185,15 @@ export function SyntheticMetricBreachForm() {
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="organization">
+          </form.Field>
+          <form.Field name="organization">
             {field => (
               <field.Layout.Stack label="Organization" required>
                 <field.Select
                   key={values.locality}
                   searchable
                   clearable
-                  value={field.state.value}
+                  value={field.value}
                   options={organizationOptions}
                   isValueEqual={(a, b) => a.id === b.id}
                   filterOption={null}
@@ -234,14 +238,14 @@ export function SyntheticMetricBreachForm() {
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="monitor">
+          </form.Field>
+          <form.Field name="monitor">
             {field => (
               <field.Layout.Stack label="Metric monitor" required>
                 <field.Select
                   key={`${values.locality}:${values.organization?.id}`}
                   searchable
-                  value={field.state.value}
+                  value={field.value}
                   options={monitorOptions}
                   isValueEqual={(a, b) => a.id === b.id}
                   placeholder="Select a metric monitor"
@@ -262,7 +266,7 @@ export function SyntheticMetricBreachForm() {
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
+          </form.Field>
           {(organizations.isError || monitors.isError) && (
             <Alert.Container>
               <Alert variant="danger">Unable to load organizations or monitors.</Alert>
@@ -300,6 +304,6 @@ export function SyntheticMetricBreachForm() {
           )}
         </Stack>
       </Container>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }

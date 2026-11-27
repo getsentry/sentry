@@ -59,7 +59,7 @@ function AccountAppearance() {
               hintText={t('Use light or dark mode, or match your system setting.')}
             >
               <field.Select
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 options={THEME_OPTIONS}
               />

@@ -6,10 +6,10 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {DateTime} from '@sentry/scraps/dateTime';
 import {
-  defaultFormOptions,
-  setFieldErrors,
+  ScrapsForm,
+  defaultFormValidators,
   useScrapsForm,
-  useStore,
+  useSelector,
 } from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import type {ModalRenderProps} from '@sentry/scraps/modal';
@@ -107,10 +107,9 @@ export function CreateTokenModal({
   );
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues,
-    validators: {onDynamic: schema},
-    onSubmit: async ({value, formApi}) => {
+    validators: defaultFormValidators(schema),
+    onSubmit: async ({value, createValidationError}) => {
       try {
         await createToken.mutateAsync({
           name: value.name.trim(),
@@ -120,13 +119,17 @@ export function CreateTokenModal({
       } catch (error) {
         toast.error(getRequestErrorUserMessage(error, t('Unable to create token.')));
         if (error instanceof RequestError) {
-          setFieldErrors(formApi, getFormErrors(error, value.scopeMode));
+          const fields = getFormErrors(error, value.scopeMode);
+          if (Object.keys(fields).length > 0) {
+            return createValidationError({fields});
+          }
         }
       }
+      return;
     },
   });
 
-  const values = useStore(form.store, state => state.values);
+  const values = useSelector(form.atom, state => state.values);
   const expiryDate = getExpiryDate(values.expiration);
   const noScopesPicked =
     values.scopeMode === 'all'
@@ -134,13 +137,13 @@ export function CreateTokenModal({
       : values.scopes.length === 0;
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Header closeButton>
         <Heading as="h4">{t('Create Token for %s', account.name)}</Heading>
       </Header>
       <Body>
         <Stack gap="xl">
-          <form.AppField name="name">
+          <form.Field name="name">
             {field => (
               <field.Layout.Stack
                 label={t('Name')}
@@ -148,17 +151,17 @@ export function CreateTokenModal({
                 required
               >
                 <field.Input
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   autoFocus
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
+          </form.Field>
 
-          <form.AppField name="scopeMode">
+          <form.Field name="scopeMode">
             {field => (
-              <field.RadioGroup value={field.state.value} onChange={field.handleChange}>
+              <field.RadioGroup value={field.value} onChange={field.handleChange}>
                 {({Item}) => (
                   <field.Layout.Stack
                     label={t('Scopes')}
@@ -176,15 +179,12 @@ export function CreateTokenModal({
                 )}
               </field.RadioGroup>
             )}
-          </form.AppField>
+          </form.Field>
 
           {values.scopeMode === 'choose' && (
-            <form.AppField name="scopes">
+            <form.Field name="scopes">
               {field => (
-                <field.CheckboxGroup
-                  value={field.state.value}
-                  onChange={field.handleChange}
-                >
+                <field.CheckboxGroup value={field.value} onChange={field.handleChange}>
                   {({Item}) => (
                     <field.Layout.Stack label={t('Token scopes')} variant="compact">
                       <Flex wrap="wrap" gap="sm lg">
@@ -198,10 +198,10 @@ export function CreateTokenModal({
                   )}
                 </field.CheckboxGroup>
               )}
-            </form.AppField>
+            </form.Field>
           )}
 
-          <form.AppField name="expiration">
+          <form.Field name="expiration">
             {field => (
               <field.Layout.Stack
                 label={t('Expiration')}
@@ -214,13 +214,13 @@ export function CreateTokenModal({
                 }
               >
                 <field.Select
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   options={EXPIRATION_OPTIONS}
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
+          </form.Field>
 
           {values.expiration === 'never' && (
             <Alert.Container>
@@ -246,6 +246,6 @@ export function CreateTokenModal({
           </form.SubmitButton>
         </Flex>
       </Footer>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }

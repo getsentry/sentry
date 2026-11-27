@@ -2,7 +2,7 @@ import {useState} from 'react';
 import {useMutation, useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {ScrapsForm} from '@sentry/scraps/form';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {Select} from '@sentry/scraps/select';
@@ -26,6 +26,7 @@ import {
   type RepoSelectOption,
 } from './queries';
 import type {PathMappingValue} from './type';
+import {useConnectRepoForm} from './useConnectRepoForm';
 import {hasExactDuplicate} from './warnings';
 
 function PathsPlaceholder() {
@@ -61,15 +62,6 @@ export function ConnectRepositoryForm({
   );
   const invalidateQueries = useInvalidateRepoQueries(organization.slug);
 
-  const form = useScrapsForm({
-    ...defaultFormOptions,
-    defaultValues: {
-      repository: null as string | null,
-      pathMappings: [] as PathMappingValue[],
-    },
-    onSubmit: () => {},
-  });
-
   const {
     data: codeMappings = [],
     isPending: codeMappingsPending,
@@ -83,6 +75,34 @@ export function ConnectRepositoryForm({
     onSuccess: async () => {
       await invalidateQueries(project);
       closeModal();
+    },
+  });
+
+  const form = useConnectRepoForm({
+    defaultValues: {
+      repository: null as string | null,
+      pathMappings: [] as PathMappingValue[],
+    },
+    onSubmit: value => {
+      if (
+        !selectedOption ||
+        value.pathMappings.length === 0 ||
+        codeMappingsPending ||
+        codeMappingsError ||
+        hasExactDuplicate(value.pathMappings, existingMappings)
+      ) {
+        return;
+      }
+      return saveMutation
+        .mutateAsync({
+          orgSlug: organization.slug,
+          project,
+          repositoryId: selectedOption.repositoryId,
+          integrationId: selectedOption.integrationId,
+          pathMappings: value.pathMappings,
+        })
+        .then(() => {})
+        .catch(() => {});
     },
   });
 
@@ -147,7 +167,7 @@ export function ConnectRepositoryForm({
   );
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <form.Subscribe selector={state => state.values.pathMappings}>
         {pathMappings => {
           const canSave =
@@ -190,22 +210,13 @@ export function ConnectRepositoryForm({
               pathsSection={pathsSection}
               canSave={canSave}
               isSaving={saveMutation.isPending}
-              onSave={() => {
-                if (!selectedOption) {
-                  return;
-                }
-                saveMutation.mutate({
-                  orgSlug: organization.slug,
-                  project,
-                  repositoryId: selectedOption.repositoryId,
-                  integrationId: selectedOption.integrationId,
-                  pathMappings,
-                });
-              }}
+              saveButton={
+                <form.SubmitButton disabled={!canSave}>{t('Save')}</form.SubmitButton>
+              }
             />
           );
         }}
       </form.Subscribe>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
