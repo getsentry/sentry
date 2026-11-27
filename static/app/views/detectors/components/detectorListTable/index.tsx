@@ -1,11 +1,4 @@
-import {
-  Fragment,
-  useCallback,
-  useMemo,
-  useRef,
-  useState,
-  type ComponentProps,
-} from 'react';
+import {Fragment, useCallback, useMemo, useState, type ComponentProps} from 'react';
 import styled from '@emotion/styled';
 import {IconChevron} from '@sentry/icons/chevron';
 import {useDebouncedValue} from '@tanstack/react-pacer';
@@ -153,8 +146,7 @@ export function DetectorListTable({
     d => !detectorTypeIsUserCreateable(d.type)
   );
 
-  const elementRef = useRef<HTMLTableCellElement>(null);
-  const {width: containerWidth} = useDimensions({elementRef});
+  const {ref: elementRef, width: containerWidth} = useDimensions();
   const [timelineWidth] = useDebouncedValue(containerWidth, {wait: 1000});
   const {
     additionalColumns = [],

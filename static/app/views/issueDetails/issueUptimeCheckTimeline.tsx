@@ -1,4 +1,4 @@
-import {useMemo, useRef} from 'react';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import {useDebouncedValue} from '@tanstack/react-pacer';
 import {useQuery} from '@tanstack/react-query';
@@ -69,8 +69,7 @@ export function useUptimeIssueDetectorId({
 
 export function IssueUptimeCheckTimeline({group}: {group: Group}) {
   const detectorId = useUptimeIssueDetectorId({groupId: group.id});
-  const elementRef = useRef<HTMLDivElement>(null);
-  const {width: containerWidth} = useDimensions({elementRef});
+  const {ref: elementRef, width: containerWidth} = useDimensions();
   const [timelineWidth] = useDebouncedValue(containerWidth, {wait: 500});
   const timeWindowConfig = useIssueTimeWindowConfig({
     timelineWidth,

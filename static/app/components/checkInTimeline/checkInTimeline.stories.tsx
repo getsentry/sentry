@@ -1,4 +1,4 @@
-import {useMemo, useRef, useState} from 'react';
+import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
@@ -81,8 +81,7 @@ function generateMockTickData(
 
 export default Storybook.story('CheckInTimeline', story => {
   story('Simple', () => {
-    const elementRef = useRef<HTMLDivElement>(null);
-    const {width: timelineWidth} = useDimensions({elementRef});
+    const {ref: elementRef, width: timelineWidth} = useDimensions();
     const timeWindowConfig = useTimeWindowConfig({timelineWidth});
 
     const [secondsGap, setSecondsGap] = useState(60);
@@ -146,7 +145,7 @@ export default Storybook.story('CheckInTimeline', story => {
         <ExampleContainer>
           <GridLineLabels timeWindowConfig={timeWindowConfig} />
           <GridLineOverlay timeWindowConfig={timeWindowConfig} />
-          <Flex align="center" width="100%" height="40px" ref={elementRef}>
+          <Flex align="center" width="100%" height="40px">
             <CheckInTimeline
               bucketedData={data}
               statusStyle={statusStyle}
@@ -172,7 +171,7 @@ export default Storybook.story('CheckInTimeline', story => {
             cursorOverlayAnchorOffset={10}
             timeWindowConfig={timeWindowConfig}
           />
-          <Flex align="center" width="100%" height="40px" ref={elementRef}>
+          <Flex align="center" width="100%" height="40px">
             <CheckInTimeline
               bucketedData={data}
               statusStyle={statusStyle}

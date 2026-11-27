@@ -80,7 +80,6 @@ export function ChartLegend({
 }: ChartLegendProps) {
   const theme = useTheme();
 
-  const wrapperRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
 
@@ -89,7 +88,7 @@ export function ChartLegend({
 
   // ResizeObserver (via useDimensions) updates wrapperWidth on resize,
   // which triggers the useLayoutEffect below to recompute overflow.
-  const {width: wrapperWidth} = useDimensions({elementRef: wrapperRef});
+  const {ref: wrapperRef, width: wrapperWidth} = useDimensions();
   const [firstOverflowIndex, setFirstOverflowIndex] = useState<number | null>(null);
 
   useLayoutEffect(() => {

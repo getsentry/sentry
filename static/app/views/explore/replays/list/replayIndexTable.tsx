@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useRef} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {useQueryClient} from '@tanstack/react-query';
 
@@ -55,8 +55,7 @@ export function ReplayIndexTable({
     selection: {projects},
   } = usePageFilters();
 
-  const tableRef = useRef<HTMLTableElement>(null);
-  const tableDimensions = useDimensions({elementRef: tableRef});
+  const {ref: tableRef, ...tableDimensions} = useDimensions();
 
   const {onSortClick, sortType} = useReplayTableSort();
 

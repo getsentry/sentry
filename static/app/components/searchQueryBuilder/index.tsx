@@ -17,7 +17,6 @@ import {t} from 'sentry/locale';
 import type {SavedSearchType, Tag, TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
 import type {FieldKind} from 'sentry/utils/fields';
-import {useDimensions} from 'sentry/utils/useDimensions';
 import {usePrevious} from 'sentry/utils/usePrevious';
 
 import {useOnChange} from './hooks/useOnChange';
@@ -342,8 +341,15 @@ function SearchQueryBuilderUI({
   onChange,
 }: SearchQueryBuilderProps) {
   const {committedQuery, parsedQuery, query, dispatch} = useSearchQueryBuilderState();
-  const {wrapperRef, actionBarRef, size, menuPresentation, panelRef, setMenuContainer} =
-    useSearchQueryBuilderLayout();
+  const {
+    wrapperRef,
+    actionBarRef,
+    actionBarWidth,
+    size,
+    menuPresentation,
+    panelRef,
+    setMenuContainer,
+  } = useSearchQueryBuilderLayout();
   const {skipNextSearchQueryBuilderAutoFocusRef} = useSearchQueryBuilderAI();
   const autoFocusOnMount = useRef(
     // oxlint-disable-next-line react/refs
@@ -375,8 +381,6 @@ function SearchQueryBuilderUI({
   useLayoutEffect(() => {
     syncInitialQuery(initialQuery);
   }, [initialQuery]);
-
-  const {width: actionBarWidth} = useDimensions({elementRef: actionBarRef});
 
   const searchBar = (
     <Wrapper

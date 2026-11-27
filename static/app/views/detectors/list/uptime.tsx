@@ -1,4 +1,4 @@
-import {useMemo, useRef} from 'react';
+import {useMemo} from 'react';
 import {useDebouncedValue} from '@tanstack/react-pacer';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -33,8 +33,7 @@ import {useDetectorListQuery} from './common/useDetectorListQuery';
 function VisualizationCell({detector}: {detector: UptimeDetector}) {
   const uptimeDetectorId = detector.id;
 
-  const elementRef = useRef<HTMLDivElement>(null);
-  const {width: containerWidth} = useDimensions({elementRef});
+  const {ref: elementRef, width: containerWidth} = useDimensions();
   const [timelineWidth] = useDebouncedValue(containerWidth, {wait: 1000});
   const timeWindowConfig = useTimeWindowConfig({
     timelineWidth,

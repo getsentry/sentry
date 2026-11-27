@@ -53,7 +53,9 @@ const NARROW_CONTAINER_SIZE = {width: 700, height: 800};
 const PHONE_CONTAINER_SIZE = {width: 393, height: 615};
 
 function mockContainerSize(size: {height: number; width: number}) {
-  return jest.spyOn(useDimensionsModule, 'useDimensions').mockReturnValue(size);
+  return jest
+    .spyOn(useDimensionsModule, 'useDimensions')
+    .mockReturnValue({ref: jest.fn(), ...size});
 }
 
 // Drive matchMedia per-query so the short-landscape check can be toggled.
@@ -204,7 +206,7 @@ describe('SeerExplorerSidebarLayout', () => {
     // jsdom reports 0×0 until measured; the routed app must still be in the tree.
     jest
       .spyOn(useDimensionsModule, 'useDimensions')
-      .mockReturnValue({width: 0, height: 0});
+      .mockReturnValue({ref: jest.fn(), width: 0, height: 0});
 
     renderSidebar(orgWithSidebar);
 
@@ -218,12 +220,12 @@ describe('SeerExplorerSidebarLayout', () => {
     // be preserved (the SplitPanel is always rendered, never swapped in).
     const dims = jest
       .spyOn(useDimensionsModule, 'useDimensions')
-      .mockReturnValue({width: 0, height: 0});
+      .mockReturnValue({ref: jest.fn(), width: 0, height: 0});
 
     const {rerender} = render(sidebarTree(), {organization: orgWithSidebar});
     const before = await screen.findByText('main app content');
 
-    dims.mockReturnValue(CONTAINER_SIZE);
+    dims.mockReturnValue({ref: jest.fn(), ...CONTAINER_SIZE});
     rerender(sidebarTree());
 
     expect(screen.getByText('main app content')).toBe(before);

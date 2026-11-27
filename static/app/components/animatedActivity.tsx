@@ -17,7 +17,6 @@ interface AnimatedActivityProps {
   initial: TargetAndTransition;
   mode: ActivityMode;
   transition: Transition;
-  elementRef?: (element: HTMLDivElement | null) => void;
   layoutMode?: 'normal' | 'pop';
 }
 
@@ -26,7 +25,6 @@ interface AnimatedActivityProps {
 export function AnimatedActivity({
   animate,
   children,
-  elementRef,
   exit,
   initial,
   layoutMode = 'normal',
@@ -73,7 +71,6 @@ export function AnimatedActivity({
   return (
     <Activity mode={activityMode}>
       <MotionContainer
-        ref={element => elementRef?.(element as HTMLDivElement | null)}
         area="1 / 1"
         position={layoutMode === 'pop' && isExiting ? 'absolute' : 'relative'}
         width="100%"

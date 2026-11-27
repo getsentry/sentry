@@ -8,6 +8,7 @@ import {
   useState,
 } from 'react';
 import styled from '@emotion/styled';
+import {useObjectRef} from '@react-aria/utils';
 import {IconArrow} from '@sentry/icons/arrow';
 import * as Sentry from '@sentry/react';
 import type {Virtualizer} from '@tanstack/react-virtual';
@@ -272,9 +273,9 @@ export function LogsInfiniteTable({
     };
   }, [baseData]);
 
-  const tableRef = useRef<HTMLTableElement>(null);
+  const {ref: measureTableRef, width: tableWidth} = useDimensions();
+  const tableRef = useObjectRef<HTMLTableElement>(measureTableRef);
   const tableBodyRef = useRef<HTMLTableSectionElement>(null);
-  const {width: tableWidth} = useDimensions({elementRef: tableRef});
   const {top: backToTopOffset} = useElementOffset(tableBodyRef, tableRef);
   const [expandedLogRows, setExpandedLogRows] = useState(
     new Set([

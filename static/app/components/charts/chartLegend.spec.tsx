@@ -19,7 +19,7 @@ const ITEMS: LegendItem[] = [
 function mockDimensions(wrapperWidth: number) {
   jest
     .spyOn(useDimensionsModule, 'useDimensions')
-    .mockReturnValue({width: wrapperWidth, height: 24});
+    .mockReturnValue({ref: jest.fn(), width: wrapperWidth, height: 24});
 }
 
 /**

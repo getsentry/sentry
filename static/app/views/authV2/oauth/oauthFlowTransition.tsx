@@ -1,5 +1,4 @@
 import type {ReactNode} from 'react';
-import {useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import {AnimatePresence, motion} from 'framer-motion';
 
@@ -15,9 +14,7 @@ export function OAuthFlowTransition({
   step: string;
 }) {
   const theme = useTheme();
-  const [element, setElement] = useState<HTMLElement | null>(null);
-  const elementRef = useMemo(() => ({current: element}), [element]);
-  const {height} = useDimensions({elementRef});
+  const {ref, height} = useDimensions();
   return (
     <MotionStack
       position="relative"
@@ -28,7 +25,7 @@ export function OAuthFlowTransition({
       <AnimatePresence initial={false} mode="wait">
         <MotionStack
           key={step}
-          ref={setElement}
+          ref={ref}
           gap="xl"
           initial={{opacity: 0, y: -10}}
           animate={{opacity: 1, y: 0}}

@@ -6,7 +6,9 @@ import {ContentSliderDiff} from '.';
 
 describe('ContentSliderDiff', () => {
   it('divider can be dragged', async () => {
-    jest.spyOn(useDimensions, 'useDimensions').mockReturnValue({width: 300, height: 300});
+    jest
+      .spyOn(useDimensions, 'useDimensions')
+      .mockReturnValue({ref: jest.fn(), width: 300, height: 300});
 
     const mockDragHandleMouseDown = jest.fn();
 
@@ -30,7 +32,9 @@ describe('ContentSliderDiff', () => {
   });
 
   it('does not render content when dimensions are zero', () => {
-    jest.spyOn(useDimensions, 'useDimensions').mockReturnValue({width: 0, height: 0});
+    jest
+      .spyOn(useDimensions, 'useDimensions')
+      .mockReturnValue({ref: jest.fn(), width: 0, height: 0});
 
     render(
       <ContentSliderDiff.Body

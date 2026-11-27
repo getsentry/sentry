@@ -1,4 +1,3 @@
-import {useRef} from 'react';
 import {Outlet, ScrollRestoration} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -96,8 +95,7 @@ function AppUrlModals() {
 
 function AppLayout({organization}: LayoutProps) {
   useSeerExplorerDocumentTitle();
-  const pageBannerRef = useRef<HTMLDivElement>(null);
-  const {height: pageBannerHeight} = useDimensions({elementRef: pageBannerRef});
+  const {ref: pageBannerRef, height: pageBannerHeight} = useDimensions();
   const showSuperuserWarning =
     isActiveSuperuser() &&
     !ConfigStore.get('isSelfHosted') &&

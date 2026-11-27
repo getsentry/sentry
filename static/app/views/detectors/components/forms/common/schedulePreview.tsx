@@ -234,7 +234,7 @@ function ContentWrapper({
   timelineWidthTrackerRef,
 }: {
   children: React.ReactNode;
-  timelineWidthTrackerRef: React.RefObject<HTMLDivElement | null>;
+  timelineWidthTrackerRef: React.Ref<HTMLDivElement>;
 }) {
   const stickyContainerRef = useRef<HTMLDivElement>(null);
   const isIntersecting = useStickyBottomIntersection(stickyContainerRef);
