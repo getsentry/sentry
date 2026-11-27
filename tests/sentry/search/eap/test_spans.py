@@ -485,6 +485,28 @@ class SearchResolverQueryTest(TestCase):
             )
         )
 
+    def test_long_query_with_parens_is_flat(self) -> None:
+        # Long AND chains must produce a flat AndFilter, otherwise the nested protobuf exceeds
+        # protobuf's recursion limit when building the RPC request.
+        query = "(span.op:a or span.op:b) " + " ".join(f"!span.description:{i}*" for i in range(60))
+        where, having, _ = self.resolver.resolve_query(query)
+        assert having is None
+        assert where is not None
+        assert len(where.and_filter.filters) == 61
+        assert len(where.and_filter.filters[0].or_filter.filters) == 2
+        # Serializing and parsing back must not hit the recursion limit
+        TraceItemFilter.FromString(where.SerializeToString())
+
+    def test_query_with_multiple_ors_is_flat(self) -> None:
+        where, having, _ = self.resolver.resolve_query(
+            "span.op:a or span.op:b or span.op:c span.description:d"
+        )
+        assert having is None
+        assert where is not None
+        filters = where.or_filter.filters
+        assert len(filters) == 3
+        assert len(filters[2].and_filter.filters) == 2
+
     def test_empty_query(self) -> None:
         where, having, _ = self.resolver.resolve_query("")
         assert where is None
