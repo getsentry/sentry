@@ -378,6 +378,31 @@ ERROR_RELEASE_CUSTOM_INBOUND_FILTER = {
     "dateCreated": "2024-07-23T17:52:53.981206Z",
     "dateUpdated": "2024-07-23T17:52:53.981206Z",
     "legacyFilter": None,
+    "updatedBy": {
+        "type": "user",
+        "id": "1",
+        "name": "Admin",
+        "username": "admin",
+        "email": "admin@example.com",
+        "avatarUrl": "https://gravatar.com/avatar/example",
+        "isActive": True,
+        "isSuspended": False,
+        "hasPasswordAuth": True,
+        "isManaged": False,
+        "dateJoined": "2021-10-25T17:07:33.190596Z",
+        "lastLogin": "2024-07-16T15:28:39.261659Z",
+        "has2fa": True,
+        "lastActive": "2024-07-23T17:50:12.364197Z",
+        "isSuperuser": False,
+        "isStaff": False,
+        "experiments": {},
+        "emails": [],
+        "avatar": {
+            "avatarType": "letter_avatar",
+            "avatarUuid": None,
+            "avatarUrl": None,
+        },
+    },
 }
 
 

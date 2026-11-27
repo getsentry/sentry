@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import ipaddress
-from collections.abc import Mapping
-from typing import Any, TypedDict
+from collections.abc import Mapping, Sequence
+from typing import Annotated, Any, Literal, TypedDict
 
 import orjson
 from django.db.models import Q, QuerySet
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import extend_schema, extend_schema_field
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -19,8 +19,10 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectSettingPermission
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.helpers.creator import get_actor_reference
 from sentry.api.paginator import OffsetPaginator
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.examples.project_examples import ProjectExamples
 from sentry.apidocs.parameters import GlobalParams, ProjectParams
 from sentry.apidocs.response_types import (
@@ -28,6 +30,7 @@ from sentry.apidocs.response_types import (
     ValidationErrorResponse,
     as_validation_errors,
 )
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import SEMVER_FAKE_PACKAGE
 from sentry.ingest import legacy_filter_lists
 from sentry.ingest.inbound_filters import (
@@ -43,10 +46,13 @@ from sentry.models.custominboundfilter import (
     DataType,
 )
 from sentry.models.project import Project
+from sentry.service_accounts.models import ServiceAccountReplica
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.timeseries_annotations.producers.inbound_filter_change import (
     record_custom_filter_change_as_annotation,
 )
+from sentry.users.api.serializers.user import UserSerializerResponse
+from sentry.users.services.user.service import user_service
 
 MAX_CONDITIONS_PER_FILTER = 10
 # Relay matches every condition value as a glob against each item, so the size of a
@@ -79,6 +85,28 @@ class CustomInboundFilterCondition(TypedDict):
     value: list[str]
 
 
+class CustomInboundFilterUserEditor(UserSerializerResponse):
+    """A user who last saved a filter, serialized as the users API returns them."""
+
+    type: Annotated[Literal["user"], ApiDescription("The kind of editor: a user")]
+
+
+class CustomInboundFilterServiceAccountEditor(TypedDict):
+    """A service account that last saved a filter."""
+
+    type: Annotated[
+        Literal["service_account"], ApiDescription("The kind of editor: a service account")
+    ]
+    id: Annotated[str, ApiDescription("The ID of the service account")]
+    name: Annotated[str, ApiDescription("The name of the service account")]
+    isActive: Annotated[
+        bool, ApiDescription("Whether the service account still exists. False once it's deleted")
+    ]
+
+
+CustomInboundFilterEditor = CustomInboundFilterUserEditor | CustomInboundFilterServiceAccountEditor
+
+
 class CustomInboundFilterResponse(TypedDict):
     id: str
     name: str | None
@@ -88,6 +116,7 @@ class CustomInboundFilterResponse(TypedDict):
     dateCreated: str
     dateUpdated: str
     legacyFilter: str | None
+    updatedBy: CustomInboundFilterEditor | None
 
 
 def _condition_value_chars(conditions: list[CustomInboundFilterCondition]) -> int:
@@ -305,6 +334,13 @@ class CustomInboundFilterSerializer(serializers.ModelSerializer[CustomInboundFil
             "can change, and deleting it empties the list."
         ),
     )
+    updatedBy = serializers.SerializerMethodField(
+        help_text=(
+            "Who last created or changed the filter: a user or a service account. Null when "
+            "nobody is recorded, as on a filter not saved since Sentry started recording "
+            "editors, or once the editor's user account is deleted."
+        ),
+    )
 
     class Meta:
         model = CustomInboundFilter
@@ -317,7 +353,17 @@ class CustomInboundFilterSerializer(serializers.ModelSerializer[CustomInboundFil
             "dateCreated",
             "dateUpdated",
             "legacyFilter",
+            "updatedBy",
         ]
+
+    @extend_schema_field(
+        inline_sentry_response_serializer(
+            "CustomInboundFilterEditor", CustomInboundFilterEditor | None
+        )
+    )
+    def get_updatedBy(self, custom_filter: CustomInboundFilter) -> CustomInboundFilterEditor | None:
+        # The editors of a page are looked up together, see `serialize_custom_inbound_filters`.
+        return self.context.get("updated_by")
 
     def create(self, validated_data: dict[str, Any]) -> CustomInboundFilter:
         return CustomInboundFilter.objects.create(**validated_data)
@@ -463,20 +509,82 @@ def _validate_feature_conditions_of_organization_for_inbound_filter(
             )
 
 
+def _editors_by_filter(
+    filters: Sequence[CustomInboundFilter],
+) -> dict[int, CustomInboundFilterEditor]:
+    """
+    Who last saved each filter, keyed by filter id. One user service call and one replica
+    query cover any number of filters. A filter is missing when nobody is recorded or its
+    user was deleted. A deleted service account stays, inactive.
+    """
+    user_ids = {f.updated_by_id for f in filters if f.updated_by_id is not None}
+    service_account_ids = {
+        f.updated_by_service_account_id
+        for f in filters
+        if f.updated_by_service_account_id is not None
+    }
+
+    users: dict[int, CustomInboundFilterUserEditor] = {}
+    if user_ids:
+        for user in user_service.serialize_many(filter={"user_ids": list(user_ids)}):
+            # The user service returns the users API's shape, which the editor extends.
+            editor: CustomInboundFilterUserEditor = user
+            editor["type"] = "user"
+            users[int(editor["id"])] = editor
+
+    service_accounts: dict[int, CustomInboundFilterServiceAccountEditor] = {}
+    if service_account_ids:
+        for replica in ServiceAccountReplica.objects.filter(
+            service_account_id__in=service_account_ids
+        ):
+            service_accounts[replica.service_account_id] = {
+                "type": "service_account",
+                "id": str(replica.service_account_id),
+                "name": replica.name,
+                "isActive": replica.is_active,
+            }
+
+    editors: dict[int, CustomInboundFilterEditor] = {}
+    for f in filters:
+        found: CustomInboundFilterEditor | None = None
+        if f.updated_by_id is not None:
+            found = users.get(f.updated_by_id)
+        elif f.updated_by_service_account_id is not None:
+            found = service_accounts.get(f.updated_by_service_account_id)
+        if found is not None:
+            editors[f.id] = found
+    return editors
+
+
+def serialize_custom_inbound_filters(
+    filters: Sequence[CustomInboundFilter],
+) -> list[CustomInboundFilterResponse]:
+    editors = _editors_by_filter(filters)
+    results: list[CustomInboundFilterResponse] = []
+    for custom_filter in filters:
+        data = CustomInboundFilterSerializer(
+            custom_filter, context={"updated_by": editors.get(custom_filter.id)}
+        ).data
+        results.append(
+            {
+                "id": data["id"],
+                "name": data["name"],
+                "active": data["active"],
+                "dataType": data["dataType"],
+                "conditions": data["conditions"],
+                "dateCreated": data["dateCreated"],
+                "dateUpdated": data["dateUpdated"],
+                "legacyFilter": data["legacyFilter"],
+                "updatedBy": data["updatedBy"],
+            }
+        )
+    return results
+
+
 def serialize_custom_inbound_filter(
     custom_filter: CustomInboundFilter,
 ) -> CustomInboundFilterResponse:
-    data = CustomInboundFilterSerializer(custom_filter).data
-    return {
-        "id": data["id"],
-        "name": data["name"],
-        "active": data["active"],
-        "dataType": data["dataType"],
-        "conditions": data["conditions"],
-        "dateCreated": data["dateCreated"],
-        "dateUpdated": data["dateUpdated"],
-        "legacyFilter": data["legacyFilter"],
-    }
+    return serialize_custom_inbound_filters([custom_filter])[0]
 
 
 def _user_filters(project: Project) -> QuerySet[CustomInboundFilter]:
@@ -582,7 +690,7 @@ class CustomInboundFiltersEndpoint(ProjectCustomInboundFilterEndpoint):
             queryset=filters,
             order_by="id",
             paginator_cls=OffsetPaginator,
-            on_results=lambda results: [serialize_custom_inbound_filter(f) for f in results],
+            on_results=serialize_custom_inbound_filters,
         )
 
     @extend_schema(
@@ -632,7 +740,12 @@ class CustomInboundFiltersEndpoint(ProjectCustomInboundFilterEndpoint):
         if not serializer.is_valid():
             return Response(as_validation_errors(serializer), status=400)
 
-        custom_filter = serializer.save(project=project)
+        actor = get_actor_reference(request)
+        custom_filter = serializer.save(
+            project=project,
+            updated_by_id=actor.user_id,
+            updated_by_service_account_id=actor.service_account_id,
+        )
 
         if custom_filter.active:
             record_custom_filter_change_as_annotation(
@@ -760,7 +873,16 @@ class CustomInboundFilterDetailsEndpoint(ProjectCustomInboundFilterEndpoint):
                 setattr(custom_filter, field, new_value)
 
         if changes:
-            update_fields = [*changes.keys(), "date_updated"]
+            # Every save records who made it, replacing the previous editor.
+            actor = get_actor_reference(request)
+            custom_filter.updated_by_id = actor.user_id
+            custom_filter.updated_by_service_account_id = actor.service_account_id
+            update_fields = [
+                *changes.keys(),
+                "date_updated",
+                "updated_by_id",
+                "updated_by_service_account_id",
+            ]
             if legacy_list and "conditions" in changes:
                 # The lines of a legacy list change in the row and in its option together.
                 legacy_filter_lists.set_list(
