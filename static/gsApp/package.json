@@ -29,7 +29,7 @@
     "moment-timezone": "0.6.2",
     "nuqs": "2.10.2",
     "react": "19.3.0",
-    "react-router": "8.4.0",
+    "react-router": "8.5.3",
     "sentry": "workspace:@sentry-internal/app@*",
     "zod": "4.6.7",
     "zustand": "5.0.16"
