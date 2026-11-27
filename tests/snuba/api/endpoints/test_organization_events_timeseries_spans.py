@@ -3264,6 +3264,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             )
             assert response.status_code == 200, response.content
             initial_data = response.data
+            assert initial_data["meta"]["isCached"] is False
 
             response = self._do_request(
                 data={
@@ -3279,6 +3280,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                 },
             )
         assert response.status_code == 200, response.content
+        assert response.data["meta"]["isCached"] is True
         # assert response.data["meta"] == initial_data["meta"]
         assert len(response.data["timeSeries"]) == len(initial_data["timeSeries"])
 
@@ -3496,6 +3498,8 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             assert second.status_code == 200, second.content
         assert cache_reads[0] is None
         assert cache_reads[1] is not None
+        assert first.data["meta"]["isCached"] is False
+        assert second.data["meta"]["isCached"] is True
         assert cache_set.call_args.kwargs["timeout"] == 60 * 60
         assert first.data["timeSeries"] == second.data["timeSeries"]
         assert [

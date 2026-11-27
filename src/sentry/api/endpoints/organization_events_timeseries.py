@@ -634,6 +634,8 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                         debug_info[key] = keyed_result.data["meta"]["debug_info"]
             # ignore typing here cause we don't want the openapi docs to include debug_info
             stats_meta["debug_info"] = debug_info  #  type: ignore[typeddict-unknown-key]
+        if isinstance(result, SnubaTSResult) and "is_cached" in result.data:
+            stats_meta["isCached"] = bool(result.data["is_cached"])
         if ingestion_delay_status is not None:
             stats_meta["ingestion"] = serialize_ingestion_status(ingestion_delay_status)
             if ingestion_delay_status.complete_through is not None:
