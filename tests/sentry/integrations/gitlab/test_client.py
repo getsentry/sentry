@@ -35,6 +35,7 @@ from sentry.shared_integrations.exceptions import (
     ApiRateLimitedError,
     ApiRetryError,
     ProxiedApiHostError,
+    ProxiedApiTimeoutError,
 )
 from sentry.shared_integrations.response import MappingApiResponse
 from sentry.testutils.helpers.datetime import freeze_time
@@ -523,6 +524,33 @@ class GitlabRefreshAuthTest(GitLabClientTest):
         assert len(mock_record.mock_calls) == 2
         assert mock_record.mock_calls[0].args[0] == EventLifecycleOutcome.STARTED
         assert mock_record.mock_calls[1].args[0] == EventLifecycleOutcome.SUCCESS
+
+    @mock.patch(
+        "sentry.integrations.gitlab.client.GitLabApiClient.check_file",
+        side_effect=ProxiedApiTimeoutError(text="Timed out attempting to reach host"),
+    )
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_get_stacktrace_link_provider_timeout_halts(
+        self, mock_record: mock.MagicMock, mock_check_file: mock.MagicMock
+    ) -> None:
+        with pytest.raises(ProxiedApiTimeoutError):
+            self.installation.get_stacktrace_link(self.repo, "/src/file.py", "master", None)
+
+        assert len(mock_record.mock_calls) == 2
+        assert mock_record.mock_calls[1].args[0] == EventLifecycleOutcome.HALTED
+
+    @mock.patch(
+        "sentry.integrations.gitlab.client.GitLabApiClient.get_blame_for_files",
+        side_effect=ValueError("Not a valid response type: <!doctype html>"),
+    )
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_get_blame_for_files_html_response_halts(
+        self, mock_record: mock.MagicMock, mock_get_blame: mock.MagicMock
+    ) -> None:
+        assert self.installation.get_blame_for_files([], {}) == []
+
+        assert len(mock_record.mock_calls) == 2
+        assert mock_record.mock_calls[1].args[0] == EventLifecycleOutcome.HALTED
 
     @responses.activate
     @mock.patch("requests.sessions.Session.send")

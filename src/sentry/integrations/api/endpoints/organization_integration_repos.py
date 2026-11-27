@@ -21,7 +21,7 @@ from sentry.integrations.source_code_management.metrics import SCMIntegrationInt
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
-from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 
 
 class IntegrationRepository(TypedDict):
@@ -143,6 +143,19 @@ class OrganizationIntegrationReposEndpoint(CellOrganizationIntegrationBaseEndpoi
                 except (IntegrationError, IdentityNotValid) as e:
                     lifecycle.record_halt(e, create_issue=False)
                     return self.respond({"detail": str(e)}, status=400)
+                except ApiError as e:
+                    halt_reason = install.is_broken_integration_error(e)
+                    if halt_reason is None:
+                        raise
+                    lifecycle.record_halt(e, extra={"broken_integration_reason": halt_reason})
+                    # The provider's own message can be an HTML page, so it isn't shown.
+                    return self.respond(
+                        {
+                            "detail": "We couldn't load repositories from this integration. "
+                            "Check that it's still connected and its host is reachable."
+                        },
+                        status=400,
+                    )
 
             installable_only = request.GET.get("installableOnly", "false").lower() == "true"
 

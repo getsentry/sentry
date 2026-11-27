@@ -19,6 +19,7 @@ from sentry.integrations.source_code_management.metrics import (
     normalize_scm_provider_key,
 )
 from sentry.integrations.types import HaltReason, IntegrationProviderSlug
+from sentry.integrations.utils.metrics import EventLifecycle
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import (
     ApiConnectionResetError,
@@ -34,6 +35,7 @@ from sentry.shared_integrations.exceptions import (
     ProxiedApiHostError,
     UnsupportedResponseType,
 )
+from sentry.silo.util import PROXY_BASE_PATH
 from sentry.users.models.identity import Identity
 from sentry.utils import metrics
 
@@ -207,6 +209,13 @@ class RepositoryIntegration(
             return "identity_not_found"
 
         if isinstance(exc, ApiError):
+            # Failing to reach our own integration proxy says nothing about the integration.
+            # When the proxy can't reach the provider, the error names the provider instead.
+            # Retried 503s come from the proxy too: only the cell retries on a status.
+            if isinstance(exc, ApiRetryError) or (
+                exc.url and urlparse(exc.url).path.startswith(PROXY_BASE_PATH)
+            ):
+                return None
             if self.is_rate_limited_error(exc):
                 return "rate_limited"
             if isinstance(exc, ApiUnauthorized):
@@ -245,6 +254,14 @@ class RepositoryIntegration(
             return "too_many_redirects"
 
         return None
+
+    def _halt_if_broken_integration(self, lifecycle: EventLifecycle, exc: Exception) -> bool:
+        """Halt the lifecycle if the error is one the integration's owner has to fix."""
+        halt_reason = self.is_broken_integration_error(exc)
+        if halt_reason is None:
+            return False
+        lifecycle.record_halt(exc, extra={"broken_integration_reason": halt_reason})
+        return True
 
     def record_event(self, event: SCMIntegrationInteractionType) -> SCMIntegrationInteractionEvent:
         return SCMIntegrationInteractionEvent(
@@ -402,6 +419,9 @@ class RepositoryIntegration(
                 # for 403 errors as these need to be propagated to the user.
                 lifecycle.record_halt(e)
                 raise
+            except Exception as e:
+                self._halt_if_broken_integration(lifecycle, e)
+                raise
 
             return self.encode_source_url(source_url) if source_url else None
 
@@ -433,11 +453,15 @@ class RepositoryIntegration(
                 raise NotImplementedError("Implement self.codeowners_locations to use this method.")
 
             for filepath in self.codeowners_locations:
-                html_url = self.check_file(
-                    repo,
-                    filepath,
-                    ref,
-                )
+                try:
+                    html_url = self.check_file(
+                        repo,
+                        filepath,
+                        ref,
+                    )
+                except Exception as e:
+                    self._halt_if_broken_integration(lifecycle, e)
+                    raise
                 if html_url:
                     try:
                         contents = self.get_client().get_file(repo, filepath, ref, codeowners=True)

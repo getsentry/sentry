@@ -23,7 +23,9 @@ from sentry.integrations.source_code_management.metrics import (
     CommitContextIntegrationInteractionEvent,
     SCMIntegrationInteractionType,
 )
+from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.integrations.types import ExternalProviderEnum
+from sentry.integrations.utils.metrics import EventLifecycle
 from sentry.locks import locks
 from sentry.models.commit import Commit
 from sentry.models.group import Group
@@ -170,15 +172,17 @@ class CommitContextIntegration(ABC):
             try:
                 client = self.get_client()
             except Identity.DoesNotExist as e:
-                lifecycle.record_failure(e)
-                sentry_sdk.capture_exception(e)
+                lifecycle.record_halt(e)
                 return []
+            except Exception as e:
+                if self._halt_blame_if_broken_integration(lifecycle, e):
+                    return []
+                raise
 
             try:
                 response = client.get_blame_for_files(files, extra)
             except IdentityNotValid as e:
-                lifecycle.record_failure(e)
-                sentry_sdk.capture_exception(e)
+                lifecycle.record_halt(e)
                 return []
             # Swallow rate limited errors so we don't log them as exceptions
             except ApiRateLimitedError as e:
@@ -204,8 +208,17 @@ class CommitContextIntegration(ABC):
                     return []
                 else:
                     raise
+            except Exception as e:
+                if self._halt_blame_if_broken_integration(lifecycle, e):
+                    return []
+                raise
 
             return response
+
+    def _halt_blame_if_broken_integration(self, lifecycle: EventLifecycle, exc: Exception) -> bool:
+        if not isinstance(self, RepositoryIntegration):
+            return False
+        return RepositoryIntegration._halt_if_broken_integration(self, lifecycle, exc)
 
     def get_commit_context_all_frames(
         self, files: Sequence[SourceLineInfo], extra: dict[str, Any]
