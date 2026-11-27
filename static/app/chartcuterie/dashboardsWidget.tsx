@@ -18,7 +18,11 @@ import {ChartType} from './types';
  */
 export type WidgetQueryTimeSeries = [timeSeries: TimeSeries, widgetQueryIndex: number];
 
-type ChartData = {timeSeries: WidgetQueryTimeSeries[]; widget: Widget};
+type ChartData = {
+  timeSeries: WidgetQueryTimeSeries[];
+  widget: Widget;
+  showConfidence?: boolean;
+};
 
 export const makeDashboardsWidgetCharts = (
   theme: Theme
@@ -46,6 +50,7 @@ export const makeDashboardsWidgetCharts = (
         theme,
         timeSeries: flatTimeSeries,
         extraPlottables,
+        showConfidence: data.showConfidence,
         createPlottable: (ts, {color}) => {
           const widgetQueryIndex = queryIndexByTimeSeries.get(ts) ?? 0;
           const widgetQuery =

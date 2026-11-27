@@ -79,7 +79,7 @@ import {assignPlottablesToYAxes} from './assignPlottablesToYAxes';
 import {createReleaseSeriesOptions} from './createReleaseSeriesOptions';
 import {createTimeSeriesWidgetYAxisOptions} from './createTimeSeriesWidgetYAxisOptions';
 import {generateTimezoneAlignedTicks} from './generateTimezoneAlignedTicks';
-import {FALLBACK_TYPE} from './settings';
+import {FALLBACK_TYPE, LOW_CONFIDENCE_AREAS_NAME} from './settings';
 
 const {warn} = Sentry.logger;
 
@@ -985,8 +985,6 @@ function getBandBuckets(plottables: Plottable[]): BandBucket[] {
     .map(({timestamp}) => ({start: timestamp, end: timestamp + meta.interval}))
     .toSorted((a, b) => a.start - b.start);
 }
-
-export const LOW_CONFIDENCE_AREAS_NAME = '__low_confidence__';
 
 // Hide every part of the axis so ECharts will remove those elements and also
 const X_AXIS_SPLIT_NUMBER = 10;
