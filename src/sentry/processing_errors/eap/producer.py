@@ -97,6 +97,17 @@ def produce_processing_errors_to_eap(
             if "symbolicator_type" in error:
                 attributes["symbolicator_type"] = error["symbolicator_type"]
 
+            # Each platform names the file that failed in its own way: native
+            # errors have the image, JavaScript errors the URL and ProGuard
+            # errors the mapping. Readers get one pair of attributes.
+            file_name = error.get("image_path") or error.get("url")
+            if file_name is not None:
+                attributes["file_name"] = file_name
+
+            debug_id = error.get("image_uuid") or error.get("mapping_uuid")
+            if debug_id is not None:
+                attributes["debug_id"] = debug_id
+
             if release is not None:
                 attributes["release"] = release
 

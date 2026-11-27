@@ -59,6 +59,41 @@ class ProduceProcessingErrorsToEAPTest(TestCase):
 
     @patch("sentry.processing_errors.eap.producer._eap_producer")
     @patch("sentry.processing_errors.eap.producer.get_topic_definition")
+    def test_failed_file_of_each_platform(
+        self, mock_get_topic: MagicMock, mock_producer: MagicMock
+    ) -> None:
+        mock_get_topic.return_value = {"real_topic_name": "test-eap-items"}
+
+        errors = [
+            {
+                "type": "native_missing_dsym",
+                "image_path": "/usr/lib/libfoo.so",
+                "image_uuid": "abc",
+            },
+            {"type": "js_no_source", "url": "https://example.com/app.js"},
+            {"type": "proguard_missing_mapping", "mapping_uuid": "def"},
+            {"type": "native_no_crashed_thread"},
+        ]
+
+        produce_processing_errors_to_eap(self.project, self._make_event_data(), errors)
+
+        codec = get_topic_codec(Topic.SNUBA_ITEMS)
+        items = [
+            codec.decode(call.args[1].value).attributes
+            for call in mock_producer.produce.call_args_list
+        ]
+
+        assert items[0]["file_name"].string_value == "/usr/lib/libfoo.so"
+        assert items[0]["debug_id"].string_value == "abc"
+        assert items[1]["file_name"].string_value == "https://example.com/app.js"
+        assert "debug_id" not in items[1]
+        assert "file_name" not in items[2]
+        assert items[2]["debug_id"].string_value == "def"
+        assert "file_name" not in items[3]
+        assert "debug_id" not in items[3]
+
+    @patch("sentry.processing_errors.eap.producer._eap_producer")
+    @patch("sentry.processing_errors.eap.producer.get_topic_definition")
     def test_multiple_errors_produce_multiple_items(
         self, mock_get_topic: MagicMock, mock_producer: MagicMock
     ) -> None:
