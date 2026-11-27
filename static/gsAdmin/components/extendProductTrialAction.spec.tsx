@@ -1,6 +1,13 @@
 import moment from 'moment-timezone';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
+
+import {openModal} from '@sentry/scraps/modal';
 
 import {DataCategory} from 'sentry/types/core';
 
@@ -15,23 +22,21 @@ describe('ExtendProductTrialAction', () => {
     endDate: moment().utc().add(4, 'days').format(),
   };
 
-  const defaultProps = {
-    activeProductTrial,
-    apiName: 'replays',
-    trialName: 'Replays',
-    confirm: jest.fn(),
-    close: jest.fn(),
-    disableConfirmButton: jest.fn(),
-    setConfirmCallback: jest.fn(),
-    onConfirm: jest.fn(),
-  };
-
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
   it('renders with default 14 days', () => {
-    render(<ExtendProductTrialAction {...defaultProps} />);
+    openModal(deps => (
+      <ExtendProductTrialAction
+        {...deps}
+        activeProductTrial={activeProductTrial}
+        apiName="replays"
+        trialName="Replays"
+        onConfirm={jest.fn()}
+      />
+    ));
+    renderGlobalModal();
 
     expect(screen.getByText(/Extend the/)).toBeInTheDocument();
     expect(screen.getByText('Replays')).toBeInTheDocument();
@@ -39,7 +44,16 @@ describe('ExtendProductTrialAction', () => {
   });
 
   it('displays current trial end date in UTC', () => {
-    render(<ExtendProductTrialAction {...defaultProps} />);
+    openModal(deps => (
+      <ExtendProductTrialAction
+        {...deps}
+        activeProductTrial={activeProductTrial}
+        apiName="replays"
+        trialName="Replays"
+        onConfirm={jest.fn()}
+      />
+    ));
+    renderGlobalModal();
 
     const expectedCurrentDate = moment
       .utc(activeProductTrial.endDate)
@@ -49,18 +63,38 @@ describe('ExtendProductTrialAction', () => {
   });
 
   it('calculates new end date correctly', () => {
-    render(<ExtendProductTrialAction {...defaultProps} />);
+    openModal(deps => (
+      <ExtendProductTrialAction
+        {...deps}
+        activeProductTrial={activeProductTrial}
+        apiName="replays"
+        trialName="Replays"
+        onConfirm={jest.fn()}
+      />
+    ));
+    renderGlobalModal();
 
     // New end date should be current + 14 days (default)
     const expectedNewDate = moment
       .utc(activeProductTrial.endDate)
       .add(14, 'days')
       .format('MMMM Do YYYY');
-    expect(screen.getByText(`${expectedNewDate} UTC`)).toBeInTheDocument();
+    expect(
+      screen.getByText(`New trial end date: ${expectedNewDate} UTC`)
+    ).toBeInTheDocument();
   });
 
   it('updates new end date when days change', async () => {
-    render(<ExtendProductTrialAction {...defaultProps} />);
+    openModal(deps => (
+      <ExtendProductTrialAction
+        {...deps}
+        activeProductTrial={activeProductTrial}
+        apiName="replays"
+        trialName="Replays"
+        onConfirm={jest.fn()}
+      />
+    ));
+    renderGlobalModal();
 
     const input = screen.getByDisplayValue('14');
     await userEvent.clear(input);
@@ -70,88 +104,85 @@ describe('ExtendProductTrialAction', () => {
       .utc(activeProductTrial.endDate)
       .add(30, 'days')
       .format('MMMM Do YYYY');
-    expect(screen.getByText(`${expectedNewDate} UTC`)).toBeInTheDocument();
+    expect(
+      screen.getByText(`New trial end date: ${expectedNewDate} UTC`)
+    ).toBeInTheDocument();
   });
 
-  it('disables confirm button for values less than 1', async () => {
-    render(<ExtendProductTrialAction {...defaultProps} />);
-
-    const input = screen.getByDisplayValue('14');
-    await userEvent.clear(input);
-    await userEvent.type(input, '0');
-
-    expect(defaultProps.disableConfirmButton).toHaveBeenCalledWith(true);
-  });
-
-  it('disables confirm button for values greater than 180', async () => {
-    render(<ExtendProductTrialAction {...defaultProps} />);
-
-    const input = screen.getByDisplayValue('14');
-    await userEvent.clear(input);
-    await userEvent.type(input, '181');
-
-    expect(defaultProps.disableConfirmButton).toHaveBeenCalledWith(true);
-  });
-
-  it('enables confirm button for valid values', async () => {
-    render(<ExtendProductTrialAction {...defaultProps} />);
-
-    const input = screen.getByDisplayValue('14');
-    await userEvent.clear(input);
-    await userEvent.type(input, '30');
-
-    expect(defaultProps.disableConfirmButton).toHaveBeenLastCalledWith(false);
-  });
-
-  it('calls onConfirm with correct data', () => {
-    let confirmCallback: ((params: Record<string, unknown>) => void) | undefined;
-    const setConfirmCallback = jest.fn(
-      (cb: (params: Record<string, unknown>) => void) => {
-        confirmCallback = cb;
-      }
-    );
-
-    render(
+  it.each([
+    ['0', 'Extend by at least 1 day'],
+    ['181', 'Extend by at most 180 days'],
+  ])('shows an error on confirm for %s days', async (days, error) => {
+    const onConfirm = jest.fn();
+    openModal(deps => (
       <ExtendProductTrialAction
-        {...defaultProps}
-        setConfirmCallback={setConfirmCallback}
+        activeProductTrial={activeProductTrial}
+        apiName="replays"
+        trialName="Replays"
+        {...deps}
+        onConfirm={onConfirm}
       />
-    );
+    ));
+    renderGlobalModal();
 
-    expect(setConfirmCallback).toHaveBeenCalled();
+    const input = screen.getByRole('spinbutton', {name: 'Number of Days to Extend'});
+    await userEvent.clear(input);
+    await userEvent.type(input, days);
 
-    // Trigger the confirm callback
-    confirmCallback?.({notes: 'test notes'});
+    const confirmButton = screen.getByRole('button', {name: 'Extend Trial'});
+    expect(confirmButton).toBeEnabled();
+    await userEvent.click(confirmButton);
 
-    expect(defaultProps.onConfirm).toHaveBeenCalledWith({
-      extendTrialReplays: true,
-      extendTrialDays: 14,
-      notes: 'test notes',
-    });
+    expect(await screen.findByText(error)).toBeInTheDocument();
+    expect(confirmButton).toBeInTheDocument();
+    expect(onConfirm).not.toHaveBeenCalled();
   });
 
-  it('formats API name correctly for multi-word categories', () => {
-    let confirmCallback: ((params: Record<string, unknown>) => void) | undefined;
-    const setConfirmCallback = jest.fn(
-      (cb: (params: Record<string, unknown>) => void) => {
-        confirmCallback = cb;
-      }
-    );
-
-    render(
+  it('calls onConfirm with correct data', async () => {
+    const onConfirm = jest.fn();
+    openModal(deps => (
       <ExtendProductTrialAction
-        {...defaultProps}
+        activeProductTrial={activeProductTrial}
+        apiName="replays"
+        trialName="Replays"
+        {...deps}
+        onConfirm={onConfirm}
+      />
+    ));
+    renderGlobalModal();
+
+    await userEvent.type(screen.getByRole('textbox', {name: 'Notes'}), 'test notes');
+    await userEvent.click(screen.getByRole('button', {name: 'Extend Trial'}));
+
+    await waitFor(() =>
+      expect(onConfirm).toHaveBeenCalledWith({
+        extendTrialReplays: true,
+        extendTrialDays: 14,
+        notes: 'test notes',
+      })
+    );
+  });
+
+  it('formats API name correctly for multi-word categories', async () => {
+    const onConfirm = jest.fn();
+    openModal(deps => (
+      <ExtendProductTrialAction
+        activeProductTrial={activeProductTrial}
         apiName="profileDuration"
         trialName="Continuous Profiling"
-        setConfirmCallback={setConfirmCallback}
+        {...deps}
+        onConfirm={onConfirm}
       />
+    ));
+    renderGlobalModal();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Extend Trial'}));
+
+    await waitFor(() =>
+      expect(onConfirm).toHaveBeenCalledWith({
+        extendTrialProfileDuration: true,
+        extendTrialDays: 14,
+      })
     );
-
-    confirmCallback?.({});
-
-    expect(defaultProps.onConfirm).toHaveBeenCalledWith({
-      extendTrialProfileDuration: true,
-      extendTrialDays: 14,
-    });
   });
 });
