@@ -231,26 +231,44 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsEndpointB
         rrr_results = scored_attrs_rrr.get("results", [])
 
         for i, (attr, _) in enumerate(rrr_results):
-            public_alias, _, _ = translate_internal_to_public_alias(
-                attr, "string", SupportedTraceItemType.SPANS
-            )
+            public_alias = get_rankable_public_alias(attr)
             if public_alias is None:
-                public_alias = attr
+                continue
 
-            if not public_alias.startswith("tags[") and (
-                not public_alias.startswith("sentry.")
-                or public_alias == "sentry.normalized_description"
-            ):
-                distribution: RankedAttribute = {
-                    "attributeName": public_alias,
-                    "cohort1": cohort_1_distribution_map.get(attr),
-                    "cohort2": cohort_2_distribution_map.get(attr),
-                    # TODO(aayush-se): Remove order field once frontend stops using it
-                    "order": {"rrr": i},
-                }
-                ranked_distribution["rankedAttributes"].append(distribution)
+            distribution: RankedAttribute = {
+                "attributeName": public_alias,
+                "cohort1": cohort_1_distribution_map.get(attr),
+                "cohort2": cohort_2_distribution_map.get(attr),
+                # TODO(aayush-se): Remove order field once frontend stops using it
+                "order": {"rrr": i},
+            }
+            ranked_distribution["rankedAttributes"].append(distribution)
 
         return Response(ranked_distribution)
+
+
+def get_rankable_public_alias(attribute: str) -> str | None:
+    """
+    Return the public alias that the ranked response shows for an internal span attribute,
+    or None when the attribute is never shown and should not be ranked.
+    """
+    if attribute in SPANS_STATS_EXCLUDED_ATTRIBUTES or not can_expose_attribute(
+        attribute, SupportedTraceItemType.SPANS
+    ):
+        return None
+
+    public_alias, _, _ = translate_internal_to_public_alias(
+        attribute, "string", SupportedTraceItemType.SPANS
+    )
+    if public_alias is None:
+        public_alias = attribute
+
+    if public_alias.startswith("tags[") or (
+        public_alias.startswith("sentry.") and public_alias != "sentry.normalized_description"
+    ):
+        return None
+
+    return public_alias
 
 
 def get_attribute_names_window(start: datetime, end: datetime) -> tuple[datetime, datetime]:
@@ -400,14 +418,19 @@ def query_attribute_distributions(
         )
         attrs_response = snuba_rpc.attribute_names_rpc(attrs_request)
 
+    # Attributes the response would drop are filtered before querying, so they don't cost
+    # stats queries or take top-K slots in the comparison.
+    rankable_attribute_names = [
+        attr_proto.name
+        for attr_proto in attrs_response.attributes
+        if get_rankable_public_alias(attr_proto.name) is not None
+    ]
+
     chunk_count = get_stats_chunk_count(max_attributes, PARALLELIZATION_FACTOR)
     chunked_attributes: defaultdict[int, list[AttributeKey]] = defaultdict(list)
-    for i, attr_proto in enumerate(attrs_response.attributes):
-        if attr_proto.name in SPANS_STATS_EXCLUDED_ATTRIBUTES:
-            continue
-
+    for i, attribute_name in enumerate(rankable_attribute_names):
         chunked_attributes[i % chunk_count].append(
-            AttributeKey(name=attr_proto.name, type=AttributeKey.TYPE_STRING)
+            AttributeKey(name=attribute_name, type=AttributeKey.TYPE_STRING)
         )
 
     def run_stats_request_with_error_handling(
@@ -483,17 +506,12 @@ def query_attribute_distributions(
     processed_cohort_2_buckets = set()
 
     for attribute in cohort_2_data:
-        if not can_expose_attribute(attribute.attribute_name, SupportedTraceItemType.SPANS):
-            continue
-
         for bucket in attribute.buckets:
             cohort_2_distribution_map[attribute.attribute_name].append(
                 {"label": bucket.label, "value": bucket.value}
             )
 
     for attribute in cohort_1_data:
-        if not can_expose_attribute(attribute.attribute_name, SupportedTraceItemType.SPANS):
-            continue
         for bucket in attribute.buckets:
             cohort_1_distribution.append((attribute.attribute_name, bucket.label, bucket.value))
             cohort_1_distribution_map[attribute.attribute_name].append(

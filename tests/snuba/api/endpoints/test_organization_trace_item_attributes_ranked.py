@@ -2,11 +2,13 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+import pytest
 from django.urls import reverse
 from rest_framework.response import Response
 
 from sentry.api.endpoints.organization_trace_item_attributes_ranked import (
     get_attribute_names_window,
+    get_rankable_public_alias,
 )
 from sentry.search.eap.constants import EAP_FULL_FIDELITY_QUERY_DAYS
 from sentry.testutils.cases import APITransactionTestCase, SnubaTestCase, SpanTestCase
@@ -274,16 +276,8 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
         assert edge_bucket is not None, "edge browser should be in response cohort2 (baseline)"
         assert edge_bucket["value"] > 0, "edge count should be positive in response"
 
-        # Verify tablet device exists (also only in baseline)
-        assert "sentry.device" in baseline_dict, (
-            "sentry.device attribute should be in baseline distribution"
-        )
-        assert "tablet" in baseline_dict["sentry.device"], (
-            "tablet device should be in baseline (exists in all spans but not in suspect)"
-        )
-        assert baseline_dict["sentry.device"]["tablet"] > 0, (
-            "tablet count should be positive in baseline"
-        )
+        # sentry.device has no public alias, so the response would never show it
+        assert "sentry.device" not in baseline_dict
 
     @patch("sentry.api.endpoints.organization_trace_item_attributes_ranked.compare_distributions")
     def test_filters_out_internal_and_private_attributes(
@@ -531,6 +525,47 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
         assert response.data["cohort2Total"] == 1
 
     @patch(
+        "sentry.api.endpoints.organization_trace_item_attributes_ranked.trace_item_stats_rpc",
+        wraps=snuba_rpc.trace_item_stats_rpc,
+    )
+    @patch("sentry.api.endpoints.organization_trace_item_attributes_ranked.compare_distributions")
+    def test_only_queries_stats_for_rankable_attributes(
+        self, mock_compare_distributions: MagicMock, mock_trace_item_stats_rpc: MagicMock
+    ) -> None:
+        mock_compare_distributions.return_value = {"results": []}
+        fetched_names: set[str] = set()
+        attribute_names_rpc = snuba_rpc.attribute_names_rpc
+
+        def capture_attribute_names(request: Any) -> Any:
+            response = attribute_names_rpc(request)
+            fetched_names.update(attribute.name for attribute in response.attributes)
+            return response
+
+        self._store_span(tags={"browser": "chrome", "custom_tag": "value1"}, duration=100)
+        self._store_span(tags={"browser": "firefox", "custom_tag": "value2"}, duration=500)
+
+        with patch(
+            "sentry.api.endpoints.organization_trace_item_attributes_ranked.snuba_rpc.attribute_names_rpc",
+            side_effect=capture_attribute_names,
+        ):
+            response = self.do_request(query={"query_1": "span.duration:<=100", "query_2": ""})
+        assert response.status_code == 200, response.data
+
+        queried_names = {
+            attribute.name
+            for call in mock_trace_item_stats_rpc.call_args_list
+            for stats_type in call.args[0].stats_types
+            for attribute in stats_type.attribute_distributions.attributes
+        }
+        unrankable_names = {
+            name for name in fetched_names if get_rankable_public_alias(name) is None
+        }
+
+        assert unrankable_names
+        assert queried_names == fetched_names - unrankable_names
+        assert "sentry.browser" in queried_names
+
+    @patch(
         "sentry.api.endpoints.organization_trace_item_attributes_ranked.snuba_rpc.attribute_names_rpc",
         wraps=snuba_rpc.attribute_names_rpc,
     )
@@ -577,3 +612,25 @@ def test_get_attribute_names_window_uses_retention_window_when_its_week_has_expi
     window = get_attribute_names_window(start, start + timedelta(hours=1))
 
     assert window == (datetime(2024, 2, 26, tzinfo=UTC), datetime(2024, 3, 28, tzinfo=UTC))
+
+
+@pytest.mark.parametrize(
+    ("attribute", "expected"),
+    [
+        ("sentry.browser", "browser"),
+        ("sentry.normalized_description", "sentry.normalized_description"),
+        ("custom_tag", "custom_tag"),
+        # Listed in SPANS_STATS_EXCLUDED_ATTRIBUTES
+        ("sentry.trace_id", None),
+        # Private
+        ("sentry.organization_id", None),
+        # Internal
+        ("sentry._internal.foo", None),
+        # Public alias stays under sentry.*
+        ("sentry.unknown_attribute", None),
+        # User attribute colliding with a public alias resolves to tags[...]
+        ("span.op", None),
+    ],
+)
+def test_get_rankable_public_alias(attribute: str, expected: str | None) -> None:
+    assert get_rankable_public_alias(attribute) == expected
