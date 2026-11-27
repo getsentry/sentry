@@ -42,12 +42,6 @@ TRACE_METRICS_ATTRIBUTE_DEFINITIONS = {
             internal_name="sentry.timestamp_precise",
             search_type="number",
         ),
-        ResolvedAttribute(
-            public_alias="observed_timestamp",
-            internal_name="sentry.observed_timestamp_nanos",
-            internal_type=constants.STRING,  # Stored as string, but we want to search as a number.
-            search_type="number",
-        ),
         simple_sentry_field("browser.name"),
         simple_sentry_field("browser.version"),
         simple_sentry_field("environment"),
