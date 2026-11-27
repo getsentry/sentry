@@ -66,9 +66,9 @@ function usagePercentage(usage: number, prepaid: number | null): string {
 }
 
 type DisplayProps = {
-  metricHistory: BillingMetricHistory;
+  metricHistory: Pick<BillingMetricHistory, 'category' | 'softCapType'>;
   hadCustomDynamicSampling?: boolean;
-  plan?: Plan;
+  plan?: Pick<Plan, 'categoryDisplayNames'>;
 };
 
 function getCategoryDisplay({
@@ -208,11 +208,27 @@ function OnDemandUsage({
   );
 }
 
-function UsageHistoryRow({history}: RowProps) {
-  const organization = useOrganization();
-  const [expanded, setExpanded] = useState(history.isCurrent);
-  const {projects, onSearch: onProjectSearch} = useProjects();
+/**
+ * The fields of one category that the usage table reads.
+ */
+type PeriodUsageMetricHistory = Pick<
+  BillingMetricHistory,
+  'category' | 'free' | 'order' | 'prepaid' | 'reserved' | 'softCapType' | 'usage'
+>;
 
+/**
+ * The fields of a billed period that the usage table reads.
+ */
+type PeriodUsageHistory = Pick<BillingHistory, 'hadCustomDynamicSampling'> & {
+  categories: Record<string, PeriodUsageMetricHistory>;
+  planDetails?: Pick<Plan, 'categoryDisplayNames'>;
+};
+
+/**
+ * The usage table of one billed period: the accepted, reserved and gifted
+ * volume of each category, and the percentage used.
+ */
+export function PeriodUsageTable({history}: {history: PeriodUsageHistory}) {
   const {categories} = history;
 
   // Only display categories with billing metric history
@@ -221,6 +237,72 @@ function UsageHistoryRow({history}: RowProps) {
   const hasGifts = Object.values(DataCategory).some(c => {
     return !!categories[c]?.free;
   });
+
+  return (
+    <HistoryTable>
+      <thead>
+        <tr>
+          <th>{t('Type')}</th>
+          <th>{t('Accepted')}</th>
+          <th>{t('Reserved')}</th>
+          {hasGifts && <th>{t('Gifted')}</th>}
+          <th>{t('Used (%)')}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {sortedCategories
+          .filter(
+            metricHistory =>
+              metricHistory.category !== DataCategory.SPANS_INDEXED ||
+              (metricHistory.category === DataCategory.SPANS_INDEXED &&
+                history.hadCustomDynamicSampling)
+          )
+          .map(metricHistory => (
+            <tr key={metricHistory.category}>
+              <td>
+                {getCategoryDisplay({
+                  plan: history.planDetails,
+                  metricHistory,
+                  hadCustomDynamicSampling: history.hadCustomDynamicSampling,
+                })}
+              </td>
+              <td>
+                {formatUsageWithUnits(metricHistory.usage, metricHistory.category, {
+                  useUnitScaling: metricHistory.category === DataCategory.ATTACHMENTS,
+                })}
+              </td>
+              <td>
+                {formatReservedWithUnits(metricHistory.reserved, metricHistory.category)}
+              </td>
+              {hasGifts && (
+                <td>
+                  {formatReservedWithUnits(metricHistory.free, metricHistory.category, {
+                    isGifted: true,
+                  })}
+                </td>
+              )}
+              <td>
+                {metricHistory.reserved === RESERVED_BUDGET_QUOTA
+                  ? 'N/A'
+                  : usagePercentage(
+                      convertUsageToReservedUnit(
+                        metricHistory.usage,
+                        metricHistory.category
+                      ),
+                      metricHistory.prepaid
+                    )}
+              </td>
+            </tr>
+          ))}
+      </tbody>
+    </HistoryTable>
+  );
+}
+
+function UsageHistoryRow({history}: RowProps) {
+  const organization = useOrganization();
+  const [expanded, setExpanded] = useState(history.isCurrent);
+  const {projects, onSearch: onProjectSearch} = useProjects();
 
   return (
     <StyledPanelItem>
@@ -286,70 +368,11 @@ function UsageHistoryRow({history}: RowProps) {
       </Flex>
       {expanded && (
         <Container padding="xl 0">
-          <HistoryTable key="usage">
-            <thead>
-              <tr>
-                <th>{t('Type')}</th>
-                <th>{t('Accepted')}</th>
-                <th>{t('Reserved')}</th>
-                {hasGifts && <th>{t('Gifted')}</th>}
-                <th>{t('Used (%)')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sortedCategories
-                .filter(
-                  metricHistory =>
-                    metricHistory.category !== DataCategory.SPANS_INDEXED ||
-                    (metricHistory.category === DataCategory.SPANS_INDEXED &&
-                      history.hadCustomDynamicSampling)
-                )
-                .map(metricHistory => (
-                  <tr key={metricHistory.category}>
-                    <td>
-                      {getCategoryDisplay({
-                        plan: history.planDetails,
-                        metricHistory,
-                        hadCustomDynamicSampling: history.hadCustomDynamicSampling,
-                      })}
-                    </td>
-                    <td>
-                      {formatUsageWithUnits(metricHistory.usage, metricHistory.category, {
-                        useUnitScaling:
-                          metricHistory.category === DataCategory.ATTACHMENTS,
-                      })}
-                    </td>
-                    <td>
-                      {formatReservedWithUnits(
-                        metricHistory.reserved,
-                        metricHistory.category
-                      )}
-                    </td>
-                    {hasGifts && (
-                      <td>
-                        {formatReservedWithUnits(
-                          metricHistory.free,
-                          metricHistory.category,
-                          {isGifted: true}
-                        )}
-                      </td>
-                    )}
-                    <td>
-                      {metricHistory.reserved === RESERVED_BUDGET_QUOTA
-                        ? 'N/A'
-                        : usagePercentage(
-                            convertUsageToReservedUnit(
-                              metricHistory.usage,
-                              metricHistory.category
-                            ),
-                            metricHistory.prepaid
-                          )}
-                    </td>
-                  </tr>
-                ))}
-            </tbody>
-          </HistoryTable>
-          <OnDemandUsage history={history} sortedCategories={sortedCategories} />
+          <PeriodUsageTable history={history} />
+          <OnDemandUsage
+            history={history}
+            sortedCategories={sortCategories(history.categories)}
+          />
         </Container>
       )}
     </StyledPanelItem>

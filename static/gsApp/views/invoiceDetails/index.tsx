@@ -28,6 +28,7 @@ import {getTaxFieldInfo} from 'getsentry/utils/salesTax';
 import {SubscriptionPageContainer} from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 
 import {InvoiceDetailsActions} from './actions';
+import {InvoiceDetailsUsage} from './usage';
 
 function InvoiceDetails() {
   const {invoiceGuid} = useParams<{invoiceGuid: string}>();
@@ -97,6 +98,7 @@ function InvoiceDetails() {
       staleTime: Infinity,
     })
   );
+  const isReceiptLoading = isInvoiceLoading || isBillingDetailsLoading;
 
   if (isBillingDetailsError || isInvoiceError) {
     return (
@@ -123,7 +125,7 @@ function InvoiceDetails() {
         }
       />
       <Panel>
-        {isInvoiceLoading || isBillingDetailsLoading ? (
+        {isReceiptLoading ? (
           <PanelBody withPadding>
             <LoadingIndicator />
           </PanelBody>
@@ -185,6 +187,12 @@ function InvoiceDetails() {
           </PanelBody>
         )}
       </Panel>
+      {/* Not in the loaded branch: the usage request must not wait for the receipt. */}
+      <InvoiceDetailsUsage
+        key={invoiceGuid}
+        invoiceId={invoiceGuid}
+        isReceiptLoading={isReceiptLoading}
+      />
     </SubscriptionPageContainer>
   );
 }

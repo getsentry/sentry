@@ -740,7 +740,9 @@ export function shouldShowBillingInformation(
  * Returns the soft cap type for the given metric history category that can be
  * displayed to users if applicable. Returns null for if no soft cap type.
  */
-export function getSoftCapType(metricHistory: BillingMetricHistory): string | null {
+export function getSoftCapType(
+  metricHistory: Pick<BillingMetricHistory, 'softCapType'>
+): string | null {
   if (metricHistory.softCapType) {
     return toTitleCase(metricHistory.softCapType.replace(/_/g, ' ').toLowerCase(), {
       allowInnerUpperCase: true,

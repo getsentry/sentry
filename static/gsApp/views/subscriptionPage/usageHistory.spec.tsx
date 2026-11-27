@@ -15,7 +15,9 @@ import {PreviewDataFixture} from 'getsentry/__fixtures__/previewData';
 import {GIGABYTE, UNLIMITED, UNLIMITED_ONDEMAND} from 'getsentry/constants';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {OnDemandBudgetMode} from 'getsentry/types';
-import UsageHistory from 'getsentry/views/subscriptionPage/usageHistory';
+import UsageHistory, {
+  PeriodUsageTable,
+} from 'getsentry/views/subscriptionPage/usageHistory';
 
 describe('Subscription > UsageHistory', () => {
   const organization = OrganizationFixture({access: ['org:billing']});
@@ -635,5 +637,73 @@ describe('Subscription > UsageHistory', () => {
     // Should show >100% when usage exceeds prepaid limit
     expect(await screen.findByText(/UI Profile Hours/i)).toBeInTheDocument();
     expect(await screen.findByText('>100%')).toBeInTheDocument();
+  });
+});
+
+describe('PeriodUsageTable', () => {
+  it('shows the usage of each category in category order', () => {
+    render(
+      <PeriodUsageTable
+        history={{
+          hadCustomDynamicSampling: false,
+          categories: {
+            transactions: {
+              category: DataCategory.TRANSACTIONS,
+              order: 1,
+              usage: 100,
+              reserved: 500,
+              prepaid: 500,
+              free: 0,
+              softCapType: null,
+            },
+            errors: {
+              category: DataCategory.ERRORS,
+              order: 0,
+              usage: 30_000,
+              reserved: 50_000,
+              prepaid: 60_000,
+              free: 10_000,
+              softCapType: null,
+            },
+          },
+        }}
+      />
+    );
+
+    expect(screen.getAllByRole('row').map(row => row.textContent)).toEqual([
+      'TypeAcceptedReservedGiftedUsed (%)',
+      'Errors30,00050,00010,00050%',
+      'Transactions100500020%',
+    ]);
+  });
+
+  it('names the categories from a plan that has only the display names', () => {
+    render(
+      <PeriodUsageTable
+        history={{
+          hadCustomDynamicSampling: false,
+          planDetails: {
+            categoryDisplayNames: {
+              errors: {singular: 'error event', plural: 'error events'},
+            },
+          },
+          categories: {
+            errors: {
+              category: DataCategory.ERRORS,
+              order: 0,
+              usage: 30_000,
+              reserved: 50_000,
+              prepaid: 60_000,
+              free: 0,
+              softCapType: null,
+            },
+          },
+        }}
+      />
+    );
+
+    expect(
+      screen.getByRole('row', {name: 'Error events 30,000 50,000 50%'})
+    ).toBeInTheDocument();
   });
 });
