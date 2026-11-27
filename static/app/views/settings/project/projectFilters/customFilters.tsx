@@ -2,6 +2,7 @@ import {Fragment, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconAdd} from '@sentry/icons/add';
+import {IconBot} from '@sentry/icons/bot';
 import {IconDelete} from '@sentry/icons/delete';
 import {IconEdit} from '@sentry/icons/edit';
 import {IconSearch} from '@sentry/icons/search';
@@ -9,6 +10,7 @@ import {IconShow} from '@sentry/icons/show';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import startCase from 'lodash/startCase';
 
+import {UserAvatar} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Confirm} from '@sentry/scraps/confirm';
@@ -19,6 +21,7 @@ import {Switch} from '@sentry/scraps/switch';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Heading, Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Feature} from 'sentry/components/acl/feature';
@@ -44,6 +47,7 @@ import type {UsageSeries} from 'sentry/views/organizationStats/types';
 import type {
   CustomInboundFilter,
   CustomInboundFilterCondition,
+  CustomInboundFilterEditor,
 } from './customFilterModal';
 import {
   customFiltersQueryOptions,
@@ -406,6 +410,31 @@ function FilteredVolumeCells({
   );
 }
 
+// The editor shows at the size of an icon, so the bot of a service account and the
+// avatar of a user take the same room.
+const EDITOR_SIZE = 16;
+
+// Who last saved a filter, shown before the time of that save.
+function EditorAvatar({editor}: {editor: CustomInboundFilterEditor | null}) {
+  if (editor === null) {
+    // An empty slot keeps the time level with the rows that show an editor.
+    return <Container width={`${EDITOR_SIZE}px`} flexShrink={0} />;
+  }
+
+  if (editor.type === 'service_account') {
+    const label = editor.isActive
+      ? t('Service account: %s', editor.name)
+      : t('Service account: %s (deleted)', editor.name);
+    return (
+      <Tooltip title={label} skipWrapper>
+        <IconBot size="md" aria-label={label} />
+      </Tooltip>
+    );
+  }
+
+  return <UserAvatar user={editor} size={EDITOR_SIZE} hasTooltip />;
+}
+
 function matchesQuery(filter: CustomInboundFilter, query: string) {
   const needle = query.trim().toLowerCase();
   if (needle === '') {
@@ -469,6 +498,7 @@ export function CustomFilters({project}: {project: Project}) {
   // so an organization that left the plan sees what comes back on upgrade.
   // Without either, a row opens read only, so its conditions can still be read.
   const hasPlanFeature = project.features.includes('custom-inbound-filters');
+  const hasUpdatedBy = organization.features.includes('inbound-filters-updated-by');
   const hasWriteAccess = hasEveryAccess(['project:write'], {organization, project});
   let addDisabledReason: string | undefined;
   let editDisabledReason: string | undefined;
@@ -582,7 +612,11 @@ export function CustomFilters({project}: {project: Project}) {
         <LoadingIndicator />
       ) : (
         <Container containerType="inline-size">
-          <CustomFiltersTable columns={CUSTOM_FILTER_COLUMNS} customSections scrollable>
+          <CustomFiltersTable
+            columns={hasUpdatedBy ? UPDATED_BY_COLUMNS : CUSTOM_FILTER_COLUMNS}
+            customSections
+            scrollable
+          >
             <SimpleTable.Head sticky>
               <SimpleTable.HeaderRow>
                 <SimpleTable.HeaderCell divider={false}>
@@ -673,7 +707,14 @@ export function CustomFilters({project}: {project: Project}) {
                     <TimeSince date={filter.dateCreated} unitStyle="short" />
                   </SimpleTable.RowCell>
                   <SimpleTable.RowCell whiteSpace="nowrap">
-                    <TimeSince date={filter.dateUpdated} unitStyle="short" />
+                    {hasUpdatedBy ? (
+                      <Flex gap="sm" align="center">
+                        <EditorAvatar editor={filter.updatedBy} />
+                        <TimeSince date={filter.dateUpdated} unitStyle="short" />
+                      </Flex>
+                    ) : (
+                      <TimeSince date={filter.dateUpdated} unitStyle="short" />
+                    )}
                   </SimpleTable.RowCell>
                   <SimpleTable.RowCell>
                     <Flex gap="sm">
@@ -743,6 +784,12 @@ const CUSTOM_FILTER_COLUMNS: TableColumnConfig[] = [
   {key: 'edited', visible: {'5xl': true}, width: '90px'},
   {key: 'action', width: '110px'},
 ];
+
+// With the editor in it, the edited column says who changed a filter, which is
+// worth as much room as the total, so it joins the table alongside it.
+const UPDATED_BY_COLUMNS: TableColumnConfig[] = CUSTOM_FILTER_COLUMNS.map(column =>
+  column.key === 'edited' ? {...column, visible: {'2xl': true}, width: '110px'} : column
+);
 
 // A fixed height keeps the search box and the sections below the table in place
 // while a search shrinks or grows the list. The grid would otherwise stretch its

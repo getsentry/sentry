@@ -41,6 +41,7 @@ import type {TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/platform';
 import type {Project} from 'sentry/types/project';
+import type {User} from 'sentry/types/user';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {FieldKind, FieldValueType} from 'sentry/utils/fields';
@@ -95,6 +96,12 @@ export type CustomInboundFilterCondition = {
 };
 
 // Shape returned by the custom inbound filters API.
+// Who last saved a filter. A user comes in the shape of the users API. A service
+// account stays after its deletion, marked inactive.
+export type CustomInboundFilterEditor =
+  | (User & {type: 'user'})
+  | {id: string; isActive: boolean; name: string; type: 'service_account'};
+
 export type CustomInboundFilter = {
   active: boolean;
   conditions: CustomInboundFilterCondition[];
@@ -102,6 +109,9 @@ export type CustomInboundFilter = {
   dateUpdated: string;
   id: string;
   name: string | null;
+  // Null when no editor is recorded: the filter was last saved before the API
+  // recorded editors, or its editor's user account was deleted.
+  updatedBy: CustomInboundFilterEditor | null;
   // Absent until the API stores the data type on the filter.
   dataType?: FilterDataType;
   // Set once a legacy newline list of the project settings moves into the table: the
