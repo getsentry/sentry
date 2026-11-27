@@ -47,6 +47,7 @@ export function useAnnotationItems({
       title: annotation.description,
       annotationType: annotation.annotationType,
       environmentId: annotation.environmentId,
+      pinned: annotation.pinned,
       severity: annotation.severity,
     })),
   };
