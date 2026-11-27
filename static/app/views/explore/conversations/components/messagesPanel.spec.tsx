@@ -201,6 +201,9 @@ function createMockMemoryNode(overrides: {
   };
 }
 
+// Long enough to collapse behind a summary.
+const LONG_TOOL_RUN = Array.from({length: 10}, (_, index) => `t${index + 1}`);
+
 // Builds a turn whose assistant message carries `toolNames.length` tool calls,
 // with the tool spans sitting between two generations so they merge onto the
 // second turn.
@@ -296,7 +299,7 @@ describe('MessagesPanel', () => {
     );
 
     expect(screen.getAllByText('<not reported>')).toHaveLength(2);
-    expect(screen.getByText('Thinking... <not reported>')).toBeInTheDocument();
+    expect(screen.getByText('Thinking <not reported>')).toBeInTheDocument();
     expect(
       screen.queryByText("This conversation doesn't include any inference spans")
     ).not.toBeInTheDocument();
@@ -495,7 +498,7 @@ describe('MessagesPanel', () => {
     const renderPanel = (expandAll: CollapsibleExpandAll | null) => (
       <CollapsibleExpandAllContext value={expandAll}>
         <MessagesPanel
-          nodes={createNodesWithToolCalls(['t1', 't2', 't3', 't4', 't5']) as any}
+          nodes={createNodesWithToolCalls(LONG_TOOL_RUN) as any}
           selectedNodeId={null}
           onSelectNode={mockOnSelectNode}
         />
@@ -504,7 +507,7 @@ describe('MessagesPanel', () => {
     const {rerender} = render(renderPanel(null));
 
     // Collapsed by default: the summary is shown inside a closed details.
-    const summary = screen.getByText('5 tool calls');
+    const summary = screen.getByText('10 tool calls');
     expect(summary).toBeInTheDocument();
     const details = summary.closest('details');
     expect(details).not.toHaveAttribute('open');
@@ -513,7 +516,7 @@ describe('MessagesPanel', () => {
     await userEvent.click(summary);
     expect(details).toHaveAttribute('open');
     expect(screen.getByText('t1')).toBeInTheDocument();
-    expect(screen.getByText('t5')).toBeInTheDocument();
+    expect(screen.getByText('t10')).toBeInTheDocument();
 
     rerender(renderPanel({open: false, requestId: Symbol()}));
     expect(details).not.toHaveAttribute('open');
@@ -526,16 +529,14 @@ describe('MessagesPanel', () => {
     render(
       <MessagesPanel
         nodes={
-          createNodesWithToolCalls(['t1', 't2', 't3', 't4', 't5'], {
-            errorToolNames: ['t2', 't4'],
-          }) as any
+          createNodesWithToolCalls(LONG_TOOL_RUN, {errorToolNames: ['t2', 't4']}) as any
         }
         selectedNodeId={null}
         onSelectNode={mockOnSelectNode}
       />
     );
 
-    expect(screen.getByText('5 tool calls')).toBeInTheDocument();
+    expect(screen.getByText('10 tool calls')).toBeInTheDocument();
     expect(screen.getByText('2 errors')).toBeInTheDocument();
   });
 
@@ -549,9 +550,9 @@ describe('MessagesPanel', () => {
         [SpanFields.GEN_AI_RESPONSE_TEXT]: 'Let me check',
       },
     });
-    // Five calls, each 30 bytes of output over 0.1s, so the summary totals
-    // 150 B across 500.00ms — distinct from every per-row "30 B" / "100.00ms".
-    const toolNodes = Array.from({length: 5}, (_, index) => {
+    // Ten calls, each 30 bytes of output over 0.1s, so the summary totals
+    // 300 B across 1000.00ms — distinct from every per-row "30 B" / "100.00ms".
+    const toolNodes = Array.from({length: 10}, (_, index) => {
       const start = 1500 + index * 100;
       return createMockToolNode({
         id: `tool-${index}`,
@@ -578,21 +579,21 @@ describe('MessagesPanel', () => {
       />
     );
 
-    expect(screen.getByText('5 tool calls')).toBeInTheDocument();
-    expect(screen.getByText('150 B')).toBeInTheDocument();
-    expect(screen.getByText('500.00ms')).toBeInTheDocument();
+    expect(screen.getByText('10 tool calls')).toBeInTheDocument();
+    expect(screen.getByText('300 B')).toBeInTheDocument();
+    expect(screen.getByText('1000.00ms')).toBeInTheDocument();
   });
 
   it('expands the tool call group when one of its calls is selected', () => {
     render(
       <MessagesPanel
-        nodes={createNodesWithToolCalls(['t1', 't2', 't3', 't4', 't5']) as any}
+        nodes={createNodesWithToolCalls(LONG_TOOL_RUN) as any}
         selectedNodeId="tool-1"
         onSelectNode={mockOnSelectNode}
       />
     );
 
-    const details = screen.getByText('5 tool calls').closest('details');
+    const details = screen.getByText('10 tool calls').closest('details');
     expect(details).toHaveAttribute('open');
   });
 
@@ -655,7 +656,7 @@ describe('MessagesPanel', () => {
       />
     );
 
-    const summary = screen.getByText('System prompt', {exact: false});
+    const summary = screen.getByText('System prompt').closest('summary')!;
     const details = summary.closest('details');
     expect(details).not.toHaveAttribute('open');
     // The collapsed row previews the prompt
@@ -718,7 +719,7 @@ describe('MessagesPanel', () => {
       />
     );
 
-    expect(screen.getByText('System prompt', {exact: false})).toHaveTextContent(
+    expect(screen.getByText('System prompt').closest('summary')).toHaveTextContent(
       'Be concise.'
     );
   });
@@ -751,7 +752,9 @@ describe('MessagesPanel', () => {
       />
     );
 
-    const rows = screen.getAllByText('System prompt', {exact: false});
+    const rows = screen
+      .getAllByText('System prompt')
+      .map(label => label.closest('summary'));
     expect(rows).toHaveLength(1);
     expect(rows[0]).toHaveTextContent('Prompt A');
     expect(screen.queryByText('Prompt B')).not.toBeInTheDocument();
@@ -788,7 +791,7 @@ describe('MessagesPanel', () => {
       />
     );
 
-    expect(screen.getByText('System prompt', {exact: false})).toHaveTextContent(
+    expect(screen.getByText('System prompt').closest('summary')).toHaveTextContent(
       'You sort emails into labels.'
     );
   });
@@ -825,12 +828,12 @@ describe('MessagesPanel', () => {
       />
     );
 
-    expect(screen.getByText('System prompt', {exact: false})).toHaveTextContent(
+    expect(screen.getByText('System prompt').closest('summary')).toHaveTextContent(
       'You sort emails into labels.'
     );
   });
 
-  it('keeps reasoning text in the DOM inside a collapsed details element', () => {
+  it('keeps reasoning text in the DOM while collapsed and expands it in place', async () => {
     const node = createMockNode({
       id: 'span-1',
       attributes: {
@@ -857,12 +860,19 @@ describe('MessagesPanel', () => {
       />
     );
 
-    // The reasoning appears both as the collapsed preview and the full content.
-    const matches = screen.getAllByText('My secret thinking text');
-    expect(matches.length).toBeGreaterThan(0);
-    const details = matches[0]!.closest('details');
-    expect(details).not.toBeNull();
-    expect(details).not.toHaveAttribute('open');
+    // Collapsed, the reasoning stays in the DOM as a one-line preview.
+    expect(screen.getByText('My secret thinking text')).toBeInTheDocument();
+    const toggle = screen.getByRole('button', {name: 'Expand thinking'});
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+
+    // Expanding swaps the preview for the full text in the same row.
+    await userEvent.click(toggle);
+    expect(screen.getByRole('button', {name: 'Collapse thinking'})).toHaveAttribute(
+      'aria-expanded',
+      'true'
+    );
+    expect(screen.getByText('My secret thinking text')).toBeInTheDocument();
+    expect(mockOnSelectNode).not.toHaveBeenCalled();
   });
 
   it('renders an embeddings-only conversation instead of the no-inference-spans notice', () => {

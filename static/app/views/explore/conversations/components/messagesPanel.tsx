@@ -1,5 +1,5 @@
 import {memo, useCallback, useMemo} from 'react';
-import {useTheme} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
@@ -7,7 +7,12 @@ import {MessageRow} from '@sentry/scraps/chat';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {CollapsibleChatRow} from 'sentry/components/ai/chat/collapsibleContent';
+import {
+  ChatRowChevron,
+  CollapsibleChatRow,
+  revealChatRowChevron,
+  useCollapsibleOpenState,
+} from 'sentry/components/ai/chat/collapsibleContent';
 import {
   AssistantMessageBlock,
   UserMessageBlock,
@@ -674,14 +679,16 @@ function ReasoningSection({
   meta?: React.ReactNode;
 }) {
   const organization = useOrganization();
+  const theme = useTheme();
+  const [isOpen, setIsOpen] = useCollapsibleOpenState(false);
 
   // There is nothing to expand when the reasoning wasn't captured.
   if (reasoning === NOT_REPORTED) {
     return (
-      <Flex align="center" gap="md" width="100%" minWidth={0} padding="sm 0">
+      <Flex align="center" gap="md" width="100%" minWidth={0} padding="xs 0">
         <Flex flex="1" minWidth={0}>
-          <Text size="sm" variant="muted" ellipsis monospace>
-            {t('Thinking...')} {reasoning}
+          <Text size="xs" variant="muted" italic ellipsis>
+            {t('Thinking')} {reasoning}
           </Text>
         </Flex>
         <Container width={TURN_META_WIDTH} flexShrink={0}>
@@ -691,32 +698,102 @@ function ReasoningSection({
     );
   }
 
+  const toggle = () => {
+    // Don't collapse a thought someone just selected text in.
+    if (window.getSelection()?.toString()) {
+      return;
+    }
+    const open = !isOpen;
+    setIsOpen(open);
+    trackAnalytics('conversations.detail.expand-thinking', {
+      organization,
+      expanded: open,
+    });
+  };
+
+  // The whole row toggles, and it expands in place: the one-line preview grows
+  // into the full thought on the same line rather than moving into a body.
   return (
-    <CollapsibleChatRow
-      meta={meta}
-      title={isOpen => (
-        <Text size="sm" variant="muted" ellipsis monospace>
-          {t('Thinking...')} {isOpen ? null : <ScrubbedText>{reasoning}</ScrubbedText>}
-        </Text>
-      )}
-      onOpenChange={open =>
-        trackAnalytics('conversations.detail.expand-thinking', {
-          organization,
-          expanded: open,
-        })
-      }
+    <Flex
+      role="button"
+      tabIndex={0}
+      aria-expanded={isOpen}
+      aria-label={isOpen ? t('Collapse thinking') : t('Expand thinking')}
+      align="start"
+      gap="md"
+      minWidth={0}
+      radius="sm"
+      padding="xs sm"
+      cursor="pointer"
+      css={css`
+        /* Bleed the hover into the gutter like the other transcript rows, so
+         * the text stays aligned with them. */
+        width: calc(100% + ${theme.space.sm} * 2);
+        margin: 0 -${theme.space.sm};
+        &:hover {
+          background: ${theme.tokens.interactive.transparent.neutral.background.hover};
+        }
+        ${revealChatRowChevron}
+      `}
+      onClick={(e: React.MouseEvent) => {
+        e.stopPropagation();
+        toggle();
+      }}
+      onKeyDown={(e: React.KeyboardEvent) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          e.stopPropagation();
+          toggle();
+        }
+      }}
     >
-      <Flex>
-        <Container paddingTop="xs" paddingBottom="xs" flex="1" minWidth={0}>
-          <MessageText size="sm" align="left" variant="muted" monospace>
-            <AIContentRenderer text={reasoning} inline autoCollapseLimit={10} />
-          </MessageText>
-        </Container>
-        {/* Reasoning carries no metadata, but reserve the same column the tool
-         * rows use so the content wraps at the same width. */}
-        <Container width={TURN_META_WIDTH} flexShrink={0} />
+      <Flex flex="1" minWidth={0} align="start" gap="xs">
+        {isOpen ? (
+          // Plain text, not markdown: the markdown renderer applies full-size
+          // body styles, which made some thoughts loud and others quiet.
+          <Container minWidth={0}>
+            <MessageText size="xs" align="left" variant="muted" italic wrap="pre-wrap">
+              <ScrubbedText>{tidyReasoning(reasoning)}</ScrubbedText>
+            </MessageText>
+          </Container>
+        ) : (
+          <Container minWidth={0} maxWidth={COLLAPSED_PREVIEW_WIDTH}>
+            <Text size="xs" variant="muted" italic ellipsis>
+              <ScrubbedText>{reasoning}</ScrubbedText>
+            </Text>
+          </Container>
+        )}
+        <ChatRowChevron isOpen={isOpen} />
       </Flex>
-    </CollapsibleChatRow>
+      <Container width={TURN_META_WIDTH} flexShrink={0}>
+        {meta}
+      </Container>
+    </Flex>
+  );
+}
+
+/**
+ * Thoughts keep their line breaks, so drop the blank lines models often leave
+ * at the ends and squash runs of them down to a single paragraph break.
+ */
+function tidyReasoning(reasoning: string) {
+  return reasoning.trim().replace(/\n\s*\n/g, '\n\n');
+}
+
+const COLLAPSED_PREVIEW_WIDTH = '36ch';
+const SYSTEM_PROMPT_EXPANDED_MAX_HEIGHT = '360px';
+
+/**
+ * A short one-line preview of a collapsed row's text, cut off well before the
+ * meta column so the row reads as a label rather than a wall of text.
+ */
+function CollapsedPreview({text}: {text: string}) {
+  return (
+    <Container maxWidth={COLLAPSED_PREVIEW_WIDTH} minWidth={0}>
+      <Text size="xs" variant="muted" ellipsis>
+        <ScrubbedText>{text}</ScrubbedText>
+      </Text>
+    </Container>
   );
 }
 
@@ -732,11 +809,22 @@ const SystemPromptSection = memo(function SystemPromptSectionImpl({
   return (
     <CollapsibleChatRow
       title={isOpen => (
-        <Text size="sm" variant="muted" ellipsis monospace>
-          {t('System prompt')}{' '}
-          {isOpen ? null : <ScrubbedText>{systemPrompt}</ScrubbedText>}
-        </Text>
+        <Flex align="center" gap="sm" minWidth={0}>
+          <Text size="sm" variant="muted" bold>
+            {t('System prompt')}
+          </Text>
+          {isOpen ? null : <CollapsedPreview text={systemPrompt} />}
+        </Flex>
       )}
+      meta={
+        <TurnMeta
+          metric={
+            <TurnMetaValue>
+              <Count value={systemPrompt.length} /> {t('chars')}
+            </TurnMetaValue>
+          }
+        />
+      }
       onOpenChange={open =>
         trackAnalytics('conversations.detail.expand-system-prompt', {
           organization,
@@ -745,10 +833,17 @@ const SystemPromptSection = memo(function SystemPromptSectionImpl({
       }
     >
       <Flex>
-        <Container paddingTop="xs" paddingBottom="xs" flex="1" minWidth={0}>
+        <Container
+          paddingTop="xs"
+          paddingBottom="xs"
+          flex="1"
+          minWidth={0}
+          maxHeight={SYSTEM_PROMPT_EXPANDED_MAX_HEIGHT}
+          overflowY="auto"
+        >
           {/* Rendered like the span's Input tab: a boxed block that keeps the
-           * prompt's line breaks, with a Pretty/Raw toggle. Not clipped, since
-           * expanding the row already asked to see the whole prompt. */}
+           * prompt's line breaks, with a Pretty/Raw toggle. Capped in height so
+           * an open prompt doesn't push the conversation off screen. */}
           <AIContentRenderer text={systemPrompt} clip={false} autoCollapseLimit={10} />
         </Container>
         <Container width={TURN_META_WIDTH} flexShrink={0} />
