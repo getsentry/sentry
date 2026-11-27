@@ -48,6 +48,7 @@ import {
   type useConversations,
 } from 'sentry/views/explore/conversations/hooks/useConversations';
 import {getConversationDisplayId} from 'sentry/views/explore/conversations/utils/conversationDisplayId';
+import {normalizeUserValue} from 'sentry/views/explore/conversations/utils/conversationUser';
 import {getConversationDetailUrl} from 'sentry/views/explore/conversations/utils/urlParams';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {NegativeCostInfo} from 'sentry/views/insights/pages/agents/components/negativeCostWarning';
@@ -131,19 +132,12 @@ export function getConversationTimeSpan(
   return conversation.timeSpan || conversation.generationDuration;
 }
 
-function normalizeUserField(value: string | null | undefined): string | null {
-  if (!value || value.toLowerCase() === 'none') {
-    return null;
-  }
-  return value;
-}
-
 export function getUserDisplayName(user: ConversationUser): string | null {
   return (
-    normalizeUserField(user.email) ||
-    normalizeUserField(user.username) ||
-    normalizeUserField(user.ip_address) ||
-    normalizeUserField(user.id) ||
+    normalizeUserValue(user.email) ||
+    normalizeUserValue(user.username) ||
+    normalizeUserValue(user.ip_address) ||
+    normalizeUserValue(user.id) ||
     null
   );
 }

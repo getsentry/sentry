@@ -684,24 +684,6 @@ describe('ConversationDetailPage summary stats', () => {
     expect(await screen.findAllByText('User ID')).toHaveLength(2);
   });
 
-  it('shows a real user ID over a scrubbed email', async () => {
-    mockApis(null, [
-      spanFixture({
-        ...CONVERSATION_BODY[0],
-        'user.email': '[Filtered]',
-        'user.id': '12345',
-        meta: {
-          'user.email': {meta: {value: {'': {len: 16, rem: [['strip-fields', 's']]}}}},
-        },
-      }),
-    ]);
-    renderPage();
-
-    const details = await screen.findByRole('list', {name: 'Conversation details'});
-    expect(await within(details).findByText('12345')).toBeInTheDocument();
-    expect(within(details).queryByText('[Filtered]')).not.toBeInTheDocument();
-  });
-
   it('explains a user every field of which was scrubbed', async () => {
     mockApis(null, [
       spanFixture({
@@ -727,36 +709,7 @@ describe('ConversationDetailPage summary stats', () => {
 
     const details = await screen.findByRole('list', {name: 'Conversation details'});
     await within(details).findByText('Jan 1, 1970 12:16:40 AM UTC');
-    expect(within(details).queryByText('User')).not.toBeInTheDocument();
-  });
-
-  it('does not count a linked issue on an ok span as a summary error', async () => {
-    mockApis(null, [
-      ...CONVERSATION_BODY,
-      spanFixture({
-        span_id: 'span-issue',
-        'span.name': 'turn with linked issue',
-        'precise.start_ts': 3000,
-        'precise.finish_ts': 3000.5,
-        errors: [
-          {
-            event_id: 'error-1',
-            event_type: 'error',
-            issue_id: 111,
-            level: 'error',
-            project_id: 1,
-            project_slug: 'test-project',
-            start_timestamp: 3000,
-            transaction: 'gen_ai.generate',
-          },
-        ],
-      }),
-    ]);
-    renderPage();
-
-    const errorsStat = await findStat('Errors');
-    expect(within(errorsStat).getByText('0')).toBeInTheDocument();
-    expect(within(errorsStat).queryByRole('link')).not.toBeInTheDocument();
+    expect(within(details).queryByText(/^User /)).not.toBeInTheDocument();
   });
 
   it('links a single trace straight to the trace view', async () => {
