@@ -16,10 +16,8 @@ import {sampleDurationTimeSeries} from './fixtures/sampleDurationTimeSeries';
 import {sampleThroughputTimeSeries} from './fixtures/sampleThroughputTimeSeries';
 import {Area} from './plottables/area';
 import {Line} from './plottables/line';
-import {
-  LOW_CONFIDENCE_AREAS_NAME,
-  TimeSeriesWidgetVisualization,
-} from './timeSeriesWidgetVisualization';
+import {LOW_CONFIDENCE_AREAS_NAME} from './settings';
+import {TimeSeriesWidgetVisualization} from './timeSeriesWidgetVisualization';
 
 jest.mock('sentry/components/charts/baseChart', () => {
   const actual = jest.requireActual('sentry/components/charts/baseChart');

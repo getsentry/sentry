@@ -4,15 +4,25 @@ import {createGridOptions} from 'sentry/components/charts/components/grid';
 import {legend} from 'sentry/components/charts/components/legend';
 import {createXAxisOptions} from 'sentry/components/charts/components/xAxis';
 import {createYAxisOptions} from 'sentry/components/charts/components/yAxis';
+import {defined} from 'sentry/utils/defined';
+import {mergeTimeRanges} from 'sentry/utils/timeSeries/mergeTimeRanges';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {assignPlottablesToYAxes} from 'sentry/views/dashboards/widgets/timeSeriesWidget/assignPlottablesToYAxes';
 import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
 import {formatYAxisValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatYAxisValue';
-import type {ContinuousTimeSeriesPlottingOptions} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/continuousTimeSeries';
+import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
+import {
+  ContinuousTimeSeries,
+  type ContinuousTimeSeriesPlottingOptions,
+} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/continuousTimeSeries';
 import {createPlottableFromTimeSeries} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/createPlottableFromTimeSeries';
+import {HatchAreas} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/hatchAreas';
 import type {Plottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/plottable';
-import {FALLBACK_TYPE} from 'sentry/views/dashboards/widgets/timeSeriesWidget/settings';
+import {
+  FALLBACK_TYPE,
+  LOW_CONFIDENCE_AREAS_NAME,
+} from 'sentry/views/dashboards/widgets/timeSeriesWidget/settings';
 
 import {DEFAULT_FONT_FAMILY} from './slack';
 import type {RenderDescriptor} from './types';
@@ -24,7 +34,15 @@ import {ChartType} from './types';
 export const FONT_SIZE = 28;
 export const CHART_SIZE = {width: 1200, height: 400};
 
-export type TimeseriesChartData = {timeSeries: TimeSeries[]; type?: DisplayType};
+export type TimeseriesChartData = {
+  timeSeries: TimeSeries[];
+  /**
+   * Hatches low-confidence buckets, like in-product charts do. Chartcuterie
+   * can't check feature flags, so the backend decides
+   */
+  showConfidence?: boolean;
+  type?: DisplayType;
+};
 
 /**
  * Per-series callback passed to {@link buildTimeseriesChartOption}. The
@@ -57,11 +75,13 @@ export function buildTimeseriesChartOption<T extends TimeSeries>({
   timeSeries,
   createPlottable,
   extraPlottables = [],
+  showConfidence = false,
 }: {
   createPlottable: CreatePlottableForTimeseriesChart<T>;
   theme: Theme;
   timeSeries: T[];
   extraPlottables?: Plottable[];
+  showConfidence?: boolean;
 }) {
   const xAxis = createXAxisOptions({
     theme,
@@ -182,14 +202,61 @@ export function buildTimeseriesChartOption<T extends TimeSeries>({
     })
   );
 
+  const confidenceSeries = showConfidence
+    ? createLowConfidenceSeries(theme, plottables)
+    : [];
+
   return {
     ...defaults,
+    // Without explicit data, ECharts adds a legend item for every named series,
+    // including chart decorations like thresholds and low-confidence areas
+    legend: {
+      ...defaults.legend,
+      data: [...new Set(plottables.map(plottable => plottable.name))],
+    },
     yAxis,
     xAxis,
     useUTC: true,
     color,
-    series: [...series, ...extraSeries],
+    series: [...series, ...extraSeries, ...confidenceSeries],
   };
+}
+
+/**
+ * Mirrors the low-confidence hatching in `TimeSeriesWidgetVisualization`.
+ * Unfurls can't show tooltips, so the hatching is the only confidence marker
+ */
+function createLowConfidenceSeries(theme: Theme, plottables: Plottable[]) {
+  const lowConfidenceAreas = new HatchAreas(
+    mergeTimeRanges(
+      plottables.flatMap(plottable =>
+        plottable instanceof ContinuousTimeSeries ? plottable.lowConfidenceRanges : []
+      )
+    ),
+    {
+      name: LOW_CONFIDENCE_AREAS_NAME,
+      color: theme.tokens.background.tertiary,
+      fadeColor: theme.tokens.background.primary,
+      dataType: plottables[0]?.dataType ?? FALLBACK_TYPE,
+    }
+  );
+
+  if (lowConfidenceAreas.isEmpty) {
+    return [];
+  }
+
+  // Bucket ranges reach half an interval past the first and last timestamps,
+  // which would widen the X axis of a line or area chart. Bars already fill
+  // that slot, so their edge buckets keep the full range
+  if (plottables.some(plottable => plottable instanceof Bars)) {
+    return lowConfidenceAreas.toSeries();
+  }
+
+  const starts = plottables.map(plottable => plottable.start).filter(defined);
+  const ends = plottables.map(plottable => plottable.end).filter(defined);
+  return lowConfidenceAreas.toSeries({
+    bounds: {start: Math.min(...starts), end: Math.max(...ends)},
+  });
 }
 
 export const makeTimeseriesCharts = (
@@ -201,6 +268,7 @@ export const makeTimeseriesCharts = (
       buildTimeseriesChartOption({
         theme,
         timeSeries: data.timeSeries,
+        showConfidence: data.showConfidence,
         createPlottable: (ts, {color, hasGroups}) =>
           createPlottableFromTimeSeries(data.type ?? DisplayType.LINE, ts, {
             name: formatTimeSeriesLabel(ts),

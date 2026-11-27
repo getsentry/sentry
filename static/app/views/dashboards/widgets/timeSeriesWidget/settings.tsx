@@ -23,3 +23,4 @@ export const FALLBACK_UNIT_FOR_FIELD_TYPE = {
 
 export const INCOMPLETE_BAR_OPACITY = 0.5;
 export const LOW_CONFIDENCE_OPACITY = 0.45;
+export const LOW_CONFIDENCE_AREAS_NAME = '__low_confidence__';
