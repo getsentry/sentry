@@ -2,6 +2,7 @@ import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import {useQuery} from '@tanstack/react-query';
 import {AnimatePresence, motion} from 'framer-motion';
+import {useStore} from 'zustand';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
@@ -10,9 +11,12 @@ import {Link} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {t, tct} from 'sentry/locale';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getDjangoMessageAlertVariant} from 'sentry/utils/getDjangoMessageAlertVariant';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {isNotFoundError} from 'sentry/utils/requestError/requestError';
+import {shouldPreloadData} from 'sentry/utils/shouldPreloadData';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -37,6 +41,10 @@ export default function AuthLogin() {
   const requestedNextUri =
     typeof location.query.next === 'string' ? location.query.next : undefined;
   const hasStartedAnalyticsSession = useRef(false);
+  const config = useStore(ConfigStore);
+  // Django messages, such as SSO failures that redirect back here, are only shown by
+  // the app's global alerts when data is preloaded, which login pages never do.
+  const djangoMessages = shouldPreloadData(config) ? [] : config.messages;
 
   const {
     data: authConfig,
@@ -211,6 +219,16 @@ export default function AuthLogin() {
         <Heading as="h1" size="3xl" align="center">
           {t('Sign in to Sentry')}
         </Heading>
+
+        {djangoMessages.length > 0 && (
+          <Stack gap="md">
+            {djangoMessages.map((message, index) => (
+              <Alert key={index} variant={getDjangoMessageAlertVariant(message.level)}>
+                {message.message}
+              </Alert>
+            ))}
+          </Stack>
+        )}
 
         <AnimatePresence initial={false} mode="wait">
           <MotionStack

@@ -18,6 +18,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {GuideStore} from 'sentry/stores/guideStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import type {Config} from 'sentry/types/system';
+import {getDjangoMessageAlertVariant} from 'sentry/utils/getDjangoMessageAlertVariant';
 import {isValidOrgSlug} from 'sentry/utils/isValidOrgSlug';
 import {onRenderCallback, Profiler} from 'sentry/utils/performanceForSentry';
 import {shouldPreloadData} from 'sentry/utils/shouldPreloadData';
@@ -76,10 +77,7 @@ function AppAlerts() {
     config.messages.forEach(msg =>
       addAlert({
         message: msg.message,
-        variant:
-          // These are django message level tags that need to be mapped to our alert variant types.
-          // See client config in ./src/sentry/web/client_config.py
-          msg.level === 'error' ? 'danger' : msg.level === 'debug' ? 'muted' : msg.level,
+        variant: getDjangoMessageAlertVariant(msg.level),
         neverExpire: true,
       })
     );

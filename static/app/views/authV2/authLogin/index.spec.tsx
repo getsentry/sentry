@@ -27,6 +27,8 @@ describe('AuthLogin', () => {
   beforeEach(() => {
     jest.mocked(trackAnalytics).mockClear();
     ConfigStore.set('singleOrganization', false);
+    ConfigStore.set('messages', []);
+    ConfigStore.set('shouldPreloadData', true);
   });
 
   afterEach(() => {
@@ -437,6 +439,52 @@ describe('AuthLogin', () => {
       screen.queryByRole('button', {name: 'Clear organization login context'})
     ).not.toBeInTheDocument();
     expect(testableWindowLocation.assign).not.toHaveBeenCalled();
+  });
+
+  it('shows Django messages, such as SSO failures, to logged-out users', async () => {
+    ConfigStore.set('shouldPreloadData', false);
+    ConfigStore.set('messages', [
+      {level: 'error', message: 'Authentication error: SAML SSO failed'},
+    ]);
+    mockAuthConfig();
+    MockApiClient.addMockResponse({
+      url: '/auth/organizations/acme/config/',
+      body: {
+        authenticated: false,
+        memberAuthenticated: false,
+        canRegister: false,
+        joinRequestUrl: null,
+        loginMethod: 'sso',
+        ssoRequired: true,
+        organization: {avatarUrl: null, name: 'Acme', slug: 'acme'},
+        provider: {key: 'saml2', name: 'SAML'},
+        warnings: [],
+      },
+    });
+
+    render(<AuthLogin />, {
+      initialRouterConfig: {
+        location: {pathname: '/auth/login/acme/'},
+        route: '/auth/login/:orgSlug/',
+      },
+    });
+
+    expect(await screen.findByRole('button', {name: 'SSO'})).toBeVisible();
+    expect(screen.getByText('Authentication error: SAML SSO failed')).toBeVisible();
+  });
+
+  it('leaves Django messages to the global alerts when data is preloaded', async () => {
+    ConfigStore.set('messages', [
+      {level: 'error', message: 'Authentication error: SAML SSO failed'},
+    ]);
+    mockAuthConfig();
+
+    render(<AuthLogin />);
+
+    expect(await screen.findByRole('textbox', {name: 'Email'})).toBeVisible();
+    expect(
+      screen.queryByText('Authentication error: SAML SSO failed')
+    ).not.toBeInTheDocument();
   });
 
   it('resumes on focus after SSO completes in another tab', async () => {
