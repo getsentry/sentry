@@ -11,7 +11,7 @@ describe('useReplayCount', () => {
   const organization = OrganizationFixture();
   const initialProps = {
     bufferLimit: 100,
-    dataSource: 'events' as const,
+    dataSource: 'errors' as const,
     fieldName: 'replay_id',
     organization,
     statsPeriod: '90d',

@@ -7,7 +7,7 @@ import {useHasReplayAccess} from 'sentry/utils/replays/hooks/useHasReplayAccess'
 
 interface Props {
   bufferLimit: number;
-  dataSource: 'events' | 'transactions' | 'search_issues';
+  dataSource: 'errors' | 'transactions' | 'search_issues';
   fieldName: string;
   organization: Organization;
   statsPeriod: string;

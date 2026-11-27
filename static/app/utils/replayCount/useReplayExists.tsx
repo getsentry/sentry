@@ -13,7 +13,7 @@ export function useReplayExists({start, end}: {end?: string; start?: string} = {
     bufferLimit: 100,
     // The dataSource doesn't matter here - queries on `replay_id` skip the
     // given dataSource and go straight to `replays`.
-    dataSource: 'events',
+    dataSource: 'errors',
     fieldName: 'replay_id',
     organization,
     statsPeriod: '90d',
