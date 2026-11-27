@@ -159,6 +159,42 @@ describe('InstallWizard', () => {
     );
   });
 
+  it.each(['root@localhost', 'sentry@localhost', 'sentry@127.0.0.1'])(
+    'accepts %s as the From address after correcting an invalid email',
+    async fromAddress => {
+      MockApiClient.addMockResponse({
+        url: '/internal/options/',
+        match: [MockApiClient.matchQuery({query: 'is:required'})],
+        body: InstallWizardFixture({
+          'mail.from': {field: requiredField, value: 'invalid-email'},
+        }),
+      });
+      const saveRequest = MockApiClient.addMockResponse({
+        url: '/internal/options/',
+        method: 'PUT',
+      });
+      const onConfigured = jest.fn();
+
+      render(<InstallWizard onConfigured={onConfigured} />);
+
+      const input = await screen.findByRole('textbox', {name: 'Email From'});
+      await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
+
+      expect(await screen.findByText('Enter a valid email address')).toBeInTheDocument();
+      expect(saveRequest).not.toHaveBeenCalled();
+
+      await userEvent.clear(input);
+      await userEvent.type(input, fromAddress);
+      await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
+
+      await waitFor(() => expect(onConfigured).toHaveBeenCalled());
+      expect(saveRequest).toHaveBeenCalledWith(
+        '/internal/options/',
+        expect.objectContaining({data: {'mail.from': fromAddress}})
+      );
+    }
+  );
+
   it('does not save while a required option is empty', async () => {
     MockApiClient.addMockResponse({
       url: '/internal/options/',

@@ -103,7 +103,10 @@ function getOptionSchema({definition, required}: WizardField) {
     case 'radio':
       return required ? z.string({error: requiredMessage}) : z.string().optional();
     case 'email': {
-      const email = z.email(t('Enter a valid email address'));
+      const email = z.email({
+        pattern: z.regexes.html5Email,
+        error: t('Enter a valid email address'),
+      });
       return required ? email : email.or(z.literal('')).optional();
     }
     case 'text':
@@ -203,7 +206,7 @@ function InstallWizardForm({
                               onChange={field.handleChange}
                             >
                               {({Item}) => (
-                                <field.Layout.Stack
+                                <field.Layout.Row
                                   label={definition.label}
                                   hintText={definition.help}
                                   required={required}
@@ -215,7 +218,7 @@ function InstallWizardForm({
                                       </Item>
                                     ))}
                                   </Stack>
-                                </field.Layout.Stack>
+                                </field.Layout.Row>
                               )}
                             </field.RadioGroup>
                           );
