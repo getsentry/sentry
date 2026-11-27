@@ -19,7 +19,7 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {toast} from '@sentry/scraps/toast';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {t, tct} from 'sentry/locale';
+import {t, tct, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
@@ -756,6 +756,30 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     props.organization,
   ]);
 
+  const onClockDriftCorrectionChange = useCallback(() => {
+    const value = !traceState.preferences.clock_drift_correction;
+    const count = props.tree.setClockDriftCorrection(value, {
+      organization: props.organization,
+      preferences: traceState.preferences,
+    });
+
+    toast.success(
+      value
+        ? count > 0
+          ? tn(
+              'Clock drift correction enabled, adjusted %s span',
+              'Clock drift correction enabled, adjusted %s spans',
+              count
+            )
+          : t('Clock drift correction enabled')
+        : t('Clock drift correction disabled')
+    );
+
+    traceAnalytics.trackClockDriftCorrectionPreferenceChange(props.organization, value);
+    props.tree.rebuild();
+    traceDispatch({type: 'set clock drift correction', payload: value});
+  }, [traceDispatch, traceState.preferences, props.tree, props.organization]);
+
   const onCompressedTimelineChange = useCallback(() => {
     const value = !traceState.preferences.compressed_timeline;
 
@@ -813,8 +837,11 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
               traceState.preferences.autogroup.sibling
             }
             compressedTimeline={traceState.preferences.compressed_timeline}
+            clockDriftCorrection={traceState.preferences.clock_drift_correction}
+            clockDriftCorrectionCount={props.tree.clock_drift_correction_count}
             missingInstrumentation={traceState.preferences.missing_instrumentation}
             onAutogroupChange={onAutogroupChange}
+            onClockDriftCorrectionChange={onClockDriftCorrectionChange}
             onCompressedTimelineChange={onCompressedTimelineChange}
             onMissingInstrumentationChange={onMissingInstrumentationChange}
           />

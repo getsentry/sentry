@@ -6,6 +6,8 @@ import {
   useDispatchingReducer,
   type DispatchingReducerEmitter,
 } from 'sentry/utils/useDispatchingReducer';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {hasClockDriftCorrectionFeature} from 'sentry/views/performance/traceDetails/traceModels/clockDriftCorrection';
 
 import {TraceReducer, type TraceReducerAction, type TraceReducerState} from './index';
 import {storeTraceViewPreferences, type TracePreferencesState} from './tracePreferences';
@@ -63,6 +65,17 @@ interface TraceStateProviderProps {
 }
 
 export function TraceStateProvider(props: TraceStateProviderProps): React.ReactNode {
+  const organization = useOrganization({allowNull: true});
+  const hasClockDriftCorrection = hasClockDriftCorrectionFeature(organization);
+  // Every trace tree reads its preferences from here, so turning the correction off here keeps it
+  // off everywhere, also if it was stored while the organization had the feature.
+  const initialPreferences = hasClockDriftCorrection
+    ? props.initialPreferences
+    : {...props.initialPreferences, clock_drift_correction: false};
+  // The stored preference is shared with organizations that have the feature, so keep it as it
+  // was instead of storing the forced value. It can't be toggled without the feature.
+  const storedClockDriftCorrection = props.initialPreferences.clock_drift_correction;
+
   // We only want to decode on load, hence the lazy initializer.
   const [initialQuery] = useState((): string | undefined => {
     if (props.disableUrlSync) {
@@ -85,16 +98,29 @@ export function TraceStateProvider(props: TraceStateProviderProps): React.ReactN
         status: undefined,
         resultsLookup: new Map(),
       },
-      preferences: props.initialPreferences,
+      preferences: initialPreferences,
       tabs: {tabs: [], current_tab: null, last_clicked_tab: null},
     }
   );
 
   useLayoutEffect(() => {
     if (props.preferencesStorageKey) {
-      storeTraceViewPreferences(props.preferencesStorageKey, traceState.preferences);
+      storeTraceViewPreferences(
+        props.preferencesStorageKey,
+        hasClockDriftCorrection
+          ? traceState.preferences
+          : {
+              ...traceState.preferences,
+              clock_drift_correction: storedClockDriftCorrection,
+            }
+      );
     }
-  }, [traceState.preferences, props.preferencesStorageKey]);
+  }, [
+    traceState.preferences,
+    props.preferencesStorageKey,
+    hasClockDriftCorrection,
+    storedClockDriftCorrection,
+  ]);
 
   return (
     <TraceStateContext value={traceState}>

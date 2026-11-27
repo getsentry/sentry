@@ -1,6 +1,10 @@
 import {Fragment, useCallback} from 'react';
 
 import {formatTraceDuration} from 'sentry/utils/duration/formatTraceDuration';
+import {
+  ClockDriftLabelIcon,
+  ClockDriftTooltip,
+} from 'sentry/views/performance/traceDetails/clockDriftIndicators';
 import type {BaseNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/baseNode';
 import type {VirtualizedViewManager} from 'sentry/views/performance/traceDetails/traceRenderers/virtualizedViewManager';
 
@@ -165,9 +169,12 @@ export function TraceBar(props: TraceBarProps) {
           />
         ) : null}
       </div>
-      <div ref={registerSpanBarTextRef} className="TraceBarDuration">
-        <span className="TraceBarDurationText">{duration}</span>
-      </div>
+      <ClockDriftTooltip offsetMs={props.node.clockDriftOffsetMs}>
+        <div ref={registerSpanBarTextRef} className="TraceBarDuration">
+          <ClockDriftLabelIcon visible={props.node.isClockDriftCorrectionRoot} />
+          <span className="TraceBarDurationText">{duration}</span>
+        </div>
+      </ClockDriftTooltip>
     </Fragment>
   );
 }
@@ -264,9 +271,11 @@ export function AutogroupedTraceBar(props: AutogroupedTraceBarProps) {
           />
         ) : null}
       </div>
-      <div ref={registerAutogroupedSpanBarTextRef} className="TraceBarDuration">
-        <span className="TraceBarDurationText">{duration}</span>
-      </div>
+      <ClockDriftTooltip offsetMs={props.node.clockDriftOffsetMs}>
+        <div ref={registerAutogroupedSpanBarTextRef} className="TraceBarDuration">
+          <span className="TraceBarDurationText">{duration}</span>
+        </div>
+      </ClockDriftTooltip>
     </Fragment>
   );
 }

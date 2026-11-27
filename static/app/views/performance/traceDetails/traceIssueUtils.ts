@@ -161,12 +161,17 @@ function getTraceIssueSeverityRank(issue: TraceTree.TraceIssue): number {
   }
 }
 
+/**
+ * Pass the node's `clockDriftOffsetMs` as `offsetMs`, so issues line up with a node that was
+ * moved to correct for clock drift.
+ */
 export function getTraceIssueTimestamp(
   issue: TraceTree.TraceIssue,
-  nodeSpace: [number, number]
+  nodeSpace: [number, number],
+  offsetMs = 0
 ): number {
   if ('timestamp' in issue && typeof issue.timestamp === 'number') {
-    return issue.timestamp * 1e3;
+    return issue.timestamp * 1e3 + offsetMs;
   }
 
   let startTimestamp: number | undefined;
@@ -176,5 +181,7 @@ export function getTraceIssueTimestamp(
     startTimestamp = issue.start;
   }
 
-  return typeof startTimestamp === 'number' ? startTimestamp * 1e3 : nodeSpace[0];
+  return typeof startTimestamp === 'number'
+    ? startTimestamp * 1e3 + offsetMs
+    : nodeSpace[0];
 }

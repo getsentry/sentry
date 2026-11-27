@@ -33,6 +33,7 @@ import {
   STATUS_TEXT,
 } from 'sentry/views/insights/browser/webVitals/utils/scoreToStatus';
 
+import {CLOCK_DRIFT_ICON_GAP_PX} from './traceModels/clockDriftCorrection';
 import {TraceTree} from './traceModels/traceTree';
 import type {BaseNode} from './traceModels/traceTreeNode/baseNode';
 import type {TraceEvents, TraceScheduler} from './traceRenderers/traceScheduler';
@@ -1641,6 +1642,7 @@ const TraceStylingWrapper = styled('div')`
     bottom: 0;
     display: flex;
     align-items: center;
+    gap: ${CLOCK_DRIFT_ICON_GAP_PX}px;
     transform-origin: left center;
     font-size: ${p => p.theme.font.size.xs};
     line-height: 1;
@@ -1656,6 +1658,10 @@ const TraceStylingWrapper = styled('div')`
    */
   .TraceBarDurationText {
     text-box: trim-both cap alphabetic;
+  }
+
+  .TraceClockDriftIcon {
+    display: flex;
   }
 
   .TraceChildrenCount {

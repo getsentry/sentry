@@ -24,6 +24,10 @@ import {
   getTraceIssueTimestamp,
   TRACE_ICON_WIDTH,
 } from 'sentry/views/performance/traceDetails/traceIssueUtils';
+import {
+  CLOCK_DRIFT_ICON_GAP_PX,
+  CLOCK_DRIFT_ICON_SIZE_PX,
+} from 'sentry/views/performance/traceDetails/traceModels/clockDriftCorrection';
 import {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/baseNode';
 
@@ -1449,7 +1453,7 @@ export class VirtualizedViewManager {
       this.time_compression.toCompressedOffset(
         this.view.to_origin + this.view.trace_space.width * 0.5
       );
-    const text_width = this.text_measurer.measure(text);
+    const text_width = this.text_measurer.measure(text) + getLabelIconWidthPx(node);
     const text_width_ceil = Math.ceil(text_width);
 
     const timestamps = getIconTimestamps(
@@ -1703,6 +1707,7 @@ export class VirtualizedViewManager {
       }
 
       this.drawSpanBar(this.span_bars[i]);
+      this.drawIssueIcons(span.ref, this.columns.list.column_nodes[i]);
       this.drawSpanText(this.span_text[i], this.columns.list.column_nodes[i]);
       this.drawSpanArrow(this.span_arrows[i], false, 0);
     }
@@ -2235,7 +2240,15 @@ export class VirtualizedViewManager {
     }
   }
 
-  private drawAutogroupIssueIcons(ref: HTMLElement, node: BaseNode) {
+  /**
+   * Icons are placed relative to the view when their row renders. Redraw them with the bars, so
+   * they stay in place while the user zooms or pans, as the duration label makes room for them.
+   */
+  private drawIssueIcons(ref: HTMLElement, node: BaseNode | undefined) {
+    if (!node || (!node.errors.size && !node.occurrences.size)) {
+      return;
+    }
+
     const icons = Array.from(ref.children).filter(
       (child): child is HTMLElement =>
         child instanceof HTMLElement &&
@@ -2266,7 +2279,7 @@ export class VirtualizedViewManager {
               this.text_measurer.measure(text)
             );
       const {edge, anchorTimestamp} = this.computeTraceIconPlacement(
-        getTraceIssueTimestamp(issue, node.space),
+        getTraceIssueTimestamp(issue, node.space, node.clockDriftOffsetMs),
         width,
         node.space
       );
@@ -2298,7 +2311,7 @@ export class VirtualizedViewManager {
             }%`;
             bar.style.width = `${this.computeRelativeWidth(space, node.space) * 100}%`;
           });
-          this.drawAutogroupIssueIcons(invisible_bar.ref, node);
+          this.drawIssueIcons(invisible_bar.ref, node);
         }
       }
 
@@ -2332,6 +2345,15 @@ export class VirtualizedViewManager {
   }
 }
 
+/**
+ * The width of icons rendered inside the duration label, in addition to its text.
+ */
+function getLabelIconWidthPx(node: BaseNode): number {
+  return node.isClockDriftCorrectionRoot
+    ? CLOCK_DRIFT_ICON_SIZE_PX + CLOCK_DRIFT_ICON_GAP_PX
+    : 0;
+}
+
 // Computes a min and max icon timestamp. This effectively extends or reduces the hitbox
 // of the span to include the icon. We need this because when the icon is close to the edge
 // it can extend it and cause overlaps with duration labels
@@ -2360,7 +2382,7 @@ function getIconTimestamps(
       additionalIssueCount === undefined
         ? TRACE_ICON_WIDTH
         : getTraceIconGroupWidth(additionalIssueCount, measureText);
-    const timestamp = getTraceIssueTimestamp(issue, span_space);
+    const timestamp = getTraceIssueTimestamp(issue, span_space, node.clockDriftOffsetMs);
     const {bounds} = getTraceIconPlacement(timestamp, icon_width_px);
     const [icon_left, icon_right] = bounds;
 

@@ -236,6 +236,15 @@ const trackCompressedTimelinePreferenceChange = (
 ) =>
   trackAnalytics('trace.preferences.compressed_timeline_change', {organization, enabled});
 
+const trackClockDriftCorrectionPreferenceChange = (
+  organization: Organization,
+  enabled: boolean
+) =>
+  trackAnalytics('trace.preferences.clock_drift_correction_change', {
+    organization,
+    enabled,
+  });
+
 const traceAnalytics = {
   // Trace Onboarding
   trackTracingOnboarding,
@@ -274,6 +283,7 @@ const traceAnalytics = {
   trackAutogroupingPreferenceChange,
   trackMissingInstrumentationPreferenceChange,
   trackCompressedTimelinePreferenceChange,
+  trackClockDriftCorrectionPreferenceChange,
   // Trace Drawer Details
   trackEAPSpanHasDetails,
   trackGenAISpanDetailsViewed,

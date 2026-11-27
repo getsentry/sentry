@@ -51,12 +51,14 @@ import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
 import {getIsAiNode} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {getIsMCPNode} from 'sentry/views/insights/pages/mcp/utils/mcpTraceNodes';
+import {ClockDriftTag} from 'sentry/views/performance/traceDetails/clockDriftIndicators';
 import {traceAnalytics} from 'sentry/views/performance/traceDetails/traceAnalytics';
 import {
   makeTraceContinuousProfilingLink,
   makeTransactionProfilingLink,
 } from 'sentry/views/performance/traceDetails/traceDrawer/traceProfilingLink';
 import {isEAPSpanNode} from 'sentry/views/performance/traceDetails/traceGuards';
+import {getRecordedSubtreeSpace} from 'sentry/views/performance/traceDetails/traceModels/clockDriftCorrection';
 import type {BaseNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/baseNode';
 import type {EapSpanNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/eapSpanNode';
 import {
@@ -223,6 +225,7 @@ function Highlights({
                   {comparison.deltaText}
                 </HiglightsDurationComparison>
               ) : null}
+              <ClockDriftTag offsetMs={node.clockDriftOffsetMs} />
             </Flex>
           </Stack>
           <Stack gap="lg">
@@ -405,13 +408,14 @@ export function getTraceIssuesTarget({
   // Adding a buffer of 15mins for errors only traces, where there is no concept of
   // trace duration and start equals end timestamps.
   const buffer = node.space[1] > 0 ? 0 : 15 * 60 * 1000;
+  const [recordedStart, recordedDuration] = getRecordedSubtreeSpace(node);
 
   return {
     pathname: `/organizations/${organization.slug}/issues/`,
     query: {
       query: `trace:${traceSlug.trim()}`,
-      start: new Date(node.space[0] - buffer).toISOString(),
-      end: new Date(node.space[0] + node.space[1] + buffer).toISOString(),
+      start: new Date(recordedStart - buffer).toISOString(),
+      end: new Date(recordedStart + recordedDuration + buffer).toISOString(),
       // If we don't pass the project param, the issues page will filter by the last selected project.
       // Traces can have multiple projects, so we query issues by all projects and rely on our search query to filter the results.
       project: -1,

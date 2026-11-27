@@ -59,4 +59,37 @@ describe('TraceBackgroundPatterns', () => {
 
     expect(screen.getByTestId('trace-issue-pattern')).toBeInTheDocument();
   });
+
+  it('places the pattern of a node shifted for clock drift at the shifted timestamp', () => {
+    const occurrence = makeEAPOccurrence({
+      event_id: 'shifted-occurrence',
+      issue_id: 1,
+      start_timestamp: 1,
+    });
+    const node = {
+      value: makeEAPSpan({errors: [], occurrences: [occurrence]}),
+      errors: new Set(),
+      occurrences: new Set([occurrence]),
+      clockDriftOffsetMs: 2_000,
+    } as unknown as BaseNode;
+    const computeRelativeLeftPositionFromOrigin = jest.fn(() => 0.5);
+
+    render(
+      <TraceBackgroundPatterns
+        node={node}
+        node_space={[2_500, 5_000]}
+        errors={node.errors}
+        occurrences={node.occurrences}
+        manager={
+          {computeRelativeLeftPositionFromOrigin} as unknown as VirtualizedViewManager
+        }
+      />
+    );
+
+    // Recorded at 1000ms, shown 2000ms later along with its span
+    expect(computeRelativeLeftPositionFromOrigin).toHaveBeenCalledWith(
+      3_000,
+      [2_500, 5_000]
+    );
+  });
 });

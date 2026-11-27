@@ -32,8 +32,10 @@ export class NoInstrumentationNode extends BaseNode<TraceTree.MissingInstrumenta
 
     if (this.previous.endTimestamp && this.next.startTimestamp) {
       this.space = [
-        this.previous.endTimestamp * 1e3,
-        (this.next.startTimestamp - this.previous.endTimestamp) * 1e3,
+        this.previous.endTimestamp * 1e3 + this.previous.clockDriftOffsetMs,
+        (this.next.startTimestamp - this.previous.endTimestamp) * 1e3 +
+          this.next.clockDriftOffsetMs -
+          this.previous.clockDriftOffsetMs,
       ];
     }
   }

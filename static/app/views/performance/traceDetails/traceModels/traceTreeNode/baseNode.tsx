@@ -80,6 +80,18 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
   space: [number, number] = [0, 0];
 
   /**
+   * How far `space` was moved to correct for clock drift between a client and a server, in
+   * milliseconds. Raw timestamps (e.g. of issues) need this added to line up with `space`.
+   */
+  clockDriftOffsetMs = 0;
+
+  /**
+   * Whether the node is the root of a server subtree that was moved into the client span that made
+   * the request. Its children moved along with it, but are not roots themselves.
+   */
+  isClockDriftCorrectionRoot = false;
+
+  /**
    * The children of the node.
    */
   children: BaseNode[] = [];
