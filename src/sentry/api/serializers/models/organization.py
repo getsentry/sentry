@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Annotated, Any, ClassVar, TypedDict, cast
+from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Literal, TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 from rest_framework import serializers
@@ -74,7 +74,10 @@ from sentry.models.team import Team, TeamStatus
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.replays.models import OrganizationMemberReplayAccess
-from sentry.seer.autofix.utils import get_valid_automated_run_stopping_points
+from sentry.seer.autofix.utils import (
+    get_agentic_triage_cohort,
+    get_valid_automated_run_stopping_points,
+)
 from sentry.types.cell import get_locality_name_for_cell
 from sentry.users.api.serializers.user import AvatarTypeName, SerializedAvatarFields
 from sentry.users.models.user import User
@@ -843,6 +846,12 @@ class OrganizationSerializerResponse(_OrganizationSerializerResponseOptional):
     defaultAutomatedRunStoppingPoint: Annotated[
         str, ApiDescription("Step where automated Autofix runs on new projects stop by default")
     ]
+    agenticTriageCohort: Annotated[
+        Literal["legacy", "seat", "free"] | None,
+        ApiDescription(
+            "Agentic triage cohort the organization keeps after moving to token billing, or null"
+        ),
+    ]
     autoEnableCodeReview: Annotated[
         bool,
         ApiDescription(
@@ -1026,6 +1035,9 @@ class OrganizationSerializer(OrganizationSummarySerializer):
                 ),
                 "defaultAutomatedRunStoppingPoint": self._get_default_automated_run_stopping_point(
                     obj
+                ),
+                "agenticTriageCohort": (
+                    cohort.value if (cohort := get_agentic_triage_cohort(obj)) else None
                 ),
                 "autoOpenPrs": bool(
                     obj.get_option(

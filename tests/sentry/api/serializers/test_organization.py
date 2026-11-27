@@ -29,6 +29,7 @@ from sentry.models.organizationonboardingtask import (
 )
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.replays.models import OrganizationMemberReplayAccess
+from sentry.seer.autofix.utils import AGENTIC_TRIAGE_COHORT_OPTION
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.skips import requires_snuba
@@ -291,6 +292,29 @@ class OrganizationSerializerTest(TestCase):
             assert result["experiments"] == {"experiment-test": "active"}
         finally:
             features.default_manager._entity_handler = None
+
+
+class OrganizationSerializerAgenticTriageCohortTest(TestCase):
+    def setUp(self) -> None:
+        self.user = self.create_user()
+        self.organization = self.create_organization(owner=self.user)
+
+    def _cohort(self) -> object:
+        acc = access.from_user(self.user, self.organization)
+        result = _serialize_organization(
+            self.organization, self.user, OrganizationSerializer(), acc
+        )
+        return result["agenticTriageCohort"]
+
+    def _set_cohort(self, cohort: str) -> None:
+        self.organization.update_option(AGENTIC_TRIAGE_COHORT_OPTION, cohort)
+
+    def test_null_without_cohort(self) -> None:
+        assert self._cohort() is None
+
+    def test_free_cohort(self) -> None:
+        self._set_cohort("free")
+        assert self._cohort() == "free"
 
 
 class OrganizationWithProjectsAndTeamsSerializerTest(TestCase):
