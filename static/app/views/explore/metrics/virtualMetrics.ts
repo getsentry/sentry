@@ -3,6 +3,11 @@ import {ORDER, type WebVitals} from 'sentry/views/insights/browser/webVitals/typ
 
 import type {TraceMetric} from './metricQuery';
 import type {TraceMetricTypeValue} from './types';
+import {
+  webVitalMetricName,
+  webVitalScoreAttribute,
+  webVitalScoreMetricName,
+} from './virtualMetricNames';
 
 /**
  * A stored metric, with the unit typed so prebuilt configs can use it.
@@ -46,7 +51,7 @@ const WEB_VITAL_UNITS: Record<WebVitals, DataUnit> = {
  */
 export function webVitalMetric(vital: WebVitals): StoredTraceMetric {
   return {
-    name: `browser.web_vital.${vital}`,
+    name: webVitalMetricName(vital),
     type: 'distribution',
     unit: WEB_VITAL_UNITS[vital],
   };
@@ -58,11 +63,11 @@ export function webVitalMetric(vital: WebVitals): StoredTraceMetric {
  */
 export function webVitalScoreMetric(vital: WebVitals): VirtualTraceMetric {
   return {
-    name: `browser.web_vital.${vital}.score`,
+    name: webVitalScoreMetricName(vital),
     type: 'distribution',
     unit: FractionUnit.RATIO,
     source: webVitalMetric(vital),
-    attribute: `tags[score.ratio.${vital},number]`,
+    attribute: webVitalScoreAttribute(vital),
   };
 }
 
