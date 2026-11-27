@@ -555,15 +555,9 @@ function TransferProjectModal({
       closeModal();
     },
     onError: error => {
-      const detail =
-        error instanceof RequestError ? error.responseJSON?.detail : undefined;
       const message =
-        error instanceof RequestError &&
-        error.status &&
-        error.status >= 400 &&
-        error.status < 500 &&
-        typeof detail === 'string'
-          ? detail
+        error instanceof RequestError && typeof error.responseJSON?.detail === 'string'
+          ? error.responseJSON.detail
           : '';
 
       toast.error(
