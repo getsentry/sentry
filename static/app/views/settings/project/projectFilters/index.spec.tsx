@@ -3,7 +3,6 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {DetailedProjectFixture, ProjectFixture} from 'sentry-fixture/project';
 import {ProjectFiltersFixture} from 'sentry-fixture/projectFilters';
 import {TombstonesFixture} from 'sentry-fixture/tombstones';
-import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -18,8 +17,9 @@ import {
 import {GlobalModal} from '@sentry/scraps/modal';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import type {User} from 'sentry/types/user';
 import ProjectFilters from 'sentry/views/settings/project/projectFilters';
+
+import type {CustomInboundFilterEditor} from './customFilterModal';
 
 // The custom filter modal saves through the query client of the tree it renders
 // in, so it mounts next to the page instead of in a render of its own.
@@ -85,10 +85,7 @@ describe('ProjectFilters', () => {
     dateUpdated: string;
     id: string;
     name: string | null;
-    updatedBy:
-      | (User & {type: 'user'})
-      | {id: string; isActive: boolean; name: string; type: 'service_account'}
-      | null;
+    updatedBy: CustomInboundFilterEditor | null;
     dataType?: string;
     legacyFilter?: string;
   };
@@ -654,14 +651,15 @@ describe('ProjectFilters', () => {
       features: [...inboundFiltersV2Org.features, 'inbound-filters-updated-by'],
     });
 
-    const userEditor = {
-      ...UserFixture({
-        id: '7',
-        name: 'Jane Doe',
-        email: 'jane@example.com',
-        username: 'jane@example.com',
-      }),
-      type: 'user' as const,
+    const userEditor: CustomInboundFilterEditor = {
+      type: 'user',
+      id: '7',
+      name: 'Jane Doe',
+      email: 'jane@example.com',
+      username: 'jane@example.com',
+      ip_address: '',
+      avatarUrl: 'https://gravatar.com/avatar/example',
+      avatar: {avatarType: 'letter_avatar', avatarUuid: null, avatarUrl: null},
     };
 
     // The cell of a filter's row that sits under the given column header.
@@ -674,9 +672,6 @@ describe('ProjectFilters', () => {
         .find(candidate => within(candidate).queryByText(filterName));
       return within(row!).getAllByRole('cell')[columnIndex]!;
     }
-
-    // A container width inside the `2xl` breakpoint and below `3xl`.
-    const CONTAINER_2XL_WIDTH = 900;
 
     it('shows the avatar of the user who last edited a filter', async () => {
       renderInboundFilters(
@@ -760,26 +755,7 @@ describe('ProjectFilters', () => {
       expect(within(edited).queryByTitle('Jane Doe')).not.toBeInTheDocument();
     });
 
-    it('shows the edited column from the 2xl container breakpoint', async () => {
-      jest
-        .spyOn(Element.prototype, 'clientWidth', 'get')
-        .mockReturnValue(CONTAINER_2XL_WIDTH);
-      renderInboundFilters(
-        [CustomInboundFilterFixture({name: 'A filter', updatedBy: userEditor})],
-        businessProject,
-        updatedByOrg
-      );
-      expect(await screen.findByText('A filter')).toBeInTheDocument();
-
-      // Active, name, data type, conditions, filtered, edited, action: the trend
-      // and the creation date still wait for wider tables.
-      expect(screen.getByRole('table')).toHaveStyle({
-        gridTemplateColumns:
-          '90px minmax(160px, 1fr) 120px minmax(240px, 2fr) 90px 110px 110px',
-      });
-    });
-
-    it('leaves the table as it was without the flag', async () => {
+    it('shows no editor without the flag', async () => {
       renderInboundFilters(
         [CustomInboundFilterFixture({name: 'Edited by a person', updatedBy: userEditor})],
         businessProject,
@@ -791,27 +767,6 @@ describe('ProjectFilters', () => {
       const edited = getCell('Edited by a person', 'Edited');
       expect(edited).toHaveTextContent(created.textContent);
       expect(within(edited).queryByTitle('Jane Doe')).not.toBeInTheDocument();
-      expect(screen.getByRole('table')).toHaveStyle({
-        gridTemplateColumns:
-          '90px minmax(160px, 1fr) 120px minmax(240px, 2fr) 190px 90px 90px 90px 110px',
-      });
-    });
-
-    it('keeps the edited column for wide tables without the flag', async () => {
-      jest
-        .spyOn(Element.prototype, 'clientWidth', 'get')
-        .mockReturnValue(CONTAINER_2XL_WIDTH);
-      renderInboundFilters(
-        [CustomInboundFilterFixture({name: 'A filter', updatedBy: userEditor})],
-        businessProject,
-        inboundFiltersV2Org
-      );
-      expect(await screen.findByText('A filter')).toBeInTheDocument();
-
-      expect(screen.getByRole('table')).toHaveStyle({
-        gridTemplateColumns:
-          '90px minmax(160px, 1fr) 120px minmax(240px, 2fr) 90px 110px',
-      });
     });
   });
 

@@ -417,7 +417,6 @@ const EDITOR_SIZE = 16;
 // Who last saved a filter, shown before the time of that save.
 function EditorAvatar({editor}: {editor: CustomInboundFilterEditor | null}) {
   if (editor === null) {
-    // An empty slot keeps the time level with the rows that show an editor.
     return <Container width={`${EDITOR_SIZE}px`} flexShrink={0} />;
   }
 
