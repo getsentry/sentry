@@ -4,7 +4,15 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import * as ts from 'typescript';
+import * as ts from 'tsrs/ast';
+import {
+  API,
+  type Checker,
+  formatDiagnostics,
+  SignatureKind,
+  type Type,
+  TypeFlags,
+} from 'tsrs/sync';
 
 // Terminal color codes
 const colors = {
@@ -57,52 +65,53 @@ function parseArgs(): Options {
   return opts;
 }
 
-function getTypeParameters(type: ts.Type): readonly ts.TypeParameterDeclaration[] {
-  const symbol = type.aliasSymbol ?? type.symbol;
-  const declaration = symbol?.declarations?.find(
-    node =>
-      ts.isClassDeclaration(node) ||
-      ts.isInterfaceDeclaration(node) ||
-      ts.isTypeAliasDeclaration(node)
-  );
+function getTypeParameters(type: Type): readonly ts.TypeParameterDeclaration[] {
+  const symbol = type.getAliasSymbol() ?? type.getSymbol();
+  const declaration = symbol?.declarations
+    .find(
+      handle =>
+        ts.isClassDeclaration.Handle(handle) ||
+        ts.isInterfaceDeclaration.Handle(handle) ||
+        ts.isTypeAliasDeclaration.Handle(handle)
+    )
+    ?.resolve();
   return declaration?.typeParameters ?? [];
 }
 
 function hasAnyTypeArgument(
-  typeArguments: readonly ts.Type[],
+  typeArguments: readonly Type[],
   typeParameters: readonly ts.TypeParameterDeclaration[],
-  typeChecker: ts.TypeChecker
+  typeChecker: Checker
 ): boolean {
   return typeArguments.some((typeArgument, index) => {
-    if (!(typeArgument.flags & ts.TypeFlags.Any)) {
+    if (!(typeArgument.flags & TypeFlags.Any)) {
       return false;
     }
 
-    const defaultType = typeParameters[index]?.default;
+    const defaultType = typeParameters[index]?.defaultType;
     return (
       !defaultType ||
-      !(typeChecker.getTypeFromTypeNode(defaultType).flags & ts.TypeFlags.Any)
+      !(typeChecker.getTypeFromTypeNode(defaultType).flags & TypeFlags.Any)
     );
   });
 }
 
-function hasDirectAnyTypeArgument(type: ts.Type, typeChecker: ts.TypeChecker): boolean {
-  if (type.aliasTypeArguments) {
+function hasDirectAnyTypeArgument(type: Type, typeChecker: Checker): boolean {
+  // tsrs returns an empty list instead of undefined when a type has no alias
+  // type arguments, so check whether the alias itself is generic.
+  const aliasTypeParameters = type.getAliasSymbol() ? getTypeParameters(type) : [];
+  if (aliasTypeParameters.length > 0) {
     return hasAnyTypeArgument(
-      type.aliasTypeArguments,
-      getTypeParameters(type),
+      type.getAliasTypeArguments(),
+      aliasTypeParameters,
       typeChecker
     );
   }
 
-  if (
-    type.flags & ts.TypeFlags.Object &&
-    (type as ts.ObjectType).objectFlags & ts.ObjectFlags.Reference
-  ) {
-    const reference = type as ts.TypeReference;
+  if (type.isTypeReference()) {
     return hasAnyTypeArgument(
-      typeChecker.getTypeArguments(reference),
-      getTypeParameters(reference.target),
+      typeChecker.getTypeArguments(type),
+      getTypeParameters(type.getTarget()),
       typeChecker
     );
   }
@@ -110,8 +119,14 @@ function hasDirectAnyTypeArgument(type: ts.Type, typeChecker: ts.TypeChecker): b
   return false;
 }
 
-const isAny = (type: ts.Type, typeChecker: ts.TypeChecker): boolean => {
-  if (type.flags & ts.TypeFlags.Any) {
+// Each check asks the tsrs server about the type, so remember the answer.
+const isAnyCache = new Map<number, boolean>();
+
+const isAny = (type: Type, typeChecker: Checker): boolean =>
+  isAnyCache.getOrInsertComputed(type.id, () => isAnyUncached(type, typeChecker));
+
+function isAnyUncached(type: Type, typeChecker: Checker): boolean {
+  if (type.flags & TypeFlags.Any) {
     return true;
   }
 
@@ -120,12 +135,12 @@ const isAny = (type: ts.Type, typeChecker: ts.TypeChecker): boolean => {
   }
 
   // Check union members after direct arguments to support aliases like Maybe<any>.
-  if (type.isUnionOrIntersection()) {
-    return type.types.some(member => isAny(member, typeChecker));
+  if (type.isUnionType() || type.isIntersectionType()) {
+    return type.getTypes().some(member => isAny(member, typeChecker));
   }
 
   return false;
-};
+}
 
 function hasExplicitType(
   node: ts.VariableDeclaration | ts.ParameterDeclaration
@@ -133,9 +148,32 @@ function hasExplicitType(
   return !!node.type;
 }
 
+// Fetch the types of every declaration in a file in one request. A request per
+// declaration is much slower.
+function getDeclarationTypes(
+  sourceFile: ts.SourceFile,
+  typeChecker: Checker
+): Map<ts.Node, Type> {
+  const declarations: ts.Node[] = [];
+  const visit = (node: ts.Node) => {
+    if (
+      ts.isVariableDeclaration(node) ||
+      ts.isParameterDeclaration(node) ||
+      ts.isBindingElement(node)
+    ) {
+      declarations.push(node);
+    }
+    node.forEachChild(visit);
+  };
+  visit(sourceFile);
+
+  const types = typeChecker.getTypeAtLocation(declarations);
+  return new Map(declarations.map((node, index) => [node, types[index]!]));
+}
+
 function isContextuallyTypedCallbackParam(
   param: ts.ParameterDeclaration,
-  typeChecker: ts.TypeChecker
+  typeChecker: Checker
 ): boolean {
   const parent = param.parent;
   if (!ts.isFunctionExpression(parent) && !ts.isArrowFunction(parent)) {
@@ -176,10 +214,7 @@ function isContextuallyTypedCallbackParam(
     return false;
   }
 
-  const signatures = typeChecker.getSignaturesOfType(
-    contextualType,
-    ts.SignatureKind.Call
-  );
+  const signatures = typeChecker.getSignaturesOfType(contextualType, SignatureKind.Call);
   if (signatures.length === 0) {
     return false;
   }
@@ -225,7 +260,7 @@ function recordAny(
   kind: AnyHit['kind'],
   name: string
 ) {
-  const pos = ts.getLineAndCharacterOfPosition(sourceFile, node.getStart(sourceFile));
+  const pos = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile));
   const relPath = path.relative(process.cwd(), sourceFile.fileName);
 
   hits.push({file: relPath, line: pos.line + 1, column: pos.character + 1, kind, name});
@@ -237,7 +272,7 @@ function recordNonNull(
   node: ts.Node,
   kind: NonNullHit['kind']
 ) {
-  const pos = ts.getLineAndCharacterOfPosition(sourceFile, node.getStart(sourceFile));
+  const pos = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile));
   const relPath = path.relative(process.cwd(), sourceFile.fileName);
   const code = textPreview(node.getText(sourceFile));
   hits.push({file: relPath, line: pos.line + 1, column: pos.character + 1, kind, code});
@@ -250,7 +285,7 @@ function recordTypeAssertion(
   kind: TypeAssertionHit['kind'],
   targetType: string
 ) {
-  const pos = ts.getLineAndCharacterOfPosition(sourceFile, node.getStart(sourceFile));
+  const pos = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile));
   const relPath = path.relative(process.cwd(), sourceFile.fileName);
   const code = textPreview(node.getText(sourceFile));
   hits.push({
@@ -275,7 +310,8 @@ function textPreview(s: string) {
 function countBindingPatternElements(
   pattern: ts.BindingPattern,
   sourceFile: ts.SourceFile,
-  typeChecker: ts.TypeChecker,
+  typeChecker: Checker,
+  declarationTypes: Map<ts.Node, Type>,
   bumpFile: (typed: boolean) => void,
   anyHits: AnyHit[],
   parentKind: 'var(binding)' | 'param(binding)',
@@ -284,7 +320,8 @@ function countBindingPatternElements(
   let count = 0;
 
   for (const element of pattern.elements) {
-    if (ts.isOmittedExpression(element)) {
+    // TS 7 parses an elision like `[, b]` as a binding element without a name.
+    if (ts.isOmittedExpression(element) || !element.name) {
       continue;
     }
 
@@ -296,18 +333,18 @@ function countBindingPatternElements(
         : '<pattern>';
 
     // Check inferred type
-    const elementType = typeChecker.getTypeAtLocation(element);
+    const elementType = declarationTypes.get(element)!;
     if (!isAny(elementType, typeChecker)) {
       typed = true;
     } else if (element.dotDotDotToken) {
       // Rest spread element - check parent type
       const parentType = parentDeclaration
-        ? typeChecker.getTypeAtLocation(parentDeclaration)
+        ? declarationTypes.get(parentDeclaration)!
         : undefined;
       const isContextuallyTyped =
         parentDeclaration &&
         parentKind === 'param(binding)' &&
-        ts.isParameter(parentDeclaration) &&
+        ts.isParameterDeclaration(parentDeclaration) &&
         !hasExplicitType(parentDeclaration) &&
         isContextuallyTypedCallbackParam(parentDeclaration, typeChecker);
 
@@ -317,10 +354,10 @@ function countBindingPatternElements(
     } else if (
       parentDeclaration &&
       parentKind === 'param(binding)' &&
-      ts.isParameter(parentDeclaration)
+      ts.isParameterDeclaration(parentDeclaration)
     ) {
       // Function parameter destructuring - check parent context
-      const parentType = typeChecker.getTypeAtLocation(parentDeclaration);
+      const parentType = declarationTypes.get(parentDeclaration)!;
       const hasParentExplicitType = hasExplicitType(parentDeclaration);
       const isContextuallyTyped = isContextuallyTypedCallbackParam(
         parentDeclaration,
@@ -349,6 +386,7 @@ function countBindingPatternElements(
         element.name,
         sourceFile,
         typeChecker,
+        declarationTypes,
         bumpFile,
         anyHits,
         parentKind,
@@ -363,7 +401,8 @@ function countBindingPatternElements(
 function analyzeNode(
   node: ts.Node,
   sourceFile: ts.SourceFile,
-  typeChecker: ts.TypeChecker,
+  typeChecker: Checker,
+  declarationTypes: Map<ts.Node, Type>,
   opts: Options,
   bump: (typed: boolean) => void,
   anyHits: AnyHit[],
@@ -378,6 +417,7 @@ function analyzeNode(
         node.name,
         sourceFile,
         typeChecker,
+        declarationTypes,
         relBump,
         anyHits,
         'var(binding)',
@@ -386,7 +426,7 @@ function analyzeNode(
       return;
     }
 
-    const nodeType = typeChecker.getTypeAtLocation(node);
+    const nodeType = declarationTypes.get(node)!;
     const explicitTypeNode = node.type;
     const hasExplicitAny =
       explicitTypeNode && /\bany\b/.test(explicitTypeNode.getText(sourceFile));
@@ -412,13 +452,14 @@ function analyzeNode(
   }
 
   // Parameter declarations
-  else if (ts.isParameter(node)) {
+  else if (ts.isParameterDeclaration(node)) {
     if (ts.isArrayBindingPattern(node.name) || ts.isObjectBindingPattern(node.name)) {
       const relBump = (typed: boolean) => bump(typed);
       countBindingPatternElements(
         node.name,
         sourceFile,
         typeChecker,
+        declarationTypes,
         relBump,
         anyHits,
         'param(binding)',
@@ -431,7 +472,7 @@ function analyzeNode(
         const hasExplicitAny = node.type && /\bany\b/.test(node.type.getText(sourceFile));
         typedParam = !hasExplicitAny;
       } else {
-        const paramType = typeChecker.getTypeAtLocation(node);
+        const paramType = declarationTypes.get(node)!;
         if (!isAny(paramType, typeChecker)) {
           typedParam = true;
         } else if (isContextuallyTypedCallbackParam(node, typeChecker)) {
@@ -456,7 +497,7 @@ function analyzeNode(
     if (hasExplicitType(node)) {
       typed = !hasExplicitAny;
     } else {
-      const paramType = typeChecker.getTypeAtLocation(node);
+      const paramType = declarationTypes.get(node)!;
       if (!isAny(paramType, typeChecker)) {
         typed = true;
       } else if (isContextuallyTypedCallbackParam(node, typeChecker)) {
@@ -483,7 +524,10 @@ function analyzeNode(
   }
 
   // Property declarations with definite assignment assertion
-  else if (ts.isPropertyDeclaration(node) && node.exclamationToken) {
+  else if (
+    ts.isPropertyDeclaration(node) &&
+    node.postfixToken?.kind === ts.SyntaxKind.ExclamationToken
+  ) {
     if (opts.listNonNull) {
       recordNonNull(nonNullHits, sourceFile, node, 'nonnull(property)');
       bump(false); // Count as untyped
@@ -507,7 +551,7 @@ function analyzeNode(
   }
 
   // Type assertions (angle bracket syntax)
-  else if (ts.isTypeAssertionExpression(node)) {
+  else if (ts.isTypeAssertion(node)) {
     const targetType = node.type.getText(sourceFile);
 
     if (targetType === 'any') {
@@ -521,11 +565,12 @@ function analyzeNode(
   }
 
   // Recursively analyze child nodes
-  ts.forEachChild(node, child =>
+  node.forEachChild(child =>
     analyzeNode(
       child,
       sourceFile,
       typeChecker,
+      declarationTypes,
       opts,
       bump,
       anyHits,
@@ -544,83 +589,36 @@ function main() {
     process.exit(1);
   }
 
-  // Read and parse tsconfig
-  const configFile = ts.readConfigFile(tsconfigPath, filename => {
-    try {
-      return fs.readFileSync(filename, 'utf8');
-    } catch {
-      return;
-    }
-  });
-
-  if (configFile.error) {
-    console.error(
-      colors.red('Error reading tsconfig:'),
-      ts.formatDiagnostic(configFile.error, {
-        getCurrentDirectory: () => process.cwd(),
-        getCanonicalFileName: fileName => fileName,
-        getNewLine: () => ts.sys.newLine,
-      })
-    );
-    process.exit(1);
-  }
-
-  const host: ts.ParseConfigHost = {
-    fileExists: fs.existsSync,
-    readDirectory: ts.sys.readDirectory,
-    readFile: filename => {
-      try {
-        return fs.readFileSync(filename, 'utf8');
-      } catch {
-        return;
-      }
-    },
-    useCaseSensitiveFileNames: true,
-  };
-
-  const parsedConfig = ts.parseJsonConfigFileContent(
-    configFile.config,
-    host,
-    path.dirname(tsconfigPath)
-  );
-
-  if (parsedConfig.errors.length > 0) {
-    console.error(colors.red('Error parsing tsconfig:'));
-    for (const error of parsedConfig.errors) {
-      console.error(
-        ts.formatDiagnostic(error, {
-          getCurrentDirectory: () => process.cwd(),
-          getCanonicalFileName: fileName => fileName,
-          getNewLine: () => ts.sys.newLine,
-        })
-      );
-    }
-    process.exit(1);
-  }
-
   // Keep all tsconfig files in the program so ignored files can still provide
   // declarations needed to infer types in files that we analyze.
-  const programFiles = parsedConfig.fileNames.filter(filePath => {
+  using api = new API({cwd: process.cwd()});
+  using snapshot = api.createSnapshot({openProjects: [tsconfigPath]});
+  const project = snapshot.getConfiguredProject(tsconfigPath);
+  if (!project) {
+    console.error(colors.red(`Could not load project: ${tsconfigPath}`));
+    process.exit(1);
+  }
+
+  if (project.parsedCommandLine.errors.length > 0) {
+    console.error(colors.red('Error parsing tsconfig:'));
+    console.error(formatDiagnostics(project.parsedCommandLine.errors, api));
+    process.exit(1);
+  }
+
+  let files = project.parsedCommandLine.fileNames.filter(filePath => {
     return !filePath.includes('node_modules');
   });
-  let files = [...programFiles];
 
   if (opts.ignoreFiles) {
     const cwd = process.cwd();
-    const ignoreSet = new Set<string>();
-
-    for (const pattern of opts.ignoreFiles) {
-      try {
-        const matches = fs.globSync(pattern, {cwd});
-        for (const match of matches) {
-          ignoreSet.add(path.resolve(cwd, match));
-        }
-      } catch {
-        // Pattern might be invalid, skip it
-      }
-    }
-
-    files = files.filter(filePath => !ignoreSet.has(filePath));
+    const ignoreFiles = opts.ignoreFiles;
+    // Match against the tsconfig files instead of globbing the whole repo.
+    files = files.filter(
+      filePath =>
+        !ignoreFiles.some(pattern =>
+          path.matchesGlob(path.relative(cwd, filePath), pattern)
+        )
+    );
   }
 
   if (files.length === 0) {
@@ -628,10 +626,7 @@ function main() {
     process.exit(2);
   }
 
-  // Create the program from all tsconfig files. `files` only controls which
-  // files contribute to the coverage numbers below.
-  const program = ts.createProgram(programFiles, parsedConfig.options);
-  const typeChecker = program.getTypeChecker();
+  const typeChecker = project.checker;
 
   const totals = {total: 0, typed: 0};
   const perFile: Record<string, {total: number; typed: number}> = {};
@@ -651,9 +646,11 @@ function main() {
     }
   }
 
-  // Analyze each source file
-  for (const sourceFile of program.getSourceFiles()) {
-    if (!files.includes(sourceFile.fileName)) {
+  // Analyze each source file. `files` only controls which files contribute to
+  // the coverage numbers below.
+  for (const fileName of files) {
+    const sourceFile = project.program.getSourceFile(fileName);
+    if (!sourceFile) {
       continue;
     }
 
@@ -664,6 +661,7 @@ function main() {
       sourceFile,
       sourceFile,
       typeChecker,
+      getDeclarationTypes(sourceFile, typeChecker),
       opts,
       fileBump,
       anyHits,
