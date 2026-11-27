@@ -1,16 +1,15 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {
-  act,
-  renderGlobalModal,
-  screen,
-  userEvent,
-  waitFor,
-  within,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
-import {openModal} from '@sentry/scraps/modal';
+import {
+  makeClosableHeader,
+  makeCloseButton,
+  ModalBody,
+  ModalFooter,
+  type ModalRenderProps,
+} from '@sentry/scraps/modal';
 
 import * as analytics from 'sentry/utils/analytics';
 
@@ -19,6 +18,14 @@ import {PrivateGamingSdkAccessModal} from './privateGamingSdkAccessModal';
 jest.mock('sentry/utils/analytics');
 
 describe('PrivateGamingSdkAccessModal', () => {
+  const closeModal = jest.fn();
+  const modalProps: ModalRenderProps = {
+    Header: makeClosableHeader(closeModal),
+    Body: ModalBody,
+    Footer: ModalFooter,
+    CloseButton: makeCloseButton(closeModal),
+    closeModal,
+  };
   const organization = OrganizationFixture({
     enabledConsolePlatforms: ['playstation', 'xbox'],
   });
@@ -47,16 +54,13 @@ describe('PrivateGamingSdkAccessModal', () => {
     });
     const onSubmit = jest.fn();
 
-    renderGlobalModal();
-    act(() =>
-      openModal(modalProps => (
-        <PrivateGamingSdkAccessModal
-          {...modalProps}
-          organization={organization}
-          origin="org-settings"
-          onSubmit={onSubmit}
-        />
-      ))
+    render(
+      <PrivateGamingSdkAccessModal
+        {...modalProps}
+        organization={organization}
+        origin="org-settings"
+        onSubmit={onSubmit}
+      />
     );
 
     const sendButton = await screen.findByRole('button', {name: 'Send Invitation'});
@@ -101,16 +105,13 @@ describe('PrivateGamingSdkAccessModal', () => {
       body: {success: true, errors: null},
     });
 
-    renderGlobalModal();
-    act(() =>
-      openModal(modalProps => (
-        <PrivateGamingSdkAccessModal
-          {...modalProps}
-          organization={organization}
-          origin="onboarding"
-          gamingPlatform="xbox"
-        />
-      ))
+    render(
+      <PrivateGamingSdkAccessModal
+        {...modalProps}
+        organization={organization}
+        origin="onboarding"
+        gamingPlatform="xbox"
+      />
     );
 
     await userEvent.click(await screen.findByRole('button', {name: 'Send Invitation'}));
@@ -135,39 +136,31 @@ describe('PrivateGamingSdkAccessModal', () => {
       body: {error: 'Invite failed', detail: 'Not a member'},
     });
 
-    renderGlobalModal();
-    act(() =>
-      openModal(modalProps => (
-        <PrivateGamingSdkAccessModal
-          {...modalProps}
-          organization={organization}
-          origin="onboarding"
-          gamingPlatform="xbox"
-        />
-      ))
+    const {container} = render(
+      <PrivateGamingSdkAccessModal
+        {...modalProps}
+        organization={organization}
+        origin="onboarding"
+        gamingPlatform="xbox"
+      />
     );
 
     await userEvent.click(await screen.findByRole('button', {name: 'Send Invitation'}));
 
     expect(await screen.findByText('Invite failed - Not a member')).toBeInTheDocument();
-    expect(
-      within(screen.getByRole('dialog')).queryByText('Invite failed - Not a member')
-    ).not.toBeInTheDocument();
+    expect(container).not.toHaveTextContent('Invite failed - Not a member');
     expect(screen.getByRole('button', {name: 'Send Invitation'})).toBeInTheDocument();
   });
 
   it('asks to link GitHub when the user has no GitHub identity', async () => {
     MockApiClient.addMockResponse({url: '/users/me/user-identities/', body: []});
 
-    renderGlobalModal();
-    act(() =>
-      openModal(modalProps => (
-        <PrivateGamingSdkAccessModal
-          {...modalProps}
-          organization={organization}
-          origin="onboarding"
-        />
-      ))
+    render(
+      <PrivateGamingSdkAccessModal
+        {...modalProps}
+        organization={organization}
+        origin="onboarding"
+      />
     );
 
     expect(
