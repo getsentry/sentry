@@ -208,8 +208,8 @@ function shiftSubtree(server: BaseNode, offsetMs: number): void {
  */
 export function applyClockDriftCorrection(root: BaseNode): number {
   // Requests are grouped by the segment they were made from. A segment always runs in a single
-  // process, so all its requests share one clock. A project or SDK does not: a backend service runs
-  // on many hosts, each with its own clock.
+  // process, so all its requests share one clock. A project or SDK does not: NextJS projects run
+  // on clients and server for example, each with its own clock.
   const groups = new Map<BaseNode, ClientServerPair[]>();
 
   for (const pair of findClientServerPairs(root)) {
