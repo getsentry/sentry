@@ -31,6 +31,7 @@ import {Navigation} from 'sentry/views/navigation';
 import {PrimaryNavigationContextProvider} from 'sentry/views/navigation/primaryNavigationContext';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {OrganizationContainer} from 'sentry/views/organizationContainer';
+import {useConnectScmModalFromUrl} from 'sentry/views/seerExplorer/components/connectScmModal';
 import {SeerExplorerSidebarLayout} from 'sentry/views/seerExplorer/components/sidebar/seerExplorerSidebarLayout';
 import {useSeerExplorerDocumentTitle} from 'sentry/views/seerExplorer/components/useSeerExplorerDocumentTitle';
 import {SeerExplorerChatStateProvider} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
@@ -87,6 +88,12 @@ function AppDrawers() {
   return null;
 }
 
+function AppUrlModals() {
+  useConnectScmModalFromUrl();
+
+  return null;
+}
+
 function AppLayout({organization}: LayoutProps) {
   useSeerExplorerDocumentTitle();
   const pageBannerRef = useRef<HTMLDivElement>(null);
@@ -138,6 +145,7 @@ function AppLayout({organization}: LayoutProps) {
         </Flex>
       </Stack>
       {organization ? <AppDrawers /> : null}
+      {organization ? <AppUrlModals /> : null}
     </PrimaryNavigationContextProvider>
   );
 }

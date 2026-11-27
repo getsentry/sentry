@@ -340,7 +340,7 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # Agent-created PRs in Ask Seer chat; also gates code editing tools in chat
     manager.add("organizations:ask-seer-create-pr", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Pause Ask Seer chat to ask the user to fix access when a tool can't open a repo
-    manager.add("organizations:ask-seer-scm-connect-prompt", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    manager.add("organizations:ask-seer-scm-connect-prompt", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Accept a chat prompt ("Ask Seer" question) and its context alongside a Seer Agent chat message
     manager.add("organizations:seer-explorer-chat-prompts", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable sentry source code search tool
