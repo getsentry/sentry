@@ -95,6 +95,8 @@ def _dif_file_extension(file_format: str, file_type: str | None) -> str:
         return ".json"
     if file_format == "dartsymbolmap":
         return ".json"
+    if file_format == "wasmsourcemap":
+        return ".wasm.map"
 
     return ""
 
@@ -445,7 +447,11 @@ def clean_redundant_difs(project: Project, debug_id: str) -> None:
     bcsymbolmap_seen = False
     uuidmap_seen = False
     il2cpp_seen = False
-    for i, dif in enumerate(difs):
+    wasmsourcemap_seen = False
+    # Whether a file has been kept by the generic rule below. The companion files above share the
+    # debug id but never add to `all_features`, so they must not count as a newer file there.
+    generic_seen = False
+    for dif in difs:
         mime_type = dif.get_content_type()
         if mime_type == DIF_MIMETYPES["bcsymbolmap"]:
             if not bcsymbolmap_seen:
@@ -462,13 +468,19 @@ def clean_redundant_difs(project: Project, debug_id: str) -> None:
                 il2cpp_seen = True
             else:
                 dif.delete()
+        elif mime_type == DIF_MIMETYPES["wasmsourcemap"]:
+            if not wasmsourcemap_seen:
+                wasmsourcemap_seen = True
+            else:
+                dif.delete()
         else:
             # We always keep the latest file. If it has no features, likely the
             # previous files did not have features either and will be removed, or we
             # keep both. Subsequent uploads will remove this file later.
-            if i > 0 and dif.features <= all_features:
+            if generic_seen and dif.features <= all_features:
                 dif.delete()
             else:
+                generic_seen = True
                 all_features.update(dif.features)
 
 
@@ -501,6 +513,7 @@ def _get_dif_object_name(meta: DifMeta) -> str:
         "uuidmap",
         "il2cpp",
         "dartsymbolmap",
+        "wasmsourcemap",
     ):
         return meta.name
     if meta.file_format == "breakpad":
@@ -829,10 +842,99 @@ class DifKind(enum.Enum):
     Object = enum.auto()
     BcSymbolMap = enum.auto()
     UuidMap = enum.auto()
-    Il2Cpp = enum.auto()
+    # A JSON object: an il2cpp line mapping or a WASM source map. They can only be told apart
+    # once the JSON is parsed, see `detect_dif_from_path`.
+    JsonObject = enum.auto()
     DartSymbolMap = enum.auto()
     # TODO(flub): should we include proguard?  The tradeoff is that we'd be matching the
     # regex of it twice.  That cost is probably not too great to worry about.
+
+
+def _load_json(path: str) -> Any:
+    try:
+        with open(path, "rb") as fp:
+            return json.load(fp)
+    except json.JSONDecodeError as e:
+        logger.debug("File failed to load as JSON: %s", path)
+        raise BadDif("Invalid JSON: %s" % e)
+
+
+def _is_source_map(data: Any) -> bool:
+    """Whether a parsed JSON document looks like a source map (any version)."""
+    return (
+        isinstance(data, dict) and "version" in data and ("mappings" in data or "sections" in data)
+    )
+
+
+def _try_normalize_debug_id(debug_id: str) -> str | None:
+    try:
+        return normalize_debug_id(debug_id)
+    except SymbolicError:
+        return None
+
+
+def _wasm_source_map_debug_id(data: dict[str, Any], debug_id: str | None) -> str:
+    """The normalized debug id to store a WASM source map under.
+
+    A map can carry its own id in `debugId` (the source map debug id proposal, which Emscripten
+    fills with the module's build id) or in the legacy `debug_id`. That id wins over the one the
+    client sends. Without either, the client must send the module's build id.
+    """
+    embedded = data.get("debugId")
+    if embedded is None:
+        embedded = data.get("debug_id")
+
+    if embedded is None:
+        if debug_id is None:
+            raise BadDif("Missing debug_id for wasmsourcemap")
+        try:
+            return normalize_debug_id(debug_id)
+        except SymbolicError as e:
+            raise BadDif("Invalid debug_id for wasmsourcemap: %s" % e)
+
+    if not isinstance(embedded, str):
+        raise BadDif("Invalid debugId in wasmsourcemap: %r" % embedded)
+    try:
+        embedded = normalize_debug_id(embedded)
+    except SymbolicError as e:
+        raise BadDif("Invalid debugId in wasmsourcemap: %s" % e)
+
+    if debug_id is not None and _try_normalize_debug_id(debug_id) != embedded:
+        # Symbolicator looks up the map by the module's build id. A map stamped with another id is
+        # stored under its own id, so it is never paired with the module it was uploaded next to.
+        logger.warning(
+            "wasmsourcemap.debug_id_mismatch",
+            extra={"embedded_debug_id": embedded, "debug_id": debug_id},
+        )
+    return embedded
+
+
+def _detect_wasm_source_map(
+    data: dict[str, Any], path: str, name: str | None, debug_id: str | None
+) -> list[DifMeta]:
+    if data["version"] != 3:
+        raise BadDif("Unsupported source map version: %r" % data["version"])
+    if "sections" in data:
+        raise BadDif("Index source maps are not supported")
+    debug_id = _wasm_source_map_debug_id(data, debug_id)
+    logger.debug("File loaded as wasmsourcemap: %s", path)
+    return [
+        DifMeta(
+            file_format="wasmsourcemap",
+            arch="any",
+            debug_id=debug_id,
+            name=name,
+            path=path,
+            data={"features": []},
+        )
+    ]
+
+
+def _detect_il2cpp(path: str, name: str | None, debug_id: str | None) -> list[DifMeta]:
+    if debug_id is None:
+        raise BadDif("Missing debug_id for il2cpp")
+    logger.debug("File loaded as il2cpp: %s", path)
+    return [DifMeta(file_format="il2cpp", arch="any", debug_id=debug_id, name=name, path=path)]
 
 
 def determine_dif_kind(path: str) -> DifKind:
@@ -846,8 +948,8 @@ def determine_dif_kind(path: str) -> DifKind:
             return DifKind.BcSymbolMap
         elif data.startswith(b"<?xml"):
             return DifKind.UuidMap
-        elif data.startswith(b"{"):  # lol
-            return DifKind.Il2Cpp
+        elif data.startswith(b"{"):
+            return DifKind.JsonObject
         elif data.startswith(b"["):
             return DifKind.DartSymbolMap
         else:
@@ -927,20 +1029,11 @@ def detect_dif_from_path(
             return [
                 DifMeta(file_format="uuidmap", arch="any", debug_id=debug_id, name=name, path=path)
             ]
-    elif dif_kind == DifKind.Il2Cpp:
-        if debug_id is None:
-            raise BadDif("Missing debug_id for il2cpp")
-        try:
-            with open(path, "rb") as fp:
-                json.load(fp)
-        except json.JSONDecodeError as e:
-            logger.debug("File failed to load as il2cpp: %s", path)
-            raise BadDif("Invalid il2cpp: %s" % e)
-        else:
-            logger.debug("File loaded as il2cpp: %s", path)
-            return [
-                DifMeta(file_format="il2cpp", arch="any", debug_id=debug_id, name=name, path=path)
-            ]
+    elif dif_kind == DifKind.JsonObject:
+        data = _load_json(path)
+        if _is_source_map(data):
+            return _detect_wasm_source_map(data, path, name, debug_id)
+        return _detect_il2cpp(path, name, debug_id)
     elif dif_kind == DifKind.DartSymbolMap:
         if debug_id is None:
             raise BadDif("Missing debug_id for dartsymbolmap")

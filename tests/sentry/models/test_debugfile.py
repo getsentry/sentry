@@ -5,6 +5,7 @@ import tempfile
 import time
 import zipfile
 from io import BytesIO
+from pathlib import Path
 from typing import IO, Any
 from unittest.mock import MagicMock, patch
 
@@ -17,6 +18,7 @@ from objectstore_client import Session
 from symbolic.debuginfo import Archive
 
 from sentry.models.debugfile import (
+    BadDif,
     DifMeta,
     ProjectDebugFile,
     create_debug_file_from_dif,
@@ -192,6 +194,28 @@ class DebugFileTest(TestCase):
 
         # Verify that file_extension returns .json
         assert dif.file_extension == ".json"
+
+    def test_file_extension_wasmsourcemap(self) -> None:
+        """Test that wasmsourcemap files return .wasm.map file extension."""
+        # Create a file with wasmsourcemap content type
+        file = self.create_file(
+            name="main.dart.wasm.map",
+            type="project.dif",
+            headers={"Content-Type": "application/x-wasm-sourcemap+json"},
+        )
+
+        # Create a ProjectDebugFile
+        dif = self.create_dif_file(
+            file=file,
+            object_name="main.dart.wasm.map",
+            cpu_name="any",
+            debug_id="bda18fd8-5d4a-4eb8-9302-2d6bfad846b1",
+            data={},
+        )
+
+        # Verify that file_extension returns .wasm.map and that the format returns wasmsourcemap
+        assert dif.file_extension == ".wasm.map"
+        assert dif.file_format == "wasmsourcemap"
 
     def test_file_extension_macho_dbg(self) -> None:
         """Test that macho files return empty file extension."""
@@ -594,6 +618,79 @@ class CreateDebugFileTest(APITestCase):
         assert not created2
         assert dif1 == dif2
 
+    def test_keep_wasm_source_map_with_its_module(self) -> None:
+        # The CLI may upload the map before the module. Both share the debug id.
+        file = self.create_stored_file(b"source map")
+        source_map, created1 = self.create_dif(
+            file=file, file_format="wasmsourcemap", arch="any", data={"features": []}
+        )
+
+        file = self.create_stored_file(b"wasm module")
+        module, created2 = self.create_dif(
+            file=file, file_format="wasm", arch="wasm32", data={"features": ["symtab", "debug"]}
+        )
+
+        assert created1 and created2
+        assert ProjectDebugFile.objects.filter(id=source_map.id).exists()
+        assert ProjectDebugFile.objects.filter(id=module.id).exists()
+
+    def test_keep_module_without_features_when_map_is_newer(self) -> None:
+        # A fully stripped module has no features. The newer map must not make the generic rule
+        # treat it as redundant.
+        file = self.create_stored_file(b"stripped wasm module")
+        module, _ = self.create_dif(
+            file=file, file_format="wasm", arch="wasm32", data={"features": []}
+        )
+
+        file = self.create_stored_file(b"source map")
+        source_map, _ = self.create_dif(
+            file=file, file_format="wasmsourcemap", arch="any", data={"features": []}
+        )
+
+        assert ProjectDebugFile.objects.filter(id=module.id).exists()
+        assert ProjectDebugFile.objects.filter(id=source_map.id).exists()
+
+    def test_remove_older_module_when_map_is_newest(self) -> None:
+        # The generic rule still replaces an older module, even when a map is the newest file.
+        file = self.create_stored_file(b"first wasm module")
+        old_module, _ = self.create_dif(
+            file=file, file_format="wasm", arch="wasm32", data={"features": []}
+        )
+
+        file = self.create_stored_file(b"second wasm module")
+        new_module, _ = self.create_dif(
+            file=file, file_format="wasm", arch="wasm32", data={"features": []}
+        )
+
+        file = self.create_stored_file(b"source map")
+        source_map, _ = self.create_dif(
+            file=file, file_format="wasmsourcemap", arch="any", data={"features": []}
+        )
+
+        assert not ProjectDebugFile.objects.filter(id=old_module.id).exists()
+        assert ProjectDebugFile.objects.filter(id=new_module.id).exists()
+        assert ProjectDebugFile.objects.filter(id=source_map.id).exists()
+
+    def test_remove_older_wasm_source_map(self) -> None:
+        file = self.create_stored_file(b"wasm module")
+        module, _ = self.create_dif(
+            file=file, file_format="wasm", arch="wasm32", data={"features": ["symtab", "debug"]}
+        )
+
+        file = self.create_stored_file(b"first source map")
+        old_map, _ = self.create_dif(
+            file=file, file_format="wasmsourcemap", arch="any", data={"features": []}
+        )
+
+        file = self.create_stored_file(b"second source map")
+        new_map, _ = self.create_dif(
+            file=file, file_format="wasmsourcemap", arch="any", data={"features": []}
+        )
+
+        assert not ProjectDebugFile.objects.filter(id=old_map.id).exists()
+        assert ProjectDebugFile.objects.filter(id=new_map.id).exists()
+        assert ProjectDebugFile.objects.filter(id=module.id).exists()
+
     def test_remove_redundant_dif(self) -> None:
         file = self.create_stored_file(b"first debug symbols")
         dif1, created1 = self.create_dif(file=file, data={"features": ["debug"]})
@@ -833,8 +930,8 @@ def test_dartsymbolmap_file_odd_array_fails() -> None:
 
 def test_dartsymbolmap_file_dict_format() -> None:
     """Test that dict format JSON files are detected as Il2Cpp, not dartsymbolmap."""
-    # Note: Files starting with '{' are detected as Il2Cpp files, not dartsymbolmap
-    # This is because determine_dif_kind() checks for '{' before '[' and assigns Il2Cpp
+    # Note: Files starting with '{' are detected as JsonObject files, not dartsymbolmap
+    # This is because determine_dif_kind() checks for '{' before '[' and assigns JsonObject
     with tempfile.NamedTemporaryFile(mode="w", suffix=".json") as f:
         f.write('{"xyz": "ExceptionClass", "abc": "DatabaseError"}')
         f.flush()
@@ -876,3 +973,103 @@ def test_dartsymbolmap_file_missing_debug_id() -> None:
 
         with pytest.raises(BadDif, match="Missing debug_id for dartsymbolmap"):
             detect_dif_from_path(f.name, name="dartsymbolmap.json", debug_id=None)
+
+
+WASM_SOURCE_MAP = '{"version": 3, "sources": ["src/main.c"], "names": [], "mappings": "AAAA"}'
+
+
+def _detect_json_file(tmp_path: Path, content: str, debug_id: str | None) -> list[DifMeta]:
+    path = tmp_path / "main.wasm.map"
+    path.write_text(content)
+    return detect_dif_from_path(str(path), name="main.wasm.map", debug_id=debug_id)
+
+
+def test_wasm_source_map_detected(tmp_path: Path) -> None:
+    detected = _detect_json_file(
+        tmp_path, WASM_SOURCE_MAP, debug_id="BDA18FD8-5D4A-4EB8-9302-2D6BFAD846B1"
+    )
+
+    assert len(detected) == 1
+    dif_meta = detected[0]
+    assert dif_meta.file_format == "wasmsourcemap"
+    assert dif_meta.arch == "any"
+    # Symbolicator looks files up by the normalized (lowercase) debug id.
+    assert dif_meta.debug_id == "bda18fd8-5d4a-4eb8-9302-2d6bfad846b1"
+    assert dif_meta.name == "main.wasm.map"
+    assert dif_meta.data == {"features": []}
+
+
+def test_wasm_source_map_unsupported_version(tmp_path: Path) -> None:
+    content = '{"version": 4, "sources": [], "names": [], "mappings": "AAAA"}'
+
+    with pytest.raises(BadDif, match="Unsupported source map version: 4"):
+        _detect_json_file(tmp_path, content, debug_id="bda18fd8-5d4a-4eb8-9302-2d6bfad846b1")
+
+
+def test_wasm_source_map_index_map_rejected(tmp_path: Path) -> None:
+    content = '{"version": 3, "sections": [{"offset": {"line": 0, "column": 0}, "map": {}}]}'
+
+    with pytest.raises(BadDif, match="Index source maps are not supported"):
+        _detect_json_file(tmp_path, content, debug_id="bda18fd8-5d4a-4eb8-9302-2d6bfad846b1")
+
+
+def test_wasm_source_map_missing_debug_id(tmp_path: Path) -> None:
+    with pytest.raises(BadDif, match="Missing debug_id for wasmsourcemap"):
+        _detect_json_file(tmp_path, WASM_SOURCE_MAP, debug_id=None)
+
+
+def test_wasm_source_map_invalid_debug_id(tmp_path: Path) -> None:
+    with pytest.raises(BadDif, match="Invalid debug_id for wasmsourcemap"):
+        _detect_json_file(tmp_path, WASM_SOURCE_MAP, debug_id="not-a-debug-id")
+
+
+def test_wasm_source_map_embedded_debug_id(tmp_path: Path) -> None:
+    # Emscripten writes the module's build id into the map, without hyphens.
+    content = '{"version": 3, "debugId": "3B5EA884827C57BDAF43D4AEE910713C", "mappings": "AAAA"}'
+
+    detected = _detect_json_file(tmp_path, content, debug_id=None)
+
+    assert len(detected) == 1
+    assert detected[0].file_format == "wasmsourcemap"
+    assert detected[0].debug_id == "3b5ea884-827c-57bd-af43-d4aee910713c"
+
+
+def test_wasm_source_map_embedded_debug_id_wins(tmp_path: Path) -> None:
+    content = (
+        '{"version": 3, "debugId": "3b5ea884-827c-57bd-af43-d4aee910713c", "mappings": "AAAA"}'
+    )
+
+    detected = _detect_json_file(tmp_path, content, debug_id="bda18fd8-5d4a-4eb8-9302-2d6bfad846b1")
+
+    assert len(detected) == 1
+    assert detected[0].debug_id == "3b5ea884-827c-57bd-af43-d4aee910713c"
+
+
+def test_wasm_source_map_legacy_embedded_debug_id(tmp_path: Path) -> None:
+    content = (
+        '{"version": 3, "debug_id": "3b5ea884-827c-57bd-af43-d4aee910713c", "mappings": "AAAA"}'
+    )
+
+    detected = _detect_json_file(tmp_path, content, debug_id=None)
+
+    assert len(detected) == 1
+    assert detected[0].debug_id == "3b5ea884-827c-57bd-af43-d4aee910713c"
+
+
+@pytest.mark.parametrize("embedded", ['"not-a-debug-id"', "42"])
+def test_wasm_source_map_invalid_embedded_debug_id(tmp_path: Path, embedded: str) -> None:
+    content = '{"version": 3, "debugId": %s, "mappings": "AAAA"}' % embedded
+
+    with pytest.raises(BadDif, match="Invalid debugId in wasmsourcemap"):
+        _detect_json_file(tmp_path, content, debug_id="bda18fd8-5d4a-4eb8-9302-2d6bfad846b1")
+
+
+def test_il2cpp_still_detected_alongside_wasm_source_maps(tmp_path: Path) -> None:
+    """A JSON object that is not a source map keeps being stored as il2cpp."""
+    content = '{"/src/Game.cpp": {"12": {"cs_file": "Game.cs", "cs_line": 3}}}'
+
+    detected = _detect_json_file(tmp_path, content, debug_id="bda18fd8-5d4a-4eb8-9302-2d6bfad846b1")
+
+    assert len(detected) == 1
+    assert detected[0].file_format == "il2cpp"
+    assert detected[0].data is None
