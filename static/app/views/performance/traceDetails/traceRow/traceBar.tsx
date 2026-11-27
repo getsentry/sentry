@@ -90,7 +90,7 @@ export function MissingInstrumentationTraceBar(
         </div>
       </div>
       <div ref={registerSpanBarTextRef} className="TraceBarDuration">
-        {duration}
+        <span className="TraceBarDurationText">{duration}</span>
       </div>
     </Fragment>
   );
@@ -166,7 +166,7 @@ export function TraceBar(props: TraceBarProps) {
         ) : null}
       </div>
       <div ref={registerSpanBarTextRef} className="TraceBarDuration">
-        {duration}
+        <span className="TraceBarDurationText">{duration}</span>
       </div>
     </Fragment>
   );
@@ -265,7 +265,7 @@ export function AutogroupedTraceBar(props: AutogroupedTraceBarProps) {
         ) : null}
       </div>
       <div ref={registerAutogroupedSpanBarTextRef} className="TraceBarDuration">
-        {duration}
+        <span className="TraceBarDurationText">{duration}</span>
       </div>
     </Fragment>
   );
