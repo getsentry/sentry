@@ -73,7 +73,7 @@ from sentry.models.project import Project
 from sentry.models.team import Team, TeamStatus
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.organizations.services.organization import RpcOrganizationSummary
-from sentry.replays.models import OrganizationMemberReplayAccess
+from sentry.replays.models import OrganizationMemberReplayAccess, TeamReplayAccess
 from sentry.seer.autofix.utils import get_valid_automated_run_stopping_points
 from sentry.types.cell import get_locality_name_for_cell
 from sentry.users.api.serializers.user import AvatarTypeName, SerializedAvatarFields
@@ -861,6 +861,7 @@ class OrganizationSerializerResponse(_OrganizationSerializerResponseOptional):
     ]
     hasGranularReplayPermissions: bool
     replayAccessMembers: list[int]
+    replayAccessTeams: list[str]
 
 
 class OrganizationSerializer(OrganizationSummarySerializer):
@@ -885,6 +886,13 @@ class OrganizationSerializer(OrganizationSummarySerializer):
                 if user_id is not None:
                     replay_access_by_org.setdefault(org_id, []).append(user_id)
 
+        replay_access_teams_by_org: dict[int, list[str]] = {}
+        if enabled_org_ids:
+            for org_id, team_id in TeamReplayAccess.objects.filter(
+                team__organization__in=enabled_org_ids
+            ).values_list("team__organization_id", "team_id"):
+                replay_access_teams_by_org.setdefault(org_id, []).append(str(team_id))
+
         for item in item_list:
             attrs[item]["replay_permissions_enabled"] = replay_permissions.get(item.id, False)
             attrs[item]["replay_access_members"] = (
@@ -892,6 +900,7 @@ class OrganizationSerializer(OrganizationSummarySerializer):
                 if replay_permissions.get(item.id, False)
                 else []
             )
+            attrs[item]["replay_access_teams"] = replay_access_teams_by_org.get(item.id, [])
 
         return attrs
 
@@ -1055,6 +1064,7 @@ class OrganizationSerializer(OrganizationSummarySerializer):
                 "isDynamicallySampled": is_dynamically_sampled,
                 "hasGranularReplayPermissions": bool(attrs.get("replay_permissions_enabled")),
                 "replayAccessMembers": attrs.get("replay_access_members", []),
+                "replayAccessTeams": attrs.get("replay_access_teams", []),
             },
         )
 
@@ -1101,6 +1111,7 @@ class OrganizationSerializer(OrganizationSummarySerializer):
         "dashboardsAsyncQueueParallelLimit": "Internal query-queue tuning value.",
         "hasGranularReplayPermissions": "Internal replay permission flag surfaced only to the Sentry UI.",
         "replayAccessMembers": "Internal replay access list surfaced only to the Sentry UI.",
+        "replayAccessTeams": "Internal replay settings state for the Sentry UI, withheld like replayAccessMembers so both replay access lists stay out of the public schema together.",
     }
 )
 class OrganizationWithProjectsAndTeamsSerializerResponse(OrganizationSerializerResponse):
