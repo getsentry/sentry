@@ -318,6 +318,49 @@ describe('useChartLayers', () => {
       );
       expect(result.current.annotations).toBeUndefined();
     });
+
+    it('offers confidence but no releases, flags, or changes on logs charts', async () => {
+      const logsOrganization = OrganizationFixture({
+        ...annotationsOrganization,
+        features: [
+          ...annotationsOrganization.features,
+          'data-browsing-time-series-confidence',
+        ],
+      });
+      const releasesRequest = MockApiClient.addMockResponse({
+        url: `/organizations/${annotationsOrganization.slug}/releases/stats/`,
+        body: [release],
+      });
+      flagLogRequest = MockApiClient.addMockResponse({
+        url: `/organizations/${annotationsOrganization.slug}/flags/logs/`,
+        body: {data: [flagChange]},
+      });
+      annotationsRequest = MockApiClient.addMockResponse({
+        url: `/organizations/${annotationsOrganization.slug}/timeseries-annotations/`,
+        body: [change],
+      });
+
+      const {result} = renderHookWithProviders(
+        () =>
+          useChartLayers({
+            dataset: DiscoverDatasets.OURLOGS,
+            interval: '1h',
+            source: 'explore',
+          }),
+        {organization: logsOrganization}
+      );
+
+      await waitFor(() =>
+        expect(result.current.layerControl?.layers.map(layer => layer.value)).toEqual([
+          'dropped-data',
+          'confidence',
+        ])
+      );
+      expect(result.current.annotations).toBeUndefined();
+      expect(releasesRequest).not.toHaveBeenCalled();
+      expect(flagLogRequest).not.toHaveBeenCalled();
+      expect(annotationsRequest).not.toHaveBeenCalled();
+    });
   });
 
   it('has no layers and requests nothing when disabled', () => {
@@ -367,6 +410,7 @@ describe('useChartLayers', () => {
     expect(result.current.droppedData.band).toBeDefined();
     expect(trackAnalytics).toHaveBeenCalledWith('explore.confidence.layer_toggled', {
       organization: confidenceOrganization,
+      dataset: DiscoverDatasets.SPANS,
       source: 'explore',
       selected: false,
     });

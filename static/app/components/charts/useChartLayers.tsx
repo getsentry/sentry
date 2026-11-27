@@ -8,7 +8,7 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {DroppedDataAnalyticsSource} from 'sentry/utils/analytics/exploreAnalyticsEvents';
 import {defined} from 'sentry/utils/defined';
-import type {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import type {AnnotationItem, AnnotationKind} from './annotations/types';
@@ -20,6 +20,16 @@ const FLAGS_LAYER = 'flags';
 const CONFIDENCE_LAYER = 'confidence';
 const CHANGES_LAYER = 'changes';
 
+// Logs and Metrics charts don't offer releases, flags, or changes yet.
+const ANNOTATION_DATASETS = new Set<DiscoverDatasets>([DiscoverDatasets.SPANS]);
+
+// Only sampled, extrapolated datasets have low-confidence data points.
+const CONFIDENCE_DATASETS = new Set<DiscoverDatasets>([
+  DiscoverDatasets.SPANS,
+  DiscoverDatasets.OURLOGS,
+  DiscoverDatasets.TRACEMETRICS,
+]);
+
 interface UseChartLayersParams {
   dataset: DiscoverDatasets;
   interval: string;
@@ -30,7 +40,8 @@ interface UseChartLayersParams {
 
 /**
  * The context layers drawn on a time series chart, and the single Layers
- * control that toggles them.
+ * control that toggles them. The dataset and the organization's feature flags
+ * decide which layers the chart offers.
  */
 export function useChartLayers({
   dataset,
@@ -41,7 +52,9 @@ export function useChartLayers({
 }: UseChartLayersParams) {
   const organization = useOrganization();
   const areAnnotationsEnabled =
-    enabled && organization.features.includes('timeseries-annotations');
+    enabled &&
+    ANNOTATION_DATASETS.has(dataset) &&
+    organization.features.includes('timeseries-annotations');
   const {
     release: releaseItems,
     flag: flagItems,
@@ -73,7 +86,9 @@ export function useChartLayers({
   );
 
   const isConfidenceEnabled =
-    enabled && organization.features.includes('data-browsing-time-series-confidence');
+    enabled &&
+    CONFIDENCE_DATASETS.has(dataset) &&
+    organization.features.includes('data-browsing-time-series-confidence');
   const [isConfidenceLayerOn, setIsConfidenceLayerOn] = useState(true);
 
   const droppedData = useDroppedDataLayer(
@@ -149,6 +164,7 @@ export function useChartLayers({
       setIsConfidenceLayerOn(selected);
       trackAnalytics('explore.confidence.layer_toggled', {
         organization,
+        dataset,
         source,
         selected,
       });
