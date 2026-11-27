@@ -4,16 +4,15 @@ interface SpanErrorCardProps {
   icon: React.ReactNode;
   message: React.ReactNode;
   title: React.ReactNode;
-  className?: string;
 }
 
 /**
  * Card for a span that ended in an error without an associated issue. Sits in
  * the same slot as the span's issue list.
  */
-export function SpanErrorCard({icon, title, message, className}: SpanErrorCardProps) {
+export function SpanErrorCard({icon, title, message}: SpanErrorCardProps) {
   return (
-    <Container className={className} padding="md 0">
+    <Container padding="md 0" flexShrink={0}>
       <Flex
         align="center"
         gap="md"

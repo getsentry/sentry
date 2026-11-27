@@ -12,8 +12,13 @@ import {
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
 import type {BaseNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/baseNode';
+import {HTTP_ERROR_STATUSES} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/constants';
 
 import {SpanErrorCard} from './spanErrorCard';
+
+function isFailedStatus(status: string | undefined): boolean {
+  return !!status && (status.includes('error') || HTTP_ERROR_STATUSES.has(status));
+}
 
 /**
  * Follows the OTel GenAI conventions: the span status marks the failure,
@@ -31,7 +36,7 @@ function getAISpanError(node: AITraceSpanNode, attributes: TraceItemResponseAttr
 
   const isTool = getIsExecuteToolNode(node);
   const isMcpError = isTool && getString('mcp.tool.result.is_error') === 'true';
-  if (!getString(SpanFields.SPAN_STATUS)?.includes('error') && !isMcpError) {
+  if (!isFailedStatus(getString(SpanFields.SPAN_STATUS)) && !isMcpError) {
     return null;
   }
 
@@ -49,10 +54,9 @@ function getAISpanError(node: AITraceSpanNode, attributes: TraceItemResponseAttr
 interface AISpanErrorCardProps {
   node: BaseNode;
   attributes?: TraceItemResponseAttribute[];
-  className?: string;
 }
 
-export function AISpanErrorCard({node, attributes, className}: AISpanErrorCardProps) {
+export function AISpanErrorCard({node, attributes}: AISpanErrorCardProps) {
   const error = attributes && getIsAiNode(node) ? getAISpanError(node, attributes) : null;
   if (!error) {
     return null;
@@ -60,7 +64,6 @@ export function AISpanErrorCard({node, attributes, className}: AISpanErrorCardPr
 
   return (
     <SpanErrorCard
-      className={className}
       icon={<IconFire size="md" variant="danger" />}
       title={
         <Text bold>{error.type ?? (error.isTool ? t('Tool Error') : t('Error'))}</Text>

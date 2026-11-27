@@ -175,6 +175,22 @@ describe('ConversationSpanDetail', () => {
       ['RateLimitError', 'Rate limit exceeded'],
     ],
     [
+      'a tool call that timed out',
+      'tool',
+      [
+        {name: 'span.status', type: 'str', value: 'deadline_exceeded'},
+        {name: 'error.type', type: 'str', value: 'TimeoutError'},
+        {name: 'span.status.message', type: 'str', value: 'Tool timed out after 30s'},
+      ],
+      ['TimeoutError', 'Tool timed out after 30s'],
+    ],
+    [
+      'a tool call that failed without a message',
+      'tool',
+      [{name: 'span.status', type: 'str', value: 'not_found'}],
+      ['Tool Error', 'This tool call failed but has no associated issue.'],
+    ],
+    [
       'an MCP tool result flagged as an error',
       'tool',
       [
