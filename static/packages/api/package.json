@@ -98,7 +98,7 @@
     "@types/node": "26.6.4",
     "esbuild": "0.28.1",
     "fast-check": "4.10.2",
-    "oxlint": "1.94.0",
+    "oxlint": "1.95.0",
     "tsrs": "7.1.0-beta.tsrs2",
     "typescript": "npm:@typescript/typescript6@6.0.2",
     "valibot": "1.4.2",
