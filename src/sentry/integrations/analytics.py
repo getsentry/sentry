@@ -65,6 +65,16 @@ class IntegrationRepoAddedEvent(analytics.Event):
     organization_id: int
 
 
+@analytics.eventclass("integration.installation_repos.added")
+class IntegrationInstallationReposAddedEvent(analytics.Event):
+    """Someone gave a GitHub app installation access to more repositories, on GitHub."""
+
+    provider: str
+    integration_id: int
+    organization_id: int
+    repos_added: int
+
+
 @analytics.eventclass("integration.resolve.commit")
 class IntegrationResolveCommitEvent(analytics.Event):
     provider: str | None
@@ -100,6 +110,7 @@ def register_analytics() -> None:
     analytics.register(IntegrationIssueAssigneeSyncedEvent)
     analytics.register(IntegrationIssueCommentsSyncedEvent)
     analytics.register(IntegrationRepoAddedEvent)
+    analytics.register(IntegrationInstallationReposAddedEvent)
     analytics.register(IntegrationResolveCommitEvent)
     analytics.register(IntegrationResolvePREvent)
     analytics.register(IntegrationStacktraceLinkEvent)

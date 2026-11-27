@@ -32,6 +32,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.constants import EXTENSION_LANGUAGE_MAP, ObjectStatus
 from sentry.identity.services.identity.service import identity_service
+from sentry.integrations.analytics import IntegrationInstallationReposAddedEvent
 from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.github.client import GitHubApiClient, GitHubBaseClient
 from sentry.integrations.github.webhook_types import (
@@ -688,6 +689,27 @@ class InstallationRepositoriesEventWebhook(GitHubWebhook):
                 "repository_selection": repository_selection,
             }
         )
+
+        if not repos_added:
+            return
+        for organization_integration in result.organization_integrations:
+            try:
+                analytics.record(
+                    IntegrationInstallationReposAddedEvent(
+                        provider=self.provider,
+                        integration_id=integration.id,
+                        organization_id=organization_integration.organization_id,
+                        repos_added=len(repos_added),
+                    )
+                )
+            except Exception:
+                logger.exception(
+                    "github.installation_repositories.analytics_failed",
+                    extra={
+                        "organization_id": organization_integration.organization_id,
+                        "integration_id": integration.id,
+                    },
+                )
 
 
 class PushEventWebhook(GitHubWebhook):
