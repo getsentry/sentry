@@ -6,64 +6,104 @@ from collections import Counter
 from collections.abc import Generator, Iterator
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from enum import StrEnum
+from enum import StrEnum, unique
 from typing import Any, Literal, NamedTuple
 
 from tools.api_guidelines.helper_kinds import Kind
 from tools.api_guidelines.rules import ApiRule
 
+
+# a duplicate code would otherwise become a silent alias of the first rule
+@unique
+class GeneralRule(StrEnum):
+    """
+    Codes for the rules that aren't API rules, the counterpart to ApiRule. Every message here
+    starts with a code from one of the two, so a new rule has to pick which kind it is
+    """
+
+    S001 = "S001"
+    S002 = "S002"
+    S003 = "S003"
+    S004 = "S004"
+    S005 = "S005"
+    S006 = "S006"
+    S007 = "S007"
+    S008 = "S008"
+    S009 = "S009"
+    S010 = "S010"
+    S011 = "S011"
+    S012 = "S012"
+    S013 = "S013"
+    S014 = "S014"
+    S015 = "S015"
+    S016 = "S016"
+    S017 = "S017"
+    S018 = "S018"
+    S019 = "S019"
+    S020 = "S020"
+    S024 = "S024"
+    S029 = "S029"
+    S030 = "S030"
+    S031 = "S031"
+    S032 = "S032"
+    S033 = "S033"
+    S035 = "S035"
+
+
 S001_fmt = (
-    "S001 Avoid using the {} mock call as it is "
+    f"{GeneralRule.S001} Avoid using the {{}} mock call as it is "
     "confusing and prone to causing invalid test "
     "behavior."
 )
 S001_methods = frozenset(("not_called", "called_once", "called_once_with"))
 
-S002_msg = "S002 print functions or statements are not allowed."
+S002_msg = f"{GeneralRule.S002} print functions or statements are not allowed."
 
-S003_msg = "S003 Use `from sentry.utils import json` instead."
+S003_msg = f"{GeneralRule.S003} Use `from sentry.utils import json` instead."
 S003_modules = frozenset(("json", "simplejson"))
 
-S004_msg = "S004 Use `pytest.raises` instead for better debuggability."
+S004_msg = f"{GeneralRule.S004} Use `pytest.raises` instead for better debuggability."
 S004_methods = frozenset(("assertRaises", "assertRaisesRegex"))
 
-S005_msg = "S005 Do not import models from sentry.models but the actual module"
+S005_msg = f"{GeneralRule.S005} Do not import models from sentry.models but the actual module"
 
-S006_msg = "S006 Do not use force_bytes / force_str -- test the types directly"
+S006_msg = f"{GeneralRule.S006} Do not use force_bytes / force_str -- test the types directly"
 
-S007_msg = "S007 Do not import sentry.testutils into production code."
+S007_msg = f"{GeneralRule.S007} Do not import sentry.testutils into production code."
 
-S008_msg = "S008 Use datetime.fromisoformat rather than guessing at date formats"
+S008_msg = f"{GeneralRule.S008} Use datetime.fromisoformat rather than guessing at date formats"
 
-S009_msg = "S009 Use `raise` with no arguments to reraise exceptions"
+S009_msg = f"{GeneralRule.S009} Use `raise` with no arguments to reraise exceptions"
 
-S010_msg = "S010 Except handler does nothing and should be removed"
+S010_msg = f"{GeneralRule.S010} Except handler does nothing and should be removed"
 
-S011_msg = "S011 Use override_options(...) instead to ensure proper cleanup"
+S011_msg = f"{GeneralRule.S011} Use override_options(...) instead to ensure proper cleanup"
 
 # SentryIsAuthenticated extends from IsAuthenticated and provides additional checks for demo users
-S012_msg = "S012 Use `from sentry.api.permissions import SentryIsAuthenticated` instead"
+S012_msg = (
+    f"{GeneralRule.S012} Use `from sentry.api.permissions import SentryIsAuthenticated` instead"
+)
 
-S013_msg = "S013 Use `django.contrib.postgres.fields.array.ArrayField` instead"
+S013_msg = f"{GeneralRule.S013} Use `django.contrib.postgres.fields.array.ArrayField` instead"
 
-S014_msg = "S014 Use `unittest.mock` instead"
+S014_msg = f"{GeneralRule.S014} Use `unittest.mock` instead"
 
-S016_msg = "S016 Use `from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor` instead of `concurrent.futures.ThreadPoolExecutor` to ensure contextvars propagation."
+S016_msg = f"{GeneralRule.S016} Use `from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor` instead of `concurrent.futures.ThreadPoolExecutor` to ensure contextvars propagation."
 
 S017_msg = (
-    "S017 Platform boundary violation: do not import non-platform getsentry code in "
+    f"{GeneralRule.S017} Platform boundary violation: do not import non-platform getsentry code in "
     "billing/platform/. Use only getsentry.billing.platform.* imports."
 )
 
 S018_msg = (
-    "S018 Use `sentry.cache.backends.reconnectingmemcache.ReconnectingMemcache` "
+    f"{GeneralRule.S018} Use `sentry.cache.backends.reconnectingmemcache.ReconnectingMemcache` "
     "instead of `django.core.cache.backends.memcached.PyMemcacheCache`."
 )
 S018_fqn = "django.core.cache.backends.memcached.PyMemcacheCache"  # noqa: S018
 S018_module = "django.core.cache.backends.memcached"
 
 S019_fmt = (
-    "S019 {!r} is a reserved LogRecord attribute; using it as a key in "
+    f"{GeneralRule.S019} {{!r}} is a reserved LogRecord attribute; using it as a key in "
     "logging extra= raises KeyError at runtime"
 )
 S019_logging_methods = frozenset(
@@ -102,7 +142,7 @@ S019_logrecord_attrs = frozenset(
 # Snuba EAP standard retention defaults to 30d and routes older starts to tier 8.
 # OrganizationEventsEndpointTestBase injects statsPeriod via client_get/do_request.
 S020_msg = (
-    "S020 Use client_get()/do_request() instead of self.client.get() in "
+    f"{GeneralRule.S020} Use client_get()/do_request() instead of self.client.get() in "
     "OrganizationEventsEndpointTestBase suites so default statsPeriod is applied"
 )
 S020_eap_base_classes = frozenset(
@@ -150,13 +190,13 @@ S023_bad_path_msg = (
 )
 
 S024_msg = (
-    "S024 This module discovers .py files and parses them with ast, which is a "
+    f"{GeneralRule.S024} This module discovers .py files and parses them with ast, which is a "
     "linter built outside the two supported mechanisms. Single-file checks belong "
     "in tools/flake8_plugin.py as an S rule; checks that must resolve a name from "
     "another module belong in tools/mypy_helpers/plugin.py."
 )
 S024_stale_msg = (
-    "S024 stale safelist entry: this module no longer discovers and parses .py "
+    f"{GeneralRule.S024} stale safelist entry: this module no longer discovers and parses .py "
     "files. Remove it from S024_safelist."
 )
 # Repo-relative paths that parse source for reasons other than linting. Shrinks
@@ -166,16 +206,16 @@ S024_safelist = frozenset(("tools/migrations/squash.py",))
 _S024_discovery_methods = frozenset(("rglob", "glob", "iglob"))
 
 S029_msg = (
-    "S029 Seer connection pools must use make_signed_seer_api_request; "
+    f"{GeneralRule.S029} Seer connection pools must use make_signed_seer_api_request; "
     "raw urlopen bypasses ViewerContext propagation"
 )
 
 S030_msg = (
-    "S030 Do not add new callers of the legacy Seer LLM generate API; "
+    f"{GeneralRule.S030} Do not add new callers of the legacy Seer LLM generate API; "
     "add a named Seer one-shot so prompts and model selection stay in Seer"
 )
 S030_stale_msg = (
-    "S030 stale legacy Seer LLM generate allowlist entry for {} in {}; "
+    f"{GeneralRule.S030} stale legacy Seer LLM generate allowlist entry for {{}} in {{}}; "
     "remove it from S030_allowlist"
 )
 _S030_LEGACY_MODULE = "sentry.seer.signed_seer_api"
@@ -184,12 +224,12 @@ _S030_LEGACY_ROUTE = "/v1/llm/generate"
 _S030_MODULE_SCOPE = "<module>"
 
 S031_msg = (
-    "S031 Do not assign to settings in tests; use override_settings(...) or "
+    f"{GeneralRule.S031} Do not assign to settings in tests; use override_settings(...) or "
     "override_options(...) so the change is undone in order"
 )
 
 S032_msg = (
-    "S032 acting_user_id() is None when no user is calling (e.g. a service account), "
+    f"{GeneralRule.S032} acting_user_id() is None when no user is calling (e.g. a service account), "
     "and a None lookup matches rows with no user; call require_user(request) or handle "
     "None first"
 )
@@ -198,12 +238,12 @@ S032_msg = (
 _S032_query_methods = frozenset(("filter", "exclude", "get", "get_or_create", "update_or_create"))
 
 S033_msg = (
-    "S033 Don't assign request.user or request.auth directly; call "
+    f"{GeneralRule.S033} Don't assign request.user or request.auth directly; call "
     "set_request_principal(request, user, auth)."
 )
 
 S035_msg = (
-    "S035 .first() on a queryset with no .order_by(...) makes Django add ORDER BY pk, "
+    f"{GeneralRule.S035} .first() on a queryset with no .order_by(...) makes Django add ORDER BY pk, "
     "which can pick a slow query plan; use .get_or_none(...) for a single unique row, "
     "or order by a column that matches the filter's index. Ordering by id does not "
     "help; it sends the same query"
@@ -277,7 +317,7 @@ S034_msg = (
 
 def _s015_msg() -> str:
     return (
-        "S015 Do not hardcode datetime with current or future UTC year at module/class "
+        f"{GeneralRule.S015} Do not hardcode datetime with current or future UTC year at module/class "
         "scope or in freeze_time(...); use before_now(...), now-timedelta, or an older fixed year"
     )
 
