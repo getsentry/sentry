@@ -131,6 +131,24 @@ class ExternalTeamTest(APITestCase):
             "integrationId": str(self.integration.id),
         }
 
+    def test_create_ignores_user_mapping_with_same_name(self) -> None:
+        external_user = self.create_external_user(
+            self.user, external_name="@octocat", integration=self.integration
+        )
+
+        data = {
+            "externalName": "@octocat",
+            "provider": "github",
+            "integrationId": self.integration.id,
+        }
+        with self.feature({"organizations:integrations-codeowners": True}):
+            response = self.get_success_response(
+                self.organization.slug, self.team.slug, status_code=201, **data
+            )
+        assert response.data["id"] != str(external_user.id)
+        assert response.data["teamId"] == str(self.team.id)
+        assert ExternalActor.objects.get(id=external_user.id).team_id is None
+
     def test_create_with_invalid_integration_id(self) -> None:
         self.org2 = self.create_organization(owner=self.user, name="org2")
         self.integration = self.create_integration(

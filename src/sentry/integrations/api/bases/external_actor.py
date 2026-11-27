@@ -108,7 +108,11 @@ class ExternalActorSerializerBase(CamelSnakeModelSerializer[Any]):
 
     def create(self, validated_data: MutableMapping[str, Any]) -> tuple[ExternalActor, bool]:
         actor_params = self.get_actor_params(validated_data)
-        lookup_params = actor_params if self._include_actor_in_lookup else {}
+        # A user mapping can share an external name with the team being linked,
+        # so only match rows of the same actor type.
+        lookup_params = (
+            actor_params if self._include_actor_in_lookup else {f"{self._actor_key}__isnull": False}
+        )
         defaults = {"source": ExternalActorSource.MANUAL.value}
         if not self._include_actor_in_lookup:
             defaults.update(actor_params)
