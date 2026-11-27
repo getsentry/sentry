@@ -261,13 +261,3 @@ export function removeClockDriftCorrection(root: BaseNode): void {
   restore(root);
   root.forEachChild(restore);
 }
-
-export function collectClockDriftCorrections(root: BaseNode): BaseNode[] {
-  const corrected: BaseNode[] = [];
-  root.forEachChild(node => {
-    if (node.isClockDriftCorrectionRoot) {
-      corrected.push(node);
-    }
-  });
-  return corrected;
-}

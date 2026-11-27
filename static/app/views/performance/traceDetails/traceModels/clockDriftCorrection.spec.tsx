@@ -9,7 +9,6 @@ import {
 import type {BaseNode} from './traceTreeNode/baseNode';
 import {
   applyClockDriftCorrection,
-  collectClockDriftCorrections,
   getAlignmentRange,
   getClockDriftShifts,
   getSmallestShift,
@@ -462,7 +461,7 @@ describe('clock drift correction', () => {
         ])
       );
 
-      expect(collectClockDriftCorrections(tree.root)).toHaveLength(0);
+      expect(tree.clock_drift_correction_count).toBe(0);
     });
 
     it('does not move server spans that are less than the threshold off', () => {
@@ -478,7 +477,7 @@ describe('clock drift correction', () => {
         ])
       );
 
-      expect(collectClockDriftCorrections(tree.root)).toHaveLength(0);
+      expect(tree.clock_drift_correction_count).toBe(0);
     });
 
     it('moves server spans that are at least the threshold off', () => {
@@ -512,7 +511,7 @@ describe('clock drift correction', () => {
         ])
       );
 
-      expect(collectClockDriftCorrections(tree.root)).toHaveLength(0);
+      expect(tree.clock_drift_correction_count).toBe(0);
     });
 
     it('moves server spans of full-stack frameworks that share the project and sdk', () => {
@@ -549,7 +548,7 @@ describe('clock drift correction', () => {
         ])
       );
 
-      expect(collectClockDriftCorrections(tree.root)).toHaveLength(0);
+      expect(tree.clock_drift_correction_count).toBe(0);
     });
 
     it('does not correct anything if the preference is disabled', () => {
@@ -566,7 +565,7 @@ describe('clock drift correction', () => {
         false
       );
 
-      expect(collectClockDriftCorrections(tree.root)).toHaveLength(0);
+      expect(tree.clock_drift_correction_count).toBe(0);
     });
 
     it('restores the recorded spaces when removed, and can be applied again', () => {
@@ -759,7 +758,7 @@ describe('clock drift correction', () => {
       expect(nested.clockDriftOffsetMs).toBeCloseTo(1000);
       // Its own clock agrees with its caller, so it is not corrected on its own
       expect(nested.isClockDriftCorrectionRoot).toBe(false);
-      expect(collectClockDriftCorrections(tree.root)).toHaveLength(1);
+      expect(tree.clock_drift_correction_count).toBe(1);
     });
   });
 });
