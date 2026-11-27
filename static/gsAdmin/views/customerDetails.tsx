@@ -513,12 +513,22 @@ export function CustomerDetails() {
               : 'Convert this account to a sponsored plan (e.g. education, open source).',
             disabled: subscription.isPartner,
             disabledReason: 'Partner accounts cannot be put on sponsored plans',
-            confirmModalOpts: {
-              renderModalSpecificContent: deps => (
-                <SponsorshipAction subscription={subscription} {...deps} />
-              ),
-            },
-            onAction: params => onUpdateMutation.mutate({...params}),
+            skipConfirmModal: true,
+            onAction: () =>
+              openModal(deps => (
+                <SponsorshipAction
+                  {...deps}
+                  subscription={subscription}
+                  header={
+                    <Heading as="h4">
+                      {subscription.isSponsored
+                        ? 'Change Sponsorship'
+                        : 'Convert to Sponsored'}
+                    </Heading>
+                  }
+                  onConfirm={params => onUpdateMutation.mutate({...params})}
+                />
+              )),
           },
           {
             key: 'clearPendingChanges',
