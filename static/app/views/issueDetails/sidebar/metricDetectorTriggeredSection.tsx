@@ -185,6 +185,15 @@ const timePeriodParsers = {
   end: parseAsString,
 };
 
+function useHasTimePeriodInUrl() {
+  const location = useLocation();
+  const {statsPeriod, start, end} = loadQueryParamsFromLocation(
+    timePeriodParsers,
+    location
+  );
+  return statsPeriod !== null || start !== null || end !== null;
+}
+
 /**
  * Once the open period loads, this hook will set the time range to visibly center the open period.
  * If the URL already has a time period, this hook will do nothing
@@ -204,14 +213,10 @@ function useZoomTimeRangeToOpenPeriod({
   const groupId = useGroupId();
   const location = useLocation();
   const navigate = useNavigate();
+  const hasTimePeriodInUrl = useHasTimePeriodInUrl();
 
   const zoomTimeRangeToOpenPeriod = useEffectEvent(() => {
-    const {statsPeriod, start, end} = loadQueryParamsFromLocation(
-      timePeriodParsers,
-      location
-    );
-
-    if (statsPeriod !== null || start !== null || end !== null) {
+    if (hasTimePeriodInUrl) {
       return;
     }
 
@@ -413,13 +418,20 @@ function TriggeredConditionDetails({
     (max, c) => (!max || c.conditionResult > max.conditionResult ? c : max),
     undefined
   );
-  const [fallbackEndDate] = useState(() => new Date().toISOString());
+  // Rounding up to the minute keeps query keys built from this date stable across
+  // remounts, and never ends the range before now.
+  const [fallbackEndDate] = useState(() =>
+    new Date(Math.ceil(Date.now() / 60_000) * 60_000).toISOString()
+  );
   const detectionType = evidenceData.config?.detectionType ?? 'static';
   const {data: openPeriod, isLoading: isOpenPeriodLoading} = useEventOpenPeriod({
     groupId,
     eventId,
   });
   const endDate = openPeriod?.end ?? fallbackEndDate;
+  // ZoomToOpenPeriod navigates when the URL has no time period, which remounts this
+  // section with a new fallbackEndDate. Waiting for it avoids a duplicate ranked query.
+  const isZoomToOpenPeriodPending = !useHasTimePeriodInUrl();
 
   if (!triggeredCondition || !snubaQuery || !eventDateCreated) {
     return null;
@@ -523,15 +535,17 @@ function TriggeredConditionDetails({
         />
       </FoldSection>
       <OpenPeriodTimelineSection eventId={eventId} groupId={groupId} />
-      {detectorDataset === DetectorDataset.SPANS && openPeriod && (
-        <AttributeComparisonSection
-          snubaQuery={snubaQuery}
-          openPeriodStart={startDate}
-          openPeriodEnd={endDate}
-          projectId={projectId}
-          isOpenPeriodLoading={isOpenPeriodLoading}
-        />
-      )}
+      {detectorDataset === DetectorDataset.SPANS &&
+        openPeriod &&
+        !isZoomToOpenPeriodPending && (
+          <AttributeComparisonSection
+            snubaQuery={snubaQuery}
+            openPeriodStart={startDate}
+            openPeriodEnd={endDate}
+            projectId={projectId}
+            isOpenPeriodLoading={isOpenPeriodLoading}
+          />
+        )}
       {showContributingIssues &&
         (isOpenPeriodLoading ? (
           <FoldSection title={t('Contributing Issues')} sectionKey="contributing_issues">
@@ -640,7 +654,10 @@ function SeerInvestigationSection({
         metadataIdleSince.current?.id === investigation.id
           ? metadataIdleSince.current.timestamp
           : Date.now();
-      metadataIdleSince.current = {id: investigation.id, timestamp: idleSince};
+      metadataIdleSince.current = {
+        id: investigation.id,
+        timestamp: idleSince,
+      };
       return Date.now() - idleSince < INVESTIGATION_METADATA_GRACE_PERIOD
         ? INVESTIGATION_POLL_INTERVAL
         : false;
@@ -679,7 +696,9 @@ function SeerInvestigationSection({
   const launchMutation = useLaunchInvestigationMutation(organization.slug, {
     onSuccess: launchedInvestigation => {
       queryClient.setQueryData(candidateOptions.queryKey, {
-        json: {items: [{status: 'view', investigationId: launchedInvestigation.id}]},
+        json: {
+          items: [{status: 'view', investigationId: launchedInvestigation.id}],
+        },
         headers: {},
       });
       queryClient.setQueryData(
