@@ -9,7 +9,6 @@ import {TURN_META_WIDTH} from './turnMeta';
 
 export interface CollapsibleExpandAll {
   open: boolean;
-  /** New on every expand or collapse all, so a repeated one applies again. */
   requestId: symbol;
 }
 
@@ -22,16 +21,9 @@ export const CollapsibleExpandAllContext = createContext<CollapsibleExpandAll | 
   null
 );
 
-/**
- * Open state for a collapsible section that follows expand and collapse all. It
- * starts from the latest one, or `defaultOpen` without one, and goes back to
- * `defaultOpen` when expand all is cleared.
- */
 export function useCollapsibleOpenState(defaultOpen: boolean) {
   const expandAll = useContext(CollapsibleExpandAllContext);
   const [isOpen, setIsOpen] = useState(expandAll?.open ?? defaultOpen);
-  // Adjusted during render rather than in an effect, so every section changes in
-  // the same render.
   const [requestId, setRequestId] = useState(expandAll?.requestId);
   if (expandAll?.requestId !== requestId) {
     setRequestId(expandAll?.requestId);
