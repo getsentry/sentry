@@ -73,6 +73,8 @@ from sentry.utils.validators import WILDCARD_NOT_ALLOWED
 
 logger = logging.getLogger(__name__)
 
+MAX_BOOLEAN_CONDITIONS_ERROR = "Maximum number of boolean conditions reached, try reworking your to avoid this, for example multiple OR conditions to the same field can be replaced by field:[a,b,c]"
+
 
 def collect_issue_short_ids_from_parsed_terms(terms: Sequence[object]) -> set[str]:
     """Collect non-empty issue filter values from a parsed search tree (including OR/AND)."""
@@ -363,9 +365,7 @@ class SearchResolver:
         list[VirtualColumnDefinition | None],
     ]:
         if depth >= constants.MAX_BOOLEAN_DEPTH:
-            raise InvalidSearchQuery(
-                "Maximum number of boolean conditions reached, try reworking your to avoid this, for example multiple OR conditions to the same field can be replaced by field:[a,b,c]"
-            )
+            raise InvalidSearchQuery(MAX_BOOLEAN_CONDITIONS_ERROR)
         if len(terms) == 0:
             return None, None, []
         elif len(terms) == 1:
@@ -408,50 +408,65 @@ class SearchResolver:
         terms = new_terms
 
         # We put precedence on AND, which sort of counter-intuitively means we have to split the query
-        # on ORs first, so the ANDs are grouped together. Search through the query for ORs and split the
-        # query on each OR.
-        # We want to maintain a binary tree, so split the terms on the first OR we can find and recurse on
-        # the two sides. If there is no OR, split the first element out to AND
-        index = None
-        lhs, rhs = None, None
-        try:
-            index = terms.index(event_search.SearchBoolean.BOOLEAN_OR)
-            lhs, rhs = terms[:index], terms[index + 1 :]
-            operator: Literal["and" | "or"] = "or"
-        except Exception:
-            lhs, rhs = terms[:1], terms[1:]
+        # on ORs first, so the ANDs are grouped together. Split the query on every top-level OR and
+        # combine the groups in a single OrFilter. Without an OR, every term is ANDed together in a
+        # single AndFilter. Building flat n-ary filters (instead of a binary tree with one term per
+        # level) keeps the nesting depth of the resulting protobuf bounded by the parenthesis depth
+        # of the query rather than its number of terms, which would otherwise exceed protobuf's
+        # recursion limit for long queries.
+        groups: list[event_filter.ParsedTerms]
+        operator: Literal["and", "or"]
+        if event_search.SearchBoolean.BOOLEAN_OR in terms:
+            operator = "or"
+            groups = []
+            current: list[event_filter.ParsedTerm] = []
+            for term in terms:
+                if term == event_search.SearchBoolean.BOOLEAN_OR:
+                    groups.append(current)
+                    current = []
+                else:
+                    current.append(term)
+            groups.append(current)
+        else:
             operator = "and"
+            groups = [[term] for term in terms]
 
-        where_lhs, having_lhs, contexts_lhs = self._resolve_boolean_conditions(lhs, depth=depth + 1)
-        where_rhs, having_rhs, contexts_rhs = self._resolve_boolean_conditions(rhs, depth=depth + 1)
-        contexts = contexts_lhs + contexts_rhs
+        # The filters are flat, but keep limiting the number of chained conditions the same way the
+        # previous binary tree did (one level of depth per chained condition).
+        if depth + len(groups) > constants.MAX_BOOLEAN_DEPTH:
+            raise InvalidSearchQuery(MAX_BOOLEAN_CONDITIONS_ERROR)
 
-        where = None
-        having = None
+        where_filters: list[TraceItemFilter] = []
+        having_filters: list[AggregationFilter] = []
+        contexts: list[VirtualColumnDefinition | None] = []
+        for group in groups:
+            group_where, group_having, group_contexts = self._resolve_boolean_conditions(
+                group, depth=depth + 1
+            )
+            if group_where is not None:
+                where_filters.append(group_where)
+            if group_having is not None:
+                having_filters.append(group_having)
+            contexts.extend(group_contexts)
 
-        if where_lhs is not None and where_rhs is not None:
+        where: TraceItemFilter | None = None
+        having: AggregationFilter | None = None
+
+        if len(where_filters) == 1:
+            where = where_filters[0]
+        elif len(where_filters) > 1:
             if operator == "and":
-                where = TraceItemFilter(and_filter=AndFilter(filters=[where_lhs, where_rhs]))
+                where = TraceItemFilter(and_filter=AndFilter(filters=where_filters))
             else:
-                where = TraceItemFilter(or_filter=OrFilter(filters=[where_lhs, where_rhs]))
-        elif where_lhs is None and where_rhs is not None:
-            where = where_rhs
-        elif where_lhs is not None and where_rhs is None:
-            where = where_lhs
+                where = TraceItemFilter(or_filter=OrFilter(filters=where_filters))
 
-        if having_lhs is not None and having_rhs is not None:
+        if len(having_filters) == 1:
+            having = having_filters[0]
+        elif len(having_filters) > 1:
             if operator == "and":
-                having = AggregationFilter(
-                    and_filter=AggregationAndFilter(filters=[having_lhs, having_rhs])
-                )
+                having = AggregationFilter(and_filter=AggregationAndFilter(filters=having_filters))
             else:
-                having = AggregationFilter(
-                    or_filter=AggregationOrFilter(filters=[having_lhs, having_rhs])
-                )
-        elif having_lhs is None and having_rhs is not None:
-            having = having_rhs
-        elif having_lhs is not None and having_rhs is None:
-            having = having_lhs
+                having = AggregationFilter(or_filter=AggregationOrFilter(filters=having_filters))
 
         return where, having, contexts
 
