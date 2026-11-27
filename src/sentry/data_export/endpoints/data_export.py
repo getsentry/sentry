@@ -295,12 +295,17 @@ class DataExportQuerySerializer(serializers.Serializer[dict[str, Any]]):
 
 
 def issues_by_tag_validate(query_info: dict[str, Any]) -> None:
+    if not query_info.get("project"):
+        raise serializers.ValidationError("A project is required for this export.")
+    if not query_info.get("key"):
+        raise serializers.ValidationError("A tag key is required for this export.")
     group = query_info.get("group")
-    if group is not None:
-        try:
-            query_info["group"] = int(group)
-        except (ValueError, TypeError):
-            raise serializers.ValidationError("Invalid group ID")
+    if group is None:
+        raise serializers.ValidationError("A group is required for this export.")
+    try:
+        query_info["group"] = int(group)
+    except (ValueError, TypeError):
+        raise serializers.ValidationError("Invalid group ID")
 
 
 @cell_silo_endpoint

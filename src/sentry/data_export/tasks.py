@@ -597,10 +597,16 @@ def get_processor(
     try:
         if data_export.query_type == ExportQueryType.ISSUES_BY_TAG:
             payload = data_export.query_info
+            try:
+                project_id = payload["project"][0]
+                group_id = payload["group"]
+                key = payload["key"]
+            except (KeyError, IndexError, TypeError) as e:
+                raise ExportError("Invalid query for this export.") from e
             return IssuesByTagProcessor(
-                project_id=payload["project"][0],
-                group_id=payload["group"],
-                key=payload["key"],
+                project_id=project_id,
+                group_id=group_id,
+                key=key,
                 environment_id=environment_id,
                 tenant_ids={"organization_id": data_export.organization_id},
             )

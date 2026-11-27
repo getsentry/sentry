@@ -163,6 +163,19 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert error == "Requested key does not exist"
 
     @patch("sentry.data_export.models.ExportedData.email_failure")
+    def test_issue_by_tag_malformed_query_info(self, emailer: MagicMock) -> None:
+        de = ExportedData.objects.create(
+            user_id=self.user.id,
+            organization=self.org,
+            query_type=ExportQueryType.ISSUES_BY_TAG,
+            query_info={"bogus": True},
+        )
+        with self.tasks():
+            assemble_download(de.id)
+        error = emailer.call_args[1]["message"]
+        assert error == "Invalid query for this export."
+
+    @patch("sentry.data_export.models.ExportedData.email_failure")
     def test_issue_by_tag_missing_project(self, emailer: MagicMock) -> None:
         de = ExportedData.objects.create(
             user_id=self.user.id,
