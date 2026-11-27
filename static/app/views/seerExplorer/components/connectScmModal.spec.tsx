@@ -13,6 +13,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {Button} from '@sentry/scraps/button';
+import {toast} from '@sentry/scraps/toast';
 
 import * as pipelineModal from 'sentry/components/pipeline/modal';
 
@@ -22,11 +23,11 @@ const organization = OrganizationFixture();
 const withPrompt = OrganizationFixture({features: ['ask-seer-scm-connect-prompt']});
 const integration = GitHubIntegrationFixture();
 
-function mockRepoAccess(status: string) {
+function mockRepoAccess(status: string, repoName = 'acme/app') {
   return MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/seer/repo-access/`,
     body: {status, connectedAccounts: []},
-    match: [MockApiClient.matchQuery({repoName: 'acme/app'})],
+    match: [MockApiClient.matchQuery({repoName})],
   });
 }
 
@@ -190,6 +191,7 @@ describe('useConnectScmModalFromUrl', () => {
   }
 
   it('opens for the repo the URL names, then takes the repo out of the URL', async () => {
+    mockRepoAccess('scm_account_not_connected', 'acme-labs/app');
     const {router} = renderFromUrl({
       category: 'source code management',
       connectScmRepo: 'acme-labs/app',
@@ -202,7 +204,33 @@ describe('useConnectScmModalFromUrl', () => {
     );
   });
 
+  it('says Seer can already access the repo instead of opening', async () => {
+    const success = jest.spyOn(toast, 'success');
+    mockRepoAccess('found', 'acme-labs/app');
+    renderFromUrl({connectScmRepo: 'acme-labs/app'});
+
+    await waitFor(() =>
+      expect(success).toHaveBeenCalledWith('Seer can already access acme-labs/app.')
+    );
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it("opens anyway when it can't check", async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/repo-access/`,
+      statusCode: 500,
+      body: {},
+    });
+    renderFromUrl({connectScmRepo: 'acme-labs/app'});
+
+    expect(await screen.findByRole('button', {name: 'Add GitHub'})).toBeInTheDocument();
+  });
+
   it('opens with no repo when the URL names none', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/repo-access/`,
+      body: {status: 'no_scm_integration', connectedAccounts: []},
+    });
     renderFromUrl({connectScmRepo: ''});
 
     expect(await screen.findByRole('button', {name: 'Add GitHub'})).toBeInTheDocument();
