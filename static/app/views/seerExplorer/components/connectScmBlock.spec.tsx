@@ -23,6 +23,7 @@ import {
 
 import * as pipelineModal from 'sentry/components/pipeline/modal';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {PendingUserInput} from 'sentry/views/seerExplorer/types';
 
@@ -31,6 +32,8 @@ import {ConnectScmBlock} from './connectScmBlock';
 type ConnectScmBlockResponse = ComponentProps<
   typeof ConnectScmBlock
 >['respondToUserInput'];
+
+jest.mock('sentry/utils/analytics');
 
 const REPO_ACCESS_URL = '/organizations/org-slug/seer/repo-access/';
 const REPOS_LINK = '/settings/org-slug/repos/';
@@ -144,6 +147,10 @@ describe('ConnectScmBlock', () => {
       expect(
         screen.queryByRole('button', {name: 'Add Bitbucket'})
       ).not.toBeInTheDocument();
+      expect(trackAnalytics).toHaveBeenCalledWith(
+        'seer.explorer.connect_scm_modal.opened',
+        expect.objectContaining({source: 'chat', has_repo: true, input_id: 'input-id'})
+      );
     });
 
     it('lists the connected accounts when the repo is under another one', async () => {
