@@ -1,4 +1,5 @@
 import {t} from 'sentry/locale';
+import {ClockDriftGhost} from 'sentry/views/performance/traceDetails/clockDriftIndicators';
 import {TraceIcons} from 'sentry/views/performance/traceDetails/traceIcons';
 import type {ParentAutogroupNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/parentAutogroupNode';
 import type {SiblingAutogroupNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/siblingAutogroupNode';
@@ -60,6 +61,13 @@ export function TraceAutogroupedRow(
         ref={props.registerSpanColumnRef}
         onDoubleClick={props.onRowDoubleClick}
       >
+        <ClockDriftGhost
+          manager={props.manager}
+          offsetMs={props.node.clockDriftOffsetMs}
+          selected={props.tabIndex === 0}
+          space={props.node.space}
+          virtualizedIndex={props.virtualized_index}
+        />
         <AutogroupedTraceBar
           node={props.node}
           manager={props.manager}

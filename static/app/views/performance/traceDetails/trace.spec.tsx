@@ -1399,7 +1399,7 @@ describe('trace view', () => {
       );
     }
 
-    function mockClockDriftTrace() {
+    function mockClockDriftTrace({nestedQuery = false}: {nestedQuery?: boolean} = {}) {
       mockPerformanceSubscriptionDetailsResponse();
       mockProjectDetailsResponse();
       mockTraceResponse({
@@ -1434,6 +1434,21 @@ describe('trace view', () => {
                     parent_span_id: 'server-request',
                     start_timestamp: 8.05,
                     end_timestamp: 8.1,
+                    // A chain of db spans is grouped into a parent autogroup
+                    children: nestedQuery
+                      ? [
+                          makeEAPSpan({
+                            event_id: 'server-query-nested',
+                            op: 'db',
+                            description: 'SELECT * FROM teams',
+                            project_id: 2,
+                            sdk_name: 'sentry.python.django',
+                            parent_span_id: 'server-query',
+                            start_timestamp: 8.06,
+                            end_timestamp: 8.09,
+                          }),
+                        ]
+                      : [],
                   }),
                 ],
               }),
@@ -1540,6 +1555,65 @@ describe('trace view', () => {
 
       // The child has no icon, its label still explains the shift
       await userEvent.hover(await screen.findByText('50.00ms'));
+
+      expect(
+        await screen.findByText('Shifted by +2.00s to correct for clock drift')
+      ).toBeInTheDocument();
+    });
+
+    it('shows the recorded position only for the selected span', async () => {
+      mockClockDriftTrace();
+      storeClockDriftCorrectionPreference();
+
+      render(<TraceView />, {initialRouterConfig, organization});
+
+      const serverRow = await screen.findByText('server request');
+      expect(screen.getByTestId('trace-clock-drift-icon')).toBeInTheDocument();
+      expect(screen.queryByTestId('trace-clock-drift-ghost')).not.toBeInTheDocument();
+
+      await userEvent.click(serverRow);
+
+      expect(await screen.findByTestId('trace-clock-drift-ghost')).toBeInTheDocument();
+
+      await userEvent.click(screen.getByText('GET /api/0/projects/'));
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('trace-clock-drift-ghost')).not.toBeInTheDocument();
+      });
+    });
+
+    it('shows the recorded position of a selected span that moved along with its parent', async () => {
+      mockClockDriftTrace();
+      storeClockDriftCorrectionPreference();
+
+      render(<TraceView />, {initialRouterConfig, organization});
+
+      await userEvent.click(await screen.findByText('SELECT * FROM projects'));
+
+      expect(await screen.findByTestId('trace-clock-drift-ghost')).toBeInTheDocument();
+      // Only the root of the moved subtree is marked in the duration label
+      expect(screen.getAllByTestId('trace-clock-drift-icon')).toHaveLength(1);
+    });
+
+    it('shows the recorded position of a selected autogroup in a moved subtree', async () => {
+      mockClockDriftTrace({nestedQuery: true});
+      storeClockDriftCorrectionPreference();
+
+      render(<TraceView />, {initialRouterConfig, organization});
+
+      await userEvent.click(await screen.findByText('Autogrouped'));
+
+      expect(await screen.findByTestId('trace-clock-drift-ghost')).toBeInTheDocument();
+    });
+
+    it('explains the shift when hovering the recorded position', async () => {
+      mockClockDriftTrace();
+      storeClockDriftCorrectionPreference();
+
+      render(<TraceView />, {initialRouterConfig, organization});
+
+      await userEvent.click(await screen.findByText('server request'));
+      await userEvent.hover(await screen.findByTestId('trace-clock-drift-ghost'));
 
       expect(
         await screen.findByText('Shifted by +2.00s to correct for clock drift')

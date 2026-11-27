@@ -11,6 +11,7 @@ import {
   getGenAiOperationTypeFromSpanName,
 } from 'sentry/views/insights/pages/agents/utils/query';
 import {SpanFields} from 'sentry/views/insights/types';
+import {ClockDriftGhost} from 'sentry/views/performance/traceDetails/clockDriftIndicators';
 import {TraceIcons} from 'sentry/views/performance/traceDetails/traceIcons';
 import type {EapSpanNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/eapSpanNode';
 
@@ -132,6 +133,13 @@ export function TraceEAPSpanRow(props: TraceRowProps<EapSpanNode>) {
         className={props.spanColumnClassName}
         onDoubleClick={props.onRowDoubleClick}
       >
+        <ClockDriftGhost
+          manager={props.manager}
+          offsetMs={props.node.clockDriftOffsetMs}
+          selected={props.tabIndex === 0}
+          space={props.node.space}
+          virtualizedIndex={props.virtualized_index}
+        />
         <TraceBar
           node={props.node}
           virtualized_index={props.virtualized_index}
