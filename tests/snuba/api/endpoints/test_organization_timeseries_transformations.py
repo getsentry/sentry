@@ -776,6 +776,7 @@ class OrganizationTimeseriesTransformationsTest(OrganizationEventsEndpointTestBa
                 True,
             ]
 
+        # This window is start/end, so the cache does not apply. The series matches the first response.
         response = self._do_request(data, features=features)
         assert response.status_code == 200, response.content
         (timeseries,) = response.data["timeSeries"]
@@ -787,7 +788,6 @@ class OrganizationTimeseriesTransformationsTest(OrganizationEventsEndpointTestBa
             6,
             0,
             4,
-            0,
             0,
             0,
             0,
