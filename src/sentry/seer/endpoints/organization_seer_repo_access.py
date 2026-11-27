@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Final
+
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
@@ -12,15 +14,21 @@ from sentry.api.authentication import SessionNoAuthTokenAuthentication
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.integrations.services.integration import integration_service
 from sentry.models.organization import Organization
 from sentry.models.repository import REPOSITORY_NAME_LENGTH
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.agent.client_utils import has_seer_agent_access_with_detail
-from sentry.seer.agent.tools import get_repository_definition
-from sentry.seer.scm_connect import NO_SCM_INTEGRATION, has_seer_scm_integration
-from sentry.seer.sentry_data_models import RepositoryDefinitionFailure
+from sentry.seer.agent.tools import get_repo_account_integration_ids, get_repository_definition
+from sentry.seer.scm_connect import NO_SCM_INTEGRATION
+from sentry.seer.seer_setup import get_supported_scm_providers
+from sentry.seer.sentry_data_models import RepositoryDefinitionFailure, RepositoryDefinitionResponse
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.auth import is_user_from_viewer_context
+
+# Asked without a repository: source control is connected, but Sentry is still getting its
+# repositories, so a list of them would come back empty or short.
+REPOS_SYNCING: Final = "repos_syncing"
 
 
 class RepoAccessQuerySerializer(serializers.Serializer):
@@ -29,6 +37,7 @@ class RepoAccessQuerySerializer(serializers.Serializer):
     repoName = serializers.CharField(
         max_length=REPOSITORY_NAME_LENGTH, trim_whitespace=True, required=False
     )
+    integrationId = serializers.IntegerField(min_value=1, max_value=2**63 - 1, required=False)
 
 
 @cell_silo_endpoint
@@ -71,8 +80,13 @@ class OrganizationSeerRepoAccessEndpoint(OrganizationEndpoint):
         ``scm_account_not_connected``, ``repo_not_in_sentry`` or ``repo_ambiguous``) when it
         can't, or ``unknown`` when the lookup misses for a reason Sentry can't name.
 
-        Without ``repoName``, ``status`` is ``found`` when any source control Seer can use is
-        connected, and ``no_scm_integration`` when none is.
+        A found repo takes precedence over any sync. On a miss, an active sync for the repo’s
+        account returns ``repos_syncing``. An optional ``integrationId`` narrows which syncs
+        matter, without narrowing the repo lookup. ``syncFailure`` is present if a relevant
+        sync failed.
+
+        Without ``repoName``, ``found`` means Seer can retry listing repositories, not that the
+        list is nonempty. A failed sync does not block listing the repos Sentry already has.
         """
         # The auth middleware signs in a viewer-context user before authentication runs, so the
         # call would pass as a browser session. Refuse it: only the UI checks this.
@@ -92,23 +106,66 @@ class OrganizationSeerRepoAccessEndpoint(OrganizationEndpoint):
             return Response(serializer.errors, status=400)
 
         repo_name = serializer.validated_data.get("repoName")
+        integration_id = serializer.validated_data.get("integrationId")
+        sync_ids = [integration_id] if integration_id is not None else None
+        providers = get_supported_scm_providers(organization)
+
         if repo_name is None:
-            status = "found" if has_seer_scm_integration(organization) else NO_SCM_INTEGRATION
-            return Response({"status": status, "connectedAccounts": []})
+            # On `found`, the popup has Seer list the repositories again. Right after an install
+            # that list would be empty, since the install only starts getting them, so `found`
+            # waits for that.
+            sync = integration_service.get_scm_repo_sync_state(
+                organization_id=organization.id,
+                providers=providers,
+                sync_integration_ids=sync_ids,
+            )
+            if not sync.has_integration:
+                status = NO_SCM_INTEGRATION
+            elif sync.syncing:
+                status = REPOS_SYNCING
+            else:
+                status = "found"
+            return _repo_access_response(status, [], sync_failure=sync.failure_reason)
 
         result = get_repository_definition(
             organization_id=organization.id,
             repo_full_name=repo_name,
             report_failure_reason=True,
         )
-        # Only the outcome is returned: the popup doesn't need the repository's details.
+        if isinstance(result, RepositoryDefinitionResponse):
+            return _repo_access_response("found", [])
+
+        status = "unknown"
+        connected_accounts: list[str] = []
         if isinstance(result, RepositoryDefinitionFailure):
-            return Response(
-                {
-                    "status": result.failure_reason,
-                    "connectedAccounts": result.connected_accounts,
-                }
-            )
-        return Response(
-            {"status": "unknown" if result is None else "found", "connectedAccounts": []}
+            status = result.failure_reason
+            connected_accounts = result.connected_accounts
+
+        # Ambiguity, a missing integration and a disconnected account are not import delays.
+        if status not in {"repo_not_in_sentry", "unknown"}:
+            return _repo_access_response(status, connected_accounts)
+
+        matching_ids = get_repo_account_integration_ids(organization.id, repo_name, providers)
+        if integration_id is not None:
+            matching_ids = [candidate for candidate in matching_ids if candidate == integration_id]
+        if not matching_ids:
+            return _repo_access_response(status, connected_accounts)
+
+        sync = integration_service.get_scm_repo_sync_state(
+            organization_id=organization.id, providers=providers, sync_integration_ids=matching_ids
         )
+        if sync.syncing:
+            return _repo_access_response(REPOS_SYNCING, connected_accounts)
+        return _repo_access_response(status, connected_accounts, sync_failure=sync.failure_reason)
+
+
+def _repo_access_response(
+    status: str, connected_accounts: list[str], *, sync_failure: str | None = None
+) -> Response:
+    return Response(
+        {
+            "status": status,
+            "connectedAccounts": connected_accounts,
+            **({"syncFailure": sync_failure} if sync_failure is not None else {}),
+        }
+    )

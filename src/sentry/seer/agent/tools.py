@@ -982,6 +982,18 @@ def _may_be_under_account(repo_full_name: str, integration: RpcIntegration) -> b
     return False
 
 
+def get_repo_account_integration_ids(
+    organization_id: int, repo_name: str, providers: list[str]
+) -> list[int]:
+    """Active integrations that could import this repo, even if its name needs correction."""
+    return [
+        integration.id
+        for integration in get_seer_scm_integrations(organization_id, providers)
+        if _is_under_account(repo_name, integration)
+        or _may_be_under_account(repo_name, integration)
+    ]
+
+
 def _unique(matches: list[Repository]) -> tuple[Repository | None, RepoResolution]:
     """The one repository in ``matches``, or why there isn't one. Two or more is ambiguous: picking
     one could point Seer at the wrong repository. Same rule as

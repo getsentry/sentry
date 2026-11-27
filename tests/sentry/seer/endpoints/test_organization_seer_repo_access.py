@@ -7,6 +7,12 @@ from rest_framework.response import Response
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.source_code_management.repo_sync_status import (
+    RepoSyncTrigger,
+    record_sync_failed,
+    record_sync_requested,
+    record_synced,
+)
 from sentry.models.repository import REPOSITORY_NAME_LENGTH, Repository
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
@@ -23,14 +29,20 @@ class OrganizationSeerRepoAccessTest(APITestCase):
     endpoint = "sentry-api-0-organization-seer-repo-access"
 
     def _get(
-        self, repo_name: str = "acme-labs/app", *, logged_in: bool = True, **kwargs: Any
+        self,
+        repo_name: str = "acme-labs/app",
+        *,
+        logged_in: bool = True,
+        integration_id: int | None = None,
+        **kwargs: Any,
     ) -> Response:
         if logged_in:
             self.login_as(self.user)
+        query = {"repoName": repo_name}
+        if integration_id is not None:
+            query["integrationId"] = str(integration_id)
         response: Response = self.client.get(
-            f"/api/0/organizations/{self.organization.slug}/seer/repo-access/",
-            {"repoName": repo_name},
-            **kwargs,
+            f"/api/0/organizations/{self.organization.slug}/seer/repo-access/", query, **kwargs
         )
         return response
 
@@ -86,6 +98,45 @@ class OrganizationSeerRepoAccessTest(APITestCase):
         assert response.status_code == 200
         assert response.data == {"status": "found", "connectedAccounts": []}
 
+    def test_named_repo_can_be_found_before_sync_finishes(self) -> None:
+        integration = self._connect_github()
+        record_sync_requested(self.organization.id, integration.id, RepoSyncTrigger.INSTALL)
+
+        assert self._get().data["status"] == "repos_syncing"
+        assert self._get(integration_id=integration.id).data["status"] == "repos_syncing"
+
+        self._add_repo(integration.id)
+
+        assert self._get(integration_id=integration.id).data["status"] == "found"
+
+    def test_named_repo_missing_after_sync_finishes(self) -> None:
+        integration = self._connect_github()
+        record_sync_requested(self.organization.id, integration.id, RepoSyncTrigger.INSTALL)
+        record_synced(self.organization.id, integration.id)
+
+        assert self._get(integration_id=integration.id).data["status"] == "repo_not_in_sentry"
+
+    def test_named_repo_preserves_failure_reason_if_sync_failed(self) -> None:
+        integration = self._connect_github()
+        record_sync_requested(self.organization.id, integration.id, RepoSyncTrigger.INSTALL)
+        record_sync_failed(self.organization.id, integration.id, "rate_limited")
+
+        assert self._get(integration_id=integration.id).data == {
+            "status": "repo_not_in_sentry",
+            "connectedAccounts": ["acme-labs"],
+            "syncFailure": "rate_limited",
+        }
+
+    def test_named_repo_ignores_a_sync_for_another_account(self) -> None:
+        self._connect_github()
+        other = self.create_integration(
+            organization=self.organization, provider="github", external_id="github:2", name="other"
+        )
+        record_sync_requested(self.organization.id, other.id, RepoSyncTrigger.INSTALL)
+
+        assert self._get().data["status"] == "repo_not_in_sentry"
+        assert self._get(integration_id=other.id).data["status"] == "repo_not_in_sentry"
+
     def test_unknown_when_the_reason_cant_be_named(self) -> None:
         # A name with no owner can't be under any account, so Sentry can't say why it missed.
         self._connect_github()
@@ -109,13 +160,41 @@ class OrganizationSeerRepoAccessTest(APITestCase):
         assert response.data == {"status": "no_scm_integration", "connectedAccounts": []}
 
     def test_without_repo_name_found_once_source_control_is_connected(self) -> None:
-        # No repositories yet: connected is enough.
+        # No sync running, like an install from before syncs were tracked: connected is enough.
         self._connect_github()
 
         response = self._get_without_repo()
 
         assert response.status_code == 200
         assert response.data == {"status": "found", "connectedAccounts": []}
+
+    def test_without_repo_name_waits_for_the_repos(self) -> None:
+        integration = self._connect_github()
+        record_sync_requested(self.organization.id, integration.id, RepoSyncTrigger.INSTALL)
+
+        response = self._get_without_repo()
+
+        assert response.status_code == 200
+        assert response.data == {"status": "repos_syncing", "connectedAccounts": []}
+
+        record_synced(self.organization.id, integration.id)
+
+        assert self._get_without_repo().data == {"status": "found", "connectedAccounts": []}
+
+    def test_without_repo_name_found_when_getting_the_repos_failed(self) -> None:
+        # Seer lists what Sentry got, but the response still describes the failed sync.
+        integration = self._connect_github()
+        record_sync_requested(self.organization.id, integration.id, RepoSyncTrigger.INSTALL)
+        record_sync_failed(self.organization.id, integration.id, "rate_limited")
+
+        response = self._get_without_repo()
+
+        assert response.status_code == 200
+        assert response.data == {
+            "status": "found",
+            "connectedAccounts": [],
+            "syncFailure": "rate_limited",
+        }
 
     def test_without_repo_name_source_control_seer_cant_use_doesnt_count(self) -> None:
         self.create_integration(
