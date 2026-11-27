@@ -660,16 +660,37 @@ describe('clock drift correction', () => {
       const onTimelineChange = jest.fn();
       tree.on('trace timeline change', onTimelineChange);
 
-      removeClockDriftCorrection(tree.root);
-      tree.refreshTraceSpace();
+      tree.setClockDriftCorrection(false, {organization, preferences});
 
       expect(tree.root.space[0]).toBeCloseTo((T - 121.0564) * 1e3);
       expect(onTimelineChange).toHaveBeenCalledWith(tree.root.space);
 
-      applyClockDriftCorrection(tree.root);
-      tree.refreshTraceSpace();
+      tree.setClockDriftCorrection(true, {organization, preferences});
 
       expect(tree.root.space[0]).toBeCloseTo((T - 10) * 1e3);
+    });
+
+    it('counts the corrected spans of the tree', () => {
+      const misaligned = (id: string) =>
+        makeRequest({
+          id,
+          clientStart: 0,
+          clientDuration: 480.8,
+          serverStartGap: -121_056.4,
+          serverDuration: 121.4,
+        });
+
+      const tree = build(makePageload([misaligned('1')]));
+      expect(tree.clock_drift_correction_count).toBe(1);
+
+      tree.appendTree(build(makePageload([misaligned('2')])));
+      expect(tree.clock_drift_correction_count).toBe(2);
+
+      expect(tree.setClockDriftCorrection(false, {organization, preferences})).toBe(0);
+      expect(tree.clock_drift_correction_count).toBe(0);
+
+      expect(tree.setClockDriftCorrection(true, {organization, preferences})).toBe(2);
+      expect(tree.clock_drift_correction_count).toBe(2);
     });
 
     it('corrects requests made from spans nested in the segment', () => {

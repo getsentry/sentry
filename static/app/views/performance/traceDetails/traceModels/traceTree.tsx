@@ -44,7 +44,10 @@ import {SiblingAutogroupNode} from './traceTreeNode/siblingAutogroupNode';
 import {TraceNode} from './traceTreeNode/traceNode';
 import {UptimeCheckNode} from './traceTreeNode/uptimeCheckNode';
 import {traceChronologicalSort} from './traceTreeNode/utils';
-import {applyClockDriftCorrection} from './clockDriftCorrection';
+import {
+  applyClockDriftCorrection,
+  removeClockDriftCorrection,
+} from './clockDriftCorrection';
 import {makeExampleTraceData} from './makeExampleTraceData';
 import {
   collectTraceMeasurements,
@@ -325,6 +328,10 @@ function fetchTrace(
 export class TraceTree extends TraceTreeEventDispatcher {
   collapsed_nodes = 0;
   eap_spans_count = 0;
+  /**
+   * The number of server spans moved to correct for clock drift, along with their subtrees.
+   */
+  clock_drift_correction_count = 0;
   projects = new Map<number, TraceTree.Project>();
 
   type: 'loading' | 'empty' | 'error' | 'trace' = 'trace';
@@ -495,18 +502,12 @@ export class TraceTree extends TraceTreeEventDispatcher {
     // their spaces from the spans. Runs after the pageload swap, so it sees the same tree as
     // when the correction is toggled later.
     if (options.preferences?.clock_drift_correction) {
-      applyClockDriftCorrection(tree.root);
+      tree.clock_drift_correction_count = applyClockDriftCorrection(tree.root);
     }
 
     // At this point, the tree is built, we need  iterate over it again to collect all of the
-    // measurements, web vitals, errors and perf issues as well as calculate the min and max space
-    // the trace should take up.
-    const traceSpaceBounds = [Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY];
-
+    // measurements, web vitals, errors and perf issues.
     traceNode.forEachChild(c => {
-      traceSpaceBounds[0] = Math.min(traceSpaceBounds[0]!, c.space[0]);
-      traceSpaceBounds[1] = Math.max(traceSpaceBounds[1]!, c.space[0] + c.space[1]);
-
       for (const error of c.errors) {
         traceNode.errors.add(error);
       }
@@ -534,37 +535,13 @@ export class TraceTree extends TraceTreeEventDispatcher {
     // to ensure that we can see the max of the replay duration and the sum(trace durations). This way, we
     // can ensure that the replay timestamp indicators are always visible in the traceview along with all spans from the traces.
     if (options.replay) {
-      const replayStart = options.replay.started_at.getTime();
-      const replayEnd = options.replay.finished_at.getTime();
-      tree.replay_bounds = [replayStart, replayEnd];
-
-      traceSpaceBounds[0] = Math.min(traceSpaceBounds[0]!, replayStart);
-      traceSpaceBounds[1] = Math.max(traceSpaceBounds[1]!, replayEnd);
+      tree.replay_bounds = [
+        options.replay.started_at.getTime(),
+        options.replay.finished_at.getTime(),
+      ];
     }
 
-    for (const indicator of tree.indicators) {
-      // If any indicator starts after the trace ends, set end to the indicator start
-      if (indicator.start > traceSpaceBounds[1]!) {
-        traceSpaceBounds[1] = indicator.start;
-      }
-      // If an indicator starts before the trace start, set start to the indicator start
-      if (indicator.start < traceSpaceBounds[0]!) {
-        traceSpaceBounds[0] = indicator.start;
-      }
-    }
-
-    // Space needs a start and end, if we don't have one we can't construct a timeline.
-    if (!Number.isFinite(traceSpaceBounds[0])) {
-      traceSpaceBounds[0] = 0;
-    }
-    if (!Number.isFinite(traceSpaceBounds[1])) {
-      traceSpaceBounds[1] = 0;
-    }
-
-    const space = [traceSpaceBounds[0]!, traceSpaceBounds[1]! - traceSpaceBounds[0]!];
-
-    tree.root.space = [space[0]!, space[1]!];
-    traceNode.space = [space[0]!, space[1]!];
+    tree.refreshTraceSpace();
 
     tree.indicators.sort((a, b) => a.start - b.start);
 
@@ -576,7 +553,8 @@ export class TraceTree extends TraceTreeEventDispatcher {
   }
 
   /**
-   * Recomputes the trace space from its nodes, e.g. after clock drift correction moved some of them.
+   * Computes the trace space from its nodes, indicators and replay, e.g. again after clock drift
+   * correction moved some of the nodes.
    */
   refreshTraceSpace(): void {
     let start = Number.POSITIVE_INFINITY;
@@ -600,19 +578,60 @@ export class TraceTree extends TraceTreeEventDispatcher {
       end = Math.max(end, this.replay_bounds[1]);
     }
 
-    if (!Number.isFinite(start) || !Number.isFinite(end)) {
-      return;
+    // Space needs a start and end, if we don't have one we can't construct a timeline.
+    if (!Number.isFinite(start)) {
+      start = 0;
+    }
+    if (!Number.isFinite(end)) {
+      end = 0;
     }
 
-    if (this.root.space[0] === start && this.root.space[1] === end - start) {
-      return;
-    }
+    const changed = this.root.space[0] !== start || this.root.space[1] !== end - start;
 
     this.root.space = [start, end - start];
     for (const traceNode of this.root.children) {
       traceNode.space = [start, end - start];
     }
-    this.dispatch('trace timeline change', this.root.space);
+
+    if (changed) {
+      this.dispatch('trace timeline change', this.root.space);
+    }
+  }
+
+  /**
+   * Applies or removes clock drift correction. Autogroups and missing instrumentation spans derive
+   * their spaces from the spans it moves, so they are taken out and added back once the spans are
+   * in place. Returns the number of corrected spans.
+   */
+  setClockDriftCorrection(
+    enabled: boolean,
+    options: {organization: Organization; preferences: TraceTreePreferences}
+  ): number {
+    const {autogroup, missing_instrumentation} = options.preferences;
+
+    if (autogroup.sibling) {
+      TraceTree.RemoveSiblingAutogroupNodes(this.root);
+    }
+    if (autogroup.parent) {
+      TraceTree.RemoveDirectChildrenAutogroupNodes(this.root);
+    }
+    if (missing_instrumentation) {
+      TraceTree.RemoveMissingInstrumentationNodes(this.root);
+    }
+
+    if (enabled) {
+      this.clock_drift_correction_count = applyClockDriftCorrection(this.root);
+    } else {
+      removeClockDriftCorrection(this.root);
+      this.clock_drift_correction_count = 0;
+    }
+
+    TraceTree.ApplyPreferences(this.root, options);
+
+    // Moved spans may now start before or end after the trace space.
+    this.refreshTraceSpace();
+
+    return this.clock_drift_correction_count;
   }
 
   appendTree(tree: TraceTree) {
@@ -639,6 +658,8 @@ export class TraceTree extends TraceTreeEventDispatcher {
     for (const profiledEvent of tree.profiled_events) {
       this.profiled_events.add(profiledEvent);
     }
+
+    this.clock_drift_correction_count += tree.clock_drift_correction_count;
 
     for (const [node, vitals] of tree.vitals) {
       this.vitals.set(node, vitals);
