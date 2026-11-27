@@ -13,6 +13,14 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {WidgetType, type Widget} from 'sentry/views/dashboards/types';
 
 const RELEASES_LAYER = 'releases';
+const CONFIDENCE_LAYER = 'confidence';
+
+// Only sampled, extrapolated datasets have low-confidence data points.
+const CONFIDENCE_WIDGET_TYPES = new Set<WidgetType>([
+  WidgetType.SPANS,
+  WidgetType.LOGS,
+  WidgetType.TRACEMETRICS,
+]);
 
 // Only these widget datasets map to an Outcomes category on the backend
 // (DATASET_TO_CATEGORY in data_annotations.py). Everything else gets no band.
@@ -41,6 +49,7 @@ export function useWidgetChartLayers({
   const organization = useOrganization();
   const [isReleasesLayerOn, setIsReleasesLayerOn] = useState(true);
   const [isDroppedDataLayerOn, setIsDroppedDataLayerOn] = useState(true);
+  const [isConfidenceLayerOn, setIsConfidenceLayerOn] = useState(true);
 
   // The band reflects the page filters, not this widget's own projects/query, so
   // it won't follow a fullscreen zoom. Parameterize useDroppedData for per-widget
@@ -67,6 +76,13 @@ export function useWidgetChartLayers({
       if (value === RELEASES_LAYER) {
         setIsReleasesLayerOn(selected);
         trackAnalytics('releases.bubbles_legend', {organization, selected});
+      } else if (value === CONFIDENCE_LAYER) {
+        setIsConfidenceLayerOn(selected);
+        trackAnalytics('explore.confidence.layer_toggled', {
+          organization,
+          source: 'dashboards',
+          selected,
+        });
       } else {
         setIsDroppedDataLayerOn(selected);
         trackAnalytics('explore.dropped_data.layer_toggled', {
@@ -81,6 +97,10 @@ export function useWidgetChartLayers({
   );
 
   const supportsReleases = widget.widgetType !== WidgetType.PREPROD_APP_SIZE;
+  const supportsConfidence =
+    defined(widget.widgetType) &&
+    CONFIDENCE_WIDGET_TYPES.has(widget.widgetType) &&
+    organization.features.includes('data-browsing-time-series-confidence');
   const droppedDataLayers = hidden
     ? []
     : (droppedData.layerControl?.layers ?? []).map(layer => ({
@@ -93,11 +113,25 @@ export function useWidgetChartLayers({
           ? [{value: RELEASES_LAYER, label: t('Releases'), selected: isReleasesLayerOn}]
           : []),
         ...droppedDataLayers,
+        ...(supportsConfidence
+          ? [
+              {
+                value: CONFIDENCE_LAYER,
+                label: t('Confidence'),
+                selected: isConfidenceLayerOn,
+              },
+            ]
+          : []),
       ]
     : [];
 
   const layerControl: ChartLayersControlProps | undefined =
     layers.length > 0 ? {layers, onChange: onLayerChange} : undefined;
 
-  return {showReleases: supportsReleases && isReleasesLayerOn, droppedData, layerControl};
+  return {
+    showReleases: supportsReleases && isReleasesLayerOn,
+    showConfidence: enabled && supportsConfidence && isConfidenceLayerOn,
+    droppedData,
+    layerControl,
+  };
 }

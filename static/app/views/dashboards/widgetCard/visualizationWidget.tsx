@@ -100,6 +100,7 @@ interface VisualizationWidgetProps {
   }) => void;
   onLegendSelectionChange?: (selection: LegendSelection) => void;
   onZoom?: EChartDataZoomHandler;
+  showConfidence?: boolean;
   showConfidenceWarning?: boolean;
   showReleases?: boolean;
   tableItemLimit?: number;
@@ -123,6 +124,7 @@ function VisualizationWidgetComponent({
   droppedDataFilterNote,
   isDroppedDataLoading,
   layerControl,
+  showConfidence,
   showReleases = true,
 }: VisualizationWidgetProps) {
   const onWidgetError = useWidgetErrorCallback();
@@ -184,6 +186,7 @@ function VisualizationWidgetComponent({
             releases={releases}
             showReleaseAs={showReleases ? 'bubble' : 'none'}
             dashboardFilters={dashboardFilters}
+            showConfidence={showConfidence}
             showConfidenceWarning={showConfidenceWarning}
             confidence={confidence}
             dataScanned={dataScanned}
@@ -245,6 +248,7 @@ interface VisualizationWidgetContentProps {
   onLegendSelectionChange?: (selection: LegendSelection) => void;
   onZoom?: EChartDataZoomHandler;
   sampleCount?: number;
+  showConfidence?: boolean;
   showConfidenceWarning?: boolean;
   tableResults?: TableDataWithTitle[];
   widgetInterval?: string;
@@ -259,6 +263,7 @@ function VisualizationWidgetContent({
   releases,
   showReleaseAs,
   dashboardFilters,
+  showConfidence,
   showConfidenceWarning,
   confidence,
   dataScanned,
@@ -532,6 +537,7 @@ function VisualizationWidgetContent({
             onLegendSelectionChange={onLegendSelectionChange}
             renderTooltipSeriesDetails={renderTooltipSeriesDetails}
             droppedData={droppedData}
+            showConfidence={showConfidence}
             legendActions={legendActions}
           />
         </Container>
@@ -558,6 +564,7 @@ function VisualizationWidgetContent({
           onLegendSelectionChange={onLegendSelectionChange}
           renderTooltipSeriesDetails={renderTooltipSeriesDetails}
           droppedData={droppedData}
+          showConfidence={showConfidence}
           legendActions={legendActions}
         />
       </Container>

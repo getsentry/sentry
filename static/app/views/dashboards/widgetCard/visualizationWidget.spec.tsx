@@ -414,6 +414,20 @@ describe('VisualizationWidget dropped-data heatmap', () => {
     ).toBe(band);
   });
 
+  it('passes showConfidence to the chart', () => {
+    render(
+      <VisualizationWidget
+        widget={spansBreakdownWidget}
+        selection={selection}
+        showConfidence
+      />
+    );
+
+    expect(
+      jest.mocked(TimeSeriesWidgetVisualization).mock.calls.at(-1)![0].showConfidence
+    ).toBe(true);
+  });
+
   it('shows the filter note', () => {
     render(
       <VisualizationWidget

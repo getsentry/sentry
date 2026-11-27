@@ -649,6 +649,7 @@ function DataWidgetViewerModal(props: Props) {
               }
               widgetInterval={widgetInterval}
               showReleases={chartLayers.showReleases}
+              showConfidence={chartLayers.showConfidence}
               droppedData={chartLayers.droppedData.band}
               droppedDataFilterNote={droppedDataFilterNote}
               isDroppedDataLoading={chartLayers.droppedData.isLoading}
