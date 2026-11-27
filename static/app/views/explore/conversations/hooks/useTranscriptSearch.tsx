@@ -16,7 +16,6 @@ const CURRENT_HIGHLIGHT = 'conversation-search-current';
 type TranscriptSearchStatus = 'idle' | 'searching' | 'found' | 'no-results';
 
 interface TranscriptMatch {
-  element: HTMLElement;
   range: Range;
   spanId: string;
 }
@@ -26,7 +25,7 @@ interface UseTranscriptSearchOptions {
   hasReachedPageLimit: boolean;
   isLoadingMore: boolean;
   loadMore: () => void;
-  onSelectMatch: (spanId: string, element: HTMLElement) => void;
+  onSelectMatch: (spanId: string, range: Range) => void;
   rootRef: RefObject<HTMLElement | null>;
 }
 
@@ -40,14 +39,14 @@ function findMatches(root: HTMLElement, query: string): TranscriptMatch[] {
     // twice until the block opens.
     const element = node.parentElement;
     const spanId = element?.closest('[data-node-id]')?.getAttribute('data-node-id');
-    if (!element || !spanId || element.closest('summary')) {
+    if (!spanId || element?.closest('summary')) {
       continue;
     }
     for (const match of (node.nodeValue ?? '').matchAll(pattern)) {
       const range = document.createRange();
       range.setStart(node, match.index);
       range.setEnd(node, match.index + match[0].length);
-      matches.push({element, range, spanId});
+      matches.push({range, spanId});
     }
   }
   return matches;
@@ -101,7 +100,7 @@ export function useTranscriptSearch({
     trackAnalytics('conversations.detail.span-limit-reached', {organization})
   );
   const selectMatch = useEffectEvent((match: TranscriptMatch) =>
-    onSelectMatch(match.spanId, match.element)
+    onSelectMatch(match.spanId, match.range)
   );
 
   const step = useCallback(

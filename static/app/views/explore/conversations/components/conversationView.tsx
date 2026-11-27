@@ -204,8 +204,8 @@ export function ConversationViewContent({
                 hasReachedPageLimit={hasReachedPageLimit}
                 isLoadingMore={isLoading || isFetchingNextPage}
                 loadMore={loadNextPage}
-                onSelectMatch={(spanId, element) => {
-                  centerOnSelect(spanId, element);
+                onSelectMatch={(spanId, range) => {
+                  centerOnSelect(spanId, range);
                   onSelectSpan(spanId);
                 }}
               />

@@ -19,7 +19,7 @@ interface TranscriptSearchProps {
   hasReachedPageLimit: boolean;
   isLoadingMore: boolean;
   loadMore: () => void;
-  onSelectMatch: (spanId: string, element: HTMLElement) => void;
+  onSelectMatch: (spanId: string, range: Range) => void;
   rootRef: RefObject<HTMLElement | null>;
 }
 
