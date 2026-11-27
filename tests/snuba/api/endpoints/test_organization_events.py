@@ -7332,6 +7332,30 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
         assert response.status_code == 200, response.content
         assert response.data["data"][0]["count()"] == 1
 
+    def test_is_status_sort_by_project(self) -> None:
+        project_a = self.create_project(name="aaa", slug="aaa")
+        project_z = self.create_project(name="zzz", slug="zzz")
+        for i, project in enumerate([project_a, project_z]):
+            self.store_event(
+                data={
+                    "event_id": str(i) * 32,
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": [f"group{i}"],
+                },
+                project_id=project.id,
+            )
+
+        query = {
+            "field": ["project", "count()"],
+            "project": [project_a.id, project_z.id],
+            "query": "is:unresolved",
+            "sort": "-project",
+            "dataset": "errors",
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert [row["project"] for row in response.data["data"]] == ["zzz", "aaa"]
+
     def test_short_group_id(self) -> None:
         group_1 = self.store_event(
             data={
