@@ -427,19 +427,15 @@ export function InvoiceComparison() {
   return (
     <Fragment>
       <p>
-        Per-org totals comparing legacy <code>Invoice</code> and shadow{' '}
-        <code>PlatformInvoice</code> records <strong>generated</strong> in the selected
-        whole UTC days from the first to the last selected day (filtered on{' '}
-        <code>date_added</code>). <strong>Legacy invoices</strong> (count and dollar
-        total) are scoped to orgs that have invoices on both sides — legacy-only orgs
-        haven't been onboarded to the platform yet, so counting them would inflate the
-        parity tallies with orgs that can't be expected to match.{' '}
-        <strong>Platform invoices</strong> reflect every <code>PlatformInvoice</code> in
-        the window; in production milestone-1 those are equivalent to both-sided since{' '}
-        <code>InvoicerService</code> only generates platform invoices for orgs with a{' '}
-        <code>Contract</code> (which already have a legacy counterpart). The table
-        compares the migrated orgs, sorted by absolute % delta (relative to legacy),
-        largest first.
+        For each migrated org with an invoice <strong>generated</strong> in the selected
+        whole UTC days (filtered on <code>date_added</code>), compares its latest legacy{' '}
+        <code>Invoice</code> with its latest shadow <code>PlatformInvoice</code> in those
+        days. The invoice counts and dollar totals add up those latest invoices. When only
+        one side invoiced, the row is a miss only if the other side's billing day is in
+        the selected days. Otherwise the org is left out until that day, since legacy and
+        the platform can bill an org on different days of the month. Invoices from before
+        an org migrated aren't compared. The table is sorted by absolute % delta (relative
+        to legacy), largest first.
       </p>
 
       <Panel>
