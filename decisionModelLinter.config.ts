@@ -76,6 +76,7 @@ const CAUSED_BY_THIS_CHANGE =
   'Use diff to tell whether this change caused it: compare its - (removed) and + (added) lines. A line that only moved or was reformatted appears as both - and +, so it already existed. If diff says No diff available., treat the whole file as under review and answer INTRODUCED for any problem.';
 
 const api = {
+  files: ['src/sentry/**/*.py'],
   context: {diff},
   rules: {
     addsNewOmittedFields: {
@@ -258,6 +259,7 @@ const api = {
 } satisfies Suite;
 
 const audit = {
+  files: ['src/sentry/**/*.py'],
   // Models, services, operator commands, and system tasks change auth state as plumbing; the
   // audit belongs at the user-facing caller.
   ignores: [
@@ -395,6 +397,7 @@ const frontend = {
 } satisfies Suite;
 
 const security = {
+  files: ['src/sentry/**/*.py'],
   ignores: [
     '**/tests/**',
     '**/testutils/**',
@@ -709,6 +712,7 @@ const voice = {
 // Guardrails for the org:ci scope: endpoints reachable by CI org-auth-tokens
 // (e.g. sentry-cli) that expose data beyond what CI automation should read.
 const orgCiGuardrails = {
+  files: ['src/sentry/**/*.py'],
   ignores: [
     '**/tests/**',
     '**/testutils/**',
