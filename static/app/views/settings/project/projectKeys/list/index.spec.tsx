@@ -121,6 +121,16 @@ describe('ProjectKeys', () => {
     });
     // this is empty in the default ProjectKey
     expect(unrealEndpoint).toHaveValue('');
+
+    await userEvent.click(screen.getByRole('tab', {name: 'Heroku Drains'}));
+    const firOtlpEndpoint = await screen.findByRole('textbox', {name: 'OTLP Endpoint'});
+    expect(firOtlpEndpoint).toHaveValue(`${projectKeys[0].dsn.integration}otlp`);
+    const herokuLogDrainUrl = await screen.findByRole('textbox', {
+      name: 'Heroku Log Drain URL',
+    });
+    expect(herokuLogDrainUrl).toHaveValue(
+      `${projectKeys[0].dsn.integration}heroku/logs?sentry_key=${projectKeys[0].public}`
+    );
   });
 
   it('renders for javascript project', async () => {
