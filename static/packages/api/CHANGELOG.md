@@ -1,3 +1,9 @@
+## 3.3.0
+
+### New Features ✨
+
+- (api) Carry x-sentry-project-scope as ApiOperation.projectScope by @BYK with @sentry-junior in [#132723](https://github.com/getsentry/sentry/pull/132723)
+
 ## 3.2.0
 
 - No documented changes.
