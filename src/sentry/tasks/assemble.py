@@ -7,11 +7,12 @@ import posixpath
 import re
 import tempfile
 import uuid
+import zipfile
 from collections import Counter
 from collections.abc import Sequence
 from datetime import datetime
 from types import TracebackType
-from typing import IO, TYPE_CHECKING, Any, NamedTuple
+from typing import IO, TYPE_CHECKING, Any, Literal, NamedTuple
 
 import orjson
 import psycopg2.errors
@@ -474,8 +475,12 @@ class FileArtifactBundlePayload(NamedTuple):
         assert self.assemble_result.bundle.size is not None
         return self.assemble_result.bundle.size
 
-    def store(self) -> None:
-        # The `File` is stored while assembling.
+    @property
+    def compression(self) -> Literal["none"]:
+        return "none"
+
+    def store(self, compress: bool) -> None:
+        # The `File` is stored while assembling, from the uncompressed chunks.
         pass
 
     def fields(self) -> dict[str, Any]:
@@ -501,12 +506,18 @@ class ObjectstoreArtifactBundlePayload:
         temp_file.seek(0)
         # Set once the bundle is stored.
         self.storage_path: str | None = None
+        self.compression: Literal["zstd", "none"] = "none"
 
-    def store(self) -> None:
+    def store(self, compress: bool) -> None:
+        self.compression = "zstd" if compress else "none"
         self.temp_file.seek(0)
         self.storage_path = get_session(
             UsecaseId.ARTIFACT_BUNDLES, project=None, org=self.organization_id
-        ).put(self.temp_file, content_type="application/octet-stream")
+        ).put(
+            self.temp_file,
+            compress=self.compression,
+            content_type="application/octet-stream",
+        )
 
     def fields(self) -> dict[str, Any]:
         assert self.storage_path is not None
@@ -567,6 +578,8 @@ class ArtifactBundlePostAssembler:
         metrics.incr(
             "tasks.assemble.artifact_bundle.artifact_count", amount=self.archive.artifact_count
         )
+        stored_size = 0
+        total_size = 0
         for info in self.archive.infolist():
             if info.file_size > MAX_SOURCE_FILE_SIZE:
                 metrics.incr("tasks.assemble.artifact_bundle.file_size_exceeded")
@@ -574,6 +587,13 @@ class ArtifactBundlePostAssembler:
                     f"file {info.filename} exceeds the maximum uncompressed file size "
                     f"({info.file_size} > {MAX_SOURCE_FILE_SIZE} bytes)"
                 )
+            total_size += info.file_size
+            if info.compress_type == zipfile.ZIP_STORED:
+                stored_size += info.file_size
+        # The Sentry CLI writes STORED entries when it compresses the uploaded chunks instead, so we compress bundles
+        # at rest when most of their bytes are STORED. Counting bytes ignores empty entries, which DEFLATE writers
+        # store as well.
+        self.compress = stored_size * 2 > total_size
 
     def _cleanup_invalid_bundle(self) -> None:
         metrics.incr("tasks.assemble.invalid_bundle")
@@ -656,7 +676,7 @@ class ArtifactBundlePostAssembler:
         date_only_on_bundle = options.get("sourcemaps.artifact-bundles.date-only-on-bundle")
 
         # We store the bundle before opening the transaction, to not hold row locks during network I/O.
-        self.payload.store()
+        self.payload.store(compress=self.compress)
 
         # We want to run everything in a transaction, since we don't want the database to be in an inconsistent
         # state after all of these updates.
@@ -862,7 +882,7 @@ class ArtifactBundlePostAssembler:
                 metrics.distribution(
                     "storage.put.size",
                     self.payload.size,
-                    tags={"usecase": "artifact-bundles", "compression": "none"},
+                    tags={"usecase": "artifact-bundles", "compression": self.payload.compression},
                     unit="byte",
                 )
 
