@@ -1,18 +1,18 @@
-import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import {IconOpen} from '@sentry/icons/open';
-import {useQuery} from '@tanstack/react-query';
+import {useMutation, useQuery} from '@tanstack/react-query';
+import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {CopyToClipboardButton} from '@sentry/scraps/clipboard';
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
-import {TextField} from 'sentry/components/forms/fields/textField';
 import {List} from 'sentry/components/list';
 import {t, tct} from 'sentry/locale';
 import type {Integration} from 'sentry/types/integrations';
@@ -22,7 +22,8 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {uniq} from 'sentry/utils/array/uniq';
-import {useApi} from 'sentry/utils/useApi';
+import {fetchMutation} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 
 type DerivedCodeMapping = {
   filename: string;
@@ -31,6 +32,30 @@ type DerivedCodeMapping = {
   source_path: string;
   stacktrace_root: string;
 };
+
+type RepoPathParsingResponse = {
+  defaultBranch: string;
+  integrationId: number;
+  provider: string;
+  repositoryId: number;
+  sourceRoot: string;
+  stackRoot: string;
+};
+
+const schema = z.object({sourceUrl: z.string()});
+
+function firstMessage(value: unknown) {
+  return Array.isArray(value) && typeof value[0] === 'string' ? value[0] : undefined;
+}
+
+function getSubmitErrorMessage(error: Error) {
+  const errorJson = error instanceof RequestError ? error.responseJSON : undefined;
+  return (
+    firstMessage(errorJson?.sourceUrl) ??
+    firstMessage(errorJson?.nonFieldErrors) ??
+    t('Unable to save configuration')
+  );
+}
 
 function WrappingFilePath({path}: {path: string}) {
   const separatorIndex = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'));
@@ -78,10 +103,6 @@ export function StacktraceLinkModal({
   Body,
   Footer,
 }: StacktraceLinkModalProps) {
-  const api = useApi();
-  const [error, setError] = useState<null | string>(null);
-  const [sourceCodeInput, setSourceCodeInput] = useState('');
-
   const {data: suggestedCodeMappings} = useQuery({
     ...apiOptions.as<DerivedCodeMapping[] | null>()(
       '/organizations/$organizationIdOrSlug/derive-code-mappings/',
@@ -146,10 +167,6 @@ export function StacktraceLinkModal({
     return 'https://github.com/organization/repository/blob/main/path/to/file';
   };
 
-  const onHandleChange = (input: string) => {
-    setSourceCodeInput(input);
-  };
-
   const onManualSetup = () => {
     trackAnalytics('integrations.stacktrace_manual_option_clicked', {
       view: 'stacktrace_issue_details',
@@ -162,64 +179,58 @@ export function StacktraceLinkModal({
     });
   };
 
-  const handleSubmit = async () => {
-    trackAnalytics('integrations.stacktrace_submit_config', {
-      setup_type: 'automatic',
-      view: 'stacktrace_issue_details',
-      provider: sourceCodeProviders[0]?.provider.name ?? 'unknown',
-      organization,
-    });
-    const parsingEndpoint = getApiUrl(
-      '/projects/$organizationIdOrSlug/$projectIdOrSlug/repo-path-parsing/',
-      {path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug}}
-    );
-    try {
-      const configData = await api.requestPromise(parsingEndpoint, {
+  const mutation = useMutation({
+    mutationFn: async (fileUrl: string) => {
+      const configData = await fetchMutation<RepoPathParsingResponse>({
+        url: getApiUrl(
+          '/projects/$organizationIdOrSlug/$projectIdOrSlug/repo-path-parsing/',
+          {path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug}}
+        ),
         method: 'POST',
-        data: {
-          sourceUrl: sourceCodeInput,
-          stackPath: filename,
-          module,
-          absPath,
-          platform,
-        },
+        data: {sourceUrl: fileUrl, stackPath: filename, module, absPath, platform},
       });
-
-      const configEndpoint = getApiUrl(
-        '/organizations/$organizationIdOrSlug/code-mappings/',
-        {path: {organizationIdOrSlug: organization.slug}}
-      );
-      await api.requestPromise(configEndpoint, {
+      await fetchMutation({
+        url: getApiUrl('/organizations/$organizationIdOrSlug/code-mappings/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         method: 'POST',
-        data: {
-          ...configData,
-          projectId: project.id,
-          integrationId: configData.integrationId,
-        },
+        data: {...configData, projectId: project.id},
       });
-
+      return configData;
+    },
+    onSuccess: (configData, fileUrl) => {
       toast.success(t('Stack trace configuration saved.'));
       trackAnalytics('integrations.stacktrace_complete_setup', {
         setup_type: 'automatic',
-        provider: configData.config?.provider.key,
+        provider: configData.provider,
         view: 'stacktrace_issue_details',
         organization,
-        is_suggestion: suggestions.includes(sourceCodeInput),
+        is_suggestion: suggestions.includes(fileUrl),
       });
       closeModal();
       onSubmit();
-    } catch (err: any) {
-      const errorJson = err?.responseJSON || {};
-      setError(
-        errorJson.sourceUrl?.[0] ??
-          errorJson.nonFieldErrors?.[0] ??
-          t('Unable to save configuration')
-      );
-    }
-  };
+    },
+  });
+
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {sourceUrl: ''},
+    validators: {onDynamic: schema},
+    onSubmit: ({value}) => {
+      trackAnalytics('integrations.stacktrace_submit_config', {
+        setup_type: 'automatic',
+        view: 'stacktrace_issue_details',
+        provider: sourceCodeProviders[0]?.provider.name ?? 'unknown',
+        organization,
+      });
+      return mutation.mutateAsync(value.sourceUrl).catch(() => {});
+    },
+  });
+
+  const error = mutation.error ? getSubmitErrorMessage(mutation.error) : null;
 
   return (
-    <Fragment>
+    <form.AppForm form={form}>
       <Header closeButton>
         <h4>{t('Set up Code Mapping')}</h4>
       </Header>
@@ -340,15 +351,16 @@ export function StacktraceLinkModal({
                   </Suggestions>
                 ) : null}
 
-                <StyledTextField
-                  inline={false}
-                  aria-label={t('File URL')}
-                  hideLabel
-                  name="source-code-input"
-                  value={sourceCodeInput}
-                  onChange={onHandleChange}
-                  placeholder={getPlaceholderUrl()}
-                />
+                <form.AppField name="sourceUrl">
+                  {field => (
+                    <field.Input
+                      aria-label={t('File URL')}
+                      value={field.state.value}
+                      onChange={field.handleChange}
+                      placeholder={getPlaceholderUrl()}
+                    />
+                  )}
+                </form.AppField>
               </Stack>
             </li>
           </StyledList>
@@ -357,12 +369,10 @@ export function StacktraceLinkModal({
       <Footer>
         <Grid flow="column" align="center" gap="md">
           <Button onClick={closeModal}>{t('Cancel')}</Button>
-          <Button variant="primary" onClick={handleSubmit}>
-            {t('Save mapping')}
-          </Button>
+          <form.SubmitButton>{t('Save mapping')}</form.SubmitButton>
         </Grid>
       </Footer>
-    </Fragment>
+    </form.AppForm>
   );
 }
 
@@ -395,13 +405,4 @@ const SuggestionOverflow = styled('div')`
   overflow: hidden;
   text-overflow: ellipsis;
   direction: rtl;
-`;
-
-const StyledTextField = styled(TextField)`
-  padding: 0px;
-  flex-grow: 1;
-
-  div {
-    margin-left: 0px;
-  }
 `;
