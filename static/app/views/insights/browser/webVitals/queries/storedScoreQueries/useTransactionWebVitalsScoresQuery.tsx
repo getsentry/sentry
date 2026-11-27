@@ -150,13 +150,14 @@ export const useTransactionWebVitalsScoresQuery = ({
   const scoreCountField = webVitalScoreCountField(metricsVital ?? 'lcp');
   const scoreField = webVitalScoreField(metricsVital ?? 'lcp');
   const p75Field = webVitalP75Field(metricsVital ?? 'lcp');
+  const opportunityField = `equation|${scoreCountField} * (1 - ${scoreField})`;
 
   const metrics = useTraceMetrics(
     {
       enabled: metricsEnabled,
       search: metricsSearch,
       limit: limit ?? 50,
-      sorts: [{field: scoreCountField, kind: 'desc'}],
+      sorts: [{field: opportunityField, kind: 'desc'}],
       fields: [
         'project.id',
         'project',
@@ -165,6 +166,7 @@ export const useTransactionWebVitalsScoresQuery = ({
         scoreField,
         scoreCountField,
         pageloadsField,
+        opportunityField,
       ],
     },
     Referrer.WEB_VITAL_TRANSACTIONS_SCORES

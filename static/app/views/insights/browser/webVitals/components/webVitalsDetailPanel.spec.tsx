@@ -23,6 +23,8 @@ import {WebVitalsDetailPanel} from './webVitalsDetailPanel';
 const DESKTOP_FILTER = new MutableSearch('')
   .addFilterValueList('!browser.name', MOBILE_BROWSER_TYPES)
   .formatString();
+const LCP_OPPORTUNITY =
+  'equation|count(tags[score.ratio.lcp,number],browser.web_vital.lcp,distribution,millisecond) * (1 - avg(tags[score.ratio.lcp,number],browser.web_vital.lcp,distribution,millisecond))';
 
 describe('WebVitalsDetailPanel', () => {
   const organization = OrganizationFixture();
@@ -264,8 +266,9 @@ describe('WebVitalsDetailPanel', () => {
             'avg(tags[score.ratio.lcp,number],browser.web_vital.lcp,distribution,millisecond)',
             'count(tags[score.ratio.lcp,number],browser.web_vital.lcp,distribution,millisecond)',
             'count(value,browser.web_vital.ttfb,distribution,millisecond)',
+            LCP_OPPORTUNITY,
           ],
-          sort: '-count(tags[score.ratio.lcp,number],browser.web_vital.lcp,distribution,millisecond)',
+          sort: `-${LCP_OPPORTUNITY}`,
           query,
         }),
       })
