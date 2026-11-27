@@ -1,6 +1,7 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -29,9 +30,12 @@ class OrganizationAuthProvidersEndpoint(OrganizationEndpoint):
         """
         provider_list = []
         for k, v in manager:
-            if not v.is_partner and k != ChannelName.FLY_NON_PARTNER.value:
-                provider_list.append(
-                    {"key": k, "name": v.name, "requiredFeature": v.required_feature}
-                )
+            if v.is_partner or k == ChannelName.FLY_NON_PARTNER.value:
+                continue
+            if v.hidden_without_required_feature and not features.has(
+                v.required_feature, organization, actor=request.user
+            ):
+                continue
+            provider_list.append({"key": k, "name": v.name, "requiredFeature": v.required_feature})
 
         return Response(serialize(provider_list, request.user))
