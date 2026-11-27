@@ -778,22 +778,6 @@ describe('useChartContextDrawer', () => {
         ],
       });
       MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/flags/logs/`,
-        body: {
-          data: [
-            {
-              id: 1,
-              action: 'updated',
-              createdAt: '2026-11-03T13:00:00Z',
-              createdBy: 'user@example.com',
-              createdByType: 'email',
-              flag: 'new-checkout',
-              tags: {},
-            },
-          ],
-        },
-      });
-      MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/timeseries-annotations/`,
         body: [
           {
@@ -1017,7 +1001,7 @@ describe('useChartContextDrawer', () => {
                 contextTab: 'annotations',
                 contextSection: 'pinned',
                 rdListCursor: '0:15:0',
-                contextFlagsCursor: '0:15:0',
+                contextFlagsPage: '1',
               },
             },
           },
@@ -1032,7 +1016,7 @@ describe('useChartContextDrawer', () => {
       expect(router.location.query.contextTab).toBeUndefined();
       expect(router.location.query.contextSection).toBeUndefined();
       expect(router.location.query.rdListCursor).toBeUndefined();
-      expect(router.location.query.contextFlagsCursor).toBeUndefined();
+      expect(router.location.query.contextFlagsPage).toBeUndefined();
     });
 
     it('comes back on its tab after the releases drawer it opened closes', async () => {

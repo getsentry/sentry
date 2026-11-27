@@ -102,28 +102,24 @@ describe('AnnotationsPanel', () => {
     );
   });
 
-  it('lists flag changes', async () => {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/flags/logs/',
-      body: {
-        data: [
+  it('lists flag changes', () => {
+    render(
+      <AnnotationsPanel
+        items={[
           {
-            id: 1,
+            id: 'flag:1',
+            kind: 'flag',
+            start: 0,
+            title: 'new-checkout',
             action: 'updated',
-            createdAt: '2026-11-03T13:00:00Z',
-            createdBy: 'user@example.com',
-            createdByType: 'email',
-            flag: 'new-checkout',
-            tags: {},
           },
-        ],
-      },
-    });
-
-    render(<AnnotationsPanel items={[]} kinds={['flag']} />);
+        ]}
+        kinds={['flag']}
+      />
+    );
 
     const flags = screen.getByRole('region', {name: 'Flags'});
-    expect(await within(flags).findByText('new-checkout')).toBeInTheDocument();
+    expect(within(flags).getByText('new-checkout')).toBeInTheDocument();
     expect(within(flags).getByText('Updated')).toBeInTheDocument();
   });
 });
