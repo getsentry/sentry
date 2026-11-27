@@ -62,20 +62,35 @@ describe('SnapshotEntityHeader metadata', () => {
     expect(items[2]).toHaveTextContent('169d99d');
   });
 
-  it('links the pull request out, and nothing else', () => {
+  it('links the pull request, branch and commit out', () => {
     renderHeader();
 
     const pr = screen.getByRole('link', {name: 'Pull request #125782'});
     expect(pr).toHaveAttribute('href', 'https://github.com/getsentry/sentry/pull/125782');
     expect(pr).toHaveAttribute('target', '_blank');
 
-    expect(screen.getAllByRole('link')).toHaveLength(1);
+    expect(screen.getByRole('link', {name: 'Branch seer/spans-table'})).toHaveAttribute(
+      'href',
+      'https://github.com/getsentry/sentry/tree/seer/spans-table'
+    );
+    expect(screen.getByRole('link', {name: 'Commit 169d99d'})).toHaveAttribute(
+      'href',
+      'https://github.com/getsentry/sentry/commit/169d99deadbeef'
+    );
   });
 
-  it('renders the pull request as text when it cannot be linked', () => {
-    renderHeader({vcs_info: {pr_number: 125782}});
+  it('renders each item as text when it cannot be linked', () => {
+    renderHeader({
+      vcs_info: {
+        pr_number: 125782,
+        head_ref: 'seer/spans-table',
+        head_sha: '169d99deadbeef',
+      },
+    });
 
     expect(screen.getByText('#125782')).toBeInTheDocument();
+    expect(screen.getByText('seer/spans-table')).toBeInTheDocument();
+    expect(screen.getByText('169d99d')).toBeInTheDocument();
     expect(screen.queryByRole('link')).not.toBeInTheDocument();
   });
 

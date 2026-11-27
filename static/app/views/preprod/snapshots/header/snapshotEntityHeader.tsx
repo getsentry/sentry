@@ -17,12 +17,11 @@ import {SnapshotStatusBadge} from 'sentry/components/preprod/snapshotStatusBadge
 import {t} from 'sentry/locale';
 import type {AvatarUser} from 'sentry/types/user';
 import {isSnapshotApproved} from 'sentry/views/preprod/types/buildDetailsTypes';
-import type {BuildDetailsVcsInfo} from 'sentry/views/preprod/types/buildDetailsTypes';
 import type {
   SnapshotApprover,
   SnapshotDetailsApiResponse,
 } from 'sentry/views/preprod/types/snapshotTypes';
-import {getPrUrl} from 'sentry/views/preprod/utils/vcsLinkUtils';
+import {getBranchUrl, getPrUrl, getShaUrl} from 'sentry/views/preprod/utils/vcsLinkUtils';
 
 const AUTO_APPROVED_EXPLANATION = t(
   'Automatically approved because the changes match a previously approved build on this PR.'
@@ -104,21 +103,15 @@ function buildTitle(data: SnapshotDetailsApiResponse): EntityHeaderTitleProps {
   };
 }
 
-function pullRequestItem(
-  vcsInfo: BuildDetailsVcsInfo
-): EntityHeaderMetadataItemProps | null {
-  if (!vcsInfo.pr_number) {
-    return null;
-  }
-
-  const item = {
-    label: t('Pull request'),
-    value: `#${vcsInfo.pr_number}`,
-    leadingGraphic: <IconPullRequest size="md" />,
-  };
-  const prUrl = getPrUrl(vcsInfo);
-
-  return prUrl ? {...item, type: 'link', externalHref: prUrl} : {...item, type: 'text'};
+function vcsItem(
+  item: {
+    label: string;
+    leadingGraphic: EntityHeaderMetadataItemProps['leadingGraphic'];
+    value: string;
+  },
+  url: string | null
+): EntityHeaderMetadataItemProps {
+  return url ? {...item, type: 'link', externalHref: url} : {...item, type: 'text'};
 }
 
 function buildMetadata(data: SnapshotDetailsApiResponse): EntityHeaderProps['metadata'] {
@@ -128,22 +121,35 @@ function buildMetadata(data: SnapshotDetailsApiResponse): EntityHeaderProps['met
   return {
     label: t('Snapshot build'),
     items: [
-      pullRequestItem(vcsInfo),
+      vcsInfo.pr_number
+        ? vcsItem(
+            {
+              label: t('Pull request'),
+              value: `#${vcsInfo.pr_number}`,
+              leadingGraphic: <IconPullRequest size="md" />,
+            },
+            getPrUrl(vcsInfo)
+          )
+        : null,
       vcsInfo.head_ref
-        ? {
-            type: 'text',
-            label: t('Branch'),
-            value: vcsInfo.head_ref,
-            leadingGraphic: <IconBranch size="md" />,
-          }
+        ? vcsItem(
+            {
+              label: t('Branch'),
+              value: vcsInfo.head_ref,
+              leadingGraphic: <IconBranch size="md" />,
+            },
+            getBranchUrl(vcsInfo, vcsInfo.head_ref)
+          )
         : null,
       shortSha
-        ? {
-            type: 'text',
-            label: t('Commit'),
-            value: shortSha,
-            leadingGraphic: <IconCommit size="md" />,
-          }
+        ? vcsItem(
+            {
+              label: t('Commit'),
+              value: shortSha,
+              leadingGraphic: <IconCommit size="md" />,
+            },
+            getShaUrl(vcsInfo, vcsInfo.head_sha)
+          )
         : null,
     ],
   };
