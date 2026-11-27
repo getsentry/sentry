@@ -215,6 +215,20 @@ describe('useConnectScmModalFromUrl', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
+  it('says once Seer can access the repo after the install', async () => {
+    const success = jest.spyOn(toast, 'success');
+    mockInstallPipeline();
+    mockRepoAccess('scm_account_not_connected', 'acme-labs/app');
+    renderFromUrl({connectScmRepo: 'acme-labs/app'});
+
+    expect(await screen.findByRole('button', {name: 'Add GitHub'})).toBeInTheDocument();
+    mockRepoAccess('found', 'acme-labs/app');
+    await finishInstall();
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(success).toHaveBeenCalledWith('Seer can access acme-labs/app now.');
+  });
+
   it("opens anyway when it can't check", async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/repo-access/`,
