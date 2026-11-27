@@ -44,6 +44,9 @@ class ProjectTeamsEndpoint(ProjectEndpoint):
         Return a list of teams that have access to this project.
         """
         queryset = Team.objects.filter(projectteam__project=project)
+        demo = request.GET.get("demo")
+        if demo:
+            queryset = queryset.filter(slug=demo)
 
         return self.paginate(
             request=request,
