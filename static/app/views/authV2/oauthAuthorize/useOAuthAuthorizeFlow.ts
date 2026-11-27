@@ -28,6 +28,7 @@ const authorizationParsers = {
   state: parseAsString,
   code_challenge: parseAsString,
   code_challenge_method: parseAsString,
+  prompt: parseAsString,
 };
 
 export function useOAuthAuthorizeFlow() {
@@ -97,6 +98,21 @@ export function useOAuthAuthorizeFlow() {
     mutate({transactionId: consent.transactionId, op: 'approve'});
   }, [autoApprove, consent, mutate, session.switchAccount.isPending]);
 
+  // prompt=login: sign out so the existing session cannot satisfy reauthentication.
+  // Signing in starts a new session, which prepares consent again.
+  const reauthenticate = consent?.stage === 'reauthenticate';
+  const reauthenticatedSession = useRef<string | null>(null);
+  const {mutate: signOut} = session.switchAccount;
+
+  useEffect(() => {
+    if (!reauthenticate || reauthenticatedSession.current === session.sessionKey) {
+      return;
+    }
+
+    reauthenticatedSession.current = session.sessionKey;
+    signOut();
+  }, [reauthenticate, session.sessionKey, signOut]);
+
   // Consent belongs to the current account. Block decisions during account switching
   // so a transaction prepared for the previous account cannot be submitted.
   const actions = {
@@ -119,6 +135,8 @@ export function useOAuthAuthorizeFlow() {
 
     retry: () => {
       decision.reset();
+      // A failed prompt=login sign-out must not resurface before the next attempt.
+      session.switchAccount.reset();
       session.refresh();
       void contextQuery.refetch();
     },
@@ -182,6 +200,19 @@ export function useOAuthAuthorizeFlow() {
         // Restarting prepares a fresh transaction, which can recover an expired
         // or invalid decision even when repeating that POST would fail.
         canRetry: decision.isError || canRetryOAuthRequest(consentQuery.error),
+      } as const,
+      actions,
+    };
+  }
+
+  if (reauthenticate && session.switchAccount.isError) {
+    return {
+      state: {
+        ...shared,
+        switchError: null,
+        status: 'error',
+        message: getRequestErrorUserMessage(session.switchAccount.error),
+        canRetry: true,
       } as const,
       actions,
     };
