@@ -12,6 +12,7 @@ from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 from fido2.ctap2 import AuthenticatorData
 
+from sentry import options
 from sentry.auth.authenticators import (
     AUTHENTICATOR_CHOICES,
     AUTHENTICATOR_INTERFACES,
@@ -30,7 +31,7 @@ from sentry.db.models import (
     control_silo_model,
 )
 from sentry.db.models.manager.base import BaseManager
-from sentry.hybridcloud.models.outbox import ControlOutboxBase
+from sentry.hybridcloud.models.outbox import ControlOutboxBase, outbox_context
 from sentry.hybridcloud.outbox.base import ControlOutboxProducingModel
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.types.cell import find_cells_for_user
@@ -197,7 +198,13 @@ class Authenticator(ControlOutboxProducingModel):
 
     def mark_used(self, save: bool = True) -> None:
         self.last_used_at = timezone.now()
-        if save:
+        if not save:
+            return
+
+        if options.get("hybridcloud.outbox.authenticator_mark_used_async.enabled"):
+            with outbox_context(flush=False):
+                self.save()
+        else:
             self.save()
 
     def reset_fields(self, save: bool = True) -> None:
