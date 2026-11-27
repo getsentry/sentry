@@ -216,6 +216,7 @@ export function ConversationViewContent({
                   isLoading={isLoading}
                   nodes={nodes}
                   messages={messages}
+                  nodeTraceMap={nodeTraceMap}
                   selectedNodeId={displayedNode?.id ?? null}
                   onSelectNode={handleSelectAndOpenDetail}
                   onViewTimeline={onViewTimeline}
