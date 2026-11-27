@@ -566,5 +566,37 @@ describe('utils', () => {
       );
       expect(params).not.toHaveProperty('statsPeriod');
     });
+
+    it('adds skipCache only when requested', () => {
+      const widget = WidgetFixture({displayType: DisplayType.LINE});
+
+      const unchanged = getTimeseriesRequestQuery(
+        widget,
+        0,
+        PageFiltersFixture(),
+        DiscoverDatasets.ERRORS
+      );
+      expect(unchanged).not.toHaveProperty('skipCache');
+
+      const skipped = getTimeseriesRequestQuery(
+        widget,
+        0,
+        PageFiltersFixture(),
+        DiscoverDatasets.ERRORS,
+        {skipCache: false}
+      );
+      expect(skipped).not.toHaveProperty('skipCache');
+      expect(skipped).toEqual(unchanged);
+
+      expect(
+        getTimeseriesRequestQuery(
+          widget,
+          0,
+          PageFiltersFixture(),
+          DiscoverDatasets.ERRORS,
+          {skipCache: true}
+        ).skipCache
+      ).toBe('1');
+    });
   });
 });

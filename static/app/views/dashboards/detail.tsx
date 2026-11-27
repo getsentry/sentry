@@ -81,6 +81,7 @@ import {
   calculateColumnDepths,
   getDashboardLayout,
 } from './layoutUtils';
+import {DashboardSkipCacheProvider} from './skipTimeseriesCache';
 import type {
   DashboardDetails,
   DashboardFilters,
@@ -1283,11 +1284,13 @@ class DashboardDetail extends Component<Props, State> {
           }}
         />
 
-        {this.isEmbedded ? (
-          pageContent
-        ) : (
-          <DashboardPageFilters skipLoadLastUsed>{pageContent}</DashboardPageFilters>
-        )}
+        <DashboardSkipCacheProvider>
+          {this.isEmbedded ? (
+            pageContent
+          ) : (
+            <DashboardPageFilters skipLoadLastUsed>{pageContent}</DashboardPageFilters>
+          )}
+        </DashboardSkipCacheProvider>
       </SentryDocumentTitle>
     );
   }

@@ -9,6 +9,8 @@ import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Flex, Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Switch} from '@sentry/scraps/switch';
+import {Text} from '@sentry/scraps/text';
 
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
@@ -59,6 +61,7 @@ import {
   type PrebuiltDashboardId,
 } from './utils/prebuiltConfigs';
 import {DataSet} from './widgetBuilder/utils';
+import {useDashboardSkipCache} from './skipTimeseriesCache';
 import {SortableReleasesSelect} from './sortableReleasesSelect';
 import type {
   DashboardDetails,
@@ -108,6 +111,10 @@ export function FiltersBar({
   storageNamespace,
 }: FiltersBarProps) {
   const organization = useOrganization();
+  const {skipCache, setSkipCache} = useDashboardSkipCache();
+  const canSkipTimeseriesCache = organization.features.includes(
+    'dashboards-timeseries-skip-cache'
+  );
   const currentUser = useUser();
   const {teams: userTeams} = useUserTeams();
   const {getSearchBarData, onFilterKeySearch} = useDatasetSearchBarData();
@@ -440,6 +447,18 @@ export function FiltersBar({
           )}
       </Flex>
       <Grid flow="column" align="center" gap="md">
+        {canSkipTimeseriesCache && (
+          <Flex align="center" gap="sm">
+            <Text as="label" htmlFor="dashboard-skip-cache" size="sm">
+              {t('Skip cache')}
+            </Text>
+            <Switch
+              id="dashboard-skip-cache"
+              checked={skipCache}
+              onChange={event => setSkipCache(event.currentTarget.checked)}
+            />
+          </Flex>
+        )}
         {showQueryPriority && (
           <QuerySpeedMenu
             menuWidth={240}

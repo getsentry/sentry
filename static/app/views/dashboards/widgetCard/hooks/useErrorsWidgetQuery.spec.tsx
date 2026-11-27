@@ -3,10 +3,11 @@ import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 import {WidgetFixture} from 'sentry-fixture/widget';
 
-import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {setDashboardSkipCache} from 'sentry/views/dashboards/skipTimeseriesCache';
 import {DisplayType} from 'sentry/views/dashboards/types';
 
 import {useErrorsSeriesQuery, useErrorsTableQuery} from './useErrorsWidgetQuery';
@@ -23,6 +24,11 @@ describe('useErrorsSeriesQuery', () => {
     MockApiClient.clearMockResponses();
     PageFiltersStore.init();
     PageFiltersStore.onInitializeUrlState(pageFilters);
+    act(() => setDashboardSkipCache(false));
+  });
+
+  afterEach(() => {
+    act(() => setDashboardSkipCache(false));
   });
 
   it('makes a request to the errors dataset', async () => {
@@ -57,6 +63,52 @@ describe('useErrorsSeriesQuery', () => {
         })
       );
     });
+  });
+
+  it('adds skipCache only when the toggle and flag are both on', async () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.LINE,
+      queries: [
+        {
+          name: 'test',
+          fields: ['count()'],
+          aggregates: ['count()'],
+          columns: [],
+          conditions: '',
+          orderby: '',
+        },
+      ],
+    });
+    const mockRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {timeSeries: [TimeSeriesFixture({yAxis: 'count()'})]},
+    });
+
+    setDashboardSkipCache(true);
+    const {unmount} = renderHookWithProviders(() =>
+      useErrorsSeriesQuery({widget, organization, pageFilters, enabled: true})
+    );
+
+    await waitFor(() => expect(mockRequest).toHaveBeenCalled());
+    expect(mockRequest.mock.calls[0][1].query).not.toHaveProperty('skipCache');
+    unmount();
+
+    mockRequest.mockClear();
+    renderHookWithProviders(
+      () => useErrorsSeriesQuery({widget, organization, pageFilters, enabled: true}),
+      {
+        organization: OrganizationFixture({
+          features: ['dashboards-timeseries-skip-cache'],
+        }),
+      }
+    );
+
+    await waitFor(() =>
+      expect(mockRequest).toHaveBeenCalledWith(
+        '/organizations/org-slug/events-timeseries/',
+        expect.objectContaining({query: expect.objectContaining({skipCache: '1'})})
+      )
+    );
   });
 
   it('excludes the Other series for grouped widgets with multiple aggregates', async () => {

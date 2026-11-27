@@ -20,6 +20,7 @@ import type {
 } from 'sentry/views/dashboards/datasetConfig/base';
 import {getTimeseriesRequestQuery} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import {traceMetricsResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/traceMetricsResponseTransforms';
+import {useShouldSkipTimeseriesCache} from 'sentry/views/dashboards/skipTimeseriesCache';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {
   combineIngestionMeta,
@@ -64,6 +65,7 @@ export function useTraceMetricsSeriesQuery(
   } = params;
 
   const {queue} = useWidgetQueryQueue();
+  const skipCache = useShouldSkipTimeseriesCache();
 
   const filteredWidget = useMemo(
     () =>
@@ -88,6 +90,7 @@ export function useTraceMetricsSeriesQuery(
             referrer: getReferrer(filteredWidget.displayType),
             widgetInterval,
             sampling: samplingMode,
+            skipCache,
           }
         ),
       })

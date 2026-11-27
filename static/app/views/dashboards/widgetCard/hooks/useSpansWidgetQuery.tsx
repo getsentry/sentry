@@ -24,6 +24,7 @@ import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEve
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
 import {getTimeseriesRequestQuery} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import {spansResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/spansResponseTransforms';
+import {useShouldSkipTimeseriesCache} from 'sentry/views/dashboards/skipTimeseriesCache';
 import type {Widget} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {remapTransformations} from 'sentry/views/dashboards/utils/transformations';
@@ -188,6 +189,7 @@ export function useSpansSeriesQuery(
   } = params;
 
   const {queue} = useWidgetQueryQueue();
+  const skipCache = useShouldSkipTimeseriesCache();
 
   // Apply dashboard filters
   const filteredWidget = useMemo(
@@ -220,6 +222,7 @@ export function useSpansSeriesQuery(
         referrer: getReferrer(filteredWidget.displayType),
         widgetInterval,
         sampling: samplingMode,
+        skipCache,
       }
     );
 

@@ -601,6 +601,63 @@ describe('Dashboards > Detail', () => {
       );
     });
 
+    it('adds skipCache to timeseries requests only while the toggle is on', async () => {
+      const flaggedData = initializeOrg({
+        organization: OrganizationFixture({
+          features: ['discover-query', 'dashboards-timeseries-skip-cache'],
+        }),
+        router: {location: LocationFixture()},
+      });
+      const mock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events-timeseries/',
+        body: {timeSeries: []},
+      });
+
+      render(
+        <OrganizationContext value={flaggedData.organization}>
+          <ViewEditDashboard />
+        </OrganizationContext>,
+        makeDashboardRouterConfig({
+          pathname: '/organizations/org-slug/dashboard/1/',
+          route: DASHBOARD_ROUTE,
+          query: {},
+        })
+      );
+
+      await waitFor(() => expect(mock).toHaveBeenCalled());
+      for (const [, request] of mock.mock.calls) {
+        expect(request.query).not.toHaveProperty('skipCache');
+      }
+      expect(screen.getByRole('checkbox', {name: 'Skip cache'})).not.toBeChecked();
+
+      await userEvent.click(screen.getByRole('checkbox', {name: 'Skip cache'}));
+
+      await waitFor(() =>
+        expect(mock).toHaveBeenLastCalledWith(
+          '/organizations/org-slug/events-timeseries/',
+          expect.objectContaining({query: expect.objectContaining({skipCache: '1'})})
+        )
+      );
+    });
+
+    it('hides the skip cache toggle without the flag', async () => {
+      render(
+        <OrganizationContext value={initialData.organization}>
+          <ViewEditDashboard />
+        </OrganizationContext>,
+        makeDashboardRouterConfig({
+          pathname: '/organizations/org-slug/dashboard/1/',
+          route: DASHBOARD_ROUTE,
+          query: {},
+        })
+      );
+
+      await screen.findByRole('button', {name: 'Edit'});
+      expect(
+        screen.queryByRole('checkbox', {name: 'Skip cache'})
+      ).not.toBeInTheDocument();
+    });
+
     it('shows add widget option', async () => {
       render(
         <OrganizationContext value={initialData.organization}>
