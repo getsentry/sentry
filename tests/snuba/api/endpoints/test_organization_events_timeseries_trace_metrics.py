@@ -565,12 +565,11 @@ class OrganizationEventsStatsTraceMetricsEndpointTest(OrganizationEventsEndpoint
         self, vital: str, ratio: float, hour: int, transaction: str = "/"
     ) -> TraceItem:
         return self.create_trace_metric(
-            f"browser.web_vital.{vital}.score",
-            ratio,
+            f"browser.web_vital.{vital}",
+            1000.0,
             "distribution",
-            metric_unit="ratio",
             timestamp=self.start + timedelta(hours=hour, minutes=1),
-            attributes={"sentry.segment.name": transaction},
+            attributes={"sentry.segment.name": transaction, f"score.ratio.{vital}": ratio},
         )
 
     def test_web_vital_total_performance_score(self) -> None:
