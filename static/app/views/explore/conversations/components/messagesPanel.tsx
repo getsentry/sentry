@@ -1,4 +1,4 @@
-import {memo, useCallback, useMemo} from 'react';
+import {Fragment, memo, useCallback, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -12,11 +12,7 @@ import {
   AssistantMessageBlock,
   UserMessageBlock,
 } from 'sentry/components/ai/chat/messageBlock';
-import {
-  TURN_META_WIDTH,
-  TurnMeta,
-  TurnMetaValue,
-} from 'sentry/components/ai/chat/turnMeta';
+import {TURN_META_WIDTH, TurnMeta} from 'sentry/components/ai/chat/turnMeta';
 import {Count} from 'sentry/components/count';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
@@ -52,7 +48,6 @@ import {AIContentRenderer} from 'sentry/views/performance/traceDetails/traceDraw
 import {ConversationMissingMessagesAlert} from './conversationMissingMessagesAlert';
 import {MessageToolCalls} from './messageToolCalls';
 import {SubAgentRow, type RenderTranscriptMessages} from './subAgentRow';
-import {ToolTag} from './toolTag';
 import {TranscriptSpanRow} from './transcriptSpanRow';
 
 interface MessagesPanelProps {
@@ -453,16 +448,19 @@ const AssistantTurn = memo(function AssistantTurnImpl({
   );
 });
 
-function AssistantMeta({cost, duration}: {cost?: number; duration?: number}) {
+function AssistantMeta({
+  cost,
+  duration,
+  hasError: isErrored = false,
+}: {
+  cost?: number;
+  duration?: number;
+  hasError?: boolean;
+}) {
   return (
     <TurnMeta
-      metric={
-        cost === undefined || cost <= 0 ? null : (
-          <TurnMetaValue>
-            <LLMCosts cost={cost} />
-          </TurnMetaValue>
-        )
-      }
+      variant={isErrored ? 'danger' : 'muted'}
+      metric={cost === undefined || cost <= 0 ? null : <LLMCosts cost={cost} />}
       duration={duration}
     />
   );
@@ -502,9 +500,9 @@ const EmbeddingTurn = memo(function EmbeddingTurnImpl({
           <TurnMeta
             metric={
               tokens === undefined || tokens <= 0 ? null : (
-                <TurnMetaValue>
+                <Fragment>
                   <Count value={tokens} /> {t('tokens')}
-                </TurnMetaValue>
+                </Fragment>
               )
             }
             duration={message.duration}
@@ -572,9 +570,16 @@ const EvaluationTurn = memo(function EvaluationTurnImpl({
         isSelected={isSelected}
         ariaLabel={t('Select evaluation %s', evaluator)}
         onSelect={selectEvaluation}
-        tag={<ToolTag name={evaluator} hasError={node ? hasError(node) : false} />}
+        title={evaluator}
+        hasError={node ? hasError(node) : false}
         preview={getEvaluationPreview(message.evaluation)}
-        meta={<AssistantMeta cost={cost} duration={message.duration} />}
+        meta={
+          <AssistantMeta
+            cost={cost}
+            duration={message.duration}
+            hasError={node ? hasError(node) : false}
+          />
+        }
       />
     </MessageRow>
   );
@@ -618,9 +623,16 @@ const ExtractionTurn = memo(function ExtractionTurnImpl({
         isSelected={isSelected}
         ariaLabel={t('Select extraction %s', extractor)}
         onSelect={selectExtraction}
-        tag={<ToolTag name={extractor} hasError={node ? hasError(node) : false} />}
+        title={extractor}
+        hasError={node ? hasError(node) : false}
         preview={getExtractionPreview(message.extraction)}
-        meta={<AssistantMeta cost={cost} duration={message.duration} />}
+        meta={
+          <AssistantMeta
+            cost={cost}
+            duration={message.duration}
+            hasError={node ? hasError(node) : false}
+          />
+        }
       />
     </MessageRow>
   );
@@ -658,9 +670,15 @@ const MemoryTurn = memo(function MemoryTurnImpl({
         isSelected={isSelected}
         ariaLabel={t('Select memory %s', operation)}
         onSelect={selectMemory}
-        tag={<ToolTag name={operation} hasError={node ? hasError(node) : false} />}
+        title={operation}
+        hasError={node ? hasError(node) : false}
         preview={getMemoryPreview(message.memory)}
-        meta={<AssistantMeta duration={message.duration} />}
+        meta={
+          <AssistantMeta
+            duration={message.duration}
+            hasError={node ? hasError(node) : false}
+          />
+        }
       />
     </MessageRow>
   );

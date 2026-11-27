@@ -36,6 +36,7 @@ export function AiTraceSpanNodeFixture({
     endTimestamp: value.end_timestamp,
     attributes: value.additional_attributes,
     errors: new Set(),
+    uniqueIssues: [],
     findParent(predicate: (node: AITraceSpanNode) => boolean) {
       let current = parent;
       while (current) {

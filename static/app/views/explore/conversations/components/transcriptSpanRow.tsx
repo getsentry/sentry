@@ -1,93 +1,85 @@
 import type {ReactNode} from 'react';
 import {css, useTheme} from '@emotion/react';
 
-import {Container, Flex} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
+import {Flex} from '@sentry/scraps/layout';
 
-import {AiSpanStatusIcon} from 'sentry/views/insights/pages/agents/components/aiSpanStatusIcon';
-import {ScrubbedText} from 'sentry/views/insights/pages/agents/components/scrubbedText';
+import {
+  AiSpanIssueLink,
+  AiSpanLabel,
+  AiSpanRowButton,
+  aiSpanRowStateCss,
+} from 'sentry/views/insights/pages/agents/components/aiSpanRow';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 
 interface TranscriptSpanRowProps {
   ariaLabel: string;
+  hasError: boolean;
   isSelected: boolean;
   /** Right-aligned metadata, e.g. a `TurnMeta`. */
   meta: ReactNode;
   onSelect: () => void;
-  tag: ReactNode;
+  /** The span's name, e.g. a tool's or an evaluator's. */
+  title: string;
   node?: AITraceSpanNode;
-  /** One-line summary after the tag, e.g. a tool call's arguments. */
+  /** One-line summary after the name, e.g. a tool call's arguments. */
   preview?: string | null;
 }
 
 /**
  * A selectable one-line transcript row for a span that isn't a message, like a
- * tool call or an evaluation: status icon, tag and a monospace preview, with
- * the metadata right-aligned. Selection shows an outline.
+ * tool call or an evaluation, laid out like an Agent Timeline row: icon, bold
+ * name and a monospace preview, then the issue the span raised and the
+ * right-aligned metadata.
  */
 export function TranscriptSpanRow({
   ariaLabel,
+  hasError,
   isSelected,
   meta,
   onSelect,
-  tag,
+  title,
   node,
   preview,
 }: TranscriptSpanRowProps) {
   const theme = useTheme();
 
-  // Widen past the content so the outline clears the icon/duration, then pull
+  // Widen past the content so the background clears the icon/duration, then pull
   // back with a negative margin to keep them message-aligned (no scraps prop
-  // for negative margins or hover).
+  // for negative margins).
   const rowCss = css`
+    ${aiSpanRowStateCss(theme)};
     width: calc(100% + ${theme.space.sm} * 2);
     margin: 0 -${theme.space.sm};
-    &:hover {
-      background: ${theme.tokens.interactive.transparent.neutral.background.hover};
-    }
   `;
 
   return (
-    <Container
-      role="button"
-      tabIndex={0}
-      aria-pressed={isSelected}
-      aria-label={ariaLabel}
-      radius="sm"
-      padding="sm sm"
-      cursor="pointer"
+    <Flex
+      align="center"
+      gap="md"
+      padding="sm"
       css={rowCss}
       data-selected={isSelected}
       data-node-id={node?.id}
-      style={
-        isSelected
-          ? {outline: `2px solid ${theme.tokens.focus.default}`, outlineOffset: '-2px'}
-          : undefined
-      }
-      onClick={(e: React.MouseEvent) => {
-        e.stopPropagation();
-        onSelect();
-      }}
-      onKeyDown={(e: React.KeyboardEvent) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
+    >
+      <AiSpanRowButton
+        type="button"
+        aria-pressed={isSelected}
+        aria-label={ariaLabel}
+        onClick={e => {
           e.stopPropagation();
           onSelect();
-        }
-      }}
-    >
-      <Flex align="center" justify="between" gap="md" width="100%">
-        <Flex align="center" gap="sm" minWidth={0}>
-          {node && <AiSpanStatusIcon node={node} />}
-          {tag}
-          {preview ? (
-            <Text size="xs" monospace variant="muted" ellipsis>
-              <ScrubbedText>{preview}</ScrubbedText>
-            </Text>
-          ) : null}
-        </Flex>
-        {meta}
-      </Flex>
-    </Container>
+        }}
+      >
+        <AiSpanLabel
+          node={node}
+          title={title}
+          preview={preview}
+          hasError={hasError}
+          previewGap="md"
+        />
+      </AiSpanRowButton>
+      {node ? <AiSpanIssueLink node={node} /> : null}
+      {meta}
+    </Flex>
   );
 }

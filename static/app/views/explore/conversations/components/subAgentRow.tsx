@@ -1,7 +1,6 @@
 import type {ReactNode} from 'react';
 
-import {Container, Flex} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
+import {Container} from '@sentry/scraps/layout';
 
 import {CollapsibleChatRow} from 'sentry/components/ai/chat/collapsibleContent';
 import {TurnMeta} from 'sentry/components/ai/chat/turnMeta';
@@ -13,10 +12,11 @@ import {
   type ConversationMessage,
   type SubAgentCall,
 } from 'sentry/views/explore/conversations/utils/conversationMessages';
-import {AiSpanStatusIcon} from 'sentry/views/insights/pages/agents/components/aiSpanStatusIcon';
+import {
+  AiSpanIssueLink,
+  AiSpanLabel,
+} from 'sentry/views/insights/pages/agents/components/aiSpanRow';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
-
-import {ToolTag} from './toolTag';
 
 /**
  * Renders a nested transcript. Passed in by the panel, which owns the message
@@ -62,17 +62,18 @@ export function SubAgentRow({
     <CollapsibleChatRow
       open={isOpen}
       title={
-        <Flex align="center" gap="sm" minWidth={0}>
-          {node && <AiSpanStatusIcon node={node} />}
-          <ToolTag name={call.name} hasError={call.hasError} />
-          {!isOpen && call.preview && (
-            <Text size="xs" monospace variant="muted" ellipsis>
-              {call.preview}
-            </Text>
-          )}
-        </Flex>
+        <AiSpanLabel
+          node={node}
+          title={call.name}
+          preview={isOpen ? null : call.preview}
+          hasError={call.hasError}
+          previewGap="md"
+        />
       }
-      meta={<TurnMeta duration={call.duration} />}
+      aside={node ? <AiSpanIssueLink node={node} /> : null}
+      meta={
+        <TurnMeta duration={call.duration} variant={call.hasError ? 'danger' : 'muted'} />
+      }
       onOpenChange={open => {
         setIsOpen(open);
         trackAnalytics('conversations.detail.expand-subagent', {

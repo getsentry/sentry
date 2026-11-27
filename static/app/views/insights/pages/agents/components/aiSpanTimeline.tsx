@@ -3,14 +3,10 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconChevron} from '@sentry/icons/chevron';
 
-import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
-import {getDuration} from '@sentry/scraps/duration';
-import {InfoText} from '@sentry/scraps/info';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {stripAnnotations} from '@sentry/scraps/markdown/annotation';
-import {Text} from '@sentry/scraps/text';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
+import {TURN_META_WIDTH, TurnMeta} from 'sentry/components/ai/chat/turnMeta';
 import {Count} from 'sentry/components/count';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
@@ -56,9 +52,14 @@ import {
   getNodeTimeBounds,
   type TraceBounds,
 } from './aiSpanList';
-import {AiSpanStatusIcon} from './aiSpanStatusIcon';
+import {
+  AboveRowButton,
+  AiSpanIssueLink,
+  AiSpanLabel,
+  AiSpanRowButton,
+  aiSpanRowStateCss,
+} from './aiSpanRow';
 import {LLMCosts} from './llmCosts';
-import {ScrubbedText} from './scrubbedText';
 
 interface SpanPresentation {
   color: string;
@@ -68,6 +69,8 @@ interface SpanPresentation {
 }
 
 const INDENT_PX = 16;
+
+const MIN_BAR_WIDTH = '4px';
 
 export function AiSpanTimeline({
   nodes,
@@ -120,7 +123,7 @@ export function AiSpanTimeline({
   }
 
   return (
-    <Stack gap="xs">
+    <Stack gap="2xs">
       {rows.map(treeNode => {
         const node = treeNode.node;
         const canToggle = treeNode.children.some(isInWindow);
@@ -214,29 +217,29 @@ const TIMELINE_SKELETON_ROWS: Array<{
 
 function TimelineSkeleton() {
   return (
-    <Stack gap="xs">
+    <Stack gap="2xs">
       {TIMELINE_SKELETON_ROWS.map((row, index) => (
-        <Container
+        <Flex
           key={`${row.title}-${index}`}
-          padding="xs"
-          paddingLeft={row.indent ? 'xl' : 'xs'}
+          align="center"
+          gap="md"
+          minHeight="28px"
+          padding="2xs sm"
+          paddingLeft={row.indent ? 'xl' : 'sm'}
         >
-          <Stack gap="xs">
-            <Flex align="center" gap="md">
-              <Placeholder height="16px" width="16px" />
-              <Placeholder height="14px" width={row.title} />
-              {row.secondary ? <Placeholder height="14px" width={row.secondary} /> : null}
-              <Flex flex="1" minWidth="0" />
-              <Flex flexShrink={0} width="64px" justify="end">
-                <Placeholder height="14px" width="44px" />
-              </Flex>
-              <Flex flexShrink={0} width="44px" justify="end">
-                <Placeholder height="14px" width="36px" />
-              </Flex>
-            </Flex>
-            <Placeholder height="4px" width="100%" />
-          </Stack>
-        </Container>
+          <Flex align="center" gap="sm" flex="1" minWidth="0">
+            <Placeholder height="16px" width="16px" />
+            <Placeholder height="14px" width={row.title} />
+            {row.secondary ? <Placeholder height="14px" width={row.secondary} /> : null}
+          </Flex>
+          <Flex flexShrink={0} width={TURN_META_WIDTH} justify="end" gap="sm">
+            <Placeholder height="14px" width="44px" />
+            <Placeholder height="14px" width="44px" />
+          </Flex>
+          <TimelineBarColumn>
+            <Placeholder height="12px" width="100%" />
+          </TimelineBarColumn>
+        </Flex>
       ))}
     </Stack>
   );
@@ -275,114 +278,48 @@ const TimelineRow = memo(function TimelineRowImpl({
     traceBounds,
     compressedStartByNodeId
   );
-  const metric = getMetric(node);
+  const metric =
+    getMetric(node) ?? (isTool ? formatBytesBase10(getToolOutputBytes(node)) : null);
   const duration = getNodeTimeBounds(node).duration;
 
   return (
     <RowContainer data-selected={isSelected} depth={depth}>
       {hasToggleColumn ? (
         // Rows without children keep the space, so siblings line up whether or not
-        // they can be expanded. The gutter keeps the button's focus ring inside the
-        // row's background.
-        <Flex
-          alignSelf="start"
-          flexShrink={0}
-          width="28px"
-          paddingLeft="xs"
-          paddingTop="2xs"
-        >
-          {canToggle ? (
-            <Button
-              size="zero"
-              variant="transparent"
-              aria-label={isExpanded ? t('Collapse') : t('Expand')}
-              aria-expanded={isExpanded}
-              icon={
-                <IconChevron
-                  direction={isExpanded ? 'down' : 'right'}
-                  size="sm"
-                  variant="muted"
-                />
-              }
-              onClick={() => onToggleExpanded(node.id, !isExpanded)}
-            />
-          ) : null}
-        </Flex>
-      ) : null}
-      <Flex align="center" flex="1" minWidth="0" padding="xs" cursor="pointer">
-        {flexProps => (
-          <SelectButton type="button" {...flexProps} onClick={() => onSelectNode(node)}>
-            <Stack gap="xs" flex="1" minWidth="0">
-              <Flex align="center" gap="md" marginBottom={hasErrors ? 'sm' : undefined}>
-                <AiSpanStatusIcon node={node} />
-                {isTool ? (
-                  <Flex minWidth="0" maxWidth="50%">
-                    <EllipsisTag
-                      variant={hasErrors ? 'danger' : isSelected ? 'info' : 'muted'}
-                    >
-                      {title}
-                    </EllipsisTag>
-                  </Flex>
-                ) : (
-                  <Container maxWidth="50%" minWidth="0">
-                    <InfoText
-                      title={title}
-                      mode="overflowOnly"
-                      size="sm"
-                      variant="primary"
-                      bold
-                    >
-                      {title}
-                    </InfoText>
-                  </Container>
-                )}
-                <Flex flex="1" minWidth="0">
-                  {secondary && (
-                    <InfoText
-                      title={stripAnnotations(secondary)}
-                      mode="overflowOnly"
-                      maxWidth={500}
-                      size="sm"
-                      variant="muted"
-                    >
-                      {/* Tool input previews mark scrubbed values in the conversation view. */}
-                      <ScrubbedText>{secondary}</ScrubbedText>
-                    </InfoText>
-                  )}
-                </Flex>
-                <Flex align="center" justify="end" flexShrink={0} gap="xs">
-                  {metric ? (
-                    <Text
-                      size="sm"
-                      variant={isSelected ? 'primary' : 'muted'}
-                      align="right"
-                      tabular
-                    >
-                      {metric}
-                    </Text>
-                  ) : isTool ? (
-                    <ToolOutputSizeMetric node={node} isSelected={isSelected} />
-                  ) : null}
-                  {metric || isTool ? (
-                    <Text size="sm" variant={isSelected ? 'primary' : 'muted'}>
-                      •
-                    </Text>
-                  ) : null}
-                  <Text
+        // they can be expanded.
+        <AboveRowButton>
+          <Flex width="20px">
+            {canToggle ? (
+              <Button
+                size="zero"
+                variant="transparent"
+                aria-label={isExpanded ? t('Collapse') : t('Expand')}
+                aria-expanded={isExpanded}
+                icon={
+                  <IconChevron
+                    direction={isExpanded ? 'down' : 'right'}
                     size="sm"
-                    variant={isSelected ? 'primary' : 'muted'}
-                    align="right"
-                    tabular
-                  >
-                    {getDuration(duration, {precision: 2, style: 'narrow'})}
-                  </Text>
-                </Flex>
-              </Flex>
-              <TimelineBar color={color} relativeTiming={relativeTiming} />
-            </Stack>
-          </SelectButton>
-        )}
-      </Flex>
+                    variant="muted"
+                  />
+                }
+                onClick={() => onToggleExpanded(node.id, !isExpanded)}
+              />
+            ) : null}
+          </Flex>
+        </AboveRowButton>
+      ) : null}
+      <AiSpanRowButton type="button" onClick={() => onSelectNode(node)}>
+        <AiSpanLabel node={node} title={title} preview={secondary} hasError={hasErrors} />
+      </AiSpanRowButton>
+      <AiSpanIssueLink node={node} />
+      <TurnMeta
+        metric={metric}
+        duration={duration}
+        variant={hasErrors ? 'danger' : isSelected ? 'primary' : 'muted'}
+      />
+      <TimelineBarColumn>
+        <TimelineBar color={color} relativeTiming={relativeTiming} />
+      </TimelineBarColumn>
     </RowContainer>
   );
 });
@@ -390,6 +327,8 @@ const TimelineRow = memo(function TimelineRowImpl({
 /**
  * Builds the tokens/cost metric column content.
  * Shown for any span that reports tokens and/or cost (e.g. `1.5k/$1.00`).
+ * Tool-call spans don't report token usage, so the row shows their output size
+ * (e.g. `4.1 KB`) instead.
  */
 function getMetric(node: AITraceSpanNode): React.ReactNode {
   const tokens = getNumberAttr(node, SpanFields.GEN_AI_USAGE_TOTAL_TOKENS);
@@ -409,26 +348,6 @@ function getMetric(node: AITraceSpanNode): React.ReactNode {
     return <LLMCosts cost={cost} />;
   }
   return null;
-}
-
-/**
- * Tool-call spans don't report token usage, so we show their output size
- * (e.g. `4.1 KB`) instead, derived from the tool result on the span.
- */
-function ToolOutputSizeMetric({
-  node,
-  isSelected,
-}: {
-  isSelected: boolean;
-  node: AITraceSpanNode;
-}) {
-  const bytes = getToolOutputBytes(node);
-
-  return (
-    <Text size="sm" variant={isSelected ? 'primary' : 'muted'} align="right" tabular>
-      {formatBytesBase10(bytes)}
-    </Text>
-  );
 }
 
 function getSpanPresentation(
@@ -512,49 +431,20 @@ function getSpanPresentation(
   }
 }
 
-// Tag's inner text already truncates, but text-overflow is ignored on its flex
-// container, so flip it to block. Width is bounded by the Flex wrapper.
-const EllipsisTag = styled(Tag)`
-  min-width: 0;
-
-  & > * {
-    display: block;
-  }
-`;
-
 const RowContainer = styled('div')<{depth: number}>`
+  ${p => aiSpanRowStateCss(p.theme)};
   display: flex;
   align-items: center;
+  gap: ${p => p.theme.space.md};
   width: 100%;
-  padding-left: ${p => p.depth * INDENT_PX}px;
-
-  /* Hover/active feedback only applies while the row is not selected, so the
-   * selected background is never masked. */
-  &:not([data-selected='true']):hover {
-    border-radius: ${p => p.theme.radius.xs};
-    background-color: ${p =>
-      p.theme.tokens.interactive.transparent.neutral.background.hover};
-  }
-
-  &:not([data-selected='true']):active {
-    border-radius: ${p => p.theme.radius.xs};
-    background-color: ${p =>
-      p.theme.tokens.interactive.transparent.neutral.background.active};
-  }
-
-  &[data-selected='true'] {
-    border-radius: ${p => p.theme.radius.xs};
-    background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
-  }
+  min-height: 28px;
+  padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.sm};
+  padding-left: calc(${p => p.depth * INDENT_PX}px + ${p => p.theme.space.sm});
 `;
 
-// Layout comes from the wrapping `Flex`; this only resets the native button.
-const SelectButton = styled('button')`
-  border: none;
-  font: inherit;
-  color: inherit;
-  text-align: left;
-  background-color: transparent;
+const TimelineBarColumn = styled('div')`
+  flex: 0 0 30%;
+  min-width: 64px;
 `;
 
 const TimelineBar = styled('div')<{
@@ -563,18 +453,19 @@ const TimelineBar = styled('div')<{
 }>`
   position: relative;
   width: 100%;
-  height: 4px;
-  border-radius: ${p => p.theme.radius.full};
-  background-color: ${p => p.theme.tokens.dataviz.semantic.other};
+  height: 12px;
+  border-radius: ${p => p.theme.radius.xs};
+  background-color: ${p => p.theme.tokens.background.secondary};
 
   &::before {
     content: '';
     position: absolute;
-    left: ${p => p.relativeTiming.leftPercent}%;
+    /* Keep very short spans visible, and inside the track. */
+    left: min(${p => p.relativeTiming.leftPercent}%, calc(100% - ${MIN_BAR_WIDTH}));
     top: 0;
     height: 100%;
-    width: ${p => p.relativeTiming.widthPercent}%;
+    width: max(${p => p.relativeTiming.widthPercent}%, ${MIN_BAR_WIDTH});
     background-color: ${p => p.color};
-    border-radius: ${p => p.theme.radius.full};
+    border-radius: ${p => p.theme.radius.xs};
   }
 `;

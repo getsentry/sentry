@@ -33,6 +33,7 @@ function createMockNode(overrides: {
     },
     attributes: {[SpanFields.GEN_AI_OPERATION_TYPE]: 'ai_client', ...attributes},
     errors: new Set(),
+    uniqueIssues: [],
   };
 }
 
@@ -73,6 +74,7 @@ function createMockToolNode(overrides: {
       ...(output === undefined ? {} : {'gen_ai.tool.call.result': output}),
     },
     errors: new Set(),
+    uniqueIssues: [],
   };
 }
 
@@ -111,6 +113,7 @@ function createMockEvaluationNode(overrides: {id: string; startTimestamp?: numbe
       ]),
     },
     errors: new Set(),
+    uniqueIssues: [],
   };
 }
 
@@ -138,6 +141,7 @@ function createMockExtractionNode(overrides: {id: string; startTimestamp?: numbe
       ]),
     },
     errors: new Set(),
+    uniqueIssues: [],
   };
 }
 
@@ -173,6 +177,7 @@ function createMockEmbeddingNode(overrides: {
       ...(tokens === undefined ? {} : {[SpanFields.GEN_AI_USAGE_TOTAL_TOKENS]: tokens}),
     },
     errors: new Set(),
+    uniqueIssues: [],
   };
 }
 
@@ -198,6 +203,7 @@ function createMockMemoryNode(overrides: {
       ...(records === undefined ? {} : {[SpanFields.GEN_AI_MEMORY_RECORDS]: records}),
     },
     errors: new Set(),
+    uniqueIssues: [],
   };
 }
 
@@ -488,7 +494,7 @@ describe('MessagesPanel', () => {
 
     expect(screen.getByText('alpha')).toBeInTheDocument();
     expect(screen.getByText('gamma')).toBeInTheDocument();
-    expect(screen.queryByText('3 tool calls')).not.toBeInTheDocument();
+    expect(screen.queryByText('alpha 1')).not.toBeInTheDocument();
   });
 
   it('collapses a long run of tool calls behind a summary and expands on click or with expand all', async () => {
@@ -504,7 +510,7 @@ describe('MessagesPanel', () => {
     const {rerender} = render(renderPanel(null));
 
     // Collapsed by default: the summary is shown inside a closed details.
-    const summary = screen.getByText('5 tool calls');
+    const summary = screen.getByText('t1 1');
     expect(summary).toBeInTheDocument();
     const details = summary.closest('details');
     expect(details).not.toHaveAttribute('open');
@@ -522,12 +528,12 @@ describe('MessagesPanel', () => {
     expect(details).toHaveAttribute('open');
   });
 
-  it('shows the error count in the tool call summary', () => {
+  it('counts the calls of each tool in the tool call summary', () => {
     render(
       <MessagesPanel
         nodes={
-          createNodesWithToolCalls(['t1', 't2', 't3', 't4', 't5'], {
-            errorToolNames: ['t2', 't4'],
+          createNodesWithToolCalls(['read', 'bash', 'read', 'read', 'bash'], {
+            errorToolNames: ['bash'],
           }) as any
         }
         selectedNodeId={null}
@@ -535,8 +541,10 @@ describe('MessagesPanel', () => {
       />
     );
 
-    expect(screen.getByText('5 tool calls')).toBeInTheDocument();
-    expect(screen.getByText('2 errors')).toBeInTheDocument();
+    // In the order the tools were first called.
+    const summary = screen.getByText('read 3').parentElement;
+    expect(summary).toHaveTextContent('read 3 bash 2');
+    expect(screen.getByText('bash 2')).toBeInTheDocument();
   });
 
   it('summarizes the combined output size and time in the tool call summary', () => {
@@ -578,7 +586,7 @@ describe('MessagesPanel', () => {
       />
     );
 
-    expect(screen.getByText('5 tool calls')).toBeInTheDocument();
+    expect(screen.getByText('t0 1')).toBeInTheDocument();
     expect(screen.getByText('150 B')).toBeInTheDocument();
     expect(screen.getByText('500.00ms')).toBeInTheDocument();
   });
@@ -592,7 +600,7 @@ describe('MessagesPanel', () => {
       />
     );
 
-    const details = screen.getByText('5 tool calls').closest('details');
+    const details = screen.getByText('t1 1').closest('details');
     expect(details).toHaveAttribute('open');
   });
 

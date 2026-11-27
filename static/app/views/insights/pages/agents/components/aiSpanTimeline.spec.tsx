@@ -29,6 +29,7 @@ function createMockNode(id: string, attributes: Record<string, string | number>)
     value: {start_timestamp: 1000, end_timestamp: 1000.5},
     attributes: {[SpanFields.GEN_AI_OPERATION_TYPE]: 'ai_client', ...attributes},
     errors: new Set(),
+    uniqueIssues: [],
     findParent: () => null,
   };
 }
@@ -337,5 +338,44 @@ describe('AiSpanTimeline', () => {
 
     expect(screen.getByText('search_memory')).toBeInTheDocument();
     expect(screen.getByText('“dietary preferences”')).toBeInTheDocument();
+  });
+
+  it('links to the issue a span raised without selecting the span', async () => {
+    const onSelectNode = jest.fn();
+    render(
+      <AiSpanTimeline
+        nodes={
+          [
+            {
+              ...createMockNode('tool-1', {
+                [SpanFields.GEN_AI_OPERATION_TYPE]: 'tool',
+                [SpanFields.GEN_AI_TOOL_NAME]: 'read_file',
+              }),
+              uniqueIssues: [
+                {
+                  event_id: 'c37129ae50281234',
+                  issue_id: 42,
+                  project_slug: 'project-slug',
+                },
+              ],
+            },
+          ] as any
+        }
+        selectedNodeKey={null}
+        onSelectNode={onSelectNode}
+      />
+    );
+
+    const link = screen.getByRole('link', {name: 'View issue event c37129ae'});
+    expect(link).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/issues/42/events/c37129ae50281234/'
+    );
+
+    await userEvent.click(link);
+    expect(onSelectNode).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole('button', {name: /^read_file/}));
+    expect(onSelectNode).toHaveBeenCalledTimes(1);
   });
 });

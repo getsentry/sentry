@@ -1,9 +1,16 @@
+import {Fragment} from 'react';
+import styled from '@emotion/styled';
+import {IconFix} from '@sentry/icons/fix';
+
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {CollapsibleChatRow} from 'sentry/components/ai/chat/collapsibleContent';
-import {TurnMeta, TurnMetaValue} from 'sentry/components/ai/chat/turnMeta';
-import {t, tn} from 'sentry/locale';
+import {
+  CARET_WIDTH,
+  CollapsibleChatRow,
+} from 'sentry/components/ai/chat/collapsibleContent';
+import {TurnMeta} from 'sentry/components/ai/chat/turnMeta';
+import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -13,12 +20,12 @@ import {
   type ToolCall,
   type TurnCall,
 } from 'sentry/views/explore/conversations/utils/conversationMessages';
+import {AiSpanIssueLink} from 'sentry/views/insights/pages/agents/components/aiSpanRow';
 import {getToolInputPreview} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {getToolOutputBytes} from 'sentry/views/insights/pages/agents/utils/getToolOutputBytes';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 
 import {SubAgentRow, type RenderTranscriptMessages} from './subAgentRow';
-import {ToolTag} from './toolTag';
 import {TranscriptSpanRow} from './transcriptSpanRow';
 
 interface MessageToolCallsProps {
@@ -42,13 +49,13 @@ interface MessageToolCallsProps {
 const COLLAPSE_THRESHOLD = 5;
 
 /**
- * Tool-call list for the redesigned transcript. Runs of at least
- * `COLLAPSE_THRESHOLD` calls collapse behind a `N tool calls` summary (with an
- * error count, plus the combined output size and time across the run) that is
- * collapsed by default, to keep tool-heavy turns compact; shorter runs render
- * inline. Each row is an accent wrench + `ToolTag` capped at the message width,
- * with the size and duration right-aligned. Selection shows an outline.
- * Sub-agents the turn's tools started share the list as collapsed rows.
+ * Tool-call list for the transcript. Runs of at least `COLLAPSE_THRESHOLD`
+ * calls collapse behind a summary naming each tool with its call count (red when
+ * one of its calls errored), plus the combined output size and time across the
+ * run, collapsed by default to keep tool-heavy turns compact; shorter runs
+ * render inline. Each row is laid out like an Agent Timeline row: icon, bold
+ * name and arguments, with the size and duration right-aligned. Sub-agents the
+ * turn's tools started share the list as collapsed rows.
  */
 export function MessageToolCalls({
   toolCalls,
@@ -94,10 +101,6 @@ export function MessageToolCalls({
     return rows;
   }
 
-  const errorCount = toolCalls.filter(call => call.hasError).length;
-  const subAgentCount = toolCalls.filter(isSubAgentCall).length;
-  const toolCount = toolCalls.length - subAgentCount;
-
   // Aggregate the same per-row values into a run-level total so the summary
   // hints at how heavy the collapsed group is. Duration is the sum of each
   // call's own duration (parallel calls are counted separately), matching the
@@ -113,40 +116,28 @@ export function MessageToolCalls({
     const node = nodeMap.get(call.nodeId);
     return sum + (node ? getToolOutputBytes(node) : 0);
   }, 0);
+  const issueNode = toolCalls
+    .map(call => nodeMap.get(call.nodeId))
+    .find(node => node && node.uniqueIssues.length > 0);
 
   return (
     <CollapsibleChatRow
       open={isOpen}
       title={
         <Flex align="center" gap="sm" minWidth={0}>
-          <Text size="sm" variant="muted">
-            {[
-              toolCount > 0 ? tn('%s tool call', '%s tool calls', toolCount) : null,
-              subAgentCount > 0
-                ? tn('%s sub-agent', '%s sub-agents', subAgentCount)
-                : null,
-            ]
-              .filter(Boolean)
-              .join(', ')}
-          </Text>
-          {errorCount > 0 && (
-            <Text size="sm" variant="danger">
-              {tn('%s error', '%s errors', errorCount)}
-            </Text>
-          )}
+          {/* Colored like a tool span's icon in the rows and the Agent Timeline. */}
+          <IconFix size="md" variant="accent" />
+          <ToolCallSummary toolCalls={toolCalls} />
         </Flex>
       }
       // The run-level totals line up over the per-row values in the same column.
       meta={
         <TurnMeta
-          metric={
-            totalBytes > 0 ? (
-              <TurnMetaValue>{formatBytesBase10(totalBytes)}</TurnMetaValue>
-            ) : null
-          }
+          metric={totalBytes > 0 ? formatBytesBase10(totalBytes) : null}
           duration={totalDuration}
         />
       }
+      aside={issueNode ? <AiSpanIssueLink node={issueNode} /> : null}
       onOpenChange={open => {
         setIsOpen(open);
         trackAnalytics('conversations.detail.expand-tool-calls', {
@@ -155,10 +146,53 @@ export function MessageToolCalls({
         });
       }}
     >
-      <Container paddingTop="xs">{rows}</Container>
+      <ToolCallGroup>{rows}</ToolCallGroup>
     </CollapsibleChatRow>
   );
 }
+
+/**
+ * Names the tools a collapsed run called, each with its call count, in the order
+ * they were first called, e.g. `Read File 4  Bash 2`. A tool's name turns red
+ * when any of its calls errored.
+ */
+function ToolCallSummary({toolCalls}: {toolCalls: TurnCall[]}) {
+  const tools = new Map<string, {count: number; hasError: boolean}>();
+  for (const call of toolCalls) {
+    const tool = tools.get(call.name) ?? {count: 0, hasError: false};
+    tool.count += 1;
+    tool.hasError ||= call.hasError;
+    tools.set(call.name, tool);
+  }
+
+  return (
+    <Text size="sm" ellipsis>
+      {Array.from(tools, ([name, {count, hasError}], index) => (
+        <Fragment key={name}>
+          {index > 0 ? '\u2003' : null}
+          <Text size="sm" bold variant={hasError ? 'danger' : 'primary'}>
+            {name} {count}
+          </Text>
+        </Fragment>
+      ))}
+    </Text>
+  );
+}
+
+/**
+ * The expanded run, on a background that sets it apart from the turn. It bleeds
+ * into the gutter like the rows' hover, and indents the rows past the summary's
+ * caret so their icons line up with the summary's.
+ */
+const ToolCallGroup = styled(Container)`
+  margin: ${p => p.theme.space.xs} -${p => p.theme.space.sm} 0;
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.sm};
+  padding-left: calc(
+    ${p => p.theme.space.sm} + ${CARET_WIDTH} + ${p => p.theme.space.xs}
+  );
+  border-radius: ${p => p.theme.radius.md};
+  background: ${p => p.theme.tokens.background.secondary};
+`;
 
 interface ToolCallRowProps {
   isSelected: boolean;
@@ -183,19 +217,16 @@ function ToolCallRow({tool, node, isSelected, onSelectNode}: ToolCallRowProps) {
       isSelected={isSelected}
       ariaLabel={t('Select tool call %s', tool.name)}
       onSelect={selectTool}
-      tag={<ToolTag name={tool.name} hasError={tool.hasError} />}
+      title={tool.name}
+      hasError={tool.hasError}
       preview={node ? getToolInputPreview(node) : null}
       meta={
         <TurnMeta
-          metric={node ? <ToolOutputSize node={node} /> : null}
+          metric={node ? formatBytesBase10(getToolOutputBytes(node)) : null}
           duration={tool.duration}
+          variant={tool.hasError ? 'danger' : 'muted'}
         />
       }
     />
   );
-}
-
-function ToolOutputSize({node}: {node: AITraceSpanNode}) {
-  const bytes = getToolOutputBytes(node);
-  return <TurnMetaValue>{formatBytesBase10(bytes)}</TurnMetaValue>;
 }

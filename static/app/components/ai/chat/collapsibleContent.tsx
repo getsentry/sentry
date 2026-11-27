@@ -7,6 +7,9 @@ import {Container, Flex} from '@sentry/scraps/layout';
 
 import {TURN_META_WIDTH} from './turnMeta';
 
+/** Width of the summary's leading caret, for content that lines up past it. */
+export const CARET_WIDTH = '14px';
+
 export interface CollapsibleExpandAll {
   open: boolean;
   requestId: symbol;
@@ -93,7 +96,9 @@ export function CollapsibleContent({
         cursor="pointer"
         onClick={e => e.stopPropagation()}
       >
-        <IconChevron direction={isOpen ? 'down' : 'right'} size="sm" variant="muted" />
+        <Flex width={CARET_WIDTH} flexShrink={0}>
+          <IconChevron direction={isOpen ? 'down' : 'right'} size="sm" variant="muted" />
+        </Flex>
         {typeof title === 'function' ? title(isOpen) : title}
       </Flex>
       {children}
@@ -114,6 +119,8 @@ const Details = styled('details')`
 `;
 
 interface CollapsibleChatRowProps extends CollapsibleContentProps {
+  /** Shown between the title and the metadata, e.g. a link to an issue. */
+  aside?: ReactNode;
   /**
    * Right-aligned metadata, kept in a fixed-width column that lines up with the
    * transcript's tool-call rows. The column is reserved even when empty so the
@@ -130,6 +137,7 @@ interface CollapsibleChatRowProps extends CollapsibleContentProps {
  */
 export function CollapsibleChatRow({
   title: titleProp,
+  aside,
   meta,
   ...props
 }: CollapsibleChatRowProps) {
@@ -138,6 +146,7 @@ export function CollapsibleChatRow({
       <Flex flex="1" minWidth={0} align="center">
         {typeof titleProp === 'function' ? titleProp(isOpen) : titleProp}
       </Flex>
+      {aside}
       <Container width={TURN_META_WIDTH} flexShrink={0}>
         {meta}
       </Container>
@@ -149,8 +158,8 @@ export function CollapsibleChatRow({
 
 const StyledCollapsibleChatRow = styled(CollapsibleContent)`
   & > summary {
-    /* Match a tool-call row's height: its 20px tool tag plus the shared row
-     * padding below, so the collapsed header lines up with the calls. */
+    /* Match a span row's height: its 20px line plus the shared row padding
+     * below, so the collapsed header lines up with the calls. */
     min-height: calc(20px + ${p => p.theme.space.sm} * 2);
 
     /* Widen past the content and pull back with a negative margin so the hover
