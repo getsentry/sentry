@@ -15,7 +15,7 @@ export function webVitalScoreMetricName(vital: WebVitals) {
 }
 
 export function webVitalScoreAttribute(vital: WebVitals) {
-  return `tags[score.ratio.${vital},number]`;
+  return `tags[score.ratio.${vital},percentage]`;
 }
 
 /**

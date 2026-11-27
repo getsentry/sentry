@@ -526,7 +526,7 @@ describe('prettifyParsedFunction', () => {
       prettifyParsedFunction({
         name: 'avg',
         arguments: [
-          'tags[score.ratio.lcp,number]',
+          'tags[score.ratio.lcp,percentage]',
           'browser.web_vital.lcp',
           'distribution',
           'millisecond',

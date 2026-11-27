@@ -17,13 +17,13 @@ describe('webVitalTraceMetricFields', () => {
 
   it('reads the score from the score ratio attribute on the vital metric', () => {
     expect(webVitalScoreField('lcp')).toBe(
-      'avg(tags[score.ratio.lcp,number],browser.web_vital.lcp,distribution,millisecond)'
+      'avg(tags[score.ratio.lcp,percentage],browser.web_vital.lcp,distribution,millisecond)'
     );
     expect(webVitalScoreField('cls')).toBe(
-      'avg(tags[score.ratio.cls,number],browser.web_vital.cls,distribution,none)'
+      'avg(tags[score.ratio.cls,percentage],browser.web_vital.cls,distribution,none)'
     );
     expect(webVitalScoreCountField('inp')).toBe(
-      'count(tags[score.ratio.inp,number],browser.web_vital.inp,distribution,millisecond)'
+      'count(tags[score.ratio.inp,percentage],browser.web_vital.inp,distribution,millisecond)'
     );
   });
 });
