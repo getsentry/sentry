@@ -27,34 +27,77 @@ CONTEXT = {
     "subscription_on-non-enterprise-trial": False,
 }
 
-FLAGPOLE = "origin/main:options/default/flagpole.yaml"
+REMOTE = "https://github.com/getsentry/sentry-options-automator"
+FLAGPOLE = "options/default/flagpole.yaml"
+GIT_ENV = {**os.environ, "GIT_TERMINAL_PROMPT": "0"}
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--values-out", type=Path)
 args = parser.parse_args()
 
-repo = os.environ.get(
-    "SENTRY_OPTIONS_AUTOMATOR_DIR", Path(__file__).resolve().parents[2] / "sentry-options-automator"
+conf = Path(os.environ.get("SENTRY_CONF", "~/.sentry")).expanduser()
+# sentry's and getsentry's `devenv sync` both run this; the cache makes the second run cheap.
+cache = conf / "flagpole-cache.json"
+repo = Path(
+    os.environ.get(
+        "SENTRY_OPTIONS_AUTOMATOR_DIR",
+        Path(__file__).resolve().parents[2] / "sentry-options-automator",
+    )
 )
-if Path(repo).is_dir():
-    source = subprocess.check_output(["git", "-C", str(repo), "show", FLAGPOLE], text=True)
-else:
-    sys.stderr.write(f"no checkout at {repo}, fetching flagpole.yaml from GitHub\n")
+
+
+def git(*cmd: str, cwd: Path | str | None = None) -> str:
+    return subprocess.check_output(["git", *cmd], cwd=cwd, env=GIT_ENV, text=True, timeout=120)
+
+
+def remote_main_sha() -> str | None:
+    try:
+        out = git("ls-remote", REMOTE, "refs/heads/main")
+    except subprocess.SubprocessError:
+        return None
+    return out.split()[0] if out else None
+
+
+def read_cache() -> tuple[str, str] | None:
+    try:
+        cached = json.loads(cache.read_text())
+        return cached["sha"], cached["source"]
+    except (OSError, ValueError, KeyError):
+        return None
+
+
+def fetch(sha: str) -> tuple[str, str]:
+    if repo.is_dir():
+        try:
+            git("fetch", "--quiet", "origin", "main", cwd=repo)
+            return sha, git("show", f"{sha}:{FLAGPOLE}", cwd=repo)
+        except subprocess.SubprocessError:
+            sys.stderr.write(f"couldn't read {sha[:12]} from {repo}, cloning from GitHub\n")
     with tempfile.TemporaryDirectory() as clone:
-        subprocess.check_call(
-            [
-                "git",
-                "clone",
-                "--quiet",
-                "--depth=1",
-                "--filter=blob:none",
-                "--no-checkout",
-                "https://github.com/getsentry/sentry-options-automator",
-                clone,
-            ],
-            env={**os.environ, "GIT_TERMINAL_PROMPT": "0"},
+        git("clone", "--quiet", "--depth=1", "--filter=blob:none", "--no-checkout", REMOTE, clone)
+        # main can move between ls-remote and clone; key the cache by what was read.
+        return git("rev-parse", "HEAD", cwd=clone).strip(), git(
+            "show", f"HEAD:{FLAGPOLE}", cwd=clone
         )
-        source = subprocess.check_output(["git", "-C", clone, "show", FLAGPOLE], text=True)
+
+
+cached = read_cache()
+sha = remote_main_sha()
+if sha is not None:
+    if cached is not None and cached[0] == sha:
+        source = cached[1]
+    else:
+        sha, source = fetch(sha)
+        conf.mkdir(parents=True, exist_ok=True)
+        cache.write_text(json.dumps({"sha": sha, "source": source}))
+elif repo.is_dir():
+    sys.stderr.write(f"can't reach {REMOTE}; using {repo}'s origin/main, which may be stale\n")
+    source = git("show", f"origin/main:{FLAGPOLE}", cwd=repo)
+elif cached is not None:
+    sys.stderr.write(f"can't reach {REMOTE}; using flagpole.yaml cached from {cached[0][:12]}\n")
+    source = cached[1]
+else:
+    sys.exit(f"can't reach {REMOTE}, and there's no {repo} checkout or {cache} to fall back to")
 options = yaml.safe_load(source)["options"]
 values = json.dumps({"options": options}, default=str)
 
@@ -80,5 +123,5 @@ with tempfile.TemporaryDirectory() as tmp:
         for name in (key.removeprefix("feature.") for key in options)
     }
 
-out = Path(os.environ.get("SENTRY_CONF", "~/.sentry")).expanduser() / "prod-flags.json"
+out = conf / "prod-flags.json"
 out.write_text(json.dumps(flags, indent=2, sort_keys=True))
