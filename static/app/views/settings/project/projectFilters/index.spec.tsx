@@ -71,6 +71,11 @@ describe('ProjectFilters', () => {
     features: [...inboundFiltersV2Org.features, 'inbound-filters-browser-condition'],
   });
 
+  const attributeConditionOrg = OrganizationFixture({
+    ...inboundFiltersV2Org,
+    features: [...inboundFiltersV2Org.features, 'inbound-filters-attribute-condition'],
+  });
+
   const nameSuggestionOrg = OrganizationFixture({
     ...inboundFiltersV2Org,
     features: [...inboundFiltersV2Org.features, 'inbound-filters-name-suggestion'],
@@ -78,7 +83,7 @@ describe('ProjectFilters', () => {
 
   type CustomInboundFilter = {
     active: boolean;
-    conditions: Array<{type: string; value: string[]; operator?: string}>;
+    conditions: Array<{type: string; value: string[]; key?: string; operator?: string}>;
     dateCreated: string;
     dateUpdated: string;
     id: string;
@@ -1524,6 +1529,127 @@ describe('ProjectFilters', () => {
     expect(
       screen.queryByRole('option', {name: 'browser_version'})
     ).not.toBeInTheDocument();
+  });
+
+  it('refuses a key that is no property without the attribute feature', async () => {
+    renderInboundFilters([]);
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Add Filter'}));
+    const dialog = await screen.findByRole('dialog');
+    await enterConditions('server_name:web-1');
+
+    expect(
+      await within(dialog).findByRole('row', {name: /server_name:.*web-1/})
+    ).toHaveAttribute('aria-invalid', 'true');
+    expect(within(dialog).queryByText(/To match a tag/)).not.toBeInTheDocument();
+  });
+
+  it('creates a filter on tags from keys that are no property', async () => {
+    renderInboundFilters([], businessProject, attributeConditionOrg);
+    expect(await screen.findByText('No custom inbound filters yet')).toBeInTheDocument();
+
+    const createMock = MockApiClient.addMockResponse({
+      url: CUSTOM_INBOUND_FILTERS_URL,
+      method: 'POST',
+      body: CustomInboundFilterFixture({id: '10', name: 'Canary hosts'}),
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Add Filter'}));
+    const dialog = await screen.findByRole('dialog');
+    expect(
+      within(dialog).getByText(
+        'To match a tag, type its name as the property, e.g. server_name:web-*.'
+      )
+    ).toBeInTheDocument();
+    await userEvent.click(within(dialog).getByRole('textbox', {name: 'Name'}));
+    await userEvent.paste('Canary hosts');
+
+    await enterConditions(
+      'server_name:canary-* !http.route:\uF00DContains\uF00Dhealth tags[release]:nightly release:1.0'
+    );
+    await userEvent.click(within(dialog).getByRole('button', {name: 'Create Filter'}));
+
+    await waitFor(() =>
+      expect(createMock).toHaveBeenCalledWith(
+        CUSTOM_INBOUND_FILTERS_URL,
+        expect.objectContaining({
+          method: 'POST',
+          data: {
+            name: 'Canary hosts',
+            dataType: 'error',
+            conditions: [
+              {
+                type: 'attribute',
+                key: 'server_name',
+                operator: 'glob',
+                value: ['canary-*'],
+              },
+              {
+                type: 'attribute',
+                key: 'http.route',
+                operator: 'does_not_contain',
+                value: ['health'],
+              },
+              {type: 'attribute', key: 'release', operator: 'equals', value: ['nightly']},
+              {type: 'release', operator: 'equals', value: ['1.0']},
+            ],
+          },
+        })
+      )
+    );
+  });
+
+  it('shows and edits a stored attribute condition by its key', async () => {
+    // Without the feature: a filter that holds an attribute condition stays editable.
+    renderInboundFilters([
+      CustomInboundFilterFixture({
+        id: '1',
+        name: 'Tenant filter',
+        dataType: 'log',
+        conditions: [
+          {type: 'attribute', key: 'tenant', operator: 'equals', value: ['acme']},
+          {type: 'attribute', key: 'release', operator: 'equals', value: ['nightly']},
+          {type: 'attribute', key: 'a:b', operator: 'glob', value: ['x*']},
+        ],
+      }),
+    ]);
+
+    expect(await screen.findByText('tenant')).toBeInTheDocument();
+    expect(screen.getByText('acme')).toBeInTheDocument();
+
+    const updateMock = MockApiClient.addMockResponse({
+      url: `${CUSTOM_INBOUND_FILTERS_URL}1/`,
+      method: 'PUT',
+      body: CustomInboundFilterFixture({id: '1', name: 'Tenant filter'}),
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Edit filter'}));
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByRole('row', {name: /^tenant:.*acme/})).toBeInTheDocument();
+    expect(
+      within(dialog).getByRole('row', {name: /^tags\[release\]:.*nightly/})
+    ).toBeInTheDocument();
+    expect(within(dialog).getByRole('row', {name: /^tags\[a:b\]:/})).toBeInTheDocument();
+
+    await userEvent.click(within(dialog).getByRole('button', {name: 'Save Changes'}));
+
+    await waitFor(() =>
+      expect(updateMock).toHaveBeenCalledWith(
+        `${CUSTOM_INBOUND_FILTERS_URL}1/`,
+        expect.objectContaining({
+          method: 'PUT',
+          data: {
+            name: 'Tenant filter',
+            dataType: 'log',
+            conditions: [
+              {type: 'attribute', key: 'tenant', operator: 'equals', value: ['acme']},
+              {type: 'attribute', key: 'release', operator: 'equals', value: ['nightly']},
+              {type: 'attribute', key: 'a:b', operator: 'glob', value: ['x*']},
+            ],
+          },
+        })
+      )
+    );
   });
 
   it('creates a catch-all filter for a browser version range', async () => {
