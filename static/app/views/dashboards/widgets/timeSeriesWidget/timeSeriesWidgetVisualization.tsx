@@ -91,7 +91,7 @@ export interface TimeSeriesWidgetVisualizationProps extends Partial<LoadableChar
 
   /**
    * Releases, flag changes, and other annotations, drawn as a band under the
-   * plot that marks each chart bucket with annotations. Buckets with a severe
+   * plot that marks each chart bucket with annotations. Buckets with a pinned
    * annotation also get a marker on the plot.
    */
   annotations?: AnnotationItem[];

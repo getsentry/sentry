@@ -17,5 +17,6 @@ export interface AnnotationItem {
   annotationType?: TimeseriesAnnotation['annotationType'];
   end?: number | 'ongoing';
   environmentId?: TimeseriesAnnotation['environmentId'];
+  pinned?: TimeseriesAnnotation['pinned'];
   severity?: TimeseriesAnnotation['severity'];
 }

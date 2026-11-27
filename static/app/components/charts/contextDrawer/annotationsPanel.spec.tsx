@@ -13,8 +13,8 @@ const release: AnnotationItem = {
   title: '1.0.0',
 };
 
-function change(id: string, severity: AnnotationItem['severity']): AnnotationItem {
-  return {id, kind: 'timeseriesAnnotation', start: 0, title: id, severity};
+function change(id: string, pinned: boolean): AnnotationItem {
+  return {id, kind: 'timeseriesAnnotation', start: 0, title: id, pinned};
 }
 
 describe('AnnotationsPanel', () => {
@@ -22,10 +22,10 @@ describe('AnnotationsPanel', () => {
     MockApiClient.addMockResponse({url: '/organizations/org-slug/releases/', body: []});
   });
 
-  it('lists severe items under Severe and the rest under their kind', () => {
+  it('lists pinned items under Pinned and the rest under their kind', () => {
     render(
       <AnnotationsPanel
-        items={[change('outage', 'high'), change('sdk-update', 'low')]}
+        items={[change('outage', true), change('sdk-update', false)]}
         kinds={['timeseriesAnnotation']}
       />
     );
@@ -34,23 +34,28 @@ describe('AnnotationsPanel', () => {
       within(screen.getByRole('region', {name: 'Changes'})).getByText('1')
     ).toBeInTheDocument();
     expect(
-      within(screen.getByRole('region', {name: 'Severe'})).getByText('1')
+      within(screen.getByRole('region', {name: 'Pinned'})).getByText('1')
     ).toBeInTheDocument();
   });
 
-  it('lists severe items newest first with their type and severity', () => {
+  it('lists pinned items newest first with their type and severity', () => {
     render(
       <AnnotationsPanel
         items={[
-          {...change('Delayed ingestion', 'high'), annotationType: 'sentry_outage'},
-          {...change('SDK rollout', 'high'), annotationType: 'sdk_update', start: 1000},
+          {...change('Delayed ingestion', true), annotationType: 'sentry_outage'},
+          {
+            ...change('SDK rollout', true),
+            annotationType: 'sdk_update',
+            severity: 'high',
+            start: 1000,
+          },
         ]}
         kinds={['timeseriesAnnotation']}
       />
     );
 
     const [, newest, oldest] = within(
-      screen.getByRole('table', {name: 'Severe annotations'})
+      screen.getByRole('table', {name: 'Pinned annotations'})
     ).getAllByRole('row');
     expect(within(newest!).getByText('SDK update')).toBeInTheDocument();
     expect(within(newest!).getByText('SDK rollout')).toBeInTheDocument();
@@ -59,11 +64,11 @@ describe('AnnotationsPanel', () => {
     expect(within(oldest!).getByText('Delayed ingestion')).toBeInTheDocument();
   });
 
-  it('says when nothing is severe', async () => {
+  it('says when nothing is pinned', async () => {
     render(<AnnotationsPanel items={[release]} kinds={['release']} />);
 
     expect(
-      screen.getByText('No severe annotations in this time range')
+      screen.getByText('No pinned annotations in this time range')
     ).toBeInTheDocument();
     expect(await screen.findByText('No releases')).toBeInTheDocument();
   });

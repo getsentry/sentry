@@ -34,7 +34,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {AnnotationsPanel} from './annotationsPanel';
 
 const CHART_CONTEXT_TABS = ['dropped-data', 'annotations'] as const;
-const CHART_CONTEXT_SECTIONS = ['activity', 'severe'] as const;
+const CHART_CONTEXT_SECTIONS = ['activity', 'pinned'] as const;
 
 type ChartContextTab = (typeof CHART_CONTEXT_TABS)[number];
 export type ChartContextSection = (typeof CHART_CONTEXT_SECTIONS)[number];

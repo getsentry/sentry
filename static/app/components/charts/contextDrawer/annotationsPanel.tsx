@@ -9,7 +9,6 @@ import {
   ANNOTATION_KIND_LABELS,
   ANNOTATION_KINDS,
 } from 'sentry/components/charts/annotations/kinds';
-import {isSevere} from 'sentry/components/charts/annotations/severity';
 import type {
   AnnotationItem,
   AnnotationKind,
@@ -19,7 +18,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 
-import {AnnotationSevereTable} from './annotationSevereTable';
+import {AnnotationPinnedTable} from './annotationPinnedTable';
 import type {ChartContextSection} from './chartContextDrawer';
 
 export const ANNOTATION_FLAGS_CURSOR = 'contextFlagsCursor';
@@ -45,13 +44,13 @@ interface AnnotationsPanelProps {
 export function AnnotationsPanel({items, kinds, section}: AnnotationsPanelProps) {
   const {selection} = usePageFilters();
   const activityRef = useRef<HTMLElement>(null);
-  const severeRef = useRef<HTMLElement>(null);
-  const activityItems = items.filter(item => !isSevere(item));
-  const severeItems = items.filter(isSevere);
+  const pinnedRef = useRef<HTMLElement>(null);
+  const activityItems = items.filter(item => !item.pinned);
+  const pinnedItems = items.filter(item => item.pinned);
   const activityKinds = ANNOTATION_KINDS.filter(kind => kinds.includes(kind));
 
   useEffect(() => {
-    const sectionRefs = {activity: activityRef, severe: severeRef};
+    const sectionRefs = {activity: activityRef, pinned: pinnedRef};
     if (section) {
       sectionRefs[section].current?.scrollIntoView({block: 'start'});
     }
@@ -60,15 +59,15 @@ export function AnnotationsPanel({items, kinds, section}: AnnotationsPanelProps)
   return (
     <Stack flex="1">
       <AnnotationsSection
-        ref={severeRef}
-        title={t('Severe')}
-        count={severeItems.length}
+        ref={pinnedRef}
+        title={t('Pinned')}
+        count={pinnedItems.length}
         padding="2xl"
       >
-        {severeItems.length > 0 ? (
-          <AnnotationSevereTable items={severeItems} />
+        {pinnedItems.length > 0 ? (
+          <AnnotationPinnedTable items={pinnedItems} />
         ) : (
-          <Text variant="muted">{t('No severe annotations in this time range')}</Text>
+          <Text variant="muted">{t('No pinned annotations in this time range')}</Text>
         )}
       </AnnotationsSection>
       <Separator orientation="horizontal" border="primary" />

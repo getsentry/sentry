@@ -42,6 +42,7 @@ export interface TimeseriesAnnotation {
   id: string;
   intervalType: 'point' | 'range';
   organizationId: string;
+  pinned: boolean;
   projectId: string | null;
   scope: TimeseriesAnnotationScope;
   severity: TimeseriesAnnotationSeverity;

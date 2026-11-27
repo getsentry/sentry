@@ -131,6 +131,7 @@ describe('useChartLayers', () => {
       annotationType: 'sentry_outage',
       scope: 'global',
       severity: 'high',
+      pinned: true,
       description: 'Ingestion outage',
       tags: null,
       createdBy: null,
@@ -146,6 +147,7 @@ describe('useChartLayers', () => {
       title: 'Ingestion outage',
       annotationType: 'sentry_outage',
       environmentId: null,
+      pinned: true,
       severity: 'high',
     };
 

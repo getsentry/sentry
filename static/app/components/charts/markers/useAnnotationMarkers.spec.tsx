@@ -24,10 +24,10 @@ const buckets = Array.from({length: 10}, (_, index) => ({
 function change(
   id: string,
   time: number,
-  severity: AnnotationItem['severity'],
+  pinned: boolean,
   end?: AnnotationItem['end']
 ): AnnotationItem {
-  return {id, kind: 'timeseriesAnnotation', start: time, title: id, severity, end};
+  return {id, kind: 'timeseriesAnnotation', start: time, title: id, pinned, end};
 }
 
 const api = {
@@ -58,15 +58,14 @@ describe('useAnnotationMarkers', () => {
   afterEach(() => {
     jest.restoreAllMocks();
   });
-  it('returns no markers without severe annotations', () => {
+  it('returns no markers without pinned annotations', () => {
     const {result} = renderHookWithProviders(() =>
       useAnnotationMarkers({
         buckets,
         chartRef,
         items: [
           {id: '1.0.0', kind: 'release', start: MINUTE, title: '1.0.0'},
-          change('medium', 2 * MINUTE, 'medium'),
-          change('low', 3 * MINUTE, 'low'),
+          change('unpinned', 2 * MINUTE, false),
         ],
       })
     );
@@ -74,12 +73,12 @@ describe('useAnnotationMarkers', () => {
     expect(result.current).toBeNull();
   });
 
-  it('draws one marker per bucket with severe annotations, at the bucket center', () => {
+  it('draws one marker per bucket with pinned annotations, at the bucket center', () => {
     const markers = renderMarkers([
-      change('first', 2 * MINUTE + 10_000, 'high'),
-      change('second', 2 * MINUTE + 20_000, 'high'),
-      change('third', 5 * MINUTE, 'high'),
-      change('not-severe', 7 * MINUTE, 'low'),
+      change('first', 2 * MINUTE + 10_000, true),
+      change('second', 2 * MINUTE + 20_000, true),
+      change('third', 5 * MINUTE, true),
+      change('not-pinned', 7 * MINUTE, false),
     ]);
 
     expect(markers).toHaveLength(2);
@@ -97,7 +96,7 @@ describe('useAnnotationMarkers', () => {
 
   it('draws a line along the top to the center of the bucket a range ends in', () => {
     const [range] = renderMarkers([
-      change('range', 2 * MINUTE, 'high', 5 * MINUTE + 30_000),
+      change('range', 2 * MINUTE, true, 5 * MINUTE + 30_000),
     ]);
 
     expect(range).toMatchObject({
@@ -112,7 +111,7 @@ describe('useAnnotationMarkers', () => {
   });
 
   it('runs ongoing ranges to the right edge of the plot', () => {
-    const [ongoing] = renderMarkers([change('ongoing', 2 * MINUTE, 'high', 'ongoing')]);
+    const [ongoing] = renderMarkers([change('ongoing', 2 * MINUTE, true, 'ongoing')]);
 
     expect(ongoing).toMatchObject({
       children: [{shape: {x1: 120, x2: 600}}, {}, {}, {}, {}],
@@ -121,7 +120,7 @@ describe('useAnnotationMarkers', () => {
 
   it('draws only the line from the left edge for ranges that started before the chart', () => {
     const [earlier] = renderMarkers([
-      change('earlier', -2 * MINUTE, 'high', 3 * MINUTE + 30_000),
+      change('earlier', -2 * MINUTE, true, 3 * MINUTE + 30_000),
     ]);
 
     expect(earlier).toMatchObject({
@@ -132,11 +131,11 @@ describe('useAnnotationMarkers', () => {
     });
   });
 
-  it('keeps the longest range when severe annotations share a bucket', () => {
+  it('keeps the longest range when pinned annotations share a bucket', () => {
     const [merged] = renderMarkers([
-      change('short', 2 * MINUTE, 'high', 3 * MINUTE),
-      change('long', 2 * MINUTE + 10_000, 'high', 6 * MINUTE),
-      change('point', 2 * MINUTE + 20_000, 'high'),
+      change('short', 2 * MINUTE, true, 3 * MINUTE),
+      change('long', 2 * MINUTE + 10_000, true, 6 * MINUTE),
+      change('point', 2 * MINUTE + 20_000, true),
     ]);
 
     expect(merged).toMatchObject({
@@ -158,10 +157,7 @@ describe('useAnnotationMarkers', () => {
       useAnnotationMarkers({
         buckets,
         chartRef: hoveredChartRef,
-        items: [
-          change('outage', 2 * MINUTE, 'high'),
-          change('cluster', 5 * MINUTE, 'high'),
-        ],
+        items: [change('outage', 2 * MINUTE, true), change('cluster', 5 * MINUTE, true)],
         utc: true,
       })
     );
