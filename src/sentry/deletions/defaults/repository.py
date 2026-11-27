@@ -55,16 +55,20 @@ class RepositoryDeletionTask(ModelDeletionTask[Repository]):
         organization_id = instance.organization_id
         repository_id = instance.id
         provider = instance.provider
-        repository_name = instance.name
+        # Repos deleted through the API were renamed to a placeholder by
+        # rename_on_pending_deletion; Seer needs the original owner/repo name.
+        repository_name = instance.config.get("pending_deletion_name", instance.name)
 
-        transaction.on_commit(
-            lambda: notify_seer_repository_deleted.delay(
-                organization_id,
-                repository_id,
-                provider,
-                repository_name,
-            ),
-            using=router.db_for_write(Repository),
-        )
+        # Seer cannot offboard a repo without a provider, such as a legacy plugin repo.
+        if provider is not None:
+            transaction.on_commit(
+                lambda: notify_seer_repository_deleted.delay(
+                    organization_id,
+                    repository_id,
+                    provider,
+                    repository_name,
+                ),
+                using=router.db_for_write(Repository),
+            )
 
         return super().delete_instance(instance)
