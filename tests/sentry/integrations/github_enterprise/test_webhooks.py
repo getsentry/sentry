@@ -45,6 +45,7 @@ from sentry.testutils.asserts import assert_failure_metric, assert_success_metri
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.action_log import capture_action_log
+from sentry.testutils.silo import control_silo_test
 
 
 class WebhookTest(APITestCase):
@@ -1307,3 +1308,117 @@ class IssueCommentEventWebhookTest(APITestCase):
 
         assert response.status_code == 204
         assert mock_call.call_count == 1
+
+
+@control_silo_test
+class GitHubEnterpriseControlSiloWebhookTest(TestCase):
+    """Installation lifecycle webhooks are handled by the control silo."""
+
+    url = "/extensions/github-enterprise/webhook/"
+    github_com_url = "/extensions/github-enterprise/webhook/github-com/"
+    secret = "b3002c3e321d4b7880360d397db2ccfd"
+    metadata = {"webhook_secret": secret}
+
+    def _post(self, *, url: str, event: str, body: bytes, **headers: str) -> HttpResponse:
+        signature = hmac.new(self.secret.encode(), body, hashlib.sha1).hexdigest()
+        return self.client.post(
+            path=url,
+            data=body,
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT=event,
+            HTTP_X_HUB_SIGNATURE=f"sha1={signature}",
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+            **headers,
+        )
+
+    @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
+    def test_installation_event_is_not_rejected_by_silo_check(
+        self, mock_installation: MagicMock
+    ) -> None:
+        mock_installation.return_value = self.metadata
+        body = orjson.dumps(
+            {
+                "action": "deleted",
+                "installation": {"id": 2, "account": {"login": "example"}},
+            }
+        )
+
+        response = self._post(
+            url=self.url,
+            event="installation",
+            body=body,
+            HTTP_X_GITHUB_ENTERPRISE_HOST="github.example.com",
+        )
+
+        assert response.status_code == 204
+        assert response.content == b""
+
+    @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
+    def test_installation_repositories_event_is_not_rejected_by_silo_check(
+        self, mock_installation: MagicMock
+    ) -> None:
+        mock_installation.return_value = self.metadata
+        body = orjson.dumps(
+            {
+                "action": "removed",
+                "installation": {"id": 2},
+                "repositories_added": [],
+                "repositories_removed": [{"id": 1, "full_name": "example/repo"}],
+                "repository_selection": "selected",
+            }
+        )
+
+        response = self._post(
+            url=self.url,
+            event="installation_repositories",
+            body=body,
+            HTTP_X_GITHUB_ENTERPRISE_HOST="github.example.com",
+        )
+
+        assert response.status_code == 204
+        assert response.content == b""
+
+    @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
+    @patch("sentry.integrations.github.webhook.GitHubIntegrationProvider.build_integration")
+    def test_installation_created_does_not_create_github_cloud_integration(
+        self, mock_build_integration: MagicMock, mock_installation: MagicMock
+    ) -> None:
+        mock_installation.return_value = self.metadata
+        body = orjson.dumps(
+            {
+                "action": "created",
+                "installation": {"id": 2, "account": {"login": "example"}},
+                "sender": {"id": 1, "login": "example"},
+            }
+        )
+
+        response = self._post(
+            url=self.url,
+            event="installation",
+            body=body,
+            HTTP_X_GITHUB_ENTERPRISE_HOST="github.example.com",
+        )
+
+        assert response.status_code == 204
+        mock_build_integration.assert_not_called()
+
+    @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
+    def test_github_com_installation_event_is_not_rejected_by_silo_check(
+        self, mock_installation: MagicMock
+    ) -> None:
+        mock_installation.return_value = self.metadata
+        body = orjson.dumps(
+            {
+                "action": "deleted",
+                "installation": {"id": 2, "account": {"login": "example"}},
+            }
+        )
+
+        response = self._post(
+            url=self.github_com_url,
+            event="installation",
+            body=body,
+        )
+
+        assert response.status_code == 204
+        assert response.content == b""

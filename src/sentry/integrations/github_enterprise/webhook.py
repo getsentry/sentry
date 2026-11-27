@@ -6,7 +6,7 @@ import logging
 import re
 import time
 from collections.abc import Mapping
-from typing import cast
+from typing import Any, cast
 
 import orjson
 import sentry_sdk
@@ -49,10 +49,11 @@ from sentry.scm.private.stream_producer import produce_event_to_scm_stream
 from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.webhooks")
-from sentry.api.base import Endpoint, cell_silo_endpoint
+from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.types import IntegrationProviderSlug
+from sentry.silo.base import SiloMode
 
 SHA1_PATTERN = r"^sha1=[0-9a-fA-F]{40}$"
 SHA256_PATTERN = r"^sha256=[0-9a-fA-F]{64}$"
@@ -130,6 +131,20 @@ class GitHubEnterpriseWebhook:
 
 
 class GitHubEnterpriseInstallationEventWebhook(GitHubEnterpriseWebhook, InstallationEventWebhook):
+    def __call__(self, event: Mapping[str, Any], **kwargs: Any) -> None:
+        if event.get("action") == "created":
+            # GHE integrations are created by the setup pipeline, which has the
+            # installation config and OAuth state needed to build them. The github.com
+            # implementation would fetch the installation from github.com and create a
+            # github.com integration instead.
+            logger.debug(
+                "github_enterprise.webhook.installation_created",
+                extra={"installation_id": event["installation"]["id"]},
+            )
+            return
+
+        super().__call__(event, **kwargs)
+
     def _get_token_refresh_client(self, integration: RpcIntegration) -> GitHubBaseClient:
         metadata = integration.metadata
         installation = metadata["installation"]
@@ -436,14 +451,14 @@ class GitHubEnterpriseWebhookBase(Endpoint):
                 "sentry_meta": None,
                 "type": IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
             },
-            silo="region",
+            silo="region" if SiloMode.get_current_mode() == SiloMode.CELL else "control",
             is_dev=settings.IS_DEV,
         )
 
         return HttpResponse(status=204)
 
 
-@cell_silo_endpoint
+@all_silo_endpoint
 class GitHubEnterpriseWebhookEndpoint(GitHubEnterpriseWebhookBase):
     owner = ApiOwner.CODING_WORKFLOWS
     publish_status = {
@@ -458,7 +473,7 @@ class GitHubEnterpriseWebhookEndpoint(GitHubEnterpriseWebhookBase):
         return super().dispatch(request, *args, **kwargs)
 
 
-@cell_silo_endpoint
+@all_silo_endpoint
 class GitHubEnterpriseGitHubComWebhookEndpoint(GitHubEnterpriseWebhookBase):
     owner = ApiOwner.CODING_WORKFLOWS
     publish_status = {
