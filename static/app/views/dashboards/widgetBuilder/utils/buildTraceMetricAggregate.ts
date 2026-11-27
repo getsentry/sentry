@@ -12,6 +12,10 @@ import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/constant
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {NONE_UNIT} from 'sentry/views/explore/metrics/constants';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
+import {
+  findVirtualTraceMetric,
+  findVirtualTraceMetricByAttribute,
+} from 'sentry/views/explore/metrics/virtualMetrics';
 import {buildConditionalAggregate} from 'sentry/views/explore/utils/conditionalAggregate';
 import {
   IF_SUFFIX,
@@ -62,11 +66,13 @@ export function buildTraceMetricAggregate(
   traceMetric: TraceMetric,
   filter = ''
 ): QueryFieldValue {
+  const virtual = findVirtualTraceMetric(traceMetric);
+  const metric = virtual?.source ?? traceMetric;
   const args = [
-    'value',
-    traceMetric.name,
-    traceMetric.type,
-    defined(traceMetric.unit) && traceMetric.unit !== '-' ? traceMetric.unit : NONE_UNIT,
+    virtual?.attribute ?? 'value',
+    metric.name,
+    metric.type,
+    defined(metric.unit) && metric.unit !== '-' ? metric.unit : NONE_UNIT,
   ];
 
   if (filter) {
@@ -101,17 +107,26 @@ export function applyTraceMetricAggregateFilter(column: Column, filter: string):
  *   function[2] = name, function[3] = type, function[4] = unit
  * Aggregates carrying an `_if` filter store the filter first and shift the
  * metric info by one argument.
+ *
+ * An aggregate that reads an attribute instead of `value` resolves to the
+ * virtual metric standing for that attribute, or to nothing.
  */
 export function extractTraceMetricFromColumn(column: Column): TraceMetric | undefined {
   const parts = getTraceMetricFunctionParts(column);
   if (!parts) {
     return undefined;
   }
-  const [, name, type, unit] = parts.args;
-  if (name && type) {
-    return {name, type, unit: defined(unit) && unit !== '-' ? unit : NONE_UNIT};
+  const [attribute, name, type, unit] = parts.args;
+  if (!name || !type) {
+    return undefined;
   }
-  return undefined;
+  if (attribute && attribute !== 'value') {
+    const virtual = findVirtualTraceMetricByAttribute(attribute, {name, type});
+    return virtual
+      ? {name: virtual.name, type: virtual.type, unit: virtual.unit}
+      : undefined;
+  }
+  return {name, type, unit: defined(unit) && unit !== '-' ? unit : NONE_UNIT};
 }
 
 /**

@@ -280,7 +280,7 @@ export function ConversationSpanDetail({
       {/* AI span errors (e.g. tool failures) aren't always application errors, so
        * they rarely have an issue. Show them in the issue slot when there isn't one. */}
       {node.uniqueIssues.length === 0 ? (
-        <StyledAISpanErrorCard node={node} attributes={attributes} />
+        <AISpanErrorCard node={node} attributes={attributes} />
       ) : null}
 
       {/*
@@ -630,10 +630,6 @@ function AttributesTab({
 // under the waterfall, so scope those variables here.
 const StyledIssueList = styled(IssueList)`
   ${traceGridCssVariables}
-  flex-shrink: 0;
-`;
-
-const StyledAISpanErrorCard = styled(AISpanErrorCard)`
   flex-shrink: 0;
 `;
 

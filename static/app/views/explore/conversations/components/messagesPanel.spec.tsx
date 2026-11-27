@@ -515,10 +515,10 @@ describe('MessagesPanel', () => {
     expect(screen.getByText('t1')).toBeInTheDocument();
     expect(screen.getByText('t5')).toBeInTheDocument();
 
-    rerender(renderPanel({generation: 1, open: false}));
+    rerender(renderPanel({open: false, requestId: Symbol()}));
     expect(details).not.toHaveAttribute('open');
 
-    rerender(renderPanel({generation: 2, open: true}));
+    rerender(renderPanel({open: true, requestId: Symbol()}));
     expect(details).toHaveAttribute('open');
   });
 

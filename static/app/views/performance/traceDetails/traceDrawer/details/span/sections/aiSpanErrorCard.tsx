@@ -49,10 +49,9 @@ function getAISpanError(node: AITraceSpanNode, attributes: TraceItemResponseAttr
 interface AISpanErrorCardProps {
   node: BaseNode;
   attributes?: TraceItemResponseAttribute[];
-  className?: string;
 }
 
-export function AISpanErrorCard({node, attributes, className}: AISpanErrorCardProps) {
+export function AISpanErrorCard({node, attributes}: AISpanErrorCardProps) {
   const error = attributes && getIsAiNode(node) ? getAISpanError(node, attributes) : null;
   if (!error) {
     return null;
@@ -60,7 +59,6 @@ export function AISpanErrorCard({node, attributes, className}: AISpanErrorCardPr
 
   return (
     <SpanErrorCard
-      className={className}
       icon={<IconFire size="md" variant="danger" />}
       title={
         <Text bold>{error.type ?? (error.isTool ? t('Tool Error') : t('Error'))}</Text>

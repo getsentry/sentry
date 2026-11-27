@@ -60,6 +60,12 @@ class AiAutofixPrIterationFeedbackBatchCompletedEvent(analytics.Event):
     # Commit SHAs this iteration pushed. Empty unless the outcome is already_pushed.
     head_shas: list[str] = field(default_factory=list)
 
+    # Distinct Seer error codes. Only populated for pr_creation_errored.
+    push_error_codes: list[str] = field(default_factory=list)
+
+    # Exception class if Sentry fails to trigger a push or a branch-moved retry.
+    push_trigger_exception_type: str | None = None
+
 
 @analytics.eventclass("ai.autofix.pr_iteration.feedback_batch.blocked")
 class AiAutofixPrIterationFeedbackBatchBlockedEvent(analytics.Event):

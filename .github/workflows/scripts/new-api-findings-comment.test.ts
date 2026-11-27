@@ -18,6 +18,7 @@ const FINDING = {
   rule: 'S026',
   title: 'Params read straight off the request',
   fix: 'Read them through a serializer.',
+  publish_status: 'public',
 };
 
 const marked = {id: 99, body: '<!-- NEW_API_FINDINGS -->\nold'};
@@ -85,6 +86,18 @@ describe('syncNewApiFindingsComment', () => {
         '[example.py](https://github.com/getsentry/sentry/blob/deadbeef/src/sentry/api/endpoints/example.py) [L12](https://github.com/getsentry/sentry/blob/deadbeef/src/sentry/api/endpoints/example.py#L12)'
       )
     );
+  });
+
+  it('tags the lines of endpoints that are not public', async () => {
+    const calls = await run(
+      writeFindings([
+        FINDING,
+        {...FINDING, line: 15, publish_status: 'public_experimental'},
+      ])
+    );
+
+    assert.ok(calls.create[0]!.body!.includes('#L12), [L15]('));
+    assert.ok(calls.create[0]!.body!.includes('#L15) (public experimental)'));
   });
 
   it('groups the lines of each file under its rule', async () => {

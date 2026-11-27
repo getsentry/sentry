@@ -42,8 +42,6 @@ def test_authenticated_token_translates_deprecated_scopes() -> None:
         "org:read",
         "saved_query:read",
         "saved_query:write",
-        "user_preference:read",
-        "user_preference:write",
     ]
     assert token.get_stored_scopes() == ["org:read"]
     assert token.has_scope("dashboard:read")

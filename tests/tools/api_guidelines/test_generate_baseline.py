@@ -18,7 +18,7 @@ from tools.api_guidelines.generate_baseline import (
     write_exceptions,
 )
 from tools.api_guidelines.rules import ApiRule
-from tools.flake8_plugin import INPUT_LINT_ALL_ENV, ApiInputViolation
+from tools.flake8_plugin import INPUT_LINT_ALL_ENV, ApiInputViolation, PublishStatus
 
 PATH = "src/sentry/api/endpoints/example.py"
 OWNER_MAP = {PATH: {"ExampleEndpoint": "issues-feed"}}
@@ -60,6 +60,7 @@ def _violation(
         severity="warning",
         scope=scope,
         key=key,
+        publish_status=PublishStatus.PUBLIC,
         caller=caller,
     )
     return (path, violation)
@@ -104,6 +105,7 @@ def test_entry_has_the_imported_defaults_and_field_order() -> None:
             "key": "body:helper",
             "count": 1,
             "owner": "issues-feed",
+            "publish_status": "public",
             "status": "debt-breaking",
             "reason": "legacy: predates S028",
             "first_seen": TODAY,
@@ -116,6 +118,7 @@ def test_entry_has_the_imported_defaults_and_field_order() -> None:
         "key",
         "count",
         "owner",
+        "publish_status",
         "status",
         "reason",
         "first_seen",
@@ -684,6 +687,18 @@ def test_update_rescans_every_file_and_keeps_reviewed_fields(
     assert entry["owner"] == "issues-feed"
     assert _find(_entries(output), "OtherEndpoint.get", "query:q") is not None
     assert "1 new, 0 fixed" in capsys.readouterr().out
+
+
+def test_update_refreshes_the_publish_status(fake_repo: Path) -> None:
+    _edit_endpoint(fake_repo, '"GET": ApiPublishStatus.PUBLIC', '"GET": ApiPublishStatus.PRIVATE')
+    assert _run_main(fake_repo) == 0
+
+    _edit_endpoint(fake_repo, '"GET": ApiPublishStatus.PRIVATE', '"GET": ApiPublishStatus.PUBLIC')
+    assert _run_main(fake_repo, "--update") == 0
+
+    entry = _find(_entries(fake_repo / "out.json"), "ExampleEndpoint.get", "query:id")
+    assert entry is not None
+    assert entry["publish_status"] == "public"
 
 
 def test_update_drops_fixed_findings(fake_repo: Path) -> None:

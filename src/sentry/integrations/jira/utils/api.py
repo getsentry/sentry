@@ -147,42 +147,32 @@ def handle_issue_moved(integration: RpcIntegration | Integration, data: Mapping[
 # TODO(Gabe): Consolidate this with VSTS's implementation, create DTO for status
 # changes.
 def handle_status_change(integration: RpcIntegration, data: Mapping[str, Any]) -> None:
-    with ProjectManagementEvent(
-        action_type=ProjectManagementActionType.INBOUND_STATUS_SYNC, integration=integration
-    ).capture() as lifecycle:
-        issue_key = data["issue"]["key"]
-        status_changed = any(
-            item for item in changelog_items(data) if item.get("field") == "status"
-        )
-        log_context = {"issue_key": issue_key, "integration_id": integration.id}
+    issue_key = data["issue"]["key"]
+    status_changed = any(item for item in changelog_items(data) if item.get("field") == "status")
+    log_context = {"issue_key": issue_key, "integration_id": integration.id}
 
-        if not status_changed:
-            logger.info("jira.handle_status_change.unchanged", extra=log_context)
-            return
+    if not status_changed:
+        logger.info("jira.handle_status_change.unchanged", extra=log_context)
+        return
 
-        changelog = next(item for item in changelog_items(data) if item.get("field") == "status")
+    changelog = next(item for item in changelog_items(data) if item.get("field") == "status")
 
-        # Jira's own timestamp for the transition, used to drop out-of-order deliveries.
-        updated = (data["issue"].get("fields") or {}).get("updated")
+    # Jira's own timestamp for the transition, used to drop out-of-order deliveries.
+    updated = (data["issue"].get("fields") or {}).get("updated")
 
-        result = integration_service.organization_contexts(integration_id=integration.id)
-        for oi in result.organization_integrations:
-            with webhook_viewer_context(oi.organization_id):
-                install = integration.get_installation(organization_id=oi.organization_id)
-                if isinstance(install, IssueSyncIntegration):
-                    install.sync_status_inbound(
-                        issue_key,
-                        {
-                            "changelog": changelog,
-                            "issue": data["issue"],
-                            PROVIDER_EVENT_TIME_KEY: updated,
-                        },
-                    )
-                else:
-                    lifecycle.record_halt(
-                        ProjectManagementHaltReason.SYNC_NON_SYNC_INTEGRATION_PROVIDED,
-                        extra=log_context,
-                    )
+    result = integration_service.organization_contexts(integration_id=integration.id)
+    for oi in result.organization_integrations:
+        with webhook_viewer_context(oi.organization_id):
+            install = integration.get_installation(organization_id=oi.organization_id)
+            if isinstance(install, IssueSyncIntegration):
+                install.sync_status_inbound(
+                    issue_key,
+                    {
+                        "changelog": changelog,
+                        "issue": data["issue"],
+                        PROVIDER_EVENT_TIME_KEY: updated,
+                    },
+                )
 
 
 def handle_jira_api_error(error: ApiError, message: str = "") -> Mapping[str, str] | None:

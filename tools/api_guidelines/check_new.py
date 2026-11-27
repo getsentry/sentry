@@ -2,20 +2,23 @@ from __future__ import annotations
 
 import json
 import os
+import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
-from tools.api_guidelines.entries import EXCEPTIONS_PATH
-from tools.api_guidelines.rules import BASELINED_RULES, RULES, ApiRule
+from tools.api_guidelines.rules import BASELINED_RULES, RULES
 from tools.api_guidelines.scan import collect_findings
 from tools.api_guidelines.signature import BaselineSignature
-from tools.flake8_plugin import ApiInputViolation
+from tools.flake8_plugin import INPUT_CHECKED_STATUSES, ApiInputViolation, PublishStatus
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 # the comment step in .github/workflows/pre-commit.yml reads it from NEW_API_FINDINGS_PATH
 FINDINGS_PATH = Path(".artifacts/new-api-findings.json")
 
 Finding = tuple[str, ApiInputViolation]
+# a signature plus its endpoint's publish status, so find_new can tell which way a status flipped
+Key = tuple[BaselineSignature, PublishStatus]
 
 
 def changed_paths(raw: str | None) -> list[str]:
@@ -33,32 +36,44 @@ def changed_paths(raw: str | None) -> list[str]:
     return sorted(kept)
 
 
-def baselined_counts(exceptions_file: Path) -> dict[BaselineSignature, int]:
-    """How many findings exceptions.json already records for each signature
-    `exceptions_file` the exceptions.json to read
-    Returns {signature: count}
+def _git(root: Path, *args: str) -> bytes:
+    """Runs git in `root`, leaving its errors on stderr for the workflow log
+    `root` the checkout
+    `args` the git arguments
+    Returns git's stdout
     """
-    data = json.loads(exceptions_file.read_text())
-    counts: dict[BaselineSignature, int] = {}
-    for entry in data["entries"]:
-        signature = BaselineSignature(
-            rule=ApiRule(entry["rule"]), path=entry["path"], scope=entry["scope"], key=entry["key"]
-        )
-        counts[signature] = int(entry["count"])
-    return counts
+    return subprocess.run(["git", *args], cwd=root, stdout=subprocess.PIPE, check=True).stdout
 
 
-def find_new(
-    root: Path, paths: list[str], counts: dict[BaselineSignature, int]
-) -> tuple[list[Finding], list[str]]:
-    """Rescans `paths` and keeps the findings exceptions.json doesn't account for
-    `root` the checkout to scan
-    `paths` repo paths of the files to rescan
-    `counts` {signature: count} from baselined_counts
-    Returns (new findings, paths that couldn't be parsed). When a signature has more findings than
-    its entry's count, every one of them is new, since there's no way to tell which line was added
+def write_base_files(root: Path, merge_base: str, paths: list[str], into: Path) -> list[str]:
+    """Writes each changed file's version at the merge base under `into`
+    `root` the checkout, which only has the PR's head commit until the merge base is fetched
+    `merge_base` the commit the PR branched from
+    `paths` repo paths of the changed files
+    `into` the folder to write them to
+    Returns the paths that exist at the merge base, since a file the PR added has no base version
     """
-    by_signature: dict[BaselineSignature, list[Finding]] = {}
+    _git(root, "fetch", "--no-tags", "--depth=1", "origin", merge_base)
+    listed = _git(root, "ls-tree", "-r", "-z", "--name-only", merge_base, "--", *paths)
+
+    existing: list[str] = []
+    for path in listed.decode().split("\0"):
+        if not path:
+            continue
+        file = into / path
+        file.parent.mkdir(parents=True, exist_ok=True)
+        file.write_bytes(_git(root, "show", f"{merge_base}:{path}"))
+        existing.append(path)
+    return existing
+
+
+def scan(root: Path, paths: list[str]) -> tuple[dict[Key, list[Finding]], list[str]]:
+    """Scans `paths` and groups the baselined rules' findings by signature and publish status
+    `root` the folder the paths are under
+    `paths` repo paths of the files to scan
+    Returns ({(signature, publish status): findings}, paths that couldn't be parsed)
+    """
+    by_key: dict[Key, list[Finding]] = {}
     unparsed: list[str] = []
 
     for path in paths:
@@ -74,11 +89,54 @@ def find_new(
             signature = BaselineSignature(
                 rule=violation.rule, path=found_path, scope=violation.scope, key=violation.key
             )
-            by_signature.setdefault(signature, []).append((found_path, violation))
+            key = (signature, violation.publish_status)
+            by_key.setdefault(key, []).append((found_path, violation))
+    return by_key, unparsed
+
+
+def base_counts(base_root: Path, paths: list[str]) -> dict[Key, int]:
+    """How many findings each (signature, publish status) has in the changed files' base versions
+    `base_root` the folder write_base_files wrote them to
+    `paths` repo paths of the files that exist at the merge base
+    Returns {(signature, publish status): count}. A base file that doesn't parse has none
+    """
+    by_key, _ = scan(base_root, paths)
+    counts: dict[Key, int] = {}
+    for key, found in by_key.items():
+        counts[key] = len(found)
+    return counts
+
+
+def _rank(status: PublishStatus) -> int:
+    """How public a publish status is
+    `status` a checked endpoint's status
+    Returns 0 for public and higher numbers for less public statuses
+    """
+    return INPUT_CHECKED_STATUSES.index(status)
+
+
+def find_new(
+    root: Path, paths: list[str], counts: dict[Key, int]
+) -> tuple[list[Finding], list[str]]:
+    """Rescans `paths` and keeps the findings their base versions don't have
+    `root` the checkout to scan
+    `paths` repo paths of the files to rescan
+    `counts` {(signature, publish status): count} from base_counts
+    Returns (new findings, paths that couldn't be parsed). A finding's base count is its signature's
+    findings at the same status or a more public one, so a flip toward public makes them all new
+    and a flip toward private doesn't. When the count goes up, every finding with that signature
+    and status is new, since there's no way to tell which line was added
+    """
+    by_key, unparsed = scan(root, paths)
 
     new: list[Finding] = []
-    for signature, found in by_signature.items():
-        if len(found) > counts.get(signature, 0):
+    for (signature, status), found in by_key.items():
+        rank = _rank(status)
+        base = 0
+        for (base_signature, base_status), count in counts.items():
+            if base_signature == signature and _rank(base_status) <= rank:
+                base += count
+        if len(found) > base:
             new += found
     new.sort(key=lambda finding: (finding[0], finding[1].line))
     return new, unparsed
@@ -124,6 +182,7 @@ def write_findings(file: Path, new: list[Finding]) -> None:
                 "rule": violation.rule,
                 "title": rule.title,
                 "fix": rule.fix,
+                "publish_status": violation.publish_status,
             }
         )
     file.parent.mkdir(parents=True, exist_ok=True)
@@ -131,20 +190,27 @@ def write_findings(file: Path, new: list[Finding]) -> None:
 
 
 def main(root: Path = _REPO_ROOT) -> int:
-    """Prints the new findings in CHANGED_FILES and writes them to FINDINGS_PATH
+    """Prints the CHANGED_FILES findings that aren't at MERGE_BASE and writes them to FINDINGS_PATH
     `root` the checkout to scan
-    Returns 1 only when exceptions.json can't be read, so the PR comment says the check couldn't
-    run. The workflow step's continue-on-error keeps that from blocking the PR
+    Returns 1 only when the files at MERGE_BASE can't be read, so the PR comment says the check
+    couldn't run. The workflow step's continue-on-error keeps that from blocking the PR
     """
     paths = changed_paths(os.environ.get("CHANGED_FILES"))
     if not paths:
         return 0
 
-    try:
-        counts = baselined_counts(root / EXCEPTIONS_PATH)
-    except (OSError, ValueError, KeyError, TypeError) as error:
-        print(f"Couldn't read {EXCEPTIONS_PATH} ({error}), so no files were checked")
+    merge_base = os.environ.get("MERGE_BASE")
+    if not merge_base:
+        print("No merge base, so no files were checked")
         return 1
+
+    with tempfile.TemporaryDirectory() as base_dir:
+        try:
+            base_paths = write_base_files(root, merge_base, paths, Path(base_dir))
+        except subprocess.CalledProcessError:
+            print(f"Couldn't read the changed files at {merge_base}, so no files were checked")
+            return 1
+        counts = base_counts(Path(base_dir), base_paths)
 
     new, unparsed = find_new(root, paths, counts)
     for path in unparsed:

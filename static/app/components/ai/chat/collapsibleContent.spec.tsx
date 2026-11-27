@@ -67,7 +67,7 @@ describe('CollapsibleContent', () => {
   it('follows expand and collapse all, keeping a hand toggle until the next one', async () => {
     const onOpenChange = jest.fn();
     const {rerender} = render(
-      <CollapsibleExpandAllContext value={{generation: 1, open: true}}>
+      <CollapsibleExpandAllContext value={{open: true, requestId: Symbol()}}>
         <CollapsibleContent title="Thinking..." onOpenChange={onOpenChange}>
           <span>body</span>
         </CollapsibleContent>
@@ -80,7 +80,7 @@ describe('CollapsibleContent', () => {
     expect(details).not.toHaveAttribute('open');
 
     rerender(
-      <CollapsibleExpandAllContext value={{generation: 2, open: true}}>
+      <CollapsibleExpandAllContext value={{open: true, requestId: Symbol()}}>
         <CollapsibleContent title="Thinking..." onOpenChange={onOpenChange}>
           <span>body</span>
         </CollapsibleContent>
@@ -89,7 +89,7 @@ describe('CollapsibleContent', () => {
     expect(details).toHaveAttribute('open');
 
     rerender(
-      <CollapsibleExpandAllContext value={{generation: 3, open: false}}>
+      <CollapsibleExpandAllContext value={{open: false, requestId: Symbol()}}>
         <CollapsibleContent title="Thinking..." onOpenChange={onOpenChange}>
           <span>body</span>
         </CollapsibleContent>
@@ -99,6 +99,27 @@ describe('CollapsibleContent', () => {
 
     await waitFor(() => expect(onOpenChange).toHaveBeenCalledTimes(1));
     expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+
+  it('goes back to its default when expand all is cleared', () => {
+    const {rerender} = render(
+      <CollapsibleExpandAllContext value={{open: true, requestId: Symbol()}}>
+        <CollapsibleContent title="Thinking...">
+          <span>body</span>
+        </CollapsibleContent>
+      </CollapsibleExpandAllContext>
+    );
+    const details = screen.getByText('body').closest('details');
+    expect(details).toHaveAttribute('open');
+
+    rerender(
+      <CollapsibleExpandAllContext value={null}>
+        <CollapsibleContent title="Thinking...">
+          <span>body</span>
+        </CollapsibleContent>
+      </CollapsibleExpandAllContext>
+    );
+    expect(details).not.toHaveAttribute('open');
   });
 
   it('stops summary clicks from propagating to a wrapping handler', async () => {

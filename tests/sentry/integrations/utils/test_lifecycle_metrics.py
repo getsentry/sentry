@@ -85,6 +85,19 @@ class IntegrationEventLifecycleMetricTest(TestCase):
 
     @mock.patch("sentry.integrations.utils.metrics.logger")
     @mock.patch("sentry.integrations.utils.metrics.metrics")
+    def test_recording_lifecycle_across_execution_boundaries(
+        self, mock_metrics: mock.MagicMock, mock_logger: mock.MagicMock
+    ) -> None:
+        metric_obj = self.TestLifecycleMetric()
+
+        metric_obj.record_outcome(EventLifecycleOutcome.STARTED)
+        metric_obj.record_outcome(EventLifecycleOutcome.SUCCESS)
+
+        self._check_metrics_call_args(mock_metrics, "success")
+        mock_logger.warning.assert_not_called()
+
+    @mock.patch("sentry.integrations.utils.metrics.logger")
+    @mock.patch("sentry.integrations.utils.metrics.metrics")
     def test_recording_halt(
         self, mock_metrics: mock.MagicMock, mock_logger: mock.MagicMock
     ) -> None:

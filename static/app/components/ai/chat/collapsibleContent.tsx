@@ -8,9 +8,8 @@ import {Container, Flex} from '@sentry/scraps/layout';
 import {TURN_META_WIDTH} from './turnMeta';
 
 export interface CollapsibleExpandAll {
-  /** Bumped on every expand or collapse all, so a repeated one applies again. */
-  generation: number;
   open: boolean;
+  requestId: symbol;
 }
 
 /**
@@ -22,19 +21,13 @@ export const CollapsibleExpandAllContext = createContext<CollapsibleExpandAll | 
   null
 );
 
-/**
- * Open state for a collapsible section that follows expand and collapse all. It
- * starts from the latest one, or `defaultOpen` without one.
- */
 export function useCollapsibleOpenState(defaultOpen: boolean) {
   const expandAll = useContext(CollapsibleExpandAllContext);
   const [isOpen, setIsOpen] = useState(expandAll?.open ?? defaultOpen);
-  // Adjusted during render rather than in an effect, so every section changes in
-  // the same render.
-  const [generation, setGeneration] = useState(expandAll?.generation);
-  if (expandAll && expandAll.generation !== generation) {
-    setGeneration(expandAll.generation);
-    setIsOpen(expandAll.open);
+  const [requestId, setRequestId] = useState(expandAll?.requestId);
+  if (expandAll?.requestId !== requestId) {
+    setRequestId(expandAll?.requestId);
+    setIsOpen(expandAll?.open ?? defaultOpen);
   }
   return [isOpen, setIsOpen] as const;
 }

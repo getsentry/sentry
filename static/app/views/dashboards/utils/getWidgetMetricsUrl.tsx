@@ -20,6 +20,7 @@ import {DEFAULT_EQUATION_LABEL} from 'sentry/views/explore/metrics/constants';
 import type {BaseMetricQuery} from 'sentry/views/explore/metrics/metricQuery';
 import {parseAggregateExpression} from 'sentry/views/explore/metrics/parseAggregateExpression';
 import {getMetricsUrl, makeMetricsPathname} from 'sentry/views/explore/metrics/utils';
+import {findVirtualTraceMetric} from 'sentry/views/explore/metrics/virtualMetrics';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import type {GroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
@@ -139,8 +140,10 @@ export function getWidgetMetricsUrl(
           return;
         }
 
+        // Explore has no entry for virtual metrics yet, so it opens the
+        // stored metric the attribute lives on.
         return {
-          metric: traceMetric,
+          metric: findVirtualTraceMetric(traceMetric)?.source ?? traceMetric,
           queryParams: new ReadableQueryParams({
             extrapolate: true,
             mode: Mode.AGGREGATE,

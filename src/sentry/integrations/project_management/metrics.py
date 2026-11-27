@@ -32,7 +32,6 @@ class ProjectManagementActionType(StrEnum):
 
 class ProjectManagementHaltReason(StrEnum):
     SYNC_INBOUND_ASSIGNEE_NOT_FOUND = "inbound-assignee-not-found"
-    SYNC_NON_SYNC_INTEGRATION_PROVIDED = "sync-non-sync-integration-provided"
     REKEY_UNUSABLE_KEY_CHANGE = "rekey-unusable-key-change"
 
 
@@ -40,13 +39,42 @@ class ProjectManagementFailuresReason(StrEnum):
     INSTALLATION_STATE_MISSING = "installation-state-missing"
 
 
+class InboundStatusSyncHaltReason(StrEnum):
+    INTEGRATION_INACTIVE = "integration-inactive"
+    INTEGRATION_MISSING = "integration-missing"
+    NO_LINKED_GROUPS = "no-linked-groups"
+    ORGANIZATION_INTEGRATION_MISSING = "organization-integration-missing"
+    ORGANIZATION_MISSING = "organization-missing"
+    STALE_EVENT = "stale-event"
+    UNSUPPORTED_INSTALLATION = "unsupported-installation"
+
+
+class InboundStatusSyncFailureReason(StrEnum):
+    ACTION_LOOKUP_FAILED = "action-lookup-failed"
+    ENQUEUE_FAILED = "enqueue-failed"
+    PROCESSING_FAILED = "processing-failed"
+
+
 @dataclass
 class ProjectManagementEvent(IntegrationEventLifecycleMetric):
     action_type: ProjectManagementActionType
-    integration: Integration | RpcIntegration
+    integration: Integration | RpcIntegration | None = None
+    provider_key: str | None = None
+    event_integration_id: int | None = None
+
+    def __post_init__(self) -> None:
+        if self.integration is None and (
+            self.provider_key is None or self.event_integration_id is None
+        ):
+            raise ValueError(
+                "ProjectManagementEvent requires an integration or explicit provider and ID"
+            )
 
     def get_integration_name(self) -> str:
-        return self.integration.provider
+        if self.integration is not None:
+            return self.integration.provider
+        assert self.provider_key is not None
+        return self.provider_key
 
     def get_integration_domain(self) -> IntegrationDomain:
         return IntegrationDomain.PROJECT_MANAGEMENT
@@ -55,4 +83,6 @@ class ProjectManagementEvent(IntegrationEventLifecycleMetric):
         return str(self.action_type)
 
     def get_integration_id(self) -> int | None:
-        return self.integration.id
+        if self.integration is not None:
+            return self.integration.id
+        return self.event_integration_id

@@ -68,10 +68,7 @@ function ConversationDetailPage() {
     setExpandAll(null);
   }
   const toggleExpandAll = () =>
-    setExpandAll(previous => ({
-      generation: (previous?.generation ?? 0) + 1,
-      open: !previous?.open,
-    }));
+    setExpandAll(previous => ({requestId: Symbol('expand-all'), open: !previous?.open}));
 
   const messages = useMemo(() => extractMessagesFromNodes(nodes), [nodes]);
   const isInitialLoading = isLoading && nodes.length === 0;

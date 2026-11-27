@@ -16,6 +16,14 @@ from sentry import features, quotas
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
+from sentry.api.bases.organization_events import (
+    LEGACY_DATASETS_BROWNOUT_KEY,
+    LEGACY_DATASETS_DEPRECATION_DATE,
+    LEGACY_DATASETS_GONE_MESSAGE,
+    LEGACY_DATASETS_GONE_RESPONSE,
+    legacy_dataset_metric_attributes,
+    requests_legacy_dataset,
+)
 from sentry.api.endpoints.organization_events_stats import SENTRY_BACKEND_REFERRERS
 from sentry.api.endpoints.timeseries import (
     EMPTY_STATS_RESPONSE,
@@ -27,6 +35,7 @@ from sentry.api.endpoints.timeseries import (
     StatsResponse,
     TimeSeries,
 )
+from sentry.api.helpers.deprecation import deprecated
 from sentry.api.helpers.ingestion_delay import (
     get_ingestion_delay_status,
     serialize_ingestion_status,
@@ -333,8 +342,16 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
             ),
             400: OpenApiResponse(description="Invalid Query"),
             404: api_constants.RESPONSE_NOT_FOUND,
+            410: LEGACY_DATASETS_GONE_RESPONSE,
         },
         examples=DiscoverAndPerformanceExamples.QUERY_TIMESERIES,
+    )
+    @deprecated(
+        LEGACY_DATASETS_DEPRECATION_DATE,
+        key=LEGACY_DATASETS_BROWNOUT_KEY,
+        applies_to=requests_legacy_dataset,
+        gone_message=LEGACY_DATASETS_GONE_MESSAGE,
+        metric_attributes=legacy_dataset_metric_attributes,
     )
     def get(self, request: Request, organization: Organization) -> Response[StatsResponse]:
         """
@@ -411,6 +428,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
             self.validate_comparison_delta(comparison_delta, snuba_params, organization)
             rollup = self.get_rollup(request, snuba_params, top_events, use_rpc)
             snuba_params.granularity_secs = rollup
+            query_range = (snuba_params.start_date, snuba_params.end_date)
             axes = request.GET.getlist("yAxis", ["count()"])
             include_measured_ingestion_delay_metadata = features.has(
                 "organizations:measured-ingestion-delay-metadata",
@@ -459,6 +477,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                     rollup,
                     dataset,
                     organization,
+                    query_range,
                     ingestion_delay_status,
                 ),
                 status=200,
@@ -741,6 +760,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         rollup: int,
         dataset: ModuleType,
         organization: Organization,
+        query_range: tuple[datetime, datetime],
         ingestion_delay_status: IngestionDelayStatus | None = None,
     ) -> StatsResponse:
         # We need the current timestamp for the Ingestion Delay incomplete reason
@@ -774,6 +794,8 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
             retention_start=now - timedelta(days=retention_days).total_seconds()
             if retention_days
             else None,
+            query_start=query_range[0].timestamp(),
+            query_end=query_range[1].timestamp(),
         )
 
         response = StatsResponse(
