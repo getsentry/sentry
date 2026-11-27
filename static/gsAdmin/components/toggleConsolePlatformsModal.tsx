@@ -1,11 +1,12 @@
 import {useState} from 'react';
-import {css} from '@emotion/react';
-import styled from '@emotion/styled';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
-import {Flex} from '@sentry/scraps/layout';
+import {Button} from '@sentry/scraps/button';
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {openModal} from '@sentry/scraps/modal';
@@ -13,13 +14,10 @@ import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
-import {FieldFromConfig} from 'sentry/components/forms/fieldFromConfig';
-import {Form} from 'sentry/components/forms/form';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {
   CONSOLE_PLATFORM_METADATA,
-  type ConsolePlatform,
+  ConsolePlatform,
 } from 'sentry/constants/consolePlatforms';
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
@@ -36,26 +34,24 @@ const INVITE_COLUMNS: TableColumnConfig[] = [
   {key: 'platforms', width: '1fr'},
 ];
 
-function QuotaAlert() {
-  const playstation = useFormField<boolean>('playstation');
-  const nintendoSwitch = useFormField<boolean>('nintendo-switch');
-  const xbox = useFormField<boolean>('xbox');
-  const quota = useFormField<number>('newConsoleSdkInviteQuota');
+const PLATFORMS = [
+  ConsolePlatform.PLAYSTATION,
+  ConsolePlatform.NINTENDO_SWITCH,
+  ConsolePlatform.XBOX,
+] as const;
 
-  const hasEnabledPlatform = playstation || nintendoSwitch || xbox;
-  const isQuotaZero = Number(quota) === 0;
+const INVITE_QUOTA_ERROR = 'Invite quota must be 0 or greater';
 
-  if (!hasEnabledPlatform || !isQuotaZero) {
-    return null;
-  }
-
-  return (
-    <StyledQuotaAlert variant="warning">
-      You have enabled console platforms but the invite quota is set to 0. Users won't be
-      able to request access to the console SDK repositories anymore.
-    </StyledQuotaAlert>
-  );
-}
+const schema = z.object({
+  [ConsolePlatform.PLAYSTATION]: z.boolean(),
+  [ConsolePlatform.NINTENDO_SWITCH]: z.boolean(),
+  [ConsolePlatform.XBOX]: z.boolean(),
+  newConsoleSdkInviteQuota: z
+    .number()
+    .min(0, INVITE_QUOTA_ERROR)
+    .nullable()
+    .refine(value => value !== null, INVITE_QUOTA_ERROR),
+});
 
 interface InviteRowProps {
   invite: ConsoleSdkInviteUser;
@@ -134,6 +130,7 @@ interface ToggleConsolePlatformsModalProps extends ModalRenderProps {
 function ToggleConsolePlatformsModal({
   Header,
   Body,
+  Footer,
   closeModal,
   organization,
   onSuccess,
@@ -169,25 +166,18 @@ function ToggleConsolePlatformsModal({
 
   const queryClient = useQueryClient();
 
-  const {isPending: isUpdatePending, mutateAsync: updateConsolePlatforms} = useMutation({
-    mutationFn: (data: Record<string, boolean | number | string>) => {
-      const {newConsoleSdkInviteQuota, ...platforms} = data;
-      return fetchMutation({
+  const updateMutation = useMutation({
+    mutationFn: (data: {
+      consoleSdkInviteQuota: number;
+      enabledConsolePlatforms: string[];
+    }) =>
+      fetchMutation<Organization>({
         method: 'PUT',
         url: getApiUrl('/organizations/$organizationIdOrSlug/', {
           path: {organizationIdOrSlug: organization.slug},
         }),
-        data: {
-          enabledConsolePlatforms: Object.keys(platforms).reduce<string[]>((acc, key) => {
-            if (platforms[key]) {
-              acc.push(key);
-            }
-            return acc;
-          }, []),
-          consoleSdkInviteQuota: Number(newConsoleSdkInviteQuota),
-        },
-      });
-    },
+        data,
+      }),
   });
 
   const handleRevoke = ({
@@ -200,151 +190,174 @@ function ToggleConsolePlatformsModal({
     setPendingRevocations(prev => [...prev, {memberId, platform}]);
   };
 
-  const handleSubmit = async (data: Record<string, boolean | number>) => {
-    toast.loading('Saving changes...');
-
-    const promises: Array<Promise<unknown>> = [];
-
-    if (pendingRevocations.length > 0) {
-      promises.push(
-        revokeConsoleInvites({orgSlug: organization.slug, items: pendingRevocations})
-      );
-    }
-    promises.push(updateConsolePlatforms(data));
-
-    await Promise.all(promises)
-      .then(() => {
-        toast.success('Console SDK settings updated successfully');
-        closeModal();
-        onSuccess();
-      })
-      .catch(() => {
-        toast.error('Failed to update console SDK settings');
-        setPendingRevocations([]);
-      })
-      .finally(() => {
-        queryClient.invalidateQueries(
-          apiOptions.queryFilter(
-            '/organizations/$organizationIdOrSlug/console-sdk-invites/',
-            {path: {organizationIdOrSlug: organization.slug}}
-          )
-        );
-      });
+  const defaultValues: z.input<typeof schema> = {
+    [ConsolePlatform.PLAYSTATION]: enabledConsolePlatforms.includes(
+      ConsolePlatform.PLAYSTATION
+    ),
+    [ConsolePlatform.NINTENDO_SWITCH]: enabledConsolePlatforms.includes(
+      ConsolePlatform.NINTENDO_SWITCH
+    ),
+    [ConsolePlatform.XBOX]: enabledConsolePlatforms.includes(ConsolePlatform.XBOX),
+    newConsoleSdkInviteQuota: consoleSdkInviteQuota,
   };
 
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues,
+    validators: {onDynamic: schema},
+    onSubmit: ({value}) => {
+      const {newConsoleSdkInviteQuota, ...platforms} = schema.parse(value);
+      toast.loading('Saving changes...');
+
+      const promises: Array<Promise<unknown>> = [];
+
+      if (pendingRevocations.length > 0) {
+        promises.push(
+          revokeConsoleInvites({orgSlug: organization.slug, items: pendingRevocations})
+        );
+      }
+      promises.push(
+        updateMutation.mutateAsync({
+          enabledConsolePlatforms: PLATFORMS.filter(platform => platforms[platform]),
+          consoleSdkInviteQuota: newConsoleSdkInviteQuota,
+        })
+      );
+
+      return Promise.all(promises)
+        .then(() => {
+          toast.success('Console SDK settings updated successfully');
+          closeModal();
+          onSuccess();
+        })
+        .catch(() => {
+          toast.error('Failed to update console SDK settings');
+          setPendingRevocations([]);
+        })
+        .finally(() => {
+          queryClient.invalidateQueries(
+            apiOptions.queryFilter(
+              '/organizations/$organizationIdOrSlug/console-sdk-invites/',
+              {path: {organizationIdOrSlug: organization.slug}}
+            )
+          );
+        });
+    },
+  });
+
   return (
-    <Form
-      onSubmit={data => handleSubmit(data)}
-      onCancel={closeModal}
-      saveOnBlur={false}
-      initialData={{
-        playstation: enabledConsolePlatforms.includes('playstation'),
-        'nintendo-switch': enabledConsolePlatforms.includes('nintendo-switch'),
-        xbox: enabledConsolePlatforms.includes('xbox'),
-        newConsoleSdkInviteQuota: consoleSdkInviteQuota,
-      }}
-      submitLabel="Save"
-      submitDisabled={isUpdatePending || isRevokePending}
-    >
+    <form.AppForm form={form}>
       <Header closeButton>
         <Flex align="center" gap="xl">
           <h4>Toggle Console Platforms</h4>
         </Flex>
       </Header>
       <Body>
-        <p
-          css={css`
-            margin: 0;
-          `}
-        >
-          Toggle consoles to allow users in this organization to create console projects
-          and view private setup instructions.
-        </p>
-        <div>
-          <StyledFieldFromConfig
-            field={{
-              name: 'playstation',
-              type: 'boolean',
-              label: 'PlayStation',
-              help: 'Toggle the PlayStation console platform for this organization.',
-            }}
-            flexibleControlStateSize
-            inline
-          />
-          <StyledFieldFromConfig
-            field={{
-              name: 'nintendo-switch',
-              type: 'boolean',
-              label: 'Nintendo Switch',
-              help: 'Toggle Nintendo Switch console platform for this organization.',
-            }}
-            flexibleControlStateSize
-            inline
-          />
-          <StyledFieldFromConfig
-            field={{
-              name: 'xbox',
-              type: 'boolean',
-              label: 'Xbox',
-              help: 'Toggle the Xbox console platform for this organization.',
-            }}
-            flexibleControlStateSize
-            inline
-          />
-          <NumberFieldFromConfig
-            field={{
-              name: 'newConsoleSdkInviteQuota',
-              type: 'number',
-              label: 'GitHub Repo Invite Quota',
-              help: `Set the maximum number of GitHub users that can be invited to our console SDK repositories. Currently ${userInvites?.length ?? 0} of ${consoleSdkInviteQuota} invites used.`,
-              min: 0,
-            }}
-            flexibleControlStateSize
-            inline
-          />
-        </div>
+        <Stack gap="xl">
+          <Text as="p">
+            Toggle consoles to allow users in this organization to create console projects
+            and view private setup instructions.
+          </Text>
+          <Stack gap="lg">
+            <form.AppField name={ConsolePlatform.PLAYSTATION}>
+              {field => (
+                <field.Layout.Row
+                  label="PlayStation"
+                  hintText="Toggle the PlayStation console platform for this organization."
+                >
+                  <field.Switch
+                    checked={field.state.value}
+                    onChange={field.handleChange}
+                  />
+                </field.Layout.Row>
+              )}
+            </form.AppField>
+            <form.AppField name={ConsolePlatform.NINTENDO_SWITCH}>
+              {field => (
+                <field.Layout.Row
+                  label="Nintendo Switch"
+                  hintText="Toggle Nintendo Switch console platform for this organization."
+                >
+                  <field.Switch
+                    checked={field.state.value}
+                    onChange={field.handleChange}
+                  />
+                </field.Layout.Row>
+              )}
+            </form.AppField>
+            <form.AppField name={ConsolePlatform.XBOX}>
+              {field => (
+                <field.Layout.Row
+                  label="Xbox"
+                  hintText="Toggle the Xbox console platform for this organization."
+                >
+                  <field.Switch
+                    checked={field.state.value}
+                    onChange={field.handleChange}
+                  />
+                </field.Layout.Row>
+              )}
+            </form.AppField>
+            <form.AppField name="newConsoleSdkInviteQuota">
+              {field => (
+                <field.Layout.Row
+                  label="GitHub Repo Invite Quota"
+                  hintText={`Set the maximum number of GitHub users that can be invited to our console SDK repositories. Currently ${userInvites.length} of ${consoleSdkInviteQuota} invites used.`}
+                >
+                  <field.Number
+                    value={field.state.value}
+                    onChange={field.handleChange}
+                    min={0}
+                  />
+                </field.Layout.Row>
+              )}
+            </form.AppField>
+          </Stack>
 
-        <SimpleTable
-          columns={INVITE_COLUMNS}
-          header={
-            <SimpleTable.HeaderRow>
-              <SimpleTable.HeaderCell>User</SimpleTable.HeaderCell>
-              <SimpleTable.HeaderCell>Platforms</SimpleTable.HeaderCell>
-            </SimpleTable.HeaderRow>
-          }
-        >
-          <InvitesTableContent
-            invites={displayedInvites}
-            isPending={isInvitesFetchPending}
-            isError={isInvitesFetchError}
-            onRefetch={refetchInvites}
-            onRevoke={handleRevoke}
-          />
-        </SimpleTable>
+          <SimpleTable
+            columns={INVITE_COLUMNS}
+            header={
+              <SimpleTable.HeaderRow>
+                <SimpleTable.HeaderCell>User</SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell>Platforms</SimpleTable.HeaderCell>
+              </SimpleTable.HeaderRow>
+            }
+          >
+            <InvitesTableContent
+              invites={displayedInvites}
+              isPending={isInvitesFetchPending}
+              isError={isInvitesFetchError}
+              onRefetch={refetchInvites}
+              onRevoke={handleRevoke}
+            />
+          </SimpleTable>
 
-        <QuotaAlert />
+          <form.Subscribe
+            selector={state =>
+              PLATFORMS.some(platform => state.values[platform]) &&
+              state.values.newConsoleSdkInviteQuota === 0
+            }
+          >
+            {showQuotaWarning =>
+              showQuotaWarning ? (
+                <Alert variant="warning">
+                  You have enabled console platforms but the invite quota is set to 0.
+                  Users won't be able to request access to the console SDK repositories
+                  anymore.
+                </Alert>
+              ) : null
+            }
+          </form.Subscribe>
+        </Stack>
       </Body>
-    </Form>
+      <Footer>
+        <Flex gap="md" justify="end">
+          <Button onClick={closeModal}>Cancel</Button>
+          <form.SubmitButton disabled={isRevokePending}>Save</form.SubmitButton>
+        </Flex>
+      </Footer>
+    </form.AppForm>
   );
 }
-
-const StyledFieldFromConfig = styled(FieldFromConfig)`
-  padding-left: ${p => p.theme.space['3xl']};
-  &:last-child {
-    padding-bottom: 0;
-  }
-`;
-
-const NumberFieldFromConfig = styled(FieldFromConfig)`
-  padding-left: ${p => p.theme.space['3xl']};
-  > div {
-    padding-right: ${p => p.theme.space['3xl']};
-  }
-`;
-
-const StyledQuotaAlert = styled(Alert)`
-  margin-top: ${p => p.theme.space.xl};
-`;
 
 export function openToggleConsolePlatformsModal({
   organization,
