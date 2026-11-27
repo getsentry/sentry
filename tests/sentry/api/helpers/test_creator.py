@@ -4,19 +4,13 @@ from rest_framework.request import Request
 from sentry.api.base import DEFAULT_AUTHENTICATION
 from sentry.api.helpers.creator import ActorReference, get_actor_reference, get_creator_reference
 from sentry.auth.services.auth import AuthenticatedToken
-from sentry.models.apitoken import ApiToken
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.seer import agent_token
 from sentry.service_accounts.auth import SERVICE_ACCOUNT_TOKEN_KIND
-from sentry.service_accounts.models import ServiceAccountToken
-from sentry.service_accounts.tokens import generate_token as generate_service_account_token
-from sentry.service_accounts.tokens import stored_token_fields
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.requests import drf_request_from_request
 from sentry.testutils.silo import assume_test_silo_mode_of
-from sentry.types.token import AuthTokenType
 from sentry.users.models.user import User
 from sentry.utils.security.orgauthtoken_token import hash_token
 
@@ -113,13 +107,9 @@ class GetActorReferenceTest(TestCase):
 
     def test_oauth_token(self) -> None:
         application = self.create_api_application(owner=self.create_user())
-        with assume_test_silo_mode_of(ApiToken):
-            token = ApiToken.objects.create(
-                user=self.user,
-                application=application,
-                scope_list=["org:read"],
-                token_type=AuthTokenType.USER_APP,
-            )
+        token = self.create_user_auth_token(
+            self.user, scope_list=["org:read"], application=application
+        )
         request = self.authenticate(authorization=f"Bearer {token.token}")
 
         assert get_actor_reference(request) == ActorReference(user_id=self.user.id)
@@ -154,20 +144,9 @@ class GetActorReferenceTest(TestCase):
         service_account = self.create_service_account(
             organization=self.organization, scope_list=["org:read"]
         )
-        token_str = generate_service_account_token(
-            self.organization.slug, "https://test-region.sentry.io"
+        _, token_str = self.create_service_account_token(
+            service_account, scope_list=["org:read"], created_by=self.user
         )
-        stored = stored_token_fields(token_str)
-        with assume_test_silo_mode_of(ServiceAccountToken), outbox_runner():
-            ServiceAccountToken.objects.create(
-                service_account=service_account,
-                organization_id=self.organization.id,
-                name="ci",
-                token_hashed=stored.token_hashed,
-                token_last_characters=stored.token_last_characters,
-                scope_list=["org:read"],
-                created_by=self.user,
-            )
         request = self.authenticate(authorization=f"Bearer {token_str}")
 
         assert get_actor_reference(request) == ActorReference(service_account_id=service_account.id)

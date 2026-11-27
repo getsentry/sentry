@@ -226,7 +226,13 @@ from sentry.sentry_apps.models.sentry_app_installation_for_provider import (
 from sentry.sentry_apps.models.servicehook import ServiceHook, ServiceHookProject
 from sentry.sentry_apps.services.hook import hook_service
 from sentry.sentry_apps.token_exchange.grant_exchanger import GrantExchanger
-from sentry.service_accounts.models import ServiceAccount, ServiceAccountProject
+from sentry.service_accounts.models import (
+    ServiceAccount,
+    ServiceAccountProject,
+    ServiceAccountToken,
+)
+from sentry.service_accounts.tokens import generate_token as generate_service_account_token
+from sentry.service_accounts.tokens import stored_token_fields
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.signals import project_created
 from sentry.silo.base import SiloMode
@@ -2418,6 +2424,32 @@ class Factories:
                 for project_id in project_ids
             )
         return service_account
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_service_account_token(
+        service_account: ServiceAccount,
+        name: str = "token",
+        scope_list: Sequence[str] = ("org:read",),
+        created_by: User | None = None,
+    ) -> tuple[ServiceAccountToken, str]:
+        """A token of the service account, and its plaintext for an Authorization header."""
+        org_slug = OrganizationMapping.objects.get(
+            organization_id=service_account.organization_id
+        ).slug
+        plaintext = generate_service_account_token(org_slug, "https://test-region.sentry.io")
+        stored = stored_token_fields(plaintext)
+        with outbox_runner():
+            token = ServiceAccountToken.objects.create(
+                service_account=service_account,
+                organization_id=service_account.organization_id,
+                name=name,
+                token_hashed=stored.token_hashed,
+                token_last_characters=stored.token_last_characters,
+                scope_list=list(scope_list),
+                created_by=created_by,
+            )
+        return token, plaintext
 
     @staticmethod
     def create_organization_contributor(
