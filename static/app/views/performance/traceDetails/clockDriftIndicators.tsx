@@ -35,6 +35,8 @@ export function ClockDriftTooltip({
         'Shifted by %s to correct for clock drift',
         formatClockDriftOffset(offsetMs)
       )}
+      // Wrapping the short sentence leaves wide empty sides in the default 225px tooltip
+      maxWidth="none"
       skipWrapper
     >
       {children}
