@@ -14,13 +14,17 @@ Key space
 ---------
 Every anomaly detection key for an organization is `anomaly-detection:{<org_id>}:...`.
 The braces are a Redis Cluster hash tag, so all of an organization's keys share one slot
-and multi-key reads (`MGET`, `PFCOUNT`, `MULTI`) work across them. Only `state` exists
-today; the rest are reserved for the storage layout they will need:
+and multi-key reads (`MGET`, `PFCOUNT`, `MULTI`) work across them:
 
-    anomaly-detection:{<org_id>}:state:v1        this module: next minute + checkpoint
+    anomaly-detection:{<org_id>}:state:v1                 this module: next minute + checkpoint
+    anomaly-detection:{<org_id>}:shape:v1:<date>          inputs.shapes: daily hour-of-day shapes
+    anomaly-detection:{<org_id>}:shape-build:v1:<date>    inputs.shapes: claim on a day's build
+    anomaly-detection:{<org_id>}:environments:v1:...      inputs.measurements: scope inventory
+
+These are reserved for the storage layout the minute path will need:
+
     anomaly-detection:{<org_id>}:m:<minute>      packed minute block, one per org-minute
     anomaly-detection:{<org_id>}:dict:<v>        slice dictionary the blocks reference
-    anomaly-detection:{<org_id>}:shape:<day>     nightly hour-of-day shapes
     anomaly-detection:{<org_id>}:iu:<group_id>   HyperLogLog of a new issue's users
 
 Rules for adding keys:
@@ -61,21 +65,21 @@ class AnomalyDetectionState:
     checkpoint: bytes  # see sentry.anomaly_detection.checkpoint.codec
 
 
-def _client() -> RedisCluster[bytes] | StrictRedis[bytes]:
+def client() -> RedisCluster[bytes] | StrictRedis[bytes]:
     return redis.redis_clusters.get_binary(settings.SENTRY_ANOMALY_DETECTION_REDIS_CLUSTER)
 
 
-def _org_key(organization_id: int, *parts: str) -> str:
+def org_key(organization_id: int, *parts: str) -> str:
     """A key in the organization's hash-tagged slot; see "Key space" above."""
     return ":".join((_NAMESPACE, f"{{{organization_id}}}", *parts))
 
 
 def _key(organization_id: int) -> str:
-    return _org_key(organization_id, "state", "v1")
+    return org_key(organization_id, "state", "v1")
 
 
 def get_state(organization_id: int) -> AnomalyDetectionState | None:
-    value = _client().get(_key(organization_id))
+    value = client().get(_key(organization_id))
 
     if value is None:
         return None
@@ -98,7 +102,7 @@ def set_state(organization_id: int, *, next_minute: datetime, checkpoint: bytes)
     if next_minute.tzinfo is None:
         raise ValueError("Anomaly detection state minutes must be timezone-aware")
 
-    _client().set(
+    client().set(
         _key(organization_id),
         _NEXT_MINUTE_HEADER.pack(int(next_minute.timestamp())) + checkpoint,
         ex=STATE_TTL,
@@ -106,4 +110,4 @@ def set_state(organization_id: int, *, next_minute: datetime, checkpoint: bytes)
 
 
 def delete_state(organization_id: int) -> None:
-    _client().delete(_key(organization_id))
+    client().delete(_key(organization_id))
