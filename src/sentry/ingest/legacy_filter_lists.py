@@ -30,6 +30,7 @@ from sentry.models.custominboundfilter import (
     CustomInboundFilter,
     DataType,
     LegacyFilter,
+    editor_columns,
 )
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -149,7 +150,6 @@ def _set_row(project: Project, row: _Row, lines: list[str], actor: ActorReferenc
         return
 
     conditions = [{"type": row.condition_type.value, "operator": "glob", "value": lines}]
-    # Every save of the row records who made it, replacing the previous editor.
     if existing is None:
         CustomInboundFilter.objects.create(
             project_id=project.id,
@@ -157,17 +157,12 @@ def _set_row(project: Project, row: _Row, lines: list[str], actor: ActorReferenc
             data_type=row.data_type.value,
             conditions=conditions,
             legacy_filter=row.legacy_filter.value,
-            updated_by_id=actor.user_id,
-            updated_by_service_account_id=actor.service_account_id,
+            **editor_columns(actor),
         )
     else:
         # The name and the active flag belong to the user, who may edit the row in the
         # custom filter UI. Only the lines follow the legacy list.
-        existing.update(
-            conditions=conditions,
-            updated_by_id=actor.user_id,
-            updated_by_service_account_id=actor.service_account_id,
-        )
+        existing.update(conditions=conditions, **editor_columns(actor))
 
 
 def _get_row(project: Project, row: _Row) -> CustomInboundFilter | None:
