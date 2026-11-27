@@ -518,20 +518,20 @@ importers:
         specifier: ^1.0.0
         version: 1.0.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@sentry/browser':
-        specifier: 11.18.0
-        version: 11.18.0
+        specifier: 11.20.0
+        version: 11.20.0
       '@sentry/conventions':
         specifier: ^0.34.0
         version: 0.34.0
       '@sentry/core':
-        specifier: 11.18.0
-        version: 11.18.0
+        specifier: 11.20.0
+        version: 11.20.0
       '@sentry/icons':
         specifier: workspace:*
         version: link:../packages/icons
       '@sentry/react':
-        specifier: 11.18.0
-        version: 11.18.0(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
+        specifier: 11.20.0
+        version: 11.20.0(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
       '@sentry/release-parser':
         specifier: ^1.3.1
         version: 1.3.1
@@ -819,8 +819,8 @@ importers:
         specifier: workspace:*
         version: link:../packages/icons
       '@sentry/react':
-        specifier: 11.18.0
-        version: 11.18.0(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
+        specifier: 11.20.0
+        version: 11.20.0(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
       '@sentry/scraps':
         specifier: workspace:*
         version: link:../packages/scraps
@@ -904,14 +904,14 @@ importers:
         specifier: 3.34.1
         version: 3.34.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@sentry/core':
-        specifier: 11.18.0
-        version: 11.18.0
+        specifier: 11.20.0
+        version: 11.20.0
       '@sentry/icons':
         specifier: workspace:*
         version: link:../packages/icons
       '@sentry/react':
-        specifier: 11.18.0
-        version: 11.18.0(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
+        specifier: 11.20.0
+        version: 11.20.0(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
       '@sentry/scraps':
         specifier: workspace:*
         version: link:../packages/scraps
@@ -1230,8 +1230,8 @@ importers:
         specifier: workspace:*
         version: link:../icons
       '@sentry/react':
-        specifier: 11.18.0
-        version: 11.18.0(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
+        specifier: 11.20.0
+        version: 11.20.0(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
       '@tanstack/react-hotkeys':
         specifier: 0.18.0
         version: 0.18.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -1420,17 +1420,17 @@ importers:
         specifier: ^1.0.0
         version: 1.0.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@sentry/core':
-        specifier: 11.18.0
-        version: 11.18.0
+        specifier: 11.20.0
+        version: 11.20.0
       '@sentry/jest-environment':
         specifier: 8.1.0
-        version: 8.1.0(@jest/environment-jsdom-abstract@30.5.1(@types/jsdom@21.1.7)(jsdom@30.1.1(@noble/hashes@1.8.0)))(@sentry/node@11.18.0)(jest-environment-node@30.5.1)(jest@30.5.1(@types/node@26.6.4)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.22(@swc/helpers@0.5.24))(@types/node@26.6.4)(@typescript/typescript6@6.0.2)))(jsdom@30.1.1(@noble/hashes@1.8.0))
+        version: 8.1.0(@jest/environment-jsdom-abstract@30.5.1(@types/jsdom@21.1.7)(jsdom@30.1.1(@noble/hashes@1.8.0)))(@sentry/node@11.20.0)(jest-environment-node@30.5.1)(jest@30.5.1(@types/node@26.6.4)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.22(@swc/helpers@0.5.24))(@types/node@26.6.4)(@typescript/typescript6@6.0.2)))(jsdom@30.1.1(@noble/hashes@1.8.0))
       '@sentry/node':
-        specifier: 11.18.0
-        version: 11.18.0
+        specifier: 11.20.0
+        version: 11.20.0
       '@sentry/react':
-        specifier: 11.18.0
-        version: 11.18.0(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
+        specifier: 11.20.0
+        version: 11.20.0(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
       '@sentry/scraps':
         specifier: workspace:*
         version: link:../../static/packages/scraps
@@ -4020,12 +4020,12 @@ packages:
       react: '>=16'
       react-dom: '>=16'
 
-  '@sentry/browser-utils@11.18.0':
-    resolution: {integrity: sha512-OvxzZat6XPqifoyKMVCi8y/vlNBbbvMwhK0PM9MGv168N7yEe3T2cslRmz28gtSbfZEFza8AD4JlTiFGQzLVVQ==}
+  '@sentry/browser-utils@11.20.0':
+    resolution: {integrity: sha512-ALt8CFcORiVF+HnYq5lD6an++DMaCpzIe0PzwbnIbRqLw83JdQOJP1LetYNlXPsGArHxa/QY5CVHqT/24PP7EA==}
     engines: {node: '>=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0'}
 
-  '@sentry/browser@11.18.0':
-    resolution: {integrity: sha512-dbesAvBuNlNOo3STWaLAuL9x+QYVizaLnwy4LrUEpQJh13j8zxJYJtrlIczsFpxjmUw4We0eZpvwQytkgkKmpw==}
+  '@sentry/browser@11.20.0':
+    resolution: {integrity: sha512-+1cHZo3HhUKNnCM3f8Tz+rzRPBe9Yb+fMeAUE53PAg3rea6H0H32kUPz4VXibbVyu85w83uny/x4wRl3mcmSxw==}
     engines: {node: '>=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0'}
 
   '@sentry/bundler-plugins@11.12.0':
@@ -4040,8 +4040,8 @@ packages:
       webpack:
         optional: true
 
-  '@sentry/bundler-plugins@11.18.0':
-    resolution: {integrity: sha512-rFvVTYGF1zGnis+USxzWjnCCSJQwe2+rONiCTU9KE1gZQOGf9ZsgXOadJjZAHu3RBFOMnKtkQ7NUuPlXazEnIw==}
+  '@sentry/bundler-plugins@11.20.0':
+    resolution: {integrity: sha512-bJZ9ngEx9QTst8OlpxMDRLgkLZnUc45/qZ8OwaYfeOL1E2uCtrN6oWKVoUM7307Gm54KYeRoQ1HlZhDxAyi3SQ==}
     engines: {node: '>=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0'}
     peerDependencies:
       rollup: '>=3.2.0'
@@ -4068,8 +4068,8 @@ packages:
     resolution: {integrity: sha512-HKER7EcRpPPgC8mLRe5BzP6njfRYFZ53BFLZxVp1whWbY6lp/b2mvTBk4q6+rKsUFhLhRDsd6jL8y/8ddEWv6A==}
     engines: {node: '>=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0'}
 
-  '@sentry/core@11.18.0':
-    resolution: {integrity: sha512-i5DvfuiCFBznC7zBAdz+C5AVuRLy+RdoGtPOQMELWJSg3CnIfLTUNJQfwweVFrLUeh6CHw0u0W4tpirQnNmx4w==}
+  '@sentry/core@11.20.0':
+    resolution: {integrity: sha512-ay0RpDFVsFzaRBeX8mGDygWkaNVoQbepz+pYu7t3aBP/E6+wFsQnP56bQjAonlHfPR/5zvgYCKUphLznnFiY+Q==}
     engines: {node: '>=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0'}
 
   '@sentry/decision-model-linter@0.2.0':
@@ -4077,8 +4077,8 @@ packages:
     engines: {node: '>=24'}
     hasBin: true
 
-  '@sentry/feedback@11.18.0':
-    resolution: {integrity: sha512-27tcbRSU13A8Tv+2ebjaAAu7cl9YClsHBASCj4xvwJczQnOAeuCztEIOI9uW7q2uHV/9Kcniwh2FPEcLYaFuEg==}
+  '@sentry/feedback@11.20.0':
+    resolution: {integrity: sha512-EyMxgWWGI8Q4FdXbiY0cpdxlNMmjMX5UXMFJzGT/EvwRyC4dzyd2fugkVeuOcUGFM4PSIMcw21sMadHj8a3RMQ==}
     engines: {node: '>=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0'}
 
   '@sentry/jest-environment@8.1.0':
@@ -4098,18 +4098,18 @@ packages:
       jsdom:
         optional: true
 
-  '@sentry/node@11.18.0':
-    resolution: {integrity: sha512-qZFnEG/WOifjfvG9HUiWXM266tmZow0Omq9mZK0hKmevVT4bowgVzNi+jyejVZrBAKqSC2PF96ebymiJ1Z7FPQ==}
+  '@sentry/node@11.20.0':
+    resolution: {integrity: sha512-FO4m0skAl/y1QPqH/VZzypnOxGDzNhmMlJL585Aamw9XY1JZwoDiZ0MW85bZ34JyZxZtPFuTsgSRyoaPzvrwog==}
     engines: {node: '>=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0'}
 
-  '@sentry/opentelemetry@11.18.0':
-    resolution: {integrity: sha512-f5cyOW/cayhmFBWgVaJIeVJ+VLi0tB0rxaNjMBb8eEKAKMBoqCngfEIOeMVeurrTRlGZ0A/525YEnBbfdTCmmg==}
+  '@sentry/opentelemetry@11.20.0':
+    resolution: {integrity: sha512-QAQHfuE7w2QrZWjZveyjNEr7I7b0FTujCRcnmXfuQPD8Egnof/HJuGaBdTcYbjp9DhIHUivyg6UILcN30dc0aw==}
     engines: {node: '>=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0'}
     peerDependencies:
       '@opentelemetry/api': ^1.9.0
 
-  '@sentry/react@11.18.0':
-    resolution: {integrity: sha512-rI0sL+KggIxRIijCWVMto2hXKVP24wwHu6L1o0HFsiXr+KNKCBQ6tjXN4MTOqpvup9wdaRAa6i5jB/ZZBmHm0w==}
+  '@sentry/react@11.20.0':
+    resolution: {integrity: sha512-QJlKJXzRgdZUCr1T7n5aazYWncNi2fEexe8FUDWtfQB5sW4FxmWUYO8bDhy/Gha9q8xoXxqyWcAMr5PY09r5UA==}
     engines: {node: '>=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0'}
     peerDependencies:
       react: 17.x || 18.x || 19.x
@@ -4121,12 +4121,12 @@ packages:
   '@sentry/release-parser@1.3.1':
     resolution: {integrity: sha512-/dGpCq+j3sJhqQ14RNEEL45Ot/rgq3jAlZDD/8ufeqq+W8p4gUhSrbGWCRL82NEIWY9SYwxYXGXjRcVPSHiA1Q==}
 
-  '@sentry/replay-canvas@11.18.0':
-    resolution: {integrity: sha512-NmT55pUfh/qhhhTQhDFdXCizht0+33jczgGtSlbKwXdwrNANAap17lYrTiAIJCqBo2l5z8doQdvpAm2l0DtxyQ==}
+  '@sentry/replay-canvas@11.20.0':
+    resolution: {integrity: sha512-iViVT8oogsPcLf8npmyaqQgsE+xFTHC8YXdosZXUTJWgfcJqTe90x9r6K9bR0Ye3H2I9pHUi8HDorL1dEL4SMA==}
     engines: {node: '>=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0'}
 
-  '@sentry/replay@11.18.0':
-    resolution: {integrity: sha512-XpzFOuQLbz1wQ88a8I4+ngyAKbvWKzGq6EGWJnn/KGCcrFSlnRhgPQ/bY1nrNXhbCla778ManvVpoCjbaQ919A==}
+  '@sentry/replay@11.20.0':
+    resolution: {integrity: sha512-jvIFcLrU/ZBnaFz13xoKBJUtBjVrjWhfND5uBKWejTPEqcnVWt0KvjpoPfqNQtHjCH5jnChqiXawplDXAwp/HQ==}
     engines: {node: '>=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0'}
 
   '@sentry/rrdom@2.48.0':
@@ -4147,12 +4147,12 @@ packages:
   '@sentry/rrweb@2.48.0':
     resolution: {integrity: sha512-PD+JysvmtkAH7XMUaKFt/vVnPT6YWmfPZgrTyiiINOEj8mz+6Gc/jj/PXqymfRT71m+54M4WyDrHAGGy4YbT5Q==}
 
-  '@sentry/server-runtime-injection@11.18.0':
-    resolution: {integrity: sha512-Lwk0lTNWyPiCFKUXZzdVN/3MDddUM1LvOiny5nLXzU1Xe4nlPZCBcZcM0WTE7/v5w5S/COb7sw8SxB7VhbZvJA==}
+  '@sentry/server-runtime-injection@11.20.0':
+    resolution: {integrity: sha512-xRF1iyxO51BoD+jR3kEPaBj1TtgT4YGsPDSYvP5xU2+6Kf2xSynR0znkwgeLCc9RPVg7iDpRaXKQEl3heYQLIQ==}
     engines: {node: '>=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0'}
 
-  '@sentry/server-utils@11.18.0':
-    resolution: {integrity: sha512-1ny+6qT8Hyt9EWplbAcf28wiFS82jiLCGwy8PQeq2IHm8lxsGbRkohAcp3hfRHZUsyiSGOVBcN3ofORLZvxSyg==}
+  '@sentry/server-utils@11.20.0':
+    resolution: {integrity: sha512-dYUlhCv7RbbeaU6XsQIB2Zce8DOqh7O/9+IYgD1cSRERFeQceDo0KTBO8MaGPtRDkoLDf+SgjXhE2JGEVaDzww==}
     engines: {node: '>=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0'}
 
   '@sentry/sqlish@1.0.1':
@@ -11709,20 +11709,20 @@ snapshots:
       react-dom: 19.3.0(react@19.3.0)
       title-case: 3.0.2
 
-  '@sentry/browser-utils@11.18.0':
+  '@sentry/browser-utils@11.20.0':
     dependencies:
       '@sentry/conventions': 0.36.0
-      '@sentry/core': 11.18.0
+      '@sentry/core': 11.20.0
       web-vitals: 6.2.3
 
-  '@sentry/browser@11.18.0':
+  '@sentry/browser@11.20.0':
     dependencies:
-      '@sentry/browser-utils': 11.18.0
+      '@sentry/browser-utils': 11.20.0
       '@sentry/conventions': 0.36.0
-      '@sentry/core': 11.18.0
-      '@sentry/feedback': 11.18.0
-      '@sentry/replay': 11.18.0
-      '@sentry/replay-canvas': 11.18.0
+      '@sentry/core': 11.20.0
+      '@sentry/feedback': 11.20.0
+      '@sentry/replay': 11.20.0
+      '@sentry/replay-canvas': 11.20.0
 
   '@sentry/bundler-plugins@11.12.0':
     dependencies:
@@ -11733,9 +11733,9 @@ snapshots:
       oxc-parser: 0.152.0
       sentry: 0.49.0
 
-  '@sentry/bundler-plugins@11.18.0':
+  '@sentry/bundler-plugins@11.20.0':
     dependencies:
-      '@sentry/core': 11.18.0
+      '@sentry/core': 11.20.0
       dotenv: 17.4.2
       glob: 14.0.5
       magic-string: 1.4.5
@@ -11752,64 +11752,64 @@ snapshots:
     dependencies:
       '@sentry/conventions': 0.32.0
 
-  '@sentry/core@11.18.0':
+  '@sentry/core@11.20.0':
     dependencies:
       '@sentry/conventions': 0.36.0
 
   '@sentry/decision-model-linter@0.2.0': {}
 
-  '@sentry/feedback@11.18.0':
+  '@sentry/feedback@11.20.0':
     dependencies:
-      '@sentry/core': 11.18.0
+      '@sentry/core': 11.20.0
 
-  '@sentry/jest-environment@8.1.0(@jest/environment-jsdom-abstract@30.5.1(@types/jsdom@21.1.7)(jsdom@30.1.1(@noble/hashes@1.8.0)))(@sentry/node@11.18.0)(jest-environment-node@30.5.1)(jest@30.5.1(@types/node@26.6.4)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.22(@swc/helpers@0.5.24))(@types/node@26.6.4)(@typescript/typescript6@6.0.2)))(jsdom@30.1.1(@noble/hashes@1.8.0))':
+  '@sentry/jest-environment@8.1.0(@jest/environment-jsdom-abstract@30.5.1(@types/jsdom@21.1.7)(jsdom@30.1.1(@noble/hashes@1.8.0)))(@sentry/node@11.20.0)(jest-environment-node@30.5.1)(jest@30.5.1(@types/node@26.6.4)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.22(@swc/helpers@0.5.24))(@types/node@26.6.4)(@typescript/typescript6@6.0.2)))(jsdom@30.1.1(@noble/hashes@1.8.0))':
     dependencies:
-      '@sentry/node': 11.18.0
+      '@sentry/node': 11.20.0
       jest: 30.5.1(@types/node@26.6.4)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.22(@swc/helpers@0.5.24))(@types/node@26.6.4)(@typescript/typescript6@6.0.2))
     optionalDependencies:
       '@jest/environment-jsdom-abstract': 30.5.1(@types/jsdom@21.1.7)(jsdom@30.1.1(@noble/hashes@1.8.0))
       jest-environment-node: 30.5.1
       jsdom: 30.1.1(@noble/hashes@1.8.0)
 
-  '@sentry/node@11.18.0':
+  '@sentry/node@11.20.0':
     dependencies:
       '@opentelemetry/api': 1.9.1
-      '@sentry/bundler-plugins': 11.18.0
+      '@sentry/bundler-plugins': 11.20.0
       '@sentry/conventions': 0.36.0
-      '@sentry/core': 11.18.0
-      '@sentry/opentelemetry': 11.18.0(@opentelemetry/api@1.9.1)
-      '@sentry/server-runtime-injection': 11.18.0
-      '@sentry/server-utils': 11.18.0
+      '@sentry/core': 11.20.0
+      '@sentry/opentelemetry': 11.20.0(@opentelemetry/api@1.9.1)
+      '@sentry/server-runtime-injection': 11.20.0
+      '@sentry/server-utils': 11.20.0
     transitivePeerDependencies:
       - rollup
       - webpack
 
-  '@sentry/opentelemetry@11.18.0(@opentelemetry/api@1.9.1)':
+  '@sentry/opentelemetry@11.20.0(@opentelemetry/api@1.9.1)':
     dependencies:
       '@opentelemetry/api': 1.9.1
       '@sentry/conventions': 0.36.0
-      '@sentry/core': 11.18.0
+      '@sentry/core': 11.20.0
 
-  '@sentry/react@11.18.0(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)':
+  '@sentry/react@11.20.0(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)':
     dependencies:
-      '@sentry/browser': 11.18.0
+      '@sentry/browser': 11.20.0
       '@sentry/conventions': 0.36.0
-      '@sentry/core': 11.18.0
+      '@sentry/core': 11.20.0
       react: 19.3.0
     optionalDependencies:
       react-router: 8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
 
   '@sentry/release-parser@1.3.1': {}
 
-  '@sentry/replay-canvas@11.18.0':
+  '@sentry/replay-canvas@11.20.0':
     dependencies:
-      '@sentry/core': 11.18.0
-      '@sentry/replay': 11.18.0
+      '@sentry/core': 11.20.0
+      '@sentry/replay': 11.20.0
 
-  '@sentry/replay@11.18.0':
+  '@sentry/replay@11.20.0':
     dependencies:
-      '@sentry/browser-utils': 11.18.0
-      '@sentry/core': 11.18.0
+      '@sentry/browser-utils': 11.20.0
+      '@sentry/core': 11.20.0
 
   '@sentry/rrdom@2.48.0':
     dependencies:
@@ -11846,16 +11846,16 @@ snapshots:
       fflate: 0.4.9
       mitt: 3.0.1
 
-  '@sentry/server-runtime-injection@11.18.0':
+  '@sentry/server-runtime-injection@11.20.0':
     dependencies:
-      '@sentry/core': 11.18.0
-      '@sentry/server-utils': 11.18.0
+      '@sentry/core': 11.20.0
+      '@sentry/server-utils': 11.20.0
 
-  '@sentry/server-utils@11.18.0':
+  '@sentry/server-utils@11.20.0':
     dependencies:
       '@opentelemetry/api': 1.9.1
       '@sentry/conventions': 0.36.0
-      '@sentry/core': 11.18.0
+      '@sentry/core': 11.20.0
 
   '@sentry/sqlish@1.0.1(react@19.3.0)':
     optionalDependencies:
