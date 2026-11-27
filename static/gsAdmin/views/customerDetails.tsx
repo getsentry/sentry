@@ -4,7 +4,6 @@ import cloneDeep from 'lodash/cloneDeep';
 import some from 'lodash/some';
 
 import {openModal} from '@sentry/scraps/modal';
-import {Heading} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
@@ -673,9 +672,11 @@ export function CustomerDetails() {
               openModal(deps => (
                 <SuspendAccountAction
                   {...deps}
-                  header={<Heading as="h4">Suspend Account</Heading>}
                   onConfirm={params =>
-                    onUpdateMutation.mutate({...params, suspended: true})
+                    onUpdateMutation.mutate(
+                      {...params, suspended: true},
+                      {onSuccess: deps.closeModal}
+                    )
                   }
                 />
               )),

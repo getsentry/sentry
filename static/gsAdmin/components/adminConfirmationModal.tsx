@@ -77,7 +77,6 @@ export const AdminAuditFields = withFieldGroup({
 
 export type AdminActionModalProps = ModalRenderProps & {
   onConfirm: (params: AdminConfirmParams) => void;
-  header?: React.ReactNode;
 };
 
 export type AdminConfirmRenderProps = Omit<

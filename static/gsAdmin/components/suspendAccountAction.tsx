@@ -3,6 +3,7 @@ import {z} from 'zod';
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {Heading} from '@sentry/scraps/text';
 
 import type {AdminActionModalProps} from 'admin/components/adminConfirmationModal';
 import {
@@ -41,7 +42,6 @@ export function SuspendAccountAction({
   Body,
   Footer,
   closeModal,
-  header,
   onConfirm,
 }: AdminActionModalProps) {
   const form = useScrapsForm({
@@ -53,13 +53,14 @@ export function SuspendAccountAction({
         suspensionReason: value.suspensionReason,
         ...adminAuditParams(value.audit),
       });
-      closeModal();
     },
   });
 
   return (
     <form.AppForm form={form}>
-      {header && <Header>{header}</Header>}
+      <Header>
+        <Heading as="h4">Suspend Account</Heading>
+      </Header>
       <Body>
         <Stack gap="xl">
           <form.AppField name="suspensionReason">
