@@ -5,13 +5,14 @@ from enum import Enum
 from typing import ClassVar
 
 from django.db import models, router, transaction
-from django.db.models import CheckConstraint, Q, UniqueConstraint
+from django.db.models import Q, UniqueConstraint
 from django.utils import timezone
 
 from sentry import features
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, cell_silo_model, sane_repr
 from sentry.db.models.base import DefaultFieldsModel
+from sentry.db.models.creator_reference import CreatorReferenceModel, single_creator_constraint
 from sentry.db.models.fields.bounded import BoundedBigIntegerField, BoundedPositiveIntegerField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
@@ -82,7 +83,7 @@ class DiscoverSavedQueryProject(Model):
 
 
 @cell_silo_model
-class DiscoverSavedQuery(Model):
+class DiscoverSavedQuery(CreatorReferenceModel, Model):
     """
     A saved Discover query
     """
@@ -91,15 +92,6 @@ class DiscoverSavedQuery(Model):
 
     projects = models.ManyToManyField("sentry.Project", through=DiscoverSavedQueryProject)
     organization = FlexibleForeignKey("sentry.Organization")
-    created_by_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
-    # Service accounts and org auth tokens authenticate without a user, so they need their
-    # own creator columns. At most one creator column is set.
-    created_by_service_account_id = HybridCloudForeignKey(
-        "service_accounts.ServiceAccount", null=True, on_delete="SET_NULL"
-    )
-    created_by_org_auth_token_id = HybridCloudForeignKey(
-        "sentry.OrgAuthToken", null=True, on_delete="SET_NULL"
-    )
     name = models.CharField(max_length=255)
     query = models.JSONField()
     version = models.IntegerField(null=True)
@@ -134,15 +126,7 @@ class DiscoverSavedQuery(Model):
                 condition=Q(is_homepage=True),
                 name="unique_user_homepage_query",
             ),
-            CheckConstraint(
-                condition=(
-                    Q(created_by_service_account_id__isnull=True)
-                    & Q(created_by_org_auth_token_id__isnull=True)
-                )
-                | (Q(created_by_id__isnull=True) & Q(created_by_org_auth_token_id__isnull=True))
-                | (Q(created_by_id__isnull=True) & Q(created_by_service_account_id__isnull=True)),
-                name="sentry_discoversavedquery_single_creator",
-            ),
+            single_creator_constraint("sentry_discoversavedquery_single_creator"),
         ]
 
     __repr__ = sane_repr("organization_id", "created_by_id", "name")

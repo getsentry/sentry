@@ -10,12 +10,11 @@ from django.db.models import CheckConstraint, Q, UniqueConstraint
 from django.db.models.query import QuerySet
 from django.utils import timezone
 
-from sentry.backup.dependencies import PrimaryKeyMap
-from sentry.backup.helpers import ImportFlags
-from sentry.backup.scopes import ImportScope, RelocationScope
+from sentry.backup.scopes import RelocationScope
 from sentry.constants import ALL_ACCESS_PROJECT_ID
 from sentry.db.models import FlexibleForeignKey, Model, cell_silo_model, sane_repr
 from sentry.db.models.base import DefaultFieldsModel
+from sentry.db.models.creator_reference import CreatorReferenceModel, single_creator_constraint
 from sentry.db.models.fields.bounded import BoundedBigIntegerField, BoundedPositiveIntegerField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.jsonfield import JSONField
@@ -370,7 +369,7 @@ def _query_priority_choices() -> list[tuple[int, str]]:
 
 
 @cell_silo_model
-class Dashboard(Model):
+class Dashboard(CreatorReferenceModel, Model):
     """
     A dashboard.
     """
@@ -378,17 +377,6 @@ class Dashboard(Model):
     __relocation_scope__ = RelocationScope.Organization
 
     title = models.CharField(max_length=255)
-    # SET_NULL: org dashboards must survive creator deletion. CASCADE previously wiped
-    # every dashboard attributed to an internal-integration proxy user when that app was deleted.
-    created_by_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
-    # Service accounts and org auth tokens authenticate without a user, so they need their
-    # own creator columns. At most one creator column is set.
-    created_by_service_account_id = HybridCloudForeignKey(
-        "service_accounts.ServiceAccount", null=True, on_delete="SET_NULL"
-    )
-    created_by_org_auth_token_id = HybridCloudForeignKey(
-        "sentry.OrgAuthToken", null=True, on_delete="SET_NULL"
-    )
     organization = FlexibleForeignKey("sentry.Organization")
     date_added = models.DateTimeField(default=timezone.now)
     visits = BoundedBigIntegerField(null=True, default=1)
@@ -421,26 +409,10 @@ class Dashboard(Model):
                 condition=Q(prebuilt_id__isnull=True) | Q(created_by_id__isnull=True),
                 name="sentry_dashboard_prebuilt_null_created_by",
             ),
-            CheckConstraint(
-                condition=(
-                    Q(created_by_service_account_id__isnull=True)
-                    & Q(created_by_org_auth_token_id__isnull=True)
-                )
-                | (Q(created_by_id__isnull=True) & Q(created_by_org_auth_token_id__isnull=True))
-                | (Q(created_by_id__isnull=True) & Q(created_by_service_account_id__isnull=True)),
-                name="sentry_dashboard_single_creator",
-            ),
+            single_creator_constraint("sentry_dashboard_single_creator"),
         ]
 
     __repr__ = sane_repr("organization", "title")
-
-    def normalize_before_relocation_import(
-        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
-    ) -> int | None:
-        # Org auth tokens are imported after every other model, so their new pks can't be mapped
-        # here. Drop the reference rather than dropping the whole dashboard.
-        self.created_by_org_auth_token_id = None
-        return super().normalize_before_relocation_import(pk_map, scope, flags)
 
     @property
     def favorited_by(self) -> Iterable[int]:
