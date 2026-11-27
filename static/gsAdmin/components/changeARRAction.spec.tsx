@@ -3,6 +3,7 @@ import {
   renderGlobalModal,
   screen,
   userEvent,
+  waitFor,
 } from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
@@ -34,9 +35,26 @@ describe('ChangeARRAction', () => {
     await userEvent.click(screen.getByRole('button'));
     renderGlobalModal();
 
-    await userEvent.type(screen.getByRole('spinbutton', {name: 'ARR'}), '15000');
+    const input = screen.getByRole('spinbutton', {name: 'ARR'});
+    expect(input).toHaveValue(10000);
+
+    await userEvent.clear(input);
+    await userEvent.type(input, '15000');
     await userEvent.click(screen.getByRole('button', {name: 'Submit'}));
 
-    expect(onAction).toHaveBeenCalledWith({customPrice: 1500000});
+    await waitFor(() => expect(onAction).toHaveBeenCalledWith({customPrice: 1500000}));
+  });
+
+  it('disables submit for a negative ARR', async () => {
+    render(<ChangeARRAction customer={{acv: 1000000}} onAction={onAction} />);
+
+    await userEvent.click(screen.getByRole('button'));
+    renderGlobalModal();
+
+    const input = screen.getByRole('spinbutton', {name: 'ARR'});
+    await userEvent.clear(input);
+    await userEvent.type(input, '-5');
+
+    expect(screen.getByRole('button', {name: 'Submit'})).toBeDisabled();
   });
 });

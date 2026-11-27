@@ -1,10 +1,9 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
+import {DisplayField} from '@sentry/scraps/form';
 import type {ModalRenderProps} from '@sentry/scraps/modal';
-
-import {BooleanField} from 'sentry/components/forms/fields/booleanField';
-import {RangeField} from 'sentry/components/forms/fields/rangeField';
+import {Text} from '@sentry/scraps/text';
 
 import type {SerializedOption} from 'admin/views/options';
 
@@ -20,14 +19,11 @@ export function EditAdminOptionModal({
   option,
   allOptions,
 }: EditAdminOptionModalProps) {
-  const groupedOptions = useMemo(() => {
-    const options = option.groupingInfo
-      ? allOptions.filter(o => o.groupingInfo?.name === option.groupingInfo?.name)
-      : [option];
-    options.sort((a, b) => (a.groupingInfo?.order || 0) - (b.groupingInfo?.order || 0));
-    return options;
-    // oxlint-disable-next-line react/memo-dependencies
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const groupedOptions = option.groupingInfo
+    ? allOptions
+        .filter(o => o.groupingInfo?.name === option.groupingInfo?.name)
+        .sort((a, b) => (a.groupingInfo?.order || 0) - (b.groupingInfo?.order || 0))
+    : [option];
 
   return (
     <Fragment>
@@ -40,36 +36,11 @@ export function EditAdminOptionModal({
           </Alert>
         </Alert.Container>
         {groupedOptions.map(o => (
-          <EditOption key={o.name} option={o} />
+          <DisplayField.Row key={o.name} label={o.name}>
+            <Text>{JSON.stringify(o.value)}</Text>
+          </DisplayField.Row>
         ))}
       </Body>
-    </Fragment>
-  );
-}
-
-function EditOption({option}: {option: SerializedOption}) {
-  return option.fieldType === 'bool' ? (
-    <BooleanField
-      label={option.name}
-      name={option.name}
-      value={option.value}
-      alignRight
-      flexibleControlStateSize
-      size="sm"
-    />
-  ) : (
-    <Fragment>
-      <RangeField
-        label={option.name}
-        name={option.name}
-        min={0}
-        max={1}
-        step={0.01}
-        value={option.value}
-        alignRight
-        flexibleControlStateSize
-        size="xs"
-      />
     </Fragment>
   );
 }
