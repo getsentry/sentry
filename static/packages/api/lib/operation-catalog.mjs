@@ -23,6 +23,34 @@ function routing(key, operation, pathParameters) {
   return { silo, organizationParameter };
 }
 
+const PROJECT_SCOPES = new Set(["path", "filter", "org-metadata"]);
+const RESPONSE_SCOPE = "response:";
+// RFC 6901: "/"-separated segments, with "~" only in the escapes "~0" and "~1". A "*" segment needs no special case.
+const JSON_POINTER = /^(\/([^/~]|~[01])*)+$/;
+
+/**
+ * Copy Sentry's `x-sentry-project-scope` declaration, rejecting values that Sentry's
+ * schema build would also reject. An operation without one gets no `projectScope`.
+ */
+function projectScope(key, method, operation) {
+  const declared = operation["x-sentry-project-scope"];
+  if (declared === undefined) return {};
+  const invalid = reason => new Error(`${key} declares an unsupported x-sentry-project-scope ${JSON.stringify(declared)}: ${reason}`);
+  if (typeof declared !== "string") throw invalid("the value must be a string");
+  if (declared.startsWith(RESPONSE_SCOPE)) {
+    if (method !== "get") throw invalid("response: is only for GET");
+    if (!JSON_POINTER.test(declared.slice(RESPONSE_SCOPE.length))) {
+      throw invalid("response: must be followed by a JSON pointer such as /project/id");
+    }
+    return { projectScope: declared };
+  }
+  if (!PROJECT_SCOPES.has(declared)) {
+    throw invalid('the value must be "path", "filter", "org-metadata", or "response:<JSON pointer>"');
+  }
+  if (declared === "org-metadata" && method !== "get") throw invalid("org-metadata is only for GET");
+  return { projectScope: declared };
+}
+
 /** Operation-level parameters replace path-level parameters with the same name/in. */
 function queryParameters(pathItem, operation) {
   const parameters = new Map();
@@ -79,6 +107,7 @@ export function extractOperations(spec, sdkSource) {
         // Other methods count only when Sentry marks them; PUT/DELETE handlers are not all idempotent.
         idempotent: SAFE_METHODS.has(method) || operation["x-sentry-idempotent"] === true,
         routing: routing(key, operation, pathParameters),
+        ...projectScope(key, method, operation),
       });
     }
   }

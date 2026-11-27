@@ -24,6 +24,21 @@ export type ApiOperationRouting = {
   readonly organizationParameter?: string;
 };
 
+/**
+ * How an operation's request names the projects whose data it returns or changes, from
+ * Sentry's `x-sentry-project-scope` OpenAPI extension:
+ * - `path`: the path names the project.
+ * - `filter`: an organization endpoint that takes the `project` query parameter (numeric
+ *   project IDs) and returns or changes only those projects' data.
+ * - `org-metadata`: a read-only organization endpoint whose response holds no project's
+ *   telemetry, such as settings, members, or integrations.
+ * - `response:<pointer>`: a GET that looks something up by ID alone. The numeric ID of
+ *   the project it belongs to is at `<pointer>` in the response body, such as
+ *   `response:/project/id`. `<pointer>` is an RFC 6901 JSON pointer in which a `*`
+ *   segment matches every element of an array.
+ */
+export type ApiProjectScope = "path" | "filter" | "org-metadata" | `response:${string}`;
+
 /** An operation shipped by this SDK version, without consumer-specific policy. */
 export type ApiOperation = {
   /** Actual exported SDK function name, after name normalization. */
@@ -59,4 +74,9 @@ export type ApiOperation = {
   readonly idempotent: boolean;
   /** Where Sentry declares the operation available. */
   readonly routing: ApiOperationRouting;
+  /**
+   * How the request names the projects it reads or changes. Absent when Sentry has no
+   * declaration, which means the operation is not known to respect a project limit.
+   */
+  readonly projectScope?: ApiProjectScope;
 };

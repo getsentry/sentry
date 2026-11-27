@@ -66,7 +66,7 @@ export function emit({ sourceSpec }) {
       ])),
       match,
     ),
-    f.createExportDeclaration(undefined, true, named(["ApiOperation", "ApiOperationRouting", "ApiQueryParameter"]), types),
+    f.createExportDeclaration(undefined, true, named(["ApiOperation", "ApiOperationRouting", "ApiProjectScope", "ApiQueryParameter"]), types),
     f.createExportDeclaration(undefined, false, named(["API_BASE_PATH"]), f.createStringLiteral("./api-base-path.gen.ts")),
     f.createExportDeclaration(undefined, false, named(["createOperationMatcher"]), match),
     f.createExportDeclaration(undefined, true, named(["ApiOperationMatch", "ApiOperationMatcher", "ApiOperationTemplate"]), match),
