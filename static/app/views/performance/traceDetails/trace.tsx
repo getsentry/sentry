@@ -1664,7 +1664,6 @@ const TraceStylingWrapper = styled('div')`
     display: flex;
   }
 
-  /* Where a span shifted for clock drift was recorded, shown for the selected row */
   .TraceClockDriftGhost {
     position: absolute;
     left: 0;

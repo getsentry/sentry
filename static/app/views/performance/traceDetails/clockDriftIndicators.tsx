@@ -106,10 +106,6 @@ export function ClockDriftGhost({
   virtualizedIndex,
 }: {
   manager: VirtualizedViewManager;
-  /**
-   * The total offset the span was shifted by. This includes the shifts of all moved subtrees the
-   * span is part of, so subtracting it from the span's space gives where it was recorded.
-   */
   offsetMs: number;
   selected: boolean;
   space: [number, number];
