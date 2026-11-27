@@ -121,6 +121,44 @@ describe('InstallWizard', () => {
     );
   });
 
+  it.each([
+    ['not-a-url', 'https://sentry.example.com'],
+    ['ftp://sentry.example.com', 'http://sentry.example.com'],
+  ])('rejects Root URL %s and allows correction to %s', async (invalidUrl, validUrl) => {
+    MockApiClient.addMockResponse({
+      url: '/internal/options/',
+      match: [MockApiClient.matchQuery({query: 'is:required'})],
+      body: InstallWizardFixture({
+        'system.url-prefix': {field: requiredField, value: invalidUrl},
+      }),
+    });
+    const saveRequest = MockApiClient.addMockResponse({
+      url: '/internal/options/',
+      method: 'PUT',
+    });
+    const onConfigured = jest.fn();
+
+    render(<InstallWizard onConfigured={onConfigured} />);
+
+    const input = await screen.findByRole('textbox', {name: 'Root URL'});
+    await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
+
+    expect(
+      await screen.findByText('Enter a valid HTTP or HTTPS URL')
+    ).toBeInTheDocument();
+    expect(saveRequest).not.toHaveBeenCalled();
+
+    await userEvent.clear(input);
+    await userEvent.type(input, validUrl);
+    await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
+
+    await waitFor(() => expect(onConfigured).toHaveBeenCalled());
+    expect(saveRequest).toHaveBeenCalledWith(
+      '/internal/options/',
+      expect.objectContaining({data: {'system.url-prefix': validUrl}})
+    );
+  });
+
   it('does not save while a required option is empty', async () => {
     MockApiClient.addMockResponse({
       url: '/internal/options/',

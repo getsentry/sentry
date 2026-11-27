@@ -93,6 +93,10 @@ function getInitialValue(
 function getOptionSchema({definition, required}: WizardField) {
   const requiredMessage = t('Field is required');
 
+  if (definition.key === 'system.url-prefix') {
+    return z.url({protocol: /^https?$/, error: t('Enter a valid HTTP or HTTPS URL')});
+  }
+
   switch (definition.type) {
     case 'boolean':
       return z.boolean();
