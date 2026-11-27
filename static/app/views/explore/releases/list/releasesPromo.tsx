@@ -197,7 +197,7 @@ export function ReleasesPromo({organization, project}: Props) {
   };
 
   const setupExample = `# Install the cli
-curl -sL https://sentry.io/get-cli/ | bash
+curl -fsSL https://cli.sentry.dev/install | bash
 
 # Setup configuration values
 export SENTRY_AUTH_TOKEN=${
@@ -209,12 +209,12 @@ export SENTRY_AUTH_TOKEN=${
   }
 export SENTRY_ORG=${organization.slug}
 export SENTRY_PROJECT=${project.slug}
-VERSION=\`sentry-cli releases propose-version\`
+VERSION=$(sentry release propose-version --json | jq -r .version)
 
 # Workflow to create releases
-sentry-cli releases new "$VERSION"
-sentry-cli releases set-commits "$VERSION" --auto
-sentry-cli releases finalize "$VERSION"`;
+sentry release create "$VERSION"
+sentry release set-commits "$VERSION" --auto
+sentry release finalize "$VERSION"`;
 
   if (isPending) {
     return <LoadingIndicator />;

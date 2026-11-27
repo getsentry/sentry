@@ -124,7 +124,7 @@ describe('ProjectSymbolicationErrors', () => {
     ).toBeInTheDocument();
     expect(
       within(drawer).getByText(
-        `sentry-cli debug-files upload --org ${organization.slug} --project ${project.slug} <path-to-debug-files>`
+        `sentry debug-files upload --org ${organization.slug} --project ${project.slug} <path-to-debug-files>`
       )
     ).toBeInTheDocument();
     expect(
@@ -145,7 +145,7 @@ describe('ProjectSymbolicationErrors', () => {
     expect(prompt).toContain('Affected releases: app@1.2.3 (80 events)');
     expect(prompt).toContain('Sample event ID: abc123');
     expect(prompt).toContain(
-      `sentry-cli debug-files upload --org ${organization.slug} --project ${project.slug}`
+      `sentry debug-files upload --org ${organization.slug} --project ${project.slug}`
     );
   });
 

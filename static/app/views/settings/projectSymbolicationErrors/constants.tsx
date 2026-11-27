@@ -43,10 +43,10 @@ function target({orgSlug, projectSlug}: GuideContext) {
 }
 
 const uploadDebugFiles = (context: GuideContext) =>
-  `sentry-cli debug-files upload ${target(context)} <path-to-debug-files>`;
+  `sentry debug-files upload ${target(context)} <path-to-debug-files>`;
 
 const uploadSourceMaps = (context: GuideContext) =>
-  `sentry-cli sourcemaps inject <build-directory>\nsentry-cli sourcemaps upload ${target(context)} <build-directory>`;
+  `sentry sourcemap inject <build-directory>\nsentry sourcemap upload ${target(context)} <build-directory>`;
 
 export const GUIDES: Record<GuideKey, GuideStep[]> = {
   'missing-debug-file': [
@@ -65,7 +65,7 @@ export const GUIDES: Record<GuideKey, GuideStep[]> = {
   'wrong-debug-file': [
     {
       text: t('Check the debug file on your machine.'),
-      command: () => 'sentry-cli debug-files check <path-to-debug-file>',
+      command: () => 'sentry debug-files check <path-to-debug-file>',
     },
     {
       text: t(
@@ -78,7 +78,7 @@ export const GUIDES: Record<GuideKey, GuideStep[]> = {
     {
       text: t('Upload the mapping file of each affected build.'),
       command: context =>
-        `sentry-cli upload-proguard ${target(context)} <path-to-mapping.txt>`,
+        `sentry proguard upload ${target(context)} <path-to-mapping.txt>`,
     },
     {
       text: t(
