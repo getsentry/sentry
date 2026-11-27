@@ -112,6 +112,7 @@ export type PlatformKey =
   | 'perl'
   | 'php'
   | 'PHP'
+  | 'php-bref'
   | 'php-laravel'
   | 'php-monolog'
   | 'php-symfony'
