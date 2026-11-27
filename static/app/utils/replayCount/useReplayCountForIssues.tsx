@@ -21,7 +21,7 @@ export function useReplayCountForIssues({statsPeriod = '14d'}: Props = {}) {
     hasMany: hasManyError,
   } = useReplayCount({
     bufferLimit: 25,
-    dataSource: 'events',
+    dataSource: 'errors',
     fieldName: 'issue.id',
     organization,
     statsPeriod,

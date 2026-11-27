@@ -508,7 +508,7 @@ describe('LogsInfiniteTable', () => {
         `/organizations/${organization.slug}/replay-count/`,
         expect.objectContaining({
           query: expect.objectContaining({
-            data_source: 'events',
+            data_source: 'errors',
             project: -1,
             query: 'replay_id:[abc123def456,abc123eef457]',
             start: '2025-04-10T08:00:00.000Z',
