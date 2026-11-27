@@ -486,8 +486,8 @@ export class TraceTree extends TraceTreeEventDispatcher {
         c.parent.directVisibleChildren.filter(child => child.op === 'pageload').length ===
           1
       ) {
-        //   // The swap can occur at a later point when new transactions are fetched,
-        //   // which means we need to invalidate the tree and re-render the UI.
+        // The swap can occur at a later point when new transactions are fetched,
+        // which means we need to invalidate the tree and re-render the UI.
         const parent = c.parent.parent;
         TraceTree.Swap({parent: c.parent, child: c, reason: 'pageload server handler'});
         parent!.invalidate();
@@ -498,9 +498,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
     });
 
     // Runs before we compute the trace space, so it does not stretch to where the misaligned
-    // spans were recorded, and before missing instrumentation and autogrouping, as they derive
-    // their spaces from the spans. Runs after the pageload swap, so it sees the same tree as
-    // when the correction is toggled later.
+    // spans were recorded, and after the pageload swap, so it sees the same tree as a later toggle.
     if (options.preferences?.clock_drift_correction) {
       tree.clock_drift_correction_count = applyClockDriftCorrection(tree.root);
     }
@@ -628,7 +626,6 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
     TraceTree.ApplyPreferences(this.root, options);
 
-    // Moved spans may now start before or end after the trace space.
     this.refreshTraceSpace();
 
     return this.clock_drift_correction_count;
@@ -916,7 +913,6 @@ export class TraceTree extends TraceTreeEventDispatcher {
       end = Math.max(end, tail.space[0] + tail.space[1]);
 
       autoGroupedNode.space = [start, end - start];
-      // Issue timestamps are not shifted, so the group needs the offset of the spans it wraps
       autoGroupedNode.clockDriftOffsetMs = head.clockDriftOffsetMs;
       autoGroupedNode.errors = new Set(errors);
       autoGroupedNode.occurrences = new Set(occurrences);
@@ -1058,7 +1054,6 @@ export class TraceTree extends TraceTreeEventDispatcher {
           }
 
           autoGroupedNode.space = [start_timestamp, timestamp - start_timestamp];
-          // Issue timestamps are not shifted, so the group needs the offset of the spans it wraps
           autoGroupedNode.clockDriftOffsetMs = current.clockDriftOffsetMs;
 
           node.children.splice(start, matchCount + 1, autoGroupedNode);

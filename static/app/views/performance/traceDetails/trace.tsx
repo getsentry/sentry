@@ -1635,11 +1635,7 @@ const TraceStylingWrapper = styled('div')`
     }
   }
 
-  /*
-   * The label and its clock drift icon are centered on the middle of the row, the same line the
-   * span bar is centered on. The label spans the full height of the row and centers its content,
-   * so neither depends on font metrics or pixel rounding.
-   */
+  /* Centered on the middle of the row, like the span bar */
   .TraceBarDuration {
     position: absolute;
     top: 0;

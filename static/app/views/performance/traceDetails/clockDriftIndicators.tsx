@@ -43,9 +43,7 @@ export function ClockDriftTooltip({
 }
 
 /**
- * Prefixes the duration label of a server span that was moved into the client span that made the
- * request. Only the root of the moved subtree gets one, its children moved along with it. The
- * label's tooltip explains it.
+ * Marks the duration label of the root of a subtree moved to correct for clock drift.
  */
 export function ClockDriftLabelIcon({visible}: {visible: boolean}) {
   if (!visible) {

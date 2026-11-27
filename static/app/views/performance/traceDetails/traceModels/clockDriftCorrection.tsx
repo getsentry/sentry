@@ -19,10 +19,6 @@ export const MIN_CLOCK_DRIFT_CORRECTION_MS = 10;
 export const CLOCK_DRIFT_ICON_SIZE_PX = 12; // the `xs` icon size
 export const CLOCK_DRIFT_ICON_GAP_PX = 4;
 
-/**
- * Clock drift correction is only available to organizations with the feature flag. Without it, the
- * correction is never applied, whatever the stored preference says.
- */
 export function hasClockDriftCorrectionFeature(
   organization: Organization | null
 ): boolean {

@@ -29,9 +29,6 @@ import {TraceShortcutsModal} from './traceShortcutsModal';
 interface TracePreferencesDropdownProps {
   autogroup: boolean;
   clockDriftCorrection: boolean;
-  /**
-   * How many server spans in the trace are currently shifted.
-   */
   clockDriftCorrectionCount: number;
   compressedTimeline: boolean;
   missingInstrumentation: boolean;

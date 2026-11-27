@@ -89,7 +89,8 @@ export function TraceBackgroundPatterns(props: BackgroundPatternsProps) {
       ) : occurrences.length > 0 ? (
         <Fragment>
           {occurrences.map((occurrence, i) => {
-            // Occurrence timestamps are not shifted for clock drift, the node space is
+            // The node's space is shifted for clock drift, but its occurrences keep their recorded
+            // timestamps, so shift them by the same offset to place them on the bar.
             const timestamp =
               ('start_timestamp' in occurrence
                 ? occurrence.start_timestamp * 1e3
