@@ -25,7 +25,10 @@ from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.slack import workspace
 from sentry.integrations.slack.metrics import translate_slack_api_error
 from sentry.integrations.slack.sdk_client import SlackSdkClient
-from sentry.integrations.slack.tasks.link_slack_user_identities import link_slack_user_identities
+from sentry.integrations.slack.tasks.link_slack_user_identities import (
+    encrypt_user_token,
+    link_slack_user_identities,
+)
 from sentry.integrations.slack.utils.constants import SlackScope
 from sentry.integrations.slack.utils.errors import SLACK_SDK_MESSAGE_GONE_ERROR_CATEGORIES
 from sentry.integrations.types import IntegrationProviderSlug
@@ -421,7 +424,7 @@ class SlackIntegrationProvider(IntegrationProvider):
             "installation_type": "born_as_bot",
         }
 
-        return {
+        integration_data: IntegrationData = {
             "name": team_name,
             "external_id": team_id,
             "metadata": metadata,
@@ -432,6 +435,12 @@ class SlackIntegrationProvider(IntegrationProvider):
                 "data": {},
             },
         }
+        # The installer's user token has users:read.email, which the bot token may lack. It
+        # is handed to post_install and never stored on the integration.
+        user_access_token = data["authed_user"].get("access_token")
+        if user_access_token:
+            integration_data["post_install_data"] = {"user_access_token": user_access_token}
+        return integration_data
 
     def post_install(
         self,
@@ -443,8 +452,13 @@ class SlackIntegrationProvider(IntegrationProvider):
         """
         Create Identity records for an organization's users if their emails match in Sentry and Slack
         """
-        run_args = {
+        run_args: dict[str, Any] = {
             "integration_id": integration.id,
             "organization_id": organization.id,
         }
+        user_access_token = extra.get("user_access_token")
+        if user_access_token:
+            encrypted = encrypt_user_token(user_access_token)
+            if encrypted is not None:
+                run_args["key_id"], run_args["encrypted_user_token"] = encrypted
         link_slack_user_identities.apply_async(kwargs=run_args)

@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping
 
+from cryptography.fernet import InvalidToken
 from django.utils import timezone
 from taskbroker_client.retry import Retry
 
@@ -17,8 +18,36 @@ from sentry.taskworker.namespaces import integrations_control_tasks
 from sentry.users.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.users.models.user import User
 from sentry.users.models.useremail import UserEmail
+from sentry.utils.security.encrypted_field_key_store import FernetKeyStore
 
 logger = logging.getLogger("sentry.integrations.slack.tasks")
+
+USER_TOKEN_TTL = 60 * 60
+
+
+def encrypt_user_token(user_token: str) -> tuple[str, str] | None:
+    """
+    Encrypt the installer's Slack user token so it stays out of task arguments and error
+    reports. Returns (key_id, encrypted_token), or None when no encryption key is configured,
+    as in most self-hosted installs.
+    """
+    try:
+        key_id, fernet = FernetKeyStore.get_primary_fernet()
+    except ValueError:
+        return None
+    return key_id, fernet.encrypt(user_token.encode()).decode()
+
+
+def _decrypt_user_token(key_id: str, encrypted_user_token: str) -> str | None:
+    try:
+        return (
+            FernetKeyStore.get_fernet_for_key_id(key_id)
+            .decrypt(encrypted_user_token.encode(), ttl=USER_TOKEN_TTL)
+            .decode()
+        )
+    except (InvalidToken, ValueError):
+        logger.warning("slack.post_install.link_identities.user_token_unavailable")
+        return None
 
 
 @instrumented_task(
@@ -30,6 +59,8 @@ logger = logging.getLogger("sentry.integrations.slack.tasks")
 def link_slack_user_identities(
     integration_id: int,
     organization_id: int,
+    key_id: str | None = None,
+    encrypted_user_token: str | None = None,
 ) -> None:
     integration = integration_service.get_integration(
         integration_id=integration_id, status=ObjectStatus.ACTIVE
@@ -61,7 +92,16 @@ def link_slack_user_identities(
             "integration_id": integration.id,
         },
     )
-    slack_data_by_user = get_slack_data_by_user(integration, organization, emails_by_user)
+    # Slack only returns member emails to a token with users:read.email. The installer's
+    # user token has it; the bot token may not, and without emails nothing matches.
+    user_token = (
+        _decrypt_user_token(key_id, encrypted_user_token)
+        if key_id and encrypted_user_token
+        else None
+    )
+    slack_data_by_user = get_slack_data_by_user(
+        integration, organization, emails_by_user, access_token=user_token
+    )
     for data in slack_data_by_user:
         logger.info(
             "slack.post_install.link_identities.paginate",
