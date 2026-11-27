@@ -8,12 +8,20 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.github.integration import GitHubIntegrationProvider
 from sentry.integrations.github.tasks.link_all_repos import link_all_repos
 from sentry.integrations.source_code_management.metrics import LinkAllReposHaltReason
+from sentry.integrations.source_code_management.repo_sync_status import (
+    FEATURE,
+    RepoSyncOk,
+    RepoSyncTrigger,
+    get_status,
+)
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.repository import Repository
+from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_failure_metric, assert_halt_metric, assert_slo_metric
 from sentry.testutils.cases import IntegrationTestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
@@ -58,6 +66,30 @@ class LinkAllReposTestCase(IntegrationTestCase):
 
         assert_slo_metric(mock_record, EventLifecycleOutcome.FAILURE)
         assert_failure_metric(mock_record, LinkAllReposHaltReason.MISSING_INTEGRATION.value)
+
+    @with_feature(FEATURE)
+    @responses.activate
+    def test_install_reports_repo_sync_status(self, _: MagicMock) -> None:
+        self._add_responses()
+
+        with patch.object(link_all_repos, "apply_async") as mock_link_all_repos:
+            GitHubIntegrationProvider().post_install(
+                integration=self.integration,
+                organization=serialize_rpc_organization(
+                    self.organization, include_projects=False, include_teams=False
+                ),
+                extra={},
+            )
+
+        assert get_status(self.organization.id, self.integration.id) == RepoSyncOk(
+            state="syncing", trigger=RepoSyncTrigger.INSTALL
+        )
+
+        link_all_repos(**mock_link_all_repos.call_args.kwargs["kwargs"])
+
+        assert get_status(self.organization.id, self.integration.id) == RepoSyncOk(
+            state="done", trigger=RepoSyncTrigger.INSTALL
+        )
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")

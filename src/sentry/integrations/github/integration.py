@@ -45,6 +45,10 @@ from sentry.integrations.source_code_management.commit_context import (
     CommitContextIntegration,
     PRCommentWorkflow,
 )
+from sentry.integrations.source_code_management.repo_sync_status import (
+    RepoSyncTrigger,
+    record_sync_requested,
+)
 from sentry.integrations.source_code_management.repo_trees import RepoTreesIntegration
 from sentry.integrations.source_code_management.repository import (
     RepositoryInfo,
@@ -762,6 +766,7 @@ class GitHubIntegrationProvider(IntegrationProvider):
                 }
             )
 
+        record_sync_requested(organization.id, integration.id, RepoSyncTrigger.INSTALL)
         link_all_repos.apply_async(
             kwargs={
                 "integration_key": self.key,

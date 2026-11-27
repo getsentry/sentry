@@ -7,10 +7,12 @@ A sync records each step it reaches:
 2. Synced: the sync read the provider's repositories and queued batches to add the new ones.
 3. Finished or failed: each batch finished, or the sync stopped early, such as when rate limited.
 
-The daily sync records steps 2 and 3 too, but with no request there's no status.
+Only Seer's connect source control popup reads the status, so only organizations with it
+(`FEATURE`) record a request. Steps 2 and 3 only update a record a request started, so the daily
+sync, and every sync for other organizations, writes nothing.
 
-A record lasts an hour after its last write. A Redis error is logged, never raised, so it can't
-fail an install, webhook or job.
+A record lasts an hour after its last write. A Redis error, or a failure to check the feature,
+is logged, never raised, so it can't fail an install, webhook or job.
 """
 
 from __future__ import annotations
@@ -23,9 +25,13 @@ from typing import Annotated, Literal
 from django.utils import timezone
 from pydantic import BaseModel, Field
 
+from sentry import features
+from sentry.organizations.services.organization import organization_service
 from sentry.utils import redis
 
 logger = logging.getLogger(__name__)
+
+FEATURE = "organizations:ask-seer-scm-connect-prompt"
 
 RECORD_TTL_SECONDS = 60 * 60
 SYNC_TIMEOUT_SECONDS = 5 * 60
@@ -60,7 +66,10 @@ RepoSyncStatus = Annotated[RepoSyncOk | RepoSyncFailed, Field(discriminator="sta
 def record_sync_requested(
     organization_id: int, integration_id: int, trigger: RepoSyncTrigger
 ) -> None:
-    """1. Requested: call right before queueing a sync."""
+    """1. Requested: call right before queueing a sync. Does nothing for an organization without
+    `FEATURE`."""
+    if not _has_feature(organization_id):
+        return
     _update_record(
         organization_id,
         integration_id,
@@ -82,6 +91,7 @@ def record_synced(organization_id: int, integration_id: int, *, batches: int = 0
         set_fields={"synced_at": timezone.now().timestamp()},
         delete_fields=["failure"],
         increment_fields={"batches_left": batches},
+        only_if_requested=True,
     )
 
 
@@ -99,7 +109,22 @@ def record_batch_finished(organization_id: int, integration_id: int) -> None:
 
 def record_sync_failed(organization_id: int, integration_id: int, reason: str) -> None:
     """3. Or failed: call when the sync stops early."""
-    _update_record(organization_id, integration_id, set_fields={"failure": reason})
+    _update_record(
+        organization_id, integration_id, set_fields={"failure": reason}, only_if_requested=True
+    )
+
+
+def _has_feature(organization_id: int) -> bool:
+    try:
+        organization = organization_service.get_org_by_id(id=organization_id)
+        return organization is not None and features.has(FEATURE, organization)
+    except Exception:
+        logger.warning(
+            "scm_repo_sync_status.feature_check_failed",
+            extra={"organization_id": organization_id},
+            exc_info=True,
+        )
+        return False
 
 
 # Reading.
@@ -162,11 +187,16 @@ def _update_record(
     set_fields: Mapping[str, str | float] | None = None,
     delete_fields: Sequence[str] = (),
     increment_fields: Mapping[str, int] | None = None,
+    only_if_requested: bool = False,
 ) -> None:
-    """Makes the changes and renews the TTL in one pipeline."""
+    """Makes the changes and renews the TTL in one pipeline. With `only_if_requested`, does
+    nothing unless a request started the record."""
     key = _key(organization_id, integration_id)
     try:
-        with redis.redis_clusters.get("default").pipeline() as pipeline:
+        client = redis.redis_clusters.get("default")
+        if only_if_requested and not client.exists(key):
+            return
+        with client.pipeline() as pipeline:
             for field, value in (set_fields or {}).items():
                 pipeline.hset(key, field, value)
             if delete_fields:

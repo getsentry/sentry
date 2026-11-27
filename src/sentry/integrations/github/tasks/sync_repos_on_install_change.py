@@ -13,6 +13,7 @@ from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionType,
 )
 from sentry.integrations.source_code_management.repo_audit import log_repo_change
+from sentry.integrations.source_code_management.repo_sync_status import record_synced
 from sentry.integrations.source_code_management.sync_repos import (
     DISABLE_ACTIVITY_CUTOFF_DAYS,
     bump_org_integration_last_sync,
@@ -97,6 +98,7 @@ def sync_repos_on_install_change(
                 repos_removed=repos_removed,
             )
             bump_org_integration_last_sync(oi.id, repos_changed=repos_changed)
+            record_synced(organization_id, integration_id)
 
 
 def _sync_repos_for_org(

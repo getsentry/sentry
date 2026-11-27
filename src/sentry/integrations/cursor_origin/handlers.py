@@ -13,6 +13,10 @@ from sentry.integrations.services.integration.model import (
     RpcOrganizationIntegration,
 )
 from sentry.integrations.services.repository import repository_service
+from sentry.integrations.source_code_management.repo_sync_status import (
+    RepoSyncTrigger,
+    record_sync_requested,
+)
 from sentry.integrations.source_code_management.sync_repos import sync_repos_for_org
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import IntegrationWebhookEventType
@@ -55,6 +59,11 @@ def _sync_repositories(
         logger.info(
             "cursor_origin.webhook.syncing_repositories",
             extra={"delivery_id": delivery_id, "organization_id": org_integration.organization_id},
+        )
+        record_sync_requested(
+            org_integration.organization_id,
+            org_integration.integration_id,
+            RepoSyncTrigger.WEBHOOK,
         )
         sync_repos_for_org.apply_async(kwargs={"organization_integration_id": org_integration.id})
 

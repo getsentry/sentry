@@ -12,6 +12,10 @@ from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionEvent,
     SCMIntegrationInteractionType,
 )
+from sentry.integrations.source_code_management.repo_sync_status import (
+    record_sync_failed,
+    record_synced,
+)
 from sentry.organizations.services.organization import organization_service
 from sentry.plugins.providers.integration_repository import get_integration_repository_provider
 from sentry.shared_integrations.exceptions import ApiError
@@ -76,6 +80,9 @@ def link_all_repos(
         except ApiError as e:
             if installation.is_rate_limited_error(e):
                 lifecycle.record_halt(str(LinkAllReposHaltReason.RATE_LIMITED))
+                record_sync_failed(
+                    organization_id, integration_id, LinkAllReposHaltReason.RATE_LIMITED
+                )
                 return
 
             raise
@@ -101,6 +108,7 @@ def link_all_repos(
             repository_service.auto_link_repos_by_name(
                 organization_id=rpc_org.id, repo_ids=[r.id for r in created_repos]
             )
+        record_synced(organization_id, integration_id)
 
         if existing_repos:
             lifecycle.record_halt(
