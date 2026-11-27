@@ -92,6 +92,7 @@ export interface Organization extends OrganizationSummary {
   streamlineOnly: boolean | null;
   targetSampleRate: number;
   teamRoleList: TeamRole[];
+  agenticTriageCohort?: 'legacy' | 'seat' | 'free' | null;
   consoleSdkInviteQuota?: number;
   dashboardsAsyncQueueParallelLimit?: number;
   defaultAutofixAutomationTuning?:
