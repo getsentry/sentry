@@ -326,7 +326,6 @@ function StoryGrid(props: React.ComponentProps<typeof Grid>) {
         zero: 'minmax(0, 1fr) auto',
         '3xl': 'minmax(580px, 1fr) minmax(0, 256px)',
       }}
-      height="100%"
     />
   );
 }

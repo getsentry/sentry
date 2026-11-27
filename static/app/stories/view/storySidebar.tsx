@@ -17,19 +17,14 @@ function scrollIntoView(node: HTMLElement | null) {
 }
 
 const SidebarContainer = styled('nav')`
-  position: fixed;
-  top: 52px;
-  grid-row: 1;
-  grid-column: 1;
+  grid-area: sidebar;
   display: flex;
   flex-direction: column;
   gap: ${p => p.theme.space.xl};
   min-height: 0;
-  height: calc(100dvh - 52px);
   z-index: 0;
   /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: 1px 0 0 0 ${p => p.theme.tokens.border.primary};
-  width: 256px;
   background: ${p => p.theme.tokens.background.primary};
   overflow-y: auto;
   ul,

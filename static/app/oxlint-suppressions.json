@@ -1111,10 +1111,7 @@
   "stories/resizableWindow.tsx": {"@sentry/scraps/no-dom-coupling": {"count": 3}},
   "stories/table.tsx": {"@sentry/scraps/no-dom-coupling": {"count": 8}},
   "stories/tokenReference.tsx": {"@sentry/scraps/prefer-primitives": {"count": 1}},
-  "stories/view/index.tsx": {
-    "@sentry/scraps/no-dom-coupling": {"count": 6},
-    "@sentry/scraps/prefer-primitives": {"count": 1}
-  },
+  "stories/view/index.tsx": {"@sentry/scraps/no-dom-coupling": {"count": 6}},
   "stories/view/storyFooter.tsx": {"@sentry/scraps/no-dom-coupling": {"count": 1}},
   "stories/view/storyHeader.tsx": {
     "@sentry/scraps/no-dom-coupling": {"count": 1},

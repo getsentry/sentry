@@ -173,9 +173,11 @@ export function StoryTableOfContents() {
     <Container
       display={{zero: 'none', '3xl': 'block'}}
       position="sticky"
-      top="52px"
+      top="0"
       marginRight="xl"
       height="fit-content"
+      maxHeight="100cqh"
+      overflowY="auto"
       padding="xl"
       minWidth="0"
     >
@@ -199,8 +201,6 @@ export function StoryTableOfContentsPlaceholder() {
     <Container
       aria-hidden="true"
       display={{zero: 'none', '3xl': 'block'}}
-      position="sticky"
-      top="52px"
       marginRight="xl"
       height="fit-content"
       padding="xl"
