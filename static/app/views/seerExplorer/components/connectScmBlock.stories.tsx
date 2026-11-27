@@ -188,7 +188,4 @@ export default Storybook.story('ConnectScmBlock', story => {
     <Example failureReason="repo_not_in_sentry" status="repo_not_in_sentry" asMember />
   ));
 
-  story('Fixed, trying again', () => (
-    <Example failureReason="repo_not_in_sentry" status="found" />
-  ));
 });
