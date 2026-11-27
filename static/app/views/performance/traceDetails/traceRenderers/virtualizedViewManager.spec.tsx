@@ -3,7 +3,7 @@ import {ThemeFixture} from 'sentry-fixture/theme';
 import {
   CLOCK_DRIFT_ICON_GAP_PX,
   CLOCK_DRIFT_ICON_SIZE_PX,
-} from 'sentry/views/performance/traceDetails/clockDriftIndicators';
+} from 'sentry/views/performance/traceDetails/traceModels/clockDriftCorrection';
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/baseNode';
 

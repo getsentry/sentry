@@ -8,13 +8,6 @@ import {formatTraceDuration} from 'sentry/utils/duration/formatTraceDuration';
 
 import {formatClockDriftOffset} from './traceModels/clockDriftCorrection';
 
-/**
- * The clock drift icon is part of the span's duration label. The label placement makes room for it,
- * so keep these in sync with the icon's styles.
- */
-export const CLOCK_DRIFT_ICON_SIZE_PX = 12; // the `xs` icon size
-export const CLOCK_DRIFT_ICON_GAP_PX = 4;
-
 // These components take the correction values as props rather than the node: nodes are mutated in
 // place when the correction is toggled, so the React Compiler would not see a change in the node.
 

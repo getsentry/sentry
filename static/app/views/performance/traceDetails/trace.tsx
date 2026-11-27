@@ -33,6 +33,7 @@ import {
   STATUS_TEXT,
 } from 'sentry/views/insights/browser/webVitals/utils/scoreToStatus';
 
+import {CLOCK_DRIFT_ICON_GAP_PX} from './traceModels/clockDriftCorrection';
 import {TraceTree} from './traceModels/traceTree';
 import type {BaseNode} from './traceModels/traceTreeNode/baseNode';
 import type {TraceEvents, TraceScheduler} from './traceRenderers/traceScheduler';
@@ -57,7 +58,6 @@ import {
   type RovingTabIndexUserActions,
 } from './traceState/traceRovingTabIndex';
 import {useTraceState, useTraceStateDispatch} from './traceState/traceStateProvider';
-import {CLOCK_DRIFT_ICON_GAP_PX} from './clockDriftIndicators';
 import {CollapsedGapMarkers} from './collapsedGapMarkers';
 import {
   TracePinnedAttributeCell,

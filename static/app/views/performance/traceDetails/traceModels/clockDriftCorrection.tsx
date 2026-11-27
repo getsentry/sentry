@@ -13,6 +13,13 @@ import type {EapSpanNode} from './traceTreeNode/eapSpanNode';
 export const MIN_CLOCK_DRIFT_CORRECTION_MS = 10;
 
 /**
+ * The clock drift icon is part of the span's duration label. The label placement makes room for it,
+ * so keep these in sync with the icon's styles.
+ */
+export const CLOCK_DRIFT_ICON_SIZE_PX = 12; // the `xs` icon size
+export const CLOCK_DRIFT_ICON_GAP_PX = 4;
+
+/**
  * Clock drift correction is only available to organizations with the feature flag. Without it, the
  * correction is never applied, whatever the stored preference says.
  */

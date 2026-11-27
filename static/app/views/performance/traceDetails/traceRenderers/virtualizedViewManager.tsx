@@ -11,10 +11,6 @@ import {
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {
-  CLOCK_DRIFT_ICON_GAP_PX,
-  CLOCK_DRIFT_ICON_SIZE_PX,
-} from 'sentry/views/performance/traceDetails/clockDriftIndicators';
-import {
   MIN_PINNED_TRACE_WIDTH,
   TraceColumnLayout,
 } from 'sentry/views/performance/traceDetails/traceColumnLayout';
@@ -28,6 +24,10 @@ import {
   getTraceIssueTimestamp,
   TRACE_ICON_WIDTH,
 } from 'sentry/views/performance/traceDetails/traceIssueUtils';
+import {
+  CLOCK_DRIFT_ICON_GAP_PX,
+  CLOCK_DRIFT_ICON_SIZE_PX,
+} from 'sentry/views/performance/traceDetails/traceModels/clockDriftCorrection';
 import {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/baseNode';
 
