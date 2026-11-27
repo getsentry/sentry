@@ -789,6 +789,94 @@ describe('InvoiceDetails', () => {
       ).not.toBeInTheDocument();
     });
 
+    it('says that the receipt billed no usage when Retry gets a 404', async () => {
+      MockApiClient.addMockResponse({
+        url: usageUrl,
+        method: 'GET',
+        statusCode: 500,
+        body: {},
+      });
+      render(<InvoiceDetails />, {
+        organization: usageOrganization,
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/invoices/${params.invoiceGuid}/`,
+          },
+          route: '/organizations/:orgId/invoices/:invoiceGuid/',
+        },
+      });
+
+      const usage = await screen.findByRole('region', {
+        name: 'Usage billed on this receipt',
+      });
+      MockApiClient.addMockResponse({
+        url: usageUrl,
+        method: 'GET',
+        statusCode: 404,
+        body: {},
+      });
+      await userEvent.click(within(usage).getByRole('button', {name: 'Retry'}));
+
+      expect(
+        await screen.findByText('This receipt billed no usage.')
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('region', {name: 'Usage billed on this receipt'})
+      ).toHaveTextContent('This receipt billed no usage.');
+    });
+
+    it('does not carry a Retry over to the next receipt', async () => {
+      const otherInvoice = InvoiceFixture({id: 'other-receipt'}, organization);
+      MockApiClient.addMockResponse({
+        url: `/customers/${organization.slug}/invoices/${otherInvoice.id}/`,
+        method: 'GET',
+        body: otherInvoice,
+      });
+      const otherUsageRequest = MockApiClient.addMockResponse({
+        url: `/customers/${organization.slug}/invoices/${otherInvoice.id}/usage/`,
+        method: 'GET',
+        statusCode: 404,
+        body: {},
+      });
+      MockApiClient.addMockResponse({
+        url: usageUrl,
+        method: 'GET',
+        statusCode: 500,
+        body: {},
+      });
+      const {router} = render(<InvoiceDetails />, {
+        organization: usageOrganization,
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/invoices/${params.invoiceGuid}/`,
+          },
+          route: '/organizations/:orgId/invoices/:invoiceGuid/',
+        },
+      });
+      const usage = await screen.findByRole('region', {
+        name: 'Usage billed on this receipt',
+      });
+      MockApiClient.addMockResponse({
+        url: usageUrl,
+        method: 'GET',
+        statusCode: 404,
+        body: {},
+      });
+      await userEvent.click(within(usage).getByRole('button', {name: 'Retry'}));
+      expect(
+        await screen.findByText('This receipt billed no usage.')
+      ).toBeInTheDocument();
+
+      // The next receipt's first answer is a 404, with no failure before it.
+      router.navigate(`/organizations/${organization.slug}/invoices/${otherInvoice.id}/`);
+      await waitFor(() => expect(otherUsageRequest).toHaveBeenCalled());
+      // Let the page render the response before checking that it shows nothing.
+      await act(() => new Promise(resolve => setTimeout(resolve, 0)));
+      expect(
+        screen.queryByRole('region', {name: 'Usage billed on this receipt'})
+      ).not.toBeInTheDocument();
+    });
+
     describe('with the app query client', () => {
       beforeEach(() => {
         jest.useFakeTimers();
@@ -836,6 +924,46 @@ describe('InvoiceDetails', () => {
         expect(
           within(usage).getByText('There was an error loading data.')
         ).toBeInTheDocument();
+      });
+
+      it('says that the receipt billed no usage when a retry gets a 404', async () => {
+        MockApiClient.addMockResponse({
+          url: usageUrl,
+          method: 'GET',
+          statusCode: 500,
+          body: {},
+        });
+        render(
+          <QueryClientProvider client={new QueryClient(DEFAULT_QUERY_CLIENT_CONFIG)}>
+            <InvoiceDetails />
+          </QueryClientProvider>,
+          {
+            organization: usageOrganization,
+            initialRouterConfig: {
+              location: {
+                pathname: `/organizations/${organization.slug}/invoices/${params.invoiceGuid}/`,
+              },
+              route: '/organizations/:orgId/invoices/:invoiceGuid/',
+            },
+          }
+        );
+        const usage = await screen.findByRole('region', {
+          name: 'Usage billed on this receipt',
+        });
+        expect(within(usage).getByTestId('loading-indicator')).toBeInTheDocument();
+        const usageNotFound = MockApiClient.addMockResponse({
+          url: usageUrl,
+          method: 'GET',
+          statusCode: 404,
+          body: {},
+        });
+
+        // The automatic retry after 1 s gets the 404.
+        await act(() => jest.advanceTimersByTimeAsync(1_000));
+        expect(usageNotFound).toHaveBeenCalledTimes(1);
+        expect(
+          screen.getByRole('region', {name: 'Usage billed on this receipt'})
+        ).toHaveTextContent('This receipt billed no usage.');
       });
     });
   });

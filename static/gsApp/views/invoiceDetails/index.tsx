@@ -188,7 +188,11 @@ function InvoiceDetails() {
         )}
       </Panel>
       {/* Not in the loaded branch: the usage request must not wait for the receipt. */}
-      <InvoiceDetailsUsage invoiceId={invoiceGuid} isReceiptLoading={isReceiptLoading} />
+      <InvoiceDetailsUsage
+        key={invoiceGuid}
+        invoiceId={invoiceGuid}
+        isReceiptLoading={isReceiptLoading}
+      />
     </SubscriptionPageContainer>
   );
 }

@@ -3,7 +3,7 @@ import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
 
 import {DataCategory} from 'sentry/types/core';
 
-import {InvoiceUsagePeriod} from 'getsentry/views/invoiceDetails/usage';
+import {InvoiceNoUsage, InvoiceUsagePeriod} from 'getsentry/views/invoiceDetails/usage';
 
 const usage = BillingHistoryFixture({
   plan: 'am3_team',
@@ -42,6 +42,14 @@ describe('InvoiceUsagePeriod', () => {
   it.snapshot.each<number>([390, 1024])(
     'billed-usage',
     () => <InvoiceUsagePeriod usage={usage} />,
+    width => ({viewport: width, tags: {area: 'billing'}})
+  );
+});
+
+describe('InvoiceNoUsage', () => {
+  it.snapshot.each<number>([390, 1024])(
+    'no-usage-note',
+    () => <InvoiceNoUsage />,
     width => ({viewport: width, tags: {area: 'billing'}})
   );
 });

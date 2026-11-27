@@ -1,4 +1,4 @@
-import {useId} from 'react';
+import {useId, useState} from 'react';
 import {useQuery} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
@@ -29,7 +29,8 @@ type Props = {
 /**
  * The section that shows the usage table of the period that a receipt billed.
  * Renders nothing without the invoice-usage-downloads feature, and nothing
- * when the receipt billed no usage.
+ * when the receipt billed no usage, unless a usage request failed first: then
+ * the section says that the receipt billed no usage.
  */
 export function InvoiceDetailsUsage({invoiceId, isReceiptLoading}: Props) {
   const organization = useOrganization();
@@ -46,6 +47,9 @@ export function InvoiceDetailsUsage({invoiceId, isReceiptLoading}: Props) {
       ),
       enabled: hasFeature,
     });
+  // True after you click Retry. The page mounts this component again for each
+  // receipt, so a Retry does not carry over to the next receipt.
+  const [retried, setRetried] = useState(false);
 
   if (!hasFeature || isReceiptLoading) {
     return null;
@@ -64,13 +68,27 @@ export function InvoiceDetailsUsage({invoiceId, isReceiptLoading}: Props) {
     ) : null;
   }
   if (isError) {
-    // The API answers 404 when the receipt billed no usage.
+    // The API answers 404 when the receipt billed no usage. A first 404 shows
+    // nothing. When a failed request came before the 404, the section may
+    // already show a spinner or an error box, so it says why it stays empty
+    // rather than go away. failureCount counts this 404 too, so more than 1
+    // means that an earlier request failed. The note is true only if the API
+    // answers a failed read with 5xx, not 404.
     if (error instanceof RequestError && error.status === 404) {
-      return null;
+      return retried || failureCount > 1 ? <InvoiceNoUsage /> : null;
     }
     return (
       <UsageSection>
-        <LoadingError onRetry={isRetryableRequestError(error) ? refetch : undefined} />
+        <LoadingError
+          onRetry={
+            isRetryableRequestError(error)
+              ? () => {
+                  setRetried(true);
+                  refetch();
+                }
+              : undefined
+          }
+        />
       </UsageSection>
     );
   }
@@ -99,6 +117,17 @@ export function InvoiceUsagePeriod({usage}: {usage: InvoiceUsage}) {
         <Text bold>{tct('[planName] Plan', {planName: usage.planName})}</Text>
       </Stack>
       <PeriodUsageTable history={{...usage, categories}} />
+    </UsageSection>
+  );
+}
+
+/**
+ * The section of a receipt that billed no usage, after a usage request failed.
+ */
+export function InvoiceNoUsage() {
+  return (
+    <UsageSection>
+      <Text>{t('This receipt billed no usage.')}</Text>
     </UsageSection>
   );
 }
