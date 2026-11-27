@@ -33,7 +33,7 @@ function PassthroughWrapper({children}: {children: React.ReactNode}) {
 export function UserDropdown() {
   const api = useApi();
   const user = useUser();
-  const {layout} = usePrimaryNavigation();
+  const {layout, overlayOffset} = usePrimaryNavigation();
   const portalContainerRef = useRef<HTMLElement | null>(null);
   const theme = useTheme();
   const {mutate: updateOptions} = useMutateUserOptions();
@@ -86,6 +86,7 @@ export function UserDropdown() {
         zIndex={theme.zIndex.modal}
         renderWrapAs={PassthroughWrapper}
         position={layout === 'mobile' ? 'bottom' : 'right-end'}
+        offset={overlayOffset}
         minMenuWidth={224}
         trigger={triggerProps => (
           <AvatarButton
@@ -187,6 +188,7 @@ export function UserDropdown() {
       zIndex={theme.zIndex.modal}
       renderWrapAs={PassthroughWrapper}
       position={layout === 'mobile' ? 'bottom' : 'right-end'}
+      offset={overlayOffset}
       minMenuWidth={200}
       trigger={triggerProps => (
         <AvatarButton

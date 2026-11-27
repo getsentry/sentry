@@ -46,6 +46,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useOrganizations} from 'sentry/utils/useOrganizations';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
+import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 import {
   SettingsNavigationTourElement,
   useSettingsNavigationTour,
@@ -77,6 +78,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
   const {canSwitch} = useOrganizationSwitcher();
   const createOrganizationLink = useCreateOrganizationLink();
   const theme = useTheme();
+  const {overlayOffset} = usePrimaryNavigation();
   const portalContainerRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
@@ -340,6 +342,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
       zIndex={theme.zIndex.modal}
       trigger={trigger}
       position="right-start"
+      offset={overlayOffset}
       minMenuWidth={200}
       items={[
         {

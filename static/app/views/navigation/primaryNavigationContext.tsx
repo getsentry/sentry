@@ -8,6 +8,7 @@ import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
+import {PRIMARY_NAVIGATION_OVERLAY_OFFSET} from './constants';
 import {SecondaryNavigationContextProvider} from './secondaryNavigationContext';
 
 interface NavigationGroupConfig {
@@ -36,10 +37,23 @@ const PRIMARY_NAVIGATION_GROUP_CONFIG = {
   admin: {paths: ['manage'], secondaryNavigation: true},
 } as const satisfies Record<string, NavigationGroupConfig>;
 
-type NavigationGroup = keyof typeof PRIMARY_NAVIGATION_GROUP_CONFIG;
+export type NavigationGroup = keyof typeof PRIMARY_NAVIGATION_GROUP_CONFIG;
 
 export function hasSecondaryNavigation(group: NavigationGroup): boolean {
   return PRIMARY_NAVIGATION_GROUP_CONFIG[group].secondaryNavigation;
+}
+
+/**
+ * Whether nav peek is enabled. Hovering a primary navigation item then opens a
+ * preview card of its secondary navigation instead of swapping the secondary
+ * sidebar, and collapsing the secondary sidebar hides it completely.
+ *
+ * `PrimaryNavigationContextProvider` turns this into `hoverBehavior` and
+ * `overlayOffset`, which components read from `usePrimaryNavigation()`.
+ */
+function useNavPeek(): boolean {
+  const organization = useOrganization({allowNull: true});
+  return !!organization?.features.includes('nav-peek');
 }
 
 const PRIMARY_NAVIGATION_ROUTE_OVERRIDES: Array<{
@@ -64,7 +78,14 @@ interface PrimaryNavigationFeatures {
 interface PrimaryNavigationContext {
   activeGroup: NavigationGroup;
   features: PrimaryNavigationFeatures;
+  /**
+   * What hovering a primary navigation item does: `activate` swaps the
+   * secondary sidebar to its group, `preview` opens a preview card of it.
+   */
+  hoverBehavior: 'activate' | 'preview';
   layout: 'mobile' | 'sidebar';
+  /** Offset between primary navigation items and the menus they open. */
+  overlayOffset: number | undefined;
   setActiveGroup: (group: NavigationGroup | null) => void;
 }
 
@@ -72,6 +93,8 @@ const PrimaryNavigationContext = createContext<PrimaryNavigationContext>({
   layout: 'sidebar',
   activeGroup: 'issues',
   features: {hover: true},
+  hoverBehavior: 'activate',
+  overlayOffset: undefined,
   setActiveGroup: () => {},
 });
 
@@ -99,6 +122,7 @@ export function PrimaryNavigationContextProvider(
   // oxlint-disable-next-line @sentry/scraps/prefer-container-responsive-props
   const isMobile = useMedia(`(width < ${theme.breakpoints.md})`);
   const hasHover = useMedia('(hover: hover)');
+  const navPeek = useNavPeek();
   const activeRouteGroup = useActiveNavigationGroup();
 
   // An override only lasts for the route group it was set under. Otherwise it
@@ -120,15 +144,24 @@ export function PrimaryNavigationContextProvider(
     [activeRouteGroup]
   );
 
-  const value = useMemo(
-    () => ({
+  const value = useMemo(() => {
+    const previewOnHover = navPeek && !isMobile;
+    return {
       layout: isMobile ? ('mobile' as const) : ('sidebar' as const),
       features: {hover: hasHover},
+      hoverBehavior: previewOnHover ? ('preview' as const) : ('activate' as const),
+      overlayOffset: previewOnHover ? PRIMARY_NAVIGATION_OVERLAY_OFFSET : undefined,
       activeGroup: activeGroupOverrideForRoute ?? activeRouteGroup,
       setActiveGroup,
-    }),
-    [isMobile, hasHover, activeGroupOverrideForRoute, activeRouteGroup, setActiveGroup]
-  );
+    };
+  }, [
+    navPeek,
+    isMobile,
+    hasHover,
+    activeGroupOverrideForRoute,
+    activeRouteGroup,
+    setActiveGroup,
+  ]);
 
   return (
     // Pages without a secondary navigation keep the sidebar collapsed, so hovering

@@ -43,7 +43,11 @@ function IssueViewsImpl() {
   return (
     <Fragment>
       <SecondaryNavigation.Separator />
-      <SecondaryNavigation.Section id="issues-starred-views" title={t('Starred Views')}>
+      <SecondaryNavigation.Section
+        id="issues-starred-views"
+        title={t('Starred Views')}
+        tabLabel={t('Views')}
+      >
         <SecondaryNavigation.ReorderableList
           items={views}
           onDragEnd={newViews => {

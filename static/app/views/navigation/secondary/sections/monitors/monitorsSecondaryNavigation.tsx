@@ -32,7 +32,7 @@ function MonitorsSecondaryNavigationImpl() {
         <SecondaryNavigation.HeaderTitle>{t('Monitors')}</SecondaryNavigation.HeaderTitle>
       </SecondaryNavigation.Header>
       <SecondaryNavigation.Body>
-        <SecondaryNavigation.Section id="monitors-views">
+        <SecondaryNavigation.Section id="monitors-views" tabLabel={t('Monitors')}>
           <SecondaryNavigation.List>
             <SecondaryNavigation.ListItem>
               <SecondaryNavigation.Link
@@ -57,6 +57,7 @@ function MonitorsSecondaryNavigationImpl() {
         <SecondaryNavigation.Section
           id="monitors-data-types"
           title={t('By Monitor Type')}
+          tabLabel={t('Monitors')}
         >
           <SecondaryNavigation.List>
             <SecondaryNavigation.ListItem>
@@ -106,7 +107,7 @@ function MonitorsSecondaryNavigationImpl() {
           </SecondaryNavigation.List>
         </SecondaryNavigation.Section>
         <SecondaryNavigation.Separator />
-        <SecondaryNavigation.Section id="monitors-automations">
+        <SecondaryNavigation.Section id="monitors-automations" tabLabel={t('Alerts')}>
           <SecondaryNavigation.List>
             <SecondaryNavigation.ListItem>
               <SecondaryNavigation.Link

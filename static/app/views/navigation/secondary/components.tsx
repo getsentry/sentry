@@ -75,6 +75,16 @@ import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigatio
 import {useSettingsNavigation} from 'sentry/views/navigation/useSettingsNavigation';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
+import {
+  isPreviewNavigationClick,
+  SecondaryNavigationPreviewBody,
+  SecondaryNavigationPreviewContext,
+  SecondaryNavigationPreviewTab,
+  useIsHiddenBetweenPreviewTabs,
+  useSecondaryNavigationPreview,
+} from './preview';
+import {useSecondaryNavigationToggle} from './useSecondaryNavigationToggle';
+
 const MotionContainer = motion.create(Container);
 const LEADING_SLOT_SIZE = '24px';
 /** With settings-v3, the padding from the panel edge to the link backgrounds, shared by the header and body. */
@@ -123,7 +133,9 @@ function SecondarySidebarPanel({
   // re-renders the tour and can hit React's update depth limit.
   const containerRef = useObjectRef(tourRef);
   const resizeHandleRef = useRef<HTMLDivElement>(null);
-  const {layout, activeGroup} = usePrimaryNavigation();
+  const {layout, activeGroup, hoverBehavior} = usePrimaryNavigation();
+  // Group switches only animate to smooth over hover swaps, which previews replace.
+  const animateGroupSwitch = hoverBehavior === 'activate';
   const isSettingsNavigation = useSettingsNavigation();
 
   const [secondarySidebarWidth, setSecondarySidebarWidth] = useSyncedLocalStorageState(
@@ -167,9 +179,9 @@ function SecondarySidebarPanel({
           width="100%"
           height="100%"
           key={activeGroup}
-          initial={{x: -6, opacity: 0}}
+          initial={animateGroupSwitch ? {x: -6, opacity: 0} : false}
           animate={{x: 0, opacity: 1}}
-          exit={{x: 6, opacity: 0}}
+          exit={animateGroupSwitch ? {x: 6, opacity: 0} : undefined}
           transition={{duration: 0.06}}
         >
           <Grid
@@ -309,6 +321,11 @@ function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
   const {layout} = usePrimaryNavigation();
   const settingsV3 = useSettingsV3();
   const isMobile = layout === 'mobile';
+  const preview = useSecondaryNavigationPreview();
+
+  if (preview) {
+    return null;
+  }
 
   return (
     <Grid
@@ -349,8 +366,9 @@ function SecondaryNavigationHeaderTitle({children}: {children: ReactNode}) {
 
 function SecondaryNavigationToggle() {
   const {layout} = usePrimaryNavigation();
-  const {collapsible, view, setView} = useSecondaryNavigation();
+  const {collapsible, view} = useSecondaryNavigation();
   const isCollapsed = view !== 'expanded';
+  const toggleProps = useSecondaryNavigationToggle();
 
   if (!collapsible) {
     return null;
@@ -361,8 +379,8 @@ function SecondaryNavigationToggle() {
       <Button
         size="sm"
         icon={<IconClose />}
-        aria-label={isCollapsed ? t('Expand') : t('Collapse')}
-        onClick={() => setView(isCollapsed ? 'expanded' : 'collapsed')}
+        aria-label={toggleProps['aria-label']}
+        onClick={toggleProps.onClick}
         variant="transparent"
       />
     );
@@ -371,13 +389,8 @@ function SecondaryNavigationToggle() {
   return (
     <Button
       size="sm"
-      icon={<IconChevron direction={isCollapsed ? 'right' : 'left'} isDouble />}
-      aria-label={isCollapsed ? t('Expand') : t('Collapse')}
-      onClick={() => setView(isCollapsed ? 'expanded' : 'collapsed')}
+      {...toggleProps}
       variant={isCollapsed ? 'primary' : 'transparent'}
-      analyticsEventName="Sidebar: Secondary Toggle Button Clicked"
-      analyticsEventKey="sidebar_secondary_toggle_button_clicked"
-      analyticsParams={{is_collapsed: isCollapsed}}
     />
   );
 }
@@ -389,6 +402,13 @@ interface SecondaryNavigationBodyProps {
 function SecondaryNavigationBody(props: SecondaryNavigationBodyProps) {
   const {layout} = usePrimaryNavigation();
   const settingsV3 = useSettingsV3();
+  const preview = useSecondaryNavigationPreview();
+
+  if (preview) {
+    return (
+      <SecondaryNavigationPreviewBody>{props.children}</SecondaryNavigationPreviewBody>
+    );
+  }
 
   return (
     <Container
@@ -404,6 +424,33 @@ function SecondaryNavigationBody(props: SecondaryNavigationBodyProps) {
     >
       {props.children}
     </Container>
+  );
+}
+
+interface SecondaryNavigationSectionGroupProps {
+  children: ReactNode;
+  id: string;
+  tabLabel: string;
+}
+
+/**
+ * Shows the sections inside it as one tab of a navigation preview, such as the
+ * sections that another component renders. Sections that take a `tabLabel`
+ * directly share a tab when their labels match.
+ */
+function SecondaryNavigationSectionGroup({
+  children,
+  id,
+  tabLabel,
+}: SecondaryNavigationSectionGroupProps) {
+  return (
+    <SecondaryNavigationPreviewTab
+      id={id}
+      label={tabLabel}
+      separator={<SecondaryNavigationSeparator />}
+    >
+      {children}
+    </SecondaryNavigationPreviewTab>
   );
 }
 
@@ -520,6 +567,7 @@ function SectionTitle(props: SectionTitleProps) {
 interface SecondaryNavigationSectionProps {
   children: ReactNode;
   id: string;
+  tabLabel?: string;
   /**
    * The title is the collapse toggle, so only titled sections can collapse.
    */
@@ -533,24 +581,33 @@ function SecondaryNavigationSection(props: SecondaryNavigationSectionProps) {
     `secondary-nav-section-${props.id}-collapsed`,
     false
   );
-  const canCollapse = layout === 'sidebar' && !!props.title;
+  const isPreview = useSecondaryNavigationPreview() !== null;
+  const canCollapse = !isPreview && layout === 'sidebar' && !!props.title;
   const isCollapsed = canCollapse ? isCollapsedState : false;
 
   return (
-    <Container padding={settingsV3 ? '0' : 'md sm'} data-nav-section>
-      {props.title ? (
-        <SectionTitle
-          canCollapse={canCollapse}
-          isCollapsed={isCollapsed}
-          setIsCollapsed={setIsCollapsedState}
-        >
-          {props.title}
-        </SectionTitle>
-      ) : null}
-      <Collapsible collapsed={isCollapsed} disabled={!canCollapse}>
-        {props.children}
-      </Collapsible>
-    </Container>
+    <SecondaryNavigationPreviewTab
+      id={props.id}
+      label={
+        props.tabLabel ?? (typeof props.title === 'string' ? props.title : undefined)
+      }
+      separator={<SecondaryNavigationSeparator />}
+    >
+      <Container padding={settingsV3 ? '0' : 'md sm'} data-nav-section>
+        {props.title && !isPreview ? (
+          <SectionTitle
+            canCollapse={canCollapse}
+            isCollapsed={isCollapsed}
+            setIsCollapsed={setIsCollapsedState}
+          >
+            {props.title}
+          </SectionTitle>
+        ) : null}
+        <Collapsible collapsed={isCollapsed} disabled={!canCollapse}>
+          {props.children}
+        </Collapsible>
+      </Container>
+    </SecondaryNavigationPreviewTab>
   );
 }
 
@@ -580,6 +637,7 @@ function SecondaryNavigationLink({
   const {layout, features} = usePrimaryNavigation();
   const {reset: closeCollapsedNavigationHovercard} = useHovercardContext();
   const {setView} = useSecondaryNavigation();
+  const preview = useSecondaryNavigationPreview();
   const isMobile = layout === 'mobile';
 
   const sharedLinkProps = {
@@ -604,6 +662,10 @@ function SecondaryNavigationLink({
       // MobileNavigation watches for view === 'collapsed' and calls setIsOpen(false).
       if (isMobile && !features.hover) {
         setView('collapsed');
+      }
+
+      if (preview && isPreviewNavigationClick(e)) {
+        preview.onNavigate();
       }
 
       onClick?.(e);
@@ -665,6 +727,11 @@ function SecondaryNavigationLeadingSlot(props: SecondaryNavigationLeadingSlotPro
 
 function SecondaryNavigationSeparator() {
   const settingsV3 = useSettingsV3();
+  const isHiddenBetweenTabs = useIsHiddenBetweenPreviewTabs();
+
+  if (isHiddenBetweenTabs) {
+    return null;
+  }
 
   if (settingsV3) {
     return (
@@ -967,6 +1034,7 @@ function SecondaryNavigationReorderableLink({
   const {layout, features} = usePrimaryNavigation();
   const {reset: closeCollapsedNavigationHovercard} = useHovercardContext();
   const {setView} = useSecondaryNavigation();
+  const preview = useSecondaryNavigationPreview();
   const isMobile = layout === 'mobile';
 
   function handleClick(e: React.MouseEvent<HTMLAnchorElement>) {
@@ -988,6 +1056,9 @@ function SecondaryNavigationReorderableLink({
       setView('collapsed');
     }
 
+    if (preview && isPreviewNavigationClick(e)) {
+      preview.onNavigate();
+    }
     onNavigate?.();
   }
 
@@ -1367,6 +1438,8 @@ const LegacySidebarNavigationLink = styled(Link)`
 `;
 
 export const SecondaryNavigation = {
+  Preview: SecondaryNavigationPreviewContext,
+  SectionGroup: SecondaryNavigationSectionGroup,
   Header: SecondaryNavigationHeader,
   HeaderTitle: SecondaryNavigationHeaderTitle,
   Body: SecondaryNavigationBody,

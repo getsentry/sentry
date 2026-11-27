@@ -111,7 +111,7 @@ function ExploreSecondaryNavigationImpl() {
         <SecondaryNavigation.HeaderTitle>{t('Explore')}</SecondaryNavigation.HeaderTitle>
       </SecondaryNavigation.Header>
       <SecondaryNavigation.Body>
-        <SecondaryNavigation.Section id="explore-main">
+        <SecondaryNavigation.Section id="explore-main" tabLabel={t('Explore')}>
           <SecondaryNavigation.List>
             <Feature features={['visibility-explore-view']}>
               <SecondaryNavigation.ListItem>
@@ -267,7 +267,10 @@ function ExploreSecondaryNavigationImpl() {
         <Feature features={['visibility-explore-view']}>
           <Fragment>
             <SecondaryNavigation.Separator />
-            <SecondaryNavigation.Section id="explore-saved-queries">
+            <SecondaryNavigation.Section
+              id="explore-saved-queries"
+              tabLabel={t('Saved Queries')}
+            >
               <SecondaryNavigation.List>
                 <SecondaryNavigation.ListItem>
                   <SecondaryNavigation.Link to={`${baseUrl}/saved-queries/`}>
@@ -302,6 +305,7 @@ function ExploreSecondaryNavigationImpl() {
                 <SecondaryNavigation.Section
                   id="explore-starred-queries"
                   title={t('Starred Queries')}
+                  tabLabel={t('Saved Queries')}
                 >
                   <ExploreSavedQueryNavigationItems queries={starredQueries} />
                 </SecondaryNavigation.Section>

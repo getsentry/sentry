@@ -90,7 +90,7 @@ function MobilePrimaryNavigation() {
       </PrimaryNavigation.Sidebar>
       {view === 'expanded' && hasSecondaryNavigation(activeGroup) && (
         <SecondaryNavigation.Sidebar>
-          <SecondaryNavigationContent />
+          <SecondaryNavigationContent group={activeGroup} />
         </SecondaryNavigation.Sidebar>
       )}
     </SizeProvider>

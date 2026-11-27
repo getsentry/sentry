@@ -3,9 +3,13 @@ import {
   type PropsWithChildren,
   type RefObject,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
+  useState,
 } from 'react';
+import {getFocusableTreeWalker} from '@react-aria/focus';
+import {useFocusWithin, useHover} from '@react-aria/interactions';
 import {mergeProps} from '@react-aria/utils';
 import {IconArrow} from '@sentry/icons/arrow';
 import {IconCompass} from '@sentry/icons/compass';
@@ -58,11 +62,13 @@ import {PrimaryNavigationOnboarding} from './primary/onboarding';
 import {OrganizationDropdown} from './primary/organizationDropdown';
 import {PrimaryNavigationServiceIncidents} from './primary/serviceIncidents';
 import {useActivateNavigationGroupOnHover} from './primary/useActivateNavigationGroupOnHover';
+import {usePrimaryNavigationPreview} from './primary/usePrimaryNavigationPreview';
 import {UserDropdown} from './primary/userDropdown';
 import {PrimaryNavigationWhatsNew} from './primary/whatsNew';
 import {SecondaryNavigation} from './secondary/components';
 import {SecondaryNavigationContent} from './secondary/content';
 import {
+  NAVIGATION_SECONDARY_SIDEBAR_DATA_ATTRIBUTE,
   NAVIGATION_SIDEBAR_SECONDARY_WIDTH_LOCAL_STORAGE_KEY,
   PRIMARY_SIDEBAR_WIDTH,
   SECONDARY_SIDEBAR_WIDTH,
@@ -84,19 +90,38 @@ function NavigationImpl() {
   const organization = useOrganization({allowNull: true});
   const isSettingsNavigation = useSettingsNavigation();
   const settingsV3 = useSettingsV3();
-  const collapsedNavigation = useCollapsedNavigation();
-  const {view} = useSecondaryNavigation();
+  const {layout, activeGroup, hoverBehavior} = usePrimaryNavigation();
+  const {view} = useCollapsedNavigation({enabled: hoverBehavior === 'activate'});
 
   const ref = useRef<HTMLUListElement | null>(null);
-
-  const {layout, activeGroup} = usePrimaryNavigation();
+  const expandTabRef = useRef<HTMLButtonElement | null>(null);
 
   useNavigationTourModal();
 
   const {currentStepId} = useNavigationTour();
   // The tour forces the sidebar open regardless of `view`, so this — not
   // `view !== 'expanded'` alone — is the actual collapsed state on screen.
-  const isCollapsed = currentStepId === null ? view !== 'expanded' : false;
+  const isCollapsed = currentStepId === null && view !== 'expanded';
+  // Previews replace the collapsed peek, so collapsing hides the sidebar fully.
+  const hideCollapsedSidebar = isCollapsed && hoverBehavior === 'preview';
+  const canExpandSidebar = hideCollapsedSidebar && hasSecondaryNavigation(activeGroup);
+  const {hoverProps, isHovered} = useHover({isDisabled: !canExpandSidebar});
+  const [isHeaderFocused, setHeaderFocused] = useState(false);
+  const {focusWithinProps} = useFocusWithin({onFocusWithinChange: setHeaderFocused});
+  // Expanding unmounts the Expand tab, so focus would otherwise fall to the body.
+  const focusSidebarOnExpandRef = useRef(false);
+  useLayoutEffect(() => {
+    if (isCollapsed || !focusSidebarOnExpandRef.current) {
+      return;
+    }
+    focusSidebarOnExpandRef.current = false;
+    const sidebar = document.querySelector<HTMLElement>(
+      `[${NAVIGATION_SECONDARY_SIDEBAR_DATA_ATTRIBUTE}]`
+    );
+    if (sidebar) {
+      (getFocusableTreeWalker(sidebar).firstChild() as HTMLElement | null)?.focus();
+    }
+  }, [isCollapsed]);
 
   useLLMContext({
     contextHint: isSettingsNavigation
@@ -120,23 +145,20 @@ function NavigationImpl() {
 
   const sidebarAnimationProps = useMemo(
     () =>
-      makeCollapsedSecondaryWrapperAnimationProps(
-        collapsedNavigation.view === 'peek',
-        secondarySidebarWidth
-      ),
-    [collapsedNavigation.view, secondarySidebarWidth]
+      makeCollapsedSecondaryWrapperAnimationProps(view === 'peek', secondarySidebarWidth),
+    [view, secondarySidebarWidth]
   );
 
   const secondarySidebar = (
     <SecondaryNavigation.Sidebar>
-      <SecondaryNavigationContent />
+      <SecondaryNavigationContent group={activeGroup} />
     </SecondaryNavigation.Sidebar>
   );
 
   return (
     <Fragment>
       <PrimaryNavigation.Sidebar>
-        <PrimaryNavigation.SidebarHeader>
+        <PrimaryNavigation.SidebarHeader {...hoverProps} {...focusWithinProps}>
           {isSettingsNavigation && organization ? (
             <SettingsNavigationBackButton organizationSlug={organization.slug} />
           ) : organization ? (
@@ -144,12 +166,20 @@ function NavigationImpl() {
           ) : (
             <UserDropdown />
           )}
+          {canExpandSidebar && (isHovered || isHeaderFocused) && (
+            <PrimaryNavigation.ExpandTab
+              ref={expandTabRef}
+              onExpand={() => {
+                focusSidebarOnExpandRef.current = true;
+              }}
+            />
+          )}
         </PrimaryNavigation.SidebarHeader>
         <PrimaryNavigation.List ref={ref}>
           {isSettingsNavigation && organization ? (
             <SettingsPrimaryNavigationItems organizationSlug={organization.slug} />
           ) : (
-            <PrimaryNavigationItems listRef={ref} />
+            <PrimaryNavigationItems listRef={ref} expandTabRef={expandTabRef} />
           )}
         </PrimaryNavigation.List>
 
@@ -178,9 +208,10 @@ function NavigationImpl() {
       </PrimaryNavigation.Sidebar>
 
       {hasSecondaryNavigation(activeGroup) &&
+        !hideCollapsedSidebar &&
         (isCollapsed ? (
           <CollapsedSecondaryWrapper
-            data-visible={collapsedNavigation.view === 'peek'}
+            data-visible={view === 'peek'}
             data-test-id="collapsed-secondary-sidebar"
             height="100%"
             left={`${PRIMARY_SIDEBAR_WIDTH}px`}
@@ -278,10 +309,15 @@ export function SettingsPrimaryNavigationItems({
 }
 
 interface PrimaryNavigationItemsProps {
+  /** Interacting with the Expand tab keeps an open preview open. */
+  expandTabRef?: RefObject<HTMLButtonElement | null>;
   listRef?: RefObject<HTMLUListElement | null>;
 }
 
-export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
+export function PrimaryNavigationItems({
+  expandTabRef,
+  listRef,
+}: PrimaryNavigationItemsProps) {
   const organization = useOrganization({allowNull: true});
   const {data: inboxUnreadCount} = useQuery(inboxUnreadCountApiOptions(organization));
   const investigationsEnabled = useInvestigationsEnabled();
@@ -291,9 +327,19 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
 
   const fallbackRef = useRef<HTMLUListElement>(null);
 
-  const makeNavigationItemProps = useActivateNavigationGroupOnHover({
+  const makeActivateProps = useActivateNavigationGroupOnHover({
     ref: listRef ?? fallbackRef,
   });
+
+  const {hoverBehavior} = usePrimaryNavigation();
+  const {currentStepId} = useNavigationTour();
+  const {makePreviewProps, previewCard} = usePrimaryNavigationPreview({
+    enabled: hoverBehavior === 'preview' && currentStepId === null,
+    ignoreInteractOutsideRef: expandTabRef,
+  });
+
+  const makeNavigationItemProps =
+    hoverBehavior === 'preview' ? makePreviewProps : makeActivateProps;
 
   const settingsPath = organization
     ? `/settings/${organization.slug}/`
@@ -465,6 +511,7 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
       </PrimaryNavigation.ListItem>
 
       {settingsV3 ? null : settingsItem}
+      {previewCard}
     </Fragment>
   );
 }

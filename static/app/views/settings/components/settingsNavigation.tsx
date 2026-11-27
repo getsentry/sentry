@@ -72,7 +72,14 @@ export function SettingsNavigation({
             <SettingsNavigationGroup {...otherProps} {...config} />
           </Fragment>
         ))}
-        {hooks.map((Hook, i) => cloneElement(Hook, {key: `hook-${i}`}))}
+        {hooks.length > 0 && (
+          <SecondaryNavigation.SectionGroup
+            id="settings-additional"
+            tabLabel={t('More Settings')}
+          >
+            {hooks.map((Hook, i) => cloneElement(Hook, {key: `hook-${i}`}))}
+          </SecondaryNavigation.SectionGroup>
+        )}
       </SecondaryNavigation.Body>
     </ErrorBoundary>
   );

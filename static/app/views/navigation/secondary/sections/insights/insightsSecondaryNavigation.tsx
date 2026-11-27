@@ -67,7 +67,7 @@ function InsightsSecondaryNavigationImpl() {
         <SecondaryNavigation.HeaderTitle>{t('Insights')}</SecondaryNavigation.HeaderTitle>
       </SecondaryNavigation.Header>
       <SecondaryNavigation.Body>
-        <SecondaryNavigation.Section id="insights-main">
+        <SecondaryNavigation.Section id="insights-main" tabLabel={t('Domains')}>
           <SecondaryNavigation.List>
             <SecondaryNavigation.ListItem>
               <SecondaryNavigation.Link
@@ -117,7 +117,7 @@ function InsightsSecondaryNavigationImpl() {
           </SecondaryNavigation.List>
         </SecondaryNavigation.Section>
         <SecondaryNavigation.Separator />
-        <SecondaryNavigation.Section id="insights-monitors">
+        <SecondaryNavigation.Section id="insights-monitors" tabLabel={t('Monitors')}>
           <SecondaryNavigation.List>
             <SecondaryNavigation.ListItem>
               <SecondaryNavigation.Link
@@ -182,10 +182,15 @@ function InsightsSecondaryNavigationImpl() {
         {!hasInsightsToDashboards && (
           <Fragment>
             <SecondaryNavigation.Separator />
-            <ProjectsNavigationItems
-              allProjectsAnalyticsItemName="insights_projects_all"
-              starredAnalyticsItemName="insights_project_starred"
-            />
+            <SecondaryNavigation.SectionGroup
+              id="insights-projects"
+              tabLabel={t('Projects')}
+            >
+              <ProjectsNavigationItems
+                allProjectsAnalyticsItemName="insights_projects_all"
+                starredAnalyticsItemName="insights_project_starred"
+              />
+            </SecondaryNavigation.SectionGroup>
           </Fragment>
         )}
       </SecondaryNavigation.Body>

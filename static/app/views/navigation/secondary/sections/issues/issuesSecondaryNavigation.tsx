@@ -63,7 +63,7 @@ function IssuesSecondaryNavigationImpl() {
         <SecondaryNavigation.HeaderTitle>{t('Issues')}</SecondaryNavigation.HeaderTitle>
       </SecondaryNavigation.Header>
       <SecondaryNavigation.Body>
-        <SecondaryNavigation.Section id="issues-feed">
+        <SecondaryNavigation.Section id="issues-feed" tabLabel={t('Feed')}>
           <SecondaryNavigation.List>
             <SecondaryNavigation.ListItem>
               <SecondaryNavigation.Link
@@ -99,7 +99,7 @@ function IssuesSecondaryNavigationImpl() {
           </SecondaryNavigation.List>
         </SecondaryNavigation.Section>
         <SecondaryNavigation.Separator />
-        <SecondaryNavigation.Section id="issues-types">
+        <SecondaryNavigation.Section id="issues-types" tabLabel={t('Feed')}>
           <SecondaryNavigation.List>
             {visibleIssueTypes.map(({key, label, badge}) => (
               <SecondaryNavigation.ListItem key={key}>
@@ -174,7 +174,7 @@ function IssuesSecondaryNavigationImpl() {
           </Fragment>
         )}
         <SecondaryNavigation.Separator />
-        <SecondaryNavigation.Section id="issues-views-all">
+        <SecondaryNavigation.Section id="issues-views-all" tabLabel={t('Views')}>
           <SecondaryNavigation.List>
             <SecondaryNavigation.ListItem>
               <SecondaryNavigation.Link

@@ -71,7 +71,7 @@ function DashboardsSecondaryNavigationImpl() {
         </SecondaryNavigation.HeaderTitle>
       </SecondaryNavigation.Header>
       <SecondaryNavigation.Body>
-        <SecondaryNavigation.Section id="dashboards-all">
+        <SecondaryNavigation.Section id="dashboards-all" tabLabel={t('Dashboards')}>
           <SecondaryNavigation.List>
             <SecondaryNavigation.ListItem>
               <SecondaryNavigation.Link

@@ -878,10 +878,12 @@
     "sections": {
       "dashboards": [
         "Dashboards",
+        "Dashboards",
         "All Dashboards",
         "Starred Dashboards"
       ],
       "explore": [
+        "Explore",
         "Explore",
         "Traces",
         "Logs",
@@ -895,37 +897,48 @@
         "Automations",
         "Investigations",
         "Saved Queries",
+        "Saved Queries",
         "Saved Formulas",
-        "Starred Queries"
+        "Starred Queries",
+        "Saved Queries"
       ],
       "insights": [
         "Insights",
+        "Domains",
         "AI",
+        "Monitors",
         "Moved",
         "Crons",
         "Moved",
-        "Uptime"
+        "Uptime",
+        "Projects"
       ],
       "issues": [
         "Issues",
         "Feed",
+        "Feed",
         "Inbox",
+        "Feed",
         "User Feedback",
         "Autofix",
         "Overview",
         "Recently Run",
+        "Views",
         "All Views"
       ],
       "monitors": [
         "Monitors",
+        "Monitors",
         "All Monitors",
         "My Monitors",
         "By Monitor Type",
+        "Monitors",
         "Error",
         "Metric",
         "Cron",
         "Uptime",
         "Mobile Build",
+        "Alerts",
         "Alerts"
       ],
       "projects": [
