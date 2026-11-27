@@ -127,10 +127,6 @@ function renderPage(features: string[] = [], query?: Record<string, string>) {
   );
 }
 
-function detailPane() {
-  return screen.queryByRole('button', {name: 'Close'});
-}
-
 describe('ConversationDetailPage span default selection', () => {
   beforeEach(() => {
     // jsdom implements neither scroll API the view relies on.
