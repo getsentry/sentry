@@ -61,6 +61,8 @@ REQUIRED_EVENT_PERMISSIONS = {
     "team": "team:read",
     "comment": "event:read",
     "preprod_artifact": "project:read",
+    # Matches the alert (workflow) read endpoints, including fire history, which returns issues.
+    "alert": "alerts:read",
 }
 
 # The only events valid for Sentry Apps are the ones listed in the values of
