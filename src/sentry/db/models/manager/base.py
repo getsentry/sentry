@@ -20,6 +20,7 @@ from sentry.db.models.manager.types import M
 from sentry.db.postgres.transactions import django_test_transaction_water_mark
 from sentry.signals import post_update
 from sentry.silo.base import SiloLimit
+from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 
@@ -324,6 +325,30 @@ class BaseManager(_base_manager_base[M]):
         cache_key = self.__get_lookup_cache_key(**{key: value})
         local_cache = self._get_local_cache()
 
+        def get_from_db() -> M:
+            if not use_replica:
+                return self.get(**kwargs)
+            try:
+                return self.using_replica().get(**kwargs)
+            except self.model.DoesNotExist:
+                # The replica can lag behind the primary, so a row that was just
+                # written may only exist on the primary. Query it outside this
+                # block so a real miss doesn't chain the replica's exception.
+                pass
+            try:
+                result = self.get(**kwargs)
+            except self.model.DoesNotExist:
+                metrics.incr(
+                    "database.get_from_cache.replica_miss_fallback",
+                    tags={"model": self.model.__name__, "found": "false"},
+                )
+                raise
+            metrics.incr(
+                "database.get_from_cache.replica_miss_fallback",
+                tags={"model": self.model.__name__, "found": "true"},
+            )
+            return result
+
         def validate_result(inst: Any) -> M:
             if isinstance(inst, self.model) and (key != pk_name or int(value) == inst.pk):
                 return inst
@@ -337,7 +362,7 @@ class BaseManager(_base_manager_base[M]):
             if local_cache is not None and cache_key in local_cache:
                 del local_cache[cache_key]
             cache.delete(cache_key, version=self.cache_version)
-            return self.using_replica().get(**kwargs) if use_replica else self.get(**kwargs)
+            return get_from_db()
 
         if local_cache is not None and cache_key in local_cache:
             return validate_result(local_cache[cache_key])
@@ -346,7 +371,7 @@ class BaseManager(_base_manager_base[M]):
         # If we don't have a hit in the django level cache, collect
         # the result, and store it both in django and local caches.
         if retval is None:
-            result = self.using_replica().get(**kwargs) if use_replica else self.get(**kwargs)
+            result = get_from_db()
             assert result
             # Ensure we're pushing it into the cache
             self.__post_save(instance=result)
