@@ -117,6 +117,7 @@ def check_single_auth_identity(auth_identity_id: int) -> None:
         return
 
     prev_is_valid = not getattr(om.flags, "sso:invalid")
+    is_verified = True
 
     provider = auth_provider.get_provider()
     try:
@@ -133,8 +134,9 @@ def check_single_auth_identity(auth_identity_id: int) -> None:
         is_linked = False
         is_valid = False
     except Exception as exc:
-        # to ensure security we count any kind of error as an invalidation
-        # event
+        # The provider didn't say whether the identity is valid. Leaving `last_verified` as it
+        # is makes the identity invalid once no refresh has succeeded for a week.
+        is_verified = False
         metrics.incr("auth.identities.refresh_error", skip_internal=False)
         logger.exception(
             "AuthIdentity(id=%s) returned an error during validation: %s",
@@ -155,4 +157,7 @@ def check_single_auth_identity(auth_identity_id: int) -> None:
             organization_service.update_membership_flags(organization_member=om)
 
     now = timezone.now()
-    auth_identity.update(last_verified=now, last_synced=now)
+    if is_verified:
+        auth_identity.update(last_verified=now, last_synced=now)
+    else:
+        auth_identity.update(last_synced=now)
