@@ -11,9 +11,11 @@ import {t} from 'sentry/locale';
 import {prettifyTagKey} from 'sentry/utils/fields';
 import {useTraceMetricItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {HIDDEN_TRACEMETRIC_GROUP_BY_FIELDS_SET} from 'sentry/views/explore/metrics/constants';
-import {useTraceMetricFilter} from 'sentry/views/explore/metrics/hooks/useTraceMetricFilter';
 import {MetricTypeBadge} from 'sentry/views/explore/metrics/metricToolbar/metricOptionLabel';
-import {hasDisplayMetricUnit} from 'sentry/views/explore/metrics/utils';
+import {
+  createTraceMetricFilter,
+  hasDisplayMetricUnit,
+} from 'sentry/views/explore/metrics/utils';
 
 import type {MetricSelectorOption} from './types';
 
@@ -78,7 +80,7 @@ function MetricAttributesSection({
   metricName: string;
   metricType: string;
 }) {
-  const traceMetricFilter = useTraceMetricFilter({name: metricName, type: metricType});
+  const traceMetricFilter = createTraceMetricFilter({name: metricName, type: metricType});
 
   const [debouncedTraceMetricFilter] = useDebouncedValue(traceMetricFilter, {
     wait: METRIC_ATTRIBUTES_DEBOUNCE_DURATION,

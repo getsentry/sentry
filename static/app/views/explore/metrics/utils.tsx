@@ -91,11 +91,12 @@ export function createTraceMetricEventsFilter(traceMetrics: TraceMetric[]): stri
  * This filter is used to narrow down attribute keys to only those that co-occur
  * with the specified metric.
  */
-export function createTraceMetricFilter(traceMetric: TraceMetric): string | undefined {
-  return traceMetric.name
+export function createTraceMetricFilter(
+  traceMetric: TraceMetric | undefined
+): string | undefined {
+  return traceMetric?.name
     ? MutableSearch.fromQueryObject({
         [`sentry._internal.cooccuring.name.${traceMetric.name}`]: ['true'],
-        [`sentry._internal.cooccuring.type.${traceMetric.type}`]: ['true'],
       }).formatString()
     : undefined;
 }

@@ -21,10 +21,10 @@ import {
   SENTRY_TRACEMETRIC_STRING_TAGS,
 } from 'sentry/views/explore/constants';
 import {HiddenTraceMetricSearchFields} from 'sentry/views/explore/metrics/constants';
-import {useTraceMetricFilter} from 'sentry/views/explore/metrics/hooks/useTraceMetricFilter';
 import {useValidateMetricsTab} from 'sentry/views/explore/metrics/hooks/useValidateMetricsTab';
 import {type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {MetricsTabSeerComboBox} from 'sentry/views/explore/metrics/metricsTabSeerComboBox';
+import {createTraceMetricFilter} from 'sentry/views/explore/metrics/utils';
 import {
   useQueryParamsQuery,
   useSetQueryParamsQuery,
@@ -84,7 +84,7 @@ export function Filter({disableValidation, ...props}: FilterProps) {
   const {traceMetric, skipTraceMetricFilter, projectIds, environments, disabled} = props;
   const query = useQueryParamsQuery();
   const setQuery = useSetQueryParamsQuery();
-  const traceMetricFilter = useTraceMetricFilter(traceMetric);
+  const traceMetricFilter = createTraceMetricFilter(traceMetric);
 
   const {data: validatedSearchQueryData} = useValidateMetricsTab({
     enabled:
@@ -129,7 +129,7 @@ export function MetricFilterBar({
 
   const supportsArrays = organization.features.includes('trace-item-array-query-support');
 
-  const traceMetricFilter = useTraceMetricFilter(traceMetric);
+  const traceMetricFilter = createTraceMetricFilter(traceMetric);
   const attributeQuery = skipTraceMetricFilter ? undefined : traceMetricFilter;
 
   const {data, isLoading} = useQuery({

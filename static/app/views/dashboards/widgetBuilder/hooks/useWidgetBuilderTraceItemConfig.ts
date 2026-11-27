@@ -9,7 +9,7 @@ import {
 import {hasMultipleMetricsSelected} from 'sentry/views/dashboards/widgetBuilder/utils/hasMultipleMetricsSelected';
 import type {TraceItemAttributeConfig} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
-import {useTraceMetricFilter} from 'sentry/views/explore/metrics/hooks/useTraceMetricFilter';
+import {createTraceMetricFilter} from 'sentry/views/explore/metrics/utils';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 export function useWidgetBuilderTraceItemConfig(): TraceItemAttributeConfig {
@@ -21,7 +21,7 @@ export function useWidgetBuilderTraceItemConfig(): TraceItemAttributeConfig {
           ?.map(extractTraceMetricFromColumn)
           .filter(defined) ?? [])
       : [];
-  const traceMetricFilter = useTraceMetricFilter(traceMetrics[0]);
+  const traceMetricFilter = createTraceMetricFilter(traceMetrics[0]);
 
   if (state.dataset === WidgetType.SPANS) {
     return {
