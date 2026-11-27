@@ -47,7 +47,7 @@ service_accounts: 0008_add_owner_kind
 
 social_auth: 0001_squashed_0003_social_auth_json_field
 
-telemetry_classifiers: 0002_draft_status_and_json_compiled_prompt
+telemetry_classifiers: 0002_json_compiled_prompt_and_unique_result_attribute
 
 tempest: 0001_squashed_0003_use_encrypted_char_field
 

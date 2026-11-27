@@ -2,6 +2,7 @@
 
 from django.db import migrations, models
 
+import sentry.telemetry_classifiers.compiled_prompt
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.new_migrations.monkey.special import SafeRunSQL
 
@@ -44,35 +45,15 @@ class Migration(CheckedMigration):
                 migrations.AlterField(
                     model_name="telemetryclassifier",
                     name="compiled_prompt",
-                    field=models.JSONField(null=True),
+                    field=sentry.telemetry_classifiers.compiled_prompt.CompiledClassifierPromptField(
+                        null=True
+                    ),
                 ),
             ],
-        ),
-        migrations.AlterField(
-            model_name="telemetryclassifier",
-            name="name",
-            field=models.CharField(max_length=256, null=True),
-        ),
-        migrations.AlterField(
-            model_name="telemetryclassifier",
-            name="result_attribute",
-            field=models.CharField(max_length=256, null=True),
-        ),
-        migrations.AddConstraint(
-            model_name="telemetryclassifier",
-            constraint=models.CheckConstraint(
-                condition=models.Q(
-                    ("status", "draft"),
-                    models.Q(("name__isnull", False), ("result_attribute__isnull", False)),
-                    _connector="OR",
-                ),
-                name="telemetry_classifier_named_unless_draft",
-            ),
         ),
         migrations.AddConstraint(
             model_name="telemetryclassifier",
             constraint=models.UniqueConstraint(
-                condition=models.Q(("status", "draft"), _negated=True),
                 fields=("project", "result_attribute"),
                 name="telemetry_classifier_unique_result_attribute",
             ),

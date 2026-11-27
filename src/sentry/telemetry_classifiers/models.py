@@ -10,6 +10,7 @@ from sentry.db.models import (
 )
 from sentry.db.models.base import DefaultFieldsModel
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.telemetry_classifiers.compiled_prompt import CompiledClassifierPromptField
 from sentry.telemetry_classifiers.types import (
     Dataset,
     TelemetryClassifierOutputType,
@@ -23,10 +24,10 @@ class TelemetryClassifier(DefaultFieldsModel):
 
     project = FlexibleForeignKey("sentry.Project", on_delete=models.CASCADE)
 
-    name = models.CharField(max_length=256, null=True)
+    name = models.CharField(max_length=256)
 
     # Attribute used to store classifier results, without RESULT_ATTRIBUTE_PREFIX.
-    result_attribute = models.CharField(max_length=256, null=True)
+    result_attribute = models.CharField(max_length=256)
 
     dataset = models.CharField(max_length=32, choices=Dataset.choices)
     filter_query = models.TextField()
@@ -41,7 +42,7 @@ class TelemetryClassifier(DefaultFieldsModel):
 
     # Custom classifier fields.
     natural_language_prompt = models.TextField(null=True)
-    compiled_prompt = models.JSONField(null=True)
+    compiled_prompt = CompiledClassifierPromptField(null=True)
     output_type = models.CharField(
         max_length=16,
         choices=TelemetryClassifierOutputType.choices,
@@ -78,16 +79,8 @@ class TelemetryClassifier(DefaultFieldsModel):
                 ),
                 name="telemetry_classifier_enabled_definition_ready",
             ),
-            models.CheckConstraint(
-                condition=(
-                    models.Q(status=TelemetryClassifierStatus.DRAFT)
-                    | models.Q(name__isnull=False, result_attribute__isnull=False)
-                ),
-                name="telemetry_classifier_named_unless_draft",
-            ),
             models.UniqueConstraint(
                 fields=["project", "result_attribute"],
-                condition=~models.Q(status=TelemetryClassifierStatus.DRAFT),
                 name="telemetry_classifier_unique_result_attribute",
             ),
         ]

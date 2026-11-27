@@ -94,7 +94,7 @@ class OrganizationTelemetryClassifiersEndpoint(OrganizationEndpoint):
         projects = self.get_projects(request, organization)
         queryset: QuerySet[TelemetryClassifier] = TelemetryClassifier.objects.filter(
             project__in=projects
-        ).exclude(status=TelemetryClassifierStatus.DRAFT)
+        )
 
         if raw_query := request.GET.get("query", "").strip():
             queryset = filter_classifiers_by_query(queryset, raw_query)

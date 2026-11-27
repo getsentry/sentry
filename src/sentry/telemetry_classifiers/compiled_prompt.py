@@ -1,7 +1,9 @@
 from __future__ import annotations
 
-from typing import Literal
+from typing import Any, Literal
 
+from django.db import models
+from django.db.backends.base.base import BaseDatabaseWrapper
 from pydantic import BaseModel, Field
 
 from sentry.telemetry_classifiers.types import TelemetryClassifierOutputType
@@ -30,3 +32,10 @@ class SeerDecisionPrompt(BaseModel):
     @property
     def output_type(self) -> TelemetryClassifierOutputType:
         return SEER_QUESTION_OUTPUT_TYPES[self.question.type]
+
+
+class CompiledClassifierPromptField(models.JSONField):
+    def get_db_prep_save(self, value: Any, connection: BaseDatabaseWrapper) -> Any:
+        if value is not None and not hasattr(value, "resolve_expression"):
+            value = SeerDecisionPrompt.validate(value).dict()
+        return super().get_db_prep_save(value, connection)

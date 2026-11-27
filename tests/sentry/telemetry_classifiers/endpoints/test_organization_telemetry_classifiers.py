@@ -62,17 +62,6 @@ class OrganizationTelemetryClassifiersTest(APITestCase):
         assert disabled_data["status"] == "disabled"
         assert disabled_data["createdBy"] is None
 
-    def test_excludes_drafts(self) -> None:
-        enabled = self.create_telemetry_classifier()
-        self.create_telemetry_classifier(
-            name=None, result_attribute=None, status=TelemetryClassifierStatus.DRAFT
-        )
-
-        with self.feature(self.features):
-            response = self.get_success_response(self.organization.slug)
-
-        assert [c["id"] for c in response.data] == [str(enabled.id)]
-
     def test_hides_and_reports_classifiers_with_invalid_definition(self) -> None:
         valid = self.create_telemetry_classifier()
         invalid = self.create_telemetry_classifier(prebuilt_classifier_key="removed_classifier")
@@ -374,15 +363,6 @@ class OrganizationTelemetryClassifiersCreateTest(APITestCase):
         assert response.data["status"] == "disabled"
         assert response.data["filterQuery"] == ""
 
-    def test_rejects_draft_status(self) -> None:
-        with self.feature(self.features):
-            response = self.get_error_response(
-                self.organization.slug, **self.payload(status="draft"), status_code=400
-            )
-
-        assert "status" in response.data
-        assert not TelemetryClassifier.objects.exists()
-
     def test_rejects_custom_classifier(self) -> None:
         custom = self.payload(naturalLanguagePrompt="Is the user frustrated?", outputType="binary")
 
@@ -431,18 +411,6 @@ class OrganizationTelemetryClassifiersCreateTest(APITestCase):
             self.get_success_response(
                 self.organization.slug, **self.payload(project=other_project.id), status_code=201
             )
-
-    def test_draft_does_not_reserve_result_attribute(self) -> None:
-        self.create_telemetry_classifier(
-            project=self.project,
-            result_attribute="frustration",
-            status=TelemetryClassifierStatus.DRAFT,
-        )
-
-        with self.feature(self.features):
-            self.get_success_response(self.organization.slug, **self.payload(), status_code=201)
-
-        assert TelemetryClassifier.objects.filter(result_attribute="frustration").count() == 2
 
     def test_rejects_invalid_result_attribute(self) -> None:
         invalid = ["", "Frustration", "user frustration", ".frustration", "a..b", "a.", "é"]
