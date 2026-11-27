@@ -22,11 +22,7 @@ export type AdminConfirmParams = {
 };
 
 export const adminAuditSchema = z.object({
-  ticketURL: z
-    .string()
-    .refine(value => value === '' || z.url().safeParse(value).success, {
-      message: 'Invalid ticket URL',
-    }),
+  ticketURL: z.url('Invalid ticket URL').or(z.literal('')),
   notes: z.string(),
 });
 
