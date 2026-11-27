@@ -17,8 +17,6 @@ from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
-AUTO_ASSIGN_FEATURE_FLAG = "organizations:seer-smart-assignment-assign"
-
 
 def process_smart_assignment_completion(group: Group, activity: Activity) -> None:
     data = activity.data or {}
@@ -52,16 +50,13 @@ def _apply_prediction(
     used_rank: int | None,
     run_uuid: str | None,
 ) -> None:
-    """If the feature flag is enabled and we predicted an acutal org user,
+    """If the org is a Seer customer and we predicted an acutal org user,
     create a (suggested) GroupOwner for them. Then promote the suggestion to an
     assignment iff the project auto-assigns to owners and the run wasn't triggered
     by a resolution."""
     if not (
-        features.has(AUTO_ASSIGN_FEATURE_FLAG, group.organization)
-        and (
-            features.has("organizations:seer-added", group.organization)
-            or features.has("organizations:seat-based-seer-enabled", group.organization)
-        )
+        features.has("organizations:seer-added", group.organization)
+        or features.has("organizations:seat-based-seer-enabled", group.organization)
     ):
         return
 

@@ -13,10 +13,9 @@ from sentry.testutils.cases import TestCase
 from sentry.types.activity import ActivityType
 from sentry.users.models.user import User
 
-AUTO_ASSIGN_FLAG = "organizations:seer-smart-assignment-assign"
 SEER_ADDED = "organizations:seer-added"
 SEAT_BASED_SEER = "organizations:seat-based-seer-enabled"
-ASSIGN_FEATURES = [AUTO_ASSIGN_FLAG, SEER_ADDED]
+ASSIGN_FEATURES = [SEER_ADDED]
 
 
 class ProcessSmartAssignmentCompletionTest(TestCase):
@@ -88,28 +87,19 @@ class ProcessSmartAssignmentCompletionTest(TestCase):
         process_smart_assignment_completion(self.group, activity)
         assert self._extras()["predicted_assignee_user_ids"] == []
 
-    def test_no_writes_without_flag(self) -> None:
-        alice = self._member()
-        with self.feature(SEER_ADDED):
-            process_smart_assignment_completion(self.group, self._activity([alice.id]))
-
-        # Everything user-facing is behind the flag: no suggested owner, no assignment.
-        assert self._suggested_owners() == []
-        assert not GroupAssignee.objects.filter(group=self.group).exists()
-
     def test_no_writes_without_seer_customer_flag(self) -> None:
         alice = self._member()
         self._set_project_auto_assignment(False)
-        with self.feature(AUTO_ASSIGN_FLAG):
-            process_smart_assignment_completion(self.group, self._activity([alice.id]))
+        process_smart_assignment_completion(self.group, self._activity([alice.id]))
 
+        # Everything user-facing is behind the Seer gate: no suggested owner, no assignment.
         assert self._suggested_owners() == []
         assert not GroupAssignee.objects.filter(group=self.group).exists()
 
     def test_suggests_with_seat_based_seer(self) -> None:
         alice = self._member()
         self._set_project_auto_assignment(False)
-        with self.feature([AUTO_ASSIGN_FLAG, SEAT_BASED_SEER]):
+        with self.feature(SEAT_BASED_SEER):
             process_smart_assignment_completion(self.group, self._activity([alice.id]))
 
         owners = self._suggested_owners()
