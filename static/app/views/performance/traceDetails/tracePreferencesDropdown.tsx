@@ -10,6 +10,7 @@ import {
 import {ExternalLink} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Text} from '@sentry/scraps/text';
 
 import {t, tct, tn} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
@@ -88,13 +89,13 @@ export function TracePreferencesDropdown(props: TracePreferencesDropdownProps) {
                 {props.clockDriftCorrectionCount > 0 && (
                   <Fragment>
                     {' '}
-                    <strong>
+                    <Text bold>
                       {tn(
                         'Adjusted %s span in this trace.',
                         'Adjusted %s spans in this trace.',
                         props.clockDriftCorrectionCount
                       )}
-                    </strong>
+                    </Text>
                   </Fragment>
                 )}
               </Fragment>

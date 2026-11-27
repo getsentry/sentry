@@ -3,7 +3,7 @@ import {IconClock} from '@sentry/icons/clock';
 import {Tag} from '@sentry/scraps/badge';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {formatTraceDuration} from 'sentry/utils/duration/formatTraceDuration';
 
 import {formatClockDriftOffset} from './traceModels/clockDriftCorrection';
@@ -31,9 +31,10 @@ export function ClockDriftTooltip({
 
   return (
     <Tooltip
-      title={tct('Shifted by [offset] to correct for clock drift', {
-        offset: formatClockDriftOffset(offsetMs),
-      })}
+      title={t(
+        'Shifted by %s to correct for clock drift',
+        formatClockDriftOffset(offsetMs)
+      )}
       skipWrapper
     >
       {children}
@@ -70,19 +71,19 @@ export function ClockDriftTag({offsetMs}: {offsetMs: number}) {
   const distance = formatTraceDuration(Math.abs(offsetMs));
   const title =
     offsetMs > 0
-      ? tct(
-          "Shown [distance] later in the waterfall to correct for clock drift: the clocks of the services in this trace were out of sync. The span's duration and the timestamps below are unchanged.",
-          {distance}
+      ? t(
+          "Shown %s later in the waterfall to correct for clock drift: the clocks of the services in this trace were out of sync. The span's duration and the timestamps below are unchanged.",
+          distance
         )
-      : tct(
-          "Shown [distance] earlier in the waterfall to correct for clock drift: the clocks of the services in this trace were out of sync. The span's duration and the timestamps below are unchanged.",
-          {distance}
+      : t(
+          "Shown %s earlier in the waterfall to correct for clock drift: the clocks of the services in this trace were out of sync. The span's duration and the timestamps below are unchanged.",
+          distance
         );
 
   return (
     <Tooltip title={title} skipWrapper>
       <Tag variant="muted" icon={<IconClock />}>
-        {tct('Shifted [offset]', {offset: formatClockDriftOffset(offsetMs)})}
+        {t('Shifted %s', formatClockDriftOffset(offsetMs))}
       </Tag>
     </Tooltip>
   );
