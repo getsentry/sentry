@@ -1,6 +1,6 @@
 # Sentry Development Guide for AI Agents
 
-> **IMPORTANT**: AGENTS.md files are the source of truth for AI agent instructions. Always update the relevant AGENTS.md file when adding or modifying agent guidance. Do not add to CLAUDE.md or Cursor rules.
+> AGENTS.md files are the source of truth for AI agent instructions. Always update the relevant AGENTS.md file when adding or modifying agent guidance. Do not add to CLAUDE.md.
 
 ## Command Execution Guide
 
@@ -8,14 +8,12 @@ Critical command instructions that apply across all Sentry development.
 
 ### Python Command Execution Requirements
 
-**CRITICAL**: Python commands (pytest, mypy, prek, etc.) MUST run in the virtualenv. Prefix the full relative path, or source the activate script:
+Run Python commands (pytest, mypy, prek, etc.) in the virtualenv, where the project's dependencies are installed. Prefix the full relative path, or source the activate script:
 
 ```bash
 cd /path/to/sentry && .venv/bin/pytest tests/...
 cd /path/to/sentry && source .venv/bin/activate && pytest tests/...
 ```
-
-For AI agents: always use `required_permissions: ['all']` for Python commands to avoid sandbox permission issues.
 
 ### Backend Development Commands
 

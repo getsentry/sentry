@@ -84,7 +84,7 @@ Read `references/troubleshooting.md` when:
 | `static/app/utils/routeAnalytics/useRouteAnalyticsEventNames.tsx` | Hook for route-level page view event names                                            |
 | `static/app/utils/routeAnalytics/useRouteAnalyticsParams.tsx`     | Hook for route-level page view parameters                                             |
 | `static/app/components/analyticsArea.tsx`                         | `AnalyticsArea` component and `useAnalyticsArea` hook                                 |
-| `static/app/components/core/button/types.tsx`                     | Button analytics props (`analyticsEventKey`, `analyticsEventName`, `analyticsParams`) |
+| `static/packages/scraps/src/button/types.tsx`                     | Button analytics props (`analyticsEventKey`, `analyticsEventName`, `analyticsParams`) |
 
 ## Interaction Rules
 

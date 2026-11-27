@@ -93,7 +93,7 @@ queryClient.invalidateQueries({
 
 ## TanStack Query Type Inference — NEVER Pass Call-Site Generics
 
-**CRITICAL**: Never pass type parameters to `useQuery`, `useMutation`, `mutationOptions`, `queryOptions`, or any TanStack Query function at the call site. Let TypeScript infer types from your `queryFn`/`mutationFn` and callbacks. Passing call-site generics defeats inference, hides bugs, and creates maintenance burden.
+Don't pass type parameters to `useQuery`, `useMutation`, `mutationOptions`, `queryOptions`, or any TanStack Query function at the call site. Let TypeScript infer types from your `queryFn`/`mutationFn` and callbacks. Passing call-site generics defeats inference, hides bugs, and creates maintenance burden.
 
 ```typescript
 // ❌ NEVER pass generics to useQuery, useMutation, mutationOptions, etc.
