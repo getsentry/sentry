@@ -21,9 +21,8 @@ export function useReplaysFromIssue({
   location: Location;
   organization: Organization;
 }) {
-  // use Discover for errors and Issue Platform for everything else
   const dataSource =
-    group.issueCategory === IssueCategory.ERROR ? 'discover' : 'search_issues';
+    group.issueCategory === IssueCategory.ERROR ? 'errors' : 'search_issues';
 
   const {data, error, isFetching, refetch} = useQuery({
     ...apiOptions.as<Record<string, string[]>>()(

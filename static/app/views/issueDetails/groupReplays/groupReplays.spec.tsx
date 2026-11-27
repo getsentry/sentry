@@ -241,7 +241,7 @@ describe('GroupReplays', () => {
           expect.objectContaining({
             query: {
               returnIds: true,
-              data_source: 'discover',
+              data_source: 'errors',
               query: `issue.id:[${mockGroup.id}]`,
               statsPeriod: '90d',
               project: -1,
@@ -594,7 +594,7 @@ describe('GroupReplays', () => {
         expect.objectContaining({
           query: {
             returnIds: true,
-            data_source: 'discover',
+            data_source: 'errors',
             query: `issue.id:[${mockGroup.id}]`,
             statsPeriod: '90d',
             project: -1,
@@ -664,7 +664,7 @@ describe('GroupReplays', () => {
           expect.objectContaining({
             query: {
               returnIds: true,
-              data_source: 'discover',
+              data_source: 'errors',
               query: `issue.id:[${mockGroup.id}]`,
               statsPeriod: '90d',
               project: -1,
