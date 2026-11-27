@@ -30,3 +30,14 @@ it('does not call onClose for an imperative close or replacement', () => {
   closeModal();
   expect(onClose).not.toHaveBeenCalled();
 });
+
+it('blurs a focused text field so the on-screen keyboard closes', () => {
+  const input = document.createElement('input');
+  document.body.appendChild(input);
+  input.focus();
+
+  openModal(() => null);
+
+  expect(input).not.toHaveFocus();
+  input.remove();
+});

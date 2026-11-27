@@ -6,7 +6,6 @@ describe('useScrollLock', () => {
   let container: HTMLElement;
 
   beforeEach(() => {
-    jest.useFakeTimers();
     jest.spyOn(window, 'scrollTo').mockImplementation(() => {});
     container = document.createElement('div');
     container.style.overflow = 'auto';
@@ -14,13 +13,8 @@ describe('useScrollLock', () => {
   });
 
   afterEach(() => {
-    try {
-      jest.runOnlyPendingTimers();
-    } finally {
-      jest.useRealTimers();
-      document.body.removeChild(container);
-      jest.restoreAllMocks();
-    }
+    document.body.removeChild(container);
+    jest.restoreAllMocks();
   });
 
   it('locks scroll when acquired', () => {
@@ -158,106 +152,112 @@ describe('useScrollLock', () => {
     expect(container).toHaveStyle({overflow: 'auto'});
   });
 
-  it('locks document scroll without changing html overflow', () => {
-    const scrollX = 100;
-    const scrollY = 240;
-    const originalInnerWidth = window.innerWidth;
-    const originalClientWidth = document.body.clientWidth;
-    const originalScrollX = window.scrollX;
-    const originalScrollY = window.scrollY;
-    Object.defineProperty(window, 'innerWidth', {configurable: true, value: 1200});
-    Object.defineProperty(document.body, 'clientWidth', {
-      configurable: true,
-      value: 1180,
-    });
-    Object.defineProperty(window, 'scrollX', {configurable: true, value: scrollX});
-    Object.defineProperty(window, 'scrollY', {configurable: true, value: scrollY});
-    const scrollToSpy = jest.spyOn(window, 'scrollTo').mockImplementation(() => {});
+  describe('document.body', () => {
+    // A fixed body gives back the width of the root scrollbar, and the page's
+    // scroll position drops to 0 until something scrolls it again.
+    function mockBrowserLayout({scrollY = 0, scrollbarWidth = 0} = {}) {
+      let currentScrollY = scrollY;
+      const isLocked = () => document.body.style.position === 'fixed';
+      jest
+        .spyOn(document.documentElement, 'clientWidth', 'get')
+        .mockImplementation(() => (isLocked() ? 1200 : 1200 - scrollbarWidth));
+      jest.spyOn(window, 'scrollY', 'get').mockImplementation(() => {
+        if (isLocked()) {
+          currentScrollY = 0;
+        }
+        return currentScrollY;
+      });
+      jest.mocked(window.scrollTo).mockImplementation((...args: unknown[]) => {
+        if (typeof args[1] === 'number') {
+          currentScrollY = args[1];
+        }
+      });
+    }
 
-    const {result} = renderHook(() => useScrollLock(document.body));
-
-    result.current.acquire();
-
-    expect(document.documentElement).toHaveStyle({overflow: ''});
-    expect(document.body).toHaveStyle({
-      position: 'fixed',
-      top: `-${scrollY}px`,
-      left: '0',
-      right: '0',
-      width: '100%',
-      paddingRight: '20px',
+    afterEach(() => {
+      document.body.removeAttribute('style');
+      document.documentElement.removeAttribute('style');
     });
 
-    result.current.release();
+    it('locks document scroll without changing html overflow', () => {
+      mockBrowserLayout({scrollY: 240, scrollbarWidth: 20});
+      const {result} = renderHook(() => useScrollLock(document.body));
 
-    expect(document.body.style.getPropertyValue('position')).toBe('');
-    expect(document.body.style.getPropertyValue('top')).toBe('');
-    expect(document.body.style.getPropertyValue('left')).toBe('');
-    expect(document.body.style.getPropertyValue('right')).toBe('');
-    expect(document.body.style.getPropertyValue('width')).toBe('');
-    expect(document.body.style.getPropertyValue('padding-right')).toBe('');
-    jest.runAllTimers();
-    expect(scrollToSpy).toHaveBeenCalledWith(scrollX, scrollY);
+      result.current.acquire();
 
-    Object.defineProperty(window, 'innerWidth', {
-      configurable: true,
-      value: originalInnerWidth,
+      expect(document.documentElement).toHaveStyle({overflow: ''});
+      expect(document.body).toHaveStyle({
+        position: 'fixed',
+        top: '-240px',
+        left: '0',
+        right: '0',
+        width: '100%',
+        paddingRight: '20px',
+      });
+
+      result.current.release();
+
+      expect(document.body).not.toHaveStyle({position: 'fixed'});
+      expect(document.body).not.toHaveStyle({top: '-240px'});
+      expect(document.body).not.toHaveStyle({paddingRight: '20px'});
+      expect(window.scrollTo).toHaveBeenCalledWith(0, 240);
     });
-    Object.defineProperty(document.body, 'clientWidth', {
-      configurable: true,
-      value: originalClientWidth,
+
+    it('preserves existing body paddingRight', () => {
+      mockBrowserLayout({scrollbarWidth: 20});
+      document.body.style.paddingRight = '10px';
+      const {result} = renderHook(() => useScrollLock(document.body));
+
+      result.current.acquire();
+      expect(document.body).toHaveStyle({paddingRight: '30px'});
+
+      result.current.release();
+      expect(document.body).toHaveStyle({paddingRight: '10px'});
     });
-    Object.defineProperty(window, 'scrollX', {
-      configurable: true,
-      value: originalScrollX,
+
+    it('measures the scrollbar from layout widths, not innerWidth', () => {
+      // On iOS a pinch zoom shrinks innerWidth to the visual viewport.
+      jest.spyOn(window, 'innerWidth', 'get').mockReturnValue(195);
+      mockBrowserLayout();
+      const {result} = renderHook(() => useScrollLock(document.body));
+
+      result.current.acquire();
+
+      expect(document.body).toHaveStyle({paddingRight: '0px'});
+      expect(document.documentElement.style.getPropertyValue('--scrollbar-size')).toBe(
+        '0px'
+      );
+      result.current.release();
     });
-    Object.defineProperty(window, 'scrollY', {
-      configurable: true,
-      value: originalScrollY,
+
+    it('keeps the scroll position when one lock replaces another', () => {
+      mockBrowserLayout({scrollY: 800});
+      const first = renderHook(() => useScrollLock(document.body));
+      const second = renderHook(() => useScrollLock(document.body));
+
+      first.result.current.acquire();
+      expect(window.scrollY).toBe(0);
+      first.result.current.release();
+      second.result.current.acquire();
+
+      expect(document.body).toHaveStyle({top: '-800px'});
+      second.result.current.release();
     });
-    scrollToSpy.mockRestore();
-  });
 
-  it('preserves existing body paddingRight when locking document scroll', () => {
-    const originalInnerWidth = window.innerWidth;
-    const originalClientWidth = document.body.clientWidth;
-    const originalScrollY = window.scrollY;
-    Object.defineProperty(window, 'innerWidth', {configurable: true, value: 1200});
-    Object.defineProperty(document.body, 'clientWidth', {
-      configurable: true,
-      value: 1180,
+    it('shares one lock after an idle instance unmounts', () => {
+      mockBrowserLayout();
+      const modal = renderHook(() => useScrollLock(document.body));
+      const list = renderHook(() => useScrollLock(document.body));
+      list.unmount();
+      const navigation = renderHook(() => useScrollLock(document.body));
+
+      navigation.result.current.acquire();
+      modal.result.current.acquire();
+      navigation.result.current.release();
+      expect(document.body).toHaveStyle({position: 'fixed'});
+
+      modal.result.current.release();
+      expect(document.body).not.toHaveStyle({position: 'fixed'});
     });
-    Object.defineProperty(window, 'scrollY', {configurable: true, value: 0});
-    const scrollToSpy = jest.spyOn(window, 'scrollTo').mockImplementation(() => {});
-
-    // Set existing paddingRight on body
-    document.body.style.paddingRight = '10px';
-
-    const {result} = renderHook(() => useScrollLock(document.body));
-
-    result.current.acquire();
-
-    // scrollbar (20px) + existing padding (10px) = 30px
-    expect(document.body).toHaveStyle({paddingRight: '30px'});
-
-    result.current.release();
-
-    // Original paddingRight is restored
-    expect(document.body).toHaveStyle({paddingRight: '10px'});
-
-    document.body.style.paddingRight = '';
-    Object.defineProperty(window, 'innerWidth', {
-      configurable: true,
-      value: originalInnerWidth,
-    });
-    Object.defineProperty(document.body, 'clientWidth', {
-      configurable: true,
-      value: originalClientWidth,
-    });
-    Object.defineProperty(window, 'scrollY', {
-      configurable: true,
-      value: originalScrollY,
-    });
-    scrollToSpy.mockRestore();
   });
 });

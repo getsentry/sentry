@@ -362,7 +362,7 @@ export function FrameworkSuggestionModal({
     ) {
       return;
     }
-    documentElement.style.minHeight = '631px';
+    documentElement.style.minHeight = 'min(631px, 80dvh)';
   }, [listEntriesWithVanilla.length]);
 
   return (
@@ -595,8 +595,8 @@ export const modalCss = css`
   [role='document'] {
     display: flex;
     flex-direction: column;
-    max-height: 80vh;
-    min-height: 550px;
+    max-height: 80dvh;
+    min-height: min(550px, 80dvh);
   }
   [role='document'] > form {
     display: flex;

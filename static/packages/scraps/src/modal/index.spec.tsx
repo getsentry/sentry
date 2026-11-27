@@ -381,6 +381,59 @@ it('restores focus to the button focused when a keyboard shortcut opens the moda
   expect(screen.getByRole('button', {name: 'My Button'})).toHaveFocus();
 });
 
+it('keeps the page locked and returns focus to the first trigger when a modal replaces another', async () => {
+  render(<GlobalModal />, {wrapper});
+  render(<button>Delete</button>);
+  screen.getByRole('button', {name: 'Delete'}).focus();
+
+  act(() => openModal(() => <input aria-label="Reason" autoFocus />));
+  expect(screen.getByRole('textbox', {name: 'Reason'})).toHaveFocus();
+  expect(document.body).toHaveStyle({position: 'fixed'});
+  jest.mocked(window.scrollTo).mockClear();
+
+  act(() => openModal(() => <textarea aria-label="Confirm" autoFocus />));
+  expect(screen.getByRole('textbox', {name: 'Confirm'})).toHaveFocus();
+  expect(document.body).toHaveStyle({position: 'fixed'});
+  expect(window.scrollTo).not.toHaveBeenCalled();
+
+  act(() => closeModal());
+  await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  expect(document.body).not.toHaveStyle({position: 'fixed'});
+  expect(screen.getByRole('button', {name: 'Delete'})).toHaveFocus();
+});
+
+it('sizes the modal container to the visual viewport', () => {
+  const listeners = new Map<string, () => void>();
+  const visualViewport = {
+    offsetTop: 120,
+    height: 300,
+    addEventListener: (type: string, listener: () => void) =>
+      listeners.set(type, listener),
+    removeEventListener: (type: string) => listeners.delete(type),
+  };
+  Object.defineProperty(window, 'visualViewport', {
+    configurable: true,
+    value: visualViewport,
+  });
+  try {
+    render(<GlobalModal />, {wrapper});
+
+    act(() => openModal(({Body}) => <Body>Keyboard open</Body>));
+    const container = screen.getByTestId('modal-backdrop');
+    expect(container).toHaveStyle({top: '120px', height: '300px'});
+
+    visualViewport.height = 500;
+    act(() => listeners.get('resize')?.());
+    expect(container).toHaveStyle({height: '500px'});
+
+    act(() => closeModal());
+    expect(container).not.toHaveStyle({height: '500px'});
+    expect(listeners.size).toBe(0);
+  } finally {
+    Reflect.deleteProperty(window, 'visualViewport');
+  }
+});
+
 it('renders interactive tooltip inside the modal', async () => {
   render(<GlobalModal />, {wrapper});
 

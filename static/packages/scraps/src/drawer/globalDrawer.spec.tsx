@@ -51,11 +51,13 @@ function DrawerControl({
 }
 
 describe('GlobalDrawer', () => {
-  beforeEach(() => {
+  // Drawers left open are unmounted after each test, which releases the scroll
+  // lock and calls scrollTo.
+  beforeAll(() => {
     jest.spyOn(window, 'scrollTo').mockImplementation(() => {});
   });
 
-  afterEach(() => {
+  afterAll(() => {
     jest.restoreAllMocks();
   });
   it('opens, locks scrolling, and closes through the header without app providers', async () => {
@@ -176,6 +178,23 @@ describe('GlobalDrawer', () => {
 
     expect(shouldCloseOnInteractOutside).toHaveBeenCalledWith(document.documentElement);
     expect(screen.getByRole('complementary', {name: 'Details'})).toBeInTheDocument();
+  });
+
+  it('unlocks scrolling when a passive drawer replaces a locking drawer', async () => {
+    render(
+      <GlobalDrawer>
+        <DrawerControl label="Locking" />
+        <DrawerControl label="Passive" options={{mode: 'passive'}} />
+      </GlobalDrawer>,
+      {wrapper}
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Open Locking'}));
+    expect(await screen.findByText('Locking content')).toBeInTheDocument();
+    expect(document.body).toHaveStyle({position: 'fixed'});
+
+    fireEvent.click(screen.getByRole('button', {name: 'Open Passive'}));
+    expect(await screen.findByText('Passive content')).toBeInTheDocument();
+    expect(document.body).not.toHaveStyle({position: 'fixed'});
   });
 
   it('keeps passive drawers open during outside interaction and navigation', async () => {
