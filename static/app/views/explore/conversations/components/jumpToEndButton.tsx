@@ -41,17 +41,7 @@ export function JumpToEndButton({
     setScrollAtPageCount(null);
   }, [loadedPageCount, scrollAtPageCount, scrollContainerRef]);
 
-  useEffect(() => {
-    if (!abortController) {
-      return;
-    }
-    const {signal} = abortController;
-    const cancel = () => abortController.abort();
-    const container = scrollContainerRef.current;
-    container?.addEventListener('wheel', cancel, {passive: true, signal});
-    container?.addEventListener('touchmove', cancel, {passive: true, signal});
-    return cancel;
-  }, [abortController, scrollContainerRef]);
+  useEffect(() => () => abortController?.abort(), [abortController]);
 
   const handleClick = async () => {
     if (abortController) {

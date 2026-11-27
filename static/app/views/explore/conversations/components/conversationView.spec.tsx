@@ -3,7 +3,6 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {
   act,
   cleanup,
-  fireEvent,
   render,
   screen,
   userEvent,
@@ -433,20 +432,20 @@ describe('ConversationViewContent', () => {
       expect(screen.queryByRole('button', {name: 'Retry'})).not.toBeInTheDocument();
     });
 
-    it('stops loading pages when the user scrolls', async () => {
+    it('stops loading pages when the user stops the jump', async () => {
       MockApiClient.clearMockResponses();
       mockConversation([CONVERSATION_BODY[0]!], {nextCursor: 'page-2'});
       const secondPage = mockConversation([CONVERSATION_BODY[1]!], {
         cursor: 'page-2',
         nextCursor: 'page-3',
-        asyncDelay: 10,
+        asyncDelay: 200,
       });
       const thirdPage = mockConversation([], {cursor: 'page-3'});
       renderView();
       await screen.findByText('First answer');
 
       await userEvent.click(screen.getByRole('button', {name: 'Jump to end'}));
-      fireEvent.wheel(await screen.findByRole('button', {name: 'Stop loading'}));
+      await userEvent.click(await screen.findByRole('button', {name: 'Stop loading'}));
 
       expect(
         await screen.findByRole('button', {name: 'Jump to end'})

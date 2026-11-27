@@ -413,13 +413,14 @@ async function fetchRemainingPages(
 ) {
   const getLoadedPageCount = () => queryClient.getQueryData(queryKey)?.pages.length ?? 0;
   const loadedData = queryClient.getQueryData(queryKey);
-  if (!loadedData) {
+  const lastPage = loadedData?.pages.at(-1);
+  if (!loadedData || !lastPage) {
     return {hasFailedPage: false, pageCount: 0};
   }
 
   const pages = [...loadedData.pages];
   const pageParams = [...(loadedData.pageParams as Array<ParsedHeader | undefined>)];
-  let pageParam = getNextPageParam(pages.at(-1)!, pages, pageParams.at(-1), pageParams);
+  let pageParam = getNextPageParam(lastPage, pages, pageParams.at(-1), pageParams);
   let hasFailedPage = false;
   while (pageParam && !signal.aborted && pages.length < MAX_PAGES) {
     const page = await apiFetchInfinite<ConversationApiResponse>({
