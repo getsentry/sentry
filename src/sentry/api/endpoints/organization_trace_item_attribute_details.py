@@ -175,8 +175,6 @@ class OrganizationTraceItemAttributeDetailsEndpoint(OrganizationTraceItemAttribu
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-    # Not checked against this endpoint's handler, so don't inherit the parent's.
-    project_scope = {}
 
     def get(self, request: Request, organization: Organization) -> Response:
         if not features.has(

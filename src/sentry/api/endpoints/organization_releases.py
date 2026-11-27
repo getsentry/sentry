@@ -357,7 +357,6 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
-    project_scope = {"GET": "filter"}
     idempotent_methods = frozenset()
 
     rate_limits = RateLimitConfig(

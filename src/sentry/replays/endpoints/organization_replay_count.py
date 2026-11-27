@@ -84,7 +84,6 @@ class OrganizationReplayCountEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }
-    project_scope = {"GET": "filter"}
 
     enforce_rate_limit = True
     rate_limits = RateLimitConfig(

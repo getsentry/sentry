@@ -195,6 +195,51 @@ def _project_scope_error(method: str, value: str) -> str | None:
     return 'the value must be "filter", "org-metadata", or "response:<JSON pointer>"'
 
 
+def _takes_project_filter(operation: Mapping[str, Any]) -> bool:
+    return any(
+        param.get("in") == "query" and param.get("name") == "project"
+        for param in operation.get("parameters", [])
+    )
+
+
+def _schemas_at_pointer(
+    schema: Mapping[str, Any], segments: list[str], components: Mapping[str, Any]
+) -> list[Mapping[str, Any]]:
+    """Every schema that a JSON pointer can reach, across $ref, allOf, oneOf, and anyOf."""
+    while "$ref" in schema:
+        schema = components[schema["$ref"].split("/")[-1]]
+    found = [
+        reached
+        for key in ("allOf", "oneOf", "anyOf")
+        for branch in schema.get(key, [])
+        for reached in _schemas_at_pointer(branch, segments, components)
+    ]
+    if not segments:
+        return [*found, schema]
+    head, *rest = segments
+    child = schema.get("items") if head == "*" else schema.get("properties", {}).get(head)
+    if child is not None:
+        found.extend(_schemas_at_pointer(child, rest, components))
+    return found
+
+
+def _check_project_scope_pointer(
+    operation: Mapping[str, Any], components: Mapping[str, Any], endpoint_name: str
+) -> None:
+    scope = operation.get("x-sentry-project-scope", "")
+    if not scope.startswith(_PROJECT_SCOPE_RESPONSE_PREFIX):
+        return
+    pointer = scope.removeprefix(_PROJECT_SCOPE_RESPONSE_PREFIX)
+    segments = [s.replace("~1", "/").replace("~0", "~") for s in pointer.split("/")[1:]]
+    response = operation.get("responses", {}).get("200", {})
+    schema = response.get("content", {}).get("application/json", {}).get("schema")
+    reached = _schemas_at_pointer(schema, segments, components) if schema else []
+    if not any(s.get("type") in ("integer", "string") for s in reached):
+        raise SentryApiBuildError(
+            f"project_scope {scope!r} of endpoint {endpoint_name} does not point to a string or integer field in its 200 response."
+        )
+
+
 # Include non-spectacular endpoints so existing APPEND_PATHS operations can use
 # their backend declaration without changing which methods are published.
 _OPERATION_SILOS: dict[tuple[str, str], DeclaredSilo] = {}
@@ -403,6 +448,8 @@ def custom_postprocessing_hook(
                 operation["x-sentry-project-scope"] = "path"
             elif operation_key in _PROJECT_SCOPE_OPERATIONS:
                 operation["x-sentry-project-scope"] = _PROJECT_SCOPE_OPERATIONS[operation_key]
+            elif _takes_project_filter(operation):
+                operation["x-sentry-project-scope"] = "filter"
 
     # Add servers override from endpoint class definitions
     for path, servers in _ENDPOINT_SERVERS.items():
@@ -462,6 +509,7 @@ def custom_postprocessing_hook(
                 summaries_seen[summary] = endpoint_name
 
             _check_tag(method_info, endpoint_name)
+            _check_project_scope_pointer(method_info, schema_components, endpoint_name)
             _check_description(
                 method_info,
                 f"Please add a description to your endpoint {endpoint_name} via docstring",

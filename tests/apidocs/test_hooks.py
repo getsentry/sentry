@@ -384,16 +384,36 @@ class TestProjectScopeOperations:
         callback = type("FakeCallback", (), {"view_class": view_class})
         return [(path, path, method, callback) for method in methods]
 
-    def operation(self, operation_id: str) -> dict[str, Any]:
-        return {
+    def operation(
+        self,
+        operation_id: str,
+        parameters: list[dict[str, Any]] | None = None,
+        response: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        operation: dict[str, Any] = {
             "tags": ["Events"],
             "description": "An endpoint",
             "operationId": operation_id,
-            "parameters": [],
+            "parameters": parameters or [],
         }
+        if response is not None:
+            operation["responses"] = {
+                "200": {"content": {"application/json": {"schema": response}}}
+            }
+        return operation
 
-    def process(self, paths: dict[str, Any]) -> dict[str, Any]:
-        return custom_postprocessing_hook({"components": {"schemas": {}}, "paths": paths}, None)
+    def process(
+        self, paths: dict[str, Any], components: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
+        return custom_postprocessing_hook(
+            {"components": {"schemas": components or {}}, "paths": paths}, None
+        )
+
+    project_param = {"in": "query", "name": "project", "description": "Projects"}
+    project_id_response = {
+        "type": "object",
+        "properties": {"project": {"type": "object", "properties": {"id": {"type": "string"}}}},
+    }
 
     def test_declared_values_are_stamped_per_method(self) -> None:
         path = "/api/0/organizations/{organization_id_or_slug}/things/"
@@ -411,11 +431,24 @@ class TestProjectScopeOperations:
         result = self.process(
             {
                 path: {
-                    "get": self.operation("get-thing"),
+                    "get": self.operation(
+                        "get-thing", response={"$ref": "#/components/schemas/Thing"}
+                    ),
                     "put": self.operation("update-things"),
                     "post": self.operation("create-thing"),
                 }
-            }
+            },
+            components={
+                "Thing": {
+                    "type": "object",
+                    "properties": {
+                        "projects": {
+                            "type": "array",
+                            "items": {"type": "object", "properties": {"id": {"type": "integer"}}},
+                        }
+                    },
+                }
+            },
         )
 
         operations = result["paths"][path]
@@ -449,7 +482,13 @@ class TestProjectScopeOperations:
         custom_preprocessing_hook(
             [(source_path, source_path, "GET", GroupDetailsEndpoint.as_view())]
         )
-        result = self.process({published_path: {"get": self.operation("get-issue")}})
+        result = self.process(
+            {
+                published_path: {
+                    "get": self.operation("get-issue", response=self.project_id_response)
+                }
+            }
+        )
 
         canonical_path = "/api/0/organizations/{organization_id_or_slug}/issues/{issue_id}/"
         operation = result["paths"][canonical_path]["get"]
@@ -500,6 +539,113 @@ class TestProjectScopeOperations:
 
         with pytest.raises(SentryApiBuildError, match=error):
             custom_preprocessing_hook(endpoints)
+
+    def test_documented_project_parameter_derives_filter(self) -> None:
+        path = "/api/0/organizations/{organization_id_or_slug}/things/"
+        custom_preprocessing_hook(
+            self.endpoints(
+                path, {"GET": ApiPublishStatus.PUBLIC, "PUT": ApiPublishStatus.PUBLIC}, {}
+            )
+        )
+        result = self.process(
+            {
+                path: {
+                    "get": self.operation("list-things", [self.project_param]),
+                    "put": self.operation("update-things"),
+                }
+            }
+        )
+
+        assert result["paths"][path]["get"]["x-sentry-project-scope"] == "filter"
+        assert "x-sentry-project-scope" not in result["paths"][path]["put"]
+
+    def test_declaration_wins_over_derived_filter(self) -> None:
+        path = "/api/0/organizations/{organization_id_or_slug}/things/{thing_id}/"
+        custom_preprocessing_hook(
+            self.endpoints(path, {"GET": ApiPublishStatus.PUBLIC}, {"GET": "response:/project/id"})
+        )
+        result = self.process(
+            {
+                path: {
+                    "get": self.operation(
+                        "get-thing", [self.project_param], self.project_id_response
+                    )
+                }
+            }
+        )
+
+        assert result["paths"][path]["get"]["x-sentry-project-scope"] == "response:/project/id"
+
+    def test_project_path_wins_over_derived_filter(self) -> None:
+        path = "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/things/"
+        custom_preprocessing_hook(self.endpoints(path, {"GET": ApiPublishStatus.PUBLIC}, {}))
+        result = self.process({path: {"get": self.operation("list-things", [self.project_param])}})
+
+        assert result["paths"][path]["get"]["x-sentry-project-scope"] == "path"
+
+    @pytest.mark.parametrize(
+        "pointer",
+        [
+            "/project/id",
+            "/project/name",
+            "/project",
+            "/projects/*/id",
+            "/project/id/value",
+        ],
+    )
+    def test_pointer_missing_from_response_raises(self, pointer: str) -> None:
+        path = "/api/0/organizations/{organization_id_or_slug}/things/{thing_id}/"
+        custom_preprocessing_hook(
+            self.endpoints(path, {"GET": ApiPublishStatus.PUBLIC}, {"GET": f"response:{pointer}"})
+        )
+        response = {
+            "type": "object",
+            "properties": {
+                "project": {"type": "object", "properties": {"slug": {"type": "string"}}}
+            },
+        }
+        if pointer == "/project/id/value":
+            response = self.project_id_response
+
+        with pytest.raises(SentryApiBuildError, match="does not point to a string or integer"):
+            self.process({path: {"get": self.operation("get-thing", response=response)}})
+
+    def test_pointer_follows_refs_and_union_branches(self) -> None:
+        path = "/api/0/organizations/{organization_id_or_slug}/things/{thing_id}/"
+        custom_preprocessing_hook(
+            self.endpoints(
+                path, {"GET": ApiPublishStatus.PUBLIC}, {"GET": "response:/data/project~1id"}
+            )
+        )
+        components = {
+            "Thing": {
+                "type": "object",
+                "properties": {
+                    "data": {
+                        "allOf": [{"$ref": "#/components/schemas/ThingData"}],
+                        "nullable": True,
+                    }
+                },
+            },
+            "ThingData": {
+                "type": "object",
+                "properties": {"project/id": {"oneOf": [{"type": "string"}, {"type": "integer"}]}},
+            },
+        }
+        result = self.process(
+            {
+                path: {
+                    "get": self.operation(
+                        "get-thing", response={"$ref": "#/components/schemas/Thing"}
+                    )
+                }
+            },
+            components,
+        )
+
+        assert (
+            result["paths"][path]["get"]["x-sentry-project-scope"] == "response:/data/project~1id"
+        )
 
 
 class SummaryUniquenessTest(TestCase):
@@ -817,9 +963,26 @@ class TestOperationRouting:
         custom_preprocessing_hook(
             [(source_path, source_path, "GET", GroupDetailsEndpoint.as_view())]
         )
-        result = self.process(
-            {published_path: {"get": self.operation([self.parameter("organization_id_or_slug")])}}
-        )
+        operation = self.operation([self.parameter("organization_id_or_slug")])
+        # GroupDetailsEndpoint's project_scope points into its response.
+        operation["responses"] = {
+            "200": {
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "project": {
+                                    "type": "object",
+                                    "properties": {"id": {"type": "string"}},
+                                }
+                            },
+                        }
+                    }
+                }
+            }
+        }
+        result = self.process({published_path: {"get": operation}})
         canonical_path = "/api/0/organizations/{organization_id_or_slug}/issues/{issue_id}/"
         assert result["paths"][canonical_path]["get"]["x-sentry-routing"] == {
             "silo": "cell",
