@@ -114,6 +114,17 @@ def test_default_bases(default_bases: list[str]) -> None:
                 "attributes": {},
                 "is_builtin": True,
             },
+            {
+                "text": 'family:"javascript" type:"InternalError" value:"too much recursion" -> "too-much-recursion", "{{stack.filename}}", "{{function}}"',
+                "matchers": [
+                    ["family", "javascript"],
+                    ["type", "InternalError"],
+                    ["value", "too much recursion"],
+                ],
+                "fingerprint": ["too-much-recursion", "{{stack.filename}}", "{{function}}"],
+                "attributes": {},
+                "is_builtin": True,
+            },
         ]
     }
 
@@ -202,6 +213,17 @@ def test_built_in_nextjs_rules_base(default_bases: list[str]) -> None:
                     ["message", "Text content does not match server-rendered HTML."],
                 ],
                 "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
+                "attributes": {},
+                "is_builtin": True,
+            },
+            {
+                "text": 'family:"javascript" type:"InternalError" value:"too much recursion" -> "too-much-recursion", "{{stack.filename}}", "{{function}}"',
+                "matchers": [
+                    ["family", "javascript"],
+                    ["type", "InternalError"],
+                    ["value", "too much recursion"],
+                ],
+                "fingerprint": ["too-much-recursion", "{{stack.filename}}", "{{function}}"],
                 "attributes": {},
                 "is_builtin": True,
             },
@@ -296,6 +318,17 @@ def test_built_in_nextjs_rules_from_empty_config_string(
                     ["message", "Text content does not match server-rendered HTML."],
                 ],
                 "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
+                "attributes": {},
+                "is_builtin": True,
+            },
+            {
+                "text": 'family:"javascript" type:"InternalError" value:"too much recursion" -> "too-much-recursion", "{{stack.filename}}", "{{function}}"',
+                "matchers": [
+                    ["family", "javascript"],
+                    ["type", "InternalError"],
+                    ["value", "too much recursion"],
+                ],
+                "fingerprint": ["too-much-recursion", "{{stack.filename}}", "{{function}}"],
                 "attributes": {},
                 "is_builtin": True,
             },
@@ -408,6 +441,17 @@ def test_built_in_nextjs_rules_from_config_string_with_custom(
                 ],
                 "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
                 "text": 'family:"javascript" tags.transaction:"*" message:"Text content does not match server-rendered HTML." -> "hydrationerror", "{{tags.transaction}}"',
+                "attributes": {},
+                "is_builtin": True,
+            },
+            {
+                "text": 'family:"javascript" type:"InternalError" value:"too much recursion" -> "too-much-recursion", "{{stack.filename}}", "{{function}}"',
+                "matchers": [
+                    ["family", "javascript"],
+                    ["type", "InternalError"],
+                    ["value", "too much recursion"],
+                ],
+                "fingerprint": ["too-much-recursion", "{{stack.filename}}", "{{function}}"],
                 "attributes": {},
                 "is_builtin": True,
             },
@@ -750,3 +794,62 @@ class BuiltInFingerprintingTest(TestCase):
             ],
             "text": 'family:"javascript" tags.transaction:"*" message:"Text content does not match server-rendered HTML." -> "hydrationerror", "{{tags.transaction}}"',
         }
+
+    def _too_much_recursion_event(self, frames: list[dict[str, Any]] | None) -> dict[str, Any]:
+        exception: dict[str, Any] = {"type": "InternalError", "value": "too much recursion"}
+        if frames is not None:
+            exception["stacktrace"] = {"frames": frames}
+        return {
+            "exception": {"values": [exception]},
+            "platform": "javascript",
+            "sdk": {"name": "sentry.javascript.react", "version": "1.2.3"},
+        }
+
+    def _built_in_fingerprint_values(self, event: Event) -> list[str]:
+        variants = event.get_grouping_variants(force_config=GROUPING_CONFIG)
+        return variants["built_in_fingerprint"].as_dict()["values"]
+
+    def test_built_in_too_much_recursion_splits_by_crashing_frame(self) -> None:
+        replay_event = self.store_event(
+            data=self._too_much_recursion_event(
+                [
+                    {"function": "maskText", "filename": "./rrweb.js", "in_app": False},
+                    {"function": "replayMaskFn", "filename": "./useReplayInit.tsx", "in_app": True},
+                    {"function": "replace", "filename": "./vendor.js", "in_app": False},
+                ]
+            ),
+            project_id=self.project.id,
+        )
+        moment_event = self.store_event(
+            data=self._too_much_recursion_event(
+                [{"function": "formatMoment", "filename": "./moment.js", "in_app": False}]
+            ),
+            project_id=self.project.id,
+        )
+
+        assert self._built_in_fingerprint_values(replay_event) == [
+            "too-much-recursion",
+            "./useReplayInit.tsx",
+            "replayMaskFn",
+        ]
+        assert self._built_in_fingerprint_values(moment_event) == [
+            "too-much-recursion",
+            "./moment.js",
+            "formatMoment",
+        ]
+        assert replay_event.group != moment_event.group
+
+    def test_built_in_too_much_recursion_without_stacktrace(self) -> None:
+        event1 = self.store_event(
+            data=self._too_much_recursion_event(None), project_id=self.project.id
+        )
+        event2 = self.store_event(
+            data=self._too_much_recursion_event(None), project_id=self.project.id
+        )
+
+        assert self._built_in_fingerprint_values(event1) == [
+            "too-much-recursion",
+            "<no-filename>",
+            "<no-function>",
+        ]
+        assert event1.group == event2.group
