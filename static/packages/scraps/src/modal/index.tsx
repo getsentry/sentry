@@ -99,6 +99,29 @@ function ModalHost({portal}: {portal: HTMLDivElement}) {
     [closeModal, closeEvents]
   );
 
+  // The portal is a query container with no height of its own. Safari before 18.4
+  // makes a query container the containing block of its fixed descendants, which
+  // would size the backdrop and dialog to the empty portal. While a modal is open,
+  // give the portal the viewport's box so that containing block is the viewport.
+  useLayoutEffect(() => {
+    if (!visible) {
+      return;
+    }
+    const viewportBox = {
+      position: 'fixed',
+      inset: '0',
+      'z-index': `${theme.zIndex.modal}`,
+    };
+    for (const [property, value] of Object.entries(viewportBox)) {
+      portal.style.setProperty(property, value);
+    }
+    return () => {
+      for (const property of Object.keys(viewportBox)) {
+        portal.style.removeProperty(property);
+      }
+    };
+  }, [portal, visible, theme.zIndex.modal]);
+
   const scrollLock = useScrollLock(document.body);
   // Portals retain the app's React context but leave its DOM query containers.
   // Use the portal's breakpoint here so responsive props agree with its CSS
