@@ -3,6 +3,7 @@ from unittest import mock
 
 import pytest
 
+from sentry.incidents.grouptype import MetricIssue
 from sentry.models.activity import Activity
 from sentry.notifications.notification_action.registry import activity_handler_registry
 from sentry.notifications.notification_action.types import (
@@ -140,3 +141,37 @@ class TestExecuteViaGroupTypeRegistryActivityPath(ActivityHandlerTest):
             execute_via_group_type_registry(invocation)
 
         mock_send.assert_not_called()
+
+
+class TestExecuteViaGroupTypeRegistryMetricResolution(ActivityHandlerTest):
+    def setUp(self) -> None:
+        super().setUp()
+        self.group = self.create_group(project=self.project, type=MetricIssue.type_id)
+
+    @mock.patch("sentry.notifications.notification_action.utils.execute_via_metric_alert_handler")
+    def test_detector_resolution_uses_metric_alert_handler(
+        self, mock_metric_handler: mock.MagicMock
+    ) -> None:
+        activity = self.create_group_activity(
+            group=self.group,
+            type=ActivityType.SET_RESOLVED.value,
+            data={"detector_id": self.detector.id},
+        )
+        invocation = self._make_invocation(activity)
+        execute_via_group_type_registry(invocation)
+        mock_metric_handler.assert_called_once_with(invocation)
+
+    @mock.patch("sentry.notifications.notification_action.utils.execute_via_activity_type_registry")
+    @mock.patch("sentry.notifications.notification_action.utils.execute_via_metric_alert_handler")
+    def test_integration_resolution_skips_metric_alert_handler(
+        self, mock_metric_handler: mock.MagicMock, mock_activity_registry: mock.MagicMock
+    ) -> None:
+        activity = self.create_group_activity(
+            group=self.group,
+            type=ActivityType.SET_RESOLVED.value,
+            data={"integration_id": "1", "provider": "GitHub", "provider_key": "github"},
+        )
+        invocation = self._make_invocation(activity)
+        execute_via_group_type_registry(invocation)
+        mock_metric_handler.assert_not_called()
+        mock_activity_registry.assert_called_once_with(invocation=invocation)

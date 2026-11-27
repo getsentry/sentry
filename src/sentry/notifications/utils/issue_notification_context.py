@@ -1,4 +1,4 @@
-from dataclasses import replace
+from dataclasses import fields, replace
 from functools import cached_property
 
 from sentry.incidents.grouptype import MetricIssueEvidenceData
@@ -58,7 +58,8 @@ class IssueNotificationContext:
         if event.data is None or not event.data:
             raise ValueError("Activity data is required for alert context")
 
-        evidence_data_dict = dict(event.data)
+        known_fields = {f.name for f in fields(MetricIssueEvidenceData)}
+        evidence_data_dict = {k: v for k, v in event.data.items() if k in known_fields}
         priority = DetectorPriorityLevel.OK
         evidence_data = MetricIssueEvidenceData(**evidence_data_dict)
 

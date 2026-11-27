@@ -143,6 +143,25 @@ class TestIssueNotificationContext(MetricAlertHandlerBase):
         assert evidence_data.detector_id == self.detector.id
         assert priority == DetectorPriorityLevel.OK
 
+    def test_evidence_data_and_priority_from_activity_ignores_unknown_keys(self) -> None:
+        activity = Activity.objects.create(
+            project=self.project,
+            group=self.group,
+            type=ActivityType.SET_RESOLVED.value,
+            data={**asdict(self.evidence_data), "provider": "GitHub", "integration_id": "1"},
+        )
+        event_data = WorkflowEventData(
+            event=activity,
+            workflow_env=self.workflow.environment,
+            group=self.group,
+        )
+
+        ctx = self._make_context(event_data=event_data)
+        evidence_data, priority = ctx.evidence_data_and_priority
+
+        assert evidence_data.detector_id == self.detector.id
+        assert priority == DetectorPriorityLevel.OK
+
     def test_evidence_data_and_priority_missing_occurrence(self) -> None:
         event_data = WorkflowEventData(
             event=GroupEvent(self.project.id, "test", self.group, NodeData("test-id")),
