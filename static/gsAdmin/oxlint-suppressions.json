@@ -14,8 +14,7 @@
     "@sentry/scraps/prefer-primitives": {"count": 1}
   },
   "components/customers/customerOverview.tsx": {
-    "@sentry/scraps/no-manual-table": {"count": 6},
-    "@sentry/scraps/prefer-primitives": {"count": 1}
+    "@sentry/scraps/no-manual-table": {"count": 6}
   },
   "components/customers/customerStats.tsx": {
     "@sentry/scraps/no-dom-coupling": {"count": 2},

@@ -10,6 +10,8 @@ import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {InfoText} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {openModal} from '@sentry/scraps/modal';
+import {Heading} from '@sentry/scraps/text';
 
 import {ConfigStore} from 'sentry/stores/configStore';
 import {DataCategory} from 'sentry/types/core';
@@ -19,7 +21,6 @@ import {getLocalities} from 'sentry/utils/cells';
 import {defined} from 'sentry/utils/defined';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
-import {openAdminConfirmModal} from 'admin/components/adminConfirmationModal';
 import {ChangeARRAction} from 'admin/components/changeARRAction';
 import {ChangeContractEndDateAction} from 'admin/components/changeContractEndDateAction';
 import {CustomerContact} from 'admin/components/customerContact';
@@ -645,19 +646,16 @@ function TrialManagementActions({
     if (!activeProductTrial) {
       return;
     }
-    openAdminConfirmModal({
-      header: <h4>Extend {formattedTrialName} Trial</h4>,
-      confirmText: 'Extend Trial',
-      renderModalSpecificContent: deps => (
-        <ExtendProductTrialAction
-          activeProductTrial={activeProductTrial}
-          apiName={apiName}
-          trialName={formattedTrialName}
-          {...deps}
-        />
-      ),
-      onConfirm: onAction,
-    });
+    openModal(deps => (
+      <ExtendProductTrialAction
+        {...deps}
+        header={<Heading as="h4">Extend {formattedTrialName} Trial</Heading>}
+        onConfirm={onAction}
+        activeProductTrial={activeProductTrial}
+        apiName={apiName}
+        trialName={formattedTrialName}
+      />
+    ));
   };
 
   return (
