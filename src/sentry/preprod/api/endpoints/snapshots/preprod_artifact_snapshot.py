@@ -62,6 +62,7 @@ from sentry.preprod.api.models.snapshots.snapshot_status import (
 from sentry.preprod.api.schemas import VCS_ERROR_MESSAGES, VCS_SCHEMA_PROPERTIES
 from sentry.preprod.helpers.deletion import delete_artifacts_and_eap_data
 from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
+from sentry.preprod.retention import get_snapshot_expiry
 from sentry.preprod.snapshots.comparison_categorizer import (
     CategorizedComparison,
     categorize_comparison_images,
@@ -944,6 +945,7 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                 state=PreprodArtifact.ArtifactState.UPLOADED,
                 app_id=app_id,
                 commit_comparison=commit_comparison,
+                **get_snapshot_expiry(project.organization),
             )
 
             manifest_key = f"{project.organization_id}/{project.id}/{artifact.id}/manifest.json"

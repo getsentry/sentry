@@ -32,6 +32,7 @@ from sentry.preprod.quotas import (
     has_installable_quota,
     has_size_quota,
 )
+from sentry.preprod.retention import get_artifact_expiry
 from sentry.preprod.size_analysis.models import SizeAnalysisResults
 from sentry.preprod.size_analysis.monitors import maybe_emit_issues_from_absolute_size_results
 from sentry.preprod.size_analysis.tasks import compare_preprod_artifact_size_analysis
@@ -282,6 +283,7 @@ def create_preprod_artifact(
                 state=PreprodArtifact.ArtifactState.UPLOADING,
                 commit_comparison=commit_comparison,
                 extras=extras,
+                defaults={**get_artifact_expiry(organization)},
             )
 
             PreprodArtifactSizeMetrics.objects.get_or_create(
