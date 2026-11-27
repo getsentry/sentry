@@ -28,6 +28,9 @@ from sentry.utils import redis
 logger = logging.getLogger(__name__)
 
 RECORD_TTL_SECONDS = 60 * 60
+SYNC_TIMEOUT_SECONDS = 5 * 60
+
+_finish_batch = redis.load_redis_script("integrations/scm_repo_sync_batch_finished.lua")
 
 
 class RepoSyncTrigger(StrEnum):
@@ -61,7 +64,11 @@ def record_sync_requested(
     _update_record(
         organization_id,
         integration_id,
-        set_fields={"requested_at": timezone.now().timestamp(), "trigger": trigger.value},
+        set_fields={
+            "requested_at": timezone.now().timestamp(),
+            "trigger": trigger.value,
+            "batches_left": 0,
+        },
         delete_fields=["failure"],
     )
 
@@ -80,7 +87,14 @@ def record_synced(organization_id: int, integration_id: int, *, batches: int = 0
 
 def record_batch_finished(organization_id: int, integration_id: int) -> None:
     """3. Finished: call at the end of each batch `record_synced` counted."""
-    _update_record(organization_id, integration_id, increment_fields={"batches_left": -1})
+    try:
+        _finish_batch(
+            (_key(organization_id, integration_id),),
+            (RECORD_TTL_SECONDS,),
+            redis.redis_clusters.get("default"),
+        )
+    except Exception:
+        _log_write_failure(organization_id, integration_id)
 
 
 def record_sync_failed(organization_id: int, integration_id: int, reason: str) -> None:
@@ -112,9 +126,14 @@ def _status_of(record: _Record) -> RepoSyncStatus | None:
     if record.failure is not None:
         return RepoSyncFailed(trigger=record.trigger, reason=record.failure)
 
-    synced_since_request = record.synced_at is not None and record.synced_at >= record.requested_at
-    batches_finished = record.batches_left <= 0
-    if synced_since_request and batches_finished:
+    if record.synced_at is not None and record.synced_at >= record.requested_at:
+        if record.batches_left <= 0:
+            return RepoSyncOk(state="done", trigger=record.trigger)
+        waiting_since = record.synced_at
+    else:
+        waiting_since = record.requested_at
+
+    if timezone.now().timestamp() - waiting_since > SYNC_TIMEOUT_SECONDS:
         return RepoSyncOk(state="done", trigger=record.trigger)
     return RepoSyncOk(state="syncing", trigger=record.trigger)
 
@@ -157,11 +176,15 @@ def _update_record(
             pipeline.expire(key, RECORD_TTL_SECONDS)
             pipeline.execute()
     except Exception:
-        logger.warning(
-            "scm_repo_sync_status.write_failed",
-            extra={"organization_id": organization_id, "integration_id": integration_id},
-            exc_info=True,
-        )
+        _log_write_failure(organization_id, integration_id)
+
+
+def _log_write_failure(organization_id: int, integration_id: int) -> None:
+    logger.warning(
+        "scm_repo_sync_status.write_failed",
+        extra={"organization_id": organization_id, "integration_id": integration_id},
+        exc_info=True,
+    )
 
 
 def _read_records(organization_id: int, integration_ids: Sequence[int]) -> dict[int, _Record]:
