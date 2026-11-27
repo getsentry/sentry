@@ -1574,7 +1574,7 @@ describe('Customer Details', () => {
       renderGlobalModal();
       await userEvent.click(screen.getByText('Set Contract Package'));
 
-      expect(screen.getByRole('button', {name: 'Confirm'})).toBeDisabled();
+      expect(screen.getByRole('button', {name: 'Confirm'})).toBeEnabled();
       await userEvent.type(
         screen.getByRole('textbox', {name: 'Package UID'}),
         packageUid

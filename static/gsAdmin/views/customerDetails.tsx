@@ -623,11 +623,15 @@ export function CustomerDetails() {
             name: 'Set Contract Package',
             help: 'Move the current billing platform contract to another package immediately.',
             visible: subscription.hasMigratedToBillingPlatform,
-            confirmModalOpts: {
-              showTicketURL: false,
-              renderModalSpecificContent: deps => <SetContractPackageAction {...deps} />,
-            },
-            onAction: params => onSetContractPackageMutation.mutate(params),
+            skipConfirmModal: true,
+            onAction: () =>
+              openModal(deps => (
+                <SetContractPackageAction
+                  {...deps}
+                  header={<Heading as="h4">Set Contract Package</Heading>}
+                  onConfirm={params => onSetContractPackageMutation.mutate(params)}
+                />
+              )),
             ...actionRequiresBillingAdmin,
           },
           {
