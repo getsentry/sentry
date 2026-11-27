@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -14,6 +15,7 @@ from sentry.integrations.manager import default_manager as integrations
 from sentry.notifications.notifications.organization_request.integration_request import (
     CATEGORY_PROVIDER_TYPE,
     REQUESTABLE_CATEGORIES,
+    SCM_CATEGORY,
     IntegrationRequestNotification,
 )
 from sentry.notifications.utils.tasks import async_send_notification
@@ -71,11 +73,15 @@ class OrganizationIntegrationRequestEndpoint(OrganizationRequestChangeEndpoint):
                                     providerType out to request any integration.
         :param string providerType: One of: first_party, plugin, sentry_app, category.
         :param string message: Optional message from the requester to the owners.
+        :param string repoName: With the "source code management" category, the repo source
+                                control is needed for. The email's button then opens the modal
+                                that connects source control for it.
         """
 
         provider_type = request.data.get("providerType")
         provider_slug = request.data.get("providerSlug")
         message_option = request.data.get("message", "").strip()
+        repo_name = request.data.get("repoName")
 
         requester = request.user
         if any(is_acting_user(requester, user.id) for user in organization.get_owners()):
@@ -89,6 +95,16 @@ class OrganizationIntegrationRequestEndpoint(OrganizationRequestChangeEndpoint):
             if not provider_name:
                 return Response({"detail": f"Provider {provider_slug} not found"}, status=400)
 
+        if (
+            not isinstance(repo_name, str)
+            or provider_type != CATEGORY_PROVIDER_TYPE
+            or provider_slug != SCM_CATEGORY
+            or not features.has(
+                "organizations:ask-seer-scm-connect-prompt", organization, actor=request.user
+            )
+        ):
+            repo_name = None
+
         async_send_notification(
             IntegrationRequestNotification,
             organization,
@@ -97,6 +113,7 @@ class OrganizationIntegrationRequestEndpoint(OrganizationRequestChangeEndpoint):
             provider_slug,
             provider_name,
             message_option,
+            **({"repo_name": repo_name} if repo_name else {}),
         )
 
         return Response(status=201)
