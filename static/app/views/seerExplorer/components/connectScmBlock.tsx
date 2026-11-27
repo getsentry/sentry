@@ -1,5 +1,6 @@
-import {useEffect, useState} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 import {
+  queryOptions,
   useMutation,
   useMutationState,
   useQuery,
@@ -17,8 +18,6 @@ import {toast} from '@sentry/scraps/toast';
 
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
-import {apiOptions} from 'sentry/utils/api/apiOptions';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {canManageIntegrations} from 'sentry/utils/integrationUtil';
 import {fetchMutation} from 'sentry/utils/queryClient';
@@ -31,12 +30,13 @@ import type {
 } from 'sentry/views/seerExplorer/types';
 
 import {openConnectScmModal} from './connectScmModal';
-
-// The fix usually lands a few seconds after the user makes it (a webhook, then a sync job), and
-// the slowest normal path (a sync retrying) takes about 6 minutes. After that it stops, and only
-// coming back to the tab or pressing Check again checks again.
-const POLL_INTERVAL_MS = 5_000;
-const POLL_FOR_MS = 10 * 60_000;
+import {
+  REPO_ACCESS_POLL_INTERVAL_MS,
+  REPO_ACCESS_WAIT_MS,
+  repoAccessInstallScope,
+  repoAccessQueryOptions,
+  type RepoAccess,
+} from './repoAccessQuery';
 
 // Source control's category in the integrations directory. A member's request sends the owners
 // there, and so does the popup when Seer couldn't open the repo for a reason it can't name.
@@ -51,32 +51,19 @@ function getRequestInstallKey(pauseId: string) {
   return ['seer-explorer-request-scm-install', {pauseId}] as const;
 }
 
-function getAutoResumeKey(pauseId: string) {
-  return ['seer-explorer-scm-auto-resume', {pauseId}] as const;
+function autoResumeOptions(orgSlug: string, pauseId: string) {
+  return queryOptions({
+    queryKey: ['seer-explorer-scm-auto-resume', orgSlug, pauseId],
+    queryFn: (): 'attempted' | 'failed' | null => null,
+    initialData: null,
+    enabled: false,
+    gcTime: Infinity,
+  });
 }
 
-interface RepoAccess {
-  connectedAccounts: string[];
-  /**
-   * `found` when Seer can open the repo, `unknown` when Sentry can't say why it can't, or the
-   * reason it can't.
-   */
-  status: string;
-}
-
-/**
- * Whether Seer can open the repo now. Seer never pauses for a name that matches more than one
- * repo (it tells the agent instead), so the popup counts that as found.
- */
-// TODO(joey): Handle `repo_ambiguous` properly, e.g. by saying the name matches more than one
-// repo and asking the user which one, instead of counting it as found.
-function isFound(status: string) {
-  return status === 'found' || status === 'repo_ambiguous';
-}
-
-/** Whether checking again can't help: Seer can open the repo, or Sentry can't say why not. */
-function isSettled(status: string) {
-  return isFound(status) || status === 'unknown';
+/** Polling won't fix an ambiguous name or a failure Sentry can't explain. */
+function isSettled(status: RepoAccess['status']) {
+  return status === 'found' || status === 'unknown' || status === 'repo_ambiguous';
 }
 
 type Problem = {body: string} & (
@@ -97,8 +84,12 @@ type Problem = {body: string} & (
 function getProblem(access: RepoAccess, orgSlug: string): Problem | null {
   const integrationsPath = `/settings/${orgSlug}/integrations/?category=${encodeURIComponent(SCM_CATEGORY)}`;
 
-  if (isFound(access.status)) {
-    return null;
+  if (access.syncFailure) {
+    return {
+      body: t("Sentry couldn't finish importing repositories."),
+      fix: {label: t('Go to repositories'), to: `/settings/${orgSlug}/repos/`},
+      needsInstall: false,
+    };
   }
   switch (access.status) {
     case 'unknown':
@@ -244,14 +235,13 @@ interface Prompt {
   /**
    * The buttons before Correct repo name and Continue without code. The first is the way
    * forward: Check again when it couldn't check, where to fix the problem (or, for a member,
-   * asking the owners to), or Continue when Sentry can't say what's wrong. None once Seer can open
-   * the repo, since the run then resumes by itself, unless that already failed.
+   * asking the owners to), or Continue when Sentry can't say what's wrong.
    */
   actions: PromptAction[];
   /** Null while it's checking, when placeholders stand in for the text and the buttons. */
   body: string | null;
   title: string;
-  variant: 'muted' | 'success' | 'warning';
+  variant: 'muted' | 'warning';
   /** Under the body: how a member gets the problem fixed. */
   hint?: string;
   note?: string;
@@ -265,7 +255,6 @@ interface Prompt {
 /** What to say, given this pause's latest answer (if any) and whether it's still checking. */
 function getPrompt({
   access,
-  autoResumeFailed,
   isWatching,
   repoName,
   orgSlug,
@@ -276,7 +265,6 @@ function getPrompt({
   onContinue,
 }: {
   access: RepoAccess | undefined;
-  autoResumeFailed: boolean;
   /** Whether the user can install integrations, which members can't. */
   canInstall: boolean;
   isWatching: boolean;
@@ -310,19 +298,20 @@ function getPrompt({
     };
   }
 
-  if (isFound(access.status)) {
-    if (autoResumeFailed) {
-      return {
-        title: t('Perfect, Seer can access %s', repoName),
-        variant: 'success',
-        body: t('Continue and Seer will try again.'),
-        actions: [continueRun],
-      };
-    }
+  if (access.status === 'repos_syncing') {
     return {
-      title: t('Perfect, Seer can access %s', repoName),
-      variant: 'success',
-      body: null,
+      title: t('Checking whether Seer can access %s', repoName),
+      variant: 'muted',
+      body: t('Sentry is importing repositories.'),
+      note: isWatching ? undefined : t('Stopped checking every few seconds.'),
+      actions: isWatching ? [] : [checkAgain],
+    };
+  }
+  if (access.status === 'repo_ambiguous') {
+    return {
+      title: t("Seer can't access %s", repoName),
+      variant: 'warning',
+      body: t('More than one repository matches this name.'),
       actions: [],
     };
   }
@@ -409,41 +398,33 @@ export function ConnectScmBlock({
     filters: {mutationKey: getRequestInstallKey(pendingInput.id), status: 'success'},
     select: mutation => mutation.state.variables as string,
   });
-  // Whether to keep checking: for POLL_FOR_MS after the popup opens.
   const [isWatching, setIsWatching] = useState(true);
   const {start: startWatching} = useTimeout({
-    timeMs: POLL_FOR_MS,
+    timeMs: REPO_ACCESS_WAIT_MS,
     onTimeout: () => setIsWatching(false),
   });
-  const repoAccessOptions = apiOptions.as<RepoAccess>()(
-    '/organizations/$organizationIdOrSlug/seer/repo-access/',
-    {
-      path: {organizationIdOrSlug: organization.slug},
-      query: {repoName: data.repo_name},
-      staleTime: 0,
-    }
+  const {data: integrationId} = useQuery(
+    repoAccessInstallScope(organization.slug, pendingInput.id)
   );
-  const repoAccessKey: ApiQueryKey = repoAccessOptions.queryKey;
-  // A failed check keeps the last answer, so this is this pause's latest answer.
+  // The popup owns polling in chat. The modal observes this same query without starting a poll.
   const {data: access, refetch} = useQuery({
-    ...repoAccessOptions,
-    // Each pause gets its own answers. Seer just failed to open the repo, so an earlier pause's
-    // answer, or one from a check it started, says nothing about this one. Moving the chat in or
-    // out of its popped-out window remounts the popup but keeps this pause's answers.
-    queryKey: [...repoAccessKey, {pauseId: pendingInput.id}] as const,
+    ...repoAccessQueryOptions({
+      orgSlug: organization.slug,
+      repoName: data.repo_name,
+      integrationId: integrationId ?? undefined,
+      checkId: pendingInput.id,
+    }),
     // The fix happens in another tab, so coming back to this one is when to check again.
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: query => query.state.data?.json.status !== 'found',
     // That other tab hides this one, and a popped-out chat stays on screen while it does, so keep
     // checking while it's hidden.
     refetchIntervalInBackground: true,
-    // The next poll checks again anyway.
-    retry: false,
     refetchInterval: query => {
       const status = query.state.data?.json.status;
       if (!isWatching || (status && isSettled(status))) {
         return false;
       }
-      return POLL_INTERVAL_MS;
+      return REPO_ACCESS_POLL_INTERVAL_MS;
     },
   });
 
@@ -451,31 +432,56 @@ export function ConnectScmBlock({
     startWatching();
   }, [startWatching]);
 
-  const canAccess = !!access && isFound(access.status);
+  const canAccess = access?.status === 'found';
   const queryClient = useQueryClient();
-  const [autoResumeFailed] = useState(
-    () => queryClient.getQueryData(getAutoResumeKey(pendingInput.id)) === true
+  const {data: resumeStatus} = useQuery(
+    autoResumeOptions(organization.slug, pendingInput.id)
   );
+  const resumeChat = useCallback(() => {
+    const {queryKey} = autoResumeOptions(organization.slug, pendingInput.id);
+    queryClient.setQueryData(queryKey, 'attempted');
+    respondToUserInput(
+      pendingInput.id,
+      {decision: 'retry'},
+      {onError: () => queryClient.setQueryData(queryKey, 'failed')}
+    );
+  }, [organization.slug, pendingInput.id, queryClient, respondToUserInput]);
+
   useEffect(() => {
-    const autoResumeKey = getAutoResumeKey(pendingInput.id);
-    if (!canAccess || queryClient.getQueryData(autoResumeKey) === true) {
-      return;
+    const {queryKey} = autoResumeOptions(organization.slug, pendingInput.id);
+    if (canAccess && !queryClient.getQueryData(queryKey)) {
+      resumeChat();
     }
-    queryClient.setQueryDefaults(autoResumeKey, {gcTime: Infinity});
-    queryClient.setQueryData(autoResumeKey, true);
-    respondToUserInput(pendingInput.id, {decision: 'retry'});
-  }, [canAccess, pendingInput.id, queryClient, respondToUserInput]);
+  }, [canAccess, organization.slug, pendingInput.id, queryClient, resumeChat]);
 
   function checkAgain() {
+    refetch({cancelRefetch: false});
+  }
+
+  function watchInstall() {
     setIsWatching(true);
     startWatching();
-    refetch();
   }
 
   const {pipWindow, closePipWindow} = usePictureInPicture();
 
   function openConnectModal() {
-    openConnectScmModal({repoName: data.repo_name, onInstall: checkAgain});
+    openConnectScmModal({
+      inputId: pendingInput.id,
+      repoName: data.repo_name,
+      onInstall: watchInstall,
+    });
+  }
+
+  if (canAccess) {
+    // The chat shows errors from the resume request. Only keep a way to retry it.
+    return resumeStatus === 'failed' ? (
+      <Container padding="0 xl">
+        <Button size="sm" onClick={resumeChat}>
+          {t('Continue')}
+        </Button>
+      </Container>
+    ) : null;
   }
 
   const prompt: Prompt = pipWindow
@@ -487,7 +493,6 @@ export function ConnectScmBlock({
       }
     : getPrompt({
         access,
-        autoResumeFailed,
         isWatching,
         repoName: data.repo_name,
         orgSlug: organization.slug,

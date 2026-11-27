@@ -1,17 +1,148 @@
+import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegrationProvider';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {
+  act,
+  cleanup,
   render,
   renderGlobalModal,
   screen,
+  userEvent,
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import {useConnectScmModalFromUrl} from './connectScmModal';
+import {Button} from '@sentry/scraps/button';
+
+import * as pipelineModal from 'sentry/components/pipeline/modal';
+
+import {openConnectScmModal, useConnectScmModalFromUrl} from './connectScmModal';
 
 const organization = OrganizationFixture();
 const withPrompt = OrganizationFixture({features: ['ask-seer-scm-connect-prompt']});
+const integration = GitHubIntegrationFixture();
+
+function mockRepoAccess(status: string) {
+  return MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/seer/repo-access/`,
+    body: {status, connectedAccounts: []},
+    match: [MockApiClient.matchQuery({repoName: 'acme/app'})],
+  });
+}
+
+/** Makes the install a button that finishes it with `integration`. */
+function mockInstallPipeline() {
+  jest
+    .spyOn(pipelineModal, 'PipelineModal')
+    .mockImplementation(({onComplete, closeModal: finish}) => (
+      <Button
+        onClick={() => {
+          onComplete?.(integration as never);
+          finish();
+        }}
+      >
+        Finish install
+      </Button>
+    ));
+}
+
+async function finishInstall() {
+  await userEvent.click(await screen.findByRole('button', {name: 'Add GitHub'}));
+  await userEvent.click(screen.getByRole('button', {name: 'Finish install'}));
+}
+
+describe('ConnectScmModal after the install', () => {
+  beforeEach(() => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/config/integrations/`,
+      body: {providers: [GitHubIntegrationProviderFixture()]},
+    });
+    mockInstallPipeline();
+  });
+
+  function openModalForRepo() {
+    const onInstall = jest.fn();
+    renderGlobalModal({organization});
+    act(() => openConnectScmModal({repoName: 'acme/app', onInstall}));
+    return {onInstall};
+  }
+
+  it('closes after the install when the repo is already available', async () => {
+    mockRepoAccess('found');
+    const {onInstall} = openModalForRepo();
+
+    await finishInstall();
+
+    expect(onInstall).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  });
+
+  describe('while the repos sync', () => {
+    beforeEach(() => {
+      jest.useFakeTimers({advanceTimers: true});
+    });
+
+    afterEach(() => {
+      try {
+        cleanup();
+        jest.runOnlyPendingTimers();
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
+    it('waits for the repos, then closes once Seer can access the repo', async () => {
+      mockRepoAccess('repos_syncing');
+      const {onInstall} = openModalForRepo();
+
+      await finishInstall();
+
+      expect(
+        await screen.findByText(/Getting your repos from GitHub/)
+      ).toBeInTheDocument();
+      expect(onInstall).toHaveBeenCalledTimes(1);
+
+      mockRepoAccess('found');
+
+      await act(() => jest.advanceTimersByTimeAsync(5_000));
+
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    });
+  });
+
+  it("says when the repo isn't in Sentry, and checks again", async () => {
+    const access = mockRepoAccess('repo_not_in_sentry');
+    openModalForRepo();
+
+    await finishInstall();
+
+    expect(await screen.findByText(/isn't in Sentry/)).toBeInTheDocument();
+
+    access.mockClear();
+    await userEvent.click(screen.getByRole('button', {name: 'Check again'}));
+
+    await waitFor(() => expect(access).toHaveBeenCalled());
+  });
+
+  it("says when it couldn't get the repos", async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/repo-access/`,
+      body: {
+        status: 'repo_not_in_sentry',
+        connectedAccounts: [],
+        syncFailure: 'rate_limited',
+      },
+    });
+    openModalForRepo();
+
+    await finishInstall();
+
+    expect(
+      await screen.findByText(/Couldn't get your repos from GitHub/)
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Retry'})).toBeInTheDocument();
+  });
+});
 
 describe('useConnectScmModalFromUrl', () => {
   beforeEach(() => {

@@ -1,5 +1,6 @@
-import {Fragment, useEffect, useState} from 'react';
-import {focusManager} from '@tanstack/react-query';
+import {Fragment, useState, type ComponentProps} from 'react';
+import {focusManager, useQuery} from '@tanstack/react-query';
+import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegrationProvider';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
@@ -14,18 +15,27 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {Button} from '@sentry/scraps/button';
+import {GlobalModal} from '@sentry/scraps/modal';
 import {
   PictureInPictureProvider,
   usePictureInPicture,
 } from '@sentry/scraps/pictureInPicture';
 
+import * as pipelineModal from 'sentry/components/pipeline/modal';
+import type {OrganizationIntegration} from 'sentry/types/integrations';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {PendingUserInput} from 'sentry/views/seerExplorer/types';
 
 import {ConnectScmBlock} from './connectScmBlock';
 
+type ConnectScmBlockResponse = ComponentProps<
+  typeof ConnectScmBlock
+>['respondToUserInput'];
+
 const REPO_ACCESS_URL = '/organizations/org-slug/seer/repo-access/';
 const REPOS_LINK = '/settings/org-slug/repos/';
 const INTEGRATION_REQUEST_URL = '/organizations/org-slug/integration-requests/';
+const retryOptions = {onError: expect.any(Function)};
 
 describe('ConnectScmBlock', () => {
   const organization = OrganizationFixture({slug: 'org-slug'});
@@ -127,6 +137,120 @@ describe('ConnectScmBlock', () => {
           "This repo's account isn't connected to this organization. Connected: acme-labs, my-group."
         )
       ).toBeInTheDocument();
+    });
+
+    describe('while the repos sync', () => {
+      beforeEach(() => {
+        jest.useFakeTimers({advanceTimers: true});
+      });
+
+      afterEach(() => {
+        try {
+          cleanup();
+          jest.runOnlyPendingTimers();
+        } finally {
+          jest.useRealTimers();
+        }
+      });
+
+      it('continues the chat and closes the modal on the same answer', async () => {
+        jest
+          .spyOn(pipelineModal, 'PipelineModal')
+          .mockImplementation(({onComplete, closeModal}) => (
+            <Button
+              onClick={() => {
+                onComplete?.(GitHubIntegrationFixture() as never);
+                closeModal();
+              }}
+            >
+              Finish install
+            </Button>
+          ));
+        mockRepoAccess('no_scm_integration');
+        const listUrl = `/organizations/${organization.slug}/integrations/`;
+        const listBeforeInstall = MockApiClient.addMockResponse({url: listUrl, body: []});
+        const slack = MockApiClient.addMockResponse({
+          url: listUrl,
+          body: [],
+          match: [MockApiClient.matchQuery({providerKey: 'slack'})],
+        });
+        function IntegrationLists() {
+          const path = {organizationIdOrSlug: organization.slug};
+          useQuery({
+            ...apiOptions.as<OrganizationIntegration[]>()(
+              '/organizations/$organizationIdOrSlug/integrations/',
+              {path, staleTime: Infinity}
+            ),
+            retry: false,
+          });
+          useQuery(
+            apiOptions.as<OrganizationIntegration[]>()(
+              '/organizations/$organizationIdOrSlug/integrations/',
+              {path, query: {providerKey: 'slack'}, staleTime: Infinity}
+            )
+          );
+          return null;
+        }
+        const respondToUserInput = jest.fn();
+        render(
+          <Fragment>
+            <IntegrationLists />
+            <ConnectScmBlock
+              pendingInput={{
+                id: 'input-id',
+                input_type: 'connect_scm',
+                data: {repo_name: 'acme/app', failure_reason: 'no_scm_integration'},
+              }}
+              respondToUserInput={respondToUserInput}
+            />
+            <GlobalModal />
+          </Fragment>,
+          {organization, additionalWrapper: PictureInPictureProvider}
+        );
+
+        await userEvent.click(
+          await screen.findByRole('button', {name: 'Connect source control'})
+        );
+        await userEvent.click(await screen.findByRole('button', {name: 'Add GitHub'}));
+        expect(listBeforeInstall).toHaveBeenCalledTimes(1);
+        expect(slack).toHaveBeenCalledTimes(1);
+        const listAfterInstall = MockApiClient.addMockResponse({
+          url: listUrl,
+          statusCode: 500,
+        });
+        const scopedCheck = MockApiClient.addMockResponse({
+          url: REPO_ACCESS_URL,
+          body: {status: 'repos_syncing', connectedAccounts: []},
+          match: [
+            MockApiClient.matchQuery({
+              repoName: 'acme/app',
+              integrationId: GitHubIntegrationFixture().id,
+            }),
+          ],
+        });
+        await userEvent.click(screen.getByRole('button', {name: 'Finish install'}));
+
+        expect(
+          await screen.findByText(/Getting your repos from GitHub/)
+        ).toBeInTheDocument();
+
+        expect(screen.getByText('Sentry is importing repositories.')).toBeInTheDocument();
+        expect(scopedCheck).toHaveBeenCalledTimes(1);
+        expect(listAfterInstall).toHaveBeenCalledTimes(1);
+        expect(slack).toHaveBeenCalledTimes(1);
+
+        const readyCheck = mockRepoAccess('found');
+        await act(() => jest.advanceTimersByTimeAsync(5_000));
+
+        await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+        expect(respondToUserInput).toHaveBeenCalledWith(
+          'input-id',
+          {decision: 'retry'},
+          retryOptions
+        );
+        expect(respondToUserInput).toHaveBeenCalledTimes(1);
+        expect(readyCheck).toHaveBeenCalledTimes(1);
+      });
     });
   });
 
@@ -328,78 +452,73 @@ describe('ConnectScmBlock', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('resumes the run when Seer can access the repo from the start', async () => {
-    // The fix landed before the popup checked.
+  it('resumes the run and hides the popup when Seer can already access the repo', async () => {
     mockRepoAccess('found');
     const respondToUserInput = renderBlock();
 
-    expect(
-      await screen.findByText('Perfect, Seer can access acme/app')
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', {name: 'Connect source control'})
-    ).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', {name: 'Continue'})).not.toBeInTheDocument();
     await waitFor(() =>
-      expect(respondToUserInput).toHaveBeenCalledWith('input-id', {decision: 'retry'})
+      expect(respondToUserInput).toHaveBeenCalledWith(
+        'input-id',
+        {decision: 'retry'},
+        retryOptions
+      )
     );
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Continue'})).not.toBeInTheDocument();
     expect(respondToUserInput).toHaveBeenCalledTimes(1);
   });
 
-  it('resumes the run by itself once, then offers Continue if that fails', async () => {
-    const respondToUserInput = jest.fn();
-    function FailingChat() {
-      const [isAnswering, setIsAnswering] = useState(false);
-      useEffect(() => {
-        if (isAnswering) {
-          setTimeout(() => setIsAnswering(false));
-        }
-      }, [isAnswering]);
-      if (isAnswering) {
-        return null;
-      }
+  it('offers only Continue if auto-resume fails, including when the popup remounts', async () => {
+    const respondToUserInput = jest.fn<void, Parameters<ConnectScmBlockResponse>>();
+    function Chat() {
+      const [showPopup, setShowPopup] = useState(true);
       return (
-        <ConnectScmBlock
-          pendingInput={{
-            id: 'input-id',
-            input_type: 'connect_scm',
-            data: {repo_name: 'acme/app', failure_reason: 'no_scm_integration'},
-          }}
-          respondToUserInput={(...args) => {
-            respondToUserInput(...args);
-            setIsAnswering(true);
-          }}
-        />
+        <Fragment>
+          <Button onClick={() => setShowPopup(!showPopup)}>Toggle popup</Button>
+          {showPopup && (
+            <ConnectScmBlock
+              pendingInput={{
+                id: 'input-id',
+                input_type: 'connect_scm',
+                data: {repo_name: 'acme/app', failure_reason: 'no_scm_integration'},
+              }}
+              respondToUserInput={respondToUserInput}
+            />
+          )}
+        </Fragment>
       );
     }
     mockRepoAccess('found');
-    render(<FailingChat />, {organization, additionalWrapper: PictureInPictureProvider});
+    render(<Chat />, {organization, additionalWrapper: PictureInPictureProvider});
 
-    expect(
-      await screen.findByText('Continue and Seer will try again.')
-    ).toBeInTheDocument();
-    expect(screen.getByText('Perfect, Seer can access acme/app')).toBeInTheDocument();
+    await waitFor(() => expect(respondToUserInput).toHaveBeenCalledTimes(1));
+    expect(screen.queryByRole('button', {name: 'Continue'})).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Toggle popup'}));
+    act(() => respondToUserInput.mock.lastCall?.[2]?.onError?.());
+    await userEvent.click(screen.getByRole('button', {name: 'Toggle popup'}));
+
+    const continueButton = await screen.findByRole('button', {name: 'Continue'});
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     expect(respondToUserInput).toHaveBeenCalledTimes(1);
-
-    await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
-
-    expect(await screen.findByRole('button', {name: 'Continue'})).toBeInTheDocument();
-    expect(respondToUserInput).toHaveBeenCalledTimes(2);
-    expect(respondToUserInput).toHaveBeenNthCalledWith(2, 'input-id', {
-      decision: 'retry',
-    });
+    await userEvent.click(continueButton);
+    expect(respondToUserInput).toHaveBeenNthCalledWith(
+      2,
+      'input-id',
+      {decision: 'retry'},
+      retryOptions
+    );
+    expect(screen.queryByRole('button', {name: 'Continue'})).not.toBeInTheDocument();
   });
 
-  it('counts a name that matches more than one repo as found', async () => {
+  it('does not resume automatically for an ambiguous repo name', async () => {
     mockRepoAccess('repo_ambiguous');
     const respondToUserInput = renderBlock();
 
     expect(
-      await screen.findByText('Perfect, Seer can access acme/app')
+      await screen.findByText('More than one repository matches this name.')
     ).toBeInTheDocument();
-    await waitFor(() =>
-      expect(respondToUserInput).toHaveBeenCalledWith('input-id', {decision: 'retry'})
-    );
+    expect(screen.getByRole('button', {name: 'Correct repo name'})).toBeInTheDocument();
+    expect(respondToUserInput).not.toHaveBeenCalled();
   });
 
   it('offers Continue when Sentry can not tell what is wrong', async () => {
@@ -441,9 +560,7 @@ describe('ConnectScmBlock', () => {
       mockRepoAccess('found');
       await act(() => jest.advanceTimersByTimeAsync(5_000));
 
-      expect(
-        await screen.findByText('Perfect, Seer can access acme/app')
-      ).toBeInTheDocument();
+      await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument());
     });
 
     it('checks again until Seer can access the repo, then resumes the run', async () => {
@@ -457,12 +574,14 @@ describe('ConnectScmBlock', () => {
       const check = mockRepoAccess('found');
       await act(() => jest.advanceTimersByTimeAsync(5_000));
 
-      expect(
-        await screen.findByText('Perfect, Seer can access acme/app')
-      ).toBeInTheDocument();
+      await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument());
       expect(screen.queryByRole('button', {name: 'Continue'})).not.toBeInTheDocument();
       expect(respondToUserInput).toHaveBeenCalledTimes(1);
-      expect(respondToUserInput).toHaveBeenCalledWith('input-id', {decision: 'retry'});
+      expect(respondToUserInput).toHaveBeenCalledWith(
+        'input-id',
+        {decision: 'retry'},
+        retryOptions
+      );
       await act(() => jest.advanceTimersByTimeAsync(30_000));
       expect(check).toHaveBeenCalledTimes(1);
       expect(respondToUserInput).toHaveBeenCalledTimes(1);
@@ -536,17 +655,19 @@ describe('ConnectScmBlock', () => {
       const check = mockRepoAccess('found');
       await user.click(screen.getByRole('button', {name: 'Check again'}));
 
-      expect(
-        await screen.findByText('Perfect, Seer can access acme/app')
-      ).toBeInTheDocument();
+      await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument());
       expect(check).toHaveBeenCalledTimes(1);
-      expect(respondToUserInput).toHaveBeenCalledWith('input-id', {decision: 'retry'});
+      expect(respondToUserInput).toHaveBeenCalledWith(
+        'input-id',
+        {decision: 'retry'},
+        retryOptions
+      );
       expect(
         screen.queryByText('Stopped checking every few seconds.')
       ).not.toBeInTheDocument();
     });
 
-    it('keeps checking after Check again', async () => {
+    it('checks once without restarting polling after Check again', async () => {
       const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
       const check = mockRepoAccess('repo_not_in_sentry');
       renderBlock({failureReason: 'repo_not_in_sentry'});
@@ -558,8 +679,8 @@ describe('ConnectScmBlock', () => {
       const checks = check.mock.calls.length;
       await act(() => jest.advanceTimersByTimeAsync(5_000));
 
-      expect(check).toHaveBeenCalledTimes(checks + 1);
-      expect(screen.queryByRole('button', {name: 'Check again'})).not.toBeInTheDocument();
+      expect(check).toHaveBeenCalledTimes(checks);
+      expect(screen.getByRole('button', {name: 'Check again'})).toBeInTheDocument();
     });
 
     it("lets a member request again when what's wrong changes", async () => {
@@ -639,9 +760,7 @@ describe('ConnectScmBlock', () => {
         const check = mockRepoAccess('found');
         await user.click(screen.getByRole('button', {name: 'Check again'}));
 
-        expect(
-          await screen.findByText('Perfect, Seer can access acme/app')
-        ).toBeInTheDocument();
+        await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument());
         expect(check).toHaveBeenCalledTimes(1);
       });
     });
@@ -743,18 +862,14 @@ describe('ConnectScmBlock', () => {
       expect(
         screen.getByText('Checking whether Seer can access acme/app')
       ).toBeInTheDocument();
-      expect(
-        screen.queryByText('Perfect, Seer can access acme/app')
-      ).not.toBeInTheDocument();
     });
 
     it("waits for this pause's check instead of showing the earlier answer", async () => {
       const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
-      mockRepoAccess('found');
+      const ready = mockRepoAccess('found');
       render(<Pauses />, {organization, additionalWrapper: PictureInPictureProvider});
-      expect(
-        await screen.findByText('Perfect, Seer can access acme/app')
-      ).toBeInTheDocument();
+      await waitFor(() => expect(ready).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument());
 
       // The run tried the call again, it failed again, and the run paused on the same repo.
       await act(() => jest.advanceTimersByTimeAsync(60_000));
