@@ -1,3 +1,9 @@
+## 3.4.1
+
+### Bug Fixes 🐛
+
+- (api) Add `errors` data source; document `discover` deprecation by @mjq in [#132793](https://github.com/getsentry/sentry/pull/132793)
+
 ## 3.4.0
 
 - No documented changes.
