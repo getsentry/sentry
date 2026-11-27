@@ -1,11 +1,4 @@
-import {
-  Fragment,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-  type RefObject,
-} from 'react';
+import {useEffect, useLayoutEffect, useState, type RefObject} from 'react';
 import {IconArrow} from '@sentry/icons/arrow';
 import * as Sentry from '@sentry/react';
 
@@ -17,10 +10,9 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-const AT_END_MARGIN_PX = 64;
-
 interface JumpToEndButtonProps {
   canLoadMore: boolean;
+  isAtEnd: boolean | null;
   loadRemainingPages: (signal: AbortSignal) => Promise<number>;
   loadedPageCount: number;
   scrollContainerRef: RefObject<HTMLElement | null>;
@@ -28,30 +20,16 @@ interface JumpToEndButtonProps {
 
 export function JumpToEndButton({
   canLoadMore,
+  isAtEnd,
   loadedPageCount,
   loadRemainingPages,
   scrollContainerRef,
 }: JumpToEndButtonProps) {
   const organization = useOrganization();
-  const endRef = useRef<HTMLDivElement>(null);
-  const [isAtEnd, setIsAtEnd] = useState(false);
   const [abortController, setAbortController] = useState<AbortController | null>(null);
   // Pages render after the load resolves, so the scroll waits for this page count.
   const [scrollAtPageCount, setScrollAtPageCount] = useState<number | null>(null);
   const isJumping = abortController !== null;
-
-  useEffect(() => {
-    const end = endRef.current;
-    if (!end) {
-      return;
-    }
-    const observer = new IntersectionObserver(
-      ([entry]) => setIsAtEnd(entry?.isIntersecting ?? false),
-      {root: scrollContainerRef.current, rootMargin: `0px 0px ${AT_END_MARGIN_PX}px 0px`}
-    );
-    observer.observe(end);
-    return () => observer.disconnect();
-  }, [scrollContainerRef]);
 
   useLayoutEffect(() => {
     if (scrollAtPageCount === null || loadedPageCount < scrollAtPageCount) {
@@ -94,38 +72,36 @@ export function JumpToEndButton({
     setAbortController(null);
   };
 
-  const isVisible = isJumping || canLoadMore || !isAtEnd;
+  const isVisible = isJumping || canLoadMore || isAtEnd === false;
+
+  if (!isVisible) {
+    return null;
+  }
 
   return (
-    // A wrapper element would limit the sticky button to the wrapper's height.
-    <Fragment>
-      <Container ref={endRef} height="1px" />
-      {isVisible ? (
-        <Flex
-          position="sticky"
-          bottom="0"
-          height="0"
-          align="end"
-          justify="center"
-          style={{zIndex: 1}}
+    <Flex
+      position="sticky"
+      bottom="0"
+      height="0"
+      align="end"
+      justify="center"
+      style={{zIndex: 1}}
+    >
+      <Container paddingBottom="md">
+        <Button
+          size="sm"
+          icon={
+            isJumping ? (
+              <LoadingIndicator size={14} style={{margin: 0}} />
+            ) : (
+              <IconArrow direction="down" />
+            )
+          }
+          onClick={handleClick}
         >
-          <Container paddingBottom="md">
-            <Button
-              size="sm"
-              icon={
-                isJumping ? (
-                  <LoadingIndicator size={14} style={{margin: 0}} />
-                ) : (
-                  <IconArrow direction="down" />
-                )
-              }
-              onClick={handleClick}
-            >
-              {isJumping ? t('Stop loading') : t('Jump to end')}
-            </Button>
-          </Container>
-        </Flex>
-      ) : null}
-    </Fragment>
+          {isJumping ? t('Stop loading') : t('Jump to end')}
+        </Button>
+      </Container>
+    </Flex>
   );
 }

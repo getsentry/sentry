@@ -144,7 +144,6 @@ export interface ConversationApiResponse {
   title: string | null;
 }
 
-
 interface UseConversationResult {
   canAutoFetchNextPage: boolean;
   error: boolean;
@@ -478,10 +477,10 @@ export function useConversation(
 
   const pageCount = data?.pages.length ?? 0;
   const loadNextPage = useCallback(() => {
-    if (hasNextPage && !isFetching) {
+    if (hasNextPage && !isFetching && pageCount < MAX_PAGES) {
       void fetchNextPage({cancelRefetch: false});
     }
-  }, [fetchNextPage, hasNextPage, isFetching]);
+  }, [fetchNextPage, hasNextPage, isFetching, pageCount]);
 
   const loadRemainingPages = async (signal: AbortSignal) => {
     let result = await fetchRemainingPages(queryClient, queryOptions, signal);

@@ -3,7 +3,7 @@ import * as Sentry from '@sentry/react';
 import {parseAsStringLiteral, useQueryStates} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 
 import {
   type CollapsibleExpandAll,
@@ -33,6 +33,10 @@ import {
 import {JumpToEndButton} from './jumpToEndButton';
 import {MessagesPanel} from './messagesPanel';
 import {TranscriptSearch} from './transcriptSearch';
+
+// The transcript fills the height below its search bar, so it always overflows by
+// about the bar's height.
+const AT_END_MARGIN_PX = 64;
 
 export type ConversationViewTab = 'transcript' | 'timeline';
 
@@ -128,25 +132,30 @@ export function ConversationViewContent({
       selectedNodeId: selectedNode?.id ?? null,
     });
 
-  const loadMoreRef = useRef<HTMLDivElement>(null);
+  const endRef = useRef<HTMLDivElement>(null);
+  // Null until the observer first reports, so the jump button doesn't flash.
+  const [isAtEnd, setIsAtEnd] = useState<boolean | null>(null);
 
   useEffect(() => {
-    const target = loadMoreRef.current;
-    if (!target || !hasNextPage || isFetchingNextPage || isNextPageError) {
+    const end = endRef.current;
+    if (!end) {
       return;
     }
 
     const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry?.isIntersecting) {
+      entries => {
+        // A long render can queue several entries; the last one is current.
+        const isIntersecting = entries.at(-1)?.isIntersecting ?? false;
+        setIsAtEnd(isIntersecting);
+        if (isIntersecting && !isNextPageError) {
           loadNextPage();
         }
       },
-      {root: contentRef.current}
+      {root: contentRef.current, rootMargin: `0px 0px ${AT_END_MARGIN_PX}px 0px`}
     );
-    observer.observe(target);
+    observer.observe(end);
     return () => observer.disconnect();
-  }, [contentRef, hasNextPage, isFetchingNextPage, isNextPageError, loadNextPage]);
+  }, [contentRef, isNextPageError, loadNextPage]);
 
   useEffect(() => {
     if (!isLoading && canAutoFetchNextPage && needsMoreSelectionData) {
@@ -233,8 +242,9 @@ export function ConversationViewContent({
                 compressGaps
               />
             )}
-            {(hasNextPage || isFetchingNextPage) && (
-              <Flex ref={loadMoreRef} align="center" justify="center" minHeight="120px">
+            <Container ref={endRef} height="1px" />
+            {((hasNextPage && !hasReachedPageLimit) || isFetchingNextPage) && (
+              <Flex align="center" justify="center" minHeight="120px">
                 {isNextPageError ? (
                   <Button size="sm" onClick={loadNextPage}>
                     {t('Retry')}
@@ -248,6 +258,7 @@ export function ConversationViewContent({
               <JumpToEndButton
                 key={`jump-to-end:${conversation.conversationId}`}
                 canLoadMore={canAutoFetchNextPage}
+                isAtEnd={isAtEnd}
                 loadedPageCount={loadedPageCount}
                 loadRemainingPages={loadRemainingPages}
                 scrollContainerRef={contentRef}

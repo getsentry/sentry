@@ -173,6 +173,14 @@ describe('useConversation', () => {
 
     expect(result.current.isLoading).toBe(false);
     expect(result.current.nodes).toHaveLength(100);
+
+    const pastLimit = MockApiClient.addMockResponse({
+      url,
+      match: [MockApiClient.matchQuery({cursor: '100'})],
+      body: envelope([]),
+    });
+    await act(() => Promise.resolve(result.current.loadNextPage()));
+    expect(pastLimit).not.toHaveBeenCalled();
   });
 
   it.each([4096, 0, null, undefined])(

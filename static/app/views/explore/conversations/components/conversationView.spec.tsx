@@ -145,6 +145,7 @@ describe('ConversationViewContent', () => {
 
     expect(await screen.findByText('First answer')).toBeInTheDocument();
     expect(detailPane()).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Jump to end'})).not.toBeInTheDocument();
   });
 
   it('requests a Code Mode summary only when its details are opened', async () => {
@@ -454,16 +455,6 @@ describe('ConversationViewContent', () => {
       expect(thirdPage).not.toHaveBeenCalled();
       expect(screen.queryByText('Second answer')).not.toBeInTheDocument();
     });
-
-    it('is hidden at the end of a fully loaded conversation', async () => {
-      renderView();
-      await screen.findByText('First answer');
-      expect(screen.getByRole('button', {name: 'Jump to end'})).toBeInTheDocument();
-
-      act(() => triggerIntersection?.(true));
-
-      expect(screen.queryByRole('button', {name: 'Jump to end'})).not.toBeInTheDocument();
-    });
   });
 
   describe('at the span limit', () => {
@@ -507,6 +498,7 @@ describe('ConversationViewContent', () => {
       await act(() => jest.runAllTimersAsync());
 
       expect(screen.getByText('No results')).toBeInTheDocument();
+      expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
       expect(nextRequest).toHaveBeenCalledTimes(99);
       expect(trackAnalytics).toHaveBeenCalledTimes(1);
       expect(trackAnalytics).toHaveBeenCalledWith(
