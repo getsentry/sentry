@@ -23,6 +23,7 @@ import * as modal from 'sentry/actionCreators/modal';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import Inbox from 'sentry/views/inbox';
 import {Navigation} from 'sentry/views/navigation';
 
@@ -44,6 +45,8 @@ const ALL_AVAILABLE_FEATURES = [
   'profiling',
   'visibility-explore-view',
 ];
+
+jest.mock('sentry/utils/analytics');
 
 const mockUsingCustomerDomain = jest.fn();
 const mockCustomerDomain = jest.fn();
@@ -2615,6 +2618,253 @@ describe('desktop navigation', () => {
         expect(
           screen.getByRole('dialog', {name: 'Navigation preview'})
         ).toBeInTheDocument();
+      });
+
+      describe('analytics', () => {
+        beforeEach(() => {
+          jest.mocked(trackAnalytics).mockClear();
+        });
+
+        it('tracks a peek that ends in a secondary item click', async () => {
+          render(
+            <PrimaryNavigationContextProvider>
+              <Navigation />
+            </PrimaryNavigationContextProvider>,
+            navigationContext({organization: navPeek})
+          );
+
+          await userEvent.hover(screen.getByRole('link', {name: 'Explore'}));
+          const preview = within(
+            await screen.findByRole('dialog', {name: 'Navigation preview'})
+          );
+          expect(trackAnalytics).toHaveBeenCalledWith(
+            'navigation.peek_opened',
+            expect.objectContaining({item: 'explore', trigger: 'hover'})
+          );
+
+          await userEvent.click(preview.getByRole('link', {name: 'Traces'}));
+          expect(trackAnalytics).toHaveBeenCalledWith(
+            'navigation.secondary_item_clicked',
+            expect.objectContaining({
+              nav_peek_enabled: true,
+              tray_state: 'peek',
+              ms_since_peek_open: expect.any(Number),
+            })
+          );
+          expect(trackAnalytics).not.toHaveBeenCalledWith(
+            'navigation.peek_dismissed',
+            expect.anything()
+          );
+        });
+
+        it('does not track a dismissal after a modifier click in the peek', async () => {
+          render(
+            <PrimaryNavigationContextProvider>
+              <Navigation />
+            </PrimaryNavigationContextProvider>,
+            navigationContext({organization: navPeek})
+          );
+
+          await userEvent.hover(screen.getByRole('link', {name: 'Explore'}));
+          const preview = within(
+            await screen.findByRole('dialog', {name: 'Navigation preview'})
+          );
+          // jsdom cannot open the link in a new tab.
+          const preventNewTab = (event: MouseEvent) => event.preventDefault();
+          document.addEventListener('click', preventNewTab);
+          const user = userEvent.setup();
+          await user.keyboard('{Meta>}');
+          await user.click(preview.getByRole('link', {name: 'Traces'}));
+          await user.keyboard('{/Meta}');
+          document.removeEventListener('click', preventNewTab);
+          expect(trackAnalytics).toHaveBeenCalledWith(
+            'navigation.secondary_item_clicked',
+            expect.objectContaining({tray_state: 'peek'})
+          );
+          expect(
+            screen.getByRole('dialog', {name: 'Navigation preview'})
+          ).toBeInTheDocument();
+
+          await user.keyboard('{Escape}');
+          expect(
+            screen.queryByRole('dialog', {name: 'Navigation preview'})
+          ).not.toBeInTheDocument();
+          expect(trackAnalytics).not.toHaveBeenCalledWith(
+            'navigation.peek_dismissed',
+            expect.anything()
+          );
+        });
+
+        it('tracks a modifier click on a reorderable link in the peek', async () => {
+          MockApiClient.addMockResponse({
+            url: '/organizations/org-slug/dashboards/starred/',
+            body: [
+              DashboardListItemFixture({id: '1', title: 'All projects', projects: []}),
+            ],
+          });
+          render(
+            <PrimaryNavigationContextProvider>
+              <Navigation />
+            </PrimaryNavigationContextProvider>,
+            navigationContext({
+              organization: {features: [...navPeek.features, 'dashboards-starred']},
+            })
+          );
+
+          await userEvent.hover(screen.getByRole('link', {name: 'Dashboards'}));
+          const preview = within(
+            await screen.findByRole('dialog', {name: 'Navigation preview'})
+          );
+          await userEvent.click(
+            await preview.findByRole('tab', {name: 'Starred Dashboards'})
+          );
+          // jsdom cannot open the link in a new tab.
+          const preventNewTab = (event: MouseEvent) => event.preventDefault();
+          document.addEventListener('click', preventNewTab);
+          const user = userEvent.setup();
+          await user.keyboard('{Meta>}');
+          await user.click(preview.getByRole('link', {name: 'All projects'}));
+          await user.keyboard('{/Meta}');
+          document.removeEventListener('click', preventNewTab);
+
+          expect(trackAnalytics).toHaveBeenCalledWith(
+            'navigation.secondary_item_clicked',
+            expect.objectContaining({item: 'dashboard_starred_item', tray_state: 'peek'})
+          );
+        });
+
+        it('keeps one peek when switching between hover and keyboard on an item', async () => {
+          render(
+            <PrimaryNavigationContextProvider>
+              <Navigation />
+            </PrimaryNavigationContextProvider>,
+            navigationContext({organization: navPeek})
+          );
+
+          const explore = screen.getByRole('link', {name: 'Explore'});
+          await userEvent.hover(explore);
+          await screen.findByRole('dialog', {name: 'Navigation preview'});
+          act(() => explore.focus());
+          await userEvent.keyboard('{ArrowRight}');
+
+          expect(
+            jest
+              .mocked(trackAnalytics)
+              .mock.calls.filter(([event]) => event === 'navigation.peek_opened')
+          ).toHaveLength(1);
+          expect(trackAnalytics).not.toHaveBeenCalledWith(
+            'navigation.peek_dismissed',
+            expect.anything()
+          );
+        });
+
+        it('tracks peeks dismissed by switching items and clicking the primary item', async () => {
+          render(
+            <PrimaryNavigationContextProvider>
+              <Navigation />
+            </PrimaryNavigationContextProvider>,
+            navigationContext({organization: navPeek})
+          );
+
+          await userEvent.hover(screen.getByRole('link', {name: 'Explore'}));
+          await screen.findByRole('dialog', {name: 'Navigation preview'});
+          const dashboards = screen.getByRole('link', {name: 'Dashboards'});
+          await userEvent.hover(dashboards);
+          expect(trackAnalytics).toHaveBeenCalledWith(
+            'navigation.peek_dismissed',
+            expect.objectContaining({
+              item: 'explore',
+              reason: 'switched_item',
+              trigger: 'hover',
+              open_ms: expect.any(Number),
+            })
+          );
+
+          await userEvent.click(dashboards.querySelector('[data-icon-container]')!);
+          expect(trackAnalytics).toHaveBeenCalledWith(
+            'navigation.peek_dismissed',
+            expect.objectContaining({item: 'dashboards', reason: 'primary_clicked'})
+          );
+          expect(trackAnalytics).toHaveBeenCalledWith(
+            'navigation.primary_item_clicked',
+            expect.objectContaining({nav_peek_enabled: true, tray_state: 'pinned'})
+          );
+        });
+
+        it('tracks a press on a primary item outside its icon as primary_clicked', async () => {
+          render(
+            <PrimaryNavigationContextProvider>
+              <Navigation />
+            </PrimaryNavigationContextProvider>,
+            navigationContext({organization: navPeek})
+          );
+
+          const explore = screen.getByRole('link', {name: 'Explore'});
+          await userEvent.hover(explore);
+          await screen.findByRole('dialog', {name: 'Navigation preview'});
+
+          // jsdom cannot load another document, which the link's default action
+          // can ask for here. Only the press matters to this test.
+          const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+          await userEvent.click(explore);
+          await new Promise(resolve => setImmediate(resolve));
+          consoleError.mockRestore();
+
+          expect(trackAnalytics).toHaveBeenCalledWith(
+            'navigation.peek_dismissed',
+            expect.objectContaining({item: 'explore', reason: 'primary_clicked'})
+          );
+        });
+
+        it('tracks a keyboard peek dismissed with Escape', async () => {
+          render(
+            <PrimaryNavigationContextProvider>
+              <Navigation />
+            </PrimaryNavigationContextProvider>,
+            navigationContext({organization: navPeek})
+          );
+
+          act(() => screen.getByRole('link', {name: 'Explore'}).focus());
+          await userEvent.keyboard('{ArrowRight}');
+          await screen.findByRole('dialog', {name: 'Navigation preview'});
+          await userEvent.keyboard('{Escape}');
+
+          expect(trackAnalytics).toHaveBeenCalledWith(
+            'navigation.peek_opened',
+            expect.objectContaining({item: 'explore', trigger: 'keyboard'})
+          );
+          expect(trackAnalytics).toHaveBeenCalledWith(
+            'navigation.peek_dismissed',
+            expect.objectContaining({
+              item: 'explore',
+              reason: 'interact_outside',
+              trigger: 'keyboard',
+            })
+          );
+        });
+
+        it('reports a pinned tray without nav-peek', async () => {
+          render(
+            <PrimaryNavigationContextProvider>
+              <Navigation />
+            </PrimaryNavigationContextProvider>,
+            navigationContext()
+          );
+
+          const secondaryNav = within(
+            screen.getByRole('navigation', {name: 'Secondary Navigation'})
+          );
+          await userEvent.click(secondaryNav.getByRole('link', {name: 'Feed'}));
+
+          expect(trackAnalytics).toHaveBeenCalledWith(
+            'navigation.secondary_item_clicked',
+            expect.objectContaining({nav_peek_enabled: false, tray_state: 'pinned'})
+          );
+          expect(trackAnalytics).not.toHaveBeenCalledWith(
+            'navigation.secondary_item_clicked',
+            expect.objectContaining({ms_since_peek_open: expect.anything()})
+          );
+        });
       });
     });
   });

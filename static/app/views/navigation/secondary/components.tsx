@@ -69,6 +69,7 @@ import {
   useNavigationTour,
   type NavigationTourElementProps,
 } from 'sentry/views/navigation/navigationTour';
+import {useNavigationTrayAnalyticsParams} from 'sentry/views/navigation/navigationTrayAnalytics';
 import {isPrimaryNavigationLinkActive} from 'sentry/views/navigation/primary/components';
 import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
@@ -638,6 +639,7 @@ function SecondaryNavigationLink({
   const {reset: closeCollapsedNavigationHovercard} = useHovercardContext();
   const {setView} = useSecondaryNavigation();
   const preview = useSecondaryNavigationPreview();
+  const getTrayAnalyticsParams = useNavigationTrayAnalyticsParams();
   const isMobile = layout === 'mobile';
 
   const sharedLinkProps = {
@@ -649,6 +651,7 @@ function SecondaryNavigationLink({
       if (analyticsItemName) {
         trackAnalytics('navigation.secondary_item_clicked', {
           ...analyticsParams,
+          ...getTrayAnalyticsParams(),
           item: analyticsItemName,
           organization,
         });
@@ -1035,18 +1038,20 @@ function SecondaryNavigationReorderableLink({
   const {reset: closeCollapsedNavigationHovercard} = useHovercardContext();
   const {setView} = useSecondaryNavigation();
   const preview = useSecondaryNavigationPreview();
+  const getTrayAnalyticsParams = useNavigationTrayAnalyticsParams();
   const isMobile = layout === 'mobile';
 
   function handleClick(e: React.MouseEvent<HTMLAnchorElement>) {
-    // Let the browser handle modifier clicks so the view opens in a new tab/window.
-    if (e.metaKey || e.ctrlKey || e.shiftKey) {
-      return;
-    }
     if (analyticsItemName) {
       trackAnalytics('navigation.secondary_item_clicked', {
+        ...getTrayAnalyticsParams(),
         item: analyticsItemName,
         organization,
       });
+    }
+    // Let the browser handle modifier clicks so the view opens in a new tab/window.
+    if (e.metaKey || e.ctrlKey || e.shiftKey) {
+      return;
     }
     closeCollapsedNavigationHovercard();
 
