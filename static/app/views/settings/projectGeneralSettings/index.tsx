@@ -22,7 +22,7 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {openModal, type ModalRenderProps} from '@sentry/scraps/modal';
 import {createFilter} from '@sentry/scraps/select';
-import {Text} from '@sentry/scraps/text';
+import {Heading, Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
 import {changeProjectSlug, removeProject} from 'sentry/actionCreators/projects';
@@ -368,7 +368,7 @@ function AutoResolveForm({
                   <Alert variant="warning">
                     {tct(
                       '[strong:Caution]: Enabling auto resolve will immediately resolve anything that has not been seen within this period of time. There is no undo!',
-                      {strong: <Text bold>{''}</Text>}
+                      {strong: <strong />}
                     )}
                   </Alert>
                   <Flex gap="sm" justify="end" paddingTop="lg">
@@ -585,9 +585,11 @@ function TransferProjectModal({
 
   return (
     <form.AppForm form={form}>
-      <Header closeButton>{t('Transfer Project')}</Header>
+      <Header closeButton>
+        <Heading as="h4">{t('Transfer Project')}</Heading>
+      </Header>
       <Body>
-        <Stack gap="2xl" paddingBottom="2xl">
+        <Stack gap="lg" paddingBottom="lg">
           <Alert variant="warning">
             {t('Transferring this project is permanent and cannot be undone!')}
           </Alert>
