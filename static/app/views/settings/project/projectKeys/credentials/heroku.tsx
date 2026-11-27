@@ -1,3 +1,4 @@
+import {createSerializer, parseAsString} from 'nuqs';
 import {z} from 'zod';
 
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
@@ -15,6 +16,8 @@ interface HerokuTabProps {
   integrationEndpoint: string;
   publicKey: string;
 }
+
+const serializeTabQuery = createSerializer({tab: parseAsString});
 
 const herokuSchema = z.object({otlpEndpoint: z.string(), logDrainUrl: z.string()});
 
@@ -42,7 +45,7 @@ export function HerokuTab({integrationEndpoint, publicKey}: HerokuTabProps) {
                     <Link
                       to={{
                         pathname: location.pathname,
-                        query: {...location.query, tab: 'otlp'},
+                        search: serializeTabQuery(location.search, {tab: 'otlp'}),
                       }}
                     />
                   ),
