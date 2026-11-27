@@ -20,11 +20,11 @@ const COLUMNS: TableColumnConfig[] = [
   {key: 'time', width: 'minmax(0, max-content)'},
 ];
 
-interface AnnotationSevereTableProps {
+interface AnnotationPinnedTableProps {
   items: readonly AnnotationItem[];
 }
 
-export function AnnotationSevereTable({items}: AnnotationSevereTableProps) {
+export function AnnotationPinnedTable({items}: AnnotationPinnedTableProps) {
   const {selection} = usePageFilters();
   const userTimezone = useTimezone();
   const timezone = selection.datetime.utc ? 'UTC' : userTimezone;
@@ -32,7 +32,7 @@ export function AnnotationSevereTable({items}: AnnotationSevereTableProps) {
 
   return (
     <SimpleTable
-      aria-label={t('Severe annotations')}
+      aria-label={t('Pinned annotations')}
       columns={COLUMNS}
       header={
         <SimpleTable.HeaderRow>

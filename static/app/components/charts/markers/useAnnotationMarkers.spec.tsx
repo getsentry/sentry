@@ -65,8 +65,7 @@ describe('useAnnotationMarkers', () => {
         chartRef,
         items: [
           {id: '1.0.0', kind: 'release', start: MINUTE, title: '1.0.0'},
-          {...change('high-severity', 2 * MINUTE, false), severity: 'high'},
-          change('unpinned', 3 * MINUTE, false),
+          change('unpinned', 2 * MINUTE, false),
         ],
       })
     );

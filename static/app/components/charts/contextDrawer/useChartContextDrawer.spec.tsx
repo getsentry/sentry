@@ -92,8 +92,8 @@ function DroppedDataTrigger({
   return (
     <Fragment>
       <Button onClick={() => openContextDrawer()}>Open dropped data</Button>
-      <Button onClick={() => openContextDrawer({tab: 'annotations', section: 'severe'})}>
-        Open severe annotations
+      <Button onClick={() => openContextDrawer({tab: 'annotations', section: 'pinned'})}>
+        Open pinned annotations
       </Button>
     </Fragment>
   );
@@ -836,7 +836,7 @@ describe('useChartContextDrawer', () => {
       await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));
       await userEvent.click(await screen.findByRole('tab', {name: /Annotations/}));
 
-      expect(await screen.findByRole('heading', {name: 'Severe'})).toBeInTheDocument();
+      expect(await screen.findByRole('heading', {name: 'Pinned'})).toBeInTheDocument();
       expect(screen.queryByText('10 dropped and filtered spans')).not.toBeInTheDocument();
       expect(
         screen.queryByRole('radiogroup', {name: 'Filter dropped events'})
@@ -875,7 +875,7 @@ describe('useChartContextDrawer', () => {
         'aria-selected',
         'true'
       );
-      expect(screen.getByRole('heading', {name: 'Severe'})).toBeInTheDocument();
+      expect(screen.getByRole('heading', {name: 'Pinned'})).toBeInTheDocument();
     });
 
     it('shows a section for each annotation layer that is on', async () => {
@@ -922,7 +922,7 @@ describe('useChartContextDrawer', () => {
       );
 
       await userEvent.click(
-        screen.getByRole('button', {name: 'Open severe annotations'})
+        screen.getByRole('button', {name: 'Open pinned annotations'})
       );
 
       expect(await screen.findByRole('tab', {name: /Annotations/})).toHaveAttribute(
@@ -930,17 +930,17 @@ describe('useChartContextDrawer', () => {
         'true'
       );
       expect(scrollIntoView.mock.contexts).toEqual([
-        screen.getByRole('region', {name: 'Severe'}),
+        screen.getByRole('region', {name: 'Pinned'}),
       ]);
       expect(router.location.query.contextTab).toBe('annotations');
-      expect(router.location.query.contextSection).toBe('severe');
+      expect(router.location.query.contextSection).toBe('pinned');
       expect(trackAnalytics).toHaveBeenCalledWith(
         'explore.chart_context.drawer_opened',
         expect.objectContaining({
           dataset: DiscoverDatasets.SPANS,
           source: 'explore',
           tab: 'annotations',
-          section: 'severe',
+          section: 'pinned',
         })
       );
     });
@@ -968,14 +968,14 @@ describe('useChartContextDrawer', () => {
 
       act(() =>
         router.navigate(
-          '/explore/traces/?droppedData=spans&contextTab=annotations&contextSection=severe'
+          '/explore/traces/?droppedData=spans&contextTab=annotations&contextSection=pinned'
         )
       );
 
       await waitFor(() =>
         expect(scrollIntoView.mock.contexts).toEqual([
           activity,
-          screen.getByRole('region', {name: 'Severe'}),
+          screen.getByRole('region', {name: 'Pinned'}),
         ])
       );
     });
@@ -991,7 +991,7 @@ describe('useChartContextDrawer', () => {
               query: {
                 droppedData: 'spans',
                 contextTab: 'annotations',
-                contextSection: 'severe',
+                contextSection: 'pinned',
                 rdListCursor: '0:15:0',
                 contextFlagsCursor: '0:15:0',
               },
