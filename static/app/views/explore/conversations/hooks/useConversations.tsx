@@ -30,8 +30,8 @@ export interface Conversation {
   lastOutput: string | null;
   llmCalls: number;
   outputTokens: number;
-  // Lowest ID among the projects with AI spans in the conversation (null when
-  // unknown).
+  // A conversation can span several projects, but the API exposes only one of
+  // them (null when unknown).
   projectId: number | null;
   startTimestamp: number;
   // Elapsed time (ms) between the conversation's first and last AI span.
