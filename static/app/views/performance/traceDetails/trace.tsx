@@ -1634,14 +1634,28 @@ const TraceStylingWrapper = styled('div')`
     }
   }
 
+  /* Centered on the middle of the row, like the span bar */
   .TraceBarDuration {
-    display: inline-block;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
     transform-origin: left center;
     font-size: ${p => p.theme.font.size.xs};
+    line-height: 1;
     color: ${p => p.theme.tokens.content.secondary};
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
-    position: absolute;
+  }
+
+  /*
+   * Trims the text's box to the height of its digits, so centering the box centers the digits.
+   * Without this, the box includes space for descenders that durations don't have, and the digits
+   * sit above the center.
+   */
+  .TraceBarDurationText {
+    text-box: trim-both cap alphabetic;
   }
 
   .TraceChildrenCount {
