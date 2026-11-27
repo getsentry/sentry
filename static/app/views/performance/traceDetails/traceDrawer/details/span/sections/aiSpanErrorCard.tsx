@@ -12,13 +12,8 @@ import {
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
 import type {BaseNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/baseNode';
-import {HTTP_ERROR_STATUSES} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/constants';
 
 import {SpanErrorCard} from './spanErrorCard';
-
-function isFailedStatus(status: string | undefined): boolean {
-  return !!status && (status.includes('error') || HTTP_ERROR_STATUSES.has(status));
-}
 
 /**
  * Follows the OTel GenAI conventions: the span status marks the failure,
@@ -36,7 +31,7 @@ function getAISpanError(node: AITraceSpanNode, attributes: TraceItemResponseAttr
 
   const isTool = getIsExecuteToolNode(node);
   const isMcpError = isTool && getString('mcp.tool.result.is_error') === 'true';
-  if (!isFailedStatus(getString(SpanFields.SPAN_STATUS)) && !isMcpError) {
+  if (!getString(SpanFields.SPAN_STATUS)?.includes('error') && !isMcpError) {
     return null;
   }
 

@@ -175,19 +175,19 @@ describe('ConversationSpanDetail', () => {
       ['RateLimitError', 'Rate limit exceeded'],
     ],
     [
-      'a tool call that timed out',
+      'a failed streamed tool call',
       'tool',
       [
-        {name: 'span.status', type: 'str', value: 'deadline_exceeded'},
+        {name: 'span.status', type: 'str', value: 'error'},
         {name: 'error.type', type: 'str', value: 'TimeoutError'},
         {name: 'span.status.message', type: 'str', value: 'Tool timed out after 30s'},
       ],
       ['TimeoutError', 'Tool timed out after 30s'],
     ],
     [
-      'a tool call that failed without a message',
+      'a failed streamed tool call without a message',
       'tool',
-      [{name: 'span.status', type: 'str', value: 'not_found'}],
+      [{name: 'span.status', type: 'str', value: 'error'}],
       ['Tool Error', 'This tool call failed but has no associated issue.'],
     ],
     [
