@@ -15,7 +15,6 @@ from sentry.dynamic_sampling.per_org.scheduler import (
     schedule_per_org_calculations,
 )
 from sentry.dynamic_sampling.per_org.telemetry import DynamicSamplingStatus
-from sentry.dynamic_sampling.types import DynamicSamplingMode
 from sentry.models.organization import Organization
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
@@ -318,106 +317,6 @@ class RunCalculationsPerOrgTest(TestCase):
         _assert_called_once_with_config(mocks[TRANSACTION_VOLUMES], org.id)
         assert config.results.rebalanced_projects == rebalanced_projects
         assert config.results.transaction_volumes == []
-
-    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
-    def test_run_calculations_per_org_skips_project_balancing_for_project_mode(self) -> None:
-        org = self.create_organization()
-        project = self.create_project(organization=org)
-        org.update_option("sentry:sampling_mode", DynamicSamplingMode.PROJECT)
-        project.update_option("sentry:target_sample_rate", 0.2)
-        org_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=25)
-        project_volumes = [make_project_volume(project.id)]
-        transaction_volumes = _transaction_volumes(org, project.id)
-
-        with (
-            self.feature("organizations:dynamic-sampling-custom"),
-            patch_configuration(
-                {
-                    BLENDED_SAMPLE_RATE: DEFAULT,
-                    ORG_VOLUME: org_volume,
-                    PROJECT_VOLUMES: project_volumes,
-                    PROJECT_BALANCING: DEFAULT,
-                    TRANSACTION_VOLUMES: transaction_volumes,
-                    TRANSACTION_BALANCING: {},
-                    **END_OF_PASS,
-                }
-            ) as mocks,
-        ):
-            result = run_calculations_per_org_task(org.id)
-
-        assert result is None
-        mocks[BLENDED_SAMPLE_RATE].assert_not_called()
-        _assert_called_once_with_organization(mocks[ORG_VOLUME], org.id)
-        _assert_called_once_with_config(mocks[PROJECT_VOLUMES], org.id)
-        mocks[PROJECT_BALANCING].assert_not_called()
-        config = _assert_called_once_with_config(mocks[TRANSACTION_VOLUMES], org.id)
-        mocks[TRANSACTION_BALANCING].assert_called_once_with(
-            config, project_volumes, transaction_volumes
-        )
-        assert config.results.rebalanced_projects == []
-
-    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
-    def test_run_calculations_per_org_queries_projects_for_am3_org_mode(self) -> None:
-        org = self.create_organization()
-        project = self.create_project(organization=org)
-        org.update_option("sentry:sampling_mode", DynamicSamplingMode.ORGANIZATION)
-        org_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=25)
-        project_volumes = [make_project_volume(project.id)]
-        rebalanced_projects = [RebalancedItem(id=project.id, count=100, new_sample_rate=0.5)]
-        transaction_volumes = _transaction_volumes(org, project.id)
-
-        with (
-            self.feature("organizations:dynamic-sampling-custom"),
-            patch_configuration(
-                {
-                    BLENDED_SAMPLE_RATE: DEFAULT,
-                    ORG_VOLUME: org_volume,
-                    PROJECT_VOLUMES: project_volumes,
-                    PROJECT_BALANCING: rebalanced_projects,
-                    TRANSACTION_VOLUMES: transaction_volumes,
-                    TRANSACTION_BALANCING: {},
-                    SET_FACTOR: DEFAULT,
-                }
-            ) as mocks,
-        ):
-            result = run_calculations_per_org_task(org.id)
-
-        assert result is None
-        mocks[BLENDED_SAMPLE_RATE].assert_not_called()
-        _assert_called_once_with_organization(mocks[ORG_VOLUME], org.id)
-        config = _assert_called_once_with_config(mocks[PROJECT_VOLUMES], org.id)
-        mocks[PROJECT_BALANCING].assert_called_once_with(config, project_volumes)
-        _assert_called_once_with_config(mocks[TRANSACTION_VOLUMES], org.id)
-        mocks[TRANSACTION_BALANCING].assert_called_once_with(
-            config, project_volumes, transaction_volumes
-        )
-        mocks[SET_FACTOR].assert_called_once_with(org.id, 4.0)
-
-    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
-    def test_run_calculations_per_org_skips_project_mode_without_project_rates(self) -> None:
-        org = self.create_organization()
-        self.create_project(organization=org)
-        org.update_option("sentry:sampling_mode", DynamicSamplingMode.PROJECT)
-
-        with (
-            self.feature("organizations:dynamic-sampling-custom"),
-            patch_configuration(
-                {
-                    BLENDED_SAMPLE_RATE: DEFAULT,
-                    ORG_VOLUME: DEFAULT,
-                    PROJECT_VOLUMES: DEFAULT,
-                    **END_OF_PASS,
-                }
-            ) as mocks,
-        ):
-            result = run_calculations_per_org_task(org.id)
-
-        assert result == DynamicSamplingStatus.ORG_HAS_NO_DYNAMIC_SAMPLING
-        mocks[BLENDED_SAMPLE_RATE].assert_not_called()
-        mocks[ORG_VOLUME].assert_not_called()
-        mocks[PROJECT_VOLUMES].assert_not_called()
-        # An organization without dynamic sampling has nothing to store.
-        mocks[WRITE_CACHES].assert_not_called()
 
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_run_calculations_per_org_queries_projects_for_am2(self) -> None:

@@ -82,10 +82,9 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> DynamicSamplingStat
         if not results.project_volumes:
             return DynamicSamplingStatus.NO_PROJECT_VOLUMES
 
-        if config.should_balance_projects:
-            rebalanced_projects = run_project_balancing(config, results.project_volumes)
-            rebalanced_projects = apply_project_sample_rate_overrides(rebalanced_projects)
-            config.set_rebalanced_project_sample_rates(rebalanced_projects)
+        rebalanced_projects = run_project_balancing(config, results.project_volumes)
+        rebalanced_projects = apply_project_sample_rate_overrides(rebalanced_projects)
+        config.set_rebalanced_project_sample_rates(rebalanced_projects)
 
         sample_rates = config.get_project_sample_rates()
         results.projects_to_balance = [

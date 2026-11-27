@@ -10,8 +10,6 @@ from sentry.dynamic_sampling.per_org.serving import get_project_sample_rate
 from sentry.dynamic_sampling.rules.biases.base import Bias
 from sentry.dynamic_sampling.rules.combine import get_relay_biases
 from sentry.dynamic_sampling.rules.utils import PolymorphicRule, RuleType, get_enabled_user_biases
-from sentry.dynamic_sampling.sample_rate_override import get_sample_rate_override_for_project
-from sentry.dynamic_sampling.utils import has_custom_dynamic_sampling, is_project_mode_sampling
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.utils import metrics
@@ -51,22 +49,9 @@ def is_recently_added(model: Model) -> bool:
 
 
 def get_guarded_project_sample_rate(organization: Organization, project: Project) -> float:
-    # Early exit in project-mode, since we don't need to calculate the sample rate.
-    if is_project_mode_sampling(organization):
-        return float(project.get_option("sentry:target_sample_rate", TARGET_SAMPLE_RATE_DEFAULT))
-
-    if has_custom_dynamic_sampling(organization):
-        # A per-project override (configured via options) hard-replaces the rate the custom
-        # dynamic sampling path would otherwise compute, winning over project/org targets and
-        # the boosted/rebalanced rate.
-        override = get_sample_rate_override_for_project(project.id)
-        if override is not None:
-            return override
-        sample_rate = organization.get_option("sentry:target_sample_rate")
-    else:
-        sample_rate = quotas.backend.get_blended_sample_rate(
-            organization_id=organization.id, project=project
-        )
+    sample_rate = quotas.backend.get_blended_sample_rate(
+        organization_id=organization.id, project=project
+    )
 
     # get_blended_sample_rate returns None if the organization doesn't have dynamic sampling
     if sample_rate is None:
