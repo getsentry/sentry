@@ -1,5 +1,3 @@
-import {OrganizationFixture} from 'sentry-fixture/organization';
-
 import {
   act,
   cleanup,
@@ -72,12 +70,17 @@ const CONVERSATION_BODY = [
 
 function mockConversation(
   spans = CONVERSATION_BODY,
-  {cursor, nextCursor}: {cursor?: string; nextCursor?: string} = {}
+  {
+    asyncDelay,
+    cursor,
+    nextCursor,
+  }: {asyncDelay?: number; cursor?: string; nextCursor?: string} = {}
 ) {
   const url = `/organizations/org-slug/agents/conversations/${CONVERSATION_ID}/`;
   const request = MockApiClient.addMockResponse({
     url,
     match: [MockApiClient.matchQuery({cursor})],
+    asyncDelay,
     body: {conversationId: CONVERSATION_ID, title: null, spans},
     headers: nextCursor
       ? {
@@ -92,19 +95,6 @@ function mockConversation(
   });
   MockApiClient.addMockResponse({url: '/organizations/org-slug/projects/', body: []});
   return request;
-}
-
-function renderView(
-  props: Partial<React.ComponentProps<typeof ConversationViewContent>> = {}
-) {
-  return render(
-    <ConversationViewContent
-      conversation={{conversationId: CONVERSATION_ID}}
-      activeTab="transcript"
-      {...props}
-    />,
-    {organization: OrganizationFixture()}
-  );
 }
 
 // The detail pane's Close button is the stable signal that a span is open.
@@ -135,10 +125,16 @@ describe('ConversationViewContent', () => {
   });
 
   it('opens no span by default on the transcript', async () => {
-    renderView({activeTab: 'transcript'});
+    render(
+      <ConversationViewContent
+        conversation={{conversationId: CONVERSATION_ID}}
+        activeTab="transcript"
+      />
+    );
 
     expect(await screen.findByText('First answer')).toBeInTheDocument();
     expect(detailPane()).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Jump to end'})).not.toBeInTheDocument();
   });
 
   it('requests a Code Mode summary only when its details are opened', async () => {
@@ -195,7 +191,12 @@ describe('ConversationViewContent', () => {
       nextCursor: 'last',
     });
 
-    renderView({activeTab: 'timeline'});
+    render(
+      <ConversationViewContent
+        conversation={{conversationId: CONVERSATION_ID}}
+        activeTab="timeline"
+      />
+    );
     expect(await screen.findByRole('button', {name: 'Close'})).toBeInTheDocument();
     expect(nextRequest).not.toHaveBeenCalled();
 
@@ -212,37 +213,70 @@ describe('ConversationViewContent', () => {
     ).toBeInTheDocument();
   });
 
-  it('keeps loaded spans visible and offers retry when pagination fails', async () => {
-    MockApiClient.clearMockResponses();
-    mockConversation([CONVERSATION_BODY[0]!], {nextCursor: 'next'});
-    const nextRequest = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/agents/conversations/${CONVERSATION_ID}/`,
-      match: [MockApiClient.matchQuery({cursor: 'next'})],
-      statusCode: 500,
-    });
+  it.each([
+    {
+      name: 'scrolling',
+      failedRequests: 1,
+      load: () => Promise.resolve(act(() => triggerIntersection?.(true))),
+    },
+    {
+      name: 'jumping to the end',
+      failedRequests: 2,
+      load: async () => {
+        await userEvent.click(screen.getByRole('button', {name: 'Jump to end'}));
+        await waitFor(() => expect(Element.prototype.scrollTo).toHaveBeenCalled());
+      },
+    },
+  ])(
+    'keeps loaded spans and offers retry when $name fails',
+    async ({failedRequests, load}) => {
+      MockApiClient.clearMockResponses();
+      mockConversation([CONVERSATION_BODY[0]!], {nextCursor: 'next'});
+      const nextRequest = MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/agents/conversations/${CONVERSATION_ID}/`,
+        match: [MockApiClient.matchQuery({cursor: 'next'})],
+        statusCode: 500,
+      });
 
-    renderView();
-    expect(await screen.findByText('First answer')).toBeInTheDocument();
+      render(
+        <ConversationViewContent
+          conversation={{conversationId: CONVERSATION_ID}}
+          activeTab="transcript"
+        />
+      );
+      expect(await screen.findByText('First answer')).toBeInTheDocument();
 
-    act(() => triggerIntersection?.(true));
+      await load();
 
-    const retry = await screen.findByRole('button', {name: 'Retry'});
-    expect(screen.getByText('First answer')).toBeInTheDocument();
-    expect(nextRequest).toHaveBeenCalledTimes(1);
+      const retry = await screen.findByRole('button', {name: 'Retry'});
+      expect(screen.getByText('First answer')).toBeInTheDocument();
+      await waitFor(() => expect(nextRequest).toHaveBeenCalledTimes(failedRequests));
 
-    await userEvent.click(retry);
-    await waitFor(() => expect(nextRequest).toHaveBeenCalledTimes(2));
-  });
+      await userEvent.click(retry);
+      await waitFor(() => expect(nextRequest).toHaveBeenCalledTimes(failedRequests + 1));
+    }
+  );
 
   it('opens the first span by default on the timeline', async () => {
-    renderView({activeTab: 'timeline'});
+    render(
+      <ConversationViewContent
+        conversation={{conversationId: CONVERSATION_ID}}
+        activeTab="timeline"
+      />
+    );
 
     expect(await screen.findByRole('button', {name: 'Close'})).toBeInTheDocument();
   });
 
   it('does not write the timeline default into the URL selection', async () => {
     const onSelectSpan = jest.fn();
-    renderView({activeTab: 'timeline', onSelectSpan});
+    render(
+      <ConversationViewContent
+        conversation={{conversationId: CONVERSATION_ID}}
+        activeTab="timeline"
+        onSelectSpan={onSelectSpan}
+      />
+    );
 
     // Wait until the default detail pane has opened.
     expect(await screen.findByRole('button', {name: 'Close'})).toBeInTheDocument();
@@ -252,7 +286,13 @@ describe('ConversationViewContent', () => {
   });
 
   it('opens a deep-linked span on the transcript', async () => {
-    renderView({activeTab: 'transcript', selectedSpanId: 'span-a'});
+    render(
+      <ConversationViewContent
+        conversation={{conversationId: CONVERSATION_ID}}
+        activeTab="transcript"
+        selectedSpanId="span-a"
+      />
+    );
 
     expect(await screen.findByRole('button', {name: 'Close'})).toBeInTheDocument();
   });
@@ -262,7 +302,13 @@ describe('ConversationViewContent', () => {
     mockConversation([CONVERSATION_BODY[0]!], {nextCursor: 'next'});
     const nextRequest = mockConversation([CONVERSATION_BODY[1]!], {cursor: 'next'});
 
-    renderView({activeTab: 'transcript', selectedSpanId: 'span-b'});
+    render(
+      <ConversationViewContent
+        conversation={{conversationId: CONVERSATION_ID}}
+        activeTab="transcript"
+        selectedSpanId="span-b"
+      />
+    );
 
     expect(await screen.findByText('ID: span-b')).toBeInTheDocument();
     expect(nextRequest).toHaveBeenCalledTimes(1);
@@ -270,7 +316,13 @@ describe('ConversationViewContent', () => {
 
   it('searches the transcript and selects the span with the match', async () => {
     const onSelectSpan = jest.fn();
-    renderView({onSelectSpan});
+    render(
+      <ConversationViewContent
+        conversation={{conversationId: CONVERSATION_ID}}
+        activeTab="transcript"
+        onSelectSpan={onSelectSpan}
+      />
+    );
     await screen.findByText('Second answer');
 
     await userEvent.type(
@@ -297,7 +349,13 @@ describe('ConversationViewContent', () => {
       CONVERSATION_BODY[1]!,
     ]);
     const onSelectSpan = jest.fn();
-    renderView({onSelectSpan});
+    render(
+      <ConversationViewContent
+        conversation={{conversationId: CONVERSATION_ID}}
+        activeTab="transcript"
+        onSelectSpan={onSelectSpan}
+      />
+    );
     await screen.findByText('First answer');
 
     await userEvent.type(
@@ -314,7 +372,13 @@ describe('ConversationViewContent', () => {
     mockConversation([CONVERSATION_BODY[0]!], {nextCursor: 'next'});
     const nextRequest = mockConversation([CONVERSATION_BODY[1]!], {cursor: 'next'});
     const onSelectSpan = jest.fn();
-    renderView({onSelectSpan});
+    render(
+      <ConversationViewContent
+        conversation={{conversationId: CONVERSATION_ID}}
+        activeTab="transcript"
+        onSelectSpan={onSelectSpan}
+      />
+    );
     await screen.findByText('First answer');
 
     await userEvent.type(
@@ -332,7 +396,13 @@ describe('ConversationViewContent', () => {
     mockConversation([CONVERSATION_BODY[0]!], {nextCursor: 'next'});
     const nextRequest = mockConversation([CONVERSATION_BODY[1]!], {cursor: 'next'});
     const onSelectSpan = jest.fn();
-    renderView({onSelectSpan});
+    render(
+      <ConversationViewContent
+        conversation={{conversationId: CONVERSATION_ID}}
+        activeTab="transcript"
+        onSelectSpan={onSelectSpan}
+      />
+    );
     await screen.findByText('First answer');
 
     await userEvent.type(
@@ -347,6 +417,105 @@ describe('ConversationViewContent', () => {
       'conversations.detail.span-limit-reached',
       expect.anything()
     );
+  });
+
+  describe('jump to end', () => {
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('adds the remaining pages in one update and scrolls, across a tab switch', async () => {
+      jest.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockReturnValue(5000);
+      MockApiClient.clearMockResponses();
+      mockConversation([CONVERSATION_BODY[0]!], {nextCursor: 'page-2'});
+      mockConversation([CONVERSATION_BODY[1]!], {cursor: 'page-2', nextCursor: 'page-3'});
+      const lastPage = mockConversation([], {cursor: 'page-3', asyncDelay: 50});
+      const {rerender} = render(
+        <ConversationViewContent
+          conversation={{conversationId: CONVERSATION_ID}}
+          activeTab="transcript"
+        />
+      );
+      await screen.findByText('First answer');
+
+      await userEvent.click(screen.getByRole('button', {name: 'Jump to end'}));
+
+      await waitFor(() => expect(lastPage).toHaveBeenCalledTimes(1));
+      expect(screen.queryByText('Second answer')).not.toBeInTheDocument();
+      rerender(
+        <ConversationViewContent
+          conversation={{conversationId: CONVERSATION_ID}}
+          activeTab="timeline"
+        />
+      );
+      expect(await screen.findByText('second turn')).toBeInTheDocument();
+      await waitFor(() =>
+        expect(Element.prototype.scrollTo).toHaveBeenCalledWith({top: 5000})
+      );
+      expect(trackAnalytics).toHaveBeenCalledWith(
+        'conversations.detail.jump-to-end',
+        expect.anything()
+      );
+    });
+
+    it('retries a failed page before scrolling to the end', async () => {
+      const scrolledToSecondAnswer = jest.fn();
+      jest
+        .mocked(Element.prototype.scrollTo)
+        .mockImplementation(() =>
+          scrolledToSecondAnswer(screen.queryByText('Second answer') !== null)
+        );
+      MockApiClient.clearMockResponses();
+      mockConversation([CONVERSATION_BODY[0]!], {nextCursor: 'page-2'});
+      mockConversation([CONVERSATION_BODY[1]!], {cursor: 'page-2', asyncDelay: 50});
+      let failures = 0;
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/agents/conversations/${CONVERSATION_ID}/`,
+        match: [MockApiClient.matchQuery({cursor: 'page-2'}), () => failures++ === 0],
+        statusCode: 500,
+      });
+      render(
+        <ConversationViewContent
+          conversation={{conversationId: CONVERSATION_ID}}
+          activeTab="transcript"
+        />
+      );
+      await screen.findByText('First answer');
+
+      await userEvent.click(screen.getByRole('button', {name: 'Jump to end'}));
+
+      await waitFor(() => expect(scrolledToSecondAnswer).toHaveBeenCalled());
+      expect(scrolledToSecondAnswer.mock.calls).toEqual([[true]]);
+      expect(screen.queryByRole('button', {name: 'Retry'})).not.toBeInTheDocument();
+    });
+
+    it('stops loading pages when the user stops the jump', async () => {
+      MockApiClient.clearMockResponses();
+      mockConversation([CONVERSATION_BODY[0]!], {nextCursor: 'page-2'});
+      const secondPage = mockConversation([CONVERSATION_BODY[1]!], {
+        cursor: 'page-2',
+        nextCursor: 'page-3',
+        asyncDelay: 200,
+      });
+      const thirdPage = mockConversation([], {cursor: 'page-3'});
+      render(
+        <ConversationViewContent
+          conversation={{conversationId: CONVERSATION_ID}}
+          activeTab="transcript"
+        />
+      );
+      await screen.findByText('First answer');
+
+      await userEvent.click(screen.getByRole('button', {name: 'Jump to end'}));
+      await userEvent.click(await screen.findByRole('button', {name: 'Stop loading'}));
+
+      expect(
+        await screen.findByRole('button', {name: 'Jump to end'})
+      ).toBeInTheDocument();
+      expect(secondPage).toHaveBeenCalledTimes(1);
+      expect(thirdPage).not.toHaveBeenCalled();
+      expect(screen.queryByText('Second answer')).not.toBeInTheDocument();
+    });
   });
 
   describe('at the span limit', () => {
@@ -379,7 +548,13 @@ describe('ConversationViewContent', () => {
         },
       });
       jest.useFakeTimers();
-      renderView({onSelectSpan: jest.fn()});
+      render(
+        <ConversationViewContent
+          conversation={{conversationId: CONVERSATION_ID}}
+          activeTab="transcript"
+          onSelectSpan={jest.fn()}
+        />
+      );
       await screen.findByText('First answer');
 
       await userEvent.type(
@@ -390,6 +565,7 @@ describe('ConversationViewContent', () => {
       await act(() => jest.runAllTimersAsync());
 
       expect(screen.getByText('No results')).toBeInTheDocument();
+      expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
       expect(nextRequest).toHaveBeenCalledTimes(99);
       expect(trackAnalytics).toHaveBeenCalledTimes(1);
       expect(trackAnalytics).toHaveBeenCalledWith(
@@ -408,7 +584,13 @@ describe('ConversationViewContent', () => {
       statusCode: 500,
     });
 
-    renderView({activeTab: 'timeline', selectedSpanId: 'span-b'});
+    render(
+      <ConversationViewContent
+        conversation={{conversationId: CONVERSATION_ID}}
+        activeTab="timeline"
+        selectedSpanId="span-b"
+      />
+    );
 
     expect(await screen.findByRole('button', {name: 'Retry'})).toBeInTheDocument();
     expect(screen.queryByText('ID: span-a')).not.toBeInTheDocument();
@@ -416,7 +598,13 @@ describe('ConversationViewContent', () => {
   });
 
   it('shows the span ID of the open span', async () => {
-    renderView({activeTab: 'transcript', selectedSpanId: 'span-a'});
+    render(
+      <ConversationViewContent
+        conversation={{conversationId: CONVERSATION_ID}}
+        activeTab="transcript"
+        selectedSpanId="span-a"
+      />
+    );
 
     expect(await screen.findByRole('button', {name: 'Close'})).toBeInTheDocument();
 
@@ -426,7 +614,13 @@ describe('ConversationViewContent', () => {
 
   it('writes a sticky selection when the user picks a span', async () => {
     const onSelectSpan = jest.fn();
-    renderView({activeTab: 'transcript', onSelectSpan});
+    render(
+      <ConversationViewContent
+        conversation={{conversationId: CONVERSATION_ID}}
+        activeTab="transcript"
+        onSelectSpan={onSelectSpan}
+      />
+    );
 
     await userEvent.click(await screen.findByText('First answer'));
 
@@ -434,7 +628,13 @@ describe('ConversationViewContent', () => {
   });
 
   it('scrolls the selected span into view when switching tabs', async () => {
-    const {rerender} = renderView({activeTab: 'transcript', selectedSpanId: 'span-a'});
+    const {rerender} = render(
+      <ConversationViewContent
+        conversation={{conversationId: CONVERSATION_ID}}
+        activeTab="transcript"
+        selectedSpanId="span-a"
+      />
+    );
 
     // Wait for the deep-linked selection to render before asserting the switch.
     expect(await screen.findByRole('button', {name: 'Close'})).toBeInTheDocument();
@@ -458,7 +658,12 @@ describe('ConversationViewContent', () => {
     // The timeline opens on a default span, but that view-local default is not a
     // real selection: entering the timeline must restore its saved offset rather
     // than scroll the default span into view.
-    const {rerender} = renderView({activeTab: 'transcript'});
+    const {rerender} = render(
+      <ConversationViewContent
+        conversation={{conversationId: CONVERSATION_ID}}
+        activeTab="transcript"
+      />
+    );
     expect(await screen.findByText('First answer')).toBeInTheDocument();
 
     jest.mocked(Element.prototype.scrollIntoView).mockClear();
@@ -477,7 +682,12 @@ describe('ConversationViewContent', () => {
   });
 
   it('does not scroll into view when returning to a tab with no selection', async () => {
-    const {rerender} = renderView({activeTab: 'transcript'});
+    const {rerender} = render(
+      <ConversationViewContent
+        conversation={{conversationId: CONVERSATION_ID}}
+        activeTab="transcript"
+      />
+    );
     expect(await screen.findByText('First answer')).toBeInTheDocument();
 
     // Neither switch has a sticky selection, so both restore the saved offset
@@ -505,7 +715,13 @@ describe('ConversationViewContent', () => {
 
   it('closes the timeline default and does not reopen it', async () => {
     const onDeselectSpan = jest.fn();
-    renderView({activeTab: 'timeline', onDeselectSpan});
+    render(
+      <ConversationViewContent
+        conversation={{conversationId: CONVERSATION_ID}}
+        activeTab="timeline"
+        onDeselectSpan={onDeselectSpan}
+      />
+    );
 
     await userEvent.click(await screen.findByRole('button', {name: 'Close'}));
 

@@ -1,5 +1,10 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
-import {skipToken, useInfiniteQuery} from '@tanstack/react-query';
+import {
+  skipToken,
+  useInfiniteQuery,
+  useQueryClient,
+  type QueryClient,
+} from '@tanstack/react-query';
 
 import {
   ALL_ACCESS_PROJECTS,
@@ -9,7 +14,9 @@ import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
+import {apiFetchInfinite} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import type {ParsedHeader} from 'sentry/utils/parseLinkHeader';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {MAX_PICKABLE_DAYS} from 'sentry/views/explore/conversations/settings';
 import {
@@ -146,6 +153,8 @@ interface UseConversationResult {
   isLoading: boolean;
   isNextPageError: boolean;
   loadNextPage: () => void;
+  loadRemainingPages: (signal: AbortSignal) => Promise<number>;
+  loadedPageCount: number;
   nodeTraceMap: Map<string, string>;
   nodes: AITraceSpanNode[];
   stats: ConversationStats | null;
@@ -396,14 +405,65 @@ export function getConversationQueryOptions(
   );
 }
 
+// Writes all pages at once because each cache update re-renders every span.
+async function fetchRemainingPages(
+  queryClient: QueryClient,
+  {queryKey, getNextPageParam}: ReturnType<typeof getConversationQueryOptions>,
+  signal: AbortSignal
+) {
+  const getLoadedPageCount = () => queryClient.getQueryData(queryKey)?.pages.length ?? 0;
+  const loadedData = queryClient.getQueryData(queryKey);
+  const lastPage = loadedData?.pages.at(-1);
+  if (!loadedData || !lastPage) {
+    return {hasFailedPage: false, pageCount: 0};
+  }
+
+  const pages = [...loadedData.pages];
+  const pageParams = [...(loadedData.pageParams as Array<ParsedHeader | undefined>)];
+  let pageParam = getNextPageParam(lastPage, pages, pageParams.at(-1), pageParams);
+  let hasFailedPage = false;
+  while (pageParam && !signal.aborted && pages.length < MAX_PAGES) {
+    const page = await apiFetchInfinite<ConversationApiResponse>({
+      queryKey,
+      pageParam,
+    }).catch(() => null);
+    if (!page) {
+      hasFailedPage = true;
+      break;
+    }
+    pages.push(page);
+    pageParams.push(pageParam);
+    pageParam = getNextPageParam(page, pages, pageParam, pageParams);
+  }
+
+  if (signal.aborted) {
+    return {hasFailedPage: false, pageCount: getLoadedPageCount()};
+  }
+
+  // An infinite scroll fetch that is still running would overwrite this update.
+  await queryClient.cancelQueries({queryKey, exact: true});
+  const latestPageCount = getLoadedPageCount();
+  if (pages.length > latestPageCount) {
+    queryClient.setQueryData(queryKey, {pages, pageParams});
+  }
+  return {hasFailedPage, pageCount: Math.max(pages.length, latestPageCount)};
+}
+
 export function useConversation(
   conversation: UseConversationsOptions
 ): UseConversationResult {
   const organization = useOrganization();
+  const queryClient = useQueryClient();
   const {selection} = usePageFilters();
   // Fixed for the hook's lifetime so the retention clamp can't change the
   // query key between renders.
   const [now] = useState(Date.now);
+  const queryOptions = getConversationQueryOptions(
+    organization,
+    conversation,
+    selection,
+    now
+  );
 
   const {
     data,
@@ -414,16 +474,27 @@ export function useConversation(
     isFetchNextPageError,
     isLoading,
     isLoadingError,
-  } = useInfiniteQuery(
-    getConversationQueryOptions(organization, conversation, selection, now)
-  );
+  } = useInfiniteQuery(queryOptions);
 
   const pageCount = data?.pages.length ?? 0;
   const loadNextPage = useCallback(() => {
-    if (hasNextPage && !isFetching) {
+    if (hasNextPage && !isFetching && pageCount < MAX_PAGES) {
       void fetchNextPage({cancelRefetch: false});
     }
-  }, [fetchNextPage, hasNextPage, isFetching]);
+  }, [fetchNextPage, hasNextPage, isFetching, pageCount]);
+
+  const loadRemainingPages = async (signal: AbortSignal) => {
+    let result = await fetchRemainingPages(queryClient, queryOptions, signal);
+    while (result.hasFailedPage && !signal.aborted) {
+      // The Retry button reads the live query's error, so retry the failed page there.
+      const retry = await fetchNextPage({cancelRefetch: false});
+      if (retry.isFetchNextPageError || !retry.hasNextPage) {
+        return retry.data?.pages.length ?? result.pageCount;
+      }
+      result = await fetchRemainingPages(queryClient, queryOptions, signal);
+    }
+    return result.pageCount;
+  };
 
   const autoFetchAll = conversation.autoFetchAll ?? true;
   const canAutoFetchNextPage = Boolean(
@@ -463,7 +534,9 @@ export function useConversation(
       hasReachedPageLimit: false,
       isFetchingNextPage: false,
       isLoading: false,
+      loadedPageCount: 0,
       loadNextPage,
+      loadRemainingPages,
       isNextPageError: false,
       error: false,
       title: null,
@@ -480,7 +553,9 @@ export function useConversation(
     hasReachedPageLimit: Boolean(hasNextPage && pageCount >= MAX_PAGES),
     isFetchingNextPage,
     isLoading: isLoading || nextAutoFetchPage !== null,
+    loadedPageCount: pageCount,
     loadNextPage,
+    loadRemainingPages,
     isNextPageError: isFetchNextPageError,
     error: isLoadingError || (autoFetchAll && isFetchNextPageError),
     title,
