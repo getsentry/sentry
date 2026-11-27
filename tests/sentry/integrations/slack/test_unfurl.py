@@ -1189,6 +1189,26 @@ class UnfurlTest(TestCase):
         assert mock_generate_chart.call_args[0][0] == ChartType.SLACK_TIMESERIES
         chart_data = mock_generate_chart.call_args[0][1]
         assert "timeSeries" in chart_data
+        assert chart_data["showConfidence"] is False
+
+    @patch(
+        "sentry.integrations.slack.unfurl.explore.client.get",
+    )
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
+    @with_feature("organizations:data-browsing-time-series-confidence")
+    def test_unfurl_explore_shows_confidence_with_flag(
+        self, mock_generate_chart: MagicMock, mock_client_get: MagicMock
+    ) -> None:
+        mock_client_get.return_value = MagicMock(data=self._build_mock_timeseries_response())
+        url = f"https://sentry.io/organizations/{self.organization.slug}/explore/traces/?project={self.project.id}&statsPeriod=24h"
+        link_type, args = match_link(url)
+        assert link_type is not None and args is not None
+
+        link_handlers[link_type].fn(
+            self.rpc_integration, [UnfurlableUrl(url=url, args=args)], self.user
+        )
+
+        assert mock_generate_chart.call_args[0][1]["showConfidence"] is True
 
     def _build_mock_heatmap_response(self) -> dict[str, Any]:
         """A HeatMapSeries-shaped events-heatmap response. The Y axis is the
@@ -2629,6 +2649,42 @@ class UnfurlTest(TestCase):
         assert len(unfurls) == 1
         chart_data = mock_generate_chart.call_args[0][1]
         assert chart_data["widget"]["displayType"] == "bar"
+
+    @patch("sentry.integrations.slack.unfurl.dashboards.client.get")
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
+    def test_unfurl_dashboards_show_confidence(
+        self, mock_generate_chart: MagicMock, mock_client_get: MagicMock
+    ) -> None:
+        mock_client_get.return_value = MagicMock(data=self._build_mock_timeseries_response())
+        spans_dashboard, _ = self._create_spans_widget()
+        errors_dashboard = self.create_dashboard(organization=self.organization)
+        errors_widget = self.create_dashboard_widget(
+            dashboard=errors_dashboard,
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=DashboardWidgetTypes.ERROR_EVENTS,
+            order=0,
+        )
+        self.create_dashboard_widget_query(
+            widget=errors_widget, order=0, fields=["count()"], aggregates=["count()"]
+        )
+
+        def show_confidence(dashboard: Dashboard) -> bool:
+            url = (
+                f"https://sentry.io/organizations/{self.organization.slug}"
+                f"/dashboard/{dashboard.id}/widget/0/?statsPeriod=7d"
+            )
+            link_type, args = match_link(url)
+            assert link_type is not None and args is not None
+            link_handlers[link_type].fn(
+                self.rpc_integration, [UnfurlableUrl(url=url, args=args)], self.user
+            )
+            return mock_generate_chart.call_args[0][1]["showConfidence"]
+
+        assert show_confidence(spans_dashboard) is False
+        with self.feature("organizations:data-browsing-time-series-confidence"):
+            assert show_confidence(spans_dashboard) is True
+            # Error events aren't sampled, so they have no low-confidence buckets
+            assert show_confidence(errors_dashboard) is False
 
     def test_match_link_dashboards(self) -> None:
         # Primary domain
