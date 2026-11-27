@@ -14,6 +14,7 @@ import {selectText} from 'sentry/utils/selectText';
 import {useLocation} from 'sentry/utils/useLocation';
 import {FieldList} from 'sentry/views/settings/project/projectKeys/fieldList';
 
+import {HerokuTab} from './heroku';
 import {OtlpTab} from './otlp';
 import {VercelTab} from './vercel';
 
@@ -28,7 +29,14 @@ type Props = {
   showUnreal?: boolean;
 };
 
-type TabValue = 'otlp' | 'security' | 'minidump' | 'unreal' | 'vercel' | 'credentials';
+type TabValue =
+  | 'otlp'
+  | 'security'
+  | 'minidump'
+  | 'unreal'
+  | 'vercel'
+  | 'heroku'
+  | 'credentials';
 
 interface TabConfig {
   key: TabValue;
@@ -271,6 +279,7 @@ export function ProjectKeyCredentials({
       {key: 'minidump', label: t('Minidump'), visible: showMinidump},
       {key: 'unreal', label: t('Unreal Engine'), visible: showUnreal},
       {key: 'vercel', label: t('Vercel Drains'), visible: true},
+      {key: 'heroku', label: t('Heroku Drains'), visible: true},
     ];
     return tabs.filter(tab => tab.visible);
   }, [
@@ -345,6 +354,10 @@ export function ProjectKeyCredentials({
             publicKey={data.public}
             tracesEndpoint={data.dsn.otlp_traces}
           />
+        );
+      case 'heroku':
+        return (
+          <HerokuTab integrationEndpoint={data.dsn.integration} publicKey={data.public} />
         );
       default:
         return;
