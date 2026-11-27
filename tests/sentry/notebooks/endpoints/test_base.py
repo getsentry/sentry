@@ -129,6 +129,25 @@ class NotebookWriterTest(APITestCase):
             deleted.status_code,
         ]
 
+    def test_closed_membership_hides_notebooks_from_every_principal(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        self.login_as(self.user)
+        service_account_client, _ = self.service_account_client()
+        for client in (self.client, self.agent_client(), service_account_client):
+            reads = [
+                client.get(self.url("sentry-api-0-organization-notebooks")).status_code,
+                client.get(
+                    self.url(
+                        "sentry-api-0-organization-notebook-details", notebook_id=self.notebook.id
+                    )
+                ).status_code,
+            ]
+            assert reads == [404, 404]
+            assert self.write_everything(client) == [404, 404]
+        assert not Notebook.objects.filter(title="New").exists()
+        assert not NotebookBlock.objects.filter(notebook=self.notebook).exists()
+
     def test_agent_token_writes_as_its_user(self) -> None:
         assert self.write_everything(self.agent_client()) == [201, 201, 200, 200, 204]
         assert Notebook.objects.get(title="New").created_by_id == self.user.id
