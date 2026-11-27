@@ -2,11 +2,19 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+import pytest
 from django.urls import reverse
 from rest_framework.response import Response
+from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import (
+    TraceItemAttributeNamesResponse,
+)
+from sentry_protos.snuba.v1.endpoint_trace_item_stats_pb2 import TraceItemStatsResponse
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 
 from sentry.api.endpoints.organization_trace_item_attributes_ranked import (
+    STATS_MAX_BUCKETS,
     get_attribute_names_window,
+    get_rankable_public_alias,
 )
 from sentry.search.eap.constants import EAP_FULL_FIDELITY_QUERY_DAYS
 from sentry.testutils.cases import APITransactionTestCase, SnubaTestCase, SpanTestCase
@@ -274,16 +282,8 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
         assert edge_bucket is not None, "edge browser should be in response cohort2 (baseline)"
         assert edge_bucket["value"] > 0, "edge count should be positive in response"
 
-        # Verify tablet device exists (also only in baseline)
-        assert "sentry.device" in baseline_dict, (
-            "sentry.device attribute should be in baseline distribution"
-        )
-        assert "tablet" in baseline_dict["sentry.device"], (
-            "tablet device should be in baseline (exists in all spans but not in suspect)"
-        )
-        assert baseline_dict["sentry.device"]["tablet"] > 0, (
-            "tablet count should be positive in baseline"
-        )
+        # sentry.device has no public alias, so the response would never show it
+        assert "sentry.device" not in baseline_dict
 
     @patch("sentry.api.endpoints.organization_trace_item_attributes_ranked.compare_distributions")
     def test_filters_out_internal_and_private_attributes(
@@ -531,6 +531,106 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
         assert response.data["cohort2Total"] == 1
 
     @patch(
+        "sentry.api.endpoints.organization_trace_item_attributes_ranked.trace_item_stats_rpc",
+        wraps=snuba_rpc.trace_item_stats_rpc,
+    )
+    @patch("sentry.api.endpoints.organization_trace_item_attributes_ranked.compare_distributions")
+    def test_only_queries_stats_for_rankable_attributes(
+        self, mock_compare_distributions: MagicMock, mock_trace_item_stats_rpc: MagicMock
+    ) -> None:
+        mock_compare_distributions.return_value = {"results": []}
+        fetched_names: set[str] = set()
+        attribute_names_rpc = snuba_rpc.attribute_names_rpc
+
+        def capture_attribute_names(request: Any) -> Any:
+            response = attribute_names_rpc(request)
+            fetched_names.update(attribute.name for attribute in response.attributes)
+            return response
+
+        self._store_span(tags={"browser": "chrome", "custom_tag": "value1"}, duration=100)
+        self._store_span(tags={"browser": "firefox", "custom_tag": "value2"}, duration=500)
+
+        with patch(
+            "sentry.api.endpoints.organization_trace_item_attributes_ranked.snuba_rpc.attribute_names_rpc",
+            side_effect=capture_attribute_names,
+        ):
+            response = self.do_request(query={"query_1": "span.duration:<=100", "query_2": ""})
+        assert response.status_code == 200, response.data
+
+        queried_names = {
+            attribute.name
+            for call in mock_trace_item_stats_rpc.call_args_list
+            for stats_type in call.args[0].stats_types
+            for attribute in stats_type.attribute_distributions.attributes
+        }
+        unrankable_names = {
+            name for name in fetched_names if get_rankable_public_alias(name) is None
+        }
+
+        assert unrankable_names
+        assert queried_names == fetched_names - unrankable_names
+        assert "sentry.browser" in queried_names
+
+    def _stats_requests_by_cohort(self, rankable_count: int) -> dict[bytes, list[list[str]]]:
+        """
+        Run the endpoint with 3,000 discovered names, of which only `rankable_count` can be
+        shown, and return the attribute names of each stats request, grouped by cohort filter.
+        """
+        rankable_names = [f"attr_{i}" for i in range(rankable_count)]
+        hidden_names = [f"sentry._internal.attr_{i}" for i in range(3000 - rankable_count)]
+        names_response = TraceItemAttributeNamesResponse(
+            attributes=[
+                TraceItemAttributeNamesResponse.Attribute(name=name, type=AttributeKey.TYPE_STRING)
+                for name in hidden_names + rankable_names
+            ]
+        )
+        self._store_span(duration=100)
+
+        with (
+            override_options({"explore.trace-items.keys.max": 3000}),
+            patch(
+                "sentry.api.endpoints.organization_trace_item_attributes_ranked.snuba_rpc.attribute_names_rpc",
+                return_value=names_response,
+            ),
+            patch(
+                "sentry.api.endpoints.organization_trace_item_attributes_ranked.trace_item_stats_rpc",
+                return_value=TraceItemStatsResponse(),
+            ) as mock_trace_item_stats_rpc,
+        ):
+            response = self.do_request(query={"query_1": "span.duration:<=100", "query_2": ""})
+        assert response.status_code == 200, response.data
+
+        requests_by_cohort: dict[bytes, list[list[str]]] = {}
+        for call in mock_trace_item_stats_rpc.call_args_list:
+            request = call.args[0]
+            (stats_type,) = request.stats_types
+            assert stats_type.attribute_distributions.max_buckets == STATS_MAX_BUCKETS
+            requests_by_cohort.setdefault(request.filter.SerializeToString(), []).append(
+                [attribute.name for attribute in stats_type.attribute_distributions.attributes]
+            )
+
+        assert len(requests_by_cohort) == 2
+        for requests in requests_by_cohort.values():
+            sent_names: list[str] = []
+            for names in requests:
+                sent_names.extend(names)
+            assert sorted(sent_names) == sorted(rankable_names)
+        return requests_by_cohort
+
+    def test_chunks_stats_requests_from_rankable_attribute_count(self) -> None:
+        requests_by_cohort = self._stats_requests_by_cohort(rankable_count=220)
+
+        for requests in requests_by_cohort.values():
+            assert [len(names) for names in requests] == [110, 110]
+
+    def test_caps_attributes_per_stats_request_by_response_rows(self) -> None:
+        requests_by_cohort = self._stats_requests_by_cohort(rankable_count=267)
+
+        for requests in requests_by_cohort.values():
+            assert len(requests) == 3
+            assert all(len(names) <= 133 for names in requests)
+
+    @patch(
         "sentry.api.endpoints.organization_trace_item_attributes_ranked.snuba_rpc.attribute_names_rpc",
         wraps=snuba_rpc.attribute_names_rpc,
     )
@@ -577,3 +677,25 @@ def test_get_attribute_names_window_uses_retention_window_when_its_week_has_expi
     window = get_attribute_names_window(start, start + timedelta(hours=1))
 
     assert window == (datetime(2024, 2, 26, tzinfo=UTC), datetime(2024, 3, 28, tzinfo=UTC))
+
+
+@pytest.mark.parametrize(
+    ("attribute", "expected"),
+    [
+        ("sentry.browser", "browser"),
+        ("sentry.normalized_description", "sentry.normalized_description"),
+        ("custom_tag", "custom_tag"),
+        # Listed in SPANS_STATS_EXCLUDED_ATTRIBUTES
+        ("sentry.trace_id", None),
+        # Private
+        ("sentry.organization_id", None),
+        # Internal
+        ("sentry._internal.foo", None),
+        # Public alias stays under sentry.*
+        ("sentry.unknown_attribute", None),
+        # User attribute colliding with a public alias resolves to tags[...]
+        ("span.op", None),
+    ],
+)
+def test_get_rankable_public_alias(attribute: str, expected: str | None) -> None:
+    assert get_rankable_public_alias(attribute) == expected

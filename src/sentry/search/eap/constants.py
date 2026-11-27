@@ -294,6 +294,13 @@ MAX_BOOLEAN_DEPTH = 50
 # Setting the limit slightly lower so we don't hit the 131kb snuba max
 MAX_STATS_REQUEST_ATTRIBUTES = 140
 
+# Snuba caps an attribute distributions response at this many rows and keeps the most
+# frequent buckets across all attributes, so a request with too many attributes can
+# silently lose every bucket of some of them.
+MAX_STATS_RESPONSE_ROWS = 10_000
+# Snuba uses this many buckets per attribute when a request asks for zero
+DEFAULT_STATS_MAX_BUCKETS = 10
+
 
 class QueryPriorities(TypesClass):
     """
