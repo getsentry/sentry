@@ -355,7 +355,7 @@ describe('AutofixSection', () => {
       expect(screen.getByText('Seer Autofix')).toBeInTheDocument();
     });
 
-    it('opens the Autofix tab and the Explorer panel on Open Autofix', async () => {
+    it('only opens the Explorer panel on Open Autofix with the Autofix tab enabled', async () => {
       const autofixPageOrganization = OrganizationFixture({
         hideAiFeatures: false,
         features: ['autofix-page'],
@@ -370,13 +370,12 @@ describe('AutofixSection', () => {
         {organization: autofixPageOrganization}
       );
 
+      const initialPathname = router.location.pathname;
       expect(await screen.findByText('Divides by zero')).toBeInTheDocument();
       await userEvent.click(screen.getByRole('button', {name: 'Open Autofix'}));
 
       expect(mockOpenSeerExplorer).toHaveBeenCalledWith({runId: 776});
-      expect(router.location.pathname).toBe(
-        `/organizations/${autofixPageOrganization.slug}/issues/${mockGroup.id}/autofix/`
-      );
+      expect(router.location.pathname).toBe(initialPathname);
     });
 
     it('only opens the Explorer panel on Open Autofix without the Autofix tab', async () => {
