@@ -937,6 +937,7 @@ SPAN_VIRTUAL_CONTEXTS = {
         default_value="false",
         processor=lambda x: True if x == "true" else False,
         search_type="boolean",
+        externally_scoped=True,
     ),
     **project_virtual_contexts(),
 }

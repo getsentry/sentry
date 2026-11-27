@@ -783,7 +783,7 @@ def test_force_sampling_mode_in_timeseries(dataset: type[RPCBase], query: str, m
     config = SearchResolverConfig()
     resolver = dataset.get_resolver(snuba_params, config)
 
-    rpc_request, _, _ = RPCBase.get_timeseries_query(
+    rpc_request, _, _, _ = RPCBase.get_timeseries_query(
         search_resolver=resolver,
         params=snuba_params,
         query_string=query,

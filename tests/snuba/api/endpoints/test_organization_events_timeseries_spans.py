@@ -20,6 +20,7 @@ from sentry.api.helpers.timeseries_cache import (
     update_result_with_cache,
 )
 from sentry.cache import default_cache
+from sentry.search.eap.types import AdditionalQueries
 from sentry.search.events.types import SnubaParams
 from sentry.snuba import discover
 from sentry.snuba.spans_rpc import Spans
@@ -112,6 +113,7 @@ def test_legacy_dataset_is_not_cache_candidate() -> None:
         0,
         None,
         "api.dashboards.widget.line-chart",
+        AdditionalQueries(),
     )
     assert cache_candidate(
         request,
@@ -122,6 +124,24 @@ def test_legacy_dataset_is_not_cache_candidate() -> None:
         0,
         None,
         "api.performance.homepage",
+        AdditionalQueries(),
+    )
+
+
+def test_additional_query_is_not_cache_candidate() -> None:
+    query = QueryDict(mutable=True)
+    query["statsPeriod"] = "6h"
+    request = mock.Mock(GET=query)
+    assert not cache_candidate(
+        request,
+        Spans,
+        "",
+        ["count(span.duration)"],
+        1800,
+        0,
+        None,
+        "api.dashboards.widget.line-chart",
+        AdditionalQueries(span=["is_starred_transaction:true"]),
     )
 
 

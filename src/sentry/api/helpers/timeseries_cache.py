@@ -1,6 +1,6 @@
 import math
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 from datetime import datetime, timedelta, timezone
 from typing import Any, cast
 
@@ -9,6 +9,7 @@ from sentry_sdk import traces
 
 from sentry.api.endpoints.timeseries import INGESTION_DELAY
 from sentry.cache import default_cache
+from sentry.search.eap.types import AdditionalQueries
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.utils import RPC_DATASETS
@@ -33,6 +34,15 @@ def is_dashboard_chart_referrer(referrer: str) -> bool:
     )
 
 
+def has_additional_query(additional_queries: AdditionalQueries) -> bool:
+    """True when any cross-trace query string is set"""
+    return any(
+        value.strip()
+        for field in fields(additional_queries)
+        for value in getattr(additional_queries, field.name) or ()
+    )
+
+
 def cache_candidate(
     request: Request,
     dataset: Any,
@@ -42,6 +52,7 @@ def cache_candidate(
     top_events: int,
     comparison_delta: timedelta | None,
     referrer: str,
+    additional_queries: AdditionalQueries,
 ) -> bool:
     """Check if this query is a good candidate for caching.
 
@@ -53,6 +64,7 @@ def cache_candidate(
         or not request.GET.get("statsPeriod")
         or top_events != 0
         or comparison_delta is not None
+        or has_additional_query(additional_queries)
     ):
         return False
     if is_dashboard_chart_referrer(referrer):
@@ -168,11 +180,11 @@ def update_result_with_cache(
 ) -> None:
     if not loaded.candidate or loaded.cache_key is None:
         return
+    processed = result.data.get("processed_timeseries")
     cache_key = loaded.cache_key
     cached = loaded.cached
     cached_timestamps = loaded.cached_timestamps
     merge_from = loaded.merge_from
-    processed = result.data.get("processed_timeseries")
     if processed is not None:
         for row, sample_count, sampling_rate, confidence in zip(
             result.data["data"],
@@ -259,6 +271,7 @@ def read_timeseries_cache(
     comparison_delta: timedelta | None,
     referrer: str,
     snuba_params: SnubaParams,
+    additional_queries: AdditionalQueries,
 ) -> TimeseriesCache:
     """Load a cached series when this query is allowed to use one."""
     loaded = TimeseriesCache()
@@ -275,11 +288,11 @@ def read_timeseries_cache(
             top_events,
             comparison_delta,
             referrer,
+            additional_queries,
         ):
             span.set_attribute("query.invalid_cache_reason", "non_candidate")
             return loaded
 
-        # Saved formulas are cached by name for now. The body is not in the key, so an edit can stay stale until the TTL.
         loaded.candidate = True
         state, loaded.filter_start = inspect_cached_series(
             create_cache_key(request, snuba_params, rollup), snuba_params, rollup

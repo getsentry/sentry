@@ -104,6 +104,7 @@ class ProcessedTimeseries:
     transformation_aliases: dict[int, str] = field(default_factory=dict)
     transformation_flags: dict[int, TimeseriesTransformationFlags] = field(default_factory=dict)
     comparison_transformation_flags: TimeseriesTransformationFlags | None = None
+    externally_scoped: bool = False
 
 
 @dataclass
@@ -953,12 +954,13 @@ class RPCBase:
         TimeSeriesRequest,
         list[ResolvedColumn],
         list[ResolvedAttribute],
+        bool,
     ]:
         selected_equations, selected_axes = arithmetic.categorize_columns(
             list(dict.fromkeys(y_axes))
         )
-        (functions, _) = search_resolver.resolve_functions(selected_axes)
-        equations, _ = search_resolver.resolve_equations(selected_equations)
+        functions, function_contexts = search_resolver.resolve_functions(selected_axes)
+        equations, equation_contexts = search_resolver.resolve_equations(selected_equations)
         groupbys, groupby_contexts = search_resolver.resolve_attributes(groupby)
 
         timeseries_filter, params = cls.update_timestamps(params, search_resolver)
@@ -967,10 +969,21 @@ class RPCBase:
             sampling_mode=sampling_mode,
             filter_project=cls.filter_project,
         )
-        query, _, _ = search_resolver.resolve_query_with_columns(
+        query, _, query_contexts = search_resolver.resolve_query_with_columns(
             query_string,
             selected_axes,
             selected_equations,
+        )
+        externally_scoped = any(
+            column.externally_scoped for column in (*functions, *equations, *groupbys)
+        ) or any(
+            context is not None and context.externally_scoped
+            for context in (
+                *function_contexts,
+                *equation_contexts,
+                *groupby_contexts,
+                *query_contexts,
+            )
         )
 
         cross_trace_queries = cls.get_cross_trace_queries(
@@ -1025,6 +1038,7 @@ class RPCBase:
             ),
             (functions + equations),
             groupbys,
+            externally_scoped,
         )
 
     @classmethod
@@ -1041,12 +1055,14 @@ class RPCBase:
         comparison_delta: timedelta | None = None,
         additional_queries: AdditionalQueries | None = None,
         transformations: Mapping[int, Sequence[Transformation]] | None = None,
+        search_resolver: SearchResolver | None = None,
     ) -> SnubaTSResult:
         """Make the query"""
         cls.validate_granularity(params)
         comparison_params = params.copy()
-        search_resolver = cls.get_resolver(params, config)
-        rpc_request, aggregates, groupbys = cls.get_timeseries_query(
+        if search_resolver is None:
+            search_resolver = cls.get_resolver(params, config)
+        rpc_request, aggregates, groupbys, externally_scoped = cls.get_timeseries_query(
             search_resolver=search_resolver,
             params=params,
             query_string=query_string,
@@ -1101,15 +1117,17 @@ class RPCBase:
             comp_query_params.end = comp_query_params.end_date - comparison_delta
 
             search_resolver = cls.get_resolver(comp_query_params, config)
-            comp_rpc_request, aggregates, groupbys = cls.get_timeseries_query(
-                search_resolver=search_resolver,
-                params=comp_query_params,
-                query_string=query_string,
-                y_axes=y_axes,
-                groupby=[],
-                referrer=referrer,
-                sampling_mode=sampling_mode,
-                additional_queries=additional_queries,
+            comp_rpc_request, aggregates, groupbys, comparison_externally_scoped = (
+                cls.get_timeseries_query(
+                    search_resolver=search_resolver,
+                    params=comp_query_params,
+                    query_string=query_string,
+                    y_axes=y_axes,
+                    groupby=[],
+                    referrer=referrer,
+                    sampling_mode=sampling_mode,
+                    additional_queries=additional_queries,
+                )
             )
             comp_rpc_response = snuba_rpc.timeseries_rpc([comp_rpc_request])[0]
 
@@ -1131,7 +1149,9 @@ class RPCBase:
             result.comparison_transformation_flags = processed.transformation_flags.get(0)
             for existing, new in zip(result.timeseries, processed.timeseries):
                 existing["comparisonCount"] = new.get(comparison_column, 0)
+            externally_scoped = externally_scoped or comparison_externally_scoped
 
+        result.externally_scoped = externally_scoped
         return SnubaTSResult(
             {"data": result.timeseries, "processed_timeseries": result, "meta": final_meta},
             params.start,
@@ -1264,7 +1284,7 @@ class RPCBase:
 
         """Make the queries"""
         other_params = params.copy()
-        rpc_request, aggregates, groupbys = cls.get_timeseries_query(
+        rpc_request, aggregates, groupbys, _ = cls.get_timeseries_query(
             search_resolver=search_resolver,
             params=params,
             query_string=query_string,
@@ -1277,7 +1297,7 @@ class RPCBase:
         )
         requests = [rpc_request]
         if include_other:
-            other_request, _, _ = cls.get_timeseries_query(
+            other_request, _, _, _ = cls.get_timeseries_query(
                 search_resolver=cls.get_resolver(other_params, config),
                 params=other_params,
                 query_string=query_string,

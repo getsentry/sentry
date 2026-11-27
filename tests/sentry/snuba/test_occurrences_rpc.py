@@ -245,7 +245,7 @@ class OccurrencesTimeseriesTest(TestCase):
         """Test that the simple timeseries query is constructed correctly."""
         resolver = Occurrences.get_resolver(self.snuba_params, self.config)
 
-        _rpc_request, aggregates, groupbys = RPCBase.get_timeseries_query(
+        _rpc_request, aggregates, groupbys, _ = RPCBase.get_timeseries_query(
             search_resolver=resolver,
             params=self.snuba_params,
             query_string="",
@@ -266,7 +266,7 @@ class OccurrencesTimeseriesTest(TestCase):
         """Test that the grouped timeseries query is constructed correctly."""
         resolver = Occurrences.get_resolver(self.snuba_params, self.config)
 
-        rpc_request, aggregates, groupbys = RPCBase.get_timeseries_query(
+        rpc_request, aggregates, groupbys, _ = RPCBase.get_timeseries_query(
             search_resolver=resolver,
             params=self.snuba_params,
             query_string="group_id:123",

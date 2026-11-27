@@ -563,7 +563,10 @@ class SearchResolver:
                 term, context_definition
             )
             self._raise_if_hidden_api_attribute(term.key.name, resolved_column)
-            context_definition = None
+            # Timeseries cannot send the virtual column. Keep an externally scoped one in the
+            # returned contexts so the caller can refuse the shared cache.
+            if not context_definition.externally_scoped:
+                context_definition = None
 
         if not isinstance(resolved_column.proto_definition, AttributeKey):
             raise ValueError(f"{term.key.name} is not valid search term")
@@ -1069,6 +1072,7 @@ class SearchResolver:
         match: Match[str] | None = None,
         public_alias_override: str | None = None,
         default_value: float | None = None,
+        externally_scoped: bool = False,
     ) -> tuple[
         ResolvedAttribute | ResolvedFunction,
         list[VirtualColumnDefinition | None],
@@ -1078,7 +1082,11 @@ class SearchResolver:
         match = fields.is_function(column)
         if match:
             return self.resolve_function(
-                column, match, public_alias_override, default_value=default_value
+                column,
+                match,
+                public_alias_override,
+                default_value=default_value,
+                externally_scoped=externally_scoped,
             )
         else:
             return self.resolve_attribute(column, public_alias_override)
@@ -1262,6 +1270,7 @@ class SearchResolver:
         match: Match[str] | None = None,
         public_alias_override: str | None = None,
         default_value: float | None = None,
+        externally_scoped: bool = False,
     ) -> tuple[ResolvedFunction, list[VirtualColumnDefinition | None]]:
         if match is None:
             match = fields.is_function(column)
@@ -1319,11 +1328,16 @@ class SearchResolver:
                 if self.config.disable_deprecated_functions:
                     raise
                 return self._resolve_function(
-                    deprecated_definition, function_name, alias, columns, default_value
+                    deprecated_definition,
+                    function_name,
+                    alias,
+                    columns,
+                    default_value,
+                    externally_scoped,
                 )
         else:
             return self._resolve_function(
-                function_definition, function_name, alias, columns, default_value
+                function_definition, function_name, alias, columns, default_value, externally_scoped
             )
 
     def _resolve_function(
@@ -1333,11 +1347,13 @@ class SearchResolver:
         alias: str,
         columns: str,
         default_value: float | None = None,
+        externally_scoped: bool = False,
     ) -> tuple[ResolvedFunction, list[VirtualColumnDefinition | None]]:
         if function_definition.private and function_name not in self.config.fields_acl.functions:
             raise InvalidSearchQuery(f"The function {function_name} is not allowed for this query")
 
         parsed_args: list[ResolvedAttribute | str | int | float | TraceItemFilter] = []
+        argument_private = False
 
         # Parse the arguments
         arguments = fields.parse_arguments(function_name, columns)
@@ -1378,7 +1394,11 @@ class SearchResolver:
                             argument=argument,
                         )
                 if isinstance(argument_definition, AttributeArgumentDefinition):
-                    parsed_argument, _ = self.resolve_attribute(argument)
+                    parsed_argument, argument_contexts = self.resolve_attribute(argument)
+                    argument_private = argument_private or any(
+                        context is not None and context.externally_scoped
+                        for context in argument_contexts
+                    )
                     self._raise_if_hidden_api_attribute(argument, parsed_argument)
                     parsed_args.append(parsed_argument)
                 else:
@@ -1392,7 +1412,13 @@ class SearchResolver:
                             parsed_args.append(float(argument))
                         elif arg_type == "query":
                             # Only TraceItemFilter currently supported
-                            trace_item_filters = self.resolve_query(argument[1:-1])[0]
+                            trace_item_filters, _, argument_contexts = self.resolve_query(
+                                argument[1:-1]
+                            )
+                            argument_private = argument_private or any(
+                                context is not None and context.externally_scoped
+                                for context in argument_contexts
+                            )
                             if trace_item_filters is None:
                                 raise InvalidSearchQuery(
                                     "The if combinator requires non-aggregate filters"
@@ -1454,6 +1480,7 @@ class SearchResolver:
             query_result_cache=self._query_result_cache,
             search_config=self.config,
             default_value=default_value,
+            externally_scoped=externally_scoped or argument_private,
         )
 
         resolved_context: list[VirtualColumnDefinition | None] = [None]
@@ -1481,7 +1508,7 @@ class SearchResolver:
         return formulas, contexts
 
     def resolve_equation(
-        self, equation: str, alias: str | None = None
+        self, equation: str, alias: str | None = None, externally_scoped: bool = False
     ) -> tuple[
         ResolvedColumn,
         list[VirtualColumnDefinition | None],
@@ -1496,7 +1523,9 @@ class SearchResolver:
         if isinstance(operation, str):
             # Resolve the column, and turn it into a RPC Column so it can be used in a BinaryFormula
             col, context = self.resolve_column(
-                operation, public_alias_override=f"equation|{equation}" if alias is None else alias
+                operation,
+                public_alias_override=f"equation|{equation}" if alias is None else alias,
+                externally_scoped=externally_scoped,
             )
             if isinstance(col, ResolvedAttribute):
                 self._raise_if_hidden_api_attribute(operation, col)
@@ -1533,11 +1562,15 @@ class SearchResolver:
             self._resolve_operation(operation.rhs) if operation.rhs is not None else (None, [])
         )
         has_aggregates = False
+        externally_scoped = externally_scoped or any(
+            context is not None and context.externally_scoped
+            for context in lhs_contexts + rhs_contexts
+        )
         for function in functions:
             resolved_function, _ = self.resolve_function(function)
+            externally_scoped = externally_scoped or resolved_function.externally_scoped
             if resolved_function.is_aggregate:
                 has_aggregates = True
-                break
         return (
             ResolvedEquation(
                 public_alias=f"equation|{equation}" if alias is None else alias,
@@ -1549,6 +1582,7 @@ class SearchResolver:
                 lhs=lhs,
                 rhs=rhs,
                 is_aggregate=has_aggregates,
+                externally_scoped=externally_scoped,
             ),
             lhs_contexts + rhs_contexts,
         )
@@ -1653,4 +1687,4 @@ class SearchResolver:
         arguments = fields.parse_arguments(formula.name, columns)
 
         equation = resolve_and_parse_formula(formula, arguments, self)
-        return self.resolve_equation(equation, alias)
+        return self.resolve_equation(equation, alias, externally_scoped=True)
