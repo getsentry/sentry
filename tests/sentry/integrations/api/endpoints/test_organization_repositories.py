@@ -351,6 +351,17 @@ class OrganizationRepositoriesCreateTest(APITestCase):
 
         assert response.status_code == 201, (response.status_code, response.content)
 
+    def test_non_string_provider(self) -> None:
+        self.login_as(user=self.user)
+
+        org = self.create_organization(owner=self.user, name="baz")
+
+        url = reverse("sentry-api-0-organization-repositories", args=[org.slug])
+        response = self.client.post(url, data={"provider": {}}, format="json")
+
+        assert response.status_code == 400, (response.status_code, response.content)
+        assert response.data["error_type"] == "validation"
+
 
 class OrganizationIntegrationRepositoriesCreateTest(APITestCase):
     def setUp(self) -> None:
