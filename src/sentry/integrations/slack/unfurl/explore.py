@@ -657,6 +657,9 @@ def _unfurl_explore(
             chart_data = {
                 "timeSeries": resp.data.get("timeSeries", []),
                 "type": display_type,
+                "showConfidence": features.has(
+                    "organizations:data-browsing-time-series-confidence", org, actor=user
+                ),
             }
 
         try:

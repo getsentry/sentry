@@ -11,7 +11,7 @@ from urllib.parse import urlparse
 from django.db.models import Prefetch
 from django.http.request import QueryDict
 
-from sentry import analytics, options
+from sentry import analytics, features, options
 from sentry.api.client import client
 from sentry.api.endpoints.timeseries import TimeSeries
 from sentry.api.serializers import serialize
@@ -100,6 +100,15 @@ _WIDGET_TYPE_TO_CONFIG: dict[int, _WidgetUnfurlConfig] = {
     ),
 }
 
+# Only datasets that extrapolate from samples have low-confidence buckets
+_CONFIDENCE_WIDGET_TYPES = frozenset(
+    {
+        DashboardWidgetTypes.SPANS,
+        DashboardWidgetTypes.LOGS,
+        DashboardWidgetTypes.TRACEMETRICS,
+    }
+)
+
 
 def unfurl_dashboards(
     integration: Integration | RpcIntegration,
@@ -178,6 +187,8 @@ def _unfurl_dashboards(
         chart_data: dict[str, Any] = {
             "timeSeries": combined_time_series,
             "widget": serialize(widget, user, DashboardWidgetSerializer()),
+            "showConfidence": widget.widget_type in _CONFIDENCE_WIDGET_TYPES
+            and features.has("organizations:data-browsing-time-series-confidence", org, actor=user),
         }
 
         try:
