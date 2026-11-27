@@ -1760,18 +1760,22 @@ export function prettifyParsedFunction(func: ParsedFunction) {
   }
 
   // special case for trace metrics format: function(value,metricName,metricType,unit)
-  // display as function(metricName)
-  if (func.arguments.length === 4) {
-    const [attribute = '', metricName = ''] = func.arguments;
+  // display as function(metricName). `_if` aggregates keep their leading filter.
+  const filterArg = func.filter === undefined ? undefined : func.arguments[0];
+  const metricArgs = filterArg === undefined ? func.arguments : func.arguments.slice(1);
+  if (metricArgs.length === 4) {
+    const [attribute = '', metricName = ''] = metricArgs;
+    const filter =
+      filterArg === undefined ? '' : `${prettifyFunctionArgument(filterArg)},`;
     if (attribute === 'value') {
-      return `${func.name}(${prettifyTagKey(metricName)})`;
+      return `${func.name}(${filter}${prettifyTagKey(metricName)})`;
     }
     // aggregates that read a virtual metric's attribute, e.g.
     // avg(tags[score.ratio.lcp,number],browser.web_vital.lcp,distribution,millisecond),
     // display as function(virtualMetricName)
     const virtualMetricName = findVirtualTraceMetricName(attribute, metricName);
     if (virtualMetricName) {
-      return `${func.name}(${virtualMetricName})`;
+      return `${func.name}(${filter}${virtualMetricName})`;
     }
   }
 
