@@ -57,6 +57,7 @@ class IntegrationChannelValidationResponse(DetailOptionalResponse):
 @control_silo_endpoint
 class OrganizationIntegrationChannelValidateEndpoint(OrganizationIntegrationBaseEndpoint):
     publish_status = {"GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL}
+    project_scope = {"GET": "org-metadata"}
     owner = ApiOwner.TELEMETRY_EXPERIENCE
 
     @extend_schema(

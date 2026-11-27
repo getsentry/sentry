@@ -351,6 +351,7 @@ class OrganizationReleaseDetailsEndpoint(
         "GET": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PUBLIC,
     }
+    project_scope = {"GET": "response:/projects/*/id"}
     idempotent_methods = frozenset()
 
     @extend_schema(

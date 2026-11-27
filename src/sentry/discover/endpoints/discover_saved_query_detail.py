@@ -75,6 +75,7 @@ class DiscoverSavedQueryDetailEndpoint(DiscoverSavedQueryBase):
         "GET": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PUBLIC,
     }
+    project_scope = {"GET": "org-metadata"}
     idempotent_methods = frozenset({"PUT"})
 
     def has_feature(self, organization: Organization, request: Request) -> bool:

@@ -163,6 +163,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
+    project_scope = {"GET": "filter"}
     owner = ApiOwner.AGENT_TRACING
 
     @extend_schema(

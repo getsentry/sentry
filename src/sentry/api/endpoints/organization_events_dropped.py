@@ -123,6 +123,7 @@ class OrganizationEventsDroppedEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
+    project_scope = {"GET": "filter"}
 
     @extend_schema(
         operation_id="listOrganizationEventsDropped",

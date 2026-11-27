@@ -68,6 +68,7 @@ class TeamDetailsEndpoint(TeamEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PUBLIC,
     }
+    project_scope = {"GET": "org-metadata"}
     idempotent_methods = frozenset()
     # OrganizationSCIMTeamDetails inherits this endpoint, but toggles this setting
     _allow_idp_changes = False

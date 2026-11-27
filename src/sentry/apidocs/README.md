@@ -71,6 +71,43 @@ qualify yet.
 Like routing, declarations are collected for every endpoint and reset on every
 build. The marker appears only on operations that are in the generated schema.
 
+# Project scope
+
+`x-sentry-project-scope` says how an operation's request names the projects
+whose data it returns or changes. Clients that limit a caller to some projects,
+such as the Sentry CLI and MCP server, read it instead of keeping their own list
+of endpoints. It is a string:
+
+| Value                | Meaning                                                                                                                                                                    |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `path`               | The path names the project. Set automatically on every operation whose path contains `{project_id_or_slug}`.                                                               |
+| `filter`             | An organization endpoint that takes the `project` query parameter (numeric project IDs) and returns or changes only those projects' data.                                  |
+| `org-metadata`       | A read-only organization endpoint whose response holds no project's issues, events, replays, or other telemetry, such as settings, members, integrations, and saved views. |
+| `response:<pointer>` | A `GET` that looks something up by ID alone. The numeric ID of the project it belongs to is at `<pointer>` in the response body, such as `response:/project/id`.           |
+
+`<pointer>` is an RFC 6901 JSON pointer, plus a `*` segment that matches every
+element of an array: `response:/projects/*/id`. The value at the pointer can be
+a numeric string and, for objects that belong to no project, `null`.
+
+An organization-level endpoint declares it per method:
+
+```python
+class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.PUBLIC,
+        "PUT": ApiPublishStatus.PUBLIC,
+    }
+    project_scope = {"GET": "filter", "PUT": "filter", "DELETE": "filter"}
+```
+
+The build fails for any other value, for `org-metadata` or `response:` on a
+method other than `GET`, for a method the endpoint does not declare in
+`publish_status`, and for a declaration on a path that contains
+`{project_id_or_slug}`. A method without a value is not known to respect a
+project limit. Subclasses inherit the declaration, like `idempotent_methods`.
+Declarations are collected for every endpoint and reset on every build.
+
 # Response fields
 
 Every field in a public operation's success (2xx) response needs a description

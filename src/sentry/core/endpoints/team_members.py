@@ -83,6 +83,7 @@ class TeamMembersEndpoint(TeamEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }
+    project_scope = {"GET": "org-metadata"}
     owner = ApiOwner.FOUNDATIONS
 
     @extend_schema(

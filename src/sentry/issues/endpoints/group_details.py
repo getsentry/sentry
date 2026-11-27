@@ -120,6 +120,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PUBLIC,
     }
+    project_scope = {"GET": "response:/project/id"}
     idempotent_methods = frozenset()
     enforce_rate_limit = True
     rate_limits = RateLimitConfig(

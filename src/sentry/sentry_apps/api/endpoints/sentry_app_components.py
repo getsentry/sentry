@@ -61,6 +61,7 @@ class OrganizationSentryAppComponentsEndpoint(ControlSiloOrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
+    project_scope = {"GET": "org-metadata"}
 
     @extend_schema(
         operation_id="listOrganizationSentryAppComponents",

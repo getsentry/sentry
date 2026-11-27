@@ -34,6 +34,7 @@ class OrganizationDashboardRevisionsEndpoint(OrganizationDashboardBase):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }
+    project_scope = {"GET": "org-metadata"}
     owner = ApiOwner.DASHBOARDS
 
     @extend_schema(

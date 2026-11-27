@@ -305,6 +305,11 @@ class Endpoint(APIView):
     # changing the outcome. Published as `x-sentry-idempotent`; see apidocs/README.md.
     # None means undeclared, which the schema build rejects for published writes.
     idempotent_methods: frozenset[HTTP_METHOD_NAME] | None = None
+    # How each method's request names the projects whose data it returns or changes,
+    # for clients that limit a caller to some projects. Published as
+    # `x-sentry-project-scope`; see apidocs/README.md. Paths with `{project_id_or_slug}`
+    # get "path" automatically, so only organization-level endpoints declare it.
+    project_scope: dict[HTTP_METHOD_NAME, str] = {}
     rate_limits: RateLimitConfig | Callable[..., RateLimitConfig] = DEFAULT_RATE_LIMIT_CONFIG
     enforce_rate_limit: bool = settings.SENTRY_RATELIMITER_ENABLED
     # Origins that serve this endpoint, for the API docs; the schema build adds the base path.

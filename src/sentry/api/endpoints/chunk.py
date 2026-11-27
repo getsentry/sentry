@@ -241,6 +241,7 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
         "POST": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
+    project_scope = {"GET": "org-metadata"}
     # Blobs are unique per checksum, so resending a chunk leaves the same single blob.
     idempotent_methods = frozenset({"POST"})
     owner = ApiOwner.OWNERS_INGEST

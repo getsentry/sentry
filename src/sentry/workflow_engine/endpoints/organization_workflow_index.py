@@ -173,6 +173,7 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         "PUT": ApiPublishStatus.PUBLIC,
         "DELETE": ApiPublishStatus.PUBLIC,
     }
+    project_scope = {"GET": "filter"}
     idempotent_methods = frozenset({"PUT"})
     owner = ApiOwner.ISSUES
     permission_classes = (OrganizationWorkflowPermission,)

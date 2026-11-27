@@ -31,6 +31,7 @@ class OrganizationEnvironmentsEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }
+    project_scope = {"GET": "org-metadata"}
 
     @extend_schema(
         operation_id="listOrganizationEnvironments",

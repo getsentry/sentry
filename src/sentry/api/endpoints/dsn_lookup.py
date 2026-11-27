@@ -51,6 +51,7 @@ class DsnLookupEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }
+    project_scope = {"GET": "org-metadata"}
     enforce_rate_limit = True
     rate_limits = RateLimitConfig(
         limit_overrides={

@@ -29,6 +29,7 @@ class OrganizationSentryAppsEndpoint(ControlSiloOrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }
+    project_scope = {"GET": "org-metadata"}
 
     @extend_schema(
         operation_id="listOrganizationSentryApps",

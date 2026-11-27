@@ -63,6 +63,7 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
+    project_scope = {"GET": "org-metadata"}
     idempotent_methods = frozenset()
     owner = ApiOwner.DATA_BROWSING
     permission_classes = (DiscoverSavedQueryPermission,)

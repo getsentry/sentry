@@ -16,6 +16,7 @@ from sentry.apidocs.hooks import (
     _EXPERIMENTAL_OPERATIONS,
     _IDEMPOTENT_OPERATIONS,
     _OPERATION_SILOS,
+    _PROJECT_SCOPE_OPERATIONS,
     EXPERIMENTAL_NOTICE,
     CustomEndpointEnumerator,
     _fix_nullable_enums,
@@ -348,6 +349,156 @@ class IdempotentOperationsTest(TestCase):
         )
 
         with pytest.raises(SentryApiBuildError, match="safe methods"):
+            custom_preprocessing_hook(endpoints)
+
+
+class TestProjectScopeOperations:
+    """Declared project scopes are collected per method; project paths get "path"."""
+
+    @pytest.fixture(autouse=True)
+    def isolate_metadata(self) -> Iterator[None]:
+        _PROJECT_SCOPE_OPERATIONS.clear()
+        _OPERATION_SILOS.clear()
+        with patch("sentry.apidocs.hooks.__write_ownership_data"):
+            yield
+        _ENDPOINT_SERVERS.clear()
+        _EXPERIMENTAL_OPERATIONS.clear()
+        _IDEMPOTENT_OPERATIONS.clear()
+        _PROJECT_SCOPE_OPERATIONS.clear()
+        _OPERATION_SILOS.clear()
+
+    def endpoints(
+        self, path: str, methods: dict[str, ApiPublishStatus], project_scope: dict[str, str]
+    ) -> list[tuple[Any, Any, str, Any]]:
+        view_class = type(
+            "FakeEndpoint",
+            (),
+            {
+                "owner": ApiOwner.CRONS,
+                "publish_status": methods,
+                "idempotent_methods": frozenset(),
+                "project_scope": project_scope,
+                "servers": None,
+            },
+        )
+        callback = type("FakeCallback", (), {"view_class": view_class})
+        return [(path, path, method, callback) for method in methods]
+
+    def operation(self, operation_id: str) -> dict[str, Any]:
+        return {
+            "tags": ["Events"],
+            "description": "An endpoint",
+            "operationId": operation_id,
+            "parameters": [],
+        }
+
+    def process(self, paths: dict[str, Any]) -> dict[str, Any]:
+        return custom_postprocessing_hook({"components": {"schemas": {}}, "paths": paths}, None)
+
+    def test_declared_values_are_stamped_per_method(self) -> None:
+        path = "/api/0/organizations/{organization_id_or_slug}/things/"
+        custom_preprocessing_hook(
+            self.endpoints(
+                path,
+                {
+                    "GET": ApiPublishStatus.PUBLIC,
+                    "PUT": ApiPublishStatus.PUBLIC,
+                    "POST": ApiPublishStatus.PUBLIC,
+                },
+                {"GET": "response:/projects/*/id", "PUT": "filter"},
+            )
+        )
+        result = self.process(
+            {
+                path: {
+                    "get": self.operation("get-thing"),
+                    "put": self.operation("update-things"),
+                    "post": self.operation("create-thing"),
+                }
+            }
+        )
+
+        operations = result["paths"][path]
+        assert operations["get"]["x-sentry-project-scope"] == "response:/projects/*/id"
+        assert operations["put"]["x-sentry-project-scope"] == "filter"
+        assert "x-sentry-project-scope" not in operations["post"]
+
+    def test_project_paths_get_path_automatically(self) -> None:
+        path = "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/things/"
+        custom_preprocessing_hook(self.endpoints(path, {"POST": ApiPublishStatus.PUBLIC}, {}))
+        result = self.process({path: {"post": self.operation("create-thing")}})
+
+        assert result["paths"][path]["post"]["x-sentry-project-scope"] == "path"
+
+    def test_declaring_a_project_path_raises(self) -> None:
+        path = "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/things/"
+        endpoints = self.endpoints(path, {"GET": ApiPublishStatus.PUBLIC}, {"GET": "filter"})
+
+        with pytest.raises(SentryApiBuildError, match="automatically"):
+            custom_preprocessing_hook(endpoints)
+
+    @pytest.mark.parametrize(
+        "published_path",
+        [
+            "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/",
+            "/api/0/organizations/{organization_id_or_slug}/issues/{issue_id}/",
+        ],
+    )
+    def test_issue_alias_keeps_its_project_scope(self, published_path: str) -> None:
+        source_path = "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/"
+        custom_preprocessing_hook(
+            [(source_path, source_path, "GET", GroupDetailsEndpoint.as_view())]
+        )
+        result = self.process({published_path: {"get": self.operation("get-issue")}})
+
+        canonical_path = "/api/0/organizations/{organization_id_or_slug}/issues/{issue_id}/"
+        operation = result["paths"][canonical_path]["get"]
+        assert operation["x-sentry-project-scope"] == "response:/project/id"
+
+    def test_unpublished_methods_are_collected(self) -> None:
+        path = "/api/0/organizations/{organization_id_or_slug}/private-things/"
+        filtered = custom_preprocessing_hook(
+            self.endpoints(path, {"GET": ApiPublishStatus.PRIVATE}, {"GET": "org-metadata"})
+        )
+
+        assert filtered == []
+        assert _PROJECT_SCOPE_OPERATIONS == {(path, "get"): "org-metadata"}
+
+    def test_next_build_does_not_reuse_previous_values(self) -> None:
+        _PROJECT_SCOPE_OPERATIONS[("/api/0/stale/", "get")] = "filter"
+
+        custom_preprocessing_hook(
+            self.endpoints("/api/0/fresh/", {"GET": ApiPublishStatus.PUBLIC}, {})
+        )
+
+        assert _PROJECT_SCOPE_OPERATIONS == {}
+
+    def test_undeclared_method_raises(self) -> None:
+        endpoints = self.endpoints(
+            "/api/0/things/", {"GET": ApiPublishStatus.PUBLIC}, {"PUT": "filter"}
+        )
+
+        with pytest.raises(SentryApiBuildError, match="does not implement"):
+            custom_preprocessing_hook(endpoints)
+
+    @pytest.mark.parametrize(
+        ("method", "value", "error"),
+        [
+            ("GET", "path", "the value must be"),
+            ("GET", "projects", "the value must be"),
+            ("PUT", "org-metadata", "org-metadata is only for GET"),
+            ("PUT", "response:/project/id", "response: is only for GET"),
+            ("GET", "response:", "JSON pointer"),
+            ("GET", "response:project/id", "JSON pointer"),
+            ("GET", "response:/project~2/id", "JSON pointer"),
+        ],
+    )
+    def test_invalid_value_raises(self, method: str, value: str, error: str) -> None:
+        endpoints = self.endpoints(
+            "/api/0/things/", {method: ApiPublishStatus.PUBLIC}, {method: value}
+        )
+
+        with pytest.raises(SentryApiBuildError, match=error):
             custom_preprocessing_hook(endpoints)
 
 

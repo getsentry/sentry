@@ -68,6 +68,7 @@ class OrganizationAvailableActionIndexEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
+    project_scope = {"GET": "org-metadata"}
     owner = ApiOwner.ISSUES
 
     @extend_schema(

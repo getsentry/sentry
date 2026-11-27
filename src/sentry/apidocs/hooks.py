@@ -170,6 +170,31 @@ _IDEMPOTENT_OPERATIONS: set[tuple[str, str]] = set()
 # RFC 9110 9.2.1: these never change server state, so clients may always resend them.
 _SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS", "TRACE"})
 
+# (canonical path, lowercased method) -> the endpoint's `project_scope` value for the
+# method. Collected for unpublished endpoints too, like silos.
+_PROJECT_SCOPE_OPERATIONS: dict[tuple[str, str], str] = {}
+
+_PROJECT_PATH_PARAMETER = "{project_id_or_slug}"
+_PROJECT_SCOPE_RESPONSE_PREFIX = "response:"
+# RFC 6901: each segment escapes "~" as "~0" and "/" as "~1". A "*" segment is
+# also allowed and matches every element of an array.
+_JSON_POINTER = re.compile(r"(/([^/~]|~[01])*)+")
+
+
+def _project_scope_error(method: str, value: str) -> str | None:
+    if value in ("filter", "org-metadata"):
+        if value == "org-metadata" and method != "GET":
+            return "org-metadata is only for GET"
+        return None
+    if value.startswith(_PROJECT_SCOPE_RESPONSE_PREFIX):
+        if method != "GET":
+            return "response: is only for GET"
+        if not _JSON_POINTER.fullmatch(value.removeprefix(_PROJECT_SCOPE_RESPONSE_PREFIX)):
+            return "response: must be followed by a JSON pointer such as /project/id"
+        return None
+    return 'the value must be "filter", "org-metadata", or "response:<JSON pointer>"'
+
+
 # Include non-spectacular endpoints so existing APPEND_PATHS operations can use
 # their backend declaration without changing which methods are published.
 _OPERATION_SILOS: dict[tuple[str, str], DeclaredSilo] = {}
@@ -203,6 +228,7 @@ def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, 
     _EXPERIMENTAL_OPERATIONS.clear()
     _OPERATION_SILOS.clear()
     _IDEMPOTENT_OPERATIONS.clear()
+    _PROJECT_SCOPE_OPERATIONS.clear()
 
     filtered = []
     ownership_data: dict[ApiOwner, dict[ApiPublishStatus, set[str]]] = {}
@@ -248,6 +274,23 @@ def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, 
                 f"Endpoint {callback.view_class} lists safe methods in idempotent_methods: {sorted(idempotent_methods & _SAFE_METHODS)}. Safe methods are always idempotent; only list non-safe methods such as POST.",
             )
 
+        project_scope: Mapping[str, str] = getattr(callback.view_class, "project_scope", {})
+        project_scope_value = project_scope.get(method)
+        if not project_scope.keys() <= callback.view_class.publish_status.keys():
+            raise SentryApiBuildError(
+                f"Endpoint {callback.view_class} declares project_scope for methods that it does not implement: {sorted(project_scope.keys() - callback.view_class.publish_status.keys())}.",
+            )
+        if project_scope_value is not None:
+            error = _project_scope_error(method, project_scope_value)
+            if error is not None:
+                raise SentryApiBuildError(
+                    f"Endpoint {callback.view_class} declares project_scope {project_scope_value!r} for {method}: {error}. See src/sentry/apidocs/README.md.",
+                )
+            if _PROJECT_PATH_PARAMETER in path:
+                raise SentryApiBuildError(
+                    f'Endpoint {callback.view_class} declares project_scope for {method} {path}, which names the project in its path and gets project_scope "path" automatically.',
+                )
+
         if any(path.startswith(p) for p in EXCLUSION_PATH_PREFIXES):
             pass
 
@@ -256,6 +299,8 @@ def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, 
             _OPERATION_SILOS[operation_key] = _declared_silo(callback.view_class)
             if method in idempotent_methods:
                 _IDEMPOTENT_OPERATIONS.add(operation_key)
+            if project_scope_value is not None:
+                _PROJECT_SCOPE_OPERATIONS[operation_key] = project_scope_value
             # endpoints that are documented via tooling
             status = callback.view_class.publish_status.get(method)
             if status is not None and status.is_published:
@@ -354,6 +399,10 @@ def custom_postprocessing_hook(
             operation["x-sentry-routing"] = routing
             if operation_key in _IDEMPOTENT_OPERATIONS:
                 operation["x-sentry-idempotent"] = True
+            if _PROJECT_PATH_PARAMETER in operation_key[0]:
+                operation["x-sentry-project-scope"] = "path"
+            elif operation_key in _PROJECT_SCOPE_OPERATIONS:
+                operation["x-sentry-project-scope"] = _PROJECT_SCOPE_OPERATIONS[operation_key]
 
     # Add servers override from endpoint class definitions
     for path, servers in _ENDPOINT_SERVERS.items():

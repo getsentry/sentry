@@ -39,6 +39,7 @@ class OrganizationReplayIndexEndpoint(OrganizationReplayEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }
+    project_scope = {"GET": "filter"}
 
     @extend_schema(
         operation_id="listOrganizationReplays",

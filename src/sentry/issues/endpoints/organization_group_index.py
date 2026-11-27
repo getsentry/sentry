@@ -272,6 +272,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PUBLIC,
     }
+    project_scope = {"GET": "filter", "PUT": "filter", "DELETE": "filter"}
     idempotent_methods = frozenset()
     owner = ApiOwner.ISSUES
     max_acceptable_duration = {"GET": DEFAULT_DURATION_BUDGET, "PUT": 10.0, "DELETE": 10.0}
