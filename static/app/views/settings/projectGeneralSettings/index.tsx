@@ -588,19 +588,19 @@ function TransferProjectModal({
       <Header closeButton>{t('Transfer Project')}</Header>
       <Body>
         <Stack gap="2xl" paddingBottom="2xl">
-          <Text as="p" bold>
+          <Alert variant="warning">
             {t('Transferring this project is permanent and cannot be undone!')}
-          </Text>
-          <Text as="p">
-            {t(
-              'Please enter the email of an organization owner to whom you would like to transfer this project.'
-            )}
-          </Text>
+          </Alert>
           <Alert variant="info">
             {t(
               'Projects cannot be transferred between organizations in different regions.'
             )}
           </Alert>
+          <Text as="p">
+            {t(
+              'Please enter the email of an organization owner to whom you would like to transfer this project.'
+            )}
+          </Text>
         </Stack>
         <form.AppField name="email">
           {field => (
