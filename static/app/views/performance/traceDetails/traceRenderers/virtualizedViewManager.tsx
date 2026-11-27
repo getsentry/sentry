@@ -1707,6 +1707,7 @@ export class VirtualizedViewManager {
       }
 
       this.drawSpanBar(this.span_bars[i]);
+      this.drawIssueIcons(span.ref, this.columns.list.column_nodes[i]);
       this.drawSpanText(this.span_text[i], this.columns.list.column_nodes[i]);
       this.drawSpanArrow(this.span_arrows[i], false, 0);
     }
@@ -2239,7 +2240,15 @@ export class VirtualizedViewManager {
     }
   }
 
-  private drawAutogroupIssueIcons(ref: HTMLElement, node: BaseNode) {
+  /**
+   * Icons are placed relative to the view when their row renders. Redraw them with the bars, so
+   * they stay in place while the user zooms or pans, as the duration label makes room for them.
+   */
+  private drawIssueIcons(ref: HTMLElement, node: BaseNode | undefined) {
+    if (!node || (!node.errors.size && !node.occurrences.size)) {
+      return;
+    }
+
     const icons = Array.from(ref.children).filter(
       (child): child is HTMLElement =>
         child instanceof HTMLElement &&
@@ -2302,7 +2311,7 @@ export class VirtualizedViewManager {
             }%`;
             bar.style.width = `${this.computeRelativeWidth(space, node.space) * 100}%`;
           });
-          this.drawAutogroupIssueIcons(invisible_bar.ref, node);
+          this.drawIssueIcons(invisible_bar.ref, node);
         }
       }
 

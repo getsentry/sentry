@@ -394,6 +394,46 @@ describe('VirtualizedViewManger', () => {
       expect(placement.edge).toBe('end');
       expect(placement.anchorTimestamp).toBe(200);
     });
+
+    it('moves span issue icons with the view', () => {
+      const manager = new VirtualizedViewManager(
+        {list: {width: 0}, span_list: {width: 1}},
+        new TraceScheduler(),
+        new TraceView(),
+        ThemeFixture()
+      );
+
+      manager.view.setTraceSpace([0, 0, 1000, 1]);
+      manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
+
+      const error = {
+        event_id: 'error',
+        issue_id: 1,
+        level: 'error',
+        start_timestamp: 0.15,
+      };
+      const node = {
+        value: {errors: [error], occurrences: []},
+        errors: new Set([error]),
+        occurrences: new Set(),
+        space: [100, 100],
+        clockDriftOffsetMs: 0,
+      } as unknown as BaseNode;
+
+      // As placed by its row while the view was zoomed in left of the span
+      const icon = document.createElement('div');
+      icon.className = 'TraceIcon TraceIconEnd';
+      icon.style.left = '0%';
+      const bar = document.createElement('div');
+      bar.appendChild(icon);
+
+      manager.registerColumnRef('list', document.createElement('div'), 0, node);
+      manager.registerSpanBarRef(bar, node.space, 'red', 0);
+      manager.draw();
+
+      expect(icon).toHaveStyle({left: '50%'});
+      expect(icon).not.toHaveClass('TraceIconEnd');
+    });
   });
 
   describe('span text placement', () => {
