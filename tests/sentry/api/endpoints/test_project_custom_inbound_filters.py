@@ -410,6 +410,121 @@ class CustomInboundFiltersTest(APITestCase):
                 "The browser condition is not enabled for this organization."
             )
 
+    def test_attribute_condition_requires_feature(self) -> None:
+        with self.feature(self.features):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                status_code=400,
+                dataType="error",
+                conditions=[
+                    {"type": "attribute", "key": "tenant", "operator": "equals", "value": ["a"]}
+                ],
+            )
+        assert str(response.data["conditions"][0]) == (
+            "The attribute condition is not enabled for this organization."
+        )
+
+    def test_post_attribute(self) -> None:
+        conditions = [
+            {"type": "attribute", "key": "tenant", "operator": "equals", "value": ["acme"]},
+            {"type": "attribute", "key": "http.route", "operator": "glob", "value": ["/health*"]},
+            {"type": "release", "operator": "starts_with", "value": ["1."]},
+        ]
+
+        for data_type in ["error", "span", "log", "metric"]:
+            with (
+                self.feature(
+                    [
+                        *self.features,
+                        "organizations:inbound-filters-attribute-condition",
+                        "organizations:ourlogs-ingestion",
+                        "organizations:tracemetrics-ingestion",
+                    ]
+                ),
+                outbox_runner(),
+            ):
+                response = self.get_success_response(
+                    self.organization.slug,
+                    self.project.slug,
+                    method="post",
+                    name=f"Tenant acme on {data_type}",
+                    dataType=data_type,
+                    conditions=conditions,
+                    status_code=201,
+                )
+
+            custom_filter = CustomInboundFilter.objects.get(id=response.data["id"])
+            assert response.data["conditions"] == conditions
+            assert custom_filter.conditions == conditions
+
+    def test_catch_all_takes_no_attribute(self) -> None:
+        with self.feature([*self.features, "organizations:inbound-filters-attribute-condition"]):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                name="Tenant acme",
+                dataType="all",
+                conditions=[
+                    {"type": "attribute", "key": "tenant", "operator": "equals", "value": ["a"]}
+                ],
+                status_code=400,
+            )
+
+        assert str(response.data["conditions"][0]) == (
+            "A filter on all data cannot use the attribute condition. "
+            "It accepts release, environment, ip_address, browser_name, browser_version."
+        )
+
+    def test_attribute_condition_needs_a_key(self) -> None:
+        for key in [{}, {"key": ""}, {"key": "  "}, {"key": "k" * 201}]:
+            with self.feature(
+                [*self.features, "organizations:inbound-filters-attribute-condition"]
+            ):
+                response = self.get_error_response(
+                    self.organization.slug,
+                    self.project.slug,
+                    method="post",
+                    status_code=400,
+                    dataType="error",
+                    conditions=[{"type": "attribute", **key, "operator": "equals", "value": ["a"]}],
+                )
+            assert "key" in response.data["conditions"][0]
+
+    def test_rejects_key_on_a_condition_that_takes_none(self) -> None:
+        with self.feature(self.features):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                status_code=400,
+                dataType="error",
+                conditions=[
+                    {"type": "release", "key": "tenant", "operator": "equals", "value": ["1.0"]}
+                ],
+            )
+        assert str(response.data["conditions"][0]["key"][0]) == (
+            "The release condition does not take a key."
+        )
+
+    def test_attribute_takes_no_comparison(self) -> None:
+        with self.feature([*self.features, "organizations:inbound-filters-attribute-condition"]):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                status_code=400,
+                dataType="error",
+                conditions=[
+                    {"type": "attribute", "key": "count", "operator": "gt", "value": ["1"]}
+                ],
+            )
+        assert str(response.data["conditions"][0]["operator"][0]).startswith(
+            "The attribute condition does not take the gt operator."
+        )
+
     def test_post_browser_version_range(self) -> None:
         conditions = [
             {"type": "browser_name", "operator": "equals", "value": ["Chrome"]},
@@ -523,7 +638,7 @@ class CustomInboundFiltersTest(APITestCase):
                     {"type": "log_message", "operator": "starts_with", "value": ["Rate limit"]},
                 ],
                 "A filter on error data cannot use the log_message condition. "
-                "It accepts error_type, error_message, release, environment, ip_address, geo_country_code, browser_name, browser_version.",
+                "It accepts error_type, error_message, release, environment, ip_address, geo_country_code, browser_name, browser_version, attribute.",
             ),
             (
                 "log",
@@ -532,7 +647,7 @@ class CustomInboundFiltersTest(APITestCase):
                     {"type": "log_message", "operator": "starts_with", "value": ["Rate limit"]},
                 ],
                 "A filter on log data cannot use the error_type condition. "
-                "It accepts log_message, release, environment, ip_address, browser_name, browser_version.",
+                "It accepts log_message, release, environment, ip_address, browser_name, browser_version, attribute.",
             ),
             (
                 "span",
@@ -541,7 +656,7 @@ class CustomInboundFiltersTest(APITestCase):
                     {"type": "metric_name", "operator": "starts_with", "value": ["counter."]},
                 ],
                 "A filter on span data cannot use the metric_name condition. "
-                "It accepts release, environment, ip_address, browser_name, browser_version.",
+                "It accepts release, environment, ip_address, browser_name, browser_version, attribute.",
             ),
             (
                 "all",
@@ -1189,7 +1304,7 @@ class CustomInboundFilterDetailsTest(APITestCase):
         assert (
             str(response.data["conditions"][0])
             == "A filter on error data cannot use the log_message condition. "
-            "It accepts error_type, error_message, release, environment, ip_address, geo_country_code, browser_name, browser_version."
+            "It accepts error_type, error_message, release, environment, ip_address, geo_country_code, browser_name, browser_version, attribute."
         )
 
     def test_put_to_catch_all(self) -> None:

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import ipaddress
 from collections.abc import Mapping
-from typing import Any, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 import orjson
 from django.db.models import Q, QuerySet
@@ -33,6 +33,7 @@ from sentry.ingest import legacy_filter_lists
 from sentry.ingest.inbound_filters import (
     get_supported_condition_types,
     get_supported_operators,
+    takes_key,
 )
 from sentry.models.custominboundfilter import (
     COMPARISON_OPERATORS,
@@ -70,11 +71,16 @@ _REQUIRED_FEATURE_BY_CONDITION_TYPE: Mapping[ConditionType, tuple[str, str]] = {
     ),
     ConditionType.BROWSER_NAME: ("organizations:inbound-filters-browser-condition", "browser"),
     ConditionType.BROWSER_VERSION: ("organizations:inbound-filters-browser-condition", "browser"),
+    ConditionType.ATTRIBUTE: ("organizations:inbound-filters-attribute-condition", "attribute"),
 }
+
+# The longest tag key Relay keeps on an error.
+MAX_CONDITION_KEY_CHARS = 200
 
 
 class CustomInboundFilterCondition(TypedDict):
     type: str
+    key: NotRequired[str]
     operator: str
     value: list[str]
 
@@ -178,7 +184,20 @@ class CustomInboundFilterConditionSerializer(serializers.Serializer[CustomInboun
             "The field the condition matches against. Every `dataType` accepts `release`, "
             "`environment`, `ip_address`, `browser_name` and `browser_version`. In addition, `error` accepts `error_type`, `error_message` and "
             "`geo_country_code`, `log` accepts `log_message`, and `metric` accepts "
-            "`metric_name`. `span` and `all` accept no other types."
+            "`metric_name`. `span` and `all` accept no other types. `attribute` matches "
+            "the tag or attribute that `key` names, on every `dataType` except `all`."
+        ),
+    )
+    key = serializers.CharField(
+        required=False,
+        max_length=MAX_CONDITION_KEY_CHARS,
+        trim_whitespace=True,
+        help_text=(
+            "The name of the field an `attribute` condition matches against: a tag of an "
+            "error, such as `server_name`, or an attribute of a log, metric or span, "
+            "such as `http.route`. The name is read literally. The condition only "
+            "matches a tag or attribute that holds a string. Required on an `attribute` "
+            "condition and not accepted on any other type."
         ),
     )
     # A row stored before operators existed carries none, and DRF cannot read a required
@@ -218,6 +237,14 @@ class CustomInboundFilterConditionSerializer(serializers.Serializer[CustomInboun
                         f"operator. It accepts {', '.join(supported)}."
                     )
                 }
+            )
+        if takes_key(condition_type) and "key" not in attrs:
+            raise serializers.ValidationError(
+                {"key": f"The {condition_type} condition needs a key."}
+            )
+        if not takes_key(condition_type) and "key" in attrs:
+            raise serializers.ValidationError(
+                {"key": f"The {condition_type} condition does not take a key."}
             )
         if operator in COMPARISON_OPERATORS:
             self._validate_comparison(attrs)
