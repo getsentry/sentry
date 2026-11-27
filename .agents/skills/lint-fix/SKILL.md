@@ -16,13 +16,13 @@ Linting runs through `pnpm run lint:js`, which always applies the committed conf
 
 ## Step 1: Find Where the Rule Stands
 
-Search for `$0` in `oxlint.config.ts`, `oxlint.base.ts`, and the package configs in `static/packages/*/oxlint.config.ts`:
+Search for `$0` in `oxlint.config.ts`, `oxlint.base.ts`, and the package configs in `static/packages/*/oxlint.config.ts`. Configs can pull rules in through spread constants from `oxlint.base.ts`: `incubator` enables `@sentry/prefer-fake-timers` and `@sentry/require-fake-timer-cleanup` only through `...fakeTimerRules`. If `$0` only turns up in such a constant, check whether that constant is spread into `incubator`.
 
-| Where the rule is                                    | Its violations                                                                                    | Next                          |
-| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------- | ----------------------------- |
-| `incubator` at the top of `oxlint.config.ts`         | Capped per file in `oxlint-suppressions.json` (`static/app/`, `static/gsApp/`, `static/gsAdmin/`) | Step 2                        |
-| In no config (only in the plugin's `index`)          | Unreported                                                                                        | Register it first; see below. |
-| Anywhere else (`base`, top-level `rules`, overrides) | None: `pnpm run lint:js` already fails CI on them                                                 | Nothing to fix                |
+| Where the rule is                                                                                      | Its violations                                                                                    | Next                                                                                          |
+| ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `incubator` at the top of `oxlint.config.ts`: in `incubator.rules` or enabled in `incubator.overrides` | Capped per file in `oxlint-suppressions.json` (`static/app/`, `static/gsApp/`, `static/gsAdmin/`) | Step 2                                                                                        |
+| In no config (only in the plugin's `index`)                                                            | Unreported                                                                                        | Register it first; see below.                                                                 |
+| Anywhere else (`base`, top-level `rules`, overrides)                                                   | No existing backlog: `pnpm run lint:js` fails CI on every violation                               | Fix any new violations on your branch (Step 3, regular rule); there is no backlog to clean up |
 
 To register an unconfigured rule, count its violations first: enable it in top-level `rules` in `oxlint.config.ts` and run `pnpm run lint:js`, which prints the total. Then follow Step 3 of the `lint-new` skill:
 
@@ -82,7 +82,13 @@ Commit the updated `oxlint-suppressions.json` files. A successful `pnpm run lint
 
 Only when the backlog for `$0` is empty everywhere, not just under `$1`:
 
-1. Move `$0` out of `incubator.rules` into the regular config (where follows the `lint-new` skill's Step 3 table). Move any `off` entries for it in `incubator.overrides` to matching regular `overrides`.
+1. Move every entry for `$0` out of `incubator` into the regular config (where it goes follows the `lint-new` skill's Step 3 table):
+   - An entry in `incubator.rules` moves to the regular config.
+   - An enabled entry in `incubator.overrides` moves to a regular `overrides` entry with the same `files`. For example, `@sentry/prefer-fake-timers` and `@sentry/require-fake-timer-cleanup` are enabled only through `fakeTimerRules` in the test-files override. Test-only rules go in `testOverride` in `oxlint.base.ts`.
+   - An `off` entry in `incubator.overrides` moves to a matching regular `overrides` entry.
+
+   The rule leaves the incubator only when no enabled entry for it remains anywhere in `incubator`.
+
 2. Run `pnpm run lint:suppressions --prune`; it drops the rule's remaining budget entries.
 
 ## Verify
