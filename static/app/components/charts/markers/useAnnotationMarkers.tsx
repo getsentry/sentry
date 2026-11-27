@@ -6,7 +6,6 @@ import sortedLastIndex from 'lodash/sortedLastIndex';
 import {useTimezone} from '@sentry/scraps/dateTime';
 import {useRenderToString} from '@sentry/scraps/renderToString';
 
-import {isSevere} from 'sentry/components/charts/annotations/severity';
 import type {AnnotationItem} from 'sentry/components/charts/annotations/types';
 import {
   ANNOTATION_MARKER_Z2,
@@ -176,7 +175,7 @@ interface UseAnnotationMarkersParams {
 
 /**
  * A dotted vertical line with a circle on top, drawn over the plot at the
- * center of every chart bucket that has a severe annotation. When a severe
+ * center of every chart bucket that has a pinned annotation. When a pinned
  * annotation covers a range that ends in a later bucket, a solid line runs
  * along the top of the plot to the center of that bucket. Ranges that started
  * before the first bucket only get that line, from the left edge. Hovering a
@@ -196,17 +195,17 @@ export function useAnnotationMarkers({
 
   return useMemo(() => {
     const starts = buckets.map(bucket => bucket.start);
-    const severeItems = items?.filter(isSevere) ?? [];
+    const pinnedItems = items?.filter(item => item.pinned) ?? [];
     const firstBucket = buckets[0];
     const earlierRanges = firstBucket
-      ? severeItems.filter(
+      ? pinnedItems.filter(
           item =>
             item.start < firstBucket.start &&
             defined(bucketRangeEnd(item, -Infinity, buckets, starts))
         )
       : [];
 
-    const data: AnnotationMarkerItem[] = bucketAnnotations(severeItems, buckets)
+    const data: AnnotationMarkerItem[] = bucketAnnotations(pinnedItems, buckets)
       .filter(bucket => bucket.items.length > 0)
       .map(bucket => toMarker(bucket, buckets, starts));
     if (firstBucket && earlierRanges.length > 0) {
