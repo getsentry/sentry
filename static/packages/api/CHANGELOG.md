@@ -1,3 +1,7 @@
+## 3.4.0
+
+- No documented changes.
+
 ## 3.3.0
 
 ### New Features ✨
