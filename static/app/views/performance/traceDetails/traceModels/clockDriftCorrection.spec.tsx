@@ -11,6 +11,7 @@ import {
   applyClockDriftCorrection,
   getAlignmentRange,
   getClockDriftShifts,
+  getRecordedSubtreeSpace,
   getSmallestShift,
   MIN_CLOCK_DRIFT_CORRECTION_MS,
   removeClockDriftCorrection,
@@ -759,6 +760,30 @@ describe('clock drift correction', () => {
       // Its own clock agrees with its caller, so it is not corrected on its own
       expect(nested.isClockDriftCorrectionRoot).toBe(false);
       expect(tree.clock_drift_correction_count).toBe(1);
+    });
+  });
+
+  describe('getRecordedSubtreeSpace', () => {
+    it('covers the recorded time of spans moved out of the trace', () => {
+      const tree = build(
+        makePageload([
+          makeRequest({
+            id: '1',
+            clientStart: 0,
+            clientDuration: 480.8,
+            serverStartGap: -121_056.4,
+            serverDuration: 121.4,
+          }),
+        ])
+      );
+
+      const trace = tree.root.children[0]!;
+      const [start, duration] = getRecordedSubtreeSpace(trace);
+
+      // The server span was recorded 121s before the corrected trace starts
+      expect(trace.space[0]).toBeCloseTo((T - 10) * 1e3);
+      expect(start).toBeCloseTo((T - 121.0564) * 1e3);
+      expect(start + duration).toBeCloseTo(trace.space[0] + trace.space[1]);
     });
   });
 });

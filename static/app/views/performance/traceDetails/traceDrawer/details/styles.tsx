@@ -58,7 +58,7 @@ import {
   makeTransactionProfilingLink,
 } from 'sentry/views/performance/traceDetails/traceDrawer/traceProfilingLink';
 import {isEAPSpanNode} from 'sentry/views/performance/traceDetails/traceGuards';
-import {getRecordedSpace} from 'sentry/views/performance/traceDetails/traceModels/clockDriftCorrection';
+import {getRecordedSubtreeSpace} from 'sentry/views/performance/traceDetails/traceModels/clockDriftCorrection';
 import type {BaseNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/baseNode';
 import type {EapSpanNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/eapSpanNode';
 import {
@@ -408,7 +408,7 @@ export function getTraceIssuesTarget({
   // Adding a buffer of 15mins for errors only traces, where there is no concept of
   // trace duration and start equals end timestamps.
   const buffer = node.space[1] > 0 ? 0 : 15 * 60 * 1000;
-  const [recordedStart, recordedDuration] = getRecordedSpace(node);
+  const [recordedStart, recordedDuration] = getRecordedSubtreeSpace(node);
 
   return {
     pathname: `/organizations/${organization.slug}/issues/`,

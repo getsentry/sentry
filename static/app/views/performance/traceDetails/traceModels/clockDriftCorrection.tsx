@@ -251,6 +251,30 @@ export function getRecordedSpace(node: BaseNode): [start: number, duration: numb
 }
 
 /**
+ * The range the node and its descendants were recorded in. Clock drift correction can move
+ * descendants away from the node, so the node's own recorded space may not cover them, e.g. for
+ * the trace node.
+ */
+export function getRecordedSubtreeSpace(
+  node: BaseNode
+): [start: number, duration: number] {
+  const [recordedStart, recordedDuration] = getRecordedSpace(node);
+  let start = recordedStart;
+  let end = recordedStart + recordedDuration;
+
+  node.forEachChild(child => {
+    if (child.clockDriftOffsetMs === 0) {
+      return;
+    }
+    const [childStart, childDuration] = getRecordedSpace(child);
+    start = Math.min(start, childStart);
+    end = Math.max(end, childStart + childDuration);
+  });
+
+  return [start, end - start];
+}
+
+/**
  * Restores the original spaces of all nodes moved by {@link applyClockDriftCorrection}.
  */
 export function removeClockDriftCorrection(root: BaseNode): void {
