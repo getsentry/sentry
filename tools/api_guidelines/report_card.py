@@ -8,7 +8,7 @@ from pathlib import Path
 
 from tools.api_guidelines.entries import EXCEPTIONS_PATH, describe_entry, diff_entries
 from tools.api_guidelines.owners import UNOWNED
-from tools.api_guidelines.rules import BASELINED_RULES, RULES, ApiRule
+from tools.api_guidelines.rules import BASELINED_RULES, RULES, ApiRule, RuleSource
 from tools.api_guidelines.scan import collect_findings
 from tools.api_guidelines.signature import BaselineSignature
 
@@ -29,14 +29,15 @@ def rule_columns() -> list[str]:
     return columns
 
 
-def rules_not_in_baseline() -> list[str]:
-    """The API rules the report card can't count, since exceptions.json has no baseline for them
-    Returns rule codes like ["S021", "S022", "S023", "S034"]
+def rules_not_in_baseline() -> list[ApiRule]:
+    """The flake8 API rules the report card can't count, since exceptions.json has no baseline
+    Returns rule codes like ["S021", "S022", "S023", "S034"]. The OpenAPI response rules are left
+    out, since their findings have their own baseline and will be merged later on
     """
-    rules: list[str] = []
+    rules: list[ApiRule] = []
     for rule in ApiRule:
-        if rule not in BASELINED_RULES:
-            rules.append(str(rule))
+        if rule not in BASELINED_RULES and RULES[rule].source == RuleSource.FLAKE8:
+            rules.append(rule)
     return rules
 
 

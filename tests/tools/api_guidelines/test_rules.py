@@ -5,7 +5,7 @@ import re
 from pathlib import Path
 
 from tools import flake8_plugin
-from tools.api_guidelines.rules import RULES, ApiRule
+from tools.api_guidelines.rules import RULES, ApiRule, RuleSource
 
 # API rules that only report as flake text so far. ENG-9063 moves them to get_api_violations
 NOT_YET_STRUCTURED = frozenset({ApiRule.S021, ApiRule.S022, ApiRule.S023, ApiRule.S034})
@@ -66,6 +66,17 @@ def test_every_plugin_code_is_registered() -> None:
     )
 
 
+def test_plugin_codes_dont_collide_with_other_sources() -> None:
+    taken: set[str] = set()
+    for code in _plugin_codes():
+        if code in ApiRule and RULES[ApiRule(code)].source != RuleSource.FLAKE8:
+            taken.add(code)
+    assert not taken, (
+        f"{sorted(taken)} are in tools/flake8_plugin.py but already used by another rule source "
+        "in tools/api_guidelines/rules.py. Pick the next free code for the flake8 rule"
+    )
+
+
 def test_api_rules_and_general_rules_dont_overlap() -> None:
     overlap: set[str] = set()
     for rule in ApiRule:
@@ -90,7 +101,10 @@ def test_every_rule_has_a_summary() -> None:
 
 def test_every_structured_rule_has_a_trigger() -> None:
     missing: list[str] = []
-    for rule in ApiRule:
+    for rule, config in RULES.items():
+        # only flake rules report through get_api_violations
+        if config.source != RuleSource.FLAKE8:
+            continue
         if rule not in NOT_YET_STRUCTURED and rule not in TRIGGERS:
             missing.append(str(rule))
     assert not missing, (

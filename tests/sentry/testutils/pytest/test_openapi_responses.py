@@ -10,11 +10,14 @@ from django.urls import resolve
 from sentry.api.api_owners import ApiOwner
 from sentry.api.base import Endpoint
 from sentry.testutils.pytest.openapi_responses import (
+    BODY_MISMATCH,
     REPO_ROOT,
+    UNDOCUMENTED_STATUS,
     Checker,
     bundle_deprecated_docs,
     read_baseline,
 )
+from tools.api_guidelines.rules import ApiRule
 
 ISSUE = "/organizations/{organization_id_or_slug}/issues/{issue_id}/"
 ISSUE_ROUTE = "^api/0/organizations/(?P<organization_id_or_slug>[^/]+)/issues/(?P<issue_id>[^/]+)/$"
@@ -179,3 +182,9 @@ def test_plugin_is_inert_without_the_env_var(mode: str) -> None:
         openapi_responses.pytest_configure(config)
     assert Client.request is original
     config.pluginmanager.register.assert_not_called()
+
+
+def test_rule_codes_match_the_api_guidelines_registry() -> None:
+    # src can't import tools/, so this keeps the codes in sync with tools/api_guidelines/rules.py
+    assert UNDOCUMENTED_STATUS == ApiRule.S036
+    assert BODY_MISMATCH == ApiRule.S037
