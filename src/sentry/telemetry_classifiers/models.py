@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from typing import Any
+
+import pydantic
+from django.core.exceptions import ValidationError
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
@@ -10,6 +14,7 @@ from sentry.db.models import (
 )
 from sentry.db.models.base import DefaultFieldsModel
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.telemetry_classifiers.compiled_prompt import SeerDecisionPrompt
 from sentry.telemetry_classifiers.types import (
     Dataset,
     TelemetryClassifierOutputType,
@@ -85,3 +90,11 @@ class TelemetryClassifier(DefaultFieldsModel):
         ]
 
     __repr__ = sane_repr("project_id", "name", "status")
+
+    def save(self, *args: Any, **kwargs: Any) -> None:
+        if self.compiled_prompt is not None:
+            try:
+                SeerDecisionPrompt.parse_obj(self.compiled_prompt)
+            except pydantic.ValidationError as error:
+                raise ValidationError({"compiled_prompt": str(error)})
+        super().save(*args, **kwargs)
