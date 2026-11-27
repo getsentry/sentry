@@ -2912,6 +2912,13 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Seconds a cell waits for the integration proxy beyond the timeout it forwards to control, so
+# that control's own work before calling the provider doesn't make the cell give up first.
+register(
+    "hybridcloud.integrationproxy.cell_timeout_margin",
+    default=2.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 register(
     "hybridcloud.rpc.method_retry_overrides",
     default={},

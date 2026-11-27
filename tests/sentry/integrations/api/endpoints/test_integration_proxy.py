@@ -9,6 +9,7 @@ from django.http import HttpRequest
 from django.http.request import HttpHeaders
 from django.test import RequestFactory, override_settings
 from requests import Response
+from requests.adapters import HTTPAdapter
 
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
@@ -38,6 +39,7 @@ from sentry.shared_integrations.exceptions import (
 from sentry.silo.base import SiloMode
 from sentry.silo.util import (
     PROXY_BASE_PATH,
+    PROXY_ERROR_HEADER,
     PROXY_OI_HEADER,
     PROXY_SIGNATURE_HEADER,
     encode_subnet_signature,
@@ -548,7 +550,8 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
 
         proxy_response = self.client.get(self.path, **headers)
 
-        assert proxy_response.status_code == 503
+        assert proxy_response.status_code == 502
+        assert proxy_response.headers[PROXY_ERROR_HEADER] == "host_unreachable"
         assert proxy_response.data is None
 
         self.assert_metric_count(
@@ -593,6 +596,7 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         proxy_response = self.client.get(self.path, **headers)
 
         assert proxy_response.status_code == 504
+        assert proxy_response.headers[PROXY_ERROR_HEADER] == "host_timeout"
         assert proxy_response.data is None
 
         self.assert_metric_count(
@@ -1081,6 +1085,19 @@ class IntegrationProxyRequestValidatorTest(TestCase):
         assert validator.client is proxy_client
 
         assert validator.proxy_path == self.proxy_path
+
+    @override_settings(SENTRY_SUBNET_SECRET=SENTRY_SUBNET_SECRET, SILO_MODE=SiloMode.CONTROL)
+    @patch.object(ExampleIntegration, "get_client")
+    def test_client_makes_a_single_attempt(self, mock_get_client: MagicMock) -> None:
+        mock_get_client.return_value = IntegrationProxyClient(
+            org_integration_id=self.org_integration.id
+        )
+
+        validator = IntegrationProxyRequestValidator(self.build_request())
+
+        adapter = validator.client.build_session().get_adapter("https://example.com")
+        assert isinstance(adapter, HTTPAdapter)
+        assert adapter.max_retries.total == 0
 
     @override_settings(SENTRY_SUBNET_SECRET=SENTRY_SUBNET_SECRET, SILO_MODE=SiloMode.CONTROL)
     @patch.object(ExampleIntegration, "get_client")

@@ -38,6 +38,9 @@ from sentry.shared_integrations.exceptions import (
 from sentry.silo.base import SiloMode
 from sentry.silo.util import (
     PROXY_BASE_URL_HEADER,
+    PROXY_ERROR_HEADER,
+    PROXY_ERROR_HOST_TIMEOUT,
+    PROXY_ERROR_HOST_UNREACHABLE,
     PROXY_KEYID_HEADER,
     PROXY_OI_HEADER,
     PROXY_PATH,
@@ -301,6 +304,10 @@ class IntegrationProxyRequestValidator:
                 },
             )
 
+        # The cell that sent this request owns the retries. Retrying here too would multiply
+        # the calls to the provider and outlast the cell's timeout.
+        self.client.disable_proxy_retries = True
+
 
 @internal_control_silo_endpoint
 class InternalIntegrationProxyEndpoint(Endpoint):
@@ -502,11 +509,17 @@ class InternalIntegrationProxyEndpoint(Endpoint):
                 "hybrid_cloud.integration_proxy.host_unreachable_error", extra=self.log_extra
             )
             self._add_failure_metric(IntegrationProxyFailureMetricType.HOST_UNREACHABLE_ERROR)
-            return self.respond(status=exc.code)
+            # 502 rather than the error's 503: the cell retries a 503, which would only make
+            # this proxy try the unreachable provider again.
+            return self.respond(
+                status=502, headers={PROXY_ERROR_HEADER: PROXY_ERROR_HOST_UNREACHABLE}
+            )
         elif isinstance(exc, ApiTimeoutError):
             logger.info("hybrid_cloud.integration_proxy.host_timeout_error", extra=self.log_extra)
             self._add_failure_metric(IntegrationProxyFailureMetricType.HOST_TIMEOUT_ERROR)
-            return self.respond(status=exc.code)
+            return self.respond(
+                status=exc.code, headers={PROXY_ERROR_HEADER: PROXY_ERROR_HOST_TIMEOUT}
+            )
         elif isinstance(exc, ApiInvalidRequestError):
             logger.info(
                 "hybrid_cloud.integration_proxy.api_invalid_request_error", extra=self.log_extra

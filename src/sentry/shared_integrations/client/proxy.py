@@ -22,6 +22,8 @@ from sentry.http import build_session
 from sentry.integrations.client import ApiClient
 from sentry.integrations.services.integration.service import integration_service
 from sentry.net.http import SafeSession
+from sentry.shared_integrations.client.base import SessionSettings
+from sentry.shared_integrations.exceptions import ProxiedApiTimeoutError
 from sentry.silo.base import SiloMode, control_silo_function
 from sentry.silo.util import (
     DEFAULT_REQUEST_BODY,
@@ -177,6 +179,8 @@ class IntegrationProxyClient(ApiClient):
                     retry_after_max=max_retry_sleep,
                 ),
             )
+        if self.disable_proxy_retries:
+            return build_session(max_retries=0)
         return build_session(
             max_retries=Retry(
                 total=3,
@@ -280,3 +284,32 @@ class IntegrationProxyClient(ApiClient):
         encoded = encode_proxy_timeout(timeout)
         if encoded is not None:
             prepared_request.headers[PROXY_TIMEOUT_HEADER] = encoded
+
+    def request(self, *args: Any, **kwargs: Any) -> Any:
+        """
+        Try once more when control reports that the provider didn't answer in time. Only for
+        reads: the provider may have acted on a write it was too slow to answer.
+        """
+        try:
+            return super().request(*args, **kwargs)
+        except ProxiedApiTimeoutError:
+            method = kwargs["method"] if "method" in kwargs else args[0]
+            if self.disable_proxy_retries or method.upper() not in ("GET", "HEAD"):
+                raise
+            return super().request(*args, **kwargs)
+
+    def _build_session_settings(
+        self,
+        timeout: int | tuple[float, float],
+        allow_redirects: bool,
+        **kwargs: Any,
+    ) -> SessionSettings:
+        """
+        Wait longer than the timeout forwarded to control. This prevents the cell from giving
+        up while control is still waiting for an answer from the provider.
+        """
+        if self._should_proxy_to_control:
+            margin = options.get("hybridcloud.integrationproxy.cell_timeout_margin")
+            connect, read = timeout if isinstance(timeout, tuple) else (timeout, timeout)
+            timeout = (connect, read + margin)
+        return super()._build_session_settings(timeout, allow_redirects, **kwargs)
