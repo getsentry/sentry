@@ -1198,6 +1198,10 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
     enableAutoReleaseCreation: Annotated[
         bool, ApiDescription("Whether releases are created automatically from ingested events")
     ]
+    semver: Annotated[
+        bool,
+        ApiDescription("Whether to use semantic version ordering for project releases"),
+    ]
     highlightTags: Annotated[
         list[str], ApiDescription("Tag keys highlighted on the project's issues")
     ]
@@ -1422,6 +1426,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 "enableAutoReleaseCreation": bool(
                     attrs["options"].get("sentry:enable_auto_release_creation", True)
                 ),
+                "semver": bool(attrs["options"].get("sentry:semver", False)),
                 "highlightTags": attrs["options"].get(
                     "sentry:highlight_tags",
                     attrs["highlight_preset"].get("tags", []),

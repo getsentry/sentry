@@ -223,6 +223,7 @@ DETAILED_PROJECT = {
     "debugFilesRole": None,
     "isDynamicallySampled": True,
     "enableAutoReleaseCreation": True,
+    "semver": False,
     "autofixAutomationTuning": "off",
     "seerScannerAutomation": True,
     "seerNightshiftTweaks": None,
