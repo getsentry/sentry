@@ -1,5 +1,8 @@
 import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboardingLayout';
 import {screen} from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
+
+import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 
 import {docs} from '.';
 
@@ -20,5 +23,47 @@ describe('elixir onboarding docs', () => {
       screen.getByRole('heading', {name: 'Capture Crashed Process Exceptions'})
     ).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
+  });
+
+  it('installs the current SDK with Finch', () => {
+    renderWithOnboardingLayout(docs);
+
+    expect(
+      screen.getByText(textWithMarkupMatcher(/\{:sentry, "~> 14\.1"\}/))
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher(/\{:finch, "~> 0\.21"\}/))
+    ).toBeInTheDocument();
+    expect(screen.queryByText(textWithMarkupMatcher(/:hackney/))).not.toBeInTheDocument();
+  });
+
+  it('captures crashes through the logs option instead of a manual handler', () => {
+    renderWithOnboardingLayout(docs);
+
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher(/logs: \[\s*capture_metadata: \[:file, :line\]\s*\]/)
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/:logger\.add_handler/))
+    ).not.toBeInTheDocument();
+  });
+
+  it('enables logs with the logs level instead of enable_logs', async () => {
+    renderWithOnboardingLayout(
+      {onboarding: docs.logsOnboarding!},
+      {selectedProducts: [ProductSolution.LOGS]}
+    );
+
+    expect(
+      await screen.findByText(textWithMarkupMatcher(/\{:sentry, "~> 14\.1"\}/))
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher(/logs: \[\s*level: :info/))
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/enable_logs/))
+    ).not.toBeInTheDocument();
   });
 });
