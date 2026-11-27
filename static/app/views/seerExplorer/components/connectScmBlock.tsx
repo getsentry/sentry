@@ -6,6 +6,8 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
 import {Container, Stack} from '@sentry/scraps/layout';
+import {openModal} from '@sentry/scraps/modal';
+import {usePictureInPicture} from '@sentry/scraps/pictureInPicture';
 import {Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
@@ -24,15 +26,16 @@ import type {
   RespondToUserInputOptions,
 } from 'sentry/views/seerExplorer/types';
 
+import {ConnectScmModal} from './connectScmModal';
+
 // The fix usually lands a few seconds after the user makes it (a webhook, then a sync job), and
 // the slowest normal path (a sync retrying) takes about 6 minutes. After that it stops, and only
 // coming back to the tab or pressing Check again checks again.
 const POLL_INTERVAL_MS = 5_000;
 const POLL_FOR_MS = 10 * 60_000;
 
-// The integrations directory filtered to source control: where the popup sends people who can
-// install integrations (Sentry owners, managers and admins), and where a member's request sends
-// the owners.
+// Source control's category in the integrations directory. A member's request sends the owners
+// there, and so does the popup when Seer couldn't open the repo for a reason it can't name.
 const SCM_CATEGORY = 'source code management';
 
 /**
@@ -68,19 +71,20 @@ function isSettled(status: string) {
   return isFound(status) || status === 'unknown';
 }
 
-interface Problem {
-  body: string;
-  fix: {label: string; to: string};
-  /**
-   * The fix is installing source control, which only Sentry owners, managers and admins can do;
-   * members request it from the owners.
-   */
-  needsInstall: boolean;
-}
+type Problem = {body: string} & (
+  | {
+      /**
+       * The fix is installing source control, which only Sentry owners, managers and admins can
+       * do; members request it from the owners.
+       */
+      needsInstall: true;
+    }
+  | {fix: {label: string; to: string}; needsInstall: false}
+);
 
 /**
- * What's stopping Seer from opening the repo, and where to go to fix it. Null when nothing
- * Sentry can name is, so Continue is the way forward.
+ * What's stopping Seer from opening the repo, and how to fix it. Null when nothing Sentry can
+ * name is, so Continue is the way forward.
  */
 function getProblem(access: RepoAccess, orgSlug: string): Problem | null {
   const integrationsPath = `/settings/${orgSlug}/integrations/?category=${encodeURIComponent(SCM_CATEGORY)}`;
@@ -94,7 +98,6 @@ function getProblem(access: RepoAccess, orgSlug: string): Problem | null {
     case 'no_scm_integration':
       return {
         body: t('No source control is connected to this organization.'),
-        fix: {label: t('Connect source control'), to: integrationsPath},
         needsInstall: true,
       };
     case 'scm_account_not_connected':
@@ -105,7 +108,6 @@ function getProblem(access: RepoAccess, orgSlug: string): Problem | null {
               access.connectedAccounts.join(', ')
             )
           : t("This repo's account isn't connected to this organization."),
-        fix: {label: t('Go to integrations'), to: integrationsPath},
         needsInstall: true,
       };
     case 'repo_not_in_sentry':
@@ -257,6 +259,7 @@ function getPrompt({
   canInstall,
   requestedMessages,
   onCheckAgain,
+  onConnect,
   onContinue,
 }: {
   access: RepoAccess | undefined;
@@ -264,6 +267,7 @@ function getPrompt({
   canInstall: boolean;
   isWatching: boolean;
   onCheckAgain: () => void;
+  onConnect: () => void;
   onContinue: () => void;
   orgSlug: string;
   repoName: string;
@@ -319,7 +323,11 @@ function getPrompt({
   const mustRequest = problem.needsInstall && !canInstall;
   const requestMessage = `${t("Seer can't access %s.", repoName)} ${problem.body}`;
   const requested = mustRequest && requestedMessages.includes(requestMessage);
-  const fix: PromptAction = mustRequest ? {requestMessage, requested} : problem.fix;
+  const fix: PromptAction = problem.needsInstall
+    ? canInstall
+      ? {label: t('Connect source control'), onClick: onConnect}
+      : {requestMessage, requested}
+    : problem.fix;
   const hint = mustRequest
     ? t(
         'Request it from your Sentry organization owners, and you can continue here once they connect it.'
@@ -421,20 +429,45 @@ export function ConnectScmBlock({
     startWatching();
   }, [startWatching]);
 
-  const prompt = getPrompt({
-    access,
-    isWatching,
-    repoName: data.repo_name,
-    orgSlug: organization.slug,
-    canInstall: canManageIntegrations(organization),
-    requestedMessages,
-    onCheckAgain: () => {
-      setIsWatching(true);
-      startWatching();
-      refetch();
-    },
-    onContinue: () => respondToUserInput(pendingInput.id, {decision: 'retry'}),
-  });
+  function checkAgain() {
+    setIsWatching(true);
+    startWatching();
+    refetch();
+  }
+
+  const {pipWindow, closePipWindow} = usePictureInPicture();
+
+  function openConnectModal() {
+    openModal(
+      modalProps => (
+        <ConnectScmModal
+          {...modalProps}
+          repoName={data.repo_name}
+          onInstall={checkAgain}
+        />
+      ),
+      {closeEvents: 'escape-key'}
+    );
+  }
+
+  const prompt: Prompt = pipWindow
+    ? {
+        title: t("Seer can't access %s", data.repo_name),
+        variant: 'warning',
+        body: t('To fix this, move the chat back into the main window.'),
+        actions: [{label: t('Move chat back'), onClick: closePipWindow}],
+      }
+    : getPrompt({
+        access,
+        isWatching,
+        repoName: data.repo_name,
+        orgSlug: organization.slug,
+        canInstall: canManageIntegrations(organization),
+        requestedMessages,
+        onCheckAgain: checkAgain,
+        onConnect: openConnectModal,
+        onContinue: () => respondToUserInput(pendingInput.id, {decision: 'retry'}),
+      });
   const isChecking = prompt.body === null;
 
   return (

@@ -20,15 +20,17 @@ import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations
 import type {ScmAnalyticsFlow} from './scmAnalyticsFlow';
 import {partitionScmProviders} from './scmProviderOrder';
 
-// The install view identifies the host surface. These providers only render in SCM
-// flows, so both install paths always set the variant to `scm`.
-const INSTALL_VIEW = {
-  onboarding: 'onboarding',
-  'project-creation': 'project_creation',
+// The install analytics for each host surface. The view identifies the surface. In
+// onboarding and project creation these providers only render in the SCM variant, so
+// their installs always set the variant to `scm`. The Seer chat has no variants.
+const INSTALL_ANALYTICS = {
+  onboarding: {view: 'onboarding', variant: 'scm'},
+  'project-creation': {view: 'project_creation', variant: 'scm'},
+  'seer-explorer': {view: 'seer_explorer_connect_scm'},
 } as const;
 
 interface ScmProviderPillsProps {
-  analyticsFlow: ScmAnalyticsFlow;
+  analyticsFlow: ScmAnalyticsFlow | 'seer-explorer';
   onInstall: (data: Integration) => void;
   providers: IntegrationProvider[];
   // Horizontal alignment of the pill row. Left by default; hosts that center
@@ -59,7 +61,7 @@ function ScmProviderPillRow({
   const organization = useOrganization();
   const {startFlow} = useAddIntegration();
   const {primaryProviders, moreProviders} = partitionScmProviders(providers);
-  const view = INSTALL_VIEW[analyticsFlow];
+  const analyticsParams = {...INSTALL_ANALYTICS[analyticsFlow], already_installed: false};
   const buttonSize = 'md';
   const iconSize = 'sm';
   const modalParams = openInstallPipeline
@@ -75,7 +77,7 @@ function ScmProviderPillRow({
               provider,
               type: 'first_party',
               installStatus: 'Not Installed',
-              analyticsParams: {view, variant: 'scm', already_installed: false},
+              analyticsParams,
               suppressSuccessMessage: true,
               modalParams,
             }}
@@ -115,7 +117,7 @@ function ScmProviderPillRow({
                   provider,
                   organization,
                   onInstall,
-                  analyticsParams: {view, variant: 'scm', already_installed: false},
+                  analyticsParams,
                   suppressSuccessMessage: true,
                   modalParams,
                 }),

@@ -1,18 +1,28 @@
 import {Fragment, useState} from 'react';
 import {focusManager} from '@tanstack/react-query';
+import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegrationProvider';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {act, cleanup, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  cleanup,
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+} from 'sentry-test/reactTestingLibrary';
 
 import {Button} from '@sentry/scraps/button';
+import {
+  PictureInPictureProvider,
+  usePictureInPicture,
+} from '@sentry/scraps/pictureInPicture';
 
 import type {PendingUserInput} from 'sentry/views/seerExplorer/types';
 
 import {ConnectScmBlock} from './connectScmBlock';
 
 const REPO_ACCESS_URL = '/organizations/org-slug/seer/repo-access/';
-const INTEGRATIONS_LINK =
-  '/settings/org-slug/integrations/?category=source%20code%20management';
 const REPOS_LINK = '/settings/org-slug/repos/';
 const INTEGRATION_REQUEST_URL = '/organizations/org-slug/integration-requests/';
 
@@ -47,7 +57,7 @@ describe('ConnectScmBlock', () => {
         pendingInput={pendingInput}
         respondToUserInput={respondToUserInput}
       />,
-      {organization: org}
+      {organization: org, additionalWrapper: PictureInPictureProvider}
     );
     return respondToUserInput;
   }
@@ -69,33 +79,104 @@ describe('ConnectScmBlock', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('links to integrations when nothing is connected', async () => {
-    mockRepoAccess('no_scm_integration');
-    renderBlock();
+  describe('connecting source control', () => {
+    beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/config/integrations/',
+        body: {
+          providers: [
+            GitHubIntegrationProviderFixture(),
+            GitHubIntegrationProviderFixture({
+              key: 'bitbucket',
+              slug: 'bitbucket',
+              name: 'Bitbucket',
+            }),
+          ],
+        },
+      });
+    });
 
-    expect(await screen.findByText("Seer can't access acme/app")).toBeInTheDocument();
-    expect(
-      screen.getByText('No source control is connected to this organization.')
-    ).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Connect source control'})).toHaveAttribute(
-      'href',
-      INTEGRATIONS_LINK
-    );
+    it('opens a modal to connect it when nothing is connected', async () => {
+      mockRepoAccess('no_scm_integration');
+      renderBlock();
+      renderGlobalModal({organization});
+
+      expect(await screen.findByText("Seer can't access acme/app")).toBeInTheDocument();
+      expect(
+        screen.getByText('No source control is connected to this organization.')
+      ).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', {name: 'Connect source control'}));
+
+      const modal = await screen.findByRole('dialog');
+      expect(modal).toHaveTextContent(
+        'Seer needs access to acme/app. Connect the source control account it belongs to.'
+      );
+      expect(await screen.findByRole('button', {name: 'Add GitHub'})).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Add Bitbucket'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('lists the connected accounts when the repo is under another one', async () => {
+      mockRepoAccess('scm_account_not_connected', ['acme-labs', 'my-group']);
+      renderBlock({failureReason: 'scm_account_not_connected'});
+
+      expect(
+        await screen.findByText(
+          "This repo's account isn't connected to this organization. Connected: acme-labs, my-group."
+        )
+      ).toBeInTheDocument();
+    });
   });
 
-  it('lists the connected accounts when the repo is under another one', async () => {
-    mockRepoAccess('scm_account_not_connected', ['acme-labs', 'my-group']);
-    renderBlock({failureReason: 'scm_account_not_connected'});
+  describe('while the chat is popped out', () => {
+    afterEach(() => {
+      // @ts-expect-error - cleaning up the PiP stub
+      delete window.documentPictureInPicture;
+    });
 
-    expect(
-      await screen.findByText(
-        "This repo's account isn't connected to this organization. Connected: acme-labs, my-group."
-      )
-    ).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Go to integrations'})).toHaveAttribute(
-      'href',
-      INTEGRATIONS_LINK
-    );
+    it('asks to move the chat back to the main window', async () => {
+      const pipWindow = Object.assign(new EventTarget(), {
+        document: document.implementation.createHTMLDocument('pip'),
+        closed: false,
+        focus: jest.fn(),
+        close: jest.fn(),
+      });
+      Object.defineProperty(window, 'documentPictureInPicture', {
+        configurable: true,
+        writable: true,
+        value: {window: null, requestWindow: jest.fn().mockResolvedValue(pipWindow)},
+      });
+      function Chat() {
+        const {requestPipWindow} = usePictureInPicture();
+        return (
+          <Fragment>
+            <Button onClick={() => requestPipWindow()}>Pop out</Button>
+            <ConnectScmBlock
+              pendingInput={{
+                id: 'input-id',
+                input_type: 'connect_scm',
+                data: {repo_name: 'acme/app', failure_reason: 'no_scm_integration'},
+              }}
+              respondToUserInput={jest.fn()}
+            />
+          </Fragment>
+        );
+      }
+      mockRepoAccess('no_scm_integration');
+      render(<Chat />, {organization, additionalWrapper: PictureInPictureProvider});
+
+      await userEvent.click(screen.getByRole('button', {name: 'Pop out'}));
+
+      expect(
+        await screen.findByText('To fix this, move the chat back into the main window.')
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Connect source control'})
+      ).not.toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', {name: 'Move chat back'}));
+      expect(pipWindow.close).toHaveBeenCalled();
+    });
   });
 
   it('links to repositories when the repo is not in Sentry', async () => {
@@ -113,7 +194,7 @@ describe('ConnectScmBlock', () => {
     );
   });
 
-  it('lets a member request source control instead of linking to integrations', async () => {
+  it('lets a member request source control instead of connecting it', async () => {
     mockRepoAccess('scm_account_not_connected', ['acme-labs']);
     const request = MockApiClient.addMockResponse({
       url: INTEGRATION_REQUEST_URL,
@@ -127,7 +208,7 @@ describe('ConnectScmBlock', () => {
     );
 
     expect(
-      screen.queryByRole('button', {name: 'Go to integrations'})
+      screen.queryByRole('button', {name: 'Connect source control'})
     ).not.toBeInTheDocument();
     expect(request).toHaveBeenCalledWith(
       INTEGRATION_REQUEST_URL,
@@ -194,7 +275,10 @@ describe('ConnectScmBlock', () => {
       method: 'POST',
       statusCode: 201,
     });
-    render(<MovingChat />, {organization: memberOrganization});
+    render(<MovingChat />, {
+      organization: memberOrganization,
+      additionalWrapper: PictureInPictureProvider,
+    });
     await userEvent.click(
       await screen.findByRole('button', {name: 'Request installation'})
     );
@@ -527,7 +611,7 @@ describe('ConnectScmBlock', () => {
       );
     }
     mockRepoAccess('repo_not_in_sentry');
-    render(<MovingChat />, {organization});
+    render(<MovingChat />, {organization, additionalWrapper: PictureInPictureProvider});
     expect(await screen.findByText("Seer can't access acme/app")).toBeInTheDocument();
 
     // The check after the move doesn't come back.
@@ -588,7 +672,7 @@ describe('ConnectScmBlock', () => {
           answerEarlierCheck = resolve;
         }),
       });
-      render(<Pauses />, {organization});
+      render(<Pauses />, {organization, additionalWrapper: PictureInPictureProvider});
 
       // The run paused again before the earlier pause's check came back.
       MockApiClient.clearMockResponses();
@@ -612,7 +696,7 @@ describe('ConnectScmBlock', () => {
     it("waits for this pause's check instead of showing the earlier answer", async () => {
       const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
       mockRepoAccess('found');
-      render(<Pauses />, {organization});
+      render(<Pauses />, {organization, additionalWrapper: PictureInPictureProvider});
       expect(
         await screen.findByText('Perfect, Seer can access acme/app')
       ).toBeInTheDocument();
