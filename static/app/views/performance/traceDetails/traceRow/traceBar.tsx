@@ -271,9 +271,11 @@ export function AutogroupedTraceBar(props: AutogroupedTraceBarProps) {
           />
         ) : null}
       </div>
-      <div ref={registerAutogroupedSpanBarTextRef} className="TraceBarDuration">
-        <span className="TraceBarDurationText">{duration}</span>
-      </div>
+      <ClockDriftTooltip offsetMs={props.node.clockDriftOffsetMs}>
+        <div ref={registerAutogroupedSpanBarTextRef} className="TraceBarDuration">
+          <span className="TraceBarDurationText">{duration}</span>
+        </div>
+      </ClockDriftTooltip>
     </Fragment>
   );
 }

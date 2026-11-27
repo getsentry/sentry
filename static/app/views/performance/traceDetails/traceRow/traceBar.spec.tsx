@@ -2,7 +2,7 @@ import {useLayoutEffect, type PropsWithChildren} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
-import {act, render, screen} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {
   isParentAutogroupedNode,
@@ -259,6 +259,41 @@ describe.each([false, true])('AutogroupedTraceBar with compression=%s', compress
       expect(icon).toHaveStyle({left: '50%'});
     }
   );
+});
+
+describe('AutogroupedTraceBar clock drift', () => {
+  it('explains the shift of a group moved to correct for clock drift', async () => {
+    const spanSpaces: Array<[number, number]> = [
+      [1000, 400],
+      [1600, 400],
+    ];
+    const manager = createManager({compressed: false, spanSpaces});
+    const node = new SiblingAutogroupNode(null, makeSiblingAutogroup(), {
+      organization: OrganizationFixture(),
+    });
+    node.space = [1000, 1000];
+    node.clockDriftOffsetMs = 2_000;
+    manager.columns.list.column_nodes[0] = node;
+
+    render(
+      <AutogroupedTraceBar
+        color="red"
+        entire_space={node.space}
+        errors={node.errors}
+        manager={manager}
+        node={node}
+        node_spaces={spanSpaces}
+        occurrences={node.occurrences}
+        virtualized_index={0}
+      />
+    );
+
+    await userEvent.hover(screen.getByText('1.00s'));
+
+    expect(
+      await screen.findByText('Shifted by +2.00s to correct for clock drift')
+    ).toBeInTheDocument();
+  });
 });
 
 describe.each(['sibling', 'parent'] as const)('AutogroupedTraceBar (%s)', grouping => {
