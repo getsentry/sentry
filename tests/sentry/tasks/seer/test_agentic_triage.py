@@ -20,7 +20,11 @@ from sentry.models.project import Project
 from sentry.processing_errors.grouptype import LowValueSpanConfigurationType
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
-from sentry.seer.autofix.utils import AutofixStoppingPoint, bulk_read_preferences_from_sentry_db
+from sentry.seer.autofix.utils import (
+    AGENTIC_TRIAGE_COHORT_OPTION,
+    AutofixStoppingPoint,
+    bulk_read_preferences_from_sentry_db,
+)
 from sentry.seer.models.agentic_triage import (
     SeerAgenticTriageRunErrorType,
     SeerAgenticTriageRunResult,
@@ -318,6 +322,51 @@ class TestScheduleAgenticTriage(TestCase):
                 token_billed,
                 free_cohort,
             ]
+
+    def test_eligible_orgs_with_cohort_gating(self) -> None:
+        legacy_cohort = self.create_organization()
+        legacy_cohort.update_option(AGENTIC_TRIAGE_COHORT_OPTION, "legacy")
+        seat_cohort = self.create_organization()
+        seat_cohort.update_option(AGENTIC_TRIAGE_COHORT_OPTION, "seat")
+        token_billed_without_cohort = self.create_organization()
+        free_cohort = self.create_organization()
+        free_cohort.update_option(AGENTIC_TRIAGE_COHORT_OPTION, "free")
+        free_cohort.update_option("agentic-triage-free-cohort", True)
+        enterprise_seat = self.create_organization()
+        enterprise_legacy = self.create_organization()
+        all_orgs = [
+            legacy_cohort,
+            seat_cohort,
+            token_billed_without_cohort,
+            free_cohort,
+            enterprise_seat,
+            enterprise_legacy,
+        ]
+        token_billed = [legacy_cohort, seat_cohort, token_billed_without_cohort]
+
+        with self.feature(
+            {
+                "organizations:seer-night-shift": [org.slug for org in all_orgs],
+                "organizations:seer-agentic-triage-cohort-gating": [org.slug for org in all_orgs],
+                "organizations:token-billed-seer-enabled": [org.slug for org in token_billed],
+                "organizations:seat-based-seer-enabled": [enterprise_seat.slug],
+            }
+        ):
+            with self.options({"seer.night_shift.enable_for_legacy_orgs": True}):
+                assert _get_eligible_orgs_from_batch(all_orgs) == [
+                    legacy_cohort,
+                    seat_cohort,
+                    free_cohort,
+                    enterprise_seat,
+                    enterprise_legacy,
+                ]
+            with self.options({"seer.night_shift.enable_for_legacy_orgs": False}):
+                assert _get_eligible_orgs_from_batch(all_orgs) == [
+                    legacy_cohort,
+                    seat_cohort,
+                    free_cohort,
+                    enterprise_seat,
+                ]
 
     def test_disabled_by_option(self) -> None:
         with (
@@ -1089,6 +1138,123 @@ class TestRunAgenticTriageForOrg(AgenticTriageFixtures, TestCase, SnubaTestCase)
 
         assert run_id is not None
         mock_execution.assert_called_once()
+
+    def _run_scheduled(
+        self, org: Organization, *, has_quota: bool = True
+    ) -> tuple[int | None, Mock, Mock]:
+        with (
+            patch(
+                "sentry.tasks.seer.agentic_triage.cron.quotas.backend.check_seer_quota",
+                return_value=has_quota,
+            ) as mock_quota,
+            patch(
+                "sentry.tasks.seer.agentic_triage.cron.run_agentic_triage_execution"
+            ) as mock_execution,
+        ):
+            run_id = run_agentic_triage_for_org(org.id, schedule_id="2024-07-22T22:00")
+        return run_id, mock_quota, mock_execution
+
+    def test_cohort_gating_runs_token_billed_cohort_orgs_without_prior_runs(self) -> None:
+        org = self.create_organization()
+        org.update_option(AGENTIC_TRIAGE_COHORT_OPTION, "seat")
+
+        with self.feature(
+            [
+                "organizations:seer-agentic-triage-cohort-gating",
+                "organizations:token-billed-seer-enabled",
+            ]
+        ):
+            run_id, mock_quota, mock_execution = self._run_scheduled(org)
+
+        assert run_id is not None
+        mock_quota.assert_not_called()
+        mock_execution.assert_called_once()
+
+    def test_cohort_gating_skips_token_billed_orgs_without_cohort(self) -> None:
+        org = self.create_organization()
+        self._create_prior_run(
+            org,
+            date_added=TOKEN_BILLING_CUTOFF - timedelta(days=1),
+            trigger_key="2024-07-21T22:00",
+        )
+
+        with self.feature(
+            [
+                "organizations:seer-agentic-triage-cohort-gating",
+                "organizations:token-billed-seer-enabled",
+            ]
+        ):
+            run_id, _, mock_execution = self._run_scheduled(org)
+
+        assert run_id is None
+        mock_execution.assert_not_called()
+
+    def test_cohort_gating_keeps_quota_path_for_orgs_not_token_billed(self) -> None:
+        org = self.create_organization()
+
+        with self.feature("organizations:seer-agentic-triage-cohort-gating"):
+            run_id, mock_quota, mock_execution = self._run_scheduled(org)
+
+        assert run_id is not None
+        mock_quota.assert_called_once()
+        mock_execution.assert_called_once()
+
+    def test_cohort_gating_runs_free_cohort_without_quota(self) -> None:
+        org = self.create_organization()
+        org.update_option(AGENTIC_TRIAGE_COHORT_OPTION, "free")
+
+        with self.feature("organizations:seer-agentic-triage-cohort-gating"):
+            run_id, mock_quota, mock_execution = self._run_scheduled(org, has_quota=False)
+
+        assert run_id is not None
+        mock_quota.assert_not_called()
+        mock_execution.assert_called_once()
+
+    def test_cohort_gating_ignores_legacy_free_cohort_option(self) -> None:
+        org = self.create_organization()
+        org.update_option("agentic-triage-free-cohort", True)
+
+        with self.feature("organizations:seer-agentic-triage-cohort-gating"):
+            run_id, mock_quota, mock_execution = self._run_scheduled(org, has_quota=False)
+
+        assert run_id is None
+        mock_quota.assert_called_once()
+        mock_execution.assert_not_called()
+
+    def test_cohort_gating_shadow_records_disagreement(self) -> None:
+        org = self.create_organization()
+        org.update_option(AGENTIC_TRIAGE_COHORT_OPTION, "legacy")
+
+        with (
+            self.feature("organizations:token-billed-seer-enabled"),
+            patch("sentry.tasks.seer.agentic_triage.cron.sentry_sdk.metrics.count") as mock_count,
+        ):
+            run_id, _, mock_execution = self._run_scheduled(org)
+
+        assert run_id is None
+        mock_execution.assert_not_called()
+        mock_count.assert_any_call(
+            "night_shift.cohort_gating.shadow",
+            1,
+            attributes={"admitted": False, "admitted_by_cohort": True, "cohort": "legacy"},
+        )
+
+    def test_cohort_gating_shadow_not_recorded_for_manual_runs(self) -> None:
+        org = self.create_organization()
+
+        with (
+            patch(
+                "sentry.tasks.seer.agentic_triage.cron.quotas.backend.check_seer_quota",
+                return_value=True,
+            ),
+            patch("sentry.tasks.seer.agentic_triage.cron.run_agentic_triage_execution"),
+            patch("sentry.tasks.seer.agentic_triage.cron.sentry_sdk.metrics.count") as mock_count,
+        ):
+            run_agentic_triage_for_org(org.id, options={"source": "manual"})
+
+        assert not any(
+            call.args[0] == "night_shift.cohort_gating.shadow" for call in mock_count.call_args_list
+        )
 
     def test_max_candidates_defaults_to_global_option(self) -> None:
         org = self.create_organization()
