@@ -21,6 +21,7 @@ from sentry.models.dashboard import Dashboard
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.agent.client import SeerAgentClient
+from sentry.seer.endpoints.utils import refuse_service_account_token
 from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -154,6 +155,11 @@ class OrganizationDashboardGeneratePermission(OrganizationPermission):
 
     # dashboard:read replaces org:read in orgs with granular scopes.
     rejects_deprecated_scopes = True
+
+    def has_permission(self, request: Request, view: Any) -> bool:
+        if request.method == "POST":
+            refuse_service_account_token(request)
+        return super().has_permission(request, view)
 
 
 @cell_silo_endpoint

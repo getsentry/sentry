@@ -11,10 +11,13 @@ from sentry_protos.billing.v1.common.v1.seer_billing_feature_pb2 import (
 
 from sentry.dashboards.on_completion_hook import DashboardOnCompletionHook
 from sentry.seer.models import SeerPermissionError
+from sentry.service_accounts.models import ServiceAccountToken
+from sentry.service_accounts.tokens import generate_token, stored_token_fields
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 
 
@@ -214,3 +217,30 @@ class OrganizationDashboardGenerateScopeTest(APITestCase):
         self._use_token(["org:read"])
         response = self.client.post(self.url, self.data, format="json")
         assert response.status_code == 200, response.content
+
+    @with_feature("organizations:service-accounts")
+    def test_service_account_token_is_user_required(self, mock_client_class: MagicMock) -> None:
+        service_account = self.create_service_account(
+            organization=self.organization,
+            scope_list=["dashboard:read"],
+            project_ids=[self.project.id],
+        )
+        token_str = generate_token(self.organization.slug, "https://test-region.sentry.io")
+        stored = stored_token_fields(token_str)
+        with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
+            ServiceAccountToken.objects.create(
+                service_account=service_account,
+                organization_id=self.organization.id,
+                name="ci",
+                token_hashed=stored.token_hashed,
+                token_last_characters=stored.token_last_characters,
+                scope_list=["dashboard:read"],
+                created_by=self.user,
+            )
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token_str}")
+
+        response = self.client.post(self.url, self.data, format="json")
+
+        assert response.status_code == 403, response.content
+        assert response.data["detail"]["code"] == "user-required"
+        mock_client_class.assert_not_called()
