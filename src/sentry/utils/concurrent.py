@@ -253,11 +253,24 @@ class ContextPropagatingThreadPoolExecutor(_ThreadPoolExecutor):
     This ensures Sentry SDK scopes (isolation_scope, current_scope),
     OpenTelemetry trace context, and any other context variables are
     available in worker threads without manual propagation.
+
+    Each task gets forks of the caller's Sentry scopes.
     """
 
     def submit[T, **P](self, fn: Callable[P, T], /, *args: P.args, **kwargs: P.kwargs) -> Future[T]:
         ctx = contextvars.copy_context()
-        return super().submit(ctx.run, functools.partial(fn, *args, **kwargs))
+        # copy_context is shallow, so without forking every task would mutate
+        # the caller's Scope objects. Concurrent span start/end on a shared
+        # scope can leave a finished span as the active span for later work.
+        isolation_scope = sentry_sdk.get_isolation_scope().fork()
+        current_scope = sentry_sdk.get_current_scope().fork()
+
+        def run() -> T:
+            with sentry_sdk.scope.use_isolation_scope(isolation_scope):
+                with sentry_sdk.scope.use_scope(current_scope):
+                    return fn(*args, **kwargs)
+
+        return super().submit(ctx.run, run)
 
 
 class FutureSet[T]:
