@@ -199,6 +199,8 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
 
         const direction = sorts.find(s => s.field === field)?.kind;
         const canSort = field !== TraceMetricKnownFieldKey.METRIC_NAME;
+        const isAggregate =
+          Boolean(func) || (isVisualizeEquation(visualize) && isEquation(field));
 
         function updateSort() {
           setSorts([{field, kind: getNextDirection(direction)}]);
@@ -207,10 +209,8 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
         return (
           <AggregatesStyledHeaderCell
             key={i}
+            align={isAggregate ? 'right' : undefined}
             divider={shouldShowDivider(i)}
-            isAggregate={
-              Boolean(func) || (isVisualizeEquation(visualize) && isEquation(field))
-            }
             source="metricsPage"
             sort={direction}
             handleSortClick={canSort ? updateSort : undefined}
@@ -302,16 +302,13 @@ const AggregatesStyledHeader = styled(StyledSimpleTableHeader)`
   z-index: 2;
 `;
 
-const AggregatesStyledHeaderCell = styled(StyledSimpleTableHeaderCell)<{
-  isAggregate: boolean;
-}>`
-  justify-content: ${p => (p.isAggregate ? 'flex-end' : 'flex-start')};
+const AggregatesStyledHeaderCell = styled(StyledSimpleTableHeaderCell)`
   padding: ${p => (p.noPadding ? 0 : p.theme.space.lg)};
   padding-top: ${p => (p.noPadding ? 0 : p.theme.space.xs)};
   padding-bottom: ${p => (p.noPadding ? 0 : p.theme.space.xs)};
 
   ${p =>
-    p.isAggregate &&
+    p.align === 'right' &&
     css`
       min-width: min-content;
     `}
