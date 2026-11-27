@@ -961,7 +961,10 @@ export function isSubAgentCall(call: TurnCall): call is SubAgentCall {
 }
 
 /** Whether `nodeId` is the message's span or one of its calls' spans. */
-function messageContainsNode(message: ConversationMessage, nodeId: string): boolean {
+export function messageContainsNode(
+  message: ConversationMessage,
+  nodeId: string
+): boolean {
   if (message.nodeId === nodeId) {
     return true;
   }
