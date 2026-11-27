@@ -25,6 +25,7 @@ from sentry.issues.action_log.read_metrics import (
 from sentry.issues.action_log.request import resolve_action_source
 from sentry.issues.comments import create_comment
 from sentry.issues.endpoints.bases.group import GroupEndpoint
+from sentry.issues.related.follow_ups import COMMENT, record_follow_up
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.service_accounts.auth import is_service_account_auth
@@ -115,4 +116,5 @@ class GroupNotesEndpoint(GroupEndpoint):
             )
 
         record_activity_read(activity_read_endpoint(request), ActivityReadResult.ACTIVITY)
+        record_follow_up(request, [group], COMMENT)
         return Response(serialize_group_notes(group, [activity], request.user)[0], status=201)

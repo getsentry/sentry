@@ -1447,6 +1447,15 @@ register(
 )
 
 
+# Whether the related issues endpoint remembers the issues it returns, so later views, updates and
+# comments on them are counted by relation type (sentry.issues.related.follow_ups).
+register(
+    "issues.related.track-follow-ups",
+    default=True,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Killswitch for batched nodestore fetches in group events endpoint.
 # When disabled, falls back to lazy per-event nodestore fetches.
 register(

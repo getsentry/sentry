@@ -41,6 +41,7 @@ from sentry.issues.grouptype import GroupCategory
 from sentry.issues.ignored import handle_archived_until_escalating, handle_ignored
 from sentry.issues.merge import MergedGroup, handle_merge
 from sentry.issues.priority import update_priority
+from sentry.issues.related.follow_ups import record_follow_up, update_action
 from sentry.issues.status_change import handle_status_update, infer_substatus
 from sentry.issues.update_inbox import update_inbox
 from sentry.models.activity import Activity, ActivityIntegration
@@ -364,7 +365,10 @@ def update_groups_with_search_fn(
     if not group_list:
         return Response(status=204)
 
-    return update_groups(request, group_list)
+    response = update_groups(request, group_list)
+    if response.status_code < 300:
+        record_follow_up(request, group_list, update_action(request.data))
+    return response
 
 
 def validate_request(
