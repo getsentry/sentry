@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {
@@ -11,8 +10,6 @@ import {
 
 import {openModal} from '@sentry/scraps/modal';
 import {toast} from '@sentry/scraps/toast';
-
-import {TextField} from 'sentry/components/forms/fields/textField';
 
 import {FeedbackModal} from './feedbackModal';
 
@@ -75,7 +72,12 @@ describe('FeatureFeedback', () => {
 
       await waitFor(() =>
         expect(feedbackClient.captureEvent).toHaveBeenCalledWith(
-          expect.objectContaining({request: {url: 'http://localhost/'}})
+          expect.objectContaining({
+            request: {url: 'http://localhost/'},
+            message:
+              'test feedback by foo@example.com - I like this feature - this is a feedback message\n',
+            contexts: {feedback: {additionalInfo: 'this is a feedback message\n'}},
+          })
         )
       );
 
@@ -127,116 +129,6 @@ describe('FeatureFeedback', () => {
 
       // Close modal
       await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
-    });
-  });
-
-  describe('custom', () => {
-    it('renders custom feedback form', async () => {
-      jest.spyOn(toast, 'success');
-
-      // Mock implementation of the Sentry Browser SDK
-      Sentry.BrowserClient.prototype.captureEvent = jest.fn();
-
-      renderGlobalModal();
-
-      act(() =>
-        openModal(modalProps => (
-          <FeedbackModal
-            {...modalProps}
-            featureName="test"
-            initialData={{step: 0, name: null, surname: null}}
-          >
-            {({Header, Body, Footer, state, onFieldChange}) => {
-              if (state.step === 0) {
-                return (
-                  <Fragment>
-                    <Header>First Step</Header>
-                    <Body>
-                      <TextField
-                        label="Name"
-                        value={state.name}
-                        name="name"
-                        onChange={value => onFieldChange('name', value)}
-                      />
-                    </Body>
-                    <Footer onNext={() => onFieldChange('step', 1)} />
-                  </Fragment>
-                );
-              }
-
-              return (
-                <Fragment>
-                  <Header>Last Step</Header>
-                  <Body>
-                    <TextField
-                      label="Surname"
-                      value={state.surname}
-                      name="surname"
-                      onChange={value => onFieldChange('surname', value)}
-                    />
-                  </Body>
-                  <Footer
-                    onBack={() => onFieldChange('step', 0)}
-                    primaryDisabledReason={
-                      state.surname ? undefined : 'Please answer at least one question'
-                    }
-                    submitEventData={{message: 'Feedback: test'}}
-                  />
-                </Fragment>
-              );
-            }}
-          </FeedbackModal>
-        ))
-      );
-
-      // Does not render the default form
-      expect(screen.queryByText('Select type of feedback')).not.toBeInTheDocument();
-
-      // Custom form
-      expect(screen.getByRole('heading', {name: 'First Step'})).toBeInTheDocument();
-
-      // Change form field
-      expect(screen.getByRole('textbox', {name: 'Name'})).toHaveValue('');
-      await userEvent.type(screen.getByRole('textbox', {name: 'Name'}), 'new value');
-      expect(screen.getByRole('textbox', {name: 'Name'})).toHaveValue('new value');
-
-      // Go to next step
-      await userEvent.click(screen.getByRole('button', {name: 'Next'}));
-
-      // Next step is rendered
-      expect(screen.getByRole('heading', {name: 'Last Step'})).toBeInTheDocument();
-      expect(screen.getByRole('button', {name: 'Back'})).toBeInTheDocument();
-
-      // Go to previous step
-      await userEvent.click(screen.getByRole('button', {name: 'Back'}));
-
-      // Previous step is rendered
-      expect(screen.getByRole('heading', {name: 'First Step'})).toBeInTheDocument();
-
-      // Go to next step
-      await userEvent.click(screen.getByRole('button', {name: 'Next'}));
-
-      // Next step is rendered
-      expect(screen.getByRole('button', {name: 'Submit'})).toHaveAttribute(
-        'aria-disabled',
-        'true'
-      );
-
-      // Change form field
-      expect(screen.getByRole('textbox', {name: 'Surname'})).toHaveValue('');
-      await userEvent.type(screen.getByRole('textbox', {name: 'Surname'}), 'new value');
-      expect(screen.getByRole('textbox', {name: 'Surname'})).toHaveValue('new value');
-
-      expect(screen.getByRole('button', {name: 'Submit'})).not.toHaveAttribute(
-        'aria-disabled',
-        'true'
-      );
-
-      await userEvent.click(screen.getByRole('button', {name: 'Submit'}));
-
-      expect(toast.success).toHaveBeenCalledWith(
-        'Thanks for taking the time to provide us feedback!'
-      );
     });
   });
 });
