@@ -34,6 +34,7 @@ const {
   GITHUB_RUN_ID,
   GITHUB_RUN_ATTEMPT,
   GITHUB_WORKFLOW,
+  JEST_RUN_STARTED_AT,
   SENTRY_DSN,
 } = process.env;
 
@@ -354,7 +355,15 @@ const config: Config.InitialOptions = {
 
   reporters: [
     'default',
-    ['<rootDir>/tests/js/sentry-test/testCountReporter.ts', sentryConfig],
+    [
+      '<rootDir>/tests/js/sentry-test/testCountReporter.ts',
+      {
+        ...sentryConfig,
+        runStartTime: JEST_RUN_STARTED_AT
+          ? Number(JEST_RUN_STARTED_AT) * 1000
+          : undefined,
+      },
+    ],
   ],
   /**
    * jest.clearAllMocks() automatically called before each test
