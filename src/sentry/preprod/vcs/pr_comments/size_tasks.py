@@ -10,6 +10,7 @@ from sentry.models.commitcomparison import CommitComparison
 from sentry.preprod.integration_utils import get_commit_context_client
 from sentry.preprod.vcs.pr_comments.size_templates import format_size_pr_comment
 from sentry.preprod.vcs.pr_comments.tasks import (
+    create_or_update_pr_comment,
     lock_pr_comparisons_for_update,
     resolve_pr_comment_context,
     save_pr_comment_result,
@@ -103,29 +104,23 @@ def create_preprod_size_pr_comment_task(
                 return
 
             try:
-                if existing_comment_id:
-                    client.update_comment(
-                        repo=cc.head_repo_name,
-                        issue_id=str(cc.pr_number),
-                        comment_id=str(existing_comment_id),
-                        data={"body": comment_body},
-                    )
-                    comment_id = existing_comment_id
-                    logger.info(
-                        "preprod.size_pr_comments.create.updated",
-                        extra={"preprod_artifact_id": artifact.id, "comment_id": comment_id},
-                    )
-                else:
-                    resp = client.create_comment(
-                        repo=cc.head_repo_name,
-                        issue_id=str(cc.pr_number),
-                        data={"body": comment_body},
-                    )
-                    comment_id = str(resp["id"])
-                    logger.info(
-                        "preprod.size_pr_comments.create.created",
-                        extra={"preprod_artifact_id": artifact.id, "comment_id": comment_id},
-                    )
+                comment_id = create_or_update_pr_comment(
+                    client,
+                    provider=provider,
+                    organization_id=organization.id,
+                    repo=cc.head_repo_name,
+                    pr_number=pr_number,
+                    existing_comment_id=existing_comment_id,
+                    body=comment_body,
+                )
+                logger.info(
+                    (
+                        "preprod.size_pr_comments.create.updated"
+                        if existing_comment_id
+                        else "preprod.size_pr_comments.create.created"
+                    ),
+                    extra={"preprod_artifact_id": artifact.id, "comment_id": comment_id},
+                )
             except Exception as e:
                 extra: dict[str, Any] = {
                     "preprod_artifact_id": artifact.id,
