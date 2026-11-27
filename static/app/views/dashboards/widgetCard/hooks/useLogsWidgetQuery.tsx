@@ -15,6 +15,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
 import {eventsResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/eventsResponseTransforms';
 import {getTimeseriesRequestQuery} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
+import {useShouldSkipTimeseriesCache} from 'sentry/views/dashboards/skipTimeseriesCache';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {
   combineIngestionMeta,
@@ -55,6 +56,7 @@ export function useLogsSeriesQuery(
   } = params;
 
   const {queue} = useWidgetQueryQueue();
+  const skipCache = useShouldSkipTimeseriesCache();
 
   const filteredWidget = useMemo(
     () =>
@@ -79,6 +81,7 @@ export function useLogsSeriesQuery(
             referrer: getReferrer(filteredWidget.displayType),
             widgetInterval,
             sampling: samplingMode,
+            skipCache,
           }
         ),
       })

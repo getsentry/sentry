@@ -5,6 +5,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
 import {getTimeseriesRequestQuery} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import {mobileAppSizeResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/mobileAppSizeResponseTransforms';
+import {useShouldSkipTimeseriesCache} from 'sentry/views/dashboards/skipTimeseriesCache';
 import {
   combineIngestionMeta,
   type WidgetTimeSeries,
@@ -39,6 +40,7 @@ export function useMobileAppSizeSeriesQuery(
   } = params;
 
   const {queue} = useWidgetQueryQueue();
+  const skipCache = useShouldSkipTimeseriesCache();
 
   const filteredWidget = useMemo(
     () =>
@@ -62,6 +64,7 @@ export function useMobileAppSizeSeriesQuery(
             referrer: getReferrer(filteredWidget.displayType),
             widgetInterval,
             sampling: samplingMode,
+            skipCache,
           }
         ),
       })

@@ -150,6 +150,7 @@ type TimeseriesRequestOptions = {
   organization?: Organization;
   referrer?: string;
   sampling?: SamplingMode;
+  skipCache?: boolean;
   widgetInterval?: string;
 };
 
@@ -206,7 +207,13 @@ export function getTimeseriesRequestQuery(
   queryIndex: number,
   pageFilters: PageFilters,
   dataset: DiscoverDatasets,
-  {organization, referrer, sampling, widgetInterval}: TimeseriesRequestOptions = {}
+  {
+    organization,
+    referrer,
+    sampling,
+    skipCache,
+    widgetInterval,
+  }: TimeseriesRequestOptions = {}
 ) {
   const widgetQuery = widget.queries[queryIndex]!;
   const {environments, projects} = pageFilters;
@@ -240,6 +247,7 @@ export function getTimeseriesRequestQuery(
     referrer,
     dataset,
     sampling,
+    ...(skipCache ? {skipCache: '1' as const} : {}),
   };
   const query: typeof params & Partial<TransformationParams> = {
     ...params,
