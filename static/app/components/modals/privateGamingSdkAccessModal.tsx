@@ -3,7 +3,6 @@ import {IconGithub} from '@sentry/icons/github';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
-import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Grid} from '@sentry/scraps/layout';
@@ -48,18 +47,6 @@ const schema = z.object({
     .array(z.enum(GAMING_PLATFORMS))
     .min(1, t('Select at least one gaming platform')),
 });
-
-function formatInviteError(error: Error) {
-  const responseJSON = error instanceof RequestError ? error.responseJSON : undefined;
-  return tct('[error] - [detail]', {
-    error:
-      typeof responseJSON?.error === 'string' ? responseJSON.error : t('Error occurred'),
-    detail:
-      typeof responseJSON?.detail === 'string'
-        ? responseJSON.detail
-        : t('Unknown Error occurred'),
-  });
-}
 
 export interface PrivateGamingSdkAccessModalProps {
   organization: Organization;
@@ -138,7 +125,17 @@ export function PrivateGamingSdkAccessModal({
       );
     },
     onError: error => {
-      toast.error(formatInviteError(error));
+      const response = error instanceof RequestError ? error.responseJSON : undefined;
+      toast.error(
+        tct('[error] - [detail]', {
+          error:
+            typeof response?.error === 'string' ? response.error : t('Error occurred'),
+          detail:
+            typeof response?.detail === 'string'
+              ? response.detail
+              : t('Unknown Error occurred'),
+        })
+      );
     },
   });
 
@@ -267,9 +264,6 @@ export function PrivateGamingSdkAccessModal({
               </Button>
             </Fragment>
           )}
-          {mutation.error && (
-            <Alert variant="danger">{formatInviteError(mutation.error)}</Alert>
-          )}
         </Fragment>
       </Body>
       <Footer>
@@ -282,15 +276,7 @@ export function PrivateGamingSdkAccessModal({
             <Fragment>
               <Button onClick={closeModal}>{t('Cancel')}</Button>
               {hasGithubIdentity && (
-                <form.Subscribe selector={state => state.values.platforms.length === 0}>
-                  {hasNoPlatforms => (
-                    <form.SubmitButton disabled={hasNoPlatforms}>
-                      {mutation.isPending
-                        ? t('Sending Invitation')
-                        : t('Send Invitation')}
-                    </form.SubmitButton>
-                  )}
-                </form.Subscribe>
+                <form.SubmitButton>{t('Send Invitation')}</form.SubmitButton>
               )}
             </Fragment>
           )}

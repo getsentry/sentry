@@ -60,7 +60,7 @@ describe('PrivateGamingSdkAccessModal', () => {
     );
 
     const sendButton = await screen.findByRole('button', {name: 'Send Invitation'});
-    expect(sendButton).toBeDisabled();
+    expect(sendButton).toBeEnabled();
 
     await selectEvent.select(
       screen.getByRole('textbox', {name: 'Select Gaming Platforms'}),
@@ -123,7 +123,7 @@ describe('PrivateGamingSdkAccessModal', () => {
     );
   });
 
-  it('shows the API error and keeps the form open', async () => {
+  it('shows the API error in a toast and keeps the form open', async () => {
     MockApiClient.addMockResponse({
       url: '/users/me/user-identities/',
       body: [githubIdentity],
@@ -149,9 +149,10 @@ describe('PrivateGamingSdkAccessModal', () => {
 
     await userEvent.click(await screen.findByRole('button', {name: 'Send Invitation'}));
 
+    expect(await screen.findByText('Invite failed - Not a member')).toBeInTheDocument();
     expect(
-      await within(screen.getByRole('dialog')).findByText('Invite failed - Not a member')
-    ).toBeInTheDocument();
+      within(screen.getByRole('dialog')).queryByText('Invite failed - Not a member')
+    ).not.toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Send Invitation'})).toBeInTheDocument();
   });
 
