@@ -62,7 +62,7 @@ function annotationBandRenderItem(
     const children: BandElement[] = [...bucketHighlight(slot, params, theme)];
     if (bucket.items.length > 0) {
       children.push(
-        bandPill(range, y, theme.tokens.graphics.accent.vibrant, {
+        bandPill(range, y, theme.tokens.graphics.neutral.vibrant, {
           opacity: bucket.opacity,
         })
       );
@@ -194,7 +194,7 @@ export function useAnnotationBand({
         renderItem: annotationBandRenderItem(data, barInterval, bandOffset, theme),
         name: ANNOTATION_BAND_SERIES_ID,
         data,
-        color: theme.tokens.graphics.accent.vibrant,
+        color: theme.tokens.graphics.neutral.vibrant,
         animation: false,
         legendHoverLink: false,
       }),
