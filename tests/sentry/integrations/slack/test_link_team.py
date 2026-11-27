@@ -181,6 +181,20 @@ class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
         text = self.mock_post.call_args.kwargs["text"]
         assert f"The {self.team.slug} team has already been linked to a Slack channel." in text
 
+    def test_link_team_already_linked_to_several_channels(self) -> None:
+        self.link_team()
+        link_team(
+            team=self.team,
+            integration=self.integration,
+            channel_name="other-channel",
+            channel_id="other-channel-id",
+        )
+
+        response = self.get_success_response(data={"team": self.team.id})
+        self.assertTemplateUsed(response, "sentry/integrations/slack/post-linked-team.html")
+        text = self.mock_post.call_args.kwargs["text"]
+        assert f"The {self.team.slug} team has already been linked to a Slack channel." in text
+
     def test_error_page(self) -> None:
         """Test that we successfully render an error page when bad form data is sent."""
         self.get_error_response(

@@ -3,7 +3,6 @@ from abc import ABC, abstractmethod
 from collections.abc import Iterable, Mapping
 from typing import Any
 
-import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
 from django.core.signing import BadSignature, SignatureExpired
 from django.db import IntegrityError
@@ -23,18 +22,14 @@ from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import RpcIntegration, integration_service
 from sentry.integrations.types import (
-    ExternalActorSource,
     ExternalProviderEnum,
     ExternalProviders,
-    IntegrationProviderSlug,
 )
 from sentry.integrations.utils.identities import get_identity_or_404
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.team import Team
 from sentry.notifications.notificationcontroller import NotificationController
 from sentry.notifications.notifications.integration_nudge import IntegrationNudgeNotification
-from sentry.notifications.services import notifications_service
-from sentry.notifications.types import NotificationSettingEnum
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.types.actor import ActorType
 from sentry.users.models.identity import Identity, IdentityProvider
@@ -336,11 +331,11 @@ class UnlinkIdentityView(IdentityLinkageView, ABC):
 
 @cell_silo_view
 class TeamLinkageView(LinkageView, ABC):
-    _ALLOWED_ROLES = frozenset(["admin", "manager", "owner"])
-
     @classmethod
     def is_valid_role(cls, org_member: OrganizationMember) -> bool:
-        return org_member.role in cls._ALLOWED_ROLES
+        from sentry.integrations.slack.team_linking import TEAM_LINKING_ROLES
+
+        return org_member.role in TEAM_LINKING_ROLES
 
     @method_decorator(never_cache)
     def handle(self, request: HttpRequest, signed_params: str) -> HttpResponseBase:
@@ -398,12 +393,19 @@ class LinkTeamView(TeamLinkageView, ABC):
     def execute(
         self, request: HttpRequest, integration: RpcIntegration, params: Mapping[str, Any]
     ) -> HttpResponseBase:
-        from sentry.integrations.slack.analytics import SlackIntegrationIdentityLinked
-        from sentry.integrations.slack.views.link_team import (
+        from sentry.integrations.slack.team_linking import (
+            ALREADY_LINKED_MESSAGE,
             SUCCESS_LINKED_MESSAGE,
+            IdentityNotFound,
+            IdentityProviderNotFound,
+            SlackChannel,
+            TeamLinkResult,
+            link_team_to_channel,
+        )
+        from sentry.integrations.slack.views.link_team import (
+            ALREADY_LINKED_TITLE,
             SUCCESS_LINKED_TITLE,
             SelectTeamForm,
-            build_team_linked_message,
         )
 
         user = serialize_generic_user(request.user)
@@ -463,105 +465,73 @@ class LinkTeamView(TeamLinkageView, ABC):
             )
 
         logger_params["team_id"] = team.id
-
-        idp = identity_service.get_provider(
-            provider_type=IntegrationProviderSlug.SLACK.value,
-            provider_ext_id=integration.external_id,
-        )
         logger_params["provider_ext_id"] = integration.external_id
-        if idp is None:
+
+        channel = SlackChannel(
+            integration=integration, channel_id=channel_id, channel_name=channel_name
+        )
+        try:
+            result = link_team_to_channel(team=team, channel=channel, slack_user_id=slack_id)
+        except IdentityProviderNotFound:
             logger.info("identity_provider.not_found", extra=logger_params)
             self.capture_metric("failure.identity_provider_not_found")
             return self.render_error_page(
                 request, status=403, body_text="HTTP 403: Invalid team ID"
             )
-
-        ident = identity_service.get_identity(
-            filter={"provider_id": idp.id, "identity_ext_id": slack_id}
-        )
-        if not ident:
+        except IdentityNotFound:
             logger.info("identity.not_found", extra=logger_params)
             self.capture_metric("failure.identity_not_found")
             return self.render_error_page(
                 request, status=403, body_text="HTTP 403: User identity does not exist"
             )
 
-        _, created = ExternalActor.objects.get_or_create(
-            team_id=team.id,
-            organization=team.organization,
-            integration_id=integration.id,
-            provider=self.provider.value,
-            defaults=dict(
-                external_name=channel_name,
-                external_id=channel_id,
-                source=ExternalActorSource.MANUAL.value,
-            ),
-        )
-
-        try:
-            analytics.record(
-                SlackIntegrationIdentityLinked(
-                    provider=self.provider_slug,
-                    actor_id=team.id,
-                    actor_type="team",
-                )
-            )
-        except Exception as e:
-            sentry_sdk.capture_exception(e)
-
-        if not created:
+        if result == TeamLinkResult.ALREADY_LINKED:
             self.capture_metric("failure.team_already_linked")
-            return self.notify_team_already_linked(request, channel_id, integration, team)
-
-        notifications_service.enable_all_settings_for_provider(
-            external_provider=self.external_provider_enum,
-            team_id=team.id,
-            types=[NotificationSettingEnum.ISSUE_ALERTS],
-        )
-
-        message = build_team_linked_message(team=team, channel_id=channel_id)
-        self.notify_on_success(channel_id, integration, message)
+            return self._render_post_linked(
+                request,
+                integration,
+                channel_id,
+                heading_text=ALREADY_LINKED_TITLE,
+                body_text=ALREADY_LINKED_MESSAGE.format(slug=team.slug),
+            )
 
         self.capture_metric("success")
 
+        return self._render_post_linked(
+            request,
+            integration,
+            channel_id,
+            heading_text=SUCCESS_LINKED_TITLE,
+            # Web confirmation page stays plain text; Slack markup is only for chat.
+            body_text=SUCCESS_LINKED_MESSAGE.format(team=team.slug, channel=channel_name),
+        )
+
+    @staticmethod
+    def _render_post_linked(
+        request: HttpRequest,
+        integration: RpcIntegration,
+        channel_id: str,
+        *,
+        heading_text: str,
+        body_text: str,
+    ) -> HttpResponse:
         return render_to_response(
             "sentry/integrations/slack/post-linked-team.html",
             request=request,
             context={
-                "heading_text": SUCCESS_LINKED_TITLE,
-                # Web confirmation page stays plain text; Slack markup is only for chat.
-                "body_text": SUCCESS_LINKED_MESSAGE.format(
-                    team=team.slug,
-                    channel=channel_name,
-                ),
+                "heading_text": heading_text,
+                "body_text": body_text,
                 "channel_id": channel_id,
                 "team_id": integration.external_id,
             },
         )
 
     def _get_teams(self, integration: RpcIntegration, user: RpcUser) -> Iterable[Team]:
+        from sentry.integrations.slack.team_linking import get_linkable_teams
+
         organization_memberships = OrganizationMember.objects.get_for_integration(integration, user)
-        # Filter to teams where we have write access to, either through having a sufficient
-        # organization role (owner/manager/admin) or by being a team admin on at least one team.
         for org_membership in organization_memberships:
-            # Setting is_team_admin to True only returns teams that member is team admin on.
-            # We only want to filter for this when the user does not have a sufficient
-            # role in the org, which is checked using is_valid_role.
-            is_team_admin = not self.is_valid_role(org_membership)
-
-            yield from Team.objects.get_for_user(
-                org_membership.organization, user, is_team_admin=is_team_admin
-            )
-
-    @abstractmethod
-    def notify_on_success(self, channel_id: str, integration: RpcIntegration, message: str) -> None:
-        raise NotImplementedError
-
-    @abstractmethod
-    def notify_team_already_linked(
-        self, request: HttpRequest, channel_id: str, integration: RpcIntegration, team: Team
-    ) -> HttpResponse:
-        raise NotImplementedError
+            yield from get_linkable_teams(org_membership, user)
 
 
 class UnlinkTeamView(TeamLinkageView, ABC):
