@@ -336,7 +336,7 @@ import {InfoText} from '@sentry/scraps/info';
 
 ## Creating Thin Abstractions
 
-> **⚠️ CRITICAL: ALWAYS prompt the user for confirmation before creating abstractions over layout primitives (`Container`, `Flex`, `Grid`, `Stack`, `Text`, `Heading`) when the intent is to DRY (Don't Repeat Yourself) repeated props.**
+> Ask the user before creating an abstraction over layout primitives (`Container`, `Flex`, `Grid`, `Stack`, `Text`, `Heading`) whose purpose is to DRY up repeated props.
 
 You can create thin abstractions over primitives with the purpose of improving the semantic structure by using meaningful names (e.g., `TableCell` vs generic `Flex`) and with the purpose of providing some default props. It is very important that you do this sparingly, and only when it is a net gain for readability. For example, if there are only two instances of the duplicated props, and they are placed next to each other, the price of the abstraction outweights the terseness.
 
@@ -619,7 +619,7 @@ import {CustomIcon} from "./customIcon"
 import {IconExclamation} from "@sentry/icons/exclamation"
 ```
 
-All images belong inside `static/app/images` and must be imported via the webpack loader (the `sentry-images` alias), never referenced by static path.
+All images belong inside `static/images` and must be imported via the `sentry-images` alias (defined in `rsbuild.config.ts`), never referenced by static path.
 
 ```tsx
 // ✅ Images are imported from sentry-images alias
@@ -629,7 +629,7 @@ function Component() {
   return <Image src={image} />;
 }
 
-// ❌ All images need to be imported using the webpack loader!
+// ❌ All images need to be imported using the sentry-images alias!
 function Component() {
   return <Image src="/path/to/image.png" />;
 }

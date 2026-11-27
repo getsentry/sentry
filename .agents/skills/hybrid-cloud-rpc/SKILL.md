@@ -18,7 +18,7 @@ This skill guides you through creating, modifying, and deprecating RPC services 
 
 > **ONLY** serializable types are allowed: `int`, `str`, `bool`, `float`, `None`, `Optional[T]`, `list[T]`, `dict[str, T]`, `RpcModel` subclasses, `Enum` subclasses, `datetime.datetime`.
 
-> The service **MUST** live in one of the 12 registered discovery packages (see Step 3).
+> The service **MUST** live in one of the registered discovery packages (see Step 3).
 
 > Use `Field(repr=False)` on sensitive fields (tokens, secrets, keys, config blobs,
 > metadata dicts) to prevent them from leaking into logs and error reports.
@@ -70,24 +70,7 @@ src/sentry/{domain}/services/{service_name}/
 
 ### Registration
 
-The service package MUST be a sub-package of one of these 12 registered discovery packages:
-
-```
-sentry.auth.services
-sentry.audit_log.services
-sentry.backup.services
-sentry.hybridcloud.services
-sentry.identity.services
-sentry.integrations.services
-sentry.issues.services
-sentry.notifications.services
-sentry.organizations.services
-sentry.projects.services
-sentry.sentry_apps.services
-sentry.users.services
-```
-
-If your service doesn't fit any of these, add a new entry to the `service_packages` tuple in `src/sentry/hybridcloud/rpc/service.py:list_all_service_method_signatures()`.
+The service package MUST be a sub-package of one of the registered discovery packages listed in the `service_packages` tuple in `src/sentry/hybridcloud/rpc/service.py:list_all_service_method_signatures()`. If your service doesn't fit any of them, add a new entry to that tuple.
 
 ### Checklist for new services
 
