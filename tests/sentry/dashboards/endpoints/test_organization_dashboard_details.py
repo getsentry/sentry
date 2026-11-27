@@ -5008,7 +5008,9 @@ class OrganizationDashboardVisitTest(OrganizationDashboardDetailsTestCase):
     @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
     @with_feature(["organizations:service-accounts", "organizations:dashboards-user-last-visited"])
     def test_visit_dashboard_as_service_account(self) -> None:
-        service_account = self.create_service_account(organization=self.organization)
+        service_account = self.create_service_account(
+            organization=self.organization, scope_list=["dashboard:read"]
+        )
         viewer_context = encode_viewer_context(
             ViewerContext(
                 actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),

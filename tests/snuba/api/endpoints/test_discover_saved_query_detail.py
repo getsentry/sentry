@@ -634,7 +634,7 @@ class OrganizationDiscoverQueryVisitTest(APITestCase, SnubaTestCase):
     @with_feature("organizations:service-accounts")
     def test_visit_query_as_service_account(self) -> None:
         service_account = self.create_service_account(
-            organization=self.org, project_ids=self.project_ids
+            organization=self.org, scope_list=["saved_query:read"], project_ids=self.project_ids
         )
         viewer_context = encode_viewer_context(
             ViewerContext(
