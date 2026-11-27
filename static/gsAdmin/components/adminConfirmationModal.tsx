@@ -50,9 +50,11 @@ export function adminAuditParams({
  * with `adminAuditDefaults` and `adminAuditSchema`, then render
  * `<AdminAuditFields form={form} fields="audit" />`.
  */
+const adminAuditFieldsProps: {showTicketURL?: boolean} = {};
+
 export const AdminAuditFields = withFieldGroup({
   defaultValues: adminAuditDefaults,
-  props: {} as {showTicketURL?: boolean},
+  props: adminAuditFieldsProps,
   render: function AdminAuditFieldsRender({group, showTicketURL = true}) {
     return (
       <Stack gap="lg">
