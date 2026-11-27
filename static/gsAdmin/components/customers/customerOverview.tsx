@@ -245,7 +245,7 @@ function ReservedBudgetsData({customer}: ReservedDataProps) {
   }
 
   return (
-    <Container as="section" aria-label="Reserved budgets">
+    <Container>
       {customer.reservedBudgets.map(reservedBudget => {
         return (
           <Fragment key={reservedBudget.id}>
@@ -332,7 +332,7 @@ function SeerPlanSummary({customer}: {customer: Subscription}) {
   );
 
   return (
-    <Container as="section" aria-label="Seer">
+    <Container>
       <DetailsHeading>Seer</DetailsHeading>
       <DescriptionList gap="md">
         {!seatStatus && !legacyStatus && (

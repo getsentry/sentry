@@ -414,14 +414,18 @@ describe('CustomerOverview', () => {
       />
     );
 
-    const budgetSection = within(screen.getByRole('region', {name: 'Reserved budgets'}));
-    expect(budgetSection.getByText('Seer Budget')).toBeInTheDocument();
-    expect(budgetSection.getByText('Reserved Budget')).toBeInTheDocument();
-    expect(budgetSection.getByText('$25.00')).toBeInTheDocument();
-    expect(budgetSection.getByText('Gifted Budget')).toBeInTheDocument();
-    expect(budgetSection.getByText('$15.00')).toBeInTheDocument();
-    expect(budgetSection.getByText('Total Used')).toBeInTheDocument();
-    expect(budgetSection.getByText('$20.00 / $40.00 (50.00%)')).toBeInTheDocument();
+    expect(screen.getByText('Seer Budget')).toBeInTheDocument();
+    const reservedBudgets = screen.getAllByText('Reserved Budget', {selector: 'dt'});
+    expect(reservedBudgets).toHaveLength(2);
+    for (const budget of reservedBudgets) {
+      expect(budget.nextSibling).toHaveTextContent('$25.00');
+    }
+    expect(screen.getByText('Gifted Budget')).toBeInTheDocument();
+    expect(screen.getByText('$15.00')).toBeInTheDocument();
+    expect(screen.getByText('Total Used')).toBeInTheDocument();
+    expect(screen.getByText('Total Used').nextSibling).toHaveTextContent(
+      '$20.00 / $40.00 (50.00%)'
+    );
     expect(screen.getByText('Reserved Issue fixes')).toBeInTheDocument();
     expect(screen.getByText('Reserved Cost-Per-Event Issue fixes')).toBeInTheDocument();
     expect(screen.getByText('$1.00000000')).toBeInTheDocument();
@@ -1101,15 +1105,14 @@ describe('CustomerOverview', () => {
         />
       );
 
-      const seerSection = within(screen.getByRole('region', {name: 'Seer'}));
-      const status = seerSection.getByText('Seat-based').nextSibling;
+      const status = screen.getByText('Seat-based').nextSibling;
       expect(status).toHaveTextContent('Enabled');
       expect(status).not.toHaveTextContent('Trial');
-      expect(seerSection.getByText('Reserved Seats').nextSibling).toHaveTextContent('5');
+      expect(screen.getByText('Reserved Seats').nextSibling).toHaveTextContent('5');
       expect(
-        seerSection.getByText('Active Contributors (billed this period)').nextSibling
+        screen.getByText('Active Contributors (billed this period)').nextSibling
       ).toHaveTextContent('3');
-      expect(seerSection.getByText('Gifted Seats')).toBeInTheDocument();
+      expect(screen.getByText('Gifted Seats')).toBeInTheDocument();
     });
 
     it('shows zeroed seat figures when enabled before any usage accrues', () => {
@@ -1126,10 +1129,9 @@ describe('CustomerOverview', () => {
         />
       );
 
-      const seerSection = within(screen.getByRole('region', {name: 'Seer'}));
-      expect(seerSection.getByText('Reserved Seats').nextSibling).toHaveTextContent('0');
+      expect(screen.getByText('Reserved Seats').nextSibling).toHaveTextContent('0');
       expect(
-        seerSection.getByText('Active Contributors (billed this period)').nextSibling
+        screen.getByText('Active Contributors (billed this period)').nextSibling
       ).toHaveTextContent('0');
     });
 
@@ -1148,12 +1150,15 @@ describe('CustomerOverview', () => {
         />
       );
 
-      const seerSection = within(screen.getByRole('region', {name: 'Seer'}));
-      expect(seerSection.getByText('Legacy (budget)').nextSibling).toHaveTextContent(
+      expect(screen.getByText('Legacy (budget)').nextSibling).toHaveTextContent(
         'Enabled'
       );
-      expect(seerSection.getByText('Reserved Budget')).toBeInTheDocument();
-      expect(seerSection.getByText('Budget Used')).toBeInTheDocument();
+      const reservedBudgets = screen.getAllByText('Reserved Budget', {selector: 'dt'});
+      expect(reservedBudgets).toHaveLength(2);
+      for (const budget of reservedBudgets) {
+        expect(budget.nextSibling).toHaveTextContent('$25.00');
+      }
+      expect(screen.getByText('Budget Used')).toBeInTheDocument();
     });
 
     it('flags a purchased legacy add-on that is missing its budget', () => {
@@ -1172,10 +1177,7 @@ describe('CustomerOverview', () => {
         />
       );
 
-      const seerSection = within(screen.getByRole('region', {name: 'Seer'}));
-      expect(
-        seerSection.getByText('Enabled but no budget data found')
-      ).toBeInTheDocument();
+      expect(screen.getByText('Enabled but no budget data found')).toBeInTheDocument();
     });
 
     it('shows a legacy trial as Trial without flagging a missing budget', () => {
@@ -1193,12 +1195,9 @@ describe('CustomerOverview', () => {
         />
       );
 
-      const seerSection = within(screen.getByRole('region', {name: 'Seer'}));
-      expect(seerSection.getByText('Legacy (budget)').nextSibling).toHaveTextContent(
-        'Trial'
-      );
+      expect(screen.getByText('Legacy (budget)').nextSibling).toHaveTextContent('Trial');
       expect(
-        seerSection.queryByText('Enabled but no budget data found')
+        screen.queryByText('Enabled but no budget data found')
       ).not.toBeInTheDocument();
     });
 
@@ -1214,11 +1213,8 @@ describe('CustomerOverview', () => {
         />
       );
 
-      const seerSection = within(screen.getByRole('region', {name: 'Seer'}));
-      expect(seerSection.getByText('Seat-based').nextSibling).toHaveTextContent(
-        'Available'
-      );
-      expect(seerSection.queryByText('Reserved Seats')).not.toBeInTheDocument();
+      expect(screen.getByText('Seat-based').nextSibling).toHaveTextContent('Available');
+      expect(screen.queryByText('Reserved Seats')).not.toBeInTheDocument();
     });
 
     it('does not show budget figures for an unpurchased legacy add-on', () => {
@@ -1234,12 +1230,11 @@ describe('CustomerOverview', () => {
         />
       );
 
-      const seerSection = within(screen.getByRole('region', {name: 'Seer'}));
-      expect(seerSection.getByText('Legacy (budget)').nextSibling).toHaveTextContent(
+      expect(screen.getByText('Legacy (budget)').nextSibling).toHaveTextContent(
         'Available'
       );
-      expect(seerSection.queryByText('Reserved Budget')).not.toBeInTheDocument();
-      expect(seerSection.queryByText('Budget Used')).not.toBeInTheDocument();
+      expect(screen.getAllByText('Reserved Budget', {selector: 'dt'})).toHaveLength(1);
+      expect(screen.queryByText('Budget Used')).not.toBeInTheDocument();
     });
 
     it('shows an ineligible add-on as Unavailable', () => {
@@ -1255,10 +1250,7 @@ describe('CustomerOverview', () => {
         />
       );
 
-      const seerSection = within(screen.getByRole('region', {name: 'Seer'}));
-      expect(seerSection.getByText('Seat-based').nextSibling).toHaveTextContent(
-        'Unavailable'
-      );
+      expect(screen.getByText('Seat-based').nextSibling).toHaveTextContent('Unavailable');
     });
 
     it('replaces the section with a note when the plan offers no Seer', () => {
@@ -1273,12 +1265,11 @@ describe('CustomerOverview', () => {
         />
       );
 
-      const seerSection = within(screen.getByRole('region', {name: 'Seer'}));
-      expect(seerSection.getByText('Plan').nextSibling).toHaveTextContent(
+      expect(screen.getByText('Plan').nextSibling).toHaveTextContent(
         `Not available on the ${subscription.planDetails.name} plan`
       );
-      expect(seerSection.queryByText('Seat-based')).not.toBeInTheDocument();
-      expect(seerSection.queryByText('Legacy (budget)')).not.toBeInTheDocument();
+      expect(screen.queryByText('Seat-based')).not.toBeInTheDocument();
+      expect(screen.queryByText('Legacy (budget)')).not.toBeInTheDocument();
     });
 
     it('renders both add-ons independently, with neither hiding the other', () => {
@@ -1297,13 +1288,16 @@ describe('CustomerOverview', () => {
         />
       );
 
-      const seerSection = within(screen.getByRole('region', {name: 'Seer'}));
-      expect(seerSection.getByText('Legacy (budget)').nextSibling).toHaveTextContent(
+      expect(screen.getByText('Legacy (budget)').nextSibling).toHaveTextContent(
         'Enabled'
       );
-      expect(seerSection.getByText('Seat-based').nextSibling).toHaveTextContent('Trial');
-      expect(seerSection.getByText('Reserved Budget')).toBeInTheDocument();
-      expect(seerSection.getByText('Reserved Seats')).toBeInTheDocument();
+      expect(screen.getByText('Seat-based').nextSibling).toHaveTextContent('Trial');
+      const reservedBudgets = screen.getAllByText('Reserved Budget', {selector: 'dt'});
+      expect(reservedBudgets).toHaveLength(2);
+      for (const budget of reservedBudgets) {
+        expect(budget.nextSibling).toHaveTextContent('$25.00');
+      }
+      expect(screen.getByText('Reserved Seats')).toBeInTheDocument();
     });
   });
 });
