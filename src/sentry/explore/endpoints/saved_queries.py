@@ -69,7 +69,6 @@ from sentry.explore.endpoints.explore_saved_queries import (
 )
 from sentry.explore.models import (
     ExploreSavedQuery,
-    ExploreSavedQueryDataset,
     ExploreSavedQueryLastVisited,
     ExploreSavedQueryStarred,
 )
@@ -125,11 +124,6 @@ def get_explore_queryset(
     queryset: QuerySet[ExploreSavedQuery] = ExploreSavedQuery.objects.filter(
         organization=organization
     )
-
-    if not features.has(
-        "organizations:expose-migrated-discover-queries", organization, actor=request.user
-    ):
-        queryset = queryset.exclude(dataset=ExploreSavedQueryDataset.SEGMENT_SPANS)
 
     queryset = filter_to_accessible_explore_queries(request, queryset)
 
