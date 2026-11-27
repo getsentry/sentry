@@ -612,6 +612,24 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         assert response.status_code == 400, response.content
         assert response.data["detail"] == 'Invalid field "count() as invalid_alias": invalid alias'
 
+    def test_uptime_results_timeseries_unsupported(self) -> None:
+        response = self.do_request(
+            data={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=2),
+                "interval": "1h",
+                "yAxis": "count()",
+                "project": self.project.id,
+                "dataset": "uptime_results",
+            },
+        )
+        assert response.status_code == 400, response.content
+        assert response.data["detail"] == (
+            "Timeseries queries are not supported for dataset uptime_results. "
+            "Use the events endpoint for table queries on this dataset, "
+            "or choose a dataset that supports timeseries."
+        )
+
     def test_throughput_meta(self) -> None:
         project = self.create_project()
         # Each of these denotes how many events to create in each hour
