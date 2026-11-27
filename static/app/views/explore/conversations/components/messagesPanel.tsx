@@ -1,10 +1,14 @@
-import {memo, useCallback, useMemo} from 'react';
+import {memo, useCallback, useEffect, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconSpan} from '@sentry/icons/span';
+import * as Sentry from '@sentry/react';
 
 import {Button} from '@sentry/scraps/button';
 import {MessageRow} from '@sentry/scraps/chat';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
 
 import {CollapsibleChatRow} from 'sentry/components/ai/chat/collapsibleContent';
@@ -18,10 +22,13 @@ import {
   TurnMetaValue,
 } from 'sentry/components/ai/chat/turnMeta';
 import {Count} from 'sentry/components/count';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t, tn} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
+import {getShortEventId} from 'sentry/utils/events';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useSelectionOpenState} from 'sentry/views/explore/conversations/hooks/useSelectionOpenState';
@@ -35,6 +42,7 @@ import {
   NOT_REPORTED,
   someMessageDeep,
 } from 'sentry/views/explore/conversations/utils/conversationMessages';
+import {getConversationTraceUrl} from 'sentry/views/explore/conversations/utils/conversationTraceUrl';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {ScrubbedText} from 'sentry/views/insights/pages/agents/components/scrubbedText';
 import {EMPTY_TEXT_CONTENT} from 'sentry/views/insights/pages/agents/utils/aiMessageNormalizer';
@@ -70,6 +78,11 @@ interface MessagesPanelProps {
    */
   messages?: ConversationMessage[];
   /**
+   * The trace of each node, by node id. When the conversation spans several
+   * traces, the transcript marks where each one starts and links to it.
+   */
+  nodeTraceMap?: Map<string, string>;
+  /**
    * Switches the conversation view to the Timeline tab. Surfaced from the
    * empty transcript state when a conversation has no inference spans.
    */
@@ -86,6 +99,7 @@ export function MessagesPanel({
   onViewTimeline,
   isLoading,
   messages: messagesProp,
+  nodeTraceMap,
 }: MessagesPanelProps) {
   const messages = useMemo(
     () => messagesProp ?? extractMessagesFromNodes(nodes),
@@ -131,6 +145,7 @@ export function MessagesPanel({
       <TranscriptMessages
         messages={messages}
         nodeMap={nodeMap}
+        nodeTraceMap={nodeTraceMap}
         selectedNodeId={selectedNodeId}
         onSelectNode={onSelectNode}
       />
@@ -145,6 +160,8 @@ interface TranscriptMessagesProps {
   selectedNodeId: string | null;
   /** Rendered inside a sub-agent row, which already provides the row gutter. */
   nested?: boolean;
+  /** See `MessagesPanelProps.nodeTraceMap`. */
+  nodeTraceMap?: Map<string, string>;
 }
 
 /**
@@ -157,6 +174,7 @@ function TranscriptMessages({
   selectedNodeId,
   onSelectNode,
   nested = false,
+  nodeTraceMap,
 }: TranscriptMessagesProps) {
   // Detect XML once per list so selection re-renders don't re-parse every message.
   const hasXmlByMessageId = useMemo(() => {
@@ -170,7 +188,20 @@ function TranscriptMessages({
     return map;
   }, [messages]);
 
-  const blocks = useMemo(() => groupEventRuns(messages), [messages]);
+  const {blocks, hasInterleavedTraces} = useMemo(
+    () => groupEventRuns(messages, nodeTraceMap),
+    [messages, nodeTraceMap]
+  );
+
+  // Interleaved traces get a boundary each time the trace changes, so a trace
+  // can start more than once. Report them to learn how common they are.
+  useEffect(() => {
+    if (hasInterleavedTraces) {
+      Sentry.captureMessage('Interleaved traces detected in conversation transcript', {
+        level: 'warning',
+      });
+    }
+  }, [hasInterleavedTraces]);
 
   // Depends only on stable props: callers pass the selection scoped to them, so
   // memoized turns keep bailing out when the selection moves elsewhere.
@@ -192,6 +223,16 @@ function TranscriptMessages({
   return (
     <List gap="0" width="100%">
       {blocks.map(block => {
+        if (block.type === 'trace') {
+          return (
+            <TraceBoundary
+              key={block.key}
+              traceId={block.traceId}
+              spanId={block.nodeId}
+              timestamp={nodeMap.get(block.nodeId)?.startTimestamp}
+            />
+          );
+        }
         const rows = block.items.map(({message, part}) => {
           const key = part ? `${message.id}-${part}` : message.id;
           const hasXmlTags = hasXmlByMessageId.get(message.id) ?? false;
@@ -321,12 +362,21 @@ interface TranscriptItem {
   part?: TurnPart;
 }
 
-interface TranscriptBlock {
-  /** Set for an event run long enough to collapse. */
-  collapse: boolean;
-  items: TranscriptItem[];
-  key: string;
-}
+type TranscriptBlock =
+  | {
+      /** Set for an event run long enough to collapse. */
+      collapse: boolean;
+      items: TranscriptItem[];
+      key: string;
+      type: 'items';
+    }
+  | {
+      key: string;
+      /** The first node of the trace in the transcript, for the trace link. */
+      nodeId: string;
+      traceId: string;
+      type: 'trace';
+    };
 
 /**
  * Runs with fewer events than this read fine as a plain list; longer runs
@@ -344,14 +394,25 @@ function countEvents({message}: TranscriptItem): number {
  * Groups everything between bubbles (tool calls, sub-agents, thinking and
  * standalone spans) into runs. A turn with text is split: its tool calls and
  * thinking end the run, and its bubble follows it.
+ *
+ * When the messages span several traces, a trace boundary precedes the first
+ * message of each trace and ends the run, so a run never crosses traces.
  */
-function groupEventRuns(messages: ConversationMessage[]): TranscriptBlock[] {
+function groupEventRuns(
+  messages: ConversationMessage[],
+  nodeTraceMap: Map<string, string> | undefined
+): {blocks: TranscriptBlock[]; hasInterleavedTraces: boolean} {
   const blocks: TranscriptBlock[] = [];
   let run: TranscriptItem[] = [];
   const pushBlock = (items: TranscriptItem[], collapse: boolean) => {
     const [first] = items;
     if (first) {
-      blocks.push({key: `${first.message.id}-${first.part}`, items, collapse});
+      blocks.push({
+        type: 'items',
+        key: `${first.message.id}-${first.part}`,
+        items,
+        collapse,
+      });
     }
   };
   const endRun = () => {
@@ -360,7 +421,30 @@ function groupEventRuns(messages: ConversationMessage[]): TranscriptBlock[] {
     run = [];
   };
 
+  const traceIds = new Set(
+    messages.map(message => nodeTraceMap?.get(message.nodeId)).filter(Boolean)
+  );
+  const showTraces = traceIds.size > 1;
+  const startedTraces = new Set<string>();
+  let currentTrace: string | undefined;
+  let hasInterleavedTraces = false;
+
   for (const message of messages) {
+    // A message without a known trace stays with the one before it.
+    const traceId = showTraces ? nodeTraceMap?.get(message.nodeId) : undefined;
+    if (traceId && traceId !== currentTrace) {
+      endRun();
+      hasInterleavedTraces ||= startedTraces.has(traceId);
+      startedTraces.add(traceId);
+      currentTrace = traceId;
+      blocks.push({
+        type: 'trace',
+        key: `trace-${message.id}`,
+        nodeId: message.nodeId,
+        traceId,
+      });
+    }
+
     if (message.role === 'user') {
       endRun();
       pushBlock([{message}], false);
@@ -375,7 +459,62 @@ function groupEventRuns(messages: ConversationMessage[]): TranscriptBlock[] {
     }
   }
   endRun();
-  return blocks;
+  return {blocks, hasInterleavedTraces};
+}
+
+/**
+ * Marks where the transcript moves into another trace, with a link to the
+ * trace view focused on the trace's first span in the transcript.
+ */
+function TraceBoundary({
+  traceId,
+  spanId,
+  timestamp,
+}: {
+  spanId: string;
+  traceId: string;
+  timestamp?: number;
+}) {
+  const organization = useOrganization();
+  const {selection} = usePageFilters();
+  const traceUrl = getConversationTraceUrl(
+    organization.slug,
+    {traceId, spanId, timestamp},
+    normalizeDateTimeParams(selection.datetime)
+  );
+
+  return (
+    <MessageRow from="assistant" density="compact">
+      <Flex align="center" gap="md" width="100%">
+        <Container flex="1">
+          <Separator orientation="horizontal" />
+        </Container>
+        <Flex align="center" gap="xs">
+          {props => (
+            <Link
+              {...props}
+              to={traceUrl}
+              aria-label={t('Trace %s', traceId)}
+              onClick={() =>
+                trackAnalytics('conversations.detail.click-trace-link', {
+                  organization,
+                  source: 'transcript',
+                })
+              }
+            >
+              <IconSpan size="xs" />
+              <Text size="sm" variant="accent" bold monospace>
+                {getShortEventId(traceId)}
+              </Text>
+            </Link>
+          )}
+        </Flex>
+        <Container flex="1">
+          <Separator orientation="horizontal" />
+        </Container>
+      </Flex>
+    </MessageRow>
+  );
 }
 
 function itemContainsNode({message, part}: TranscriptItem, nodeId: string): boolean {

@@ -1,4 +1,6 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import * as Sentry from '@sentry/react';
+
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {annotate, hasAnnotations} from '@sentry/scraps/markdown/annotation';
 
@@ -640,6 +642,156 @@ describe('MessagesPanel', () => {
       .closest('details');
     expect(details).not.toHaveAttribute('open');
     expect(details).not.toContainElement(screen.getByText('Here is the answer'));
+  });
+
+  describe('across traces', () => {
+    const traceA = 'aaaaaaaa11111111aaaaaaaa11111111';
+    const traceB = 'bbbbbbbb22222222bbbbbbbb22222222';
+
+    // A turn whose request carries history, so its question isn't repeated.
+    const turn = (
+      id: string,
+      startTimestamp: number,
+      {reasoning, text}: {reasoning?: string; text?: string}
+    ) =>
+      createMockNode({
+        id,
+        startTimestamp,
+        attributes: {
+          [SpanFields.GEN_AI_REQUEST_MESSAGES]: JSON.stringify([
+            {role: 'user', content: 'Question?'},
+            {role: 'assistant', content: 'Working on it'},
+          ]),
+          [SpanFields.GEN_AI_OUTPUT_MESSAGES]: JSON.stringify([
+            {
+              role: 'assistant',
+              parts: [
+                ...(reasoning ? [{type: 'reasoning', content: reasoning}] : []),
+                ...(text ? [{type: 'text', text}] : []),
+              ],
+            },
+          ]),
+        },
+      });
+
+    const tools = (prefix: string, count: number, startTimestamp: number) =>
+      Array.from({length: count}, (_, index) =>
+        createMockToolNode({
+          id: `${prefix}-${index}`,
+          toolName: `${prefix}${index}`,
+          startTimestamp: startTimestamp + index * 10,
+        })
+      );
+
+    const traceMap = (entries: Array<[string, Array<{id: string}>]>) =>
+      new Map(
+        entries.flatMap(([traceId, nodes]) =>
+          nodes.map(node => [node.id, traceId] as [string, string])
+        )
+      );
+
+    it('marks where each trace starts, with a link to it', () => {
+      const first = createNodesWithToolCalls(['search']);
+      const second = turn('span-3', 5000, {text: 'Follow-up answer'});
+
+      render(
+        <MessagesPanel
+          nodes={[...first, second] as any}
+          nodeTraceMap={traceMap([
+            [traceA, first],
+            [traceB, [second]],
+          ])}
+          selectedNodeId={null}
+          onSelectNode={mockOnSelectNode}
+        />
+      );
+
+      expect(screen.getByText('aaaaaaaa')).toBeInTheDocument();
+      expect(screen.getByText('bbbbbbbb')).toBeInTheDocument();
+      const links = screen.getAllByRole('link', {name: /^Trace /});
+      expect(links).toHaveLength(2);
+      expect(links[0]).toHaveAttribute(
+        'href',
+        expect.stringContaining(`/trace/${traceA}/?node=span-span-1&timestamp=1000`)
+      );
+      expect(links[1]).toHaveAttribute(
+        'href',
+        expect.stringContaining(`/trace/${traceB}/?node=span-span-3&timestamp=5000`)
+      );
+    });
+
+    it('does not mark a conversation within a single trace', () => {
+      const nodes = createNodesWithToolCalls(['search']);
+
+      render(
+        <MessagesPanel
+          nodes={nodes as any}
+          nodeTraceMap={traceMap([[traceA, nodes]])}
+          selectedNodeId={null}
+          onSelectNode={mockOnSelectNode}
+        />
+      );
+
+      expect(screen.queryByRole('link', {name: /^Trace /})).not.toBeInTheDocument();
+    });
+
+    it('splits an event run at a trace boundary', () => {
+      const firstTraceNodes = [
+        turn('span-1', 1000, {text: 'Let me check'}),
+        ...tools('a', 5, 1100),
+        turn('span-2', 2000, {reasoning: 'thinking'}),
+      ];
+      const secondTraceNodes = [
+        ...tools('b', 3, 3000),
+        turn('span-3', 4000, {text: 'Here is the answer'}),
+      ];
+
+      render(
+        <MessagesPanel
+          nodes={[...firstTraceNodes, ...secondTraceNodes] as any}
+          nodeTraceMap={traceMap([
+            [traceA, firstTraceNodes],
+            [traceB, secondTraceNodes],
+          ])}
+          selectedNodeId={null}
+          onSelectNode={mockOnSelectNode}
+        />
+      );
+
+      // The first trace's run collapses; the second's is too short to.
+      const details = screen
+        .getByText('5 tool calls, 1 thinking step')
+        .closest('details')!;
+      expect(details).not.toHaveAttribute('open');
+      expect(within(details).queryByText('b0')).not.toBeInTheDocument();
+      expect(screen.getByText('b0')).toBeInTheDocument();
+      expect(screen.queryByText(/8 tool calls/)).not.toBeInTheDocument();
+    });
+
+    it('reports interleaved traces', () => {
+      const captureMessage = jest.spyOn(Sentry, 'captureMessage');
+      const first = turn('span-1', 1000, {text: 'First'});
+      const second = turn('span-2', 2000, {text: 'Second'});
+      const third = turn('span-3', 3000, {text: 'Third'});
+
+      render(
+        <MessagesPanel
+          nodes={[first, second, third] as any}
+          nodeTraceMap={traceMap([
+            [traceA, [first, third]],
+            [traceB, [second]],
+          ])}
+          selectedNodeId={null}
+          onSelectNode={mockOnSelectNode}
+        />
+      );
+
+      expect(screen.getAllByRole('link', {name: /^Trace /})).toHaveLength(3);
+      expect(captureMessage).toHaveBeenCalledWith(
+        'Interleaved traces detected in conversation transcript',
+        {level: 'warning'}
+      );
+    });
   });
 
   it('selects assistant messages on click but not user messages', async () => {
