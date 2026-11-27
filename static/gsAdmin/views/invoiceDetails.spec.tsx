@@ -64,7 +64,7 @@ describe('InvoiceDetails', () => {
       await userEvent.click(screen.getByText('Close Invoice'));
       renderGlobalModal();
 
-      await userEvent.click(screen.getByTestId('confirm-button'));
+      await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
 
       expect(updateMock).toHaveBeenCalled();
     });
@@ -156,7 +156,7 @@ describe('InvoiceDetails', () => {
       await userEvent.click(screen.getByText('Retry Payment'));
       renderGlobalModal();
 
-      await userEvent.click(screen.getByTestId('confirm-button'));
+      await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
 
       expect(updateMock).toHaveBeenCalled();
     });

@@ -39,7 +39,9 @@ describe('CustomerIntegrationDebugDetails', () => {
       )
     ).toBeInTheDocument();
 
-    await userEvent.click(screen.getByTestId('confirm-button'));
+    await userEvent.click(
+      within(screen.getByRole('dialog')).getByRole('button', {name: 'Reset Integrations'})
+    );
 
     await waitFor(() => expect(resetMock).toHaveBeenCalledTimes(1));
   });
