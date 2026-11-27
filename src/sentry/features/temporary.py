@@ -470,12 +470,12 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:theme-variants", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the timeseries annotations framework
     manager.add("organizations:timeseries-annotations", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable the inbound-filter-change producer for timeseries annotations
-    manager.add("organizations:timeseries-annotations-usecase-filter-change", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Enable the inbound-filter-change producer for timeseries annotations, and show them on charts
+    manager.add("organizations:timeseries-annotations-usecase-filter-change", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the experimental SDK-config-change producer for timeseries annotations
     manager.add("organizations:timeseries-annotations-usecase-sdk-config-experimental", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Enable the feature-flag-change producer for timeseries annotations
-    manager.add("organizations:timeseries-annotations-usecase-feature-flag-change", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Enable the feature-flag-change producer for timeseries annotations, and show them on charts
+    manager.add("organizations:timeseries-annotations-usecase-feature-flag-change", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable dynamic grouping UI (top issues)
     manager.add("organizations:top-issues-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Extraction metrics for transactions during ingestion.
