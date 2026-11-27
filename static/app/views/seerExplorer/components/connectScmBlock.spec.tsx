@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import {focusManager} from '@tanstack/react-query';
 import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegrationProvider';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -10,6 +10,7 @@ import {
   renderGlobalModal,
   screen,
   userEvent,
+  waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
 import {Button} from '@sentry/scraps/button';
@@ -326,7 +327,8 @@ describe('ConnectScmBlock', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('retries on Continue once Seer can access the repo', async () => {
+  it('resumes the run when Seer can access the repo from the start', async () => {
+    // The fix landed before the popup checked.
     mockRepoAccess('found');
     const respondToUserInput = renderBlock();
 
@@ -336,9 +338,55 @@ describe('ConnectScmBlock', () => {
     expect(
       screen.queryByRole('button', {name: 'Connect source control'})
     ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Continue'})).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(respondToUserInput).toHaveBeenCalledWith('input-id', {decision: 'retry'})
+    );
+    expect(respondToUserInput).toHaveBeenCalledTimes(1);
+  });
+
+  it('resumes the run by itself once, then offers Continue if that fails', async () => {
+    const respondToUserInput = jest.fn();
+    function FailingChat() {
+      const [isAnswering, setIsAnswering] = useState(false);
+      useEffect(() => {
+        if (isAnswering) {
+          setTimeout(() => setIsAnswering(false));
+        }
+      }, [isAnswering]);
+      if (isAnswering) {
+        return null;
+      }
+      return (
+        <ConnectScmBlock
+          pendingInput={{
+            id: 'input-id',
+            input_type: 'connect_scm',
+            data: {repo_name: 'acme/app', failure_reason: 'no_scm_integration'},
+          }}
+          respondToUserInput={(...args) => {
+            respondToUserInput(...args);
+            setIsAnswering(true);
+          }}
+        />
+      );
+    }
+    mockRepoAccess('found');
+    render(<FailingChat />, {organization, additionalWrapper: PictureInPictureProvider});
+
+    expect(
+      await screen.findByText('Continue and Seer will try again.')
+    ).toBeInTheDocument();
+    expect(screen.getByText('Perfect, Seer can access acme/app')).toBeInTheDocument();
+    expect(respondToUserInput).toHaveBeenCalledTimes(1);
+
     await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
 
-    expect(respondToUserInput).toHaveBeenCalledWith('input-id', {decision: 'retry'});
+    expect(await screen.findByRole('button', {name: 'Continue'})).toBeInTheDocument();
+    expect(respondToUserInput).toHaveBeenCalledTimes(2);
+    expect(respondToUserInput).toHaveBeenNthCalledWith(2, 'input-id', {
+      decision: 'retry',
+    });
   });
 
   it('counts a name that matches more than one repo as found', async () => {
@@ -348,9 +396,9 @@ describe('ConnectScmBlock', () => {
     expect(
       await screen.findByText('Perfect, Seer can access acme/app')
     ).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
-
-    expect(respondToUserInput).toHaveBeenCalledWith('input-id', {decision: 'retry'});
+    await waitFor(() =>
+      expect(respondToUserInput).toHaveBeenCalledWith('input-id', {decision: 'retry'})
+    );
   });
 
   it('offers Continue when Sentry can not tell what is wrong', async () => {
@@ -397,10 +445,11 @@ describe('ConnectScmBlock', () => {
       ).toBeInTheDocument();
     });
 
-    it('checks again until Seer can access the repo', async () => {
+    it('checks again until Seer can access the repo, then resumes the run', async () => {
       mockRepoAccess('repo_not_in_sentry');
-      renderBlock({failureReason: 'repo_not_in_sentry'});
+      const respondToUserInput = renderBlock({failureReason: 'repo_not_in_sentry'});
       expect(await screen.findByText("Seer can't access acme/app")).toBeInTheDocument();
+      expect(respondToUserInput).not.toHaveBeenCalled();
 
       // The repo reaches Sentry.
       MockApiClient.clearMockResponses();
@@ -410,8 +459,12 @@ describe('ConnectScmBlock', () => {
       expect(
         await screen.findByText('Perfect, Seer can access acme/app')
       ).toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Continue'})).not.toBeInTheDocument();
+      expect(respondToUserInput).toHaveBeenCalledTimes(1);
+      expect(respondToUserInput).toHaveBeenCalledWith('input-id', {decision: 'retry'});
       await act(() => jest.advanceTimersByTimeAsync(30_000));
       expect(check).toHaveBeenCalledTimes(1);
+      expect(respondToUserInput).toHaveBeenCalledTimes(1);
     });
 
     it('keeps checking while checks fail before the first answer', async () => {
@@ -473,7 +526,7 @@ describe('ConnectScmBlock', () => {
     it('checks again on Check again after it stopped', async () => {
       const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
       mockRepoAccess('repo_not_in_sentry');
-      renderBlock({failureReason: 'repo_not_in_sentry'});
+      const respondToUserInput = renderBlock({failureReason: 'repo_not_in_sentry'});
       expect(await screen.findByText("Seer can't access acme/app")).toBeInTheDocument();
       await act(() => jest.advanceTimersByTimeAsync(10 * 60_000 + 5_000));
 
@@ -486,6 +539,7 @@ describe('ConnectScmBlock', () => {
         await screen.findByText('Perfect, Seer can access acme/app')
       ).toBeInTheDocument();
       expect(check).toHaveBeenCalledTimes(1);
+      expect(respondToUserInput).toHaveBeenCalledWith('input-id', {decision: 'retry'});
       expect(
         screen.queryByText('Stopped checking every few seconds.')
       ).not.toBeInTheDocument();
@@ -701,7 +755,7 @@ describe('ConnectScmBlock', () => {
         await screen.findByText('Perfect, Seer can access acme/app')
       ).toBeInTheDocument();
 
-      // Continue retried the call, it failed again, and the run paused on the same repo.
+      // The run tried the call again, it failed again, and the run paused on the same repo.
       await act(() => jest.advanceTimersByTimeAsync(60_000));
       MockApiClient.clearMockResponses();
       let answer = () => {};

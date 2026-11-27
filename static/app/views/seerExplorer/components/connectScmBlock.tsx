@@ -1,5 +1,10 @@
 import {useEffect, useState} from 'react';
-import {useMutation, useMutationState, useQuery} from '@tanstack/react-query';
+import {
+  useMutation,
+  useMutationState,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import {motion} from 'framer-motion';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -47,6 +52,10 @@ function getRequestInstallKey(pauseId: string) {
   return ['seer-explorer-request-scm-install', {pauseId}] as const;
 }
 
+function getAutoResumeKey(pauseId: string) {
+  return ['seer-explorer-scm-auto-resume', {pauseId}] as const;
+}
+
 interface RepoAccess {
   connectedAccounts: string[];
   /**
@@ -58,7 +67,7 @@ interface RepoAccess {
 
 /**
  * Whether Seer can open the repo now. Seer never pauses for a name that matches more than one
- * repo (it tells the agent instead), so the popup counts that as found and offers Continue.
+ * repo (it tells the agent instead), so the popup counts that as found.
  */
 // TODO(joey): Handle `repo_ambiguous` properly, e.g. by saying the name matches more than one
 // repo and asking the user which one, instead of counting it as found.
@@ -233,7 +242,8 @@ interface Prompt {
   /**
    * The buttons before Correct repo name and Continue without code. The first is the way
    * forward: Check again when it couldn't check, where to fix the problem (or, for a member,
-   * asking the owners to), or Continue once there's nothing to fix.
+   * asking the owners to), or Continue when Sentry can't say what's wrong. None once Seer can open
+   * the repo, since the run then resumes by itself, unless that already failed.
    */
   actions: PromptAction[];
   /** Null while it's checking, when placeholders stand in for the text and the buttons. */
@@ -253,6 +263,7 @@ interface Prompt {
 /** What to say, given this pause's latest answer (if any) and whether it's still checking. */
 function getPrompt({
   access,
+  autoResumeFailed,
   isWatching,
   repoName,
   orgSlug,
@@ -263,6 +274,7 @@ function getPrompt({
   onContinue,
 }: {
   access: RepoAccess | undefined;
+  autoResumeFailed: boolean;
   /** Whether the user can install integrations, which members can't. */
   canInstall: boolean;
   isWatching: boolean;
@@ -297,11 +309,19 @@ function getPrompt({
   }
 
   if (isFound(access.status)) {
+    if (autoResumeFailed) {
+      return {
+        title: t('Perfect, Seer can access %s', repoName),
+        variant: 'success',
+        body: t('Continue and Seer will try again.'),
+        actions: [continueRun],
+      };
+    }
     return {
       title: t('Perfect, Seer can access %s', repoName),
       variant: 'success',
-      body: t('Continue and Seer will try again.'),
-      actions: [continueRun],
+      body: null,
+      actions: [],
     };
   }
 
@@ -370,8 +390,8 @@ interface ConnectScmBlockProps {
  * comes from Sentry's answer to "can Seer open this repo now?", which it checks until the answer
  * is yes. Until this pause's first answer it shows that it's checking, and a failed check keeps
  * whatever it showed last, since it can't say anything new. If it stops checking without an
- * answer, it says it couldn't check. The run resumes on one of its actions or on the user's next
- * message.
+ * answer, it says it couldn't check. The run resumes on one of its actions, on the user's next
+ * message, or by itself once Seer can open the repo. It resumes by itself once per pause.
  */
 export function ConnectScmBlock({
   pendingInput,
@@ -429,6 +449,21 @@ export function ConnectScmBlock({
     startWatching();
   }, [startWatching]);
 
+  const canAccess = !!access && isFound(access.status);
+  const queryClient = useQueryClient();
+  const [autoResumeFailed] = useState(
+    () => queryClient.getQueryData(getAutoResumeKey(pendingInput.id)) === true
+  );
+  useEffect(() => {
+    const autoResumeKey = getAutoResumeKey(pendingInput.id);
+    if (!canAccess || queryClient.getQueryData(autoResumeKey) === true) {
+      return;
+    }
+    queryClient.setQueryDefaults(autoResumeKey, {gcTime: Infinity});
+    queryClient.setQueryData(autoResumeKey, true);
+    respondToUserInput(pendingInput.id, {decision: 'retry'});
+  }, [canAccess, pendingInput.id, queryClient, respondToUserInput]);
+
   function checkAgain() {
     setIsWatching(true);
     startWatching();
@@ -459,6 +494,7 @@ export function ConnectScmBlock({
       }
     : getPrompt({
         access,
+        autoResumeFailed,
         isWatching,
         repoName: data.repo_name,
         orgSlug: organization.slug,
