@@ -1,6 +1,16 @@
-import {useEffect, useRef, useState} from 'react';
+import {z} from 'zod';
 
-import type {AdminConfirmRenderProps} from 'admin/components/adminConfirmationModal';
+import {Button} from '@sentry/scraps/button';
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {Flex, Stack} from '@sentry/scraps/layout';
+
+import type {AdminActionModalProps} from 'admin/components/adminConfirmationModal';
+import {
+  AdminAuditFields,
+  adminAuditDefaults,
+  adminAuditParams,
+  adminAuditSchema,
+} from 'admin/components/adminConfirmationModal';
 
 // Make sure these match the values in the backend
 // See https://github.com/getsentry/getsentry/blob/cf837619ae7c76e852666afc5578abc0f3f0a97b/getsentry/models/subscription.py#L147
@@ -16,56 +26,69 @@ const suspendReasons = [
   ],
 ] as const;
 
-type SuspensionReason = (typeof suspendReasons)[number][0] | null;
+const schema = z.object({
+  suspensionReason: z.string().min(1, 'Select a suspension reason'),
+  audit: adminAuditSchema,
+});
+
+const defaultValues: z.input<typeof schema> = {
+  suspensionReason: '',
+  audit: adminAuditDefaults,
+};
 
 /**
- * Rendered as part of a openAdminConfirmModal call
+ * Modal for suspending an account
  */
 export function SuspendAccountAction({
+  Header,
+  Body,
+  Footer,
+  closeModal,
+  header,
   onConfirm,
-  setConfirmCallback,
-  disableConfirmButton,
-}: AdminConfirmRenderProps) {
-  const [suspensionReason, setSuspensionReason] = useState<SuspensionReason>(null);
+}: AdminActionModalProps) {
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues,
+    validators: {onDynamic: schema},
+    onSubmit: ({value}) => {
+      onConfirm({
+        suspensionReason: value.suspensionReason,
+        ...adminAuditParams(value.audit),
+      });
+      closeModal();
+    },
+  });
 
-  // Holds the latest selection so the confirm callback (registered once on
-  // mount) always reads the current value.
-  const suspensionReasonRef = useRef<SuspensionReason>(null);
-
-  useEffect(() => {
-    // XXX(epurkhiser): In the original implementation none of the audit params
-    // were passed, is that an oversight?
-    setConfirmCallback(() => {
-      onConfirm?.({suspensionReason: suspensionReasonRef.current});
-    });
-    // Only register the callback once on mount. setConfirmCallback is recreated
-    // on every parent render and updates parent state, so depending on it would
-    // cause an infinite render loop.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  return suspendReasons.map(([key, label, help]) => (
-    <label style={{marginBottom: 10, position: 'relative'}} key={key}>
-      <div style={{position: 'absolute', left: 0, width: 20}}>
-        <input
-          data-test-id={`suspend-radio-btn-${key}`}
-          aria-label={label}
-          type="radio"
-          name="suspensionReason"
-          value={key}
-          checked={suspensionReason === key}
-          onChange={() => {
-            suspensionReasonRef.current = key;
-            setSuspensionReason(key);
-            disableConfirmButton(false);
-          }}
-        />
-      </div>
-      <div style={{marginLeft: 25}}>
-        <strong>{label}</strong>
-        <br />
-        <small style={{fontWeight: 'normal'}}>{help}</small>
-      </div>
-    </label>
-  ));
+  return (
+    <form.AppForm form={form}>
+      {header && <Header>{header}</Header>}
+      <Body>
+        <Stack gap="xl">
+          <form.AppField name="suspensionReason">
+            {field => (
+              <field.RadioGroup value={field.state.value} onChange={field.handleChange}>
+                {({Item}) => (
+                  <field.Layout.Stack label="Suspension Reason">
+                    {suspendReasons.map(([key, label, help]) => (
+                      <Item key={key} value={key} description={help}>
+                        {label}
+                      </Item>
+                    ))}
+                  </field.Layout.Stack>
+                )}
+              </field.RadioGroup>
+            )}
+          </form.AppField>
+          <AdminAuditFields form={form} fields="audit" />
+        </Stack>
+      </Body>
+      <Footer>
+        <Flex align="center" gap="xl">
+          <Button onClick={closeModal}>Cancel</Button>
+          <form.SubmitButton variant="danger">Suspend Account</form.SubmitButton>
+        </Flex>
+      </Footer>
+    </form.AppForm>
+  );
 }

@@ -1,8 +1,11 @@
 import {Fragment, isValidElement, useCallback, useEffect, useRef, useState} from 'react';
+import {z} from 'zod';
 
 import type {ConfirmMessageRenderProps, OpenConfirmOptions} from '@sentry/scraps/confirm';
 import {Confirm, openConfirmModal} from '@sentry/scraps/confirm';
-import {Container} from '@sentry/scraps/layout';
+import {withFieldGroup} from '@sentry/scraps/form';
+import {Container, Stack} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 
 import {InputField} from 'sentry/components/forms/fields/inputField';
 import {TextareaField} from 'sentry/components/forms/fields/textareaField';
@@ -16,6 +19,79 @@ export type AdminConfirmParams = {
   [key: string]: any;
   notes?: string;
   ticketURL?: string;
+};
+
+export const adminAuditSchema = z.object({
+  ticketURL: z
+    .string()
+    .refine(value => value === '' || z.url().safeParse(value).success, {
+      message: 'Invalid ticket URL',
+    }),
+  notes: z.string(),
+});
+
+export const adminAuditDefaults: z.input<typeof adminAuditSchema> = {
+  ticketURL: '',
+  notes: '',
+};
+
+/**
+ * Drops empty audit fields so they are not sent with the action.
+ */
+export function adminAuditParams({
+  ticketURL,
+  notes,
+}: z.output<typeof adminAuditSchema>): AdminConfirmParams {
+  return {...(notes && {notes}), ...(ticketURL && {ticketURL})};
+}
+
+/**
+ * The ticket URL and notes fields. Add an `audit` field to the form values
+ * with `adminAuditDefaults` and `adminAuditSchema`, then render
+ * `<AdminAuditFields form={form} fields="audit" />`.
+ */
+export const AdminAuditFields = withFieldGroup({
+  defaultValues: adminAuditDefaults,
+  props: {} as {showTicketURL?: boolean},
+  render: function AdminAuditFieldsRender({group, showTicketURL = true}) {
+    return (
+      <Stack gap="lg">
+        {showTicketURL && (
+          <group.AppField name="ticketURL">
+            {field => (
+              <field.Layout.Stack label="TicketURL">
+                <field.Input
+                  type="url"
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                />
+              </field.Layout.Stack>
+            )}
+          </group.AppField>
+        )}
+        <group.AppField name="notes">
+          {field => (
+            <field.Layout.Stack label="Notes">
+              <field.TextArea
+                autosize
+                value={field.state.value}
+                onChange={field.handleChange}
+              />
+            </field.Layout.Stack>
+          )}
+        </group.AppField>
+      </Stack>
+    );
+  },
+});
+
+/**
+ * Props for an admin action modal that owns its form. The modal calls
+ * `onConfirm` with its params and the audit params, then closes.
+ */
+export type AdminActionModalProps = ModalRenderProps & {
+  onConfirm: (params: AdminConfirmParams) => void;
+  header?: React.ReactNode;
 };
 
 export type AdminConfirmRenderProps = Omit<

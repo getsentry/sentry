@@ -3,6 +3,8 @@ import {useMutation, useQueryClient, useQuery} from '@tanstack/react-query';
 import cloneDeep from 'lodash/cloneDeep';
 import some from 'lodash/some';
 
+import {openModal} from '@sentry/scraps/modal';
+import {Heading} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
@@ -665,14 +667,17 @@ export function CustomerDetails() {
             name: 'Suspend Account',
             help: 'Suspend this account for abuse.',
             visible: !subscription.isSuspended,
-            confirmModalOpts: {
-              disableConfirmButton: true,
-              priority: 'danger',
-              confirmText: 'Suspend Account',
-              renderModalSpecificContent: deps => <SuspendAccountAction {...deps} />,
-            },
-            onAction: ({suspensionReason}) =>
-              onUpdateMutation.mutate({suspended: true, suspensionReason}),
+            skipConfirmModal: true,
+            onAction: () =>
+              openModal(deps => (
+                <SuspendAccountAction
+                  {...deps}
+                  header={<Heading as="h4">Suspend Account</Heading>}
+                  onConfirm={params =>
+                    onUpdateMutation.mutate({...params, suspended: true})
+                  }
+                />
+              )),
           },
           {
             key: 'unsuspendAccount',
