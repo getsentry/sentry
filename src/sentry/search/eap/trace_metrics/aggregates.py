@@ -65,6 +65,7 @@ TRACE_METRICS_AGGREGATE_DEFINITIONS: dict[str, AggregateDefinition] = {
                     "string",
                     "number",
                     "integer",
+                    "percentage",
                 },
             ),
             *TRACE_METRIC_DEFAULT_ARGUMENTS,
