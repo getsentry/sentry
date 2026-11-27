@@ -533,6 +533,7 @@ const transferProjectSchema = z.object({
 function TransferProjectModal({
   Body,
   Footer,
+  Header,
   closeModal,
   organization,
   project,
@@ -584,6 +585,7 @@ function TransferProjectModal({
 
   return (
     <form.AppForm form={form}>
+      <Header closeButton>{t('Transfer Project')}</Header>
       <Body>
         <Stack gap="2xl" paddingBottom="2xl">
           <Text as="p" bold>
@@ -591,9 +593,14 @@ function TransferProjectModal({
           </Text>
           <Text as="p">
             {t(
-              'Please enter the email of an organization owner to whom you would like to transfer this project. Note: It is not possible to transfer projects between organizations in different regions.'
+              'Please enter the email of an organization owner to whom you would like to transfer this project.'
             )}
           </Text>
+          <Alert variant="info">
+            {t(
+              'Projects cannot be transferred between organizations in different regions.'
+            )}
+          </Alert>
         </Stack>
         <form.AppField name="email">
           {field => (
