@@ -44,6 +44,7 @@ class OrganizationWorkflowDetailsEndpoint(OrganizationWorkflowEndpoint):
         "PUT": ApiPublishStatus.PUBLIC,
         "DELETE": ApiPublishStatus.PUBLIC,
     }
+    project_scope = {"GET": "org-metadata"}
     idempotent_methods = frozenset()
     owner = ApiOwner.ALERTS_MONITORS
 

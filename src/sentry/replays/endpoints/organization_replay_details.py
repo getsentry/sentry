@@ -236,6 +236,7 @@ class OrganizationReplayDetailsEndpoint(OrganizationReplayEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }
+    project_scope = {"GET": "response:/data/project_id"}
 
     @extend_schema(
         operation_id="getOrganizationReplay",

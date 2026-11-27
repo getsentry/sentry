@@ -71,6 +71,55 @@ qualify yet.
 Like routing, declarations are collected for every endpoint and reset on every
 build. The marker appears only on operations that are in the generated schema.
 
+# Project scope
+
+`x-sentry-project-scope` says how an operation's request names the projects
+whose data it returns or changes. Clients that limit a caller to some projects,
+such as the Sentry CLI and MCP server, read it instead of keeping their own list
+of endpoints. It is a string:
+
+| Value                | Meaning                                                                                                                                                                    |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `path`               | The path names the project.                                                                                                                                                |
+| `filter`             | An organization endpoint that takes the `project` query parameter (numeric project IDs) and returns or changes only those projects' data.                                  |
+| `org-metadata`       | A read-only organization endpoint whose response holds no project's issues, events, replays, or other telemetry, such as settings, members, integrations, and saved views. |
+| `response:<pointer>` | A `GET` that looks something up by ID alone. The numeric ID of the project it belongs to is at `<pointer>` in the response body, such as `response:/project/id`.           |
+
+`<pointer>` is an RFC 6901 JSON pointer, plus a `*` segment that matches every
+element of an array: `response:/projects/*/id`. The value at the pointer can be
+a numeric string and, for objects that belong to no project, `null`.
+
+Most operations get their value from the schema, so endpoints don't declare it:
+
+- `path` on every operation whose path contains `{project_id_or_slug}`.
+- `filter` on every other operation that documents the `project` query
+  parameter, such as with `OrganizationParams.PROJECT` in `@extend_schema`.
+  Document it only when the handler limits its results to those projects, which
+  `get_projects`, `get_filter_params`, and `get_snuba_params` do.
+
+An organization-level endpoint declares the rest per method, and a declaration
+wins over a derived `filter`:
+
+```python
+class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.PUBLIC,
+        "PUT": ApiPublishStatus.PUBLIC,
+    }
+    project_scope = {"GET": "response:/projects/*/id"}
+```
+
+The build fails for any other value, for `org-metadata` or `response:` on a
+method other than `GET`, for a method the endpoint does not declare in
+`publish_status`, for a declaration on a path that contains
+`{project_id_or_slug}`, and for a `response:` pointer that does not reach a
+string or integer field in the operation's 200 response schema. A method
+without a value is not known to respect a project limit. Subclasses inherit the
+declaration, like `idempotent_methods`; set `project_scope = {}` on a subclass
+whose handler it doesn't hold for. Declarations are collected for every
+endpoint and reset on every build.
+
 # Response fields
 
 Every field in a public operation's success (2xx) response needs a description

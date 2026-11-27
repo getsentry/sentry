@@ -35,6 +35,7 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint, MonitorDetailsMixin):
         "GET": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PUBLIC,
     }
+    project_scope = {"GET": "response:/project/id"}
     idempotent_methods = frozenset()
     owner = ApiOwner.CRONS
 

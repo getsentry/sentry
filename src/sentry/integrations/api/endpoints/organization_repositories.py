@@ -35,6 +35,7 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PRIVATE,
     }
+    project_scope = {"GET": "org-metadata"}
     permission_classes = (OrganizationIntegrationsLoosePermission,)
     rate_limits = RateLimitConfig(
         group="CLI", limit_overrides={"POST": SENTRY_RATELIMITER_GROUP_DEFAULTS["default"]}

@@ -99,6 +99,7 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
+    project_scope = {"GET": "org-metadata"}
     idempotent_methods = frozenset()
     owner = ApiOwner.ISSUES
     max_acceptable_duration = DEFAULT_DURATION_BUDGET

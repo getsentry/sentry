@@ -443,6 +443,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
+    project_scope = {"GET": "org-metadata"}
     idempotent_methods = frozenset()
     owner = ApiOwner.DASHBOARDS
     permission_classes = (OrganizationDashboardsPermission,)

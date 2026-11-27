@@ -239,6 +239,7 @@ class OrganizationCodeMappingsEndpoint(OrganizationEndpoint, OrganizationIntegra
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
+    project_scope = {"GET": "org-metadata"}
     idempotent_methods = frozenset()
     permission_classes = (OrganizationIntegrationsLoosePermission,)
 

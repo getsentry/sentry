@@ -139,6 +139,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PUBLIC,
     }
+    project_scope = {"GET": "org-metadata"}
     idempotent_methods = frozenset()
     owner = ApiOwner.FOUNDATIONS
     permission_classes = (RelaxedMemberPermission,)

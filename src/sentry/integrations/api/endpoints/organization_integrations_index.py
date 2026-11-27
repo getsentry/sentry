@@ -64,6 +64,7 @@ class OrganizationIntegrationsEndpoint(OrganizationIntegrationBaseEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }
+    project_scope = {"GET": "org-metadata"}
     permission_classes = (OrganizationIntegrationsPermission,)
 
     @extend_schema(

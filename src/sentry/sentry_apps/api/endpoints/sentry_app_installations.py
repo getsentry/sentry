@@ -42,6 +42,7 @@ class SentryAppInstallationsEndpoint(SentryAppInstallationsBaseEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
         "POST": ApiPublishStatus.PRIVATE,
     }
+    project_scope = {"GET": "org-metadata"}
 
     @extend_schema(
         operation_id="List an Organization's Sentry App Installations",

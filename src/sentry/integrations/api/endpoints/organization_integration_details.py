@@ -60,6 +60,7 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PRIVATE,
     }
+    project_scope = {"GET": "org-metadata"}
     idempotent_methods = frozenset()
 
     @extend_schema(
