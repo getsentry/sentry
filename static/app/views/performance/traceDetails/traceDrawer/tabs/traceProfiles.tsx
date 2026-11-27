@@ -16,6 +16,7 @@ import {ellipsize} from 'sentry/utils/string/ellipsize';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {traceAnalytics} from 'sentry/views/performance/traceDetails/traceAnalytics';
+import {getRecordedSpace} from 'sentry/views/performance/traceDetails/traceModels/clockDriftCorrection';
 import {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/baseNode';
 
@@ -71,13 +72,14 @@ export function TraceProfiles({tree}: {tree: TraceTree}) {
         }
 
         const query = getProfileRouteQueryFromNode(node);
+        const [recordedStart, recordedDuration] = getRecordedSpace(node);
 
         const link = profilerId
           ? generateContinuousProfileFlamechartRouteWithQuery({
               organization,
               profilerId,
-              start: new Date(node.space[0]).toISOString(),
-              end: new Date(node.space[0] + node.space[1]).toISOString(),
+              start: new Date(recordedStart).toISOString(),
+              end: new Date(recordedStart + recordedDuration).toISOString(),
               projectSlug: node.projectSlug ?? '',
               query,
             })

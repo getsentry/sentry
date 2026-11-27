@@ -58,6 +58,7 @@ import {
   makeTransactionProfilingLink,
 } from 'sentry/views/performance/traceDetails/traceDrawer/traceProfilingLink';
 import {isEAPSpanNode} from 'sentry/views/performance/traceDetails/traceGuards';
+import {getRecordedSpace} from 'sentry/views/performance/traceDetails/traceModels/clockDriftCorrection';
 import type {BaseNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/baseNode';
 import type {EapSpanNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/eapSpanNode';
 import {
@@ -407,13 +408,14 @@ export function getTraceIssuesTarget({
   // Adding a buffer of 15mins for errors only traces, where there is no concept of
   // trace duration and start equals end timestamps.
   const buffer = node.space[1] > 0 ? 0 : 15 * 60 * 1000;
+  const [recordedStart, recordedDuration] = getRecordedSpace(node);
 
   return {
     pathname: `/organizations/${organization.slug}/issues/`,
     query: {
       query: `trace:${traceSlug.trim()}`,
-      start: new Date(node.space[0] - buffer).toISOString(),
-      end: new Date(node.space[0] + node.space[1] + buffer).toISOString(),
+      start: new Date(recordedStart - buffer).toISOString(),
+      end: new Date(recordedStart + recordedDuration + buffer).toISOString(),
       // If we don't pass the project param, the issues page will filter by the last selected project.
       // Traces can have multiple projects, so we query issues by all projects and rely on our search query to filter the results.
       project: -1,

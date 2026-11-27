@@ -60,6 +60,21 @@ describe('traceProfilingLink', () => {
     );
   });
 
+  it('uses the recorded time of a span moved to correct for clock drift', () => {
+    const node = makeEapSpanNode({transaction_id: undefined});
+    node.space = [node.space[0] + 60_000, node.space[1]];
+    node.clockDriftOffsetMs = 60_000;
+
+    expect(makeTraceContinuousProfilingLink(node, 'profiler-id', options)).toEqual(
+      expect.objectContaining({
+        query: expect.objectContaining({
+          end: new Date(2100).toISOString(),
+          start: new Date(900).toISOString(),
+        }),
+      })
+    );
+  });
+
   it('uses the transaction span ID without a transaction event', () => {
     const node = makeEapSpanNode({
       transaction_id: 'transaction-event-id',

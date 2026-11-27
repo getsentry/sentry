@@ -8,6 +8,7 @@ import {
   PROFILE_CONTEXT_WINDOW_MS,
 } from 'sentry/utils/profiling/routes';
 import {isEAPSpanNode} from 'sentry/views/performance/traceDetails/traceGuards';
+import {getRecordedSpace} from 'sentry/views/performance/traceDetails/traceModels/clockDriftCorrection';
 import type {BaseNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/baseNode';
 
 export function makeTransactionProfilingLink(
@@ -38,9 +39,10 @@ export function makeTraceContinuousProfilingLink(
     return null;
   }
 
-  const start = getDateFromTimestamp(node.space[0] - PROFILE_CONTEXT_WINDOW_MS);
+  const [recordedStart, recordedDuration] = getRecordedSpace(node);
+  const start = getDateFromTimestamp(recordedStart - PROFILE_CONTEXT_WINDOW_MS);
   const end = getDateFromTimestamp(
-    node.space[0] + node.space[1] + PROFILE_CONTEXT_WINDOW_MS
+    recordedStart + recordedDuration + PROFILE_CONTEXT_WINDOW_MS
   );
 
   if (start === null || end === null) {

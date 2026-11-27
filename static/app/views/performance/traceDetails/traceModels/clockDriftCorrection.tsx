@@ -247,13 +247,21 @@ export function applyClockDriftCorrection(root: BaseNode): number {
 }
 
 /**
+ * The space a node was recorded at, before clock drift correction moved it. Data stored with the
+ * node, like its profiles and issues, has to be queried by this space, not the one shown.
+ */
+export function getRecordedSpace(node: BaseNode): [start: number, duration: number] {
+  return [node.space[0] - node.clockDriftOffsetMs, node.space[1]];
+}
+
+/**
  * Restores the original spaces of all nodes moved by {@link applyClockDriftCorrection}.
  */
 export function removeClockDriftCorrection(root: BaseNode): void {
   const restore = (node: BaseNode) => {
     node.isClockDriftCorrectionRoot = false;
     if (node.clockDriftOffsetMs !== 0) {
-      node.space = [node.space[0] - node.clockDriftOffsetMs, node.space[1]];
+      node.space = getRecordedSpace(node);
       node.clockDriftOffsetMs = 0;
     }
   };
