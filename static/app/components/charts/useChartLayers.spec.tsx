@@ -92,7 +92,11 @@ describe('useChartLayers', () => {
 
   describe('annotations', () => {
     const annotationsOrganization = OrganizationFixture({
-      features: ['explore-data-fidelity-annotations', 'timeseries-annotations'],
+      features: [
+        'explore-data-fidelity-annotations',
+        'timeseries-annotations',
+        'timeseries-annotations-usecase-filter-change',
+      ],
     });
 
     const release = {date: '2026-11-03T12:00:00Z', version: 'ui@1.0.0'};
@@ -128,7 +132,7 @@ describe('useChartLayers', () => {
       startTimestamp: '2026-11-03T14:00:00Z',
       endTimestamp: null,
       intervalType: 'range',
-      annotationType: 'sentry_outage',
+      annotationType: 'inbound_filter_change',
       scope: 'global',
       severity: 'high',
       pinned: true,
@@ -145,7 +149,7 @@ describe('useChartLayers', () => {
       start: new Date('2026-11-03T14:00:00Z').getTime(),
       end: 'ongoing',
       title: 'Ingestion outage',
-      annotationType: 'sentry_outage',
+      annotationType: 'inbound_filter_change',
       environmentId: null,
       pinned: true,
       severity: 'high',
@@ -205,11 +209,11 @@ describe('useChartLayers', () => {
       ]);
     });
 
-    it('feeds timeseries annotations for the chart scope into the annotations band', async () => {
+    it('feeds timeseries annotations whose type flag is on into the annotations band', async () => {
       const {result} = renderAnnotationsHook({
         releases: [],
         flags: [],
-        changes: [change],
+        changes: [change, {...change, id: '8', annotationType: 'sentry_outage'}],
       });
 
       await waitFor(() => expect(result.current.annotations).toEqual([changeAnnotation]));

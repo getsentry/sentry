@@ -1,4 +1,6 @@
 import {t} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
+import {defined} from 'sentry/utils/defined';
 
 type TimeseriesAnnotationType =
   | 'inbound_filter_change'
@@ -15,6 +17,22 @@ export const TIMESERIES_ANNOTATION_TYPE_LABELS: Record<TimeseriesAnnotationType,
     sentry_outage: t('Sentry outage'),
     custom: t('Custom'),
   };
+
+const TIMESERIES_ANNOTATION_TYPE_FEATURES: Partial<
+  Record<TimeseriesAnnotationType, string>
+> = {inbound_filter_change: 'timeseries-annotations-usecase-filter-change'};
+
+/**
+ * Annotation types are shown only once their feature flag is on, and types
+ * without a flag are never shown.
+ */
+export function isTimeseriesAnnotationTypeEnabled(
+  annotationType: TimeseriesAnnotationType,
+  organization: Organization
+): boolean {
+  const feature = TIMESERIES_ANNOTATION_TYPE_FEATURES[annotationType];
+  return defined(feature) && organization.features.includes(feature);
+}
 
 type TimeseriesAnnotationScope =
   | 'global'
