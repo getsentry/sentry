@@ -68,7 +68,7 @@ export function getPlanCategoryName({
   hadCustomDynamicSampling = false,
   capitalize = true,
   title = false,
-}: CategoryNameProps) {
+}: Omit<CategoryNameProps, 'plan'> & {plan?: Pick<Plan, 'categoryDisplayNames'>}) {
   const displayNames = plan?.categoryDisplayNames?.[category];
   const categoryName =
     category === DataCategory.SPANS && hadCustomDynamicSampling
@@ -240,9 +240,9 @@ export function listDisplayNames({
 /**
  * Sort data categories in order.
  */
-export function sortCategories(
-  categories?: Record<string, BillingMetricHistory>
-): BillingMetricHistory[] {
+export function sortCategories<T extends Pick<BillingMetricHistory, 'order'>>(
+  categories?: Record<string, T>
+): T[] {
   return Object.values(categories || {}).sort((a, b) => (a.order > b.order ? 1 : -1));
 }
 

@@ -735,6 +735,38 @@ export type BillingHistory = {
   reservedBudgets?: ReservedBudget[];
 };
 
+/**
+ * The period that one receipt billed, as one period of the Usage History page
+ * without the pay-as-you-go spend, the budgets and the prices. Its plan has only
+ * the category names. A legacy period without metric rows, or a copy of one, has
+ * no `categories`.
+ */
+export type InvoiceUsage = Omit<
+  BillingHistory,
+  | 'categories'
+  | 'onDemandBudgetMode'
+  | 'onDemandMaxSpend'
+  | 'onDemandSpend'
+  | 'planDetails'
+  | 'reserved'
+  | 'reservedBudgets'
+  | 'usage'
+> & {
+  categories?: Record<
+    string,
+    Omit<
+      BillingMetricHistory,
+      | 'customPrice'
+      | 'onDemandBudget'
+      | 'onDemandQuantity'
+      | 'onDemandSpendUsed'
+      | 'paygCpe'
+      | 'usageExceeded'
+    >
+  >;
+  planDetails?: Pick<Plan, 'categoryDisplayNames'>;
+};
+
 export type PreviewData = {
   atPeriodEnd: boolean;
   billedAmount: number;
