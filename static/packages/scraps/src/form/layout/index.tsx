@@ -35,7 +35,7 @@ function RowLayoutContent(props: RowLayoutProps) {
 
   return (
     <BaseLayout id={field.name} stacked={false} padding={props.padding}>
-      <LayoutLabel stacked={false}>
+      <LayoutLabel stacked={false} flexShrink={0}>
         <Flex gap="xs" align="center">
           <FieldMeta.Label
             required={props.required}
@@ -49,7 +49,9 @@ function RowLayoutContent(props: RowLayoutProps) {
         ) : null}
       </LayoutLabel>
 
-      <Container flexGrow={1}>{props.children}</Container>
+      <Container flex="1" minWidth="0">
+        {props.children}
+      </Container>
     </BaseLayout>
   );
 }
