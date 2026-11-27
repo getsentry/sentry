@@ -349,8 +349,8 @@ function groupEventRuns(messages: ConversationMessage[]): TranscriptBlock[] {
   const blocks: TranscriptBlock[] = [];
   let run: TranscriptItem[] = [];
   const pushBlock = (items: TranscriptItem[], collapse: boolean) => {
-    if (items.length > 0) {
-      const first = items[0]!;
+    const [first] = items;
+    if (first) {
       blocks.push({key: `${first.message.id}-${first.part}`, items, collapse});
     }
   };
