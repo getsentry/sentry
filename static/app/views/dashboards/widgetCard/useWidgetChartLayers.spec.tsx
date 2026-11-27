@@ -133,6 +133,77 @@ describe('useWidgetChartLayers', () => {
     ]);
   });
 
+  describe('confidence', () => {
+    const confidenceOrganization = OrganizationFixture({
+      features: ['data-browsing-time-series-confidence'],
+    });
+
+    it.each([WidgetType.SPANS, WidgetType.LOGS, WidgetType.TRACEMETRICS])(
+      'offers the Confidence layer on %s widgets',
+      widgetType => {
+        const {result} = renderHookWithProviders(
+          () => useWidgetChartLayers({widget: WidgetFixture({widgetType})}),
+          {organization: confidenceOrganization}
+        );
+
+        expect(result.current.showConfidence).toBe(true);
+        expect(result.current.layerControl?.layers).toContainEqual({
+          value: 'confidence',
+          label: 'Confidence',
+          selected: true,
+        });
+      }
+    );
+
+    it.each([
+      [
+        'the widget type has no confidence data',
+        WidgetType.ERRORS,
+        confidenceOrganization,
+      ],
+      ['the flag is off', WidgetType.SPANS, OrganizationFixture()],
+    ])('leaves out the Confidence layer when %s', (_name, widgetType, org) => {
+      const {result} = renderHookWithProviders(
+        () => useWidgetChartLayers({widget: WidgetFixture({widgetType})}),
+        {organization: org}
+      );
+
+      expect(result.current.showConfidence).toBe(false);
+      expect(result.current.layerControl?.layers.map(layer => layer.value)).toEqual([
+        'releases',
+      ]);
+    });
+
+    it('does not show confidence when disabled', () => {
+      const {result} = renderHookWithProviders(
+        () => useWidgetChartLayers({widget: spansWidget, enabled: false}),
+        {organization: confidenceOrganization}
+      );
+
+      expect(result.current.showConfidence).toBe(false);
+    });
+
+    it('toggles and tracks confidence from the Confidence layer', () => {
+      const {result} = renderHookWithProviders(
+        () => useWidgetChartLayers({widget: spansWidget}),
+        {organization: confidenceOrganization}
+      );
+
+      act(() => result.current.layerControl?.onChange('confidence', false));
+
+      expect(result.current.showConfidence).toBe(false);
+      expect(
+        result.current.layerControl?.layers.find(layer => layer.value === 'confidence')
+          ?.selected
+      ).toBe(false);
+      expect(trackAnalytics).toHaveBeenCalledWith('explore.confidence.layer_toggled', {
+        organization: confidenceOrganization,
+        source: 'dashboards',
+        selected: false,
+      });
+    });
+  });
+
   it('has no layers when disabled', () => {
     const {result} = renderHookWithProviders(
       () => useWidgetChartLayers({widget: spansWidget, enabled: false}),
