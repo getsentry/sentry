@@ -4,6 +4,7 @@ from sentry.issues.action_log.types import (
     GroupActorType,
     ImpactAssessmentAction,
     InvestigationLinkedAction,
+    InvestigationStartedAction,
 )
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.testutils.cases import TestCase
@@ -79,6 +80,17 @@ class GroupActionLogEntryActionPropertyTest(TestCase):
 
         assert entry.action == InvestigationLinkedAction(
             notebook_id=12, hypothesis_id="h-1", hypothesis_statement="Retries", reason=None
+        )
+
+    def test_investigation_started_payload_snapshot(self) -> None:
+        entry = self.create_group_action_log_entry(
+            type=GroupActionType.INVESTIGATION_STARTED, data={"notebook_id": 12}
+        )
+
+        assert entry.action == InvestigationStartedAction(notebook_id=12)
+        assert (
+            GroupActionType.INVESTIGATION_STARTED
+            in InvestigationStartedAction.get_user_visible_types()
         )
 
 

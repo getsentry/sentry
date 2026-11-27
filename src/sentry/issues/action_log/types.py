@@ -92,6 +92,7 @@ class GroupActionType(IntEnum):
     FIRST_SEEN = 34
     IMPACT_ASSESSMENT = 35
     INVESTIGATION_LINKED = 36
+    INVESTIGATION_STARTED = 37
 
     # Certain GroupActions are mirrors of Activity records.
     # (See ACTIVITY_TYPE_TO_GROUP_ACTION_TYPE for the mapping.)
@@ -683,6 +684,22 @@ class InvestigationLinkedAction(GroupAction):
     @classmethod
     def get_type(cls) -> GroupActionType:
         return GroupActionType.INVESTIGATION_LINKED
+
+
+class InvestigationStartedAction(GroupAction):
+    """A Seer investigation started directly from this group.
+
+    Published once, when the investigation is created. The actor is whoever started it:
+    a user from the issue page or Slack, or the system for an automation.
+    """
+
+    user_visible = True
+
+    notebook_id: int  # notebooks.Notebook ID; the notebook may since have been deleted
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.INVESTIGATION_STARTED
 
 
 class GroupActionLogPayload(TypedDict):

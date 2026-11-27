@@ -24,6 +24,15 @@ from sentry.investigations.services.orchestration import (
     create_agentic_manual_investigation,
     rebuild_orchestration_source,
 )
+from sentry.issues.action_log import action_context_scope
+from sentry.issues.action_log.types import (
+    ActionSource,
+    GroupActionActor,
+    GroupActionType,
+    GroupActorType,
+    InvestigationStartedAction,
+)
+from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.organization import Organization
 from sentry.notebooks.models import Notebook, NotebookSourceType, NotebookStatus
@@ -151,6 +160,55 @@ class AgenticBreachedMetricInvestigationTest(BreachedMetricInvestigationTestCase
         assert created
         assert investigation.source_key == self.investigation.source_key
         assert investigation.source_revision == 2
+
+
+class InvestigationStartedActionTest(BreachedMetricInvestigationTestCase):
+    def launch_from_the_issue(self, *, issue_links: bool = True) -> tuple[Notebook, bool]:
+        with (
+            self.feature(
+                {
+                    "organizations:investigations-issue-links": issue_links,
+                    "projects:issue-action-log-write-to-db": True,
+                }
+            ),
+            action_context_scope(ActionSource.WEB, GroupActionActor.user(self.user.id)),
+            outbox_runner(),
+        ):
+            return self.launch()
+
+    def started_entries(self) -> list[GroupActionLogEntry]:
+        return list(
+            GroupActionLogEntry.objects.filter(
+                group_id=self.group.id, type=GroupActionType.INVESTIGATION_STARTED
+            )
+        )
+
+    def test_records_a_new_investigation_on_the_issue(self) -> None:
+        self.investigation.update(status=NotebookStatus.ARCHIVED)
+
+        investigation, created = self.launch_from_the_issue()
+
+        assert created
+        [entry] = self.started_entries()
+        assert entry.action == InvestigationStartedAction(notebook_id=investigation.id)
+        assert entry.project_id == self.project.id
+        assert entry.source == ActionSource.WEB
+        assert (entry.actor_type, entry.actor_id) == (GroupActorType.USER, self.user.id)
+        assert entry.idempotency_key == f"investigation_started:{investigation.id}"
+
+    def test_reusing_the_active_investigation_records_nothing(self) -> None:
+        _, created = self.launch_from_the_issue()
+
+        assert not created
+        assert self.started_entries() == []
+
+    def test_flag_off_records_nothing(self) -> None:
+        self.investigation.update(status=NotebookStatus.ARCHIVED)
+
+        _, created = self.launch_from_the_issue(issue_links=False)
+
+        assert created
+        assert self.started_entries() == []
 
 
 class RebuildOrchestrationSourceTest(BreachedMetricInvestigationTestCase):

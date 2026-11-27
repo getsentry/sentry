@@ -188,6 +188,66 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
 
         assert [item["type"] for item in self._activity_items()] == ["first_seen"]
 
+    def _investigation_start(self, notebook_id: int) -> GroupActionLogEntry:
+        return self.create_group_action_log_entry(
+            type=GroupActionType.INVESTIGATION_STARTED,
+            actor_type=GroupActorType.USER,
+            actor_id=self.user.id,
+            source="web",
+            data={"notebook_id": notebook_id},
+        )
+
+    def test_investigation_started_entry(self) -> None:
+        investigation = self.create_notebook(organization=self.organization, title="Checkout")
+        entry = self._investigation_start(investigation.id)
+
+        result = serialize(entry, self.user)
+
+        assert result["type"] == "investigation_started"
+        assert result["user"]["id"] == str(self.user.id)
+        assert result["source"] == "web"
+        assert result["data"] == {
+            "investigation": {
+                "id": str(investigation.id),
+                "title": "Checkout",
+                "status": "active",
+            }
+        }
+
+    def test_investigation_started_entry_after_deletion(self) -> None:
+        investigation = self.create_notebook(organization=self.organization, title="Gone")
+        entry = self._investigation_start(investigation.id)
+        investigation.delete()
+
+        assert serialize(entry, self.user)["data"] == {"investigation": None}
+
+    @with_feature(["organizations:investigations", "organizations:investigations-issue-links"])
+    def test_investigation_starts_are_in_activity(self) -> None:
+        investigation = self.create_notebook(organization=self.organization, title="Checkout")
+        self._investigation_start(investigation.id)
+
+        assert [item["type"] for item in self._activity_items()] == [
+            "investigation_started",
+            "first_seen",
+        ]
+
+    @with_feature(["organizations:investigations", "organizations:investigations-issue-links"])
+    def test_investigation_starts_are_hidden_from_tokens_without_an_org_scope(self) -> None:
+        self._first_seen()
+        investigation = self.create_notebook(organization=self.organization, title="Checkout")
+        self._investigation_start(investigation.id)
+        event_only = from_user(self.user, self.organization, scopes=["event:read"])
+
+        assert [item["type"] for item in self._activity_items(access=event_only)] == ["first_seen"]
+
+    @with_feature("organizations:investigations")
+    def test_investigation_starts_are_hidden_without_the_flag(self) -> None:
+        self._first_seen()
+        investigation = self.create_notebook(organization=self.organization, title="Checkout")
+        self._investigation_start(investigation.id)
+
+        assert [item["type"] for item in self._activity_items()] == ["first_seen"]
+
     def test_pull_request_entry(self) -> None:
         self.org = self.create_organization(name="Rowdy Tiger")
         user = self.create_user()

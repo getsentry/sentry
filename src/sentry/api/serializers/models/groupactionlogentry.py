@@ -78,6 +78,12 @@ _UNMERGE_GROUP_KEYS = {
     GroupActionType.UNMERGE_DESTINATION.value: ("source_id", "source"),
 }
 
+# Entries that name an investigation in data["notebook_id"].
+INVESTIGATION_ACTION_TYPES = (
+    GroupActionType.INVESTIGATION_LINKED,
+    GroupActionType.INVESTIGATION_STARTED,
+)
+
 
 class GroupActionLogEntrySerializerResponse(ActivitySerializerResponse):
     source: Annotated[
@@ -140,7 +146,7 @@ def get_serialized_activity_items(
     user: RequestPrincipal | None,
     *,
     endpoint: str,
-    # Without it, investigation links are left out. Slack and Discord actions have none.
+    # Without it, investigation entries are left out. Slack and Discord actions have none.
     access: Access | None = None,
     limit: int = 99,
     action_filter: Q | None = None,
@@ -161,10 +167,10 @@ def get_serialized_activity_items(
     if not should_serve_action_log_activity(group.project, user, endpoint=endpoint):
         return None
 
-    # Investigation links are only shown to viewers who can open the investigation.
+    # Investigation entries are only shown to viewers who can open the investigation.
     hidden_types: list[GroupActionType] = []
     if access is None or not can_view_issue_links(group.project.organization, user, access):
-        hidden_types.append(GroupActionType.INVESTIGATION_LINKED)
+        hidden_types.extend(INVESTIGATION_ACTION_TYPES)
     oldest_entry = (
         GroupActionLogEntry.objects.filter(
             group_id=group.id,
@@ -256,11 +262,11 @@ def _investigation_summary(
     return {"id": str(notebook.id), "title": notebook.title, "status": notebook.status}
 
 
-def _linked_investigations(
+def _entry_investigations(
     item_list: Sequence[GroupActionLogEntry],
 ) -> dict[GroupActionLogEntry, LinkedInvestigationResponse | None]:
-    """The investigation each link entry names, or None once it's deleted."""
-    links = [item for item in item_list if item.type == GroupActionType.INVESTIGATION_LINKED.value]
+    """The investigation each investigation entry names, or None once it's deleted."""
+    links = [item for item in item_list if item.type in INVESTIGATION_ACTION_TYPES]
     if not links:
         return {}
     organization_ids = dict(
@@ -364,7 +370,7 @@ class GroupActionLogEntrySerializer(Serializer):
         else:
             pull_requests = {}
 
-        investigations = _linked_investigations(item_list)
+        investigations = _entry_investigations(item_list)
 
         from sentry.api.serializers.models.group import GroupSerializer
         from sentry.models.group import Group
@@ -435,6 +441,8 @@ class GroupActionLogEntrySerializer(Serializer):
                 "hypothesisStatement": obj.data["hypothesis_statement"],
                 "reason": obj.data.get("reason"),
             }
+        elif obj.type == GroupActionType.INVESTIGATION_STARTED.value:
+            data = {"investigation": attrs["investigation"]}
         elif (
             obj.type == GroupActionType.SET_RESOLVED_IN_RELEASE.value
             and obj.data

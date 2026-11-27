@@ -29,6 +29,7 @@ from sentry.investigations.services.breached_metrics import (
     resolve_breached_metric_sources,
     resolve_investigation_source,
 )
+from sentry.investigations.services.issue_links import record_investigation_started
 from sentry.models.organization import Organization
 from sentry.notebooks.models import (
     Notebook,
@@ -729,6 +730,10 @@ def create_agentic_breached_metric_investigation(
     project_ids: list[int],
     filters: dict[str, Any],
 ) -> tuple[Notebook, bool]:
+    """The active investigation for the metric open period, or a new one. The bool is True
+    when it was created. A new one is recorded on the metric issue's action log, attributed
+    by the caller's action_context_scope.
+    """
     _validate_creation_actor(organization=organization, creator=creator, project_ids=project_ids)
     if resolved_source.project_id not in project_ids:
         raise NotebookValidationError({"projectIds": "The metric project must be selected."})
@@ -750,9 +755,16 @@ def create_agentic_breached_metric_investigation(
         )
         return investigation
 
-    return get_or_create_source_notebook(
+    investigation, created = get_or_create_source_notebook(
         organization=organization, source_key=source_key, create=create
     )
+    if created:
+        record_investigation_started(
+            investigation=investigation,
+            group_id=int(normalized_source["ref"]["groupId"]),
+            project_id=resolved_source.project_id,
+        )
+    return investigation, created
 
 
 def _require_accessible_projects(
