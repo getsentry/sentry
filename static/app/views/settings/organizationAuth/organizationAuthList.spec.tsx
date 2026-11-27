@@ -1,3 +1,4 @@
+import {AuthProviderFixture} from 'sentry-fixture/authProvider';
 import {AuthProvidersFixture} from 'sentry-fixture/authProviders';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
@@ -20,6 +21,27 @@ describe('OrganizationAuthList', () => {
     expect(screen.getAllByLabelText('Configure')).toHaveLength(2);
     expect(screen.getByText('Dummy')).toBeInTheDocument();
     expect(screen.getByText('Dummy SAML')).toBeInTheDocument();
+  });
+
+  it('lists OpenID Connect after the named providers', () => {
+    const provider = (key: string, name: string) =>
+      AuthProviderFixture({key, name, requiredFeature: 'organizations:sso-basic'});
+
+    render(
+      <OrganizationAuthList
+        providerList={[
+          provider('oidc', 'OpenID Connect'),
+          provider('saml2', 'SAML2'),
+          provider('google', 'Google'),
+        ]}
+      />,
+      {organization: OrganizationFixture({features: ['sso-basic']})}
+    );
+
+    const names = screen
+      .getAllByText(/^(Google|SAML2|OpenID Connect)$/)
+      .map(el => el.textContent);
+    expect(names).toEqual(['Google', 'SAML2', 'OpenID Connect']);
   });
 
   it('renders for members', () => {
