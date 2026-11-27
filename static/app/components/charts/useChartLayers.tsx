@@ -26,6 +26,10 @@ interface UseChartLayersParams {
   source: DroppedDataAnalyticsSource;
   enabled?: boolean;
   hidden?: boolean;
+  /**
+   * Whether to fetch and draw the releases, flags, and changes annotations.
+   */
+  withAnnotations?: boolean;
 }
 
 /**
@@ -38,10 +42,13 @@ export function useChartLayers({
   source,
   enabled = true,
   hidden = false,
+  withAnnotations = true,
 }: UseChartLayersParams) {
   const organization = useOrganization();
   const areAnnotationsEnabled =
-    enabled && organization.features.includes('timeseries-annotations');
+    enabled &&
+    withAnnotations &&
+    organization.features.includes('timeseries-annotations');
   const {
     release: releaseItems,
     flag: flagItems,
@@ -149,6 +156,7 @@ export function useChartLayers({
       setIsConfidenceLayerOn(selected);
       trackAnalytics('explore.confidence.layer_toggled', {
         organization,
+        dataset,
         source,
         selected,
       });

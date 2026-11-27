@@ -12,9 +12,9 @@ import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {ChartLayersControl} from 'sentry/components/charts/chartLayersControl';
+import {useChartLayers} from 'sentry/components/charts/useChartLayers';
 import {DroppedDataFilterNote} from 'sentry/components/droppedData/droppedDataFilterNote';
 import {DroppedDataLLMContext} from 'sentry/components/droppedData/droppedDataLLMContext';
-import {useDroppedDataLayer} from 'sentry/components/droppedData/useDroppedDataLayer';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
@@ -184,10 +184,13 @@ function Graph({
   const groupBys = useQueryParamsGroupBys();
 
   const [chartInterval, setChartInterval, intervalOptions] = useChartInterval();
-  const droppedData = useDroppedDataLayer(
-    {dataset: DiscoverDatasets.OURLOGS, interval: chartInterval},
-    {source: 'explore', hidden: tableIsEmpty || tableIsPending}
-  );
+  const {droppedData, layerControl, showConfidence} = useChartLayers({
+    dataset: DiscoverDatasets.OURLOGS,
+    interval: chartInterval,
+    source: 'explore',
+    hidden: tableIsEmpty || tableIsPending,
+    withAnnotations: false,
+  });
 
   // Invalid `_if` filters skip the backend request; surface that as a chart error
   // instead of an empty/no-data state.
@@ -283,9 +286,7 @@ function Graph({
 
   const Actions = visualize.visible ? (
     <Fragment>
-      {droppedData.layerControl ? (
-        <ChartLayersControl {...droppedData.layerControl} />
-      ) : null}
+      {layerControl ? <ChartLayersControl {...layerControl} /> : null}
       <CompactSelect
         trigger={triggerProps => (
           <OverlayTrigger.Button
@@ -356,6 +357,7 @@ function Graph({
               droppedData={droppedData.band}
               plottables={plottables}
               isDroppedDataLoading={droppedData.isLoading}
+              showConfidence={showConfidence}
             />
           )
         }

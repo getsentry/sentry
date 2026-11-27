@@ -33,11 +33,7 @@ export type ExploreAnalyticsEventParameters = {
     section?: string;
   };
   'explore.chart_context.tab_selected': DroppedDataAnalyticsContext & {tab: string};
-  'explore.confidence.layer_toggled': {
-    organization: Organization;
-    selected: boolean;
-    source: DroppedDataAnalyticsSource;
-  };
+  'explore.confidence.layer_toggled': DroppedDataAnalyticsContext & {selected: boolean};
   'explore.dropped_data.ask_seer_clicked': DroppedDataAnalyticsContext & {
     outcome: string;
     reason: string;

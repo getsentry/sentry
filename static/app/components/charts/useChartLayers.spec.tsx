@@ -316,6 +316,37 @@ describe('useChartLayers', () => {
       );
       expect(result.current.annotations).toBeUndefined();
     });
+
+    it('skips releases, flags, and changes without annotations', async () => {
+      const releasesRequest = MockApiClient.addMockResponse({
+        url: `/organizations/${annotationsOrganization.slug}/releases/stats/`,
+        body: [release],
+      });
+      flagLogRequest = MockApiClient.addMockResponse({
+        url: `/organizations/${annotationsOrganization.slug}/flags/logs/`,
+        body: {data: [flagChange]},
+      });
+
+      const {result} = renderHookWithProviders(
+        () =>
+          useChartLayers({
+            dataset: DiscoverDatasets.OURLOGS,
+            interval: '1h',
+            source: 'explore',
+            withAnnotations: false,
+          }),
+        {organization: annotationsOrganization}
+      );
+
+      await waitFor(() =>
+        expect(result.current.layerControl?.layers.map(layer => layer.value)).toEqual([
+          'dropped-data',
+        ])
+      );
+      expect(result.current.annotations).toBeUndefined();
+      expect(releasesRequest).not.toHaveBeenCalled();
+      expect(flagLogRequest).not.toHaveBeenCalled();
+    });
   });
 
   it('has no layers and requests nothing when disabled', () => {
@@ -365,6 +396,7 @@ describe('useChartLayers', () => {
     expect(result.current.droppedData.band).toBeDefined();
     expect(trackAnalytics).toHaveBeenCalledWith('explore.confidence.layer_toggled', {
       organization: confidenceOrganization,
+      dataset: DiscoverDatasets.SPANS,
       source: 'explore',
       selected: false,
     });
