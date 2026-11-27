@@ -1,7 +1,7 @@
 from unittest.mock import MagicMock, patch
 
 from sentry.integrations.types import EventLifecycleOutcome
-from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.testutils.cases import APITestCase
 
 
@@ -34,6 +34,39 @@ class OrganizationIntegrationReposTest(APITestCase):
         assert [call.args[0] for call in record_event.call_args_list] == [
             EventLifecycleOutcome.STARTED,
             EventLifecycleOutcome.HALTED,
+        ]
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @patch(
+        "sentry.integrations.github.integration.GitHubIntegration.get_repositories",
+        side_effect=ApiError("<html>Bad Gateway</html>", code=502),
+    )
+    def test_broken_integration_error_halts_lifecycle(
+        self, _get_repositories: MagicMock, record_event: MagicMock
+    ) -> None:
+        response = self.client.get(self.path, format="json")
+
+        assert response.status_code == 400
+        assert "<html>" not in response.data["detail"]
+        assert [call.args[0] for call in record_event.call_args_list] == [
+            EventLifecycleOutcome.STARTED,
+            EventLifecycleOutcome.HALTED,
+        ]
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @patch(
+        "sentry.integrations.github.integration.GitHubIntegration.get_repositories",
+        side_effect=ApiError("Internal Error", code=500),
+    )
+    def test_unexpected_api_error_fails_lifecycle(
+        self, _get_repositories: MagicMock, record_event: MagicMock
+    ) -> None:
+        response = self.client.get(self.path, format="json")
+
+        assert response.status_code == 500
+        assert [call.args[0] for call in record_event.call_args_list] == [
+            EventLifecycleOutcome.STARTED,
+            EventLifecycleOutcome.FAILURE,
         ]
 
     @patch(

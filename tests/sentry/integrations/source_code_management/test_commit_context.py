@@ -194,18 +194,18 @@ class TestCommitContextIntegrationSLO(TestCase):
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_get_blame_for_files_missing_identity(self, mock_record: MagicMock) -> None:
-        """Test missing identity records failure"""
+        """Test missing identity records a halt"""
         with patch.object(self.mock_integration, "get_client", side_effect=Identity.DoesNotExist()):
             result = self.mock_integration.get_blame_for_files([self.source_line], {})
 
         assert result == []
         assert len(mock_record.mock_calls) == 2
-        assert_slo_metric(mock_record, EventLifecycleOutcome.FAILURE)
-        assert_failure_metric(mock_record, Identity.DoesNotExist())
+        assert_slo_metric(mock_record, EventLifecycleOutcome.HALTED)
+        assert_halt_metric(mock_record, Identity.DoesNotExist())
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_get_blame_for_files_invalid_identity(self, mock_record: MagicMock) -> None:
-        """Test invalid identity records failure"""
+        """Test invalid identity records a halt"""
         from sentry.auth.exceptions import IdentityNotValid
 
         self.mock_integration.client.get_blame_for_files = Mock(side_effect=IdentityNotValid())
@@ -213,8 +213,8 @@ class TestCommitContextIntegrationSLO(TestCase):
         result = self.mock_integration.get_blame_for_files([self.source_line], {})
 
         assert result == []
-        assert_slo_metric(mock_record, EventLifecycleOutcome.FAILURE)
-        assert_failure_metric(mock_record, IdentityNotValid())
+        assert_slo_metric(mock_record, EventLifecycleOutcome.HALTED)
+        assert_halt_metric(mock_record, IdentityNotValid())
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_get_blame_for_files_rate_limited(self, mock_record: MagicMock) -> None:

@@ -188,7 +188,12 @@ class GitlabIntegration(
         # so plain ApiError bubbles up directly. 403/404 indicate a terminally
         # broken integration (blocked account, revoked access, deleted group).
         if isinstance(exc, ApiError):
-            if exc.code == 404:
+            # 400 also covers a group or project path GitLab can't resolve.
+            if exc.code in (400, 404):
+                return "configuration_error"
+            # The instance URL redirects, e.g. http to https. Redirects aren't followed for a
+            # token refresh, so it fails until the URL is fixed.
+            if exc.code is not None and 300 <= exc.code < 400:
                 return "configuration_error"
             if exc.code == 403:
                 return "unauthorized"

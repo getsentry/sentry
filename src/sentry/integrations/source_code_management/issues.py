@@ -39,7 +39,9 @@ class SourceCodeIssueIntegration(IssueBasicIntegration, BaseRepositoryIntegratio
         try:
             repos = self.get_repositories(page_number_limit=page_number_limit)
         except ApiError as exc:
-            if any(pattern in str(exc) for pattern in SOURCE_CODE_ISSUE_HALT_PATTERNS):
+            if any(
+                pattern in str(exc) for pattern in SOURCE_CODE_ISSUE_HALT_PATTERNS
+            ) or self.is_broken_integration_error(exc):
                 lifecycle.record_halt(exc)
             else:
                 lifecycle.record_failure(exc)

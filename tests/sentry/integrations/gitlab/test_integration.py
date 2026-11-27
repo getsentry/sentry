@@ -31,9 +31,16 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import (
+    ApiError,
     ApiForbiddenError,
+    ApiHostError,
+    ApiInvalidRequestError,
+    ApiRetryError,
+    ApiTimeoutError,
     IntegrationConfigurationError,
     IntegrationError,
+    ProxiedApiHostError,
+    ProxiedApiTimeoutError,
 )
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
@@ -183,6 +190,44 @@ class GitlabApiClientTest(GitLabTestCase):
             assert control_proxy_response.call_count == 1
             assert client.base_url not in request.url
             assert_proxy_request(request, is_proxy=True)
+
+
+@control_silo_test
+class GitlabBrokenIntegrationErrorTest(GitLabTestCase):
+    provider_url = "https://gitlab.example.com/api/v4/groups/1/projects"
+    proxy_url = f"http://control{PROXY_BASE_PATH}/"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.installation = get_installation_of_type(
+            GitlabIntegration, self.integration, self.organization.id
+        )
+
+    def test_unresolvable_group_is_a_configuration_error(self) -> None:
+        error = ApiInvalidRequestError("400 Bad request", url=self.provider_url)
+
+        assert self.installation.is_broken_integration_error(error) == "configuration_error"
+
+    def test_redirecting_instance_url_is_a_configuration_error(self) -> None:
+        error = ApiError("no access token", code=301, url=self.provider_url)
+
+        assert self.installation.is_broken_integration_error(error) == "configuration_error"
+
+    def test_provider_failures_reported_by_the_proxy(self) -> None:
+        unreachable = ProxiedApiHostError("Unable to reach host", url=self.provider_url)
+        timed_out = ProxiedApiTimeoutError("Timed out", url=self.provider_url)
+
+        assert self.installation.is_broken_integration_error(unreachable) == "host_unreachable"
+        assert self.installation.is_broken_integration_error(timed_out) == "host_timeout"
+
+    def test_failing_to_reach_the_proxy_is_not_the_integration(self) -> None:
+        unreachable = ApiHostError("Unable to reach host: control", url=self.proxy_url)
+        timed_out = ApiTimeoutError("Timed out attempting to reach host", url=self.proxy_url)
+        retried = ApiRetryError("too many 503 error responses")
+
+        assert self.installation.is_broken_integration_error(unreachable) is None
+        assert self.installation.is_broken_integration_error(timed_out) is None
+        assert self.installation.is_broken_integration_error(retried) is None
 
 
 @control_silo_test
