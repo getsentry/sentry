@@ -41,7 +41,14 @@ class ResolveClassifierDefinitionTest(TestCase):
             project=self.project,
             prebuilt_classifier_key=None,
             natural_language_prompt="Is the user frustrated?",
-            compiled_prompt="Return yes when the user is frustrated.",
+            compiled_prompt={
+                "runner": "seer_decision",
+                "version": 1,
+                "question": {
+                    "type": "predicate",
+                    "instructions": "Return yes when the user is frustrated.",
+                },
+            },
             output_type=TelemetryClassifierOutputType.BINARY,
         )
 
