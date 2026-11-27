@@ -6,6 +6,7 @@ import {Alert} from '@sentry/scraps/alert';
 import {Stack} from '@sentry/scraps/layout';
 import {openModal, type ModalRenderProps} from '@sentry/scraps/modal';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -63,7 +64,8 @@ export function openConnectScmModal({
 
 export function useConnectScmModalFromUrl() {
   const organization = useOrganization();
-  const [repoName, setRepoName] = useQueryState(
+  const queryClient = useQueryClient();
+  const [repoParam, setRepoParam] = useQueryState(
     CONNECT_SCM_REPO_PARAM,
     parseAsString.withOptions({history: 'replace'})
   );
@@ -71,15 +73,34 @@ export function useConnectScmModalFromUrl() {
   const hasPrompt = organization.features.includes('ask-seer-scm-connect-prompt');
 
   useEffect(() => {
-    if (repoName === null) {
+    if (repoParam === null) {
       return;
     }
-    setRepoName(null);
+    setRepoParam(null);
     if (!canInstall || !hasPrompt) {
       return;
     }
-    openConnectScmModal({repoName: repoName.trim() || null});
-  }, [repoName, setRepoName, canInstall, hasPrompt]);
+    const repoName = repoParam.trim() || null;
+    // Another owner may have fixed it already, or this is a second click on the same link, so
+    // check first. If the check fails, open the modal anyway.
+    queryClient
+      .fetchQuery(repoAccessQueryOptions({orgSlug: organization.slug, repoName}))
+      .then(
+        response => response.json.status === 'found',
+        () => false
+      )
+      .then(canAccess => {
+        if (canAccess) {
+          toast.success(
+            repoName
+              ? t('Seer can already access %s.', repoName)
+              : t('Source control is already connected.')
+          );
+          return;
+        }
+        openConnectScmModal({repoName});
+      });
+  }, [repoParam, setRepoParam, canInstall, hasPrompt, queryClient, organization.slug]);
 }
 
 function ConnectScmModal({
