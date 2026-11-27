@@ -20,6 +20,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from django.db import router, transaction
 
@@ -32,6 +33,9 @@ from sentry.models.custominboundfilter import (
 )
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+
+if TYPE_CHECKING:
+    from sentry.api.helpers.creator import ActorReference
 
 
 class FilterTypes:
@@ -111,28 +115,32 @@ def clean_lines(filter_type: str, lines: Iterable[str]) -> list[str]:
     return cleaned
 
 
-def set_list(project: Project, filter_type: str, lines: Sequence[str]) -> None:
+def set_list(
+    project: Project, filter_type: str, lines: Sequence[str], *, actor: ActorReference
+) -> None:
     """
     Replaces the lines of one legacy list. ``lines`` must already be cleaned, see
-    ``clean_lines``. The option and the row change together or not at all.
+    ``clean_lines``. The option and the row change together or not at all, and ``actor``
+    becomes the row's editor.
     """
     lines = list(lines)
     with transaction.atomic(router.db_for_write(CustomInboundFilter)):
         project.update_option(f"sentry:{filter_type}", lines)
-        _set_row(project, _ROWS[filter_type], lines)
+        _set_row(project, _ROWS[filter_type], lines, actor)
 
 
-def copy_lists(source: Project, target: Project) -> None:
-    """Copies every list, and the name and the active flag of its row, onto ``target``."""
+def copy_lists(source: Project, target: Project, *, actor: ActorReference) -> None:
+    """Copies every list, and the name and the active flag of its row, onto ``target``.
+    ``actor`` becomes the editor of the copied rows."""
     for filter_type, row in _ROWS.items():
-        set_list(target, filter_type, get_lines(source, filter_type))
+        set_list(target, filter_type, get_lines(source, filter_type), actor=actor)
         source_row = _get_row(source, row)
         target_row = _get_row(target, row)
         if source_row is not None and target_row is not None:
             target_row.update(name=source_row.name, active=source_row.active)
 
 
-def _set_row(project: Project, row: _Row, lines: list[str]) -> None:
+def _set_row(project: Project, row: _Row, lines: list[str], actor: ActorReference) -> None:
     existing = _get_row(project, row)
 
     if not lines:
@@ -141,6 +149,7 @@ def _set_row(project: Project, row: _Row, lines: list[str]) -> None:
         return
 
     conditions = [{"type": row.condition_type.value, "operator": "glob", "value": lines}]
+    # Every save of the row records who made it, replacing the previous editor.
     if existing is None:
         CustomInboundFilter.objects.create(
             project_id=project.id,
@@ -148,11 +157,17 @@ def _set_row(project: Project, row: _Row, lines: list[str]) -> None:
             data_type=row.data_type.value,
             conditions=conditions,
             legacy_filter=row.legacy_filter.value,
+            updated_by_id=actor.user_id,
+            updated_by_service_account_id=actor.service_account_id,
         )
     else:
         # The name and the active flag belong to the user, who may edit the row in the
         # custom filter UI. Only the lines follow the legacy list.
-        existing.update(conditions=conditions)
+        existing.update(
+            conditions=conditions,
+            updated_by_id=actor.user_id,
+            updated_by_service_account_id=actor.service_account_id,
+        )
 
 
 def _get_row(project: Project, row: _Row) -> CustomInboundFilter | None:

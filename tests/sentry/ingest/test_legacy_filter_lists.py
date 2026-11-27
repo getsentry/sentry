@@ -1,3 +1,4 @@
+from sentry.api.helpers.creator import ActorReference
 from sentry.ingest.inbound_filters import FilterTypes
 from sentry.ingest.legacy_filter_lists import (
     clean_lines,
@@ -31,7 +32,7 @@ def rows_of(project: Project) -> list[dict[str, object]]:
 @django_db_all
 def test_set_list_writes_the_option_and_one_row_with_every_line(default_project: Project) -> None:
     lines = ["1.*", "# block staging until the fix ships", "1.*", "3.*"]
-    set_list(default_project, FilterTypes.RELEASES, lines)
+    set_list(default_project, FilterTypes.RELEASES, lines, actor=ActorReference())
 
     assert default_project.get_option("sentry:releases") == lines
     assert rows_of(default_project) == [
@@ -64,7 +65,7 @@ def test_set_list_updates_the_lines_and_keeps_the_users_name_and_active_flag(
         conditions=[{"type": "release", "value": ["mine*"]}],
     )
 
-    set_list(default_project, FilterTypes.RELEASES, ["2.*"])
+    set_list(default_project, FilterTypes.RELEASES, ["2.*"], actor=ActorReference())
 
     row.refresh_from_db()
     assert row.name == "My old builds"
@@ -76,8 +77,8 @@ def test_set_list_updates_the_lines_and_keeps_the_users_name_and_active_flag(
 
 @django_db_all
 def test_set_list_removes_the_row_for_an_empty_list(default_project: Project) -> None:
-    set_list(default_project, FilterTypes.RELEASES, ["1.*"])
-    set_list(default_project, FilterTypes.RELEASES, [])
+    set_list(default_project, FilterTypes.RELEASES, ["1.*"], actor=ActorReference())
+    set_list(default_project, FilterTypes.RELEASES, [], actor=ActorReference())
 
     assert default_project.get_option("sentry:releases") == []
     assert rows_of(default_project) == []

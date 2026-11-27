@@ -1826,6 +1826,117 @@ class CopyProjectSettingsTest(APITestCase):
         self.assert_other_project_settings_not_changed()
 
 
+class FilterListUpdatedByTest(APITestCase):
+    """Saving a legacy filter list, or copying one from another project, records who did it
+    on the list's custom inbound filter row, as the custom inbound filters API returns it."""
+
+    endpoint = "sentry-api-0-project-details"
+    method = "put"
+    features = [
+        "organizations:inbound-filters-v2",
+        "projects:custom-inbound-filters",
+        "organizations:ourlogs-ingestion",
+        "organizations:tracemetrics-ingestion",
+    ]
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(user=self.user)
+
+    def save_options(self, project: Project, options: dict[str, str]) -> None:
+        with self.feature(self.features):
+            self.get_success_response(project.organization.slug, project.slug, options=options)
+
+    def editors_by_legacy_filter(self, project: Project) -> dict[str, Any]:
+        url = reverse(
+            "sentry-api-0-project-custom-inbound-filters",
+            args=[project.organization.slug, project.slug],
+        )
+        with self.feature(self.features):
+            response = self.client.get(url, format="json")
+        assert response.status_code == 200, response.content
+        return {f["legacyFilter"]: f["updatedBy"] for f in response.data if f["legacyFilter"]}
+
+    def assert_user_editor(self, updated_by: dict[str, Any] | None) -> None:
+        assert updated_by is not None
+        assert updated_by["type"] == "user"
+        assert updated_by["id"] == str(self.user.id)
+
+    def test_saving_each_filter_list_records_the_acting_user(self) -> None:
+        self.save_options(
+            self.project,
+            {
+                "filters:releases": "1.*",
+                "filters:error_messages": "TypeError*",
+                "filters:log_messages": "Updated*",
+                "filters:trace_metric_names": "counter.*",
+            },
+        )
+
+        editors = self.editors_by_legacy_filter(self.project)
+        assert set(editors) == {
+            "release-version",
+            "error-message",
+            "log-message",
+            "trace-metric-name",
+        }
+        for updated_by in editors.values():
+            self.assert_user_editor(updated_by)
+
+    def test_saving_a_filter_list_replaces_a_service_account_editor(self) -> None:
+        service_account = self.create_service_account(
+            organization=self.organization, name="filter-bot", scope_list=["project:write"]
+        )
+        self.create_project_custom_inbound_filter(
+            project=self.project,
+            data_type="error",
+            conditions=[{"type": "error_message", "operator": "glob", "value": ["Old*"]}],
+            legacy_filter=LegacyFilter.ERROR_MESSAGE,
+            updated_by_service_account_id=service_account.id,
+        )
+        assert self.editors_by_legacy_filter(self.project)["error-message"]["type"] == (
+            "service_account"
+        )
+
+        self.save_options(self.project, {"filters:error_messages": "TypeError*"})
+
+        self.assert_user_editor(self.editors_by_legacy_filter(self.project)["error-message"])
+
+    def test_copying_from_a_project_records_the_requesting_user(self) -> None:
+        source = self.create_project(organization=self.organization)
+        service_account = self.create_service_account(
+            organization=self.organization, name="filter-bot", scope_list=["project:write"]
+        )
+        for project, lines in ((source, ["1.*"]), (self.project, ["0.*"])):
+            self.create_project_custom_inbound_filter(
+                project=project,
+                data_type="all",
+                conditions=[{"type": "release", "operator": "glob", "value": lines}],
+                legacy_filter=LegacyFilter.RELEASE_VERSION,
+                updated_by_service_account_id=service_account.id,
+            )
+        self.create_project_custom_inbound_filter(
+            project=source,
+            data_type="error",
+            conditions=[{"type": "error_message", "operator": "glob", "value": ["TypeError*"]}],
+            legacy_filter=LegacyFilter.ERROR_MESSAGE,
+            updated_by_service_account_id=service_account.id,
+        )
+
+        with self.feature(self.features):
+            self.get_success_response(
+                self.organization.slug, self.project.slug, copy_from_project=source.id
+            )
+
+        editors = self.editors_by_legacy_filter(self.project)
+        assert set(editors) == {"release-version", "error-message"}
+        for updated_by in editors.values():
+            self.assert_user_editor(updated_by)
+        # The source project keeps its own editor.
+        source_editors = self.editors_by_legacy_filter(source)
+        assert {e["type"] for e in source_editors.values()} == {"service_account"}
+
+
 class ProjectDeleteTest(APITestCase):
     endpoint = "sentry-api-0-project-details"
     method = "delete"

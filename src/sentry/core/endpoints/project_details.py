@@ -20,6 +20,7 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.decorators import require_sudo
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.fields.sentry_slug import SentrySerializerSlugField
+from sentry.api.helpers.creator import get_actor_reference
 from sentry.api.permissions import StaffPermissionMixin
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import DetailedProjectResponse, DetailedProjectSerializer
@@ -1305,6 +1306,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                             FilterTypes.RELEASES,
                             options[f"filters:{FilterTypes.RELEASES}"].split("\n"),
                         ),
+                        actor=get_actor_reference(request),
                     )
                 else:
                     return Response({"detail": "You do not have that feature enabled"}, status=400)
@@ -1317,6 +1319,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                             FilterTypes.ERROR_MESSAGES,
                             options[f"filters:{FilterTypes.ERROR_MESSAGES}"].split("\n"),
                         ),
+                        actor=get_actor_reference(request),
                     )
                 else:
                     return Response({"detail": "You do not have that feature enabled"}, status=400)
@@ -1333,6 +1336,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                             FilterTypes.LOG_MESSAGES,
                             options[f"filters:{FilterTypes.LOG_MESSAGES}"].split("\n"),
                         ),
+                        actor=get_actor_reference(request),
                     )
                 else:
                     return Response({"detail": "You do not have that feature enabled"}, status=400)
@@ -1349,11 +1353,14 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                             FilterTypes.TRACE_METRIC_NAMES,
                             options[f"filters:{FilterTypes.TRACE_METRIC_NAMES}"].split("\n"),
                         ),
+                        actor=get_actor_reference(request),
                     )
                 else:
                     return Response({"detail": "You do not have that feature enabled"}, status=400)
             if "copy_from_project" in result:
-                if not project.copy_settings_from(result["copy_from_project"]):
+                if not project.copy_settings_from(
+                    result["copy_from_project"], actor=get_actor_reference(request)
+                ):
                     return Response({"detail": "Copy project settings failed."}, status=409)
 
             if "sentry:dynamic_sampling_biases" in changed_proj_settings:

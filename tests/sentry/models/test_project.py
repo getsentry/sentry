@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from django.core.exceptions import ValidationError
 
+from sentry.api.helpers.creator import ActorReference
 from sentry.constants import ObjectStatus
 from sentry.db.models.fields.slug import SentrySlugField
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
@@ -1153,7 +1154,7 @@ class CopyProjectSettingsTest(TestCase):
     def test_simple(self) -> None:
         project = self.create_project(fire_project_created=True)
 
-        assert project.copy_settings_from(self.other_project.id)
+        assert project.copy_settings_from(self.other_project.id, actor=ActorReference())
         self.assert_settings_copied(project)
         self.assert_other_project_settings_not_changed()
 
@@ -1163,7 +1164,7 @@ class CopyProjectSettingsTest(TestCase):
         ProjectTeam.objects.create(team=self.create_team(), project=project)
         self.create_environment(project=project)
 
-        assert project.copy_settings_from(self.other_project.id)
+        assert project.copy_settings_from(self.other_project.id, actor=ActorReference())
         self.assert_settings_copied(project)
         self.assert_other_project_settings_not_changed()
 
@@ -1171,7 +1172,7 @@ class CopyProjectSettingsTest(TestCase):
         self.other_project.update_option("sentry:releases", ["1.*"])
         project = self.create_project(fire_project_created=True)
 
-        assert project.copy_settings_from(self.other_project.id)
+        assert project.copy_settings_from(self.other_project.id, actor=ActorReference())
 
         assert project.get_option("sentry:releases") == ["1.*"]
         row = CustomInboundFilter.objects.get(project_id=project.id)
@@ -1191,7 +1192,7 @@ class CopyProjectSettingsTest(TestCase):
         )
         project = self.create_project(fire_project_created=True)
 
-        assert project.copy_settings_from(self.other_project.id)
+        assert project.copy_settings_from(self.other_project.id, actor=ActorReference())
 
         row = CustomInboundFilter.objects.get(project_id=project.id)
         assert row.name == "Old builds"

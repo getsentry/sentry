@@ -54,6 +54,7 @@ from sentry.utils.snowflake import save_with_snowflake_id, snowflake_id_model
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
+    from sentry.api.helpers.creator import ActorReference
     from sentry.auth.principal import RequestPrincipal
     from sentry.models.options.project_option import ProjectOptionManager
     from sentry.models.organization import Organization
@@ -865,7 +866,7 @@ class Project(Model):
     def get_lock_key(self) -> str:
         return f"project_token:{self.id}"
 
-    def copy_settings_from(self, project_id: int) -> bool:
+    def copy_settings_from(self, project_id: int, *, actor: ActorReference) -> bool:
         """
         Copies project level settings of the inputted project
         - General Settings
@@ -873,7 +874,7 @@ class Project(Model):
         - Alerts Settings and Rules
         - EnvironmentProjects
         - ProjectOwnership Rules and settings
-        - Project Inbound Data Filters
+        - Project Inbound Data Filters, with ``actor`` as the editor of the copied filters
 
         Returns True if the settings have successfully been copied over
         Returns False otherwise
@@ -910,7 +911,7 @@ class Project(Model):
                 for key, value in options.items():
                     if key not in legacy_filter_lists.OPTION_KEYS:
                         self.update_option(key, value)
-                legacy_filter_lists.copy_lists(project, self)
+                legacy_filter_lists.copy_lists(project, self, actor=actor)
 
         except IntegrityError as e:
             logging.exception(
