@@ -271,6 +271,12 @@ E.g. `{'user': ['id', 'email']}`""",
         help_text="""A list of strings with tag keys to highlight on this project's issues.
 E.g. `['release', 'environment']`""",
     )
+    impactAssessmentProjectContext = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        max_length=4_000,
+        help_text="Customer-provided guidance about the project's user-facing purpose.",
+    )
     digestsMinDelay = serializers.IntegerField(
         required=False,
         min_value=60,
@@ -644,6 +650,14 @@ E.g. `['release', 'environment']`""",
             )
         return value
 
+    def validate_impactAssessmentProjectContext(self, value: str) -> str:
+        organization = self.context["project"].organization
+        if not features.has("organizations:seer-impact-assessment", organization):
+            raise serializers.ValidationError(
+                "Organization does not have the impact assessment feature enabled."
+            )
+        return value
+
     def validate_debugFilesRole(self, value: str | None) -> str | None:
         if value is None:
             return value
@@ -916,6 +930,16 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if result.get("highlightTags") is not None:
             if project.update_option("sentry:highlight_tags", result["highlightTags"]):
                 changed_proj_settings["sentry:highlight_tags"] = result["highlightTags"]
+        if "impactAssessmentProjectContext" in result:
+            context = result["impactAssessmentProjectContext"]
+            if project.get_option("sentry:impact_assessment_project_context") != context:
+                if context:
+                    project.update_option("sentry:impact_assessment_project_context", context)
+                else:
+                    project.delete_option("sentry:impact_assessment_project_context")
+                changed_proj_settings["impact_assessment_project_context_configured"] = bool(
+                    context
+                )
         if "storeCrashReports" in result:
             if project.get_option("sentry:store_crash_reports") != result["storeCrashReports"]:
                 changed_proj_settings["sentry:store_crash_reports"] = result["storeCrashReports"]

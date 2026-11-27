@@ -1316,6 +1316,14 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
             ),
         ]
     ]
+    impactAssessmentProjectContext: NotRequired[
+        Annotated[
+            str | None,
+            ApiDescription(
+                "Customer-provided guidance about the project's user-facing purpose. Only included when the organization has Impact Assessment access"
+            ),
+        ]
+    ]
 
 
 class DetailedProjectSerializer(ProjectWithTeamSerializer):
@@ -1486,6 +1494,11 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
         if has_tempest_access(obj.organization):
             data["tempestFetchScreenshots"] = attrs["options"].get(
                 "sentry:tempest_fetch_screenshots", False
+            )
+
+        if features.has("organizations:seer-impact-assessment", obj.organization):
+            data["impactAssessmentProjectContext"] = attrs["options"].get(
+                "sentry:impact_assessment_project_context"
             )
 
         return data

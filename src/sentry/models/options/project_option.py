@@ -93,6 +93,7 @@ EXPOSED_OPTION_KEYS = frozenset(
         "sentry:preprod_snapshot_pr_comments_post_on_changed",
         "sentry:preprod_snapshot_pr_comments_post_on_renamed",
         "sentry:scm_source_context_enabled",
+        "sentry:impact_assessment_project_context",
         "quotas:spike-protection-disabled",
         "feedback:branding",
         "digests:mail:minimum_delay",
