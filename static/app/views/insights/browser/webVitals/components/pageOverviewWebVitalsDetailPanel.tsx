@@ -124,10 +124,6 @@ export function PageOverviewWebVitalsDetailPanel({
 }: {
   webVital: WebVitals | null;
   dashboardFilters?: DashboardFilters;
-  /**
-   * When set, the header and chart query trace metrics with this search
-   * instead of spans. The samples table always lists spans.
-   */
   metricsQuery?: string;
 }) {
   const location = useLocation();

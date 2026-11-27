@@ -73,7 +73,6 @@ export function WebVitalsDetailPanel({
 }: {
   webVital: WebVitals | null;
   dashboardFilters?: DashboardFilters;
-  /** When set, query trace metrics with this search instead of spans. */
   metricsQuery?: string;
 }) {
   const location = useLocation();

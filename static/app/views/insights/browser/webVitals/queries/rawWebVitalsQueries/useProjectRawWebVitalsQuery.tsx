@@ -18,7 +18,6 @@ import {SpanFields, type SubregionCode} from 'sentry/views/insights/types';
 type Props = {
   browserTypes?: BrowserType[];
   deviceType?: DeviceType;
-  /** When set, query trace metrics with this search instead of spans. */
   metricsQuery?: string;
   subregions?: SubregionCode[];
   transaction?: string;

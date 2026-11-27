@@ -39,10 +39,6 @@ type Props = {
   deviceType?: DeviceType;
   enabled?: boolean;
   limit?: number;
-  /**
-   * When set, query trace metrics with this search instead of spans. Needs a
-   * single `webVital`, and sorts by its opportunity.
-   */
   metricsQuery?: string;
   query?: string;
   sortName?: string;

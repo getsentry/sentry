@@ -30,7 +30,6 @@ interface Props {
   deviceType: DeviceType;
   webVital: WebVitals | null;
   browserTypes?: BrowserType[];
-  /** When set, query trace metrics with this search instead of spans. */
   metricsQuery?: string;
   subregions?: SubregionCode[];
   transaction?: string;
