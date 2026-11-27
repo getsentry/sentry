@@ -40,9 +40,7 @@ function mapActionsToCompactSelect(
         label: (
           <Flex as="span" align="center" gap="xs">
             {action.name}
-            {action.disabled && (
-              <IconNot data-test-id="disabled-icon" size="xs" variant="danger" />
-            )}
+            {action.disabled && <IconNot size="xs" variant="danger" />}
           </Flex>
         ),
         // This is required for compact select searching to work
@@ -88,9 +86,7 @@ export function DropdownActions({actions, label}: Props) {
         });
       }}
       trigger={triggerProps => (
-        <OverlayTrigger.Button {...triggerProps} data-test-id="detail-actions">
-          {label}
-        </OverlayTrigger.Button>
+        <OverlayTrigger.Button {...triggerProps}>{label}</OverlayTrigger.Button>
       )}
     />
   );

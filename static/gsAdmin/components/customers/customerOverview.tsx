@@ -85,7 +85,7 @@ function SoftCapTypeDetail({
         : null;
       if (softCapName) {
         return (
-          <Text as="div" size="sm" key={`test-soft-cap-type-${categoryHistory.category}`}>
+          <Text as="div" size="sm" key={categoryHistory.category}>
             {`${getPlanCategoryName({
               plan,
               category: categoryHistory.category,
@@ -245,7 +245,7 @@ function ReservedBudgetsData({customer}: ReservedDataProps) {
   }
 
   return (
-    <Container data-test-id="reserved-budgets-data">
+    <Container as="section" aria-label="Reserved budgets">
       {customer.reservedBudgets.map(reservedBudget => {
         return (
           <Fragment key={reservedBudget.id}>
@@ -332,7 +332,7 @@ function SeerPlanSummary({customer}: {customer: Subscription}) {
   );
 
   return (
-    <Container data-test-id="seer-plan-summary">
+    <Container as="section" aria-label="Seer">
       <DetailsHeading>Seer</DetailsHeading>
       <DescriptionList gap="md">
         {!seatStatus && !legacyStatus && (
@@ -424,7 +424,7 @@ function OnDemandSummary({customer}: OnDemandSummaryProps) {
           </Text>
           {customer.planDetails.onDemandCategories.map(category => {
             return (
-              <Text as="div" size="sm" key={`test-ondemand-${category}`}>
+              <Text as="div" size="sm" key={category}>
                 {`${getPlanCategoryName({plan: customer.planDetails, category})}: `}
                 {`${displayPriceWithCents({
                   cents: onDemandBudgets.usedSpends[category] ?? 0,

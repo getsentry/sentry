@@ -414,7 +414,7 @@ describe('CustomerOverview', () => {
       />
     );
 
-    const budgetSection = within(screen.getByTestId('reserved-budgets-data'));
+    const budgetSection = within(screen.getByRole('region', {name: 'Reserved budgets'}));
     expect(budgetSection.getByText('Seer Budget')).toBeInTheDocument();
     expect(budgetSection.getByText('Reserved Budget')).toBeInTheDocument();
     expect(budgetSection.getByText('$25.00')).toBeInTheDocument();
@@ -1101,7 +1101,7 @@ describe('CustomerOverview', () => {
         />
       );
 
-      const seerSection = within(screen.getByTestId('seer-plan-summary'));
+      const seerSection = within(screen.getByRole('region', {name: 'Seer'}));
       const status = seerSection.getByText('Seat-based').nextSibling;
       expect(status).toHaveTextContent('Enabled');
       expect(status).not.toHaveTextContent('Trial');
@@ -1126,7 +1126,7 @@ describe('CustomerOverview', () => {
         />
       );
 
-      const seerSection = within(screen.getByTestId('seer-plan-summary'));
+      const seerSection = within(screen.getByRole('region', {name: 'Seer'}));
       expect(seerSection.getByText('Reserved Seats').nextSibling).toHaveTextContent('0');
       expect(
         seerSection.getByText('Active Contributors (billed this period)').nextSibling
@@ -1148,7 +1148,7 @@ describe('CustomerOverview', () => {
         />
       );
 
-      const seerSection = within(screen.getByTestId('seer-plan-summary'));
+      const seerSection = within(screen.getByRole('region', {name: 'Seer'}));
       expect(seerSection.getByText('Legacy (budget)').nextSibling).toHaveTextContent(
         'Enabled'
       );
@@ -1172,7 +1172,7 @@ describe('CustomerOverview', () => {
         />
       );
 
-      const seerSection = within(screen.getByTestId('seer-plan-summary'));
+      const seerSection = within(screen.getByRole('region', {name: 'Seer'}));
       expect(
         seerSection.getByText('Enabled but no budget data found')
       ).toBeInTheDocument();
@@ -1193,7 +1193,7 @@ describe('CustomerOverview', () => {
         />
       );
 
-      const seerSection = within(screen.getByTestId('seer-plan-summary'));
+      const seerSection = within(screen.getByRole('region', {name: 'Seer'}));
       expect(seerSection.getByText('Legacy (budget)').nextSibling).toHaveTextContent(
         'Trial'
       );
@@ -1214,7 +1214,7 @@ describe('CustomerOverview', () => {
         />
       );
 
-      const seerSection = within(screen.getByTestId('seer-plan-summary'));
+      const seerSection = within(screen.getByRole('region', {name: 'Seer'}));
       expect(seerSection.getByText('Seat-based').nextSibling).toHaveTextContent(
         'Available'
       );
@@ -1234,7 +1234,7 @@ describe('CustomerOverview', () => {
         />
       );
 
-      const seerSection = within(screen.getByTestId('seer-plan-summary'));
+      const seerSection = within(screen.getByRole('region', {name: 'Seer'}));
       expect(seerSection.getByText('Legacy (budget)').nextSibling).toHaveTextContent(
         'Available'
       );
@@ -1255,7 +1255,7 @@ describe('CustomerOverview', () => {
         />
       );
 
-      const seerSection = within(screen.getByTestId('seer-plan-summary'));
+      const seerSection = within(screen.getByRole('region', {name: 'Seer'}));
       expect(seerSection.getByText('Seat-based').nextSibling).toHaveTextContent(
         'Unavailable'
       );
@@ -1273,7 +1273,7 @@ describe('CustomerOverview', () => {
         />
       );
 
-      const seerSection = within(screen.getByTestId('seer-plan-summary'));
+      const seerSection = within(screen.getByRole('region', {name: 'Seer'}));
       expect(seerSection.getByText('Plan').nextSibling).toHaveTextContent(
         `Not available on the ${subscription.planDetails.name} plan`
       );
@@ -1297,7 +1297,7 @@ describe('CustomerOverview', () => {
         />
       );
 
-      const seerSection = within(screen.getByTestId('seer-plan-summary'));
+      const seerSection = within(screen.getByRole('region', {name: 'Seer'}));
       expect(seerSection.getByText('Legacy (budget)').nextSibling).toHaveTextContent(
         'Enabled'
       );
