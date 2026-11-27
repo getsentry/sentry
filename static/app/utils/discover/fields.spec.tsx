@@ -265,13 +265,17 @@ describe('getAggregateAlias', () => {
     ).toBe('to_other_release__release_beta_1_1_1__2___others_current');
   });
 
-  it('handles EAP conditional aggregates', () => {
+  it('keeps the search filter in EAP conditional aggregate aliases', () => {
     expect(getAggregateAlias('avg_if(`span.op:db`,span.duration)')).toBe(
-      'avg_span_duration'
+      'avg_if__span_op_db__span_duration'
     );
     expect(getAggregateAlias('count_if(`span.op:db`,span.duration)')).toBe(
-      'count_span_duration'
+      'count_if__span_op_db__span_duration'
     );
+    expect(getAggregateAlias('count_if(`span.op:http`,span.duration)')).toBe(
+      'count_if__span_op_http__span_duration'
+    );
+    expect(getAggregateAlias('count(span.duration)')).toBe('count_span_duration');
   });
 });
 

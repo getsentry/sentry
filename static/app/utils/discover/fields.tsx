@@ -1226,7 +1226,9 @@ export function getAggregateAlias(field: string): string {
     return field;
   }
 
-  const {name, arguments: args} = getBaseAggregateFromParsedFunction(result);
+  // Keep the search filter in the alias. Dropping it makes every count_if on the
+  // same column share count(span.duration)'s orderby.
+  const {name, arguments: args} = result;
 
   let alias = name;
 
