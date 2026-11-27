@@ -31,7 +31,7 @@ from sentry.models.grouplink import GroupLink
 from sentry.models.pullrequest import PullRequest, PullRequestLifecycleState
 from sentry.seer.code_review.webhooks.merge_request import handle_merge_request_event
 from sentry.silo.base import SiloMode
-from sentry.testutils.asserts import assert_failure_metric, assert_success_metric
+from sentry.testutils.asserts import assert_failure_metric
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of
 from sentry.types.activity import ActivityType
 from sentry.users.models.user import User
@@ -588,13 +588,27 @@ class WebhookTest(GitLabWebhookTestCase):
 
         assert_failure_metric(mock_record, error)
 
-    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_merge_event_no_last_commit(self, mock_record: MagicMock) -> None:
-        payload = orjson.loads(MERGE_REQUEST_OPENED_EVENT)
+    def test_merge_event_no_last_commit_updates_available_fields(self) -> None:
+        self.create_gitlab_repo("getsentry/sentry")
 
-        # Remove required keys. There have been events in prod that are missing
-        # these important attributes. GitLab docs don't explain why though.
-        del payload["object_attributes"]["last_commit"]
+        response = self.client.post(
+            self.url,
+            data=MERGE_REQUEST_OPENED_EVENT,
+            content_type="application/json",
+            HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
+            HTTP_X_GITLAB_EVENT="Merge Request Hook",
+        )
+        assert response.status_code == 204
+
+        pull_request = PullRequest.objects.get()
+        author_id = pull_request.author_id
+        head_commit_sha = pull_request.head_commit_sha
+
+        payload = orjson.loads(MERGE_REQUEST_OPENED_EVENT)
+        payload["object_attributes"]["action"] = "update"
+        payload["object_attributes"]["title"] = "Updated title"
+        payload["object_attributes"]["updated_at"] = "2017-09-29T16:12:57Z"
+        payload["object_attributes"]["last_commit"] = None
 
         response = self.client.post(
             self.url,
@@ -604,35 +618,32 @@ class WebhookTest(GitLabWebhookTestCase):
             HTTP_X_GITLAB_EVENT="Merge Request Hook",
         )
         assert response.status_code == 204
-        assert 0 == PullRequest.objects.count()
 
-        assert_success_metric(mock_record)
+        pull_request.refresh_from_db()
+        assert pull_request.title == "Updated title"
+        assert pull_request.author_id == author_id
+        assert pull_request.head_commit_sha == head_commit_sha
 
-    @patch("sentry.integrations.gitlab.webhooks.metrics.incr")
-    def test_merge_event_no_author_email_does_not_error(self, mock_incr: MagicMock) -> None:
-        # A repo exists (so the processor runs), but the MR has no commit author
-        # email. The PR processor must stop cleanly rather than raising, which
-        # _handle would otherwise catch and mislabel as a processor error.
+    def test_merge_event_no_author_email_processes_partial_event(self) -> None:
         self.create_gitlab_repo("getsentry/sentry")
         payload = orjson.loads(MERGE_REQUEST_OPENED_EVENT)
-        del payload["object_attributes"]["last_commit"]
+        payload["object_attributes"]["last_commit"]["author"]["email"] = None
 
-        response = self.client.post(
-            self.url,
-            data=orjson.dumps(payload),
-            content_type="application/json",
-            HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
-            HTTP_X_GITLAB_EVENT="Merge Request Hook",
-        )
+        processor = MagicMock()
+        with patch.object(MergeEventWebhook, "WEBHOOK_EVENT_PROCESSORS", (processor,)):
+            response = self.client.post(
+                self.url,
+                data=orjson.dumps(payload),
+                content_type="application/json",
+                HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
+                HTTP_X_GITLAB_EVENT="Merge Request Hook",
+            )
         assert response.status_code == 204
-        assert 0 == PullRequest.objects.count()
 
-        error_metrics = [
-            c
-            for c in mock_incr.call_args_list
-            if c.args and c.args[0] == "gitlab.webhook.processor.error"
-        ]
-        assert error_metrics == []
+        pull_request = PullRequest.objects.get()
+        assert pull_request.author is None
+        assert pull_request.head_commit_sha == "ba3e0d8ff79c80d5b0bbb4f3e2e343e0aaa662b7"
+        processor.assert_called_once()
 
     def test_merge_event_invokes_code_review_handler(self) -> None:
         # The code-review handler is wired into the endpoint via the processor

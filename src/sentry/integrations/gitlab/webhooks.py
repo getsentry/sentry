@@ -508,13 +508,15 @@ class MergeEventWebhook(GitlabWebhook):
             created_at = event["object_attributes"]["created_at"]
             merge_commit_sha = event["object_attributes"]["merge_commit_sha"]
 
-            last_commit = event["object_attributes"]["last_commit"]
+            last_commit = event["object_attributes"].get("last_commit")
             author_email = None
             author_name = None
             head_commit_sha = None
-            if last_commit:
-                author_email = last_commit["author"]["email"]
-                author_name = last_commit["author"]["name"]
+            if isinstance(last_commit, Mapping):
+                last_commit_author = last_commit.get("author")
+                if isinstance(last_commit_author, Mapping):
+                    author_email = last_commit_author.get("email")
+                    author_name = last_commit_author.get("name")
                 head_commit_sha = last_commit.get("id")
 
             updated_at = event["object_attributes"].get("updated_at")
@@ -534,20 +536,24 @@ class MergeEventWebhook(GitlabWebhook):
             )
             return
 
-        if not author_email:
+        author = None
+        if author_email:
+            author = CommitAuthor.objects.get_or_create(
+                organization_id=organization.id,
+                email=author_email,
+                defaults={"name": author_name},
+            )[0]
+        else:
             logger.info(
                 "gitlab.merge_request.missing_author_email",
                 extra={
+                    "organization_id": organization.id,
                     "integration_id": integration.id,
                     "repo_id": repo.id,
                     "pr_number": number,
+                    "action": action,
                 },
             )
-            raise Http404()
-
-        author = CommitAuthor.objects.get_or_create(
-            organization_id=organization.id, email=author_email, defaults={"name": author_name}
-        )[0]
 
         opened_at = parse_date(created_at).astimezone(timezone.utc)
         # Doubles as the ordering high-water mark and as the fallback for the
@@ -555,12 +561,10 @@ class MergeEventWebhook(GitlabWebhook):
         state_changed_at = parse_date(updated_at).astimezone(timezone.utc) if updated_at else None
         merged_at_dt = parse_date(merged_at).astimezone(timezone.utc) if merged_at else None
 
-        defaults = {
+        defaults: dict[str, Any] = {
             "title": title,
-            "author": author,
             "message": body,
             "merge_commit_sha": merge_commit_sha,
-            "head_commit_sha": head_commit_sha,
             "date_added": opened_at,
             "opened_at": opened_at,
             "merged_at": merged_at_dt,
@@ -569,6 +573,10 @@ class MergeEventWebhook(GitlabWebhook):
             "draft": draft,
             "external_id": str(external_id),
         }
+        if author is not None:
+            defaults["author"] = author
+        if head_commit_sha is not None:
+            defaults["head_commit_sha"] = head_commit_sha
 
         # GitLab has no closed_at, so derive it from the lifecycle action. A
         # merged merge request is also closed. Actions that don't change
@@ -580,7 +588,8 @@ class MergeEventWebhook(GitlabWebhook):
         elif action in ("reopen", "open"):
             defaults["closed_at"] = None
 
-        author.preload_users()
+        if author is not None:
+            author.preload_users()
         try:
             update_pull_request_from_scm_snapshot(
                 provider=self.provider,
