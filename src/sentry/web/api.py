@@ -5,6 +5,7 @@ from django.views.decorators.cache import cache_control
 from django.views.generic.base import View as BaseView
 from rest_framework.request import Request
 
+from sentry.api.helpers.oauth_authorize.request import PROMPT_VALUES
 from sentry.conf.types.sentry_config import SentryMode
 from sentry.utils import json
 from sentry.web.client_config import get_client_config
@@ -127,6 +128,7 @@ OAUTH_AUTHORIZATION_SERVER = {
         "urn:ietf:params:oauth:grant-type:device_code",
     ],
     "code_challenge_methods_supported": ["S256"],
+    "prompt_values_supported": list(PROMPT_VALUES),
 }
 
 OAUTH_PROTECTED_RESOURCE = {

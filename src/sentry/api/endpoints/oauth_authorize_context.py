@@ -6,12 +6,15 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.authentication import SessionNoAuthTokenAuthentication
 from sentry.api.base import Endpoint, control_silo_endpoint
+from sentry.api.helpers.oauth_authorize.prompt import prompt_error
 from sentry.api.helpers.oauth_authorize.request import build_authorization_request
 from sentry.api.helpers.oauth_authorize.response import (
     InvalidAuthorizationRequest,
     OAuthRedirectError,
 )
+from sentry.api.permissions import SentryIsAuthenticated
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.oauth_consent import (
     OAuthRedirect,
@@ -32,7 +35,8 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 class OAuthAuthorizeContextEndpoint(Endpoint):
     owner = ApiOwner.FOUNDATIONS
     publish_status = {"GET": ApiPublishStatus.PRIVATE}
-    authentication_classes = ()
+    # Context is public. The session is read only to answer prompt=none before any UI.
+    authentication_classes = (SessionNoAuthTokenAuthentication,)
     permission_classes = ()
     enforce_rate_limit = True
     rate_limits = RateLimitConfig(
@@ -64,4 +68,9 @@ class OAuthAuthorizeContextEndpoint(Endpoint):
         serializer = OAuthAuthorizeQuerySerializer(data=request.query_params)
         serializer.is_valid(raise_exception=True)
         authorization = build_authorization_request(serializer.validated_data)
+        if "none" in authorization.prompt and not SentryIsAuthenticated().has_permission(
+            request, self
+        ):
+            raise prompt_error(authorization, "login_required")
+
         return Response(serialize_request_context(authorization.application, authorization.scopes))

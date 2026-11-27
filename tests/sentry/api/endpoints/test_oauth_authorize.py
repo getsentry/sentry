@@ -8,6 +8,7 @@ from django.conf import settings
 from django.urls import reverse
 from rest_framework.test import APIClient
 
+from sentry.api.helpers.oauth_authorize.prompt import PROMPT_LOGIN_MAX_AGE
 from sentry.api.helpers.oauth_authorize.transactions import OAUTH_AUTHORIZE_SESSION_TTL
 from sentry.api.helpers.oauth_consent import persist_authorization
 from sentry.auth.authenticators.totp import TotpInterface
@@ -22,6 +23,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.impersonation import simulate_impersonation
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.utils.auth import AUTH_TIME_SESSION_KEY
 
 
 @control_silo_test
@@ -188,6 +190,116 @@ class OAuthAuthorizeGetTest(APITestCase):
         )
         grant = ApiGrant.objects.get(application=self.application, user=self.user)
         assert parse_qs(urlsplit(approved.data["redirectUrl"]).query)["code"] == [grant.code]
+
+    def test_prompt_consent_or_select_account_ignores_existing_consent(self) -> None:
+        self.login_as(self.user)
+        persist_authorization(self.application, self.user.id, ["project:read"], None)
+
+        for prompt in ("consent", "select_account", "login consent", "select_account unknown"):
+            with self.subTest(prompt=prompt):
+                self.session[AUTH_TIME_SESSION_KEY] = time.time()
+                self.save_session()
+                response = self.get_success_response(**{**self.query, "prompt": prompt})
+
+                assert response.data["stage"] == "consent"
+                assert response.data["hasExistingConsent"] is False
+
+    def test_unknown_prompt_values_are_ignored(self) -> None:
+        self.login_as(self.user)
+        persist_authorization(self.application, self.user.id, ["project:read"], None)
+
+        response = self.get_success_response(**{**self.query, "prompt": "unknown  other"})
+
+        assert response.data["hasExistingConsent"] is True
+
+    def test_prompt_none_with_existing_consent_prepares_silent_approval(self) -> None:
+        self.login_as(self.user)
+        persist_authorization(self.application, self.user.id, ["project:read"], None)
+
+        response = self.get_success_response(**{**self.query, "prompt": "none"})
+
+        assert response.data["stage"] == "consent"
+        assert response.data["hasExistingConsent"] is True
+        assert f"oa2:{response.data['transactionId']}" in self.client.session
+
+    def test_prompt_none_without_consent_returns_consent_required(self) -> None:
+        self.login_as(self.user)
+        persist_authorization(self.application, self.user.id, ["org:read"], None)
+
+        response = self.get_success_response(**{**self.query, "prompt": "none"})
+
+        assert response.data["stage"] == "redirect"
+        callback = urlsplit(response.data["redirectUrl"])
+        assert callback.netloc == "example.com"
+        assert parse_qs(callback.query) == {
+            "error": ["consent_required"],
+            "state": [self.query["state"]],
+        }
+        assert not any(key.startswith("oa2:") for key in self.client.session.keys())
+
+    def test_prompt_none_organization_application_returns_interaction_required(self) -> None:
+        self.login_as(self.user)
+        self.application.update(requires_org_level_access=True, scopes=["project:read"])
+
+        for has_organization in (False, True):
+            with self.subTest(has_organization=has_organization):
+                if has_organization:
+                    self.create_organization(owner=self.user)
+
+                response = self.get_success_response(**{**self.query, "prompt": "none"})
+
+                assert parse_qs(urlsplit(response.data["redirectUrl"]).query) == {
+                    "error": ["interaction_required"],
+                    "state": [self.query["state"]],
+                }
+
+    def test_prompt_none_combined_with_other_values_is_invalid(self) -> None:
+        self.login_as(self.user)
+        persist_authorization(self.application, self.user.id, ["project:read"], None)
+
+        response = self.get_success_response(**{**self.query, "prompt": "none consent"})
+
+        assert parse_qs(urlsplit(response.data["redirectUrl"]).query) == {
+            "error": ["invalid_request"],
+            "state": [self.query["state"]],
+        }
+
+    def test_prompt_login_requires_recent_authentication(self) -> None:
+        self.login_as(self.user)
+        persist_authorization(self.application, self.user.id, ["project:read"], None)
+
+        for auth_time in (None, time.time() - PROMPT_LOGIN_MAX_AGE - 1):
+            with self.subTest(auth_time=auth_time):
+                if auth_time is None:
+                    self.session.pop(AUTH_TIME_SESSION_KEY, None)
+                else:
+                    self.session[AUTH_TIME_SESSION_KEY] = auth_time
+                self.save_session()
+
+                response = self.get_success_response(**{**self.query, "prompt": "login"})
+
+                assert response.data == {"stage": "reauthenticate"}
+                assert not any(key.startswith("oa2:") for key in self.client.session.keys())
+
+    def test_prompt_login_accepts_fresh_sign_in(self) -> None:
+        self.login_as(self.user)
+        self.session[AUTH_TIME_SESSION_KEY] = time.time() - PROMPT_LOGIN_MAX_AGE - 1
+        self.save_session()
+        query = {**self.query, "prompt": "login"}
+        assert self.get_success_response(**query).data == {"stage": "reauthenticate"}
+
+        logout = self.client.delete(reverse("sentry-api-0-auth"))
+        assert logout.status_code == 204
+        self.client.get(reverse("sentry-api-0-auth-config"))
+        login = self.client.post(
+            reverse("sentry-api-0-auth-login"),
+            {"username": self.user.username, "password": "admin"},
+        )
+        assert login.status_code == 200, login.data
+
+        consent = self.get_success_response(**query)
+        assert consent.data["stage"] == "consent"
+        assert self.client.session[f"oa2:{consent.data['transactionId']}"]["uid"] == self.user.id
 
     def test_account_switch_prepares_fresh_consent(self) -> None:
         self.login_as(self.user)
