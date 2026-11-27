@@ -127,7 +127,7 @@ export const fakeTimerRules = defineConfig({
   },
 }).rules;
 
-export const testAssertionRules = defineConfig({
+export const ariaDisabledAssertionRules = defineConfig({
   rules: {'@sentry/prefer-aria-disabled-assertion': 'error'},
 }).rules;
 
@@ -1036,7 +1036,7 @@ export function createPackageConfig(
       },
       {
         files: ['**/*.spec.{ts,tsx,js,jsx}'],
-        rules: {...fakeTimerRules, ...testAssertionRules},
+        rules: {...fakeTimerRules, ...ariaDisabledAssertionRules},
       },
       ...(config.overrides ?? []),
     ],
