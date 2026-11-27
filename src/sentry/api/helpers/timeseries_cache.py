@@ -244,6 +244,7 @@ def update_result_with_cache(
         processed.confidence = confidence
     default_cache.set(cache_key, cached, timeout=INCREMENTAL_CACHE_TTL)
     result.data["data"] = final_result
+    result.data["is_cached"] = bool(loaded.cached) and loaded.merge_from is not None
 
 
 def read_timeseries_cache(

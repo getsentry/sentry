@@ -56,6 +56,14 @@ class StatsMeta(TypedDict):
         float, ApiDescription("End of the queried time range, in milliseconds since the Unix epoch")
     ]
     ingestion: NotRequired[IngestionMeta]
+    isCached: NotRequired[
+        Annotated[
+            bool,
+            ApiDescription(
+                "Whether this response reused rows from the incremental timeseries cache"
+            ),
+        ]
+    ]
 
 
 class Row(TypedDict):
