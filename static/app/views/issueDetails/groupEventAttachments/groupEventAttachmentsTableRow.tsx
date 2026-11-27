@@ -18,6 +18,7 @@ import {InlineEventAttachment} from './inlineEventAttachment';
 const friendlyAttachmentType: Record<string, string> = {
   'event.minidump': t('Minidump'),
   'event.applecrashreport': t('Apple Crash Report'),
+  'playstation.prosperodump': t('Prosperodump'),
   'event.attachment': t('Other'),
 };
 

@@ -25,6 +25,7 @@ interface UseGroupEventAttachmentsOptions {
 type GroupEventAttachmentsTypeFilter =
   | 'event.minidump'
   | 'event.applecrashreport'
+  | 'playstation.prosperodump'
   | 'event.screenshot';
 
 type GroupEventAttachmentsQuery = {
@@ -91,7 +92,11 @@ export function fetchGroupEventAttachmentsApiOptions({
   if (activeAttachmentsTab === 'screenshot') {
     query.screenshot = '1';
   } else if (activeAttachmentsTab === 'onlyCrash') {
-    query.types = ['event.minidump', 'event.applecrashreport'];
+    query.types = [
+      'event.minidump',
+      'event.applecrashreport',
+      'playstation.prosperodump',
+    ];
   }
 
   return apiOptions.as<IssueAttachment[]>()(

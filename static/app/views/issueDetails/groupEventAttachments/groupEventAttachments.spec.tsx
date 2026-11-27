@@ -92,7 +92,9 @@ describe('GroupEventAttachments', () => {
     {
       label: 'Only Crash Reports',
       filter: 'onlyCrash',
-      filterQuery: {types: ['event.minidump', 'event.applecrashreport']},
+      filterQuery: {
+        types: ['event.minidump', 'event.applecrashreport', 'playstation.prosperodump'],
+      },
     },
   ])(
     'restarts pagination when switching to $label',
