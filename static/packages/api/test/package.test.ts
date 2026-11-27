@@ -40,8 +40,8 @@ describe("package entry points", () => {
       expect(await imports(name)).toEqual([]);
     }
     const client = new Set(await imports("api-client/index"));
-    expect(client).toEqual(new Set(["@sentry/api", "http-cache-semantics", "p-limit"]));
-    expect(Object.keys(packageJson.dependencies).sort()).toEqual(["http-cache-semantics", "p-limit"]);
+    expect(client).toEqual(new Set(["@sentry/api", "p-limit"]));
+    expect(Object.keys(packageJson.dependencies).sort()).toEqual(["p-limit"]);
   });
 
   test("isolates optional tools and validators to their own entry points", async () => {

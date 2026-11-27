@@ -22,11 +22,6 @@ contributor's ``@sentry review`` on their first MR is then denied
 ``ORG_CONTRIBUTOR_NOT_FOUND`` and dropped rather than retried. GitHub's ``issue_comment``
 path has the same gap for the same reason.
 
-Contributor seeding still depends on ``MergeEventWebhook.__call__`` reaching its
-processors. Seats are only assigned for ``object_attributes.action == "open"``. Payloads
-that short-circuit before processor dispatch, such as MRs missing ``last_commit`` or the
-author email, do not seed the MR author; later ``update`` events do not backfill it.
-
 GitLab has no dedicated "ready_for_review" action: un-drafting an MR arrives as an
 "update" whose top-level ``changes`` flips draft/work_in_progress to false, which is
 treated as an ON_READY_FOR_REVIEW trigger (see ``_resolve_review_trigger``).

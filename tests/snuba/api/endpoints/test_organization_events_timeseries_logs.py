@@ -198,4 +198,5 @@ class OrganizationEventsStatsOurlogsMetricsEndpointTest(OrganizationEventsEndpoi
             self.start,
             3_600_000,
             [0] * 7,
+            exceeds_query_range=[6],
         )

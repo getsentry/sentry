@@ -1,8 +1,11 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import type {
-  AggregationKeyWithAlias,
-  QueryFieldValue,
+import {
+  explodeFieldString,
+  type AggregationKeyWithAlias,
+  type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import {decodeList} from 'sentry/utils/queryString';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
@@ -556,5 +559,149 @@ describe('MetricSelectRow', () => {
     const trigger = await screen.findByRole('button', {name: 'None'});
     await waitFor(() => expect(trigger).toBeEnabled());
     expect(screen.getByRole('button', {name: 'None'})).toBeInTheDocument();
+  });
+
+  describe('web vital score metrics', () => {
+    const LCP_SCORE_AGGREGATE =
+      'avg(tags[score.ratio.lcp,number],browser.web_vital.lcp,distribution,millisecond)';
+    const ALPHA_SUM: QueryFieldValue = {
+      kind: 'function',
+      function: ['sum', 'value', 'alpha_metric', 'counter', 'none'],
+    };
+    const organization = OrganizationFixture({
+      features: ['dashboards-web-vitals-trace-metrics'],
+    });
+
+    function lineChartConfig(yAxis: string) {
+      return {
+        location: {
+          pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+          query: {
+            yAxis: [yAxis],
+            dataset: WidgetType.TRACEMETRICS,
+            displayType: DisplayType.LINE,
+          },
+        },
+      };
+    }
+
+    beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/',
+        body: {
+          data: [
+            {
+              'metric.name': 'alpha_metric',
+              'metric.type': 'counter',
+              'count(metric.name)': 1,
+            },
+            {
+              'metric.name': 'browser.web_vital.lcp',
+              'metric.type': 'distribution',
+              'metric.unit': 'millisecond',
+              'count(metric.name)': 1,
+            },
+          ],
+        },
+      });
+    });
+
+    it('offers the score as a metric and writes the attribute aggregate', async () => {
+      const {router} = render(
+        <WidgetBuilderProvider>
+          <MetricSelectRow field={ALPHA_SUM} index={0} disabled={false} />
+        </WidgetBuilderProvider>,
+        {
+          organization,
+          initialRouterConfig: lineChartConfig('sum(value,alpha_metric,counter,none)'),
+        }
+      );
+
+      await userEvent.click(await screen.findByRole('button', {name: 'alpha_metric'}));
+      await userEvent.click(
+        await screen.findByRole('option', {name: 'browser.web_vital.lcp.score'})
+      );
+
+      await waitFor(() => {
+        expect(decodeList(router.location.query.yAxis)).toEqual([
+          'sum(tags[score.ratio.lcp,number],browser.web_vital.lcp,distribution,millisecond)',
+        ]);
+      });
+    });
+
+    it('shows a saved score aggregate as the score metric', async () => {
+      render(
+        <WidgetBuilderProvider>
+          <MetricSelectRow
+            field={explodeFieldString(LCP_SCORE_AGGREGATE)}
+            index={0}
+            disabled={false}
+          />
+        </WidgetBuilderProvider>,
+        {organization, initialRouterConfig: lineChartConfig(LCP_SCORE_AGGREGATE)}
+      );
+
+      expect(
+        await screen.findByRole('button', {name: 'browser.web_vital.lcp.score'})
+      ).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Aggregate Selection'})).toHaveTextContent(
+        'avg'
+      );
+    });
+
+    it('hides the score metrics for a heat map', async () => {
+      const LCP_COUNT = 'count(value,browser.web_vital.lcp,distribution,millisecond)';
+      render(
+        <WidgetBuilderProvider>
+          <MetricSelectRow
+            field={explodeFieldString(LCP_COUNT)}
+            index={0}
+            disabled={false}
+          />
+        </WidgetBuilderProvider>,
+        {
+          organization,
+          initialRouterConfig: {
+            location: {
+              pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+              query: {
+                field: [LCP_COUNT],
+                dataset: WidgetType.TRACEMETRICS,
+                displayType: DisplayType.HEATMAP,
+              },
+            },
+          },
+        }
+      );
+
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'browser.web_vital.lcp'})
+      );
+
+      expect(
+        await screen.findByRole('option', {name: 'browser.web_vital.lcp'})
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('option', {name: 'browser.web_vital.lcp.score'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('hides the score metrics without the feature', async () => {
+      render(
+        <WidgetBuilderProvider>
+          <MetricSelectRow field={ALPHA_SUM} index={0} disabled={false} />
+        </WidgetBuilderProvider>,
+        {initialRouterConfig: lineChartConfig('sum(value,alpha_metric,counter,none)')}
+      );
+
+      await userEvent.click(await screen.findByRole('button', {name: 'alpha_metric'}));
+
+      expect(
+        await screen.findByRole('option', {name: 'browser.web_vital.lcp'})
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('option', {name: 'browser.web_vital.lcp.score'})
+      ).not.toBeInTheDocument();
+    });
   });
 });

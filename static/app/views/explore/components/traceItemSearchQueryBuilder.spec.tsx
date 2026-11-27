@@ -380,6 +380,38 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
     ]);
   });
 
+  it('scopes key suggestions, but not value suggestions, to attributeKeyQuery', async () => {
+    const keysMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      body: [{attributeType: 'string', key: 'db.system', name: 'db.system'}],
+      match: [MockApiClient.matchQuery({query: 'span.op:db'})],
+    });
+    const valuesMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/span.op/values/',
+      body: [{key: 'span.op', name: 'db', value: 'db', count: 1}],
+    });
+
+    const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
+      initialProps: {...defaultInitialProps, attributeKeyQuery: 'span.op:db'},
+      organization,
+    });
+
+    const tags = await result.current.getTagKeys?.('');
+    expect(tags?.map(tag => tag.key)).toEqual(['db.system']);
+    expect(keysMock).toHaveBeenCalled();
+
+    await result.current.getTagValues?.({
+      tag: {key: 'span.op', name: 'span.op', kind: FieldKind.TAG},
+      searchQuery: '',
+    });
+    expect(valuesMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/trace-items/attributes/span.op/values/',
+      expect.objectContaining({
+        query: expect.not.objectContaining({query: expect.anything()}),
+      })
+    );
+  });
+
   it('uses a custom placeholder when provided', () => {
     const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
       initialProps: {...defaultInitialProps, placeholder: 'Custom placeholder text'},

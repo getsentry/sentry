@@ -1,12 +1,12 @@
 import type {
+  ClassifierOutputConfig,
   TelemetryClassifier,
-  TelemetryClassifierOutputConfig,
 } from 'sentry/views/classifiers/types';
 
 type TelemetryClassifierFixtureParams = Partial<
-  Omit<TelemetryClassifier, keyof TelemetryClassifierOutputConfig>
+  Omit<TelemetryClassifier, keyof ClassifierOutputConfig>
 > &
-  (TelemetryClassifierOutputConfig | {binaryThreshold?: never; outputType?: never});
+  (ClassifierOutputConfig | {binaryThreshold?: never; outputType?: never});
 
 export function TelemetryClassifierFixture(
   params: TelemetryClassifierFixtureParams = {}

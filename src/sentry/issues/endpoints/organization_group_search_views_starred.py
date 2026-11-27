@@ -12,12 +12,11 @@ from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.models.organization import Organization
 
 
-class MemberPermission(OrganizationPermission):
+class StarredGroupSearchViewsPermission(OrganizationPermission):
     scope_map = {
-        "GET": ["member:read", "user_preference:read"],
+        "GET": ["user_preference:read"],
     }
 
-    # user_preference:read replaces member:read in orgs with granular scopes.
     rejects_deprecated_scopes = True
 
 
@@ -28,7 +27,7 @@ class OrganizationGroupSearchViewsStarredEndpoint(OrganizationEndpoint):
     }
     owner = ApiOwner.ISSUES
     max_acceptable_duration = DEFAULT_DURATION_BUDGET
-    permission_classes = (MemberPermission,)
+    permission_classes = (StarredGroupSearchViewsPermission,)
 
     def get(self, request: Request, organization: Organization) -> Response:
         """

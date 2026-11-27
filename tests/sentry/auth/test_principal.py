@@ -18,6 +18,7 @@ from sentry.auth.principal import (
     RequestPrincipal,
     acting_user,
     acting_user_id,
+    get_request_auth_kind,
     has_user,
     is_acting_user,
     is_owned_by_acting_user,
@@ -126,6 +127,41 @@ class OwnedByActingUserTest(TestCase):
         assert list(
             GroupBookmark.objects.filter(is_owned_by_acting_user(self.user, "user_id"))
         ) == [self.mine]
+
+
+@pytest.mark.parametrize(
+    "kind",
+    [
+        "api_token",
+        "org_auth_token",
+        "api_key",
+        "project_key",
+        "system",
+        "agent_token",
+        "service_account",
+    ],
+)
+def test_get_request_auth_kind_token(kind: str) -> None:
+    request = Request(RequestFactory().get("/"))
+    set_request_principal(request, AnonymousUser(), AuthenticatedToken(kind=kind))
+    assert get_request_auth_kind(request) == kind
+
+
+class GetRequestAuthKindTest(TestCase):
+    def test_session(self) -> None:
+        request = RequestFactory().get("/")
+        set_request_principal(request, self.user, None)
+        assert get_request_auth_kind(request) == "session"
+
+    def test_anonymous(self) -> None:
+        request = RequestFactory().get("/")
+        request.user = AnonymousUser()
+        assert get_request_auth_kind(request) == "anonymous"
+
+    def test_unknown_auth(self) -> None:
+        request = RequestFactory().get("/")
+        set_request_principal(request, self.user, "rpc-signature")
+        assert get_request_auth_kind(request) == "unknown"
 
 
 class ResolveActorTest(TestCase):

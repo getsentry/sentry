@@ -79,6 +79,17 @@ def is_owned_by_acting_user(principal: RequestPrincipal, field: str = "user_id")
     return Q(**{field: user_id}) if user_id is not None else Q(pk__in=[])
 
 
+def get_request_auth_kind(request: HttpRequest | Request) -> str:
+    """Returns the authentication method (api_token, session, etc) for use in
+    telemetry."""
+    auth = getattr(request, "auth", None)
+    if isinstance(auth, AuthenticatedToken):
+        return auth.kind
+    if auth is not None:
+        return "unknown"
+    return "session" if request.user.is_authenticated else "anonymous"
+
+
 def resolve_actor(user: Any, auth: Any) -> Actor | None:
     """The actor behind an authenticated ``(user, auth)`` pair, or None if there is none."""
     # circular: imported at app setup

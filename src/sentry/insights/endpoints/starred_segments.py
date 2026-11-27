@@ -43,13 +43,12 @@ class StarSegmentSerializer(serializers.Serializer[object, StarSegmentValidatedD
     )
 
 
-class MemberPermission(OrganizationPermission):
+class StarredServiceSpanPermission(OrganizationPermission):
     scope_map = {
-        "POST": ["member:read", "member:write", "user_preference:write"],
-        "DELETE": ["member:read", "member:write", "user_preference:write"],
+        "POST": ["user_preference:write"],
+        "DELETE": ["user_preference:write"],
     }
 
-    # user_preference:write replaces member:read in orgs with granular scopes.
     rejects_deprecated_scopes = True
 
 
@@ -62,7 +61,7 @@ class OrganizationStarredServiceSpansEndpoint(OrganizationEndpoint):
     }
     idempotent_methods = frozenset({"DELETE"})
     owner = ApiOwner.DATA_BROWSING
-    permission_classes = (MemberPermission,)
+    permission_classes = (StarredServiceSpanPermission,)
 
     def has_feature(self, organization: Organization, request: Request) -> bool:
         return features.has(

@@ -489,11 +489,11 @@ describe('ClassifierDetail', () => {
     });
     expect(resultsRequest).toHaveBeenLastCalledWith(eventsUrl, nonMatchQuery);
     expect(countRequest).toHaveBeenLastCalledWith(eventsUrl, nonMatchQuery);
-    expect(timeSeriesRequest).toHaveBeenLastCalledWith(timeSeriesUrl, nonMatchQuery);
+    expect(timeSeriesRequest).toHaveBeenCalledTimes(1);
   });
 
   it('shows every result without a filter for non-binary classifiers', async () => {
-    mockClassifier({outputType: null, binaryThreshold: null});
+    mockClassifier({outputType: 'score', binaryThreshold: null});
     mockResults([
       {
         'gen_ai.conversation.id': 'conv-1',

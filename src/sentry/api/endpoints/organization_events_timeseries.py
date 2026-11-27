@@ -16,6 +16,14 @@ from sentry import features, quotas
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
+from sentry.api.bases.organization_events import (
+    LEGACY_DATASETS_BROWNOUT_KEY,
+    LEGACY_DATASETS_DEPRECATION_DATE,
+    LEGACY_DATASETS_GONE_MESSAGE,
+    LEGACY_DATASETS_GONE_RESPONSE,
+    legacy_dataset_metric_attributes,
+    requests_legacy_dataset,
+)
 from sentry.api.endpoints.organization_events_stats import SENTRY_BACKEND_REFERRERS
 from sentry.api.endpoints.timeseries import (
     EMPTY_STATS_RESPONSE,
@@ -27,6 +35,7 @@ from sentry.api.endpoints.timeseries import (
     StatsResponse,
     TimeSeries,
 )
+from sentry.api.helpers.deprecation import deprecated
 from sentry.api.helpers.ingestion_delay import (
     get_ingestion_delay_status,
     serialize_ingestion_status,
@@ -63,13 +72,14 @@ from sentry.snuba.enrichment_attributes_rpc import EnrichmentAttributes
 from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.preprod_size import PreprodSize
 from sentry.snuba.query_sources import QuerySource
-from sentry.snuba.referrer import Referrer, is_valid_referrer
+from sentry.snuba.referrer import Referrer, resolve_client_referrer
 from sentry.snuba.rpc_dataset_common import RPCBase
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.snuba.uptime_results import UptimeResults
 from sentry.snuba.utils import DATASET_LABELS, RPC_DATASETS
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.utils import json
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.sdk import sdk_logger
 from sentry.utils.snuba import SnubaTSResult
@@ -95,6 +105,42 @@ DATASET_TO_FORMULA_DATASET = {
 }
 
 logger = logging.getLogger(__name__)
+
+# Dashboard line/area/bar widgets use this prefix.
+_DASHBOARD_TIMESERIES_REFERRER_PREFIX = "api.dashboards.widget."
+
+
+def record_dashboard_timeseries_result_size(
+    referrer: str,
+    dataset_label: str,
+    result: SnubaTSResult,
+) -> None:
+    """Record the JSON size of a dashboard timeseries result's rows.
+
+    The serialized HTTP body adds meta and confidence fields that are not part
+    of this payload.
+    """
+    try:
+        if (
+            not referrer.startswith(_DASHBOARD_TIMESERIES_REFERRER_PREFIX)
+            or "-chart" not in referrer
+            or referrer.endswith(".row")
+        ):
+            return
+        sentry_sdk.metrics.distribution(
+            "events.timeseries.dashboard_widget.result_bytes",
+            len(json.dumps(result.data["data"]).encode()),
+            unit="byte",
+            attributes={
+                "dataset": dataset_label,
+                "widget": referrer.removeprefix(_DASHBOARD_TIMESERIES_REFERRER_PREFIX).split(
+                    ".", 1
+                )[0],
+            },
+        )
+    except Exception:
+        logger.exception("events.timeseries.dashboard_widget.result_bytes")
+
 
 INGESTION_DELAY_TIMEOUT = 1.0  # p99 returns in less than 1 second
 INCREMENTAL_CACHE_KEY = "timeseries:{dataset_label}:{query_string}:{columns}:{rollup}:{projects}"
@@ -129,6 +175,7 @@ def cache_candidate(
     query_columns: list[str],
     rollup: int,
     top_events: int,
+    comparison_delta: timedelta | None,
 ) -> bool:
     """Check if this query is a good candidate for caching
 
@@ -141,6 +188,7 @@ def cache_candidate(
         and query_columns == ["count(span.duration)"]
         and rollup in [1800, 10_800]
         and top_events == 0
+        and comparison_delta is None
     ):
         return True
     return False
@@ -164,14 +212,18 @@ def update_result_with_cache(
     cached: Any,
     result: Any,
     cached_timestamps: list[int] | None,
-    original_start: datetime | None,
     snuba_params: SnubaParams,
     axis: str,
+    merge_from: int | None = None,
 ) -> None:
     final_result = []
     to_update = {}
     if cached and cached_timestamps:
         for row in result.data["data"]:
+            # The RPC still returns the full metadata window. Buckets before the
+            # cache filter are zerofilled and must not replace stored counts.
+            if merge_from is not None and row["time"] < merge_from:
+                continue
             if row["time"] in cached_timestamps:
                 to_update[row["time"]] = row
             else:
@@ -194,9 +246,8 @@ def update_result_with_cache(
     for index, row in enumerate(cached):
         if row["time"] in to_update:
             cached[index].update(to_update[row["time"]])
-    start = original_start if original_start is not None else snuba_params.start_date
     for row in cached:
-        if start.timestamp() <= row["time"] <= snuba_params.end_date.timestamp():
+        if snuba_params.start_date.timestamp() <= row["time"] <= snuba_params.end_date.timestamp():
             final_result.append(row)
     processed.sample_count = [
         {"time": row["time"], axis: row.get("sampleCount")} for row in final_result
@@ -211,9 +262,6 @@ def update_result_with_cache(
         cached = cached[MAX_CACHE_LENGTH:]
     default_cache.set(cache_key, cached, timeout=INCREMENTAL_CACHE_TTL)
     result.data["data"] = final_result
-    # Retore the original_start
-    if original_start:
-        snuba_params.start = original_start
 
 
 @extend_schema(tags=["Explore"])
@@ -294,8 +342,16 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
             ),
             400: OpenApiResponse(description="Invalid Query"),
             404: api_constants.RESPONSE_NOT_FOUND,
+            410: LEGACY_DATASETS_GONE_RESPONSE,
         },
         examples=DiscoverAndPerformanceExamples.QUERY_TIMESERIES,
+    )
+    @deprecated(
+        LEGACY_DATASETS_DEPRECATION_DATE,
+        key=LEGACY_DATASETS_BROWNOUT_KEY,
+        applies_to=requests_legacy_dataset,
+        gone_message=LEGACY_DATASETS_GONE_MESSAGE,
+        metric_attributes=legacy_dataset_metric_attributes,
     )
     def get(self, request: Request, organization: Organization) -> Response[StatsResponse]:
         """
@@ -372,6 +428,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
             self.validate_comparison_delta(comparison_delta, snuba_params, organization)
             rollup = self.get_rollup(request, snuba_params, top_events, use_rpc)
             snuba_params.granularity_secs = rollup
+            query_range = (snuba_params.start_date, snuba_params.end_date)
             axes = request.GET.getlist("yAxis", ["count()"])
             include_measured_ingestion_delay_metadata = features.has(
                 "organizations:measured-ingestion-delay-metadata",
@@ -420,6 +477,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                     rollup,
                     dataset,
                     organization,
+                    query_range,
                     ingestion_delay_status,
                 ),
                 status=200,
@@ -516,10 +574,9 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         # Force the referrer to "api.auth-token.events" for events requests authorized through a bearer token
         if request.auth:
             referrer = Referrer.API_AUTH_TOKEN_EVENTS.value
-        elif referrer is None or not referrer:
-            referrer = Referrer.API_ORGANIZATION_EVENTS.value
-        elif not is_valid_referrer(referrer):
-            referrer = Referrer.API_ORGANIZATION_EVENTS.value
+        else:
+            referrer = resolve_client_referrer(referrer, Referrer.API_ORGANIZATION_EVENTS.value)
+        dataset_label = DATASET_LABELS.get(dataset, "unknown")
 
         sentry_sdk.set_tag("query.referrer", referrer)
         sentry_sdk.set_attribute("query.referrer", referrer)
@@ -559,12 +616,19 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         # skipCache only applies while incremental caching is enabled.
         skip_cache = incremental_loading and request.GET.get("skipCache") == "1"
         is_cache_candidate = False
+        cache_filter_start = None
+        cache_merge_from = None
         if incremental_loading and not skip_cache:
             with traces.start_span("get_cache") as span:
                 if is_cache_candidate := cache_candidate(
-                    dataset, snuba_params, query, query_columns, rollup, top_events
+                    dataset,
+                    snuba_params,
+                    query,
+                    query_columns,
+                    rollup,
+                    top_events,
+                    comparison_delta,
                 ):
-                    original_start = None
                     cached_timestamps = None
                     cache_key = create_cache_key(
                         dataset, snuba_params, query, query_columns, rollup
@@ -578,12 +642,13 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                             span.set_attribute("query.invalid_cache_reason", "missing_start")
                             span.set_attribute("query.truncated", "None")
                             is_cache_candidate = False
-                        # still query the last 3 timestamps
+                        # Re-read the last 3 buckets through a query filter. Leave the
+                        # metadata range alone so Snuba keeps the same storage tier.
                         elif len(cached_timestamps) > 3:
-                            original_start = snuba_params.start_date
-                            snuba_params.start = datetime.fromtimestamp(
-                                cached_timestamps[-3], tz=timezone.utc
-                            )
+                            cache_merge_from = cached_timestamps[-3]
+                            cache_filter_start = datetime.fromtimestamp(
+                                cache_merge_from, tz=timezone.utc
+                            ).strftime("%Y-%m-%dT%H:%M:%SZ")
                             span.set_attribute("query.truncated", "by_cache")
                         else:
                             span.set_attribute("query.truncated", "None")
@@ -639,9 +704,15 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
             )
 
         if dataset in RPC_DATASETS:
+            timeseries_query = query
+            if cache_filter_start is not None:
+                if query:
+                    timeseries_query = f"{query} timestamp:>={cache_filter_start}"
+                else:
+                    timeseries_query = f"timestamp:>={cache_filter_start}"
             result = dataset.run_timeseries_query(
                 params=snuba_params,
-                query_string=query,
+                query_string=timeseries_query,
                 y_axes=query_columns,
                 referrer=referrer,
                 config=self.get_rpc_config(dataset, request, organization),
@@ -658,10 +729,12 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                         cached,
                         result,
                         cached_timestamps,
-                        original_start,
                         snuba_params,
                         query_columns[0],
+                        merge_from=cache_merge_from,
                     )
+            else:
+                record_dashboard_timeseries_result_size(referrer, dataset_label, result)
             return result
 
         return dataset.timeseries_query(
@@ -687,6 +760,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         rollup: int,
         dataset: ModuleType,
         organization: Organization,
+        query_range: tuple[datetime, datetime],
         ingestion_delay_status: IngestionDelayStatus | None = None,
     ) -> StatsResponse:
         # We need the current timestamp for the Ingestion Delay incomplete reason
@@ -720,6 +794,8 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
             retention_start=now - timedelta(days=retention_days).total_seconds()
             if retention_days
             else None,
+            query_start=query_range[0].timestamp(),
+            query_end=query_range[1].timestamp(),
         )
 
         response = StatsResponse(

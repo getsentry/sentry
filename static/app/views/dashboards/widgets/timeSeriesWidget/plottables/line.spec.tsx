@@ -53,8 +53,11 @@ describe('Line', () => {
   });
 
   it.each([
-    {segmentBy: [], flags: [{}, {}, {}]},
-    {segmentBy: ['completeness'], flags: [{}, {}, {completeness: 'incomplete'}]},
+    {segmentBy: [], flags: [{}, {confidence: 'low'}, {}]},
+    {
+      segmentBy: ['completeness'],
+      flags: [{}, {confidence: 'low'}, {completeness: 'incomplete'}],
+    },
     {segmentBy: ['confidence'], flags: [{}, {confidence: 'low'}, {}]},
   ] as const)('attaches flags for $segmentBy to data points', ({segmentBy, flags}) => {
     const series = new Line(timeSeries).toSeries({...plottingOptions, segmentBy});

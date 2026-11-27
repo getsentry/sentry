@@ -15,12 +15,31 @@
 
   /* eslint-disable eslint-js/spaced-comment */
   var strings = /*{{ strings }}*/ '';
-  var template = /*{{ template }}*/ '';
+  var template = /*{{ template }}*/ [];
   var endpoint = /*{{ endpoint }}*/ '';
   /* eslint-enable */
 
+  // Avoid `innerHTML`, it is blocked on pages that enforce Trusted Types.
+  var appendNodes = function (parent, nodes) {
+    for (var i = 0; i < nodes.length; i++) {
+      var node = nodes[i];
+      if (typeof node === 'string') {
+        parent.appendChild(document.createTextNode(node));
+        continue;
+      }
+      var element = document.createElement(node[0]);
+      for (var name in node[1]) {
+        if (Object.prototype.hasOwnProperty.call(node[1], name)) {
+          element.setAttribute(name, node[1][name]);
+        }
+      }
+      appendNodes(element, node[2]);
+      parent.appendChild(element);
+    }
+  };
+
   var setChild = function (target, child) {
-    target.innerHTML = '';
+    target.textContent = '';
     target.appendChild(child);
   };
 
@@ -66,7 +85,7 @@
     var self = this;
     this.element = document.createElement('div');
     this.element.className = 'sentry-error-embed-wrapper';
-    this.element.innerHTML = template;
+    appendNodes(this.element, template);
     self.element.onclick = function (e) {
       if (e.target !== self.element) {
         return;
@@ -181,7 +200,7 @@
   };
 
   SentryErrorEmbed.prototype.onSuccess = function () {
-    this._errorWrapper.innerHTML = '';
+    this._errorWrapper.textContent = '';
     setChild(this._formContent, FORM_SUCCESS);
     this._submitBtn.parentNode.removeChild(this._submitBtn);
     if (handleFocus) {

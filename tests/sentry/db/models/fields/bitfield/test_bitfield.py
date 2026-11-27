@@ -25,6 +25,7 @@ class BitFieldTestModel(models.Model):
         FLAG_3: bool
 
         bitfield_default = 3
+        bitfield_db_default = 3
         bitfield_db_column = "another_name"
 
 
@@ -364,6 +365,12 @@ class BitFieldTest(TestCase):
             BitFieldTestModelWithDefaultsAsKeyNames.flags.FLAG_1
             | BitFieldTestModelWithDefaultsAsKeyNames.flags.FLAG_2,
         )
+
+    def test_db_default(self) -> None:
+        field = BitFieldTestModel._meta.get_field("flags")
+        assert isinstance(field, BitField)
+        _, _, _, kwargs = field.deconstruct()
+        assert kwargs["db_default"] == 3
 
     def test_pickle_integration(self) -> None:
         inst = BitFieldTestModel.objects.create(flags=1)

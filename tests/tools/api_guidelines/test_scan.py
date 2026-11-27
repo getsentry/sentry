@@ -6,7 +6,7 @@ from unittest import mock
 from tools.api_guidelines import scan
 from tools.api_guidelines.rules import ApiRule
 from tools.api_guidelines.scan import collect_findings
-from tools.flake8_plugin import ApiInputViolation
+from tools.flake8_plugin import ApiInputViolation, PublishStatus
 
 PATH = "src/sentry/api/endpoints/example.py"
 
@@ -50,6 +50,7 @@ def _violation(rule: str, key: str) -> ApiInputViolation:
         severity="warning",
         scope="ExampleEndpoint.get",
         key=key,
+        publish_status=PublishStatus.PUBLIC,
         caller=None,
     )
 

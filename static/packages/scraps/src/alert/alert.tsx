@@ -148,12 +148,6 @@ const StyledTrailingItems = styled(Grid)`
   }
 `;
 
-const StyledMessage = styled('div')`
-  line-height: ${p => p.theme.font.lineHeight.comfortable};
-  place-content: center;
-  padding-block: ${p => p.theme.space.xs};
-`;
-
 const StyledIconWrapper = styled('div')<{variant: AlertProps['variant']}>`
   position: absolute;
   top: ${p => p.theme.space.lg};
@@ -220,7 +214,13 @@ export function Alert({
             {icon ?? <AlertIcon variant={variant} />}
           </StyledIconWrapper>
         )}
-        <StyledMessage>{children}</StyledMessage>
+        <Container alignSelf="center" padding="xs 0">
+          {containerProps => (
+            <Text {...containerProps} as="div" density="comfortable" variant="inherit">
+              {children}
+            </Text>
+          )}
+        </Container>
         {!!trailingItems && (
           <StyledTrailingItems
             flow="column"

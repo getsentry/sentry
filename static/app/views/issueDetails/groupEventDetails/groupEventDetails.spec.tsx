@@ -917,6 +917,35 @@ describe('groupEventDetails', () => {
       expect(screen.getByText('File IO on Main Thread')).toBeInTheDocument();
     });
 
+    it('shows anr root cause for non-fatal ANR events', async () => {
+      const props = makeDefaultMockData();
+      const event = {
+        ...props.event,
+        tags: [
+          {key: 'environment', value: 'dev'},
+          {key: 'mechanism', value: 'NonFatalANR'},
+        ],
+      };
+      mockGroupApis(
+        props.organization,
+        props.project,
+        props.group,
+        event,
+        undefined,
+        mockedTrace(props.project)
+      );
+
+      render(<GroupEventDetailsWithProvider groupId={props.group.id} />, {
+        organization: props.organization,
+        initialRouterConfig: props.initialRouterConfig,
+      });
+
+      expect(
+        await screen.findByRole('region', {name: 'Suspect Root Cause'})
+      ).toBeInTheDocument();
+      expect(screen.getByText('File IO on Main Thread')).toBeInTheDocument();
+    });
+
     it('shows ANR profile section for Android ANR events', async () => {
       const project = ProjectFixture({platform: 'android'});
       const props = makeDefaultMockData(undefined, project);

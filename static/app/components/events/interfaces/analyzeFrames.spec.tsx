@@ -115,6 +115,87 @@ const makeEventWithFrames = (frames: Frame[]): Event => {
 };
 
 describe('analyzeAnrFrames', () => {
+  it('detects anr root cause when only the main thread is present', () => {
+    const event = makeEventWithFrames([
+      {
+        filename: 'SQLiteConnection.java',
+        absPath: 'SQLiteConnection.java',
+        module: 'android.database.sqlite.SQLiteConnection',
+        package: null,
+        platform: null,
+        instructionAddr: null,
+        symbolAddr: null,
+        function: 'nativeExecuteForCursorWindow',
+        rawFunction: null,
+        symbol: null,
+        context: [],
+        lineNo: 1,
+        colNo: null,
+        inApp: false,
+        trust: null,
+        vars: null,
+      },
+    ]);
+    event.entries[1] = {
+      type: EntryType.THREADS,
+      data: {
+        values: [
+          {
+            id: 2,
+            name: 'main',
+            current: true,
+            crashed: false,
+            state: 'RUNNABLE',
+            stacktrace: null,
+            rawStacktrace: null,
+          },
+        ],
+      },
+    };
+    const rootCause = analyzeFramesForRootCause(event);
+    expect(rootCause?.culprit).toBe('android.database.sqlite.SQLiteConnection');
+  });
+
+  it('does not detect anr root cause when the main thread has no state', () => {
+    const event = makeEventWithFrames([
+      {
+        filename: 'SQLiteConnection.java',
+        absPath: 'SQLiteConnection.java',
+        module: 'android.database.sqlite.SQLiteConnection',
+        package: null,
+        platform: null,
+        instructionAddr: null,
+        symbolAddr: null,
+        function: 'nativeExecuteForCursorWindow',
+        rawFunction: null,
+        symbol: null,
+        context: [],
+        lineNo: 1,
+        colNo: null,
+        inApp: false,
+        trust: null,
+        vars: null,
+      },
+    ]);
+    event.entries[1] = {
+      type: EntryType.THREADS,
+      data: {
+        values: [
+          {
+            id: 2,
+            name: 'main',
+            current: true,
+            crashed: false,
+            state: null,
+            stacktrace: null,
+            rawStacktrace: null,
+          },
+        ],
+      },
+    };
+    expect(analyzeFramesForRootCause(event)).toBeNull();
+  });
+
   it('detects anr root cause', () => {
     const event = makeEventWithFrames([
       {

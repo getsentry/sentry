@@ -32,7 +32,6 @@ const SCENARIO = `
     };
     const transport = createApiTransport({
       fetch: createBrowserFetch({ getCsrfToken: () => "csrf" }),
-      retry: { maxRetries: 0, baseDelayMs: 0, maxDelayMs: 0, maxTotalDelayMs: 0 },
     });
     const core = createApiClientCore({ transport, headers: () => ({}), logger: { warn() {} } });
     const target = { core, origin: "https://sentry.example.test" };

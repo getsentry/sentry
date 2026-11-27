@@ -42,6 +42,47 @@ describe('Frame - Context', () => {
     expect(writeText).toHaveBeenCalledWith('0x2 (int)');
   });
 
+  it('collapses registers only when the frame shows extracted variables', () => {
+    const props = {
+      isExpanded: true,
+      hasContextRegisters: true,
+      platform: 'native' as const,
+      event,
+      registers: {x0: '0x0000000000000001'},
+      components: [],
+    };
+    const withVariables = {
+      ...frame,
+      vars: {argc: {kind: 'parameter', type: 'int', value: 2}},
+    };
+    const extraction = OrganizationFixture({features: ['native-variable-extraction']});
+
+    const collapsed = render(
+      <Context {...props} hasContextVars frame={withVariables} />,
+      {organization: extraction}
+    );
+    expect(
+      screen.getByRole('button', {name: 'Registers', expanded: false})
+    ).toBeInTheDocument();
+    expect(screen.queryByText('x0')).not.toBeInTheDocument();
+    collapsed.unmount();
+
+    // Without variables there is nothing to read instead of the registers.
+    const noVariables = render(<Context {...props} frame={frame} />, {
+      organization: extraction,
+    });
+    expect(screen.getByText('x0')).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Registers'})).not.toBeInTheDocument();
+    noVariables.unmount();
+
+    // Without the flag nothing changes.
+    render(<Context {...props} hasContextVars frame={withVariables} />, {
+      organization: org,
+    });
+    expect(screen.getByText('x0')).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Registers'})).not.toBeInTheDocument();
+  });
+
   describe('syntax highlighting', () => {
     it('renders code correctly when context lines end in newline characters', () => {
       const testFrame: Frame = {
