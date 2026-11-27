@@ -8,6 +8,10 @@ account, which it sends on its calls to Sentry in place of its own.
 It runs in the cell, unlike the management endpoints, because Seer only reaches
 its region's Sentry.
 
+It only hands out accounts that a Seer automation owns, found by the automation's
+link to its account. Accounts that org admins create can hold any scope, such as
+`org:admin`, so Seer must not be able to act as them.
+
 It reads the account's cell replica. Disabling an account fails the next call
 once its outbox replicates; deleting one does once the tombstone cascade removes
 the replica. Requests made with the returned ViewerContext read the replica again,
@@ -37,6 +41,7 @@ from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.seer.auth import SeerRpcViewerContextAuthentication
+from sentry.seer.models.workflow import SeerWorkflowConfig
 from sentry.service_accounts.endpoints.organization_service_accounts import (
     FEATURE_FLAG,
     SERVICE_ACCOUNT_ID,
@@ -109,6 +114,11 @@ class OrganizationServiceAccountViewerContextEndpoint(OrganizationEndpoint):
             service_account_id=service_account_id, organization_id=organization.id, is_active=True
         )
         if service_account is None:
+            raise ResourceDoesNotExist
+        if not SeerWorkflowConfig.objects.filter(
+            organization_id=organization.id,
+            service_account_id=service_account.service_account_id,
+        ).exists():
             raise ResourceDoesNotExist
 
         ttl = getattr(settings, "VIEWER_CONTEXT_JWT_TTL", 900)
