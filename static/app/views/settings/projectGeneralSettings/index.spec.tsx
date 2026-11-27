@@ -231,7 +231,7 @@ describe('projectGeneralSettings', () => {
     expect(toast.success).toHaveBeenCalled();
   });
 
-  it('requires an email before transferring project', async () => {
+  it.each(['', 'invalid-email'])('rejects invalid transfer email %j', async email => {
     const transferMock = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/transfer/`,
       method: 'POST',
@@ -244,11 +244,15 @@ describe('projectGeneralSettings', () => {
 
     renderGlobalModal();
     await userEvent.click(await screen.findByRole('button', {name: 'Transfer Project'}));
+    if (email) {
+      await userEvent.type(
+        screen.getByRole('textbox', {name: 'Organization Owner'}),
+        email
+      );
+    }
     await userEvent.click(screen.getByRole('button', {name: 'Transfer project'}));
 
-    expect(
-      await screen.findByText('Organization owner email is required')
-    ).toBeInTheDocument();
+    expect(await screen.findByText('Enter a valid email address')).toBeInTheDocument();
     expect(transferMock).not.toHaveBeenCalled();
   });
 

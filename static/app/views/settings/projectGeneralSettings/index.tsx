@@ -6,6 +6,7 @@ import {useStore} from 'zustand';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import {InlineCode} from '@sentry/scraps/code';
 import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {Confirm} from '@sentry/scraps/confirm';
 import {
@@ -24,11 +25,7 @@ import {createFilter} from '@sentry/scraps/select';
 import {Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
-import {
-  changeProjectSlug,
-  removeProject,
-  transferProject,
-} from 'sentry/actionCreators/projects';
+import {changeProjectSlug, removeProject} from 'sentry/actionCreators/projects';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Hovercard} from 'sentry/components/hovercard';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -43,9 +40,11 @@ import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/platform';
 import type {DetailedProject} from 'sentry/types/project';
 import {convertMultilineFieldValue, extractMultilineFields} from 'sentry/utils';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getDynamicText} from 'sentry/utils/getDynamicText';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {useUpdateProjectMutationOptions} from 'sentry/utils/project/useUpdateProject';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {recreateRoute} from 'sentry/utils/recreateRoute';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
@@ -56,7 +55,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 import {getSettingsScopeTitle} from 'sentry/views/settings/settingsScope';
@@ -137,7 +135,7 @@ function RemoveProjectSection({
       label={t('Remove Project')}
       hintText={tct(
         'Remove the [project] project and all related data. [linebreak] Careful, this action cannot be undone.',
-        {project: <strong>{project.slug}</strong>, linebreak: <br />}
+        {project: <Text bold>{project.slug}</Text>, linebreak: <br />}
       )}
     >
       {!isProjectAdmin &&
@@ -152,21 +150,17 @@ function RemoveProjectSection({
           priority="danger"
           confirmText={t('Remove Project')}
           message={
-            <div>
-              <TextBlock>
-                <strong>
-                  {t('Removing this project is permanent and cannot be undone!')}
-                </strong>
-              </TextBlock>
-              <TextBlock>
-                {t('This will also remove all associated event data.')}
-              </TextBlock>
-            </div>
+            <Stack gap="2xl" paddingBottom="2xl">
+              <Text as="p" bold>
+                {t('Removing this project is permanent and cannot be undone!')}
+              </Text>
+              <Text as="p">{t('This will also remove all associated event data.')}</Text>
+            </Stack>
           }
         >
-          <div>
+          <Container>
             <Button variant="danger">{t('Remove Project')}</Button>
-          </div>
+          </Container>
         </Confirm>
       )}
     </DisplayField.Row>
@@ -374,7 +368,7 @@ function AutoResolveForm({
                   <Alert variant="warning">
                     {tct(
                       '[strong:Caution]: Enabling auto resolve will immediately resolve anything that has not been seen within this period of time. There is no undo!',
-                      {strong: <strong />}
+                      {strong: <Text bold>{''}</Text>}
                     )}
                   </Alert>
                   <Flex gap="sm" justify="end" paddingTop="lg">
@@ -533,7 +527,7 @@ function SecurityTokenHeaderForm({
 }
 
 const transferProjectSchema = z.object({
-  email: z.string().min(1, t('Organization owner email is required')),
+  email: z.email(t('Enter a valid email address')),
 });
 
 function TransferProjectModal({
@@ -543,16 +537,44 @@ function TransferProjectModal({
   organization,
   project,
 }: ModalRenderProps & {organization: Organization; project: DetailedProject}) {
-  const api = useApi({persistInFlight: true});
-
   const transfer = useMutation({
     mutationFn: ({email}: {email: string}) =>
-      transferProject(api, organization.slug, project, email),
+      fetchMutation<void>({
+        method: 'POST',
+        url: getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/transfer/', {
+          path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
+        }),
+        data: {email},
+      }),
     onSuccess: () => {
-      // Need to hard reload because lots of components do not listen to Projects Store
-      window.location.assign('/');
+      toast.success(
+        tct('A request was sent to move [project] to a different organization', {
+          project: project.slug,
+        })
+      );
+      closeModal();
     },
     onError: error => {
+      const detail =
+        error instanceof RequestError ? error.responseJSON?.detail : undefined;
+      const message =
+        error instanceof RequestError &&
+        error.status &&
+        error.status >= 400 &&
+        error.status < 500 &&
+        typeof detail === 'string'
+          ? detail
+          : '';
+
+      toast.error(
+        message
+          ? tct('Error transferring [project]. [message]', {
+              project: project.slug,
+              message,
+            })
+          : tct('Error transferring [project]', {project: project.slug})
+      );
+
       if (error instanceof RequestError && (error.status ?? 0) >= 500) {
         handleXhrErrorResponse('Unable to transfer project', error);
       }
@@ -563,26 +585,22 @@ function TransferProjectModal({
     ...defaultFormOptions,
     defaultValues: {email: ''},
     validators: {onDynamic: transferProjectSchema},
-    onSubmit: ({value}) =>
-      transfer
-        .mutateAsync(value)
-        .catch(() => {})
-        .finally(closeModal),
+    onSubmit: ({value}) => transfer.mutateAsync(value).catch(() => {}),
   });
 
   return (
     <form.AppForm form={form}>
       <Body>
-        <TextBlock>
-          <strong>
+        <Stack gap="2xl" paddingBottom="2xl">
+          <Text as="p" bold>
             {t('Transferring this project is permanent and cannot be undone!')}
-          </strong>
-        </TextBlock>
-        <TextBlock>
-          {t(
-            'Please enter the email of an organization owner to whom you would like to transfer this project. Note: It is not possible to transfer projects between organizations in different regions.'
-          )}
-        </TextBlock>
+          </Text>
+          <Text as="p">
+            {t(
+              'Please enter the email of an organization owner to whom you would like to transfer this project. Note: It is not possible to transfer projects between organizations in different regions.'
+            )}
+          </Text>
+        </Stack>
         <form.AppField name="email">
           {field => (
             <field.Layout.Stack
@@ -711,7 +729,7 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
   });
 
   return (
-    <div>
+    <Container>
       <SentryDocumentTitle
         title={getSettingsScopeTitle('project')}
         projectSlug={project.slug}
@@ -863,7 +881,7 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
 
         <FieldGroup title={t('Client Security')}>
           <Alert variant="info" system>
-            <TextBlock noMargin>
+            <Text as="p">
               {tct(
                 'Configure origin URLs which Sentry should accept events from. This is used for communication with clients like [link].',
                 {
@@ -876,9 +894,9 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
               )}{' '}
               {tct(
                 'This will restrict requests based on the [code:Origin] and [code:Referer] headers.',
-                {code: <code />}
+                {code: <InlineCode />}
               )}
-            </TextBlock>
+            </Text>
           </Alert>
 
           <AutoSaveForm
@@ -1007,7 +1025,7 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
           label={t('Transfer Project')}
           hintText={tct(
             'Transfer the [project] project and all related data. [linebreak] Careful, this action cannot be undone.',
-            {project: <strong>{project.slug}</strong>, linebreak: <br />}
+            {project: <Text bold>{project.slug}</Text>, linebreak: <br />}
           )}
         >
           {!isOrgOwner &&
@@ -1019,7 +1037,7 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
             )}
 
           {isOrgOwner && !project.isInternal && (
-            <div>
+            <Container>
               <Button
                 variant="danger"
                 onClick={() =>
@@ -1034,11 +1052,11 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
               >
                 {t('Transfer Project')}
               </Button>
-            </div>
+            </Container>
           )}
         </DisplayField.Row>
       </FieldGroup>
-    </div>
+    </Container>
   );
 }
 
