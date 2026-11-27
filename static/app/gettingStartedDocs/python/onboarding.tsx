@@ -7,7 +7,7 @@ import {t, tct} from 'sentry/locale';
 
 import {logsVerify} from './logs';
 import {metricsVerify} from './metrics';
-import {alternativeProfiling} from './profiling';
+import {alternativeProfiling, isContinuousProfilingSelected} from './profiling';
 import {getPythonInstallCodeBlock} from './utils';
 
 const getSdkSetupSnippet = (params: DocsParams) => `
@@ -25,24 +25,15 @@ sentry_sdk.init(
     traces_sample_rate=1.0,`
         : ''
     }${
-      params.isProfilingSelected &&
-      params.profilingOptions?.defaultProfilingMode !== 'continuous'
+      isContinuousProfilingSelected(params)
         ? `
-    # Set profiles_sample_rate to 1.0 to profile 100%
-    # of sampled transactions.
-    # We recommend adjusting this value in production.
-    profiles_sample_rate=1.0,`
-        : params.isProfilingSelected &&
-            params.profilingOptions?.defaultProfilingMode === 'continuous'
-          ? `
     # Set profile_session_sample_rate to 1.0 to profile 100%
     # of profile sessions.
     profile_session_sample_rate=1.0,`
-          : ''
+        : ''
     }
 )${
-  params.isProfilingSelected &&
-  params.profilingOptions?.defaultProfilingMode === 'continuous'
+  isContinuousProfilingSelected(params)
     ? `
 
 def slow_function():

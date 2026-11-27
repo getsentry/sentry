@@ -6,7 +6,10 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {metricsVerify} from 'sentry/gettingStartedDocs/python/metrics';
-import {alternativeProfiling} from 'sentry/gettingStartedDocs/python/profiling';
+import {
+  alternativeProfiling,
+  isContinuousProfilingSelected,
+} from 'sentry/gettingStartedDocs/python/profiling';
 import {getPythonInstallCodeBlock} from 'sentry/gettingStartedDocs/python/utils';
 import {t, tct} from 'sentry/locale';
 
@@ -23,23 +26,15 @@ sentry_sdk.init(
   traces_sample_rate=1.0,`
       : ''
   }${
-    params.isProfilingSelected &&
-    params.profilingOptions?.defaultProfilingMode !== 'continuous'
+    isContinuousProfilingSelected(params)
       ? `
-  # Set profiles_sample_rate to 1.0 to profile 100%
-  # of sampled transactions.
-  # We recommend adjusting this value in production.
-  profiles_sample_rate=1.0,`
-      : params.isProfilingSelected &&
-          params.profilingOptions?.defaultProfilingMode === 'continuous'
-        ? `
   # Set profile_session_sample_rate to 1.0 to profile 100%
   # of profile sessions.
   profile_session_sample_rate=1.0,
   # Set profile_lifecycle to "trace" to automatically
-  # run the profiler on when there is an active transaction
+  # run the profiler while there is an active span
   profile_lifecycle="trace",`
-        : ''
+      : ''
   }
 )
 `;
@@ -73,12 +68,12 @@ from jobs import hello
 
 import sentry_sdk
 
-#import { get } from 'lodash';
-Sentry configuration for main.py process (same as above)
+# Sentry configuration for main.py process (same as above)
 ${getInitCallSnippet(params)}
 
 q = Queue(connection=Redis())
-with sentry_sdk.start_transaction(name="testing_sentry"):
+# In SDK 2.x, use sentry_sdk.start_transaction(name="testing_sentry") instead
+with sentry_sdk.start_span(name="testing_sentry"):
     result = q.enqueue(hello, "World")`;
 
 export const onboarding: OnboardingConfig = {

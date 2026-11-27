@@ -7,7 +7,10 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {logsVerify} from 'sentry/gettingStartedDocs/python/logs';
 import {metricsVerify} from 'sentry/gettingStartedDocs/python/metrics';
-import {alternativeProfiling} from 'sentry/gettingStartedDocs/python/profiling';
+import {
+  alternativeProfiling,
+  isContinuousProfilingSelected,
+} from 'sentry/gettingStartedDocs/python/profiling';
 import {getPythonInstallCodeBlock} from 'sentry/gettingStartedDocs/python/utils';
 import {t, tct} from 'sentry/locale';
 
@@ -29,23 +32,15 @@ sentry_sdk.init(
     traces_sample_rate=1.0,`
         : ''
     }${
-      params.isProfilingSelected &&
-      params.profilingOptions?.defaultProfilingMode !== 'continuous'
+      isContinuousProfilingSelected(params)
         ? `
-    # Set profiles_sample_rate to 1.0 to profile 100%
-    # of sampled transactions.
-    # We recommend adjusting this value in production.
-    profiles_sample_rate=1.0,`
-        : params.isProfilingSelected &&
-            params.profilingOptions?.defaultProfilingMode === 'continuous'
-          ? `
     # Set profile_session_sample_rate to 1.0 to profile 100%
     # of profile sessions.
     profile_session_sample_rate=1.0,
     # Set profile_lifecycle to "trace" to automatically
-    # run the profiler on when there is an active transaction
+    # run the profiler while there is an active span
     profile_lifecycle="trace",`
-          : ''
+        : ''
     }
 )
 `;

@@ -149,16 +149,22 @@ function PythonContent({
     <Fragment>
       <Prose>
         {tct(
-          'Simply enable [code:send_default_pii] in your Sentry init call to start capturing it:',
+          'Enable AI inputs and outputs in the [code:data_collection] option of your Sentry init call to start capturing them (on SDK versions older than 2.70.0, set [code:send_default_pii=True] instead):',
           {code: <StyledCode />}
         )}
       </Prose>
       <CodeBlock dark language="python" linesToHighlight={[3]} css={codeSnippetStyles}>
         {`sentry_sdk.init(
   # ...
-  send_default_pii=True,
+  data_collection={"gen_ai": {"inputs": True, "outputs": True}},
 );`}
       </CodeBlock>
+      <Prose>
+        {tct(
+          'On SDK 3.x, AI inputs and outputs are captured by default, so check that [code:data_collection] does not turn them off.',
+          {code: <StyledCode />}
+        )}
+      </Prose>
       <Prose>
         {tct('For more details, see the [link:integration docs].', {
           link: <ExternalLink href={integrationLink} />,

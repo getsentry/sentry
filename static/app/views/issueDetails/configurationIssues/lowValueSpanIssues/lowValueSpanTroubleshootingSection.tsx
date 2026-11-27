@@ -39,9 +39,8 @@ function AutomaticInstrumentationFix({
     return (
       <Stack gap="lg" padding="sm 0">
         <Text variant="muted">
-          {tct('Use [hook] to remove matching spans from [spans].', {
-            hook: <InlineCode>before_send_transaction</InlineCode>,
-            spans: <InlineCode>event["spans"]</InlineCode>,
+          {tct('Use [ignoreSpans] to drop this exact span:', {
+            ignoreSpans: <InlineCode>ignore_spans</InlineCode>,
           })}
         </Text>
         <CodeBlock language="python">

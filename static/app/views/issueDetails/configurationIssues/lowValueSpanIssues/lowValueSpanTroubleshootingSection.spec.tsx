@@ -49,7 +49,7 @@ describe('LowValueSpanTroubleshootingSection', () => {
     expect(screen.getByText(/delete the custom span line/)).toBeInTheDocument();
     expect(screen.getAllByText('function - compute_checksum').length).toBeGreaterThan(0);
     expect(screen.queryByText('ignoreSpans')).not.toBeInTheDocument();
-    expect(screen.queryByText('before_send_transaction')).not.toBeInTheDocument();
+    expect(screen.queryByText('ignore_spans')).not.toBeInTheDocument();
   });
 
   it('links to the platform-redirect custom instrumentation docs for manual spans', () => {
@@ -97,7 +97,7 @@ describe('LowValueSpanTroubleshootingSection', () => {
     expect(screen.getByText(/name: "compute_checksum"/)).toBeInTheDocument();
   });
 
-  it('recommends before_send_transaction for Python project platforms', () => {
+  it('recommends ignore_spans for Python project platforms', () => {
     render(
       <LowValueSpanTroubleshootingSection
         event={makeEvent()}
@@ -105,9 +105,12 @@ describe('LowValueSpanTroubleshootingSection', () => {
       />
     );
 
-    expect(screen.getByText('before_send_transaction')).toBeInTheDocument();
-    expect(screen.getAllByText(/event\["spans"\]/).length).toBeGreaterThan(0);
-    expect(screen.getByText(/span.get\("op"\) == "function"/)).toBeInTheDocument();
+    expect(screen.getByText('ignore_spans')).toBeInTheDocument();
+    expect(screen.getByText(/"name": "compute_checksum"/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/"attributes": \{"sentry.op": "function"\}/)
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/before_send_transaction=/)).not.toBeInTheDocument();
   });
 
   it('uses a JavaScript project platform for JavaScript snippets', () => {
@@ -131,8 +134,8 @@ describe('LowValueSpanTroubleshootingSection', () => {
       />
     );
 
-    expect(screen.getByText('before_send_transaction')).toBeInTheDocument();
-    expect(screen.getByText(/span.get\("op"\) == "function"/)).toBeInTheDocument();
+    expect(screen.getByText('ignore_spans')).toBeInTheDocument();
+    expect(screen.getByText(/"sentry.op": "function"/)).toBeInTheDocument();
     expect(screen.queryByText(/Add an exact-match span filter/)).not.toBeInTheDocument();
   });
 
@@ -146,7 +149,7 @@ describe('LowValueSpanTroubleshootingSection', () => {
 
     expect(screen.getByText(/Add an exact-match span filter/)).toBeInTheDocument();
     expect(screen.queryByText('ignoreSpans')).not.toBeInTheDocument();
-    expect(screen.queryByText('before_send_transaction')).not.toBeInTheDocument();
+    expect(screen.queryByText('ignore_spans')).not.toBeInTheDocument();
   });
 
   it('treats missing span origin as automatic instrumentation', () => {
@@ -176,7 +179,7 @@ describe('LowValueSpanTroubleshootingSection', () => {
     ).toBeInTheDocument();
   });
 
-  it('uses `is None` in the Python snippet when description is null', () => {
+  it('emits op-only ignore_spans with an over-match warning when description is null', () => {
     render(
       <LowValueSpanTroubleshootingSection
         event={makeEvent({description: null})}
@@ -184,7 +187,10 @@ describe('LowValueSpanTroubleshootingSection', () => {
       />
     );
 
-    expect(screen.getByText(/span.get\("op"\) == "function"/)).toBeInTheDocument();
-    expect(screen.getByText(/span.get\("description"\) is None/)).toBeInTheDocument();
+    expect(screen.getByText(/"sentry.op": "function"/)).toBeInTheDocument();
+    expect(screen.queryByText(/"name":/)).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/will also drop other spans with this op/)
+    ).toBeInTheDocument();
   });
 });
