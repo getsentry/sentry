@@ -70,6 +70,7 @@ class UptimeResults(rpc_dataset_common.RPCBase):
         comparison_delta: timedelta | None = None,
         additional_queries: AdditionalQueries | None = None,
         transformations: Mapping[int, Sequence[Transformation]] | None = None,
+        search_resolver: SearchResolver | None = None,
     ) -> SnubaTSResult:
         """Wasn't implemented before a refactor to move the timeseries code into RPCBase, but can just delete this
         function entirely if we want timeseries"""

@@ -526,11 +526,15 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
             additional_queries=additional_queries,
         )
         config = None
+        search_resolver = None
         if loaded_cache.candidate:
             config = self.get_rpc_config(dataset, request, organization)
+            # update_timestamps rounds start and end on the params it is given.
+            params = snuba_params.copy()
+            search_resolver = dataset.get_resolver(params, config)
             _, _, _, externally_scoped = dataset.get_timeseries_query(
-                search_resolver=dataset.get_resolver(snuba_params, config),
-                params=snuba_params,
+                search_resolver=search_resolver,
+                params=params,
                 query_string=query,
                 y_axes=query_columns,
                 groupby=[],
@@ -601,6 +605,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                 comparison_delta=comparison_delta,
                 additional_queries=additional_queries,
                 transformations=transformations,
+                search_resolver=search_resolver,
             )
             update_result_with_cache(loaded_cache, result, snuba_params)
             record_dashboard_timeseries_result_size(referrer, dataset_label, result)

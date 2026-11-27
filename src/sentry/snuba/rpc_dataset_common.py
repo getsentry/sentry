@@ -1055,11 +1055,13 @@ class RPCBase:
         comparison_delta: timedelta | None = None,
         additional_queries: AdditionalQueries | None = None,
         transformations: Mapping[int, Sequence[Transformation]] | None = None,
+        search_resolver: SearchResolver | None = None,
     ) -> SnubaTSResult:
         """Make the query"""
         cls.validate_granularity(params)
         comparison_params = params.copy()
-        search_resolver = cls.get_resolver(params, config)
+        if search_resolver is None:
+            search_resolver = cls.get_resolver(params, config)
         rpc_request, aggregates, groupbys, externally_scoped = cls.get_timeseries_query(
             search_resolver=search_resolver,
             params=params,
