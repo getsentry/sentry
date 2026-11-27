@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Mapping, Sequence
 from typing import Literal
 
 from taskbroker_client.retry import Retry
@@ -7,6 +8,7 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.github.webhook_types import GitHubInstallationRepo
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.integrations.services.repository.model import RpcRepository
 from sentry.integrations.services.repository.service import repository_service
 from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionEvent,
@@ -28,6 +30,8 @@ from sentry.utils import metrics
 from .link_all_repos import GitHubRepoInputConfig, get_repo_config
 
 logger = logging.getLogger(__name__)
+
+AUDIT_SOURCE = "GitHub webhook"
 
 
 @instrumented_task(
@@ -70,8 +74,6 @@ def sync_repos_on_install_change(
         )
         return
 
-    provider = f"integrations:{integration.provider}"
-
     for oi in org_integrations:
         organization_id = oi.organization_id
         rpc_org = organization_service.get(id=organization_id)
@@ -92,7 +94,6 @@ def sync_repos_on_install_change(
             repos_changed = _sync_repos_for_org(
                 integration=integration,
                 rpc_org=rpc_org,
-                provider=provider,
                 repos_added=repos_added,
                 repos_removed=repos_removed,
             )
@@ -103,7 +104,6 @@ def _sync_repos_for_org(
     *,
     integration: RpcIntegration,
     rpc_org: RpcOrganization,
-    provider: str,
     repos_added: list[GitHubInstallationRepo],
     repos_removed: list[GitHubInstallationRepo],
 ) -> bool:
@@ -154,14 +154,36 @@ def _sync_repos_for_org(
     if not repos_removed:
         return changed
 
-    external_ids = [str(repo["id"]) for repo in repos_removed]
+    disabled = disable_removed_repos(
+        organization_id=rpc_org.id,
+        integration_id=integration.id,
+        provider=integration.provider,
+        external_ids=[str(repo["id"]) for repo in repos_removed],
+        metric_tags={"provider": integration.provider},
+    )
+    return disabled or changed
 
+
+def disable_removed_repos(
+    *,
+    organization_id: int,
+    integration_id: int,
+    provider: str,
+    external_ids: Sequence[str],
+    metric_tags: Mapping[str, str],
+) -> bool:
+    """
+    Disables the repos an installation lost access to, except recently active ones, and
+    audits each one that was active. Returns whether it disabled anything. It opens no
+    transaction, so a caller can include it in its own.
+    """
+    provider_id = f"integrations:{provider}"
     active_skipped = set(
         repository_service.find_recently_active_repo_external_ids(
-            organization_id=rpc_org.id,
-            integration_id=integration.id,
-            provider=provider,
-            external_ids=external_ids,
+            organization_id=organization_id,
+            integration_id=integration_id,
+            provider=provider_id,
+            external_ids=list(external_ids),
             cutoff_days=DISABLE_ACTIVITY_CUTOFF_DAYS,
         )
     )
@@ -171,8 +193,8 @@ def _sync_repos_for_org(
         logger.info(
             "sync_repos_on_install_change.disable_skipped_due_to_activity",
             extra={
-                "integration_id": integration.id,
-                "organization_id": rpc_org.id,
+                "integration_id": integration_id,
+                "organization_id": organization_id,
                 "candidate_count": len(external_ids),
                 "skipped_count": len(active_skipped),
                 "skipped_ids": list(active_skipped),
@@ -182,41 +204,41 @@ def _sync_repos_for_org(
         metrics.distribution(
             "scm.repo_sync_on_install_change.disable_skipped_due_to_activity",
             len(active_skipped),
-            tags={"provider": integration.provider},
+            tags=dict(metric_tags),
             sample_rate=1.0,
         )
 
     if not safe_to_disable:
-        return changed
+        return False
 
-    existing_repos = repository_service.get_repositories(
-        organization_id=rpc_org.id,
-        integration_id=integration.id,
-        providers=[provider],
-        external_ids=safe_to_disable,
-    )
-    repo_by_eid = {
-        r.external_id: r
-        for r in existing_repos
-        if r.external_id and r.status == ObjectStatus.ACTIVE
-    }
-
+    previously_active = [
+        repo
+        for repo in repository_service.get_repositories(
+            organization_id=organization_id,
+            integration_id=integration_id,
+            providers=[provider_id],
+            external_ids=safe_to_disable,
+        )
+        if repo.status == ObjectStatus.ACTIVE
+    ]
     repository_service.disable_repositories_by_external_ids(
-        organization_id=rpc_org.id,
-        integration_id=integration.id,
-        provider=provider,
+        organization_id=organization_id,
+        integration_id=integration_id,
+        provider=provider_id,
         external_ids=safe_to_disable,
     )
-
-    for eid in safe_to_disable:
-        sentry_repo = repo_by_eid.get(eid)
-        if sentry_repo:
-            log_repo_change(
-                event_name="REPO_DISABLED",
-                organization_id=rpc_org.id,
-                repo=sentry_repo,
-                source="GitHub webhook",
-                provider=integration.provider,
-            )
-
+    audit_repo_changes("REPO_DISABLED", organization_id, previously_active, provider)
     return True
+
+
+def audit_repo_changes(
+    event_name: str, organization_id: int, repos: Sequence[RpcRepository], provider: str
+) -> None:
+    for repo in repos:
+        log_repo_change(
+            event_name=event_name,
+            organization_id=organization_id,
+            repo=repo,
+            source=AUDIT_SOURCE,
+            provider=provider,
+        )
