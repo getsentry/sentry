@@ -37,15 +37,15 @@ export function DroppedDataFilterNote({
   const telemetry = datasetNoun(dataset, 2);
   const message =
     hasUserQuery && hasEnvironment
-      ? t('Dropped %s are not filtered by search or environment', telemetry)
+      ? t('Dropped %s ignore filters and environment', telemetry)
       : hasUserQuery
-        ? t('Dropped %s are not filtered by search', telemetry)
-        : t('Dropped %s are not filtered by environment', telemetry);
+        ? t('Dropped %s ignore filters', telemetry)
+        : t('Dropped %s ignore the environment', telemetry);
 
   return (
-    <Flex align="start" gap="xs">
+    <Flex align="center" gap="xs">
       {isIconVisible ? (
-        <Flex flexShrink={0} paddingTop="2xs">
+        <Flex flexShrink={0}>
           <IconStack size="xs" variant="muted" />
         </Flex>
       ) : null}

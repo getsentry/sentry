@@ -414,6 +414,61 @@ describe('VisualizationWidget dropped-data heatmap', () => {
     ).toBe(band);
   });
 
+  it('shows the filter note', () => {
+    render(
+      <VisualizationWidget
+        widget={spansBreakdownWidget}
+        selection={selection}
+        droppedData={band}
+        droppedDataFilterNote={{dataset: DiscoverDatasets.SPANS, hasUserQuery: true}}
+      />
+    );
+
+    expect(screen.getByText('Dropped spans ignore filters')).toBeInTheDocument();
+  });
+
+  it('shows the filter note next to the low confidence marker', () => {
+    const [result] = timeseriesResults;
+    jest
+      .mocked(WidgetCardDataLoader)
+      .mockImplementation(({children}: any) =>
+        children({
+          timeseriesResults: [
+            {
+              ...result,
+              timeSeries: {
+                ...result!.timeSeries,
+                values: [
+                  {timestamp: 1_000_000, value: 10, sampleRate: 0.01, confidence: 'low'},
+                ],
+              },
+            },
+          ],
+          tableResults,
+          loading: false,
+        })
+      );
+
+    render(
+      <VisualizationWidget
+        widget={spansBreakdownWidget}
+        selection={selection}
+        isFullScreen
+        showConfidenceWarning
+        droppedData={band}
+        droppedDataFilterNote={{dataset: DiscoverDatasets.SPANS, hasUserQuery: true}}
+      />,
+      {
+        organization: OrganizationFixture({
+          features: ['data-browsing-time-series-confidence'],
+        }),
+      }
+    );
+
+    expect(screen.getByText('Low confidence data')).toBeInTheDocument();
+    expect(screen.getByText('Dropped spans ignore filters')).toBeInTheDocument();
+  });
+
   it('shows a placeholder while the band loads', () => {
     render(
       <VisualizationWidget

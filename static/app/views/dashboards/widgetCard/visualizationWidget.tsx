@@ -12,6 +12,10 @@ import {
   ChartLayersControl,
   type ChartLayersControlProps,
 } from 'sentry/components/charts/chartLayersControl';
+import {
+  DroppedDataFilterNote,
+  type DroppedDataFilterNoteProps,
+} from 'sentry/components/droppedData/droppedDataFilterNote';
 import type {DroppedDataProps} from 'sentry/components/droppedData/types';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
@@ -53,7 +57,10 @@ import type {Plottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/p
 import {Thresholds} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/thresholds';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
-import {ExtrapolationConfidenceFooter} from 'sentry/views/explore/components/chart/extrapolationConfidenceFooter';
+import {
+  ExtrapolationConfidenceFooter,
+  hasLowConfidencePlottables,
+} from 'sentry/views/explore/components/chart/extrapolationConfidenceFooter';
 import {useIncompleteBucketTooltipDetails} from 'sentry/views/explore/components/chart/incompleteBucketTooltip';
 import {useHasExtrapolationConfidenceFooter} from 'sentry/views/explore/components/chart/useHasExtrapolationConfidenceFooter';
 import {getExploreUrl} from 'sentry/views/explore/utils';
@@ -79,6 +86,7 @@ interface VisualizationWidgetProps {
   widget: TWidget;
   dashboardFilters?: DashboardFilters;
   droppedData?: DroppedDataProps;
+  droppedDataFilterNote?: DroppedDataFilterNoteProps;
   isDroppedDataLoading?: boolean;
   isFullScreen?: boolean;
   layerControl?: ChartLayersControlProps;
@@ -112,6 +120,7 @@ function VisualizationWidgetComponent({
   onLegendSelectionChange,
   isFullScreen,
   droppedData,
+  droppedDataFilterNote,
   isDroppedDataLoading,
   layerControl,
   showReleases = true,
@@ -186,6 +195,7 @@ function VisualizationWidgetComponent({
             onLegendSelectionChange={handleLegendSelectionChange}
             isFullScreen={isFullScreen}
             droppedData={droppedData}
+            droppedDataFilterNote={droppedDataFilterNote}
             isDroppedDataLoading={isDroppedDataLoading}
             layerControl={layerControl}
             widgetInterval={timeseriesInterval ?? widgetInterval}
@@ -224,6 +234,7 @@ interface VisualizationWidgetContentProps {
   dashboardFilters?: DashboardFilters;
   dataScanned?: 'full' | 'partial';
   droppedData?: DroppedDataProps;
+  droppedDataFilterNote?: DroppedDataFilterNoteProps;
   errorMessage?: string;
   ingestion?: IngestionMeta;
   isDroppedDataLoading?: boolean;
@@ -259,6 +270,7 @@ function VisualizationWidgetContent({
   onLegendSelectionChange,
   isFullScreen,
   droppedData,
+  droppedDataFilterNote,
   isDroppedDataLoading,
   layerControl,
   widgetInterval,
@@ -470,9 +482,10 @@ function VisualizationWidgetContent({
 
   let confidenceFooter: React.ReactNode = null;
   if (showConfidenceWarning && hasExtrapolationConfidenceFooter) {
-    confidenceFooter = loading ? null : (
-      <ExtrapolationConfidenceFooter plottables={plottables} />
-    );
+    confidenceFooter =
+      loading || !hasLowConfidencePlottables(plottables) ? null : (
+        <ExtrapolationConfidenceFooter plottables={plottables} />
+      );
   } else if (showConfidenceWarning) {
     confidenceFooter = (
       <WidgetCardConfidenceFooter
@@ -493,6 +506,17 @@ function VisualizationWidgetContent({
     <ChartLayersControl triggerLabel="title" {...layerControl} />
   ) : undefined;
 
+  const footer = (
+    <Container {...timeseriesContainerPadding}>
+      <Flex align="center" gap="sm">
+        {confidenceFooter}
+        {droppedDataFilterNote ? (
+          <DroppedDataFilterNote {...droppedDataFilterNote} showIcon={false} />
+        ) : null}
+      </Flex>
+    </Container>
+  );
+
   if (showBreakdownData) {
     return (
       <Stack height="100%">
@@ -511,7 +535,7 @@ function VisualizationWidgetContent({
             legendActions={legendActions}
           />
         </Container>
-        <Container {...timeseriesContainerPadding}>{confidenceFooter}</Container>
+        {footer}
         <Stack flex={1} borderTop="primary" overflowY="auto">
           <Container flex={1} width="100%">
             {footerTable}
@@ -537,7 +561,7 @@ function VisualizationWidgetContent({
           legendActions={legendActions}
         />
       </Container>
-      <Container {...timeseriesContainerPadding}>{confidenceFooter}</Container>
+      {footer}
     </Stack>
   );
 }
