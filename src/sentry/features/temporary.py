@@ -160,6 +160,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:inbound-filters-legacy-double-write", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Serve the legacy IP address list to Relay as a generic filter instead of the native clientIps setting.
     manager.add("organizations:inbound-filters-generic-ip-filter", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Drop PlayStation and Xbox events when the platform is missing from the org's enabled console platforms.
+    manager.add("organizations:inbound-filters-console-platforms", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable GPU crash dump symbolication via teapot
     manager.add("organizations:gpu-crash-symbolication", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable increased issue_owners rate limit for auto-assignment

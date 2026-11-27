@@ -9,9 +9,11 @@ from sentry_relay.processing import validate_rule_condition
 
 from sentry.ingest.inbound_filters import (
     ACTIVE_GENERIC_FILTERS,
+    CONSOLE_PLATFORM_FILTERS,
     CUSTOM_INBOUND_FILTER_ID_PREFIX,
     InboundFilterFeatures,
     _chunk_load_error_filter,
+    _ConsolePlatformFilter,
     _custom_error_filter,
     _error_message_condition,
     _hydration_error_filter,
@@ -156,6 +158,12 @@ def test_error_message_condition_logentry_disabled_by_default() -> None:
     }
 
 
+GLOBAL_CONSOLE_PLATFORM_FILTERS = [
+    {"id": console_filter.filter_id, "isEnabled": False, "condition": console_filter.condition()}
+    for console_filter in CONSOLE_PLATFORM_FILTERS
+]
+
+
 @override_settings(SENTRY_INBOUND_FILTER_CUSTOM_VALUES=CUSTOM_PATTERNS)
 def test_global_generic_filters_have_disabled_definitions() -> None:
     generic_filters = get_global_generic_filters()
@@ -178,6 +186,7 @@ def test_global_generic_filters_have_disabled_definitions() -> None:
                 "isEnabled": False,
                 "condition": _custom_error_filter(),
             },
+            *GLOBAL_CONSOLE_PLATFORM_FILTERS,
         ],
     }
 
@@ -199,6 +208,7 @@ def test_global_generic_filters_omit_custom_error_without_values() -> None:
                 "isEnabled": False,
                 "condition": _hydration_error_filter(),
             },
+            *GLOBAL_CONSOLE_PLATFORM_FILTERS,
         ],
     }
 
@@ -1395,3 +1405,143 @@ def test_log_and_trace_metric_lists_become_glob_conditions(default_project: Proj
     }
     for generic_filter in generic_filters["filters"]:
         assert_relay_accepts_condition(generic_filter["condition"])
+
+
+CONSOLE_FILTER_REFERENCES = {
+    "playstation": {"id": "console-platform-playstation", "isEnabled": True, "condition": None},
+    "xbox": {"id": "console-platform-xbox", "isEnabled": True, "condition": None},
+}
+
+
+@django_db_all
+def test_console_platform_filters_need_feature(default_project: Project) -> None:
+    generic_filters = get_generic_filters(default_project, InboundFilterFeatures())
+
+    assert generic_filters is not None
+    assert not [f for f in generic_filters["filters"] if f["id"].startswith("console-platform-")]
+
+
+@django_db_all
+@pytest.mark.parametrize(
+    ("enabled_platforms", "filtered_platforms"),
+    [
+        pytest.param(None, ["playstation", "xbox"], id="no_option"),
+        pytest.param([], ["playstation", "xbox"], id="empty_option"),
+        pytest.param(["playstation"], ["xbox"], id="playstation_only"),
+        pytest.param(["xbox", "nintendo-switch"], ["playstation"], id="xbox_and_switch"),
+        pytest.param(["playstation", "xbox"], [], id="playstation_and_xbox"),
+    ],
+)
+def test_console_platform_filters_for_platforms_without_access(
+    default_project: Project,
+    enabled_platforms: list[str] | None,
+    filtered_platforms: list[str],
+) -> None:
+    for builtin_filter_id, _ in ACTIVE_GENERIC_FILTERS:
+        default_project.update_option(f"filters:{builtin_filter_id}", "0")
+    if enabled_platforms is not None:
+        default_project.organization.update_option(
+            "sentry:enabled_console_platforms", enabled_platforms
+        )
+
+    generic_filters = get_generic_filters(
+        default_project, InboundFilterFeatures(console_platforms=True)
+    )
+
+    if not filtered_platforms:
+        assert generic_filters is None
+        return
+
+    assert generic_filters == {
+        "version": 1,
+        "filters": [CONSOLE_FILTER_REFERENCES[platform] for platform in filtered_platforms],
+    }
+
+
+@pytest.mark.parametrize("console_filter", CONSOLE_PLATFORM_FILTERS, ids=lambda f: f.platform)
+def test_console_platform_filter_conditions_are_valid(
+    console_filter: _ConsolePlatformFilter,
+) -> None:
+    validate_rule_condition(json.dumps(console_filter.condition()))
+
+
+@pytest.mark.parametrize(
+    ("event", "expected_platform"),
+    [
+        pytest.param(
+            {"event.sdk.name": "sentry.native.playstation"}, "playstation", id="ps_native"
+        ),
+        pytest.param(
+            {"event.sdk.name": "sentry.native.playstation.unreal"}, "playstation", id="ps_unreal"
+        ),
+        pytest.param({"event.sdk.name": "sentry.playstation.crs"}, "playstation", id="ps_relay"),
+        pytest.param(
+            {"event.sdk.name": "sentry.dotnet.unity", "event.contexts.os.name": "PlayStation"},
+            "playstation",
+            id="ps_unity_os",
+        ),
+        pytest.param(
+            {"event.sdk.name": "sentry.unity.lite", "event.contexts.os.name": "orbis_08.508.001"},
+            "playstation",
+            id="ps_orbis_os",
+        ),
+        pytest.param(
+            {"event.sdk.name": "sentry.native.unreal", "event.contexts.os.name": "PS5"},
+            "playstation",
+            id="ps5_unreal_os",
+        ),
+        pytest.param({"event.contexts.os.name": "PS5"}, None, id="ps5_os_no_sdk"),
+        pytest.param({"event.sdk.name": "sentry.native.xbox.unreal"}, "xbox", id="xbox_unreal"),
+        pytest.param({"event.sdk.name": "sentry.native.xbox"}, "xbox", id="xbox_native"),
+        pytest.param(
+            {"event.sdk.name": "sentry.dotnet.unity", "event.contexts.os.name": "Xbox"},
+            "xbox",
+            id="xbox_unity_os",
+        ),
+        pytest.param(
+            {"event.sdk.name": "sentry.unity.lite", "event.contexts.os.name": "DurangoOS"},
+            "xbox",
+            id="xbox_durango_os",
+        ),
+        pytest.param({"event.sdk.name": "nintendo.crash_report"}, None, id="switch_crash_report"),
+        pytest.param({"event.sdk.name": "sentry.native.switch.unity"}, None, id="switch_unity"),
+        pytest.param(
+            {"event.sdk.name": "sentry.dotnet.unity", "event.contexts.os.name": "Nintendo OS"},
+            None,
+            id="switch_unity_os",
+        ),
+        pytest.param(
+            {"event.sdk.name": "sentry.javascript.react", "event.contexts.os.name": "Xbox"},
+            None,
+            id="browser_on_xbox",
+        ),
+        pytest.param(
+            {
+                "event.sdk.name": "sentry.javascript.browser",
+                "event.contexts.os.name": "PlayStation",
+            },
+            None,
+            id="browser_on_playstation",
+        ),
+        pytest.param(
+            {"event.sdk.name": "sentry.native.wingdk.unreal", "event.contexts.os.name": "Windows"},
+            None,
+            id="windows_gdk",
+        ),
+        pytest.param({"event.sdk.name": "sentry.native.unreal"}, None, id="unreal_desktop"),
+        pytest.param(
+            {"event.sdk.name": "sentry.native", "event.contexts.os.name": "Xbox"},
+            None,
+            id="native_on_xbox",
+        ),
+        pytest.param(
+            {"event.sdk.name": "sentry.native", "event.contexts.os.name": "Linux"}, None, id="linux"
+        ),
+    ],
+)
+def test_console_platform_filter_conditions_match(
+    event: Mapping[str, str], expected_platform: str | None
+) -> None:
+    matched = [f.platform for f in CONSOLE_PLATFORM_FILTERS if relay_matches(f.condition(), event)]
+
+    assert matched == ([expected_platform] if expected_platform else [])
