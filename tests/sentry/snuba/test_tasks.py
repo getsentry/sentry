@@ -470,6 +470,29 @@ class UpdateSubscriptionInSnubaTest(BaseSnubaTaskTest):
         assert sub.status == QuerySubscription.Status.ACTIVE.value
         assert sub.subscription_id not in (None, subscription_id)
 
+    def test_performance_metrics_migration_skips_old_subscription(self) -> None:
+        subscription_id = f"1/{uuid4().hex}"
+        sub = self.create_subscription(
+            QuerySubscription.Status.UPDATING,
+            subscription_id=subscription_id,
+            dataset=Dataset.EventsAnalyticsPlatform,
+            query="span.op:http.client",
+            aggregate="count(span.duration)",
+        )
+        with patch("sentry.snuba.tasks._delete_from_snuba") as delete_from_snuba:
+            update_subscription_in_snuba(
+                sub.id,
+                old_query_type=SnubaQuery.Type.PERFORMANCE.value,
+                old_dataset=Dataset.PerformanceMetrics.value,
+                old_aggregate="p90(transaction.duration)",
+                old_query='http.url:"http://example.com/*"',
+            )
+        delete_from_snuba.assert_not_called()
+        self.metrics.incr.assert_any_call("snuba.subscriptions.update.removed_dataset")
+        sub.refresh_from_db()
+        assert sub.status == QuerySubscription.Status.ACTIVE.value
+        assert sub.subscription_id not in (None, subscription_id)
+
     def test_broken_query(self) -> None:
         subscription_id = f"1/{uuid4().hex}"
         sub = self.create_subscription(

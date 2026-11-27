@@ -125,49 +125,54 @@ def update_subscription_in_snuba(
         dataset = Dataset(
             old_dataset if old_dataset is not None else subscription.snuba_query.dataset
         )
-        query_type = SnubaQuery.Type(
-            old_query_type if old_query_type is not None else subscription.snuba_query.type
-        )
-        query = old_query if old_query is not None else subscription.snuba_query.query
-        aggregate = (
-            old_aggregate if old_aggregate is not None else subscription.snuba_query.aggregate
-        )
-        try:
-            old_entity_subscription = get_entity_subscription(
-                query_type,
-                dataset,
-                aggregate,
-                subscription.snuba_query.time_window,
-                extra_fields={
-                    "org_id": subscription.project.organization_id,
-                    "event_types": subscription.snuba_query.event_types,
-                    "extrapolation_mode": ExtrapolationMode(
-                        subscription.snuba_query.extrapolation_mode
-                    ),
-                },
+        if dataset == Dataset.PerformanceMetrics:
+            # Snuba dropped the generic_metrics dataset and its subscriptions, and the indexer
+            # can no longer resolve the tags these queries use, so only the local rows remain.
+            metrics.incr("snuba.subscriptions.update.removed_dataset")
+        else:
+            query_type = SnubaQuery.Type(
+                old_query_type if old_query_type is not None else subscription.snuba_query.type
             )
-            old_entity_key: EntityKey | None = (
-                EntityKey.EAPItems
-                if dataset == Dataset.EventsAnalyticsPlatform
-                else get_entity_key_from_query_builder(
-                    old_entity_subscription.build_query_builder(
-                        query,
-                        [subscription.project_id],
-                        None,
-                        {"organization_id": subscription.project.organization_id},
-                        skip_field_validation_for_entity_subscription_deletion=True,
-                    ),
+            query = old_query if old_query is not None else subscription.snuba_query.query
+            aggregate = (
+                old_aggregate if old_aggregate is not None else subscription.snuba_query.aggregate
+            )
+            try:
+                old_entity_subscription = get_entity_subscription(
+                    query_type,
+                    dataset,
+                    aggregate,
+                    subscription.snuba_query.time_window,
+                    extra_fields={
+                        "org_id": subscription.project.organization_id,
+                        "event_types": subscription.snuba_query.event_types,
+                        "extrapolation_mode": ExtrapolationMode(
+                            subscription.snuba_query.extrapolation_mode
+                        ),
+                    },
                 )
-            )
-        except (InvalidSearchQuery, IncompatibleMetricsQuery):
-            _record_unresolved_entity_key("update")
-            old_entity_key = None
-        if old_entity_key is not None:
-            _delete_from_snuba(
-                Dataset(dataset),
-                subscription.subscription_id,
-                old_entity_key,
-            )
+                old_entity_key: EntityKey | None = (
+                    EntityKey.EAPItems
+                    if dataset == Dataset.EventsAnalyticsPlatform
+                    else get_entity_key_from_query_builder(
+                        old_entity_subscription.build_query_builder(
+                            query,
+                            [subscription.project_id],
+                            None,
+                            {"organization_id": subscription.project.organization_id},
+                            skip_field_validation_for_entity_subscription_deletion=True,
+                        ),
+                    )
+                )
+            except (InvalidSearchQuery, IncompatibleMetricsQuery):
+                _record_unresolved_entity_key("update")
+                old_entity_key = None
+            if old_entity_key is not None:
+                _delete_from_snuba(
+                    Dataset(dataset),
+                    subscription.subscription_id,
+                    old_entity_key,
+                )
 
     try:
         subscription_id = _create_in_snuba(subscription)
