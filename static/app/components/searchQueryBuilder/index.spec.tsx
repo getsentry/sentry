@@ -9290,8 +9290,8 @@ describe('SearchQueryBuilder', () => {
         .fn()
         .mockResolvedValue([
           {
-            key: 'custom.measurement.value',
-            name: 'custom.measurement.value',
+            key: 'some.attribute.value',
+            name: 'some.attribute.value',
             kind: FieldKind.MEASUREMENT,
           },
         ]);
@@ -9306,13 +9306,13 @@ describe('SearchQueryBuilder', () => {
       );
 
       await userEvent.click(getLastInput());
-      await userEvent.keyboard('custom.measurement');
+      await userEvent.keyboard('some.attribute');
       await userEvent.click(
-        await screen.findByRole('option', {name: 'custom.measurement.value'})
+        await screen.findByRole('option', {name: 'some.attribute.value'})
       );
 
       expect(
-        await screen.findByRole('row', {name: 'custom.measurement.value:>100'})
+        await screen.findByRole('row', {name: 'some.attribute.value:>100'})
       ).toBeInTheDocument();
     });
 
