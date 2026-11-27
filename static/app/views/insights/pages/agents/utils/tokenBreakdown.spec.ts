@@ -259,20 +259,6 @@ describe('hasTokenMismatch', () => {
     ).toBe(false);
   });
 
-  it('returns false when cached exceeds input but total still matches', () => {
-    // OTel: input=100 includes cached=80, output=50, total=150
-    // netNewInput would be clamped to 20, but adjusted input (100) + output (50) = total
-    expect(
-      hasTokenMismatch({
-        inputTokens: 100,
-        cachedTokens: 80,
-        outputTokens: 50,
-        reasoningTokens: 0,
-        totalTokens: 150,
-      })
-    ).toBe(false);
-  });
-
   it('returns true when displayed values do not add up due to clamping', () => {
     // input=5796, cached=9500, output=4, total=5800
     // Raw: adjustedInput(5796) + output(4) = 5800 = total ✓

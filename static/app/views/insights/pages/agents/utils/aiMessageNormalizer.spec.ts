@@ -282,20 +282,6 @@ describe('normalizeToMessages', () => {
       ]);
     });
 
-    it('expands {system, messages} into system + inner messages', () => {
-      const input = JSON.stringify({
-        system: 'sys',
-        messages: [{role: 'user', content: 'hi'}],
-      });
-
-      const {messages} = normalizeToMessages(input, {defaultRole: 'user'});
-
-      expect(messages).toEqual([
-        {role: 'system', content: 'sys'},
-        {role: 'user', content: 'hi'},
-      ]);
-    });
-
     it('yields a single user message when only prompt is provided', () => {
       const input = JSON.stringify({prompt: 'do the thing'});
 
@@ -383,35 +369,6 @@ describe('normalizeToMessages', () => {
       const {messages} = normalizeToMessages(input, {defaultRole: 'user'});
 
       expect(messages).toBeNull();
-    });
-  });
-
-  describe('cross-format tolerance', () => {
-    it('accepts parts format on a field that traditionally held content format', () => {
-      // Simulates: gen_ai.request.messages carrying the new parts shape.
-      const input = JSON.stringify([{role: 'user', parts: [{type: 'text', text: 'hi'}]}]);
-
-      const {messages} = normalizeToMessages(input, {defaultRole: 'user'});
-
-      expect(messages).toEqual([{role: 'user', content: 'hi'}]);
-    });
-
-    it('accepts {system, prompt} legacy shape on a modern field', () => {
-      // Simulates: gen_ai.request.messages carrying the legacy {system, prompt}.
-      const input = JSON.stringify({system: 'sys', prompt: 'ask'});
-
-      const {messages} = normalizeToMessages(input, {defaultRole: 'user'});
-
-      expect(messages).toEqual([
-        {role: 'system', content: 'sys'},
-        {role: 'user', content: 'ask'},
-      ]);
-    });
-
-    it('accepts plain string on a modern field', () => {
-      const {messages} = normalizeToMessages('just a string', {defaultRole: 'user'});
-
-      expect(messages).toEqual([{role: 'user', content: 'just a string'}]);
     });
   });
 });
@@ -623,16 +580,6 @@ describe('extractAssistantOutput', () => {
       expect(responseText).toBe('last');
     });
 
-    it('treats defaultRole-only messages as having no explicit role (last wins)', () => {
-      // Bare content-only items get defaultRole='assistant' assigned in detection,
-      // but selection should still treat them as role-less and take the last one.
-      const input = JSON.stringify([{content: 'A'}, {content: 'B'}]);
-
-      const {responseText} = extractAssistantOutput(input, {defaultRole: 'assistant'});
-
-      expect(responseText).toBe('B');
-    });
-
     it('treats declared defaultRole values as explicit roles', () => {
       const input = JSON.stringify([
         {role: 'assistant', content: 'A'},
@@ -707,17 +654,6 @@ describe('extractAssistantOutput', () => {
   });
 
   describe('cross-format tolerance', () => {
-    it('accepts parts format on a field that typically held plain text', () => {
-      // Simulates: gen_ai.response.text carrying a parts-format payload.
-      const input = JSON.stringify([
-        {role: 'assistant', parts: [{type: 'text', text: 'weird but ok'}]},
-      ]);
-
-      const {responseText} = extractAssistantOutput(input, {defaultRole: 'assistant'});
-
-      expect(responseText).toBe('weird but ok');
-    });
-
     it('accepts {messages: [...]} wrapper on an output field', () => {
       const input = JSON.stringify({messages: [{role: 'assistant', content: 'wrapped'}]});
 

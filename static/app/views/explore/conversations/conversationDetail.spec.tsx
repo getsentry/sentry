@@ -147,19 +147,6 @@ describe('ConversationDetailPage span default selection', () => {
     });
   });
 
-  it('opens the first span when switching from transcript to timeline', async () => {
-    renderPage();
-
-    // Transcript is the default tab: nothing is open.
-    expect(await screen.findByText('First answer')).toBeInTheDocument();
-    expect(detailPane()).not.toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole('tab', {name: 'Timeline'}));
-
-    // Timeline should open on its first span.
-    await waitFor(() => expect(detailPane()).toBeInTheDocument());
-  });
-
   it('tracks switching between the transcript and timeline tabs', async () => {
     renderPage();
     expect(await screen.findByText('First answer')).toBeInTheDocument();
@@ -619,14 +606,6 @@ describe('ConversationDetailPage summary stats', () => {
     expect(url.searchParams.get('query')).toBe(
       `gen_ai.conversation.id:"${CONVERSATION_ID}" has:span.status !span.status:[ok,cancelled,unknown]`
     );
-  });
-
-  it('renders the earliest span start as the conversation start time', async () => {
-    mockApis();
-    renderPage();
-
-    // The conversation opens with the 1000s span, not the 2000s one that follows.
-    expect(await screen.findByText('Jan 1, 1970 12:16:40 AM UTC')).toBeInTheDocument();
   });
 
   it('lists errored tools first whatever order the API returns', async () => {

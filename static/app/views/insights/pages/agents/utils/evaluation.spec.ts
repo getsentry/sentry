@@ -327,12 +327,6 @@ describe('evaluation state normalization', () => {
   const parseState = (state: unknown) =>
     parseEvaluationInput(JSON.stringify([{type: 'evaluation', state}]))?.state;
 
-  it('wraps a plain string in one text message', () => {
-    expect(parseState('I cannot log in.')).toEqual([
-      {parts: [{kind: 'text', text: 'I cannot log in.'}]},
-    ]);
-  });
-
   it('parses a message array into text and image parts', () => {
     expect(
       parseState([

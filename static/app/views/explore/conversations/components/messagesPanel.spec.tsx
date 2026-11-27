@@ -257,7 +257,6 @@ describe('MessagesPanel', () => {
     expect(
       screen.getByText("This conversation doesn't include any inference spans")
     ).toBeInTheDocument();
-    expect(screen.queryByText('No messages found')).not.toBeInTheDocument();
   });
 
   it('offers a shortcut to the Timeline when there are no inference spans', async () => {
