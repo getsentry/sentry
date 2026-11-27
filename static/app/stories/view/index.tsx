@@ -5,7 +5,7 @@ import {useQueryState} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
 import {GlobalDrawer} from '@sentry/scraps/drawer';
-import {Container, Stack} from '@sentry/scraps/layout';
+import {Container, Grid, Stack} from '@sentry/scraps/layout';
 import {TrackingContextProvider} from '@sentry/scraps/trackingContext';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -18,6 +18,7 @@ import {StoryLanding} from './landing';
 import {StoryExports} from './storyExports';
 import {StoryHeader} from './storyHeader';
 import {StorySidebar} from './storySidebar';
+import {StoryTableOfContents} from './storyTableOfContents';
 import {StoryTreeNode, useFlatStoryList, type StoryCategory} from './storyTree';
 import {useStoryDarkModeTheme} from './useStoriesDarkMode';
 import {useStoriesLoader} from './useStoriesLoader';
@@ -34,10 +35,11 @@ function StoriesLanding() {
     <StoriesLayout>
       <StoryMainContainer
         as="main"
-        column="2"
+        area="main"
         containerType="inline-size"
         gap="xl"
-        row="1"
+        overflowY="auto"
+        paddingBottom="3xl"
       >
         <StoryLanding />
       </StoryMainContainer>
@@ -79,25 +81,11 @@ function StoryDetail() {
   return (
     <StoriesLayout>
       {story.isLoading ? (
-        <Container
-          as="main"
-          padding="xl"
-          overflowX="visible"
-          overflowY="auto"
-          row="1"
-          column="2"
-        >
+        <Container as="main" area="main" padding="xl" overflowY="auto">
           <LoadingIndicator />
         </Container>
       ) : story.isError ? (
-        <Container
-          as="main"
-          padding="xl"
-          overflowX="visible"
-          overflowY="auto"
-          row="1"
-          column="2"
-        >
+        <Container as="main" area="main" padding="xl" overflowY="auto">
           <Alert.Container>
             <Alert variant="danger">
               <strong>{story.error.name}:</strong> {story.error.message}
@@ -105,27 +93,28 @@ function StoryDetail() {
           </Alert.Container>
         </Container>
       ) : story.isSuccess ? (
-        <StoryMainContainer
-          as="main"
-          column="2"
+        <Grid
+          key={story.data[0]?.filename}
+          area="main"
+          columns="minmax(0, 1fr) auto"
           containerType="inline-size"
-          gap="xl"
-          row="1"
-          onClick={handleExpressiveCodeCopyClick}
+          rows="minmax(0, 1fr)"
         >
-          {story.data.map(s => {
-            return <StoryExports key={s.filename} story={s} />;
-          })}
-        </StoryMainContainer>
+          <StoryMainContainer
+            as="main"
+            gap="xl"
+            overflowY="auto"
+            paddingBottom="3xl"
+            onClick={handleExpressiveCodeCopyClick}
+          >
+            {story.data.map(s => {
+              return <StoryExports key={s.filename} story={s} />;
+            })}
+          </StoryMainContainer>
+          <StoryTableOfContents />
+        </Grid>
       ) : (
-        <Container
-          as="main"
-          padding="xl"
-          overflowX="visible"
-          overflowY="auto"
-          row="1"
-          column="2"
-        >
+        <Container as="main" area="main" padding="xl" overflowY="auto">
           <strong>The file you selected does not export a story.</strong>
         </Container>
       )}
@@ -187,7 +176,14 @@ function StoriesLayout(props: PropsWithChildren) {
         <RouteAnalyticsContextProvider>
           <GlobalDrawer>
             <OrganizationContainer>
-              <Layout>
+              <Layout
+                areas='"header header" "sidebar main"'
+                background="primary"
+                columns="256px minmax(0, 1fr)"
+                inset="0"
+                position="absolute"
+                rows="auto minmax(0, 1fr)"
+              >
                 <HeaderContainer>
                   <StoryHeader />
                 </HeaderContainer>
@@ -270,27 +266,12 @@ function GlobalStoryStyles() {
   return <Global styles={styles} />;
 }
 
-const Layout = styled('div')`
-  background: ${p => p.theme.tokens.background.primary};
+const Layout = styled(Grid)`
   --stories-grid-space: 0;
-
-  display: grid;
-  grid-template-rows: 1fr;
-  grid-template-columns: 256px minmax(auto, 1fr);
-  place-items: stretch;
-  min-height: calc(100dvh - 52px);
-  padding-bottom: ${p => p.theme.space['3xl']};
-  position: absolute;
-  top: 52px;
-  left: 0;
-  right: 0;
 `;
 
 const HeaderContainer = styled('header')`
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
+  grid-area: header;
   z-index: ${p => p.theme.zIndex.header};
   background: ${p => p.theme.tokens.background.primary};
 `;
@@ -304,7 +285,7 @@ const StoryMainContainer = styled(Stack)`
   h4,
   h5,
   h6 {
-    scroll-margin-top: 80px;
+    scroll-margin-top: ${p => p.theme.space.xl};
   }
 
   div + .expressive-code .frame {

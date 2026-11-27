@@ -6,7 +6,7 @@ import {parseAsStringEnum, useQueryState} from 'nuqs';
 import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
 import {InlineCode} from '@sentry/scraps/code';
-import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Tabs, type TabsComponents} from '@sentry/scraps/tabs';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -18,10 +18,6 @@ import {StoryFooter} from './storyFooter';
 import {storyMdxComponents} from './storyMdxComponent';
 import {StoryResources} from './storyResources';
 import {StorySourceLinks} from './storySourceLinks';
-import {
-  StoryTableOfContents,
-  StoryTableOfContentsPlaceholder,
-} from './storyTableOfContents';
 import {
   isMDXStory,
   type MDXStoryDescriptor,
@@ -61,25 +57,22 @@ function StoryLayout() {
       {({TabList, TabPanels}) => (
         <Fragment>
           {isMDXStory(story) ? <MDXStoryTitle story={story} TabList={TabList} /> : null}
-          <StoryGrid>
-            <Stack
-              width="100%"
-              minWidth="0px"
-              maxWidth={{zero: '580px', '3xl': '832px'}}
-              gap="3xl"
-              padding="0 xl"
-              margin={{zero: '0', '3xl': '0 auto'}}
-            >
-              <Stack flexGrow={1} minWidth="0px">
-                <StoryTabPanels documentation={documentation} TabPanels={TabPanels} />
-              </Stack>
-              <ErrorBoundary>
-                <StorySourceLinks />
-              </ErrorBoundary>
-              <StoryFooter />
+          <Stack
+            width="100%"
+            minWidth="0px"
+            maxWidth={{zero: '580px', '3xl': '832px'}}
+            gap="3xl"
+            padding="0 xl"
+            margin={{zero: '0', '3xl': '0 auto'}}
+          >
+            <Stack flexGrow={1} minWidth="0px">
+              <StoryTabPanels documentation={documentation} TabPanels={TabPanels} />
             </Stack>
-            <StoryTableOfContents />
-          </StoryGrid>
+            <ErrorBoundary>
+              <StorySourceLinks />
+            </ErrorBoundary>
+            <StoryFooter />
+          </Stack>
         </Fragment>
       )}
     </Tabs>
@@ -107,54 +100,50 @@ function MDXStoryTitle(props: {
       background="secondary"
       padding="3xl 0 0 0"
       borderBottom="primary"
-      area="story-head"
     >
-      <StoryGrid>
+      <Stack
+        width="100%"
+        minWidth="0px"
+        maxWidth={{zero: '580px', '3xl': '832px'}}
+        gap="2xl"
+        padding="0 xl"
+        margin={{zero: '0', '3xl': '0 auto'}}
+      >
         <Stack
-          width="100%"
-          minWidth="0px"
-          maxWidth={{zero: '580px', '3xl': '832px'}}
-          gap="2xl"
-          padding="0 xl"
-          margin={{zero: '0', '3xl': '0 auto'}}
+          gap="xl"
+          padding={
+            props.story.exports.frontmatter?.layout === 'document'
+              ? '0 0 2xl 0'
+              : undefined
+          }
         >
-          <Stack
-            gap="xl"
-            padding={
-              props.story.exports.frontmatter?.layout === 'document'
-                ? '0 0 2xl 0'
-                : undefined
-            }
-          >
-            <Flex direction="row" gap="sm" align="center">
-              <Heading as="h1">{title}</Heading>
-              {props.story.exports.frontmatter?.status ? (
-                props.story.exports.frontmatter.status === 'stable' ? null : (
-                  <Tag
-                    variant={
-                      props.story.exports.frontmatter.status === 'in-progress'
-                        ? 'warning'
-                        : 'promotion'
-                    }
-                  >
-                    {props.story.exports.frontmatter.status === 'in-progress'
-                      ? 'In Progress'
-                      : 'Experimental'}
-                  </Tag>
-                )
-              ) : null}
-            </Flex>
-            {description && (
-              <Text as="p" density="comfortable">
-                {description}
-              </Text>
-            )}
-          </Stack>
-
-          <StoryTabList TabList={props.TabList} />
+          <Flex direction="row" gap="sm" align="center">
+            <Heading as="h1">{title}</Heading>
+            {props.story.exports.frontmatter?.status ? (
+              props.story.exports.frontmatter.status === 'stable' ? null : (
+                <Tag
+                  variant={
+                    props.story.exports.frontmatter.status === 'in-progress'
+                      ? 'warning'
+                      : 'promotion'
+                  }
+                >
+                  {props.story.exports.frontmatter.status === 'in-progress'
+                    ? 'In Progress'
+                    : 'Experimental'}
+                </Tag>
+              )
+            ) : null}
+          </Flex>
+          {description && (
+            <Text as="p" density="comfortable">
+              {description}
+            </Text>
+          )}
         </Stack>
-        <StoryTableOfContentsPlaceholder />
-      </StoryGrid>
+
+        <StoryTabList TabList={props.TabList} />
+      </Stack>
     </Container>
   );
 }
@@ -316,19 +305,6 @@ function useStoryDocumentation(
   });
 
   return query.data;
-}
-
-function StoryGrid(props: React.ComponentProps<typeof Grid>) {
-  return (
-    <Grid
-      {...props}
-      columns={{
-        zero: 'minmax(0, 1fr) auto',
-        '3xl': 'minmax(580px, 1fr) minmax(0, 256px)',
-      }}
-      height="100%"
-    />
-  );
 }
 
 function StoryModuleExports(props: {

@@ -1,9 +1,9 @@
-import {useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
+import {Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import {useLocation} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Container, Stack} from '@sentry/scraps/layout';
+import {Container, Stack, useResponsivePropValue} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 type Entry = {ref: HTMLElement; title: string};
@@ -160,53 +160,47 @@ function nestContentEntries(entries: Entry[]): NestedEntry[] {
   return nestedEntries;
 }
 
+const STORY_INDEX_DISPLAY = {zero: 'none', '3xl': 'block'} as const;
+
 export function StoryTableOfContents() {
   const entries = useStoryIndex();
   const nestedEntries = useMemo(() => nestContentEntries(entries), [entries]);
   const [activeId, setActiveId] = useActiveSection(entries);
-
-  if (nestedEntries.length === 0) {
-    return null;
-  }
+  const hasEntries = nestedEntries.length > 0;
+  const visibleActiveId =
+    useResponsivePropValue(STORY_INDEX_DISPLAY) === 'block' ? activeId : '';
 
   return (
     <Container
-      display={{zero: 'none', '3xl': 'block'}}
-      position="sticky"
-      top="52px"
-      marginRight="xl"
-      height="fit-content"
+      as={hasEntries ? 'nav' : 'div'}
+      aria-label={hasEntries ? 'On this page' : undefined}
+      display={STORY_INDEX_DISPLAY}
+      width="256px"
+      overflowY="auto"
+      overscrollBehavior="contain"
       padding="xl"
-      minWidth="0"
     >
-      <StoryIndexTitle>On this page</StoryIndexTitle>
-      <StoryIndexList>
-        {nestedEntries.map(entry => (
-          <StoryContentsList
-            key={entry.entry.ref.id}
-            entry={entry}
-            activeId={activeId}
-            setActiveId={setActiveId}
-          />
-        ))}
-      </StoryIndexList>
+      {hasEntries && (
+        <Fragment>
+          <StoryIndexTitle>On this page</StoryIndexTitle>
+          <StoryIndexList>
+            {nestedEntries.map(entry => (
+              <StoryContentsList
+                key={entry.entry.ref.id}
+                entry={entry}
+                activeId={visibleActiveId}
+                setActiveId={setActiveId}
+              />
+            ))}
+          </StoryIndexList>
+        </Fragment>
+      )}
     </Container>
   );
 }
 
-export function StoryTableOfContentsPlaceholder() {
-  return (
-    <Container
-      aria-hidden="true"
-      display={{zero: 'none', '3xl': 'block'}}
-      position="sticky"
-      top="52px"
-      marginRight="xl"
-      height="fit-content"
-      padding="xl"
-      minWidth="0"
-    />
-  );
+function revealActiveLink(link: HTMLAnchorElement | null) {
+  link?.scrollIntoView({block: 'nearest', inline: 'nearest'});
 }
 
 function StoryContentsList({
@@ -228,24 +222,21 @@ function StoryContentsList({
   );
 
   const LinkComponent = isChild ? StyledChildLink : StyledLink;
+  const isActive = entry.entry.ref.id === activeId;
 
   return (
     <Stack as="li">
       <LinkComponent
+        ref={isActive ? revealActiveLink : undefined}
         href={`#${entry.entry.ref.id}`}
-        isActive={entry.entry.ref.id === activeId}
+        aria-current={isActive ? 'location' : undefined}
+        isActive={isActive}
         hasActiveChild={hasActiveChild}
         onClick={() => setActiveId(entry.entry.ref.id)}
       >
         <Text
           ellipsis
-          variant={
-            hasActiveChild
-              ? 'primary'
-              : entry.entry.ref.id === activeId
-                ? 'accent'
-                : 'muted'
-          }
+          variant={hasActiveChild ? 'primary' : isActive ? 'accent' : 'muted'}
         >
           {entry.entry.title}
         </Text>
