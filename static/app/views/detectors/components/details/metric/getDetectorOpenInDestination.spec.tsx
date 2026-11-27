@@ -104,6 +104,41 @@ describe('getDetectorOpenInDestination', () => {
       );
       expect(result?.to).toContain('project=1');
     });
+
+    it('opens a span equation in Explore as an equation', () => {
+      const aggregate = 'equation|sum(span.duration) / count(span.duration)';
+      const detector = MetricDetectorFixture({
+        dataSources: [
+          SnubaQueryDataSourceFixture({
+            queryObj: {
+              id: '1',
+              status: 1,
+              subscription: '1',
+              snubaQuery: {
+                id: '1',
+                aggregate,
+                dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+                eventTypes: [EventTypes.TRACE_ITEM_SPAN],
+                query: '',
+                timeWindow: 3600,
+              },
+            },
+          }),
+        ],
+      });
+
+      const result = getDetectorOpenInDestination({
+        organization,
+        projectId: detector.projectId,
+        snubaQuery: detector.dataSources[0].queryObj.snubaQuery,
+        statsPeriod: '7d',
+      });
+
+      expect(result?.buttonText).toBe('Open in Explore');
+      expect(result?.to).toContain(
+        'visualize=%7B%22chartType%22%3A1%2C%22yAxes%22%3A%5B%22equation%7Csum%28span.duration%29%20%2F%20count%28span.duration%29%22%5D%7D'
+      );
+    });
   });
 
   describe('Spans dataset', () => {
