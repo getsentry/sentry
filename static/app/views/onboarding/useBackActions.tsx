@@ -1,129 +1,51 @@
 import {useCallback} from 'react';
 import {useBlocker} from 'react-router';
 
-import {removeProject} from 'sentry/actionCreators/projects';
-import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
-import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {defined} from 'sentry/utils/defined';
-import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import type {StepDescriptor} from './types';
 
 /**
- * Custom hook that performs a couple of actions when navigating back in the onboarding flow,
- * either by clicking the native browser back button or a custom back button.
+ * Records Back navigation in the onboarding flow, from either the browser
+ * button or the in-app Back button.
+ *
+ * Back never deletes the project created earlier in the session: the user may
+ * already have copied its DSN, and browser Forward must still land on a live
+ * project. Continue then edits that project to match the user's new choices
+ * (see useScmProjectCreation), so its DSN never changes.
  */
 export function useBackActions({
   stepIndex,
   onboardingSteps,
-  recentCreatedProject,
-  isRecentCreatedProjectActive,
   goToStep,
 }: {
   goToStep: (step: StepDescriptor) => void;
   onboardingSteps: StepDescriptor[];
   stepIndex: number;
-  isRecentCreatedProjectActive?: boolean;
-  recentCreatedProject?: Project;
 }) {
-  const api = useApi();
   const organization = useOrganization();
-  const onboardingContext = useOnboardingContext();
   const currentStep = onboardingSteps[stepIndex];
 
-  const deleteRecentCreatedProject = useCallback(async () => {
-    if (!recentCreatedProject) {
-      return;
-    }
-
-    onboardingContext.setCreatedProject(undefined);
-
-    try {
-      await removeProject({
-        api,
-        orgSlug: organization.slug,
-        projectSlug: recentCreatedProject.slug,
-        origin: 'onboarding',
-      });
-
-      trackAnalytics('onboarding.scm_data_removed', {
-        organization,
-        date_created: recentCreatedProject.dateCreated,
-        platform: recentCreatedProject.slug,
-        project_id: recentCreatedProject.id,
-      });
-    } catch (error) {
-      handleXhrErrorResponse(
-        'Unable to delete project in onboarding',
-        error as RequestError
-      );
-      // we don't give the user any feedback regarding this error as this shall be silent
-    }
-  }, [api, organization, onboardingContext, recentCreatedProject]);
-
-  const backStepActions = useCallback(
-    async ({
-      prevStep,
-      browserBackButton,
-    }: {
-      browserBackButton: boolean;
-      prevStep?: StepDescriptor;
-    }) => {
-      if (!prevStep || !currentStep) {
+  const trackBack = useCallback(
+    (prevStep: StepDescriptor, browserBackButton: boolean) => {
+      if (!currentStep) {
         return;
       }
-
       trackAnalytics('onboarding.scm_back_button_clicked', {
         organization,
         from: currentStep.id,
         to: prevStep.id,
         browserBackButton,
       });
-
-      // from setup docs to previous step
-      if (
-        currentStep.id === 'setup-docs' &&
-        defined(isRecentCreatedProjectActive) &&
-        !isRecentCreatedProjectActive &&
-        recentCreatedProject
-      ) {
-        trackAnalytics('onboarding.scm_data_removal_modal_confirm_button_clicked', {
-          organization,
-          platform: recentCreatedProject.slug,
-          project_id: recentCreatedProject.id,
-        });
-        // Await deletion so the projects store is updated before navigating
-        // back. Without this, re-selecting the same platform can see stale
-        // store data and skip project creation.
-        // Preserve context so the user keeps their SCM connection, repo
-        // selection, and feature choices.
-        await deleteRecentCreatedProject();
-      }
-
-      if (!browserBackButton) {
-        goToStep(prevStep);
-      }
     },
-    [
-      currentStep,
-      organization,
-      isRecentCreatedProjectActive,
-      recentCreatedProject,
-      goToStep,
-      deleteRecentCreatedProject,
-    ]
+    [currentStep, organization]
   );
 
-  // We are not blocking the navigation here; this is only used to call back step actions before changing paths.
-  // The 'popstate' event listener was attempted but didn't work, as it unmounts every time the path changes, which is the very behavior that needs to be tracked.
-  // Using `useRef` to save the previous path also didn't work due to excessive re-renders.
-  // 'beforeunload' was ruled out because it triggers during page refreshes or when tabs are closed, which isn't ideal.
-  // Ultimately, `useBlocker` proved to be the best solution.
+  // Never blocks; this is the only hook that sees a browser Back before the
+  // step unmounts. A popstate listener unmounts with every path change, and
+  // beforeunload also fires on refresh and tab close.
   useBlocker(({historyAction, nextLocation}) => {
     if (historyAction === 'POP') {
       const prevStepIndex = onboardingSteps.findIndex(
@@ -131,25 +53,22 @@ export function useBackActions({
           normalizeUrl(nextLocation.pathname, {forceCustomerDomain: true}) ===
           `/onboarding/${step.id}/`
       );
-      if (prevStepIndex < stepIndex) {
-        backStepActions({
-          prevStep: onboardingSteps[prevStepIndex],
-          browserBackButton: true,
-        });
+      const prevStep = onboardingSteps[prevStepIndex];
+      if (prevStep && prevStepIndex < stepIndex) {
+        trackBack(prevStep, true);
       }
     }
     return false;
   });
 
-  const handleGoBack = useCallback(
-    (goToStepIndex?: number) => {
-      backStepActions({
-        prevStep: onboardingSteps[defined(goToStepIndex) ? goToStepIndex : stepIndex - 1],
-        browserBackButton: false,
-      });
-    },
-    [stepIndex, backStepActions, onboardingSteps]
-  );
+  const handleGoBack = useCallback(() => {
+    const prevStep = onboardingSteps[stepIndex - 1];
+    if (!prevStep) {
+      return;
+    }
+    trackBack(prevStep, false);
+    goToStep(prevStep);
+  }, [stepIndex, onboardingSteps, trackBack, goToStep]);
 
   return {handleGoBack};
 }

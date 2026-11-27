@@ -246,7 +246,7 @@ export function OnboardingWithoutContext() {
 
   const projectSlug = stepObj?.id === 'setup-docs' ? createdProjectSlug : undefined;
 
-  const {project: recentCreatedProject, isProjectActive} = useRecentCreatedProject({
+  const {project: recentCreatedProject} = useRecentCreatedProject({
     orgSlug: organization.slug,
     projectSlug,
     // Wait until the first event is received as we have an UI element that depends on it
@@ -290,9 +290,6 @@ export function OnboardingWithoutContext() {
     }
   }, [location.query, navigate, onboardingContext, organization.slug, location.pathname]);
 
-  const shallProjectBeDeleted =
-    stepObj?.id === 'setup-docs' && defined(isProjectActive) && !isProjectActive;
-
   const [containerHasFooter, setContainerHasFooter] = useState(false);
 
   const goToStep = useCallback(
@@ -305,13 +302,7 @@ export function OnboardingWithoutContext() {
     [organization.slug, navigate, stepObj]
   );
 
-  const {handleGoBack} = useBackActions({
-    stepIndex,
-    onboardingSteps,
-    goToStep,
-    recentCreatedProject,
-    isRecentCreatedProjectActive: isProjectActive,
-  });
+  const {handleGoBack} = useBackActions({stepIndex, onboardingSteps, goToStep});
 
   const goNextStep = (
     step: StepDescriptor,
@@ -434,14 +425,7 @@ export function OnboardingWithoutContext() {
             <Stepper
               numSteps={onboardingSteps.length}
               currentStepIndex={stepIndex}
-              onClick={i => {
-                if (i < stepIndex && shallProjectBeDeleted) {
-                  handleGoBack(i);
-                  return;
-                }
-
-                goToStep(onboardingSteps[i]!);
-              }}
+              onClick={i => goToStep(onboardingSteps[i]!)}
             />
           </Flex>
         )}

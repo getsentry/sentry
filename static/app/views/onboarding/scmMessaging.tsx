@@ -105,8 +105,8 @@ export function ScmMessaging({
 
   const validatedActiveRow = validateActiveRow(activeRow, providers, messagingSetup);
   const visibleProviders = listedProviders(providers, validatedActiveRow, messagingSetup);
-  // The destination as the creation snapshot records it, so the reuse check
-  // can compare it against what the project was created with.
+  // The destination as the creation snapshot records it, so a later
+  // submission can compare it against what the project was created with.
   const selection = useMemo(
     () =>
       messagingSetup.mode === 'selected'
@@ -160,15 +160,16 @@ export function ScmMessaging({
         : {defaultRules: true},
       getIntegrationAction: includeMessagingRule ? getIntegrationAction : undefined,
       stagedSelection,
-      onSuccess: ({reused, notificationRule}) => {
+      onSuccess: ({outcome, workflowIds, notificationRule}) => {
         // Record the skip only on success: a failed creation keeps the staged
         // destination (and the Continue button) intact on the step.
         if (!includeMessagingRule) {
           onMessagingSetupChange({mode: 'skipped'});
         }
-        // An unchanged Back-navigation reuse completes the step again but
-        // creates nothing, so it is not a second completion.
-        if (!reused) {
+        // A completion is a submission that created the project or its alert
+        // rules. Returning after Back without changing the destination
+        // completes the step again but writes no rules, so it is not counted.
+        if (outcome === 'created' || workflowIds.length > 0) {
           trackAnalytics('onboarding.scm_messaging_completed', {
             organization,
             // Read from the created rule, the same source
