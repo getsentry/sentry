@@ -7,6 +7,8 @@ import {parseAsString, useQueryState} from 'nuqs';
 
 import {act, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import * as qs from 'sentry/utils/url/qs';
+
 import {NuqsAdapter} from './nuqsAdapter';
 
 type Commit = {location: string | null; nuqs: string | null};
@@ -78,6 +80,25 @@ describe('NuqsAdapter', () => {
 
     expect(await screen.findByRole('button', {name: 'open'})).toBeInTheDocument();
     expect(commits.filter(commit => commit.location !== commit.nuqs)).toEqual([]);
+  });
+
+  it('writes query strings the same way as the router', async () => {
+    const {router: browserRouter} = renderWithBrowserRouter();
+    const query = {
+      aggregateField: ['{"groupBy":""}', '{"yAxes":["count(span.duration)"]}'],
+      query: 'span.op:db !has:user.email',
+      zeta: '1',
+    };
+
+    await act(() => browserRouter.navigate(`/?${qs.stringify(query)}`));
+    await userEvent.click(screen.getByRole('button', {name: 'closed'}));
+
+    await waitFor(() =>
+      expect(browserRouter.state.location.search).toBe(
+        `?${qs.stringify({...query, drawer: 'open'})}`
+      )
+    );
+    expect(window.location.search).toBe(browserRouter.state.location.search);
   });
 
   it('commits query state with the router location when navigating around a query state write', async () => {
