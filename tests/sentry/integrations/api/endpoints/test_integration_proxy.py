@@ -505,7 +505,7 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
 
         proxy_response = self.client.get(self.path, **headers)
 
-        assert proxy_response.status_code == 400
+        assert proxy_response.status_code == 401
         assert proxy_response.data is None
 
         self.assert_metric_count(
