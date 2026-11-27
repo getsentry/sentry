@@ -30,6 +30,30 @@ def test_audit_log_item_generation() -> None:
     assert items[3]["tags"] == {}
 
 
+def test_audit_log_item_extracts_flag_description_from_feature_value() -> None:
+    feature_value = {
+        "created_at": "2026-11-27T00:00:00",
+        "owner": {"team": "data-browsing"},
+        "description": "  Gates Explore annotations drawer  ",
+        "segments": [],
+    }
+    presenter = AuditLogPresenter("", True)
+    presenter.set("feature.organizations:example", feature_value)
+    presenter.update(
+        "feature.organizations:other",
+        {"description": "old"},
+        {**feature_value, "description": "Updated purpose"},
+    )
+
+    items = presenter._create_audit_log_items()
+    assert items[0]["tags"] == {
+        "value": feature_value,
+        "flag_description": "Gates Explore annotations drawer",
+    }
+    assert items[1]["tags"]["flag_description"] == "Updated purpose"
+    assert items[1]["tags"]["value"]["description"] == "Updated purpose"
+
+
 class AuditLogPresenterFunctionalTestCase(APITestCase):
     endpoint = "sentry-api-0-flag-hooks"
 
