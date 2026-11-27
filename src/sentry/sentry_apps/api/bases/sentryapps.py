@@ -614,9 +614,23 @@ class SentryAppStatsPermission(SentryPermission):
         return ensure_scoped_permission(request, self.scope_map.get(request.method))
 
 
+def has_webhook_request_detail_access(request: Request) -> bool:
+    """
+    Request log details (headers including Sentry-Hook-Signature, request and
+    response bodies, linked errors) stay restricted to callers who can manage
+    the app; see #125667.
+    """
+    return is_active_superuser(request) or ensure_scoped_permission(
+        request, ("org:write", "org:admin")
+    )
+
+
 class SentryAppWebhookRequestsPermission(SentryPermission):
+    # Token auth checks scope_map before the Sentry App is resolved, so it must
+    # be the union of both tiers. has_object_permission limits org:read to
+    # internal apps, whose log only holds the owner org's own deliveries.
     scope_map = {
-        "GET": ("org:write", "org:admin"),
+        "GET": ("org:read", "org:write", "org:admin"),
     }
 
     def has_object_permission(
@@ -640,8 +654,7 @@ class SentryAppWebhookRequestsPermission(SentryPermission):
             return False
         self.determine_access(request, owner_app)
 
-        if is_active_superuser(request):
+        if has_webhook_request_detail_access(request):
             return True
 
-        assert request.method, "method must be present in request to get permissions"
-        return ensure_scoped_permission(request, self.scope_map.get(request.method))
+        return sentry_app.is_internal and ensure_scoped_permission(request, ("org:read",))
