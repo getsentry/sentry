@@ -31,10 +31,7 @@ import {useParams} from 'sentry/utils/useParams';
 import {useUserFromId} from 'sentry/utils/useUserFromId';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
-import {
-  getNextUpdate,
-  type AutomationConfig,
-} from 'sentry/views/seerWorkflows/automations';
+import type {AutomationConfig} from 'sentry/views/seerWorkflows/automations';
 import type {AutomationFormHandle} from 'sentry/views/seerWorkflows/automations/baseForm';
 import {
   useDeleteConfig,
@@ -49,6 +46,7 @@ import {
   AUTO_REFRESH_INTERVAL,
   getAutomationDetailPath,
   getAutomationsPath,
+  getNextCronFiringBulk,
   useAutomationsEnabled,
 } from 'sentry/views/seerWorkflows/utils';
 
@@ -108,9 +106,9 @@ export default function AutomationDetail() {
   const {data: displayUser} = useUserFromId({
     id: displayUserId ? Number(displayUserId) : undefined,
   });
-  const nextUpdate =
+  const nextFiring =
     config?.enabled && config.strategy !== 'breached_metric_investigation'
-      ? getNextUpdate(config.schedule)
+      ? getNextCronFiringBulk(config.cronSchedules)
       : undefined;
 
   if (!automationsEnabled) {
@@ -147,11 +145,11 @@ export default function AutomationDetail() {
             })}
       </Text>
       <Stack.Separator />
-      {nextUpdate && (
+      {nextFiring && (
         <Fragment>
           <Text size="sm" variant="muted">
             {tct('Next run [time]', {
-              time: <TimeSince date={nextUpdate} tooltipPrefix={t('Next run')} />,
+              time: <TimeSince date={nextFiring} tooltipPrefix={t('Next run')} />,
             })}
           </Text>
           <Stack.Separator />

@@ -7,7 +7,7 @@ export function SeerWorkflowConfigFixture(
     id: '1',
     strategy: 'agentic_triage',
     enabled: true,
-    schedule: 'daily',
+    cronSchedules: [{crontab: '0 10,22 * * *', timezone: 'UTC'}],
     version: 1,
     projects: [],
     monitorIds: [],

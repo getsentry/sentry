@@ -79,7 +79,7 @@ const CONFIGS: Record<string, AutomationConfig[]> = {
       monitorIds: [11],
       createdBy: creator.id,
     }),
-    SeerWorkflowConfigFixture({id: '4', schedule: 'hourly', projects: [-1]}),
+    SeerWorkflowConfigFixture({id: '4', cronSchedules: [], projects: [-1]}),
   ],
   'long-and-unknown-content': [
     SeerWorkflowConfigFixture({

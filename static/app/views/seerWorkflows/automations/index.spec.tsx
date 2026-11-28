@@ -6,7 +6,6 @@ import {SeerWorkflowConfigFixture} from 'sentry-fixture/seerWorkflowConfig';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {
-  cleanup,
   render,
   screen,
   userEvent,
@@ -15,7 +14,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import AutomationsList, {getNextUpdate} from 'sentry/views/seerWorkflows/automations';
+import AutomationsList from 'sentry/views/seerWorkflows/automations';
 import type {SeerWorkflowConfigResponse} from 'sentry/views/seerWorkflows/types';
 
 import AutomationRuns from './detail/runs';
@@ -159,21 +158,35 @@ describe('AutomationsList', () => {
     expect(getCard('some_strategy').getByText('backend, frontend')).toBeInTheDocument();
   });
 
-  it('shows a next run tag only for daily configs', async () => {
+  it('shows a next run tag only for configs with cron schedules', async () => {
     mockConfigs([
-      SeerWorkflowConfigFixture({id: '1', strategy: 'daily_strategy', schedule: 'daily'}),
+      SeerWorkflowConfigFixture({
+        id: '1',
+        strategy: 'scheduled_strategy',
+        cronSchedules: [{crontab: '0 10 * * *', timezone: 'UTC'}],
+      }),
       SeerWorkflowConfigFixture({
         id: '2',
-        strategy: 'weekly_strategy',
-        schedule: 'weekly',
+        strategy: 'unscheduled_strategy',
+        cronSchedules: [],
+      }),
+      SeerWorkflowConfigFixture({
+        id: '3',
+        strategy: 'missing_schedule_strategy',
+        cronSchedules: undefined,
       }),
     ]);
 
     render(<AutomationsList />, {organization});
 
-    await screen.findByRole('heading', {name: 'daily_strategy'});
-    expect(getCard('daily_strategy').getByText(/Next run/)).toBeInTheDocument();
-    expect(getCard('weekly_strategy').queryByText(/Next run/)).not.toBeInTheDocument();
+    await screen.findByRole('heading', {name: 'scheduled_strategy'});
+    expect(getCard('scheduled_strategy').getByText(/Next run/)).toBeInTheDocument();
+    expect(
+      getCard('unscheduled_strategy').queryByText(/Next run/)
+    ).not.toBeInTheDocument();
+    expect(
+      getCard('missing_schedule_strategy').queryByText(/Next run/)
+    ).not.toBeInTheDocument();
   });
 
   it('shows a paused tag in place of the schedule for disabled configs', async () => {
@@ -181,7 +194,7 @@ describe('AutomationsList', () => {
       SeerWorkflowConfigFixture({
         id: '1',
         strategy: 'paused_strategy',
-        schedule: 'daily',
+        cronSchedules: [{crontab: '0 10 * * *', timezone: 'UTC'}],
         enabled: false,
       }),
     ]);
@@ -324,45 +337,5 @@ describe('AutomationsList', () => {
       expect(screen.queryByText('Error rate')).not.toBeInTheDocument();
       expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
     });
-  });
-});
-
-describe('getNextUpdate', () => {
-  afterEach(() => {
-    try {
-      cleanup();
-      jest.runOnlyPendingTimers();
-    } finally {
-      jest.useRealTimers();
-    }
-  });
-
-  it('returns undefined for schedules other than daily', () => {
-    jest.useFakeTimers({now: new Date('2026-10-23T09:00:00Z')});
-
-    expect(getNextUpdate('weekly')).toBeUndefined();
-    expect(getNextUpdate('')).toBeUndefined();
-  });
-
-  it.each([
-    ['before 10:00', '2026-10-23T09:59:59Z', '2026-10-23T10:00:00.000Z'],
-    ['at 10:00', '2026-10-23T10:00:00Z', '2026-10-23T22:00:00.000Z'],
-    ['between 10:00 and 22:00', '2026-10-23T15:30:00Z', '2026-10-23T22:00:00.000Z'],
-    ['at 22:00', '2026-10-23T22:00:00Z', '2026-10-24T10:00:00.000Z'],
-    ['after 22:00', '2026-10-23T23:15:00Z', '2026-10-24T10:00:00.000Z'],
-    [
-      'after 22:00 at the end of a month',
-      '2026-10-31T23:00:00Z',
-      '2026-11-01T10:00:00.000Z',
-    ],
-    [
-      'after 22:00 at the end of a year',
-      '2026-12-31T23:00:00Z',
-      '2027-01-01T10:00:00.000Z',
-    ],
-  ])('picks the next daily run %s UTC', (_, now, expected) => {
-    jest.useFakeTimers({now: new Date(now)});
-
-    expect(getNextUpdate('daily')?.toISOString()).toBe(expected);
   });
 });

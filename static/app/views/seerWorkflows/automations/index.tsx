@@ -36,6 +36,7 @@ import type {
 import {
   AUTO_REFRESH_INTERVAL,
   getAutomationDetailPath,
+  getNextCronFiringBulk,
   useAutomationsEnabled,
 } from 'sentry/views/seerWorkflows/utils';
 
@@ -46,12 +47,6 @@ import {useMonitorsById} from './hooks/useMonitorsById';
  * The narrowest a card may get before the grid drops to fewer columns per row.
  */
 const MIN_CARD_WIDTH = '280px';
-
-/**
- * "daily" configs are picked up by the seer-night-shift cron, which fires at 10:00
- * and 22:00 UTC (see TASKWORKER_SCHEDULES in src/sentry/conf/server.py).
- */
-const DAILY_SCHEDULE_HOURS = [10, 22];
 
 /**
  * How many project avatars/slugs a card shows before collapsing the rest.
@@ -146,7 +141,7 @@ function AutomationCard({
     : config.projects
         .map(id => projects.find(p => p.id === String(id))?.slug)
         .filter((slug): slug is string => slug !== undefined);
-  const nextUpdate = getNextUpdate(config.schedule);
+  const nextFiring = getNextCronFiringBulk(config.cronSchedules);
 
   return (
     <Container as="li" display="grid">
@@ -173,11 +168,11 @@ function AutomationCard({
                     {trigger}
                   </Tag>
                 ) : (
-                  nextUpdate && (
+                  nextFiring && (
                     <Tag variant="muted" icon={<IconClock />}>
                       {tct('Next run [time]', {
                         time: (
-                          <TimeSince date={nextUpdate} tooltipPrefix={t('Next run')} />
+                          <TimeSince date={nextFiring} tooltipPrefix={t('Next run')} />
                         ),
                       })}
                     </Tag>
@@ -318,25 +313,3 @@ const CardStack = styled(Stack)`
     background: ${p => p.theme.tokens.interactive.transparent.neutral.background.hover};
   }
 `;
-
-/**
- * When an automation with this schedule next runs. "daily" is the only supported
- * schedule for now.
- */
-export function getNextUpdate(schedule: string): Date | undefined {
-  if (schedule !== 'daily') {
-    return undefined;
-  }
-  const now = new Date();
-  for (const hour of DAILY_SCHEDULE_HOURS) {
-    const next = new Date(now);
-    next.setUTCHours(hour, 0, 0, 0);
-    if (next > now) {
-      return next;
-    }
-  }
-  const tomorrow = new Date(now);
-  tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
-  tomorrow.setUTCHours(10, 0, 0, 0);
-  return tomorrow;
-}
