@@ -1,6 +1,10 @@
 from datetime import datetime
+from typing import Any
 from unittest.mock import patch
+from uuid import uuid4
 
+from django.db import connections, router
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 
 from sentry import audit_log
@@ -8,18 +12,23 @@ from sentry.api.endpoints.project_custom_inbound_filters import (
     MAX_CONDITION_VALUE_CHARS_PER_FILTER,
     MAX_CONDITIONS_PER_FILTER,
 )
+from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.ingest.legacy_filter_lists import served_legacy_filters
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.custominboundfilter import CustomInboundFilter, LegacyFilter
+from sentry.service_accounts.models import ServiceAccount
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.task_runner import BurstTaskRunner
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import assume_test_silo_mode
+from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of
 from sentry.timeseries_annotations.models import (
     AnnotationScope,
     AnnotationType,
     TimeseriesAnnotation,
 )
+from sentry.users.models.user import User
 
 
 class CustomInboundFiltersTest(APITestCase):
@@ -127,6 +136,8 @@ class CustomInboundFiltersTest(APITestCase):
             "dataType": "all",
             "conditions": [{"type": "release", "value": ["1.*"]}],
             "legacyFilter": None,
+            # Nobody is recorded on a row not saved through the API.
+            "updatedBy": None,
         }
         assert second_data == {
             "id": str(second_filter.id),
@@ -135,6 +146,7 @@ class CustomInboundFiltersTest(APITestCase):
             "dataType": "error",
             "conditions": [{"type": "error_message", "value": ["TypeError*"]}],
             "legacyFilter": None,
+            "updatedBy": None,
         }
 
     def test_post(self) -> None:
@@ -1559,3 +1571,244 @@ class CustomInboundFilterAnnotationTest(APITestCase):
             self._post_a_filter()
 
         assert not TimeseriesAnnotation.objects.filter(project_id=self.project.id).exists()
+
+
+class CustomInboundFilterUpdatedByTest(APITestCase):
+    """Who last saved a filter, as the list, detail, create and update responses return it."""
+
+    features = ["organizations:inbound-filters-v2", "projects:custom-inbound-filters"]
+    conditions = [{"type": "release", "operator": "starts_with", "value": ["1."]}]
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.organization = self.create_organization(owner=self.user)
+        self.team = self.create_team(organization=self.organization)
+        self.project = self.create_project(organization=self.organization, teams=[self.team])
+
+    def list_url(self) -> str:
+        return reverse(
+            "sentry-api-0-project-custom-inbound-filters",
+            args=[self.organization.slug, self.project.slug],
+        )
+
+    def detail_url(self, filter_id: str | int) -> str:
+        return reverse(
+            "sentry-api-0-project-custom-inbound-filter-details",
+            args=[self.organization.slug, self.project.slug, filter_id],
+        )
+
+    def create_filter(self, **headers: str) -> dict[str, Any]:
+        with self.feature(self.features), outbox_runner():
+            response = self.client.post(
+                self.list_url(),
+                data={"name": "Mine", "dataType": "all", "conditions": self.conditions},
+                format="json",
+                **headers,
+            )
+        assert response.status_code == 201, response.content
+        return response.data
+
+    def update_filter(self, filter_id: str | int, **headers: str) -> dict[str, Any]:
+        with self.feature(self.features), outbox_runner():
+            response = self.client.put(
+                self.detail_url(filter_id),
+                data={"name": f"Renamed {uuid4().hex}"},
+                format="json",
+                **headers,
+            )
+        assert response.status_code == 200, response.content
+        return response.data
+
+    def get_filter(self, filter_id: str | int) -> dict[str, Any]:
+        with self.feature(self.features):
+            response = self.client.get(self.detail_url(filter_id), format="json")
+        assert response.status_code == 200, response.content
+        return response.data
+
+    def service_account_authorization(self, name: str = "filter-bot") -> tuple[ServiceAccount, str]:
+        """A service account that can write the project's settings, and its token header."""
+        service_account = self.create_service_account(
+            organization=self.organization,
+            name=name,
+            scope_list=["project:write"],
+            project_ids=[self.project.id],
+        )
+        _, token = self.create_service_account_token(
+            service_account, scope_list=["project:write"], created_by=self.user
+        )
+        return service_account, f"Bearer {token}"
+
+    def assert_user_editor(self, updated_by: dict[str, Any] | None, user: User) -> None:
+        assert updated_by is not None
+        # Only what shows the editor, not the account details of the users API.
+        assert updated_by.keys() == {
+            "type",
+            "id",
+            "name",
+            "username",
+            "email",
+            "avatarUrl",
+            "avatar",
+        }
+        assert updated_by["type"] == "user"
+        assert updated_by["id"] == str(user.id)
+        assert updated_by["name"] == user.get_display_name()
+        assert updated_by["email"] == user.email
+        assert updated_by["avatar"]["avatarType"] == "letter_avatar"
+
+    def test_create_as_session_user_records_the_user(self) -> None:
+        self.login_as(user=self.user)
+
+        created = self.create_filter()
+
+        self.assert_user_editor(created["updatedBy"], self.user)
+        self.assert_user_editor(self.get_filter(created["id"])["updatedBy"], self.user)
+
+    def test_update_with_personal_token_records_the_user(self) -> None:
+        custom_filter = self.create_project_custom_inbound_filter(project=self.project)
+        token = self.create_user_auth_token(self.user, scope_list=["project:write"])
+
+        updated = self.update_filter(custom_filter.id, HTTP_AUTHORIZATION=f"Bearer {token.token}")
+
+        self.assert_user_editor(updated["updatedBy"], self.user)
+        self.login_as(user=self.user)
+        self.assert_user_editor(self.get_filter(custom_filter.id)["updatedBy"], self.user)
+
+    @with_feature("organizations:service-accounts")
+    def test_create_and_update_with_service_account_token_record_the_service_account(
+        self,
+    ) -> None:
+        service_account, authorization = self.service_account_authorization()
+        expected = {
+            "type": "service_account",
+            "id": str(service_account.id),
+            "name": "filter-bot",
+            "isActive": True,
+        }
+
+        created = self.create_filter(HTTP_AUTHORIZATION=authorization)
+        assert created["updatedBy"] == expected
+
+        updated = self.update_filter(created["id"], HTTP_AUTHORIZATION=authorization)
+        assert updated["updatedBy"] == expected
+
+        self.login_as(user=self.user)
+        assert self.get_filter(created["id"])["updatedBy"] == expected
+
+    @with_feature("organizations:service-accounts")
+    def test_user_edit_replaces_a_service_account_editor(self) -> None:
+        _, authorization = self.service_account_authorization()
+        created = self.create_filter(HTTP_AUTHORIZATION=authorization)
+
+        self.login_as(user=self.user)
+        updated = self.update_filter(created["id"])
+
+        self.assert_user_editor(updated["updatedBy"], self.user)
+        row = CustomInboundFilter.objects.get(id=created["id"])
+        assert row.updated_by_service_account_id is None
+
+    @with_feature("organizations:service-accounts")
+    def test_service_account_edit_replaces_a_user_editor(self) -> None:
+        self.login_as(user=self.user)
+        created = self.create_filter()
+        self.client = self.client_class()
+        service_account, authorization = self.service_account_authorization()
+
+        updated = self.update_filter(created["id"], HTTP_AUTHORIZATION=authorization)
+
+        assert updated["updatedBy"]["type"] == "service_account"
+        assert updated["updatedBy"]["id"] == str(service_account.id)
+        row = CustomInboundFilter.objects.get(id=created["id"])
+        assert row.updated_by_id is None
+
+    @with_feature("organizations:service-accounts")
+    def test_deleted_service_account_comes_back_inactive(self) -> None:
+        service_account, authorization = self.service_account_authorization()
+        created = self.create_filter(HTTP_AUTHORIZATION=authorization)
+
+        with assume_test_silo_mode_of(ServiceAccount), outbox_runner():
+            assert service_account.deactivate()
+
+        self.login_as(user=self.user)
+        assert self.get_filter(created["id"])["updatedBy"] == {
+            "type": "service_account",
+            "id": str(service_account.id),
+            "name": "filter-bot",
+            "isActive": False,
+        }
+
+    def test_internal_integration_edit_is_attributed_to_its_user(self) -> None:
+        integration = self.create_internal_integration(
+            organization=self.organization, scopes=("project:write",)
+        )
+        token = self.create_internal_integration_token(
+            user=self.user, internal_integration=integration
+        )
+        authorization = f"Bearer {token.token}"
+
+        created = self.create_filter(HTTP_AUTHORIZATION=authorization)
+        updated = self.update_filter(created["id"], HTTP_AUTHORIZATION=authorization)
+
+        assert integration.proxy_user_id is not None
+        for updated_by in (created["updatedBy"], updated["updatedBy"]):
+            assert updated_by["type"] == "user"
+            assert updated_by["id"] == str(integration.proxy_user_id)
+
+    def test_filter_without_an_editor_has_null_updated_by(self) -> None:
+        custom_filter = self.create_project_custom_inbound_filter(project=self.project)
+        self.login_as(user=self.user)
+
+        assert self.get_filter(custom_filter.id)["updatedBy"] is None
+
+    def test_deleted_user_is_removed_once_the_tombstone_jobs_run(self) -> None:
+        editor = self.create_user()
+        self.create_member(organization=self.organization, user=editor, role="owner")
+        self.login_as(user=editor)
+        created = self.create_filter()
+
+        with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
+            editor.delete()
+        with BurstTaskRunner() as burst:
+            schedule_hybrid_cloud_foreign_key_jobs()
+            burst()
+
+        assert CustomInboundFilter.objects.get(id=created["id"]).updated_by_id is None
+        self.login_as(user=self.user)
+        assert self.get_filter(created["id"])["updatedBy"] is None
+
+    def list_query_count(self) -> tuple[int, int]:
+        """The queries of a list request, on the cell and on the control database."""
+        with (
+            self.feature(self.features),
+            CaptureQueriesContext(connections[router.db_for_read(CustomInboundFilter)]) as cell,
+            CaptureQueriesContext(connections[router.db_for_read(User)]) as control,
+        ):
+            response = self.client.get(self.list_url(), format="json")
+        assert response.status_code == 200, response.content
+        return len(cell), len(control)
+
+    def add_edited_filters(self, count: int) -> None:
+        """Filters edited by `count` different users and `count` service accounts."""
+        for _ in range(count):
+            service_account = self.create_service_account(
+                organization=self.organization, name=f"bot-{uuid4().hex}"
+            )
+            self.create_project_custom_inbound_filter(
+                project=self.project, updated_by_id=self.create_user().id
+            )
+            self.create_project_custom_inbound_filter(
+                project=self.project, updated_by_service_account_id=service_account.id
+            )
+
+    def test_list_query_count_does_not_grow_with_the_filters(self) -> None:
+        self.login_as(user=self.user)
+        with outbox_runner():
+            self.add_edited_filters(1)
+        # The first request also fills caches, such as the organization's options.
+        self.list_query_count()
+        baseline = self.list_query_count()
+
+        with outbox_runner():
+            self.add_edited_filters(4)
+
+        assert self.list_query_count() == baseline

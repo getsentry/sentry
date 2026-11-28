@@ -1,12 +1,16 @@
 from __future__ import annotations
 
 from enum import StrEnum
+from typing import TYPE_CHECKING, TypedDict
 
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, cell_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+
+if TYPE_CHECKING:
+    from sentry.api.helpers.creator import ActorReference
 
 
 class ConditionType(StrEnum):
@@ -144,3 +148,19 @@ class CustomInboundFilter(DefaultFieldsModel):
         ]
 
     __repr__ = sane_repr("project_id", "name")
+
+
+class EditorColumns(TypedDict):
+    updated_by_id: int | None
+    updated_by_service_account_id: int | None
+
+
+def editor_columns(actor: ActorReference) -> EditorColumns:
+    """
+    The columns that record ``actor`` as the editor of a filter. Every save of a filter
+    sets them, replacing the previous editor.
+    """
+    return {
+        "updated_by_id": actor.user_id,
+        "updated_by_service_account_id": actor.service_account_id,
+    }
