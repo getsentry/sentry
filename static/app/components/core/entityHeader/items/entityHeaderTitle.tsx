@@ -18,20 +18,19 @@ import {unreachable} from 'sentry/utils/unreachable';
 import {EntityHeaderDestinationLink, toLinkDestination} from './entityHeaderText';
 
 /**
- * Either the graphic is named, in which case it may also elaborate on hover, or
- * it is decorative and says nothing.
+ * A graphic is either named, with an optional tooltip, or decorative.
  */
 type EntityHeaderLeadingGraphicBase =
   | {
       /**
        * Names the graphic for assistive technology. Give it one when the
-       * graphic carries something the title does not, such as which projects a
+       * graphic shows something the title does not, such as which projects a
        * trace touched.
        */
       label: string;
       /**
-       * Richer hover content than `label`. Mouse-only — the graphic is not
-       * focusable — so keep anything a user needs in `label` itself.
+       * Hover content shown instead of `label`. The graphic is not focusable,
+       * so the tooltip is mouse-only. Keep anything a user needs in `label`.
        */
       tooltip?: React.ReactNode;
     }
@@ -47,9 +46,9 @@ type EntityHeaderLeadingGraphicBase =
 /**
  * The graphic that can sit before the title.
  *
- * `project` and `platform` render the same badge but take what the caller
- * actually holds: a trace knows its projects, a build has only inferred a
- * platform from a file type.
+ * `project` and `platform` render the same badge. Use the one that matches the
+ * data you have. A trace has its projects, but a build only has a platform
+ * inferred from a file type.
  */
 export type EntityHeaderLeadingGraphic =
   | ({type: 'user'; user: AvatarUser} & EntityHeaderLeadingGraphicBase)
@@ -58,18 +57,18 @@ export type EntityHeaderLeadingGraphic =
 
 interface EntityHeaderTitleBase {
   /**
-   * What the value is — "Replay user", "Issue type". Required, and read before
-   * the value by assistive technology.
+   * What the value is, such as "Replay user" or "Issue type". Assistive
+   * technology reads it before the value.
    *
-   * It is not rendered. A sighted reader gets this from the graphic beside the
-   * title and the breadcrumb above it; someone jumping straight to the heading
-   * gets an unexplained string without it. Same meaning as a stat's `label`,
-   * which is why it has the same name.
+   * It is not rendered. Sighted users get this from the graphic beside the
+   * title and the breadcrumbs above it. Without it, a screen reader user who
+   * jumps to the heading hears the value with no context. It means the same as
+   * a stat's `label`, so it has the same name.
    */
   label: string;
   /**
-   * The entity's name. Rendered as the page's `h2` — the `h1` belongs to the
-   * TopBar title slot.
+   * The entity's name. Rendered as the page's `h2`, because the `h1` belongs
+   * to the TopBar title slot.
    */
   value: string;
   /**
@@ -84,9 +83,9 @@ interface EntityHeaderTitleBase {
 }
 
 /**
- * A title declares whether it navigates, rather than the component inferring
- * it from a destination that happens to be defined — the same reason a stat
- * and a metadata item do.
+ * A title declares whether it is a link rather than the component inferring it
+ * from whether a destination is defined. Stats and metadata items work the
+ * same way.
  */
 export type EntityHeaderTitleProps = EntityHeaderTitleBase &
   (
@@ -128,12 +127,11 @@ function LeadingGraphicSlot({graphic}: {graphic: EntityHeaderLeadingGraphic}) {
       width="24px"
       height="24px"
       flexShrink={0}
-      // Labelled, the slot becomes an image in its own right and the badge
-      // inside it stays decorative, which is what lets a trace say which
-      // projects it touched. Unlabelled, the whole thing is hidden.
-      // `role="img"` with a name is announced without focus, so there is
-      // nothing here to tab to — a stop a keyboard user cannot activate,
-      // dismiss, or read anything further from.
+      // With a label, the slot is a named image and the badge inside it is
+      // decorative, so a trace can say which projects it touched. Without a
+      // label, the slot is hidden. A named `role="img"` is announced without
+      // focus, so the slot is not a tab stop. A keyboard user could not
+      // activate it or read anything more from it.
       {...(graphic.label
         ? {role: 'img', 'aria-label': graphic.label}
         : {'aria-hidden': true})}
@@ -152,22 +150,22 @@ function LeadingGraphicSlot({graphic}: {graphic: EntityHeaderLeadingGraphic}) {
 }
 
 export function EntityHeaderTitle(props: EntityHeaderTitleProps & {isLoading?: boolean}) {
-  // Named from both, so heading navigation lands on "Replay user,
-  // anonymous@example.com" rather than on an email address with no frame. The
-  // comma is what gives a screen reader its pause; visually hidden text inside
-  // the heading would read as one run.
+  // Named from both, so heading navigation reads "Replay user,
+  // anonymous@example.com" rather than a bare email address. The comma makes a
+  // screen reader pause. Visually hidden text inside the heading would be read
+  // without a pause.
   const accessibleName = `${props.label}, ${props.value}`;
   if (props.isLoading) {
-    // The heading stays in the tree, carrying the label the caller already has.
-    // Dropping it would make the page's structure change as the data lands, so
-    // anyone navigating by heading mid-load would find nothing and no signal to
-    // come back.
+    // The heading stays in the accessibility tree with the label, which is
+    // known before the data. Removing it would change the page's structure
+    // when the data arrives, and a user navigating by heading during loading
+    // would find no heading.
     return (
       <Flex align="center" minHeight={ROW_HEIGHT}>
         {/*
-          Named by the label alone. The value is not known yet, and a caller
-          with a fallback — "Anonymous User" while the record loads — would
-          otherwise have the header assert a name it has not got.
+          Named by the label alone. The value is not known yet, and a caller's
+          fallback, such as "Anonymous User" while the record loads, would
+          otherwise be read as the entity's name.
         */}
         <VisuallyHidden>
           <Heading as="h2" size="lg" aria-label={props.label}>
@@ -200,10 +198,10 @@ export function EntityHeaderTitle(props: EntityHeaderTitleProps & {isLoading?: b
     <Flex align="center" gap="sm" minWidth={0} minHeight={ROW_HEIGHT}>
       {props.leadingGraphic && <LeadingGraphicSlot graphic={props.leadingGraphic} />}
       {props.type === 'link' ? (
-        // The anchor sits outside the element that clips, because the focus
-        // ring is a box-shadow painted beyond its own box and `ellipsis`
-        // clips everything inside the heading. `Container` floors the
-        // anchor's width so it still shrinks as a flex item.
+        // The anchor sits outside the heading, because the focus ring is a
+        // box-shadow painted beyond the anchor's box and `ellipsis` clips
+        // everything inside the heading. `Container` sets a minimum width of
+        // 0 so the anchor can still shrink as a flex item.
         <Container minWidth={0}>
           {containerProps => (
             // Named like the heading, so a links list reads "Replay user,

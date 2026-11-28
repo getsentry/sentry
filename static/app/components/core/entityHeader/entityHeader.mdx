@@ -1,6 +1,6 @@
 ---
 title: EntityHeader
-description: A page header component used specifically for displaying key data about a specific entity or event.
+description: A header that shows key data about one entity or event on its detail page.
 category: layout
 source: '@sentry/scraps/entityHeader'
 resources:
@@ -35,7 +35,7 @@ export const documentation =
 Use it directly below the TopBar on a page about a single entity.
 
 > [!NOTE]
-> `EntityHeader` does not render breadcrumbs, the page `h1` or global actions. Those belong to the TopBar's slots (`TopBar.Slot name="breadcrumbs"` / `"title"`). The title here is an `h2`.
+> `EntityHeader` does not render breadcrumbs, the page `h1` or global actions. Those belong to the TopBar's `breadcrumbs` and `title` slots. The title here is an `h2`.
 
 ## Usage
 
@@ -233,7 +233,7 @@ The example below is the Replay Details header. The title links to the replays l
 />
 ```
 
-`stats.items`, `metadata.items` and `title.tags` skip an entry that is `null` itself, so a whole item can be written as an inline conditional. This is separate from a stat's `value: null`: that item is still there, and shows "No data" (see [No data](#no-data)). Items are keyed by their position in the array you wrote, so one appearing or disappearing never remounts its neighbors.
+`stats.items`, `metadata.items` and `title.tags` skip an entry that is `null` itself, so a whole item can be written as an inline conditional. This is different from a stat's `value: null`. That item still renders and shows "No data", as described in [No data](#no-data). Items are keyed by their position in the array you wrote, so one appearing or disappearing never remounts its neighbors.
 
 ```jsx
 <EntityHeader
@@ -253,7 +253,7 @@ The example below is the Replay Details header. The title links to the replays l
 
 ## Loading
 
-Pass `isLoading` and every declared slot renders a skeleton instead: one per stat or metadata item (`null` metadata items included), at the fixed height of the line it will hold. A stat is held as a single block, and the title's graphic and tags wait until it loads.
+Pass `isLoading` and every declared slot renders a skeleton instead. There is one skeleton per stat or metadata item, including `null` metadata items, at the fixed height of the line it will hold. Each stat is a single skeleton block, and the title's graphic and tags render once loading ends.
 
 While `isLoading` is set, a declared `metadata` keeps its row even if every item is still `null`, so the page below does not jump when the facts land together. Once loading ends, a `metadata` whose items are all `null` leaves no row, the same as an omitted one. `subtitle` has nothing to declare, so its line appears when its text does.
 
@@ -312,7 +312,7 @@ While `isLoading` is set, a declared `metadata` keeps its row even if every item
 />
 ```
 
-For data that arrives after the entity, use the slot's own flag as well as the header's: `people.isLoading`, or `isLoading` on a single stat. Without it, a pending stat renders whatever it holds, usually a `0` it has not confirmed.
+For data that arrives after the entity, use the slot's own flag as well as the header's: `people.isLoading`, or `isLoading` on a single stat. Without it, a pending stat renders whatever it holds, usually a `0` before the real count arrives.
 
 ```jsx
 <EntityHeader
@@ -326,7 +326,7 @@ For data that arrives after the entity, use the slot's own flag as well as the h
 
 ## Title
 
-A title needs a `label` and a `value`. The `value` is shown; the `label` is read first by screen readers to say what the value is.
+A title needs a `label` and a `value`. The `value` is shown. Screen readers read the `label` first to say what the value is.
 
 ```jsx
 <EntityHeader
@@ -389,7 +389,7 @@ A link title is accent-colored with no underline. The link wraps the `h2`, so a 
 
 ### Leading graphic
 
-`title.leadingGraphic` is data, not a node, so the header controls its size. `project` and `platform` draw the same badge: use `project` when you have projects (the header maps them to platforms) and `platform` when you only have a platform. When none of the projects has a known platform, the badge falls back to the generic platform tile.
+`title.leadingGraphic` is data, not a node, so the header controls its size. `project` and `platform` draw the same badge. Use `project` when you have projects, which the header maps to platforms, and `platform` when you only have a platform. When none of the projects has a known platform, the badge falls back to the generic platform tile.
 
 <Storybook.Demo resizable direction="column" align="stretch" gap="xl">
   <EntityHeader
@@ -517,20 +517,20 @@ A stat is one measurement: a `label` naming it and a `value`, shown side by side
 
 ### Types
 
-Each half, `label` and `value`, is `text` or `link`. A string (or, for `value`, a number or `null`) is shorthand for `text`. The object form is `{type, content, tooltip?}`, and a `link` adds `to` or `externalHref`, plus an optional `onClick` for analytics.
+Each half, `label` and `value`, is `text` or `link`. A string is shorthand for `text`, and so is a number or `null` for `value`. The object form is `{type, content, tooltip?}`, and a `link` adds `to` or `externalHref`, plus an optional `onClick` for analytics.
 
 ```jsx
 items: [
   // Shorthand
   {label: t('Rage Clicks'), value: 2},
 
-  // The label links: the destination is about what is measured
+  // The label links when the destination is about what is measured
   {
     label: {type: 'link', content: t('Dead Clicks'), to: breadcrumbsTab},
     value: deadClicks,
   },
 
-  // The value links: the destination is the things it counts
+  // The value links when the destination is the things it counts
   {
     label: t('Errors'),
     value: {type: 'link', content: errorCount, to: errorsUrl, onClick: trackErrorsClick},
@@ -637,10 +637,10 @@ Accent color means a half navigates; an underline means it has a tooltip. A half
 
 Pass `value: null` when the stat applies but its data was never collected, such as a build with no cost recorded. It shows a muted "—" and is read as "No data". Four states are easy to confuse:
 
-- **No data:** `value: null`. The data will not arrive later; if it will, the stat is loading.
-- **Zero:** `value: 0`. A real measurement.
-- **Loading:** `isLoading`. Shows a skeleton, not a dash.
-- **Does not apply:** `null` for the whole item, which leaves the stat out.
+- **No data.** `value: null`. The data will not arrive later. If it will, the stat is loading.
+- **Zero.** `value: 0`. A real measurement.
+- **Loading.** `isLoading`. Shows a skeleton, not a dash.
+- **Does not apply.** `null` for the whole item, which leaves the stat out.
 
 > [!WARNING]
 > Don't pass a placeholder such as `'-'`, `'—'` or `'N/A'`. A screen reader reads it aloud as the value ("dash"). The header warns in development when it sees one.
@@ -724,11 +724,13 @@ People related to the entity, such as who viewed a replay or who is involved in 
 
 ## Metadata
 
-The metadata row is a list of properties that wraps onto as many lines as it needs, with a small (`md`) gap between boxes. Every property but the last ends with a pipe, drawn inside it after the value, so the pipe wraps with its property. When the row wraps, a line can end on a pipe. When a property is wider than the header, its long parts (label, value or `secondary`) share the space equally and truncate with an ellipsis, while short ones keep their width, so the pipe follows the text that shows. Screen readers still read the whole text. An item is `text`, `link`, [`date`](#dates) or [`list`](#lists). Each has a `label` saying what it is; a text or link item has a `value`. Add `secondary` for a qualifier such as a browser's version rather than joining both into one string; its `label` composes with the parent's, so "version" under "Browser" is read "Browser version". A property needing a third value is two properties. An item or list entry whose value is empty is left out. A blank `secondary` is dropped on its own, and the item still renders.
+The metadata row is a list of properties that wraps onto as many lines as it needs, with an `md` gap between properties. Every property but the last ends with a pipe, drawn inside the property after its value, so the pipe wraps with it. When the row wraps, a line can end on a pipe. When a property is wider than the header, its long parts share the space equally and truncate with an ellipsis, while short parts keep their width, so the pipe follows the visible text. A part is the label, the value or the `secondary`. Screen readers still read the whole text.
+
+An item is `text`, `link`, [`date`](#dates) or [`list`](#lists). Each has a `label` saying what it is, and a text or link item has a `value`. Add `secondary` for a qualifier such as a browser's version rather than joining both into one string. Its `label` composes with the parent's, so "version" under "Browser" is read "Browser version". A property needing a third value is two properties. An item or list entry with an empty value is left out. A blank `secondary` is dropped on its own, and the item still renders.
 
 `type: 'link'` makes the value a link, with `to` or `externalHref` as on the title. Its name includes the key ("Release 8.42.0"), because the key is usually hidden. `tooltip` explains the value on hover or focus, with an underline. `mode: 'full'` draws the key beside the value; the default, `compact`, keeps it for screen readers only.
 
-Each header below varies one thing: the first shows how mode and a leadingGraphic combine, the second compares a value with and without a secondary qualifier, and the third shows the kinds of value.
+Each header below varies one thing: the first shows how `mode` and `leadingGraphic` combine, the second compares a value with and without a secondary qualifier, and the third shows the kinds of value.
 
 <Storybook.Demo resizable direction="column" align="stretch" gap="xl">
   <EntityHeader
@@ -902,7 +904,7 @@ Each header below varies one thing: the first shows how mode and a leadingGraphi
 
 ### Dates
 
-`type: 'date'` takes a `date` rather than a formatted `value`, so every header draws dates the same way. `format: 'absolute'`, the default, draws "Jun 8, 2025 9:05:09 PM PDT" in the viewer's 12 or 24 hour clock. `format: 'relative'` draws "5min ago" as a tab stop, with the absolute time in its tooltip, headed by the item's `label`. A date takes no `tooltip`, `secondary` or `variant`. A date the date formatter can't read (missing, a date-only string, or one without a timezone offset) is left out like an empty value.
+`type: 'date'` takes a `date` rather than a formatted `value`, so every header draws dates the same way. `format: 'absolute'`, the default, draws "Jun 8, 2025 9:05:09 PM PDT" in the viewer's 12 or 24 hour clock. `format: 'relative'` draws "5min ago" as a tab stop, with the absolute time in its tooltip, headed by the item's `label`. A date takes no `tooltip`, `secondary` or `variant`. A date the formatter can't read is left out like an empty value. That includes a missing date, a date-only string and a string without a timezone offset.
 
 <Storybook.Demo resizable direction="column" align="stretch">
   <EntityHeader
@@ -1103,7 +1105,7 @@ A metadata `leadingGraphic` takes an icon from `@sentry/icons`, a `PlatformIcon`
 
 ### Lists
 
-`type: 'list'` groups related values under one label, such as the tools a conversation called. Each entry is a text, link or date metadata item with a `key`. An entry's `label` is optional, so leave it out when the list's label already says what the entry is; a link entry is then named by its value alone. Entries wrap with the rest of the row, with no pipes between them. `maxVisible` (responsive) collapses the rest behind "+N more", which expands the list in place. Entries show in the order you pass them, so filter and sort `items` first to keep the ones that matter in view. A list with no entries renders nothing.
+`type: 'list'` groups related values under one label, such as the tools a conversation called. Each entry is a text, link or date metadata item with a `key`. An entry's `label` is optional, so leave it out when the list's label already says what the entry is. A link entry without a label is named by its value alone. Entries wrap with the rest of the row, with no pipes between them. `maxVisible` (responsive) collapses the rest behind "+N more", which expands the list in place. Entries show in the order you pass them, so filter and sort `items` first to keep the ones that matter in view. A list with no entries renders nothing.
 
 export const tools = [
   {name: 'search_flights', hasError: false},
@@ -1173,26 +1175,26 @@ export const tools = [
 
 ## Accessibility
 
-- **Title:** an `h2`, named "label, value" ("Replay user, anonymous@example.com"). A link title carries the same name.
-- **Lists:** the stats and metadata rows are lists, each named by its `label` ("Replay stats", "Replay properties"). People sit beside the stats list, not inside it.
-- **Stats:** the label comes before the value on screen and in the DOM, and each half is read as shown: "Errors", then "3". A link is named by its own text, so a label link reads "Errors" and a value link reads "3". The other half, in the same list item, gives the context.
-- **Tab order:** only halves that link or have a tooltip are tab stops, label first. A tooltip on a link attaches to the link, so it adds no extra stop.
-- **No data:** the dash is hidden from screen readers and "No data" is read instead.
-- **People:** read as text ("Viewed by: Alice Chen, Bob Diaz"). The avatars are decorative and can't be focused.
-- **Metadata:** every key is in the DOM, as hidden text or in a link's name, so a value is never announced unexplained: "Browser, Chrome, Browser version, 144.0.0". Leading graphics are hidden from assistive technology, and the pipes that end properties are decorative and never announced.
-- **Metadata lists:** a nested list named by its `label`. It holds the visible entries and the "+N more" button; activating the button reveals the rest and moves focus to the first of them.
-- **Color:** accent marks a link and an underline marks a tooltip. Links also show a focus ring on keyboard focus, so a keyboard user does not have to rely on color alone.
-- **Loading:** the header sets `aria-busy` while any slot is loading. This is a state, not an announcement.
+- **Title.** An `h2`, named "label, value", such as "Replay user, anonymous@example.com". A link title has the same name.
+- **Lists.** The stats and metadata rows are lists, each named by its `label`, such as "Replay stats" and "Replay properties". People sit beside the stats list, not inside it.
+- **Stats.** The label comes before the value on screen and in the DOM, and each half is read as shown: "Errors", then "3". A link is named by its own text, so a label link reads "Errors" and a value link reads "3". The other half, in the same list item, gives the context.
+- **Tab order.** Only halves that link or have a tooltip are tab stops, label first. A tooltip on a link attaches to the link, so it adds no extra stop.
+- **No data.** The dash is hidden from screen readers and "No data" is read instead.
+- **People.** Read as text, such as "Viewed by: Alice Chen, Bob Diaz". The avatars are decorative and can't be focused.
+- **Metadata.** Every key is in the DOM, as hidden text or in a link's name, so a value is never announced without its key, for example "Browser, Chrome, Browser version, 144.0.0". Leading graphics are hidden from assistive technology, and the pipes that end properties are decorative and never announced.
+- **Metadata lists.** A nested list named by its `label`. It holds the visible entries and the "+N more" button. Activating the button reveals the rest and moves focus to the first of them.
+- **Color.** Accent marks a link and an underline marks a tooltip. Links also show a focus ring on keyboard focus, so a keyboard user does not have to rely on color alone.
+- **Loading.** The header sets `aria-busy` while any slot is loading. Screen readers expose it as a state and do not announce it.
 
 ### Developer responsibilities
 
-- Always pass a `label` for `stats`, `people` and `metadata`. Without one, a screen reader meets a run of values with nothing saying what they belong to.
+- Always pass a `label` for `stats`, `people` and `metadata`. Without one, a screen reader reads the values with nothing saying what they belong to.
 - Give a title's `leadingGraphic` a `label` when it adds information the title does not have.
 - Use `value: null` for a stat with no data, never a placeholder string. Pass a metadata item as `null` instead.
 - Don't put anything a user needs only in a tooltip. Nothing inside a tooltip can be reached by keyboard, and screen readers may not announce it.
 - Add your own live region if the end of loading needs to be announced.
 
-## See Also
+## See also
 
 - [BreadcrumbList](/scraps/core/breadcrumblist/): breadcrumbs for the TopBar above the header
 - [Tag](/scraps/core/tag/): status chips for `title.tags`

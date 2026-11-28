@@ -8,10 +8,10 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 /**
- * Narrower than `ContentVariant`, because a tooltipped value also colours its
- * underline and `Tooltip` takes a smaller set. `muted` stands in for
- * `secondary`; left out are `accent`, which would read as a link, and
- * `promotion`.
+ * Narrower than `ContentVariant`, because a value with a tooltip also colors
+ * its underline and `Tooltip` accepts fewer variants. `muted` replaces
+ * `secondary`. `accent` is left out because it would look like a link, and
+ * `promotion` is left out as well.
  */
 export type EntityHeaderTextVariant =
   | 'primary'
@@ -21,9 +21,9 @@ export type EntityHeaderTextVariant =
   | 'warning';
 
 /**
- * The typography header text takes from the item it belongs to, as `Text`
- * props. Typography constants should `satisfies` this, so a prop the text
- * would not apply fails to type-check rather than being dropped.
+ * The `Text` props that set the typography of header text. Typography
+ * constants should use `satisfies` with this type, so a prop the text would
+ * not apply fails to type-check instead of being ignored.
  */
 export type EntityHeaderTextTypography = DistributedPick<
   TextProps<'span'>,
@@ -31,9 +31,9 @@ export type EntityHeaderTextTypography = DistributedPick<
 >;
 
 /**
- * How a run of header text behaves: whether it navigates, and whether it
- * explains. Only text takes a colour, since a link is always accent, so its
- * colour says it navigates. Only a link takes a name of its own.
+ * Whether a run of header text is a link and whether it has a tooltip. Only
+ * text takes a `variant`, because a link is always accent to show it
+ * navigates. Only a link takes an `aria-label`.
  */
 export type EntityHeaderTextBehavior = {
   /**
@@ -47,9 +47,8 @@ export type EntityHeaderTextBehavior = {
 );
 
 /**
- * Takes the destination from something that carries one among other fields,
- * so a title, stat half or metadata item hands over where it leads and
- * nothing else.
+ * Picks only the destination fields from a title, stat half or metadata item,
+ * so no other props reach the link.
  */
 export function toLinkDestination(source: LinkDestination): LinkDestination {
   return source.externalHref === undefined
@@ -66,9 +65,9 @@ interface EntityHeaderDestinationLinkProps {
 }
 
 /**
- * One link for every destination the header takes: `to` routes inside the
- * product, `externalHref` opens outside it in a new tab. The two draw the
- * same, so the choice is about where the destination lives, not how it looks.
+ * The link for every header destination. `to` routes inside the product, and
+ * `externalHref` opens outside it in a new tab. Both look the same, so choose
+ * by where the destination is, not by how it looks.
  */
 export function EntityHeaderDestinationLink({
   destination,
@@ -87,8 +86,8 @@ type EntityHeaderTextProps = EntityHeaderTextTypography & {
 };
 
 /**
- * A run of header text that may navigate and may explain. A link is accent,
- * a tooltip adds an underline, and one that does both is both.
+ * Header text that can be a link, have a tooltip, or both. A link is accent,
+ * and a tooltip adds an underline.
  */
 export function EntityHeaderText({
   behavior,

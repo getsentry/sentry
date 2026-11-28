@@ -72,11 +72,10 @@ describe('EntityHeader', () => {
         />
       );
 
-      // The anchor wraps the heading rather than sitting inside it: `ellipsis`
-      // puts `overflow: hidden` on the heading, which would clip the focus
-      // ring the other way round. The heading keeps the name it has as plain
-      // text and the link carries the same one, so a links list reads
-      // "Replay user, Session" rather than a bare value.
+      // The anchor wraps the heading rather than sitting inside it, because
+      // `ellipsis` puts `overflow: hidden` on the heading, which would clip
+      // the anchor's focus ring. The heading and the link have the same name,
+      // so a links list reads "Replay user, Session" rather than a bare value.
       const link = screen.getByRole('link', {name: 'Replay user, Session'});
       expect(link).toHaveAttribute(
         'href',
@@ -110,7 +109,7 @@ describe('EntityHeader', () => {
       ).toBeVisible();
     });
 
-    it('renders tags beside the title and hides the leading graphic from AT', () => {
+    it('renders tags beside the title and hides the leading graphic from assistive technology', () => {
       render(
         <EntityHeader
           title={{
@@ -821,20 +820,20 @@ describe('EntityHeader', () => {
         />
       );
 
-      // Most people have no uploaded avatar, and a letter avatar reaches the
-      // tree as initials with an unreliable name. The avatars are not focusable
-      // either, so their tooltips are mouse-only. Naming everyone as text fixes
-      // all of that, and does not rely on a `group` role being announced.
+      // Most people have no uploaded avatar, and a letter avatar is exposed as
+      // initials with an unreliable name. The avatars are not focusable
+      // either, so their tooltips are mouse-only. Listing every name as text
+      // fixes this, and does not rely on a `group` role being announced.
       expect(screen.getByText('Viewed by: Alice, Bob')).toBeInTheDocument();
 
-      // And the stack itself is decorative now the names are spoken.
+      // The avatars are hidden, because the names are already read.
       const stack = screen
         .getAllByTestId('letter_avatar-avatar')[0]!
         .closest('[aria-hidden]');
       expect(stack).toBeInTheDocument();
     });
 
-    it('names both rows, so neither is a run of loose strings', () => {
+    it('names both the stats and metadata lists', () => {
       render(
         <EntityHeader
           title={{type: 'text', label: 'Replay user', value: 'Session'}}
@@ -856,10 +855,9 @@ describe('EntityHeader', () => {
       expect(screen.getByRole('list', {name: 'Replay properties'})).toBeInTheDocument();
       expect(screen.getByRole('list', {name: 'Replay stats'})).toBeInTheDocument();
 
-      // A metadata item is one stop, named from everything in it. Marking the
-      // label and value as a term and its definition made VoiceOver narrate
-      // the pairing — "term", "selectable list item", "end of term" — before
-      // ever reaching the value.
+      // A metadata item is one list item that holds both its label and value.
+      // Marking them as a term and its definition made VoiceOver read "term",
+      // "selectable list item" and "end of term" before reaching the value.
       expect(screen.queryByRole('term')).not.toBeInTheDocument();
       const [property] = screen.getAllByRole('listitem');
       expect(property).toHaveTextContent('Browser');
@@ -931,14 +929,16 @@ describe('EntityHeader', () => {
         />
       );
 
-      // A links list showing "8.42.0" says nothing about what it leads to.
-      // Unlike a stat, the key is hidden, so the link has to carry it.
+      // A links list showing "8.42.0" says nothing about where it leads.
+      // Unlike a stat's label, the key is hidden, so the link's name includes
+      // it.
       expect(screen.getByRole('link', {name: 'Version 8.42.0'})).toHaveAttribute(
         'href',
         '/releases/8.42.0/'
       );
 
-      // And the key is not repeated beside it — the link already speaks it.
+      // The key is not repeated beside the link, because the link's name
+      // already includes it.
       const item = screen.getByRole('listitem');
       expect(item).toHaveTextContent(/^8\.42\.0$/);
     });
@@ -993,16 +993,17 @@ describe('EntityHeader', () => {
         />
       );
 
-      // The row says what these strings have to do with each other, and each
-      // value says what it is — otherwise a screen reader meets "144.0.0" with
-      // nothing to tie it to a browser version, or to the replay.
+      // The row's name says what the values belong to, and each key says what
+      // its value is. Otherwise a screen reader reads "144.0.0" with nothing
+      // tying it to a browser version or to the replay.
       const row = screen.getByRole('list', {name: 'Replay properties'});
       const items = within(row).getAllByRole('listitem');
       expect(items).toHaveLength(2);
 
-      // A listitem takes no name from its content — a screen reader reads the
-      // content as it traverses — so each key is text inside it, ahead of the
-      // value it names. The child key is composed with the parent.
+      // A listitem takes no name from its content, because a screen reader
+      // reads the content as it moves through it. So each key is text inside
+      // the item, before the value it names. The child key is composed with
+      // the parent's.
       expect(items[0]).toHaveTextContent(/^BrowserChromeBrowser version144\.0\.0$/);
       expect(items[1]).toHaveTextContent(
         /^Operating systemWindowsOperating system version>=10$/
@@ -1051,8 +1052,8 @@ describe('EntityHeader', () => {
         />
       );
 
-      // Showing the parent key is a question of visibility only — what is read
-      // is unchanged, and the child key stays hidden either way.
+      // Showing the parent key changes only what is visible. What is read
+      // stays the same, and the child key stays hidden.
       const item = screen.getByRole('listitem');
       expect(screen.getByText('Browser')).not.toHaveStyle({clipPath: 'inset(50%)'});
       expect(screen.getByText('Browser version')).toHaveStyle({clipPath: 'inset(50%)'});
@@ -1122,8 +1123,8 @@ describe('EntityHeader', () => {
         />
       );
 
-      // A tab stop that announces nothing is focus landing somewhere a screen
-      // reader cannot follow.
+      // A focusable element hidden from screen readers would be a tab stop
+      // that announces nothing.
       const tabStops = screen
         .getByRole('banner')
         .querySelectorAll('a[href], button, [tabindex]:not([tabindex="-1"])');
@@ -1141,8 +1142,8 @@ describe('EntityHeader', () => {
           />
         );
 
-        // The dash is for the eye only. Read aloud it would be "dash", which
-        // sounds like a value.
+        // The dash is hidden from screen readers, which would read it as
+        // "dash" and make it sound like a value.
         expect(screen.getByText('—')).toHaveAttribute('aria-hidden', 'true');
         expect(screen.getByText('No data')).toBeInTheDocument();
 
@@ -1199,7 +1200,7 @@ describe('EntityHeader', () => {
           />
         );
 
-        // Named by its own text, the same as any value link — the dash is
+        // Named by its own text, the same as any value link. The dash is
         // hidden and "No data" is read in its place.
         const link = screen.getByRole('link', {name: 'No data'});
         expect(link).toHaveAttribute('href', '/replays/1/?t_main=errors');
@@ -1791,20 +1792,21 @@ describe('EntityHeader', () => {
       expect(screen.queryByText('Errors')).not.toBeInTheDocument();
       expect(screen.queryByText('A subtitle')).not.toBeInTheDocument();
 
-      // The heading stays, so the page's structure does not change as the data
-      // lands and heading navigation still finds the entity mid-load.
-      // Named by the label alone while loading: the value is not known, and a
-      // caller's fallback would otherwise be asserted as the entity's name.
+      // The heading stays, so the page's structure does not change when the
+      // data arrives and heading navigation still finds the entity while it
+      // loads. It is named by the label alone, because the value is not known
+      // yet and a caller's fallback would otherwise be read as the entity's
+      // name.
       expect(screen.getByRole('heading', {level: 2, name: 'Replay user'})).toBeVisible();
 
-      // And the region says it is in flux, which is the only signal a screen
-      // reader gets that more is coming.
+      // `aria-busy` is the only signal a screen reader gets that more content
+      // is coming.
       expect(screen.getByRole('banner')).toHaveAttribute('aria-busy', 'true');
     });
 
     it('reserves loading placeholders for metadata that resolves late', () => {
-      // What the replay consumer does: every item is gated on one request, so
-      // the first paint has none of them.
+      // The replay header does this. Every item waits on one request, so the
+      // first paint has none of them.
       const build = (hasData: boolean): EntityHeaderProps => ({
         isLoading: !hasData,
         title: {type: 'text', label: 'Replay user', value: 'Session'},
@@ -1853,7 +1855,7 @@ describe('EntityHeader', () => {
       expect(screen.getByText('Errors')).toBeInTheDocument();
     });
 
-    it('holds one stat while the rest of the header is live', () => {
+    it('shows a skeleton for one stat after the rest of the header loads', () => {
       render(
         <EntityHeader
           title={{type: 'text', label: 'Replay user', value: 'Session'}}
@@ -1867,8 +1869,8 @@ describe('EntityHeader', () => {
         />
       );
 
-      // A count that arrives after the entity does would otherwise assert a
-      // zero it has not confirmed.
+      // Without the skeleton, a count that arrives after the entity would show
+      // `0` before the real count arrives.
       expect(screen.getByText('Dead Clicks')).toBeInTheDocument();
       expect(screen.queryByText('Errors')).not.toBeInTheDocument();
       expect(screen.getAllByTestId('loading-placeholder')).toHaveLength(1);
