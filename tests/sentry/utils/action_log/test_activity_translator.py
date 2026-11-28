@@ -1,3 +1,8 @@
+from unittest.mock import patch
+
+import pytest
+from pydantic import ValidationError
+
 from sentry.issues.action_log.types import (
     GroupAction,
     GroupActionType,
@@ -14,11 +19,40 @@ from sentry.utils import json
 from sentry.utils.action_log.activity_translator import (
     ACTIVITY_TYPE_TO_GROUP_ACTION_TYPE,
     ACTIVITY_TYPES_WITH_NO_ACTION,
+    UnknownActivityType,
+    activity_data_to_action,
     activity_to_action,
 )
 
 
 class ActivityToActionTest(TestCase):
+    def test_raw_assignment_data(self) -> None:
+        data = {"assignee": 123, "assigneeName": "name\x00\ud800"}
+        action = activity_data_to_action(
+            activity_id=123, activity_type=ActivityType.ASSIGNED.value, data=data
+        )
+        assert action is not None
+        assert action.dict()["assignee"] == "123"
+        assert action.dict()["assignee_name"] == "name"
+        assert data == {"assignee": 123, "assigneeName": "name\x00\ud800"}
+
+    def test_strict_errors_and_live_error_handling(self) -> None:
+        malformed = Activity(id=123, type=ActivityType.CREATE_ISSUE.value, data={})
+        unknown = Activity(id=124, type=999, data={})
+        with pytest.raises(ValidationError):
+            activity_data_to_action(
+                activity_id=malformed.id, activity_type=malformed.type, data=malformed.data
+            )
+        with pytest.raises(UnknownActivityType):
+            activity_data_to_action(
+                activity_id=unknown.id, activity_type=unknown.type, data=unknown.data
+            )
+        with patch("sentry.utils.action_log.activity_translator.logger") as logger:
+            assert activity_to_action(malformed) is None
+            assert activity_to_action(unknown) is None
+        logger.exception.assert_called_once()
+        logger.warning.assert_called_once()
+
     def test_no_type_overlaps(self) -> None:
         for k in ACTIVITY_TYPES_WITH_NO_ACTION:
             assert k not in ACTIVITY_TYPE_TO_GROUP_ACTION_TYPE.keys()
