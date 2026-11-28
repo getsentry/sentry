@@ -218,33 +218,23 @@ def test_task_always_continues_to_save() -> None:
 
 
 @pytest.mark.parametrize("has_changed", (False, True))
-@pytest.mark.parametrize("cache_key,expected_writes", [(None, 0), ("e:working", 1)])
-def test_gpu_task_payload_transport(
-    has_changed: bool, cache_key: str | None, expected_writes: int
-) -> None:
+def test_gpu_task_payload_transport(has_changed: bool) -> None:
     data = {"event_id": "e" * 32, "project": 1, "message": "gpu crash"}
     with (
-        override_options(
-            {
-                "store.enable-inline-payloads": float(cache_key is None),
-                "store.disable-processing-store": cache_key is None,
-            }
-        ),
         mock.patch("sentry.tasks.gpu_crash._try_symbolicate", return_value=has_changed),
         mock.patch(
             "sentry.services.eventstore.processing.event_processing_store"
         ) as processing_store,
         mock.patch("sentry.tasks.store.process_event.delay") as process,
     ):
-        processing_store.store.return_value = cache_key
-        symbolicate_gpu_crash_event(cache_key=cache_key, data=data, has_attachments=True)
+        symbolicate_gpu_crash_event(data=data, has_attachments=True)
 
-    assert process.call_args.kwargs.get("data") == (None if cache_key else data)
-    assert process.call_args.kwargs["cache_key"] == cache_key
+    assert process.call_args.kwargs["data"] == data
+    assert process.call_args.kwargs["cache_key"] is None
     assert process.call_args.kwargs["data_has_changed"] is has_changed
     assert process.call_args.kwargs["has_attachments"] is True
     processing_store.get.assert_not_called()
-    assert processing_store.store.call_args_list == [mock.call(data)] * expected_writes
+    processing_store.store.assert_not_called()
 
 
 IS_GPU_EVENT = "sentry.lang.native.utils.is_gpu_crash_event"
