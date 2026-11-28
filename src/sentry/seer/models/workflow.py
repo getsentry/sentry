@@ -176,6 +176,11 @@ class SeerWorkflowRunSource(models.TextChoices):
     EVENT = "event"
 
 
+# Sources limited to one queued or running run per config at a time.
+EXCLUSIVE_WORKFLOW_RUN_SOURCES = (SeerWorkflowRunSource.CRON, SeerWorkflowRunSource.MANUAL)
+ACTIVE_WORKFLOW_RUN_STATUSES = (SeerWorkflowRunStatus.QUEUED, SeerWorkflowRunStatus.RUNNING)
+
+
 class SeerWorkflowExecutionStatus(models.TextChoices):
     QUEUED = "queued"
     RUNNING = "running"
@@ -254,12 +259,25 @@ class SeerWorkflowRun(DefaultFieldsModel):
             models.Index(fields=["organization", "date_added"]),
             models.Index(fields=["date_added"]),
             models.Index(fields=["workflow_config", "date_added"]),
+            models.Index(
+                fields=["date_added"],
+                condition=models.Q(status__in=ACTIVE_WORKFLOW_RUN_STATUSES),
+                name="seer_run_active_added_idx",
+            ),
         ]
         constraints = [
             models.UniqueConstraint(
                 fields=["organization", "workflow_config", "trigger_key"],
                 condition=models.Q(trigger_key__isnull=False),
                 name="seer_nightshiftrun_unique_org_config_schedule",
+            ),
+            models.UniqueConstraint(
+                fields=["workflow_config"],
+                condition=models.Q(
+                    source__in=EXCLUSIVE_WORKFLOW_RUN_SOURCES,
+                    status__in=ACTIVE_WORKFLOW_RUN_STATUSES,
+                ),
+                name="seer_nightshiftrun_one_active_exclusive_run",
             ),
         ]
 

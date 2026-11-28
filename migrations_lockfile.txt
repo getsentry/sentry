@@ -37,7 +37,7 @@ releases: 0004_cleanup_failed_safe_deletes
 
 replays: 0001_squashed_0007_organizationmember_replay_access
 
-seer: 0050_rename_agentic_triage_v2
+seer: 0051_workflow_run_active_constraints
 
 seer_workflow_outputs: 0001_initial
 
