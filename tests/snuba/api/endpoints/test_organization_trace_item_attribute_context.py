@@ -24,7 +24,6 @@ class OrganizationTraceItemAttributeContextEndpointTest(
 
     feature_flags = {
         "organizations:visibility-explore-view": True,
-        "organizations:data-browsing-attribute-context": True,
     }
 
     def setUp(self) -> None:
@@ -374,7 +373,7 @@ class OrganizationTraceItemAttributeContextEndpointTest(
                 "attributeType": "string",
                 "brief": "My custom attribute",
             },
-            features={"organizations:visibility-explore-view": True},
+            features={},
         )
 
         assert response.status_code == 404

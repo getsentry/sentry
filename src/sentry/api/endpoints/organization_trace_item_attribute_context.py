@@ -7,7 +7,6 @@ from rest_framework.response import Response
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType as ProtoTraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -164,12 +163,6 @@ class OrganizationTraceItemAttributeContextEndpoint(OrganizationTraceItemAttribu
         context is updated.
         """
         if not self.has_feature(organization, request):
-            return Response(status=404)
-
-        # Custom context is gated; sentry conventions context is served separately.
-        if not features.has(
-            "organizations:data-browsing-attribute-context", organization, actor=request.user
-        ):
             return Response(status=404)
 
         serializer = OrganizationTraceItemAttributeContextPutSerializer(data=request.data)

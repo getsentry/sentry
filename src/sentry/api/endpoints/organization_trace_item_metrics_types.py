@@ -24,8 +24,7 @@ class TraceMetricItem(TypedDict):
         float | None,
         ApiDescription("When the metric was last seen, as a Unix timestamp. Null when not known"),
     ]
-    # Only present when `expand=context` is requested and the
-    # data-browsing-attribute-context feature is enabled.
+    # Only present when `expand=context` is requested.
     context: NotRequired[
         Annotated[
             TraceMetricContext,

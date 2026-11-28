@@ -19,7 +19,6 @@ class OrganizationTraceItemMetricsEndpointTest(APITestCase, TraceMetricsTestCase
     feature_flags = {
         "organizations:visibility-explore-view": True,
         "organizations:tracemetrics-enabled": True,
-        "organizations:data-browsing-attribute-context": True,
     }
 
     def setUp(self) -> None:
@@ -176,22 +175,6 @@ class OrganizationTraceItemMetricsEndpointTest(APITestCase, TraceMetricsTestCase
         assert response.status_code == 200, response.data
         assert [(row["type"], "context" in row) for row in response.data] == [("counter", True)]
 
-    def test_context_only_ignored_without_feature(self) -> None:
-        self.store_metric("has.context", "counter")
-        self.store_metric("no.context", "counter")
-        self.create_context("has.context", brief="Described")
-
-        response = self.do_request(
-            query={"project": self.project.id, "contextOnly": "1"},
-            features={
-                "organizations:visibility-explore-view": True,
-                "organizations:tracemetrics-enabled": True,
-            },
-        )
-
-        assert response.status_code == 200, response.data
-        assert {row["name"] for row in response.data} == {"has.context", "no.context"}
-
     def test_expand_context(self) -> None:
         self.store_metric("checkout.requests", "counter")
         self.create_context(
@@ -233,21 +216,6 @@ class OrganizationTraceItemMetricsEndpointTest(APITestCase, TraceMetricsTestCase
         self.create_context("checkout.requests", brief="Checkout requests")
 
         response = self.do_request(query={"project": self.project.id})
-
-        assert response.status_code == 200, response.data
-        assert "context" not in response.data[0]
-
-    def test_context_requires_feature_flag(self) -> None:
-        self.store_metric("checkout.requests", "counter")
-        self.create_context("checkout.requests", brief="Checkout requests")
-
-        response = self.do_request(
-            query={"project": self.project.id, "expand": "context"},
-            features={
-                "organizations:visibility-explore-view": True,
-                "organizations:tracemetrics-enabled": True,
-            },
-        )
 
         assert response.status_code == 200, response.data
         assert "context" not in response.data[0]

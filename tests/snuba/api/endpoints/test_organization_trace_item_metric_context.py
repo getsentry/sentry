@@ -21,7 +21,6 @@ class OrganizationTraceItemMetricContextEndpointTest(
     feature_flags = {
         "organizations:visibility-explore-view": True,
         "organizations:tracemetrics-enabled": True,
-        "organizations:data-browsing-attribute-context": True,
     }
 
     def setUp(self) -> None:
@@ -320,7 +319,7 @@ class OrganizationTraceItemMetricContextEndpointTest(
                 "metricType": "counter",
                 "brief": "Checkout requests",
             },
-            features={"organizations:visibility-explore-view": True},
+            features={},
         )
 
         assert response.status_code == 404

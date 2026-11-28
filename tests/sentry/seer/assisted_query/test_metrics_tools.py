@@ -323,7 +323,6 @@ class TestGetMetricMetadataIntegration(APITransactionTestCase, SnubaTestCase, Tr
     feature_flags = {
         "organizations:visibility-explore-view": True,
         "organizations:tracemetrics-enabled": True,
-        "organizations:data-browsing-attribute-context": True,
     }
 
     def setUp(self) -> None:

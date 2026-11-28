@@ -784,8 +784,8 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             "isDeprecated": True,
             "replacementAttribute": "sentry.segment.name",
         }
-        # Custom (non-convention) attributes aren't served yet, so they get an
-        # empty context.
+        # A custom (non-convention) attribute with no authored context gets an
+        # empty one.
         assert attributes["foo"]["context"] == {}
         assert attributes["gen_ai.request.model"]["attributeSource"]["source_type"] == "sentry"
         assert attributes["gen_ai.request.model"]["context"] == {
@@ -891,10 +891,6 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
 
         response = self.do_request(
             query={"attributeType": "string", "expand": "context"},
-            features={
-                **self.feature_flags,
-                "organizations:data-browsing-attribute-context": True,
-            },
         )
 
         assert response.status_code == 200, response.data
@@ -981,10 +977,6 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
 
         response = self.do_request(
             query={"attributeType": "string", "expand": "context"},
-            features={
-                **self.feature_flags,
-                "organizations:data-browsing-attribute-context": True,
-            },
         )
         assert response.status_code == 200, response.data
 
@@ -1010,10 +1002,6 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         with CaptureQueriesContext(connections["default"]) as captured:
             response = self.do_request(
                 query={"attributeType": "string", "expand": "context"},
-                features={
-                    **self.feature_flags,
-                    "organizations:data-browsing-attribute-context": True,
-                },
             )
         assert response.status_code == 200, response.data
 
@@ -1049,10 +1037,6 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
 
         response = self.do_request(
             query={"attributeType": "number", "expand": "context"},
-            features={
-                **self.feature_flags,
-                "organizations:data-browsing-attribute-context": True,
-            },
         )
         assert response.status_code == 200, response.data
 
@@ -1089,10 +1073,6 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
 
         response = self.do_request(
             query={"expand": "context"},
-            features={
-                **self.feature_flags,
-                "organizations:data-browsing-attribute-context": True,
-            },
         )
         assert response.status_code == 200, response.data
 
@@ -1104,24 +1084,6 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         }
         # The number variant has no context authored for its type.
         assert attributes["tags[cart_total,number]"]["context"] == {}
-
-    def test_expand_context_custom_attribute_requires_feature(self) -> None:
-        self._store_basic_segment()
-        self.create_context("foo")
-
-        # Custom context is gated, unlike conventions context.
-        response = self.do_request(
-            query={"attributeType": "string", "expand": "context"},
-            features={
-                **self.feature_flags,
-                "organizations:data-browsing-attribute-context": False,
-            },
-        )
-        assert response.status_code == 200, response.data
-
-        attributes = {item["key"]: item for item in response.data}
-        assert attributes["foo"]["context"] == {}
-        assert attributes["device.class"]["context"]["isConvention"] is True
 
     def test_expand_context_custom_attribute_project_scoped(self) -> None:
         self._store_basic_segment()
@@ -1135,10 +1097,6 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
                 "attributeType": "string",
                 "expand": "context",
                 "project": self.project.id,
-            },
-            features={
-                **self.feature_flags,
-                "organizations:data-browsing-attribute-context": True,
             },
         )
         assert response.status_code == 200, response.data
@@ -1157,10 +1115,6 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
                 "expand": "context",
                 "project": self.project.id,
             },
-            features={
-                **self.feature_flags,
-                "organizations:data-browsing-attribute-context": True,
-            },
         )
         assert response.status_code == 200, response.data
 
@@ -1174,10 +1128,6 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
 
         response = self.do_request(
             query={"attributeType": "string", "expand": "context"},
-            features={
-                **self.feature_flags,
-                "organizations:data-browsing-attribute-context": True,
-            },
         )
         assert response.status_code == 200, response.data
 
@@ -1191,30 +1141,11 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
 
         response = self.do_request(
             query={"attributeType": "string", "expand": "context"},
-            features={
-                **self.feature_flags,
-                "organizations:data-browsing-attribute-context": True,
-            },
         )
         assert response.status_code == 200, response.data
 
         attributes = {item["key"]: item for item in response.data}
         assert attributes["foo"]["context"] == {}
-
-    def test_expand_context_without_feature_flag(self) -> None:
-        self._store_basic_segment()
-
-        # Conventions context is not gated by a feature flag: expand=context alone
-        # is enough, even with the data-browsing-attribute-context flag disabled.
-        response = self.do_request(
-            query={"attributeType": "string", "expand": "context"},
-            features={
-                **self.feature_flags,
-                "organizations:data-browsing-attribute-context": False,
-            },
-        )
-        assert response.status_code == 200, response.data
-        assert all("context" in item for item in response.data)
 
     def test_context_not_included_without_expand(self) -> None:
         self._store_basic_segment()

@@ -29,9 +29,8 @@ class TraceItemAttributeContext(TypedDict):
 
     When ``expand=context`` is requested, context is attached to every attribute.
     Metadata comes from the sentry conventions, Sentry's own column definitions,
-    or user-authored context (gated behind ``data-browsing-attribute-context``),
-    in that precedence order. Only the fields available are included, so an
-    attribute with no metadata gets an empty context.
+    or user-authored context, in that precedence order. Only the fields available
+    are included, so an attribute with no metadata gets an empty context.
     """
 
     # Whether this context comes from a known sentry convention. Present (and
