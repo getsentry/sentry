@@ -70,12 +70,14 @@ jest.mock('sentry/components/replays/videoReplayerWithInteractions', () => ({
 const startedAt = new Date('2023-12-25T00:00:00');
 
 function TestPlayer() {
-  const {currentTime, fastForwardSpeed, setRoot, togglePlayPause} = useReplayContext();
+  const {currentTime, fastForwardSpeed, setCurrentTime, setRoot, togglePlayPause} =
+    useReplayContext();
 
   return (
     <div ref={setRoot}>
       <button onClick={() => togglePlayPause(true)}>Play</button>
       <button onClick={() => togglePlayPause(false)}>Pause</button>
+      <button onClick={() => setCurrentTime(0)}>Seek</button>
       <span>Fast forward: {fastForwardSpeed}</span>
       <span>Current time: {currentTime}</span>
     </div>
@@ -190,6 +192,68 @@ describe('replayContext', () => {
         expect(mockGetCurrentTime).not.toHaveBeenCalled();
       }
     );
+
+    it('seeks the player after a deferred timeout', () => {
+      jest.useFakeTimers();
+      renderPlayer();
+      jest.clearAllMocks();
+
+      act(() => screen.getByRole('button', {name: 'Seek'}).click());
+      expect(mockPause).not.toHaveBeenCalled();
+
+      act(() => jest.runOnlyPendingTimers());
+      expect(mockPause).toHaveBeenCalledWith(expect.any(Number));
+    });
+
+    it('does not seek a player that was rebuilt before the deferred seek ran', () => {
+      jest.useFakeTimers();
+      const attachments = RRWebInitFrameEventsFixture({timestamp: startedAt});
+      const {rerender} = render(
+        <ReplayContextProvider
+          analyticsContext=""
+          isFetching={false}
+          replay={makeReader({attachments})}
+        >
+          <TestPlayer />
+        </ReplayContextProvider>
+      );
+
+      act(() => screen.getByRole('button', {name: 'Seek'}).click());
+
+      rerender(
+        <ReplayContextProvider
+          analyticsContext=""
+          isFetching={false}
+          replay={makeReader({
+            attachments: [
+              ...attachments,
+              RRWebFullSnapshotFrameEventFixture({timestamp: startedAt}),
+            ],
+          })}
+        >
+          <TestPlayer />
+        </ReplayContextProvider>
+      );
+      expect(Replayer).toHaveBeenCalledTimes(2);
+      const oldReplayer = jest.mocked(Replayer).mock.results[0]!.value;
+      expect(oldReplayer.destroy).toHaveBeenCalled();
+      mockPause.mockClear();
+
+      act(() => jest.runOnlyPendingTimers());
+      expect(mockPause).not.toHaveBeenCalled();
+    });
+
+    it('does not seek after the player is unmounted', () => {
+      jest.useFakeTimers();
+      const {unmount} = renderPlayer();
+
+      act(() => screen.getByRole('button', {name: 'Seek'}).click());
+      unmount();
+      mockPause.mockClear();
+
+      act(() => jest.runOnlyPendingTimers());
+      expect(mockPause).not.toHaveBeenCalled();
+    });
   });
 
   afterEach(() => {
