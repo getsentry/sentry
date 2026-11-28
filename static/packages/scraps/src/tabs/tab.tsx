@@ -8,6 +8,7 @@ import {useObjectRef} from '@react-aria/utils';
 import type {TabListState} from '@react-stately/tabs';
 import type {Node, Orientation} from '@react-types/shared';
 
+import {DO_NOT_USE_BUTTON_LIFT} from '@sentry/scraps/button/styles';
 import {Link} from '@sentry/scraps/link';
 import type {Theme} from '@sentry/scraps/theme';
 import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
@@ -79,7 +80,12 @@ const innerWrapStyles = ({
   line-height: ${theme.form[size].lineHeight};
   padding: ${paddingPerSize(theme, orientation)[size]};
   border-radius: ${theme.radius.md};
-  transform: translateY(1px);
+  /* Flat tabs nudge down to position the selection indicator. Floating tabs
+     usually sit next to buttons of the same size, so they lift like a button
+     face to line up with it. */
+  transform: ${
+    variant === 'flat' ? 'translateY(1px)' : `translateY(-${DO_NOT_USE_BUTTON_LIFT[size]})`
+  };
   margin-bottom: ${
     orientation === 'horizontal' && variant === 'flat' ? theme.space.xs : 0
   };
