@@ -834,6 +834,224 @@ describe('useSeerExplorer', () => {
       expect(followUpOnScreen.slice(followUpOnScreen.indexOf(true))).not.toContain(false);
     });
 
+    it('stays busy when a poll returns the old session mid-send', async () => {
+      const runId = 'run-busy-stale-poll';
+      const url = `/organizations/${organization.slug}/seer/explorer-chat/${runId}/`;
+      const question = {
+        id: 'user-1',
+        message: {role: 'user' as const, content: 'Question'},
+        timestamp: '2024-01-01T00:00:00Z',
+        loading: false,
+      };
+      MockApiClient.addMockResponse({
+        url,
+        method: 'GET',
+        body: {session: {blocks: [question], status: 'completed'}},
+      });
+      let finishSend!: () => void;
+      MockApiClient.addMockResponse({
+        url,
+        method: 'POST',
+        asyncDelay: new Promise<void>(resolve => {
+          finishSend = resolve;
+        }),
+        body: {run_id: 1},
+      });
+
+      let queryClient!: QueryClient;
+      const renders: Array<{answered: boolean; busy: boolean}> = [];
+      const {result} = renderHookWithProviders(
+        () => {
+          queryClient = useQueryClient();
+          const explorer = useSeerExplorer();
+          renders.push({
+            busy: explorer.isPolling,
+            answered: !!explorer.sessionData?.blocks.some(b => b.id === 'assistant-3'),
+          });
+          return explorer;
+        },
+        {organization, additionalWrapper: SeerExplorerChatStateProvider}
+      );
+      act(() => result.current.switchToRun(runId));
+      await waitFor(() => expect(result.current.sessionData?.status).toBe('completed'));
+
+      act(() => result.current.sendMessage('Follow-up'));
+      await waitFor(() => expect(result.current.sessionData?.status).toBe('processing'));
+      const sentAt = renders.length;
+      // A poll during the slow send still gets the old, finished session, which stops polling.
+      await act(() =>
+        queryClient.refetchQueries({
+          queryKey: seerExplorerUtils.makeSeerExplorerQueryKey(organization.slug, runId),
+        })
+      );
+      await waitFor(() => expect(result.current.sessionData?.status).toBe('completed'));
+
+      // The server saves the message and answers it, then the send finishes.
+      MockApiClient.addMockResponse({
+        url,
+        method: 'GET',
+        body: {
+          session: {
+            blocks: [
+              question,
+              {...question, id: 'user-2', message: {role: 'user', content: 'Follow-up'}},
+              {
+                ...question,
+                id: 'assistant-3',
+                message: {role: 'assistant', content: 'Answer'},
+              },
+            ],
+            status: 'completed',
+          },
+        },
+      });
+      act(() => finishSend());
+      await waitFor(() => expect(result.current.isPolling).toBe(false));
+
+      // Busy on every render from the send until the answer arrived.
+      const untilAnswered = renders.slice(sentAt).filter(r => !r.answered);
+      expect(untilAnswered.length).toBeGreaterThan(0);
+      expect(untilAnswered.every(r => r.busy)).toBe(true);
+      expect(result.current.sessionData?.blocks.map(b => b.id)).toContain('assistant-3');
+    });
+
+    it('does not mark another chat busy while a send to a different chat is in flight', async () => {
+      const sendingRunId = 'run-sending';
+      const otherRunId = 'run-other';
+      const chatUrl = `/organizations/${organization.slug}/seer/explorer-chat/`;
+      MockApiClient.addMockResponse({
+        url: `${chatUrl}${sendingRunId}/`,
+        method: 'GET',
+        body: {session: {blocks: [], status: 'completed'}},
+      });
+      MockApiClient.addMockResponse({
+        url: `${chatUrl}${otherRunId}/`,
+        method: 'GET',
+        body: {session: {blocks: [], status: 'completed'}},
+      });
+      let finishSend!: () => void;
+      MockApiClient.addMockResponse({
+        url: `${chatUrl}${sendingRunId}/`,
+        method: 'POST',
+        asyncDelay: new Promise<void>(resolve => {
+          finishSend = resolve;
+        }),
+        body: {run_id: 1},
+      });
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+        additionalWrapper: SeerExplorerChatStateProvider,
+      });
+      act(() => result.current.switchToRun(sendingRunId));
+      await waitFor(() => expect(result.current.sessionData?.status).toBe('completed'));
+      act(() => result.current.sendMessage('Follow-up'));
+      await waitFor(() => expect(result.current.isPolling).toBe(true));
+
+      act(() => result.current.switchToRun(otherRunId));
+      await waitFor(() => expect(result.current.runId).toBe(otherRunId));
+      await waitFor(() => expect(result.current.sessionData?.status).toBe('completed'));
+      expect(result.current.isPolling).toBe(false);
+
+      act(() => finishSend());
+    });
+
+    it('stays busy after returning to a chat while a later send to another chat is in flight', async () => {
+      const firstRunId = 'run-first';
+      const secondRunId = 'run-second';
+      const chatUrl = `/organizations/${organization.slug}/seer/explorer-chat/`;
+      const question = {
+        id: 'user-1',
+        message: {role: 'user' as const, content: 'Question'},
+        timestamp: '2024-01-01T00:00:00Z',
+        loading: false,
+      };
+      for (const id of [firstRunId, secondRunId]) {
+        MockApiClient.addMockResponse({
+          url: `${chatUrl}${id}/`,
+          method: 'GET',
+          body: {session: {blocks: [question], status: 'completed'}},
+        });
+      }
+      const finishSend: Record<string, () => void> = {};
+      for (const id of [firstRunId, secondRunId]) {
+        MockApiClient.addMockResponse({
+          url: `${chatUrl}${id}/`,
+          method: 'POST',
+          asyncDelay: new Promise<void>(resolve => {
+            finishSend[id] = resolve;
+          }),
+          body: {run_id: 1},
+        });
+      }
+
+      const renders: Array<{answered: boolean; busy: boolean; runId: unknown}> = [];
+      const {result} = renderHookWithProviders(
+        () => {
+          const explorer = useSeerExplorer();
+          renders.push({
+            runId: explorer.runId,
+            busy: explorer.isPolling,
+            answered: !!explorer.sessionData?.blocks.some(b => b.id === 'assistant-3'),
+          });
+          return explorer;
+        },
+        {organization, additionalWrapper: SeerExplorerChatStateProvider}
+      );
+      // Send in the first chat, then switch to the second and send there too.
+      act(() => result.current.switchToRun(firstRunId));
+      await waitFor(() => expect(result.current.sessionData?.status).toBe('completed'));
+      act(() => result.current.sendMessage('First follow-up'));
+      await waitFor(() => expect(result.current.sessionData?.status).toBe('processing'));
+      act(() => result.current.switchToRun(secondRunId));
+      await waitFor(() => expect(result.current.sessionData?.status).toBe('completed'));
+      act(() => result.current.sendMessage('Second follow-up'));
+      await waitFor(() => expect(result.current.sessionData?.status).toBe('processing'));
+
+      // Back in the first chat, whose send is still in flight, the refetch gets the old,
+      // finished session, which stops polling.
+      const returnedAt = renders.length;
+      act(() => result.current.switchToRun(firstRunId));
+      await waitFor(() => expect(result.current.sessionData?.status).toBe('completed'));
+
+      // The server saves the first message and answers it, then that send finishes.
+      MockApiClient.addMockResponse({
+        url: `${chatUrl}${firstRunId}/`,
+        method: 'GET',
+        body: {
+          session: {
+            blocks: [
+              question,
+              {
+                ...question,
+                id: 'user-2',
+                message: {role: 'user', content: 'First follow-up'},
+              },
+              {
+                ...question,
+                id: 'assistant-3',
+                message: {role: 'assistant', content: 'Answer'},
+              },
+            ],
+            status: 'completed',
+          },
+        },
+      });
+      act(() => finishSend[firstRunId]!());
+      await waitFor(() =>
+        expect(result.current.sessionData?.blocks.map(b => b.id)).toContain('assistant-3')
+      );
+
+      // Busy on every render in the first chat until its answer arrived.
+      const untilAnswered = renders
+        .slice(returnedAt)
+        .filter(r => r.runId === firstRunId && !r.answered);
+      expect(untilAnswered.length).toBeGreaterThan(0);
+      expect(untilAnswered.every(r => r.busy)).toBe(true);
+
+      act(() => finishSend[secondRunId]!());
+    });
+
     it('keeps the alert when an older send succeeds after a newer send failed', async () => {
       const runId = 'run-stale';
       let settleFirstSend!: () => void;
