@@ -18,13 +18,14 @@ from sentry.integrations.metric_alerts import TEXT_COMPARISON_DELTA, describe_qu
 from sentry.issues.grouptype import GroupCategory, GroupType
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.snuba.models import QuerySubscription, SnubaQuery
-from sentry.types.actor import parse_and_validate_actor
+from sentry.types.actor import Actor, parse_and_validate_actor
 from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.handlers.detector import DetectorOccurrence, StatefulDetectorHandler
 from sentry.workflow_engine.handlers.detector.base import EventData, EvidenceData
 from sentry.workflow_engine.models.alertrule_detector import AlertRuleDetector
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
 from sentry.workflow_engine.models.data_source import DataPacket
+from sentry.workflow_engine.models.detector import Detector
 from sentry.workflow_engine.processors import DataConditionGroupEvaluation, DetectorEvaluation
 from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import (
@@ -79,6 +80,44 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricRes
             )
             return {"alert_id": None}
 
+    def _get_assignee(self) -> Actor | None:
+        owner = self.detector.owner
+        if owner is None:
+            return None
+
+        organization_id = self.detector.linked_project.organization_id
+        try:
+            owner.resolve()
+        except Actor.InvalidActor:
+            # The owning team/user was deleted without the detector being updated (owner_team_id
+            # has no FK). Drop the dangling reference so the issue is created unassigned and we
+            # stop failing on every evaluation.
+            self._clear_missing_owner(owner, organization_id)
+            return None
+
+        try:
+            return parse_and_validate_actor(owner.identifier, organization_id)
+        except Exception:
+            logger.exception("Failed to parse assignee for detector id %s", self.detector.id)
+            return None
+
+    def _clear_missing_owner(self, owner: Actor, organization_id: int) -> None:
+        logger.warning(
+            "metric_issue.detector_owner_missing",
+            extra={
+                "detector_id": self.detector.id,
+                "owner": owner.identifier,
+                "organization_id": organization_id,
+            },
+        )
+        detectors = Detector.objects.filter(id=self.detector.id)
+        if owner.is_team:
+            detectors.filter(owner_team_id=owner.id).update(owner_team_id=None)
+            self.detector.owner_team_id = None
+        elif owner.is_user:
+            detectors.filter(owner_user_id=owner.id).update(owner_user_id=None)
+            self.detector.owner_user_id = None
+
     def create_occurrence(
         self,
         evaluation: DetectorEvaluation,
@@ -109,12 +148,7 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricRes
                 f"Failed to find snuba query for detector id {self.detector.id}, cannot create metric issue occurrence"
             )
 
-        try:
-            owner = self.detector.owner.identifier if self.detector.owner else None
-            assignee = parse_and_validate_actor(owner, self.detector.linked_project.organization_id)
-        except Exception:
-            logger.exception("Failed to parse assignee for detector id %s", self.detector.id)
-            assignee = None
+        assignee = self._get_assignee()
 
         return (
             DetectorOccurrence(
