@@ -70,7 +70,6 @@ from sentry.tasks.post_process import (
     HIGHER_ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT,
     ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT,
     PostProcessJob,
-    _get_event_link_probe,
     _probe_event_links,
     feedback_filter_decorator,
     link_event_to_user_report,
@@ -101,7 +100,6 @@ from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 pytestmark = [requires_snuba]
 
-CONSOLIDATED_LINK_PROBE = {"post_process.consolidated-link-probe.rollout-rate": 1.0}
 LINK_PROBE_TABLES = (
     "sentry_pendingeventattachment",
     "sentry_eventattachment",
@@ -252,18 +250,6 @@ class EventLinkProbeTest(TestCase):
         super().setUp()
         event = self.store_event(data={"message": "testing"}, project_id=self.project.id)
         self.group_event = event.for_group(require_group(event))
-
-    def test_event_is_not_probed_while_the_rollout_is_off(self) -> None:
-        job: PostProcessJob = {
-            "event": self.group_event,
-            "is_reprocessed": False,
-            "event_link_steps_enabled": True,
-        }
-
-        with CaptureQueriesContext(connections[router.db_for_write(EventAttachment)]) as queries:
-            assert _get_event_link_probe(job) is None
-
-        assert link_probe_table_statements(queries) == []
 
     def test_tables_in_different_databases_are_not_probed(self) -> None:
         with (
@@ -2699,16 +2685,11 @@ class UpdateExistingAttachmentsTestMixin(BasePostProcessGroupMixin):
 
 class EventLinkProbeTestMixin(UserReportEventLinkTestMixin, UpdateExistingAttachmentsTestMixin):
     """
-    Post-processing with the consolidated link probe on. The probe only runs for events
-    whose pipeline has both the attachment step and the user report step.
+    The consolidated link probe, which only runs for events whose pipeline has both the
+    attachment step and the user report step.
     """
 
-    @override_options(CONSOLIDATED_LINK_PROBE)
-    def test_links_attachment_ingested_before_event_with_link_probe(self) -> None:
-        self.test_links_attachment_ingested_before_event()
-
-    @override_options(CONSOLIDATED_LINK_PROBE)
-    def test_promotes_pending_attachment_with_link_probe(self) -> None:
+    def test_promotes_pending_attachment(self) -> None:
         event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
         # Parked after the event was saved, so only post-processing can promote it.
         pending = create_pending_attachment(self.project.id, event.event_id)
@@ -2723,8 +2704,7 @@ class EventLinkProbeTestMixin(UserReportEventLinkTestMixin, UpdateExistingAttach
         assert attachment.group_id == event.group_id
         assert not PendingEventAttachment.objects.filter(id=pending.id).exists()
 
-    @override_options(CONSOLIDATED_LINK_PROBE)
-    def test_attempts_promotion_after_relink_with_link_probe(self) -> None:
+    def test_attempts_promotion_after_relink(self) -> None:
         """
         The probe looks for pending attachments before the relink runs. An attachment
         parked while the relink runs would be missed, so promotion is attempted again
@@ -2745,8 +2725,7 @@ class EventLinkProbeTestMixin(UserReportEventLinkTestMixin, UpdateExistingAttach
             source="post_process",
         )
 
-    @override_options(CONSOLIDATED_LINK_PROBE)
-    def test_links_attachment_when_user_reports_cannot_be_read_with_link_probe(self) -> None:
+    def test_links_attachment_when_user_reports_cannot_be_read(self) -> None:
         """
         The probe reads the user report table too. A failure there must not stop an
         attachment from being linked.
@@ -2771,8 +2750,7 @@ class EventLinkProbeTestMixin(UserReportEventLinkTestMixin, UpdateExistingAttach
         attachment.refresh_from_db()
         assert attachment.group_id == event.group_id
 
-    @override_options(CONSOLIDATED_LINK_PROBE)
-    def test_event_without_links_costs_one_statement_with_link_probe(self) -> None:
+    def test_event_without_links_costs_one_statement(self) -> None:
         event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
 
         with CaptureQueriesContext(connections[router.db_for_write(EventAttachment)]) as queries:
@@ -2783,19 +2761,10 @@ class EventLinkProbeTestMixin(UserReportEventLinkTestMixin, UpdateExistingAttach
         (statement,) = link_probe_table_statements(queries)
         assert all(table in statement for table in LINK_PROBE_TABLES)
 
-    @override_options(CONSOLIDATED_LINK_PROBE)
-    def test_user_report_shims_to_feedback_with_link_probe(self) -> None:
-        self.test_user_report_shims_to_feedback()
-
     @override_options(
-        {
-            **CONSOLIDATED_LINK_PROBE,
-            "post_process.disable-pipeline-steps": [
-                {"pipeline_step": "update_existing_attachments"}
-            ],
-        }
+        {"post_process.disable-pipeline-steps": [{"pipeline_step": "update_existing_attachments"}]}
     )
-    def test_disabled_attachment_step_leaves_its_tables_alone_with_link_probe(self) -> None:
+    def test_disabled_attachment_step_leaves_its_tables_alone(self) -> None:
         """
         A step that is switched off must not have its tables read on its behalf. The
         user report step still does its own work.
@@ -4404,8 +4373,7 @@ class PostProcessGroupFeedbackTest(
     SnoozeTestMixin,
     UpdateExistingAttachmentsTestMixin,
 ):
-    @override_options(CONSOLIDATED_LINK_PROBE)
-    def test_does_not_read_user_reports_with_link_probe(self) -> None:
+    def test_does_not_read_user_reports(self) -> None:
         """The feedback pipeline has no user report step, so nothing may read that table."""
         event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
 
