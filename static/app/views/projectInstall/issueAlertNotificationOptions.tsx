@@ -1,9 +1,10 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {useQuery} from '@tanstack/react-query';
 
-import {Stack} from '@sentry/scraps/layout';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
-import {MultipleCheckbox} from 'sentry/components/forms/controls/multipleCheckbox';
 import {
   MessagingIntegrationAnalyticsView,
   SetupMessagingIntegrationButton,
@@ -367,40 +368,50 @@ export function IssueAlertNotificationOptions(
     return null;
   }
 
+  const handleToggle = (action: MultipleCheckboxOptions, checked: boolean) => {
+    const values = checked ? [...actions, action] : actions.filter(v => v !== action);
+    const wasEnabled = actions.includes(MultipleCheckboxOptions.INTEGRATION);
+    const isEnabled = values.includes(MultipleCheckboxOptions.INTEGRATION);
+    setActions(values);
+    if (wasEnabled !== isEnabled) {
+      trackAnalytics('project_creation.notify_integration_toggled', {
+        organization,
+        enabled: isEnabled,
+        variant: 'legacy',
+      });
+    }
+  };
+
   return (
     <Fragment>
-      <MultipleCheckbox
-        name="notification"
-        value={actions}
-        onChange={values => {
-          const wasEnabled = actions.includes(MultipleCheckboxOptions.INTEGRATION);
-          const isEnabled = values.includes(MultipleCheckboxOptions.INTEGRATION);
-          setActions(values);
-          if (wasEnabled !== isEnabled) {
-            trackAnalytics('project_creation.notify_integration_toggled', {
-              organization,
-              enabled: isEnabled,
-              variant: 'legacy',
-            });
-          }
-        }}
-      >
-        <Stack gap="md">
-          <MultipleCheckbox.Item value={MultipleCheckboxOptions.EMAIL} disabled>
-            {t('Notify via email')}
-          </MultipleCheckbox.Item>
-          {!shouldRenderSetupButton && (
-            <div>
-              <MultipleCheckbox.Item value={MultipleCheckboxOptions.INTEGRATION}>
-                {t('Notify via integration (Slack, Discord, MS Teams, etc.)')}
-              </MultipleCheckbox.Item>
-              {shouldRenderNotificationConfigs && (
-                <MessagingIntegrationAlertRule {...notificationProps} />
-              )}
-            </div>
-          )}
-        </Stack>
-      </MultipleCheckbox>
+      <Stack gap="md">
+        <Flex as="label" align="center" gap="md">
+          <Checkbox
+            name="notification"
+            checked={actions.includes(MultipleCheckboxOptions.EMAIL)}
+            disabled
+            onChange={e => handleToggle(MultipleCheckboxOptions.EMAIL, e.target.checked)}
+          />
+          <Text>{t('Notify via email')}</Text>
+        </Flex>
+        {!shouldRenderSetupButton && (
+          <div>
+            <Flex as="label" align="center" gap="md">
+              <Checkbox
+                name="notification"
+                checked={actions.includes(MultipleCheckboxOptions.INTEGRATION)}
+                onChange={e =>
+                  handleToggle(MultipleCheckboxOptions.INTEGRATION, e.target.checked)
+                }
+              />
+              <Text>{t('Notify via integration (Slack, Discord, MS Teams, etc.)')}</Text>
+            </Flex>
+            {shouldRenderNotificationConfigs && (
+              <MessagingIntegrationAlertRule {...notificationProps} />
+            )}
+          </div>
+        )}
+      </Stack>
       {shouldRenderSetupButton && (
         <SetupMessagingIntegrationButton
           analyticsView={MessagingIntegrationAnalyticsView.PROJECT_CREATION}
