@@ -20,13 +20,13 @@ describe('DropdownActions', () => {
       />
     );
 
-    await userEvent.click(screen.getByText('Trigger'));
-    await userEvent.click(screen.getByText('Option'));
-    expect(screen.queryByTestId('disabled-icon')).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Trigger'}));
+    const option = screen.getByRole('option', {name: 'Option'});
+    await userEvent.click(option);
     expect(cb).toHaveBeenCalled();
   });
 
-  it('disabled actions have an icon', async () => {
+  it('disabled actions cannot be selected', async () => {
     const cb = jest.fn();
     render(
       <DropdownActions
@@ -35,7 +35,10 @@ describe('DropdownActions', () => {
       />
     );
 
-    await userEvent.click(screen.getByText('Trigger'));
-    expect(await screen.findByTestId('disabled-icon')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Trigger'}));
+    const option = screen.getByRole('option', {name: 'Disabled Option'});
+    expect(option).toHaveAttribute('aria-disabled', 'true');
+    await userEvent.click(option);
+    expect(cb).not.toHaveBeenCalled();
   });
 });
