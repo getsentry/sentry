@@ -17,6 +17,11 @@ modules:
       events:
         - avi:forge:installed:app
         - avi:forge:upgraded:app
+  preUninstall:
+    # Lets Sentry drop the site's token and disable its integration. Forge calls it
+    # once, as the app is uninstalled, and doesn't promise it for every uninstall.
+    - key: pre-uninstall
+      endpoint: installation-endpoint
   scheduledTrigger:
     # Forge only sends tokens when it calls us, and each one is valid for at least
     # 2 hours, so this keeps a usable token stored for background API calls.
