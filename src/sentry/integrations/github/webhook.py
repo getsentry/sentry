@@ -699,7 +699,10 @@ class PushEventWebhook(GitHubWebhook):
         **kwargs: Any,
     ) -> None:
         authors = {}
-        client = integration.get_installation(organization_id=organization.id).get_client()
+        # Built on first use, at most once per repository. Building it costs a
+        # control-silo RPC for the organization integration, and only an anonymous
+        # author who cannot be resolved locally needs the GitHub API.
+        client: Any | None = None
         gh_username_cache: MutableMapping[str, str | None] = {}
 
         languages = set()
@@ -735,6 +738,10 @@ class PushEventWebhook(GitHubWebhook):
                             author_email = commit_author.email
                             gh_username_cache[gh_username] = author_email
                         else:
+                            if client is None:
+                                client = integration.get_installation(
+                                    organization_id=organization.id
+                                ).get_client()
                             try:
                                 gh_user = client.get_user(gh_username)
                             except ApiError:

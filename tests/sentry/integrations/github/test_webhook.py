@@ -1203,6 +1203,90 @@ class PushEventWebhookTest(APITestCase):
         repo.refresh_from_db()
         assert set(repo.languages) == {"python", "javascript"}
 
+    @patch("sentry.integrations.github.integration.GitHubIntegration.get_client")
+    def test_does_not_build_client_without_anonymous_author(
+        self, mock_get_client: MagicMock
+    ) -> None:
+        self._setup_github_integration_and_repo()
+
+        response = self._send_push_event(
+            push_event_with_author(name="New Dev", email="newdev@example.com", username="newdev")
+        )
+
+        assert response.status_code == 204
+        assert Commit.objects.filter(organization_id=self.organization.id).count() == 1
+        mock_get_client.assert_not_called()
+
+    @patch("sentry.integrations.github.integration.GitHubIntegration.get_client")
+    def test_does_not_build_client_for_locally_resolved_anonymous_author(
+        self, mock_get_client: MagicMock
+    ) -> None:
+        self._setup_github_integration_and_repo()
+        author = self.create_commit_author(
+            organization_id=self.organization.id, email="newdev@example.com"
+        )
+        author.update(external_id="github:newdev")
+
+        response = self._send_push_event(
+            push_event_with_author(
+                name="New Dev", email="newdev@users.noreply.github.com", username="newdev"
+            )
+        )
+
+        assert response.status_code == 204
+        commit = Commit.objects.get(organization_id=self.organization.id)
+        assert commit.author == author
+        mock_get_client.assert_not_called()
+
+    @patch("sentry.integrations.github.integration.GitHubIntegration.get_client")
+    def test_builds_client_once_for_unresolved_anonymous_authors(
+        self, mock_get_client: MagicMock
+    ) -> None:
+        mock_get_client.return_value.get_user.return_value = {"id": 1}
+        self._setup_github_integration_and_repo()
+
+        response = self._send_push_event(
+            push_event_with_commit_authors(
+                [
+                    {"name": "One", "email": "one@users.noreply.github.com", "username": "one"},
+                    {"name": "Two", "email": "two@users.noreply.github.com", "username": "two"},
+                ]
+            )
+        )
+
+        assert response.status_code == 204
+        assert Commit.objects.filter(organization_id=self.organization.id).count() == 2
+        mock_get_client.assert_called_once_with()
+        assert mock_get_client.return_value.get_user.call_count == 2
+
+    def test_missing_org_integration_fails_when_client_is_needed(self) -> None:
+        """The organization integration is only looked up when a commit needs the
+        client, so one that disappeared mid-delivery fails the push at that commit
+        rather than before the first one."""
+        self._setup_github_integration_and_repo()
+
+        with patch.object(
+            integration_service, "get_organization_integration", return_value=None
+        ) as mock_get_organization_integration:
+            response = self._send_push_event(
+                push_event_with_commit_authors(
+                    [
+                        {"name": "New Dev", "email": "newdev@example.com", "username": "newdev"},
+                        {
+                            "name": "Anon",
+                            "email": "anon@users.noreply.github.com",
+                            "username": "anon",
+                        },
+                    ]
+                )
+            )
+
+        assert response.status_code == 500
+        mock_get_organization_integration.assert_called_once()
+        # The commit ahead of the lookup is kept. The delivery is retried, and the
+        # retry passes over it on the unique constraint.
+        assert Commit.objects.filter(organization_id=self.organization.id).count() == 1
+
     @responses.activate
     def test_multiple_orgs(self) -> None:
         Repository.objects.create(
