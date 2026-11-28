@@ -422,8 +422,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             new_dashboard_positions=[d_c.id, d_a.id, d_b.id],
         )
         self.login_as(self.user)
-        with self.feature("organizations:dashboards-starred"):
-            response = self.client.get(self.url, data={"filter": "onlyFavorites"})
+        response = self.client.get(self.url, data={"filter": "onlyFavorites"})
         assert response.status_code == 200, response.content
         assert [row["title"] for row in response.data] == ["Charlie", "Alpha", "Bravo"]
 
@@ -478,7 +477,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         values = [row["title"] for row in response.data]
         assert values == ["Dashboard 4", "Dashboard 3", "Dashboard 5"]
 
-    def test_get_only_favorites_explicit_sort_overrides_position_with_flag(self) -> None:
+    def test_get_only_favorites_explicit_sort_overrides_position(self) -> None:
         d_a = Dashboard.objects.create(
             title="Alpha", created_by_id=self.user.id, organization=self.organization
         )
@@ -498,12 +497,11 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             new_dashboard_positions=[d_c.id, d_b.id, d_a.id],
         )
         self.login_as(self.user)
-        with self.feature("organizations:dashboards-starred"):
-            response = self.client.get(
-                self.url, data={"filter": "onlyFavorites", "sort": "dateCreated"}
-            )
+        response = self.client.get(
+            self.url, data={"filter": "onlyFavorites", "sort": "dateCreated"}
+        )
         assert response.status_code == 200, response.content
-        # Explicit sort wins over per-user position order even with the flag on
+        # Explicit sort wins over per-user position order
         assert [row["title"] for row in response.data] == ["Alpha", "Bravo", "Charlie"]
 
     def test_get_exclude_favorites_with_no_sort(self) -> None:
@@ -917,7 +915,6 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
     @with_feature(
         [
             "organizations:service-accounts",
-            "organizations:dashboards-starred",
             "organizations:dashboards-prebuilt-insights-dashboards",
         ]
     )
@@ -2627,7 +2624,6 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             [
                 "organizations:dashboards-prebuilt-insights-dashboards",
                 "organizations:dashboards-sync-all-registered-prebuilt-dashboards",
-                "organizations:dashboards-starred",
             ]
         ):
             response = self.do_request("get", self.url)
@@ -2662,7 +2658,6 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             [
                 "organizations:dashboards-prebuilt-insights-dashboards",
                 "organizations:dashboards-sync-all-registered-prebuilt-dashboards",
-                "organizations:dashboards-starred",
             ]
         ):
             response = self.do_request("get", self.url)
@@ -2680,23 +2675,6 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert first_autostar.favorited is True
         assert first_autostar.position == 2
 
-    def test_endpoint_does_not_create_favorites_without_starred_flag(self) -> None:
-        with self.feature(
-            [
-                "organizations:dashboards-prebuilt-insights-dashboards",
-                "organizations:dashboards-sync-all-registered-prebuilt-dashboards",
-            ]
-        ):
-            response = self.do_request("get", self.url)
-        assert response.status_code == 200
-
-        assert (
-            DashboardFavoriteUser.objects.filter(
-                organization=self.organization, user_id=self.user.id
-            ).count()
-            == 0
-        )
-
     def test_endpoint_does_not_re_favorite_unstarred_prebuilt_dashboards(self) -> None:
         pre_favorited_prebuilt_ids = {
             d["prebuilt_id"] for d in PREBUILT_DASHBOARDS if d.get("pre_favorited")
@@ -2706,7 +2684,6 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             [
                 "organizations:dashboards-prebuilt-insights-dashboards",
                 "organizations:dashboards-sync-all-registered-prebuilt-dashboards",
-                "organizations:dashboards-starred",
             ]
         ):
             response = self.do_request("get", self.url)
@@ -2753,7 +2730,6 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             [
                 "organizations:dashboards-prebuilt-insights-dashboards",
                 "organizations:dashboards-sync-all-registered-prebuilt-dashboards",
-                "organizations:dashboards-starred",
             ]
         ):
             response = self.do_request("get", self.url)
@@ -2781,7 +2757,6 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             [
                 "organizations:dashboards-prebuilt-insights-dashboards",
                 "organizations:dashboards-sync-all-registered-prebuilt-dashboards",
-                "organizations:dashboards-starred",
             ]
         ):
             response = self.do_request("get", self.url, {"filter": "onlyFavorites"})

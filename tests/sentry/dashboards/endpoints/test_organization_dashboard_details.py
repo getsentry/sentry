@@ -10,7 +10,6 @@ import pytest
 from django.db.models import QuerySet
 from django.test import override_settings
 from django.urls import reverse
-from rest_framework.response import Response
 
 from sentry import audit_log
 from sentry.dashboards.endpoints.organization_dashboards import PrebuiltDashboardId
@@ -5077,8 +5076,14 @@ class OrganizationDashboardFavoriteTest(OrganizationDashboardDetailsTestCase):
         self.create_member(user=self.user_1, organization=self.organization)
         self.create_member(user=self.user_2, organization=self.organization)
 
-        # Both users have favorited the dashboard
-        self.dashboard.favorited_by = [self.user_1.id, self.user_2.id]
+        # Both users have favorited the dashboard. The deprecated `favorited_by` setter
+        # leaves `position` null, which the unfavorite path cannot decrement from.
+        for user in (self.user_1, self.user_2):
+            DashboardFavoriteUser.objects.insert_favorite_dashboard(
+                organization=self.organization,
+                user_id=user.id,
+                dashboard=self.dashboard,
+            )
 
     def url(self, dashboard_id: int | str) -> str:
         return reverse(
@@ -5134,15 +5139,9 @@ class OrganizationDashboardFavoriteTest(OrganizationDashboardDetailsTestCase):
 class OrganizationDashboardFavoriteReorderingTest(OrganizationDashboardDetailsTestCase):
     """
     These tests are intended to cover and eventually replace the existing
-    OrganizationDashboardFavoriteTest cases. These test the feature flagged
-    PUT logic for inserting and removing a dashboard from the favorite list.
+    OrganizationDashboardFavoriteTest cases. They test the PUT logic for
+    inserting and removing a dashboard from the favorite list.
     """
-
-    features = ["organizations:dashboards-starred"]
-
-    def do_request(self, method: str, url: str, data: dict[str, Any] | None = None) -> Response:
-        with self.feature(self.features):
-            return super().do_request(method, url, data)
 
     def setUp(self) -> None:
         super().setUp()

@@ -366,30 +366,17 @@ class OrganizationDashboardFavoriteEndpoint(OrganizationDashboardBase):
         should_favorite = request.data.get("shouldFavorite", request.data.get("isFavorited"))
         user_id = require_user(request).id
 
-        if features.has("organizations:dashboards-starred", organization, actor=request.user):
-            if should_favorite:
-                DashboardFavoriteUser.objects.insert_favorite_dashboard(
-                    organization=organization,
-                    user_id=user_id,
-                    dashboard=dashboard,
-                )
-            else:
-                DashboardFavoriteUser.objects.unfavorite_dashboard(
-                    organization=organization,
-                    user_id=user_id,
-                    dashboard=dashboard,
-                )
-            return Response(status=204)
-
-        current_favorites = set(dashboard.favorited_by)
-
-        if should_favorite and user_id not in current_favorites:
-            current_favorites.add(user_id)
-        elif not should_favorite and user_id in current_favorites:
-            current_favorites.remove(user_id)
+        if should_favorite:
+            DashboardFavoriteUser.objects.insert_favorite_dashboard(
+                organization=organization,
+                user_id=user_id,
+                dashboard=dashboard,
+            )
         else:
-            return Response(status=204)
-
-        dashboard.favorited_by = current_favorites
+            DashboardFavoriteUser.objects.unfavorite_dashboard(
+                organization=organization,
+                user_id=user_id,
+                dashboard=dashboard,
+            )
 
         return Response(status=204)

@@ -1,8 +1,5 @@
-from typing import Any
-
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
-from rest_framework.response import Response
 
 from sentry.models.dashboard import DashboardFavoriteUser
 from sentry.silo.base import SiloMode
@@ -11,13 +8,7 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 
 
-class StarredDashboardTestCase(OrganizationDashboardWidgetTestCase):
-    def do_request(self, method: str, url: str, data: dict[str, Any] | None = None) -> Response:
-        with self.feature("organizations:dashboards-starred"):
-            return super().do_request(method, url, data)
-
-
-class OrganizationDashboardsStarredTest(StarredDashboardTestCase):
+class OrganizationDashboardsStarredTest(OrganizationDashboardWidgetTestCase):
     def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
@@ -86,7 +77,7 @@ class OrganizationDashboardsStarredTest(StarredDashboardTestCase):
         )
 
 
-class OrganizationDashboardsStarredOrderTest(StarredDashboardTestCase):
+class OrganizationDashboardsStarredOrderTest(OrganizationDashboardWidgetTestCase):
     def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
@@ -243,7 +234,7 @@ class OrganizationDashboardsStarredOrderTest(StarredDashboardTestCase):
 
 
 @with_feature("organizations:granular-permission-scopes")
-class OrganizationDashboardsStarredScopeTest(StarredDashboardTestCase):
+class OrganizationDashboardsStarredScopeTest(OrganizationDashboardWidgetTestCase):
     def setUp(self) -> None:
         super().setUp()
         self.url = reverse(
