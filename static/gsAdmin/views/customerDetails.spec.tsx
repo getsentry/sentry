@@ -2579,7 +2579,11 @@ describe('Customer Details', () => {
         screen.getByText('This account was reported as fraudulent')
       ).toBeInTheDocument();
 
-      await userEvent.click(screen.getByRole('radio', {name: 'Fraudulent'}));
+      await userEvent.click(screen.getByRole('radio', {name: /^Fraudulent/}));
+      await userEvent.type(
+        screen.getByRole('textbox', {name: 'Notes'}),
+        'Chargeback reported'
+      );
 
       await userEvent.click(screen.getByRole('button', {name: 'Suspend Account'}));
 
@@ -2590,7 +2594,11 @@ describe('Customer Details', () => {
           `/customers/${organization.slug}/`,
           expect.objectContaining({
             method: 'PUT',
-            data: {suspended: true, suspensionReason: 'fraud'},
+            data: {
+              suspended: true,
+              suspensionReason: 'fraud',
+              notes: 'Chargeback reported',
+            },
           })
         );
       });
@@ -2623,7 +2631,7 @@ describe('Customer Details', () => {
         screen.getByText('This account has been suspended for security or abuse reasons')
       ).toBeInTheDocument();
 
-      await userEvent.click(screen.getByRole('radio', {name: 'Security/Abuse'}));
+      await userEvent.click(screen.getByRole('radio', {name: /^Security\/Abuse/}));
 
       await userEvent.click(screen.getByRole('button', {name: 'Suspend Account'}));
 
@@ -2636,6 +2644,68 @@ describe('Customer Details', () => {
           })
         );
       });
+    });
+  });
+
+  describe('suspend account validation', () => {
+    it('shows an error when no reason is selected', async () => {
+      setUpMocks(organization, {isSuspended: false});
+
+      const apiMock = MockApiClient.addMockResponse({
+        url: `/customers/${organization.slug}/`,
+        method: 'PUT',
+        body: organization,
+      });
+
+      render(<CustomerDetails />, {
+        initialRouterConfig: {
+          location: {pathname: `/customers/${organization.slug}`},
+          route: '/customers/:orgId',
+        },
+        organization,
+      });
+
+      await openCustomerActions();
+      renderGlobalModal();
+      await userEvent.click(screen.getByText('Suspend Account'));
+
+      const confirmButton = screen.getByRole('button', {name: 'Suspend Account'});
+      expect(confirmButton).toBeEnabled();
+      await userEvent.click(confirmButton);
+
+      expect(await screen.findByText('Select a suspension reason')).toBeInTheDocument();
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+      expect(apiMock).not.toHaveBeenCalled();
+    });
+
+    it('does not suspend while the ticket URL is invalid', async () => {
+      setUpMocks(organization, {isSuspended: false});
+
+      const apiMock = MockApiClient.addMockResponse({
+        url: `/customers/${organization.slug}/`,
+        method: 'PUT',
+        body: organization,
+      });
+
+      render(<CustomerDetails />, {
+        initialRouterConfig: {
+          location: {pathname: `/customers/${organization.slug}`},
+          route: '/customers/:orgId',
+        },
+        organization,
+      });
+
+      await openCustomerActions();
+      renderGlobalModal();
+      await userEvent.click(screen.getByText('Suspend Account'));
+
+      await userEvent.click(screen.getByRole('radio', {name: /^Fraudulent/}));
+      await userEvent.type(screen.getByRole('textbox', {name: 'TicketURL'}), 'abc');
+      await userEvent.click(screen.getByRole('button', {name: 'Suspend Account'}));
+
+      expect(await screen.findByText('Invalid ticket URL')).toBeInTheDocument();
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+      expect(apiMock).not.toHaveBeenCalled();
     });
   });
 

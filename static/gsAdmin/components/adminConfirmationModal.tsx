@@ -1,8 +1,11 @@
 import {Fragment, isValidElement, useCallback, useEffect, useRef, useState} from 'react';
+import {z} from 'zod';
 
 import type {ConfirmMessageRenderProps, OpenConfirmOptions} from '@sentry/scraps/confirm';
 import {Confirm, openConfirmModal} from '@sentry/scraps/confirm';
-import {Container} from '@sentry/scraps/layout';
+import {withFieldGroup} from '@sentry/scraps/form';
+import {Container, Stack} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 
 import {InputField} from 'sentry/components/forms/fields/inputField';
 import {TextareaField} from 'sentry/components/forms/fields/textareaField';
@@ -16,6 +19,64 @@ export type AdminConfirmParams = {
   [key: string]: any;
   notes?: string;
   ticketURL?: string;
+};
+
+export const adminAuditSchema = z.object({
+  ticketURL: z.url('Invalid ticket URL').or(z.literal('')),
+  notes: z.string(),
+});
+
+export const adminAuditDefaults: z.input<typeof adminAuditSchema> = {
+  ticketURL: '',
+  notes: '',
+};
+
+export function adminAuditParams({
+  ticketURL,
+  notes,
+}: z.output<typeof adminAuditSchema>): AdminConfirmParams {
+  return {...(notes && {notes}), ...(ticketURL && {ticketURL})};
+}
+
+const adminAuditFieldsProps: {showTicketURL?: boolean} = {};
+
+export const AdminAuditFields = withFieldGroup({
+  defaultValues: adminAuditDefaults,
+  props: adminAuditFieldsProps,
+  render: function AdminAuditFieldsRender({group, showTicketURL = true}) {
+    return (
+      <Stack gap="lg">
+        {showTicketURL && (
+          <group.AppField name="ticketURL">
+            {field => (
+              <field.Layout.Stack label="TicketURL">
+                <field.Input
+                  type="url"
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                />
+              </field.Layout.Stack>
+            )}
+          </group.AppField>
+        )}
+        <group.AppField name="notes">
+          {field => (
+            <field.Layout.Stack label="Notes">
+              <field.TextArea
+                autosize
+                value={field.state.value}
+                onChange={field.handleChange}
+              />
+            </field.Layout.Stack>
+          )}
+        </group.AppField>
+      </Stack>
+    );
+  },
+});
+
+export type AdminActionModalProps = ModalRenderProps & {
+  onConfirm: (params: AdminConfirmParams) => void;
 };
 
 export type AdminConfirmRenderProps = Omit<
