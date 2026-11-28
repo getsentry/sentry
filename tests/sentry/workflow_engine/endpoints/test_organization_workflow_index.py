@@ -43,6 +43,7 @@ from sentry.workflow_engine.typings.notification_action import ActionTarget, Act
 from tests.sentry.workflow_engine.endpoints.test_helpers import (
     GATE_FEATURE,
     GET_AND_PUT_ONLY_AVAILABILITY,
+    assert_querysets_unchanged,
     override_workflow_api_availability,
 )
 from tests.sentry.workflow_engine.test_base import (
@@ -988,6 +989,72 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
         assert response.status_code == 201
         new_workflow = Workflow.objects.get(id=response.data["id"])
         assert response.data == serialize(new_workflow)
+
+    def test_create_without_type_creates_an_alert(self) -> None:
+        response = self.get_success_response(self.organization.slug, raw_data=self.valid_workflow)
+
+        assert response.data["type"] == "alert"
+
+        assert Workflow.objects.get(id=response.data["id"]).type == WorkflowType.ALERT
+
+    def test_create_rejects_type_closed_for_post(self) -> None:
+        with assert_querysets_unchanged(workflows=Workflow.objects.all()):
+            response = self.get_error_response(
+                self.organization.slug,
+                raw_data={**self.valid_workflow, "type": "inbox"},
+                status_code=400,
+            )
+
+        assert response.data == {"type": ["Invalid workflow type: inbox"]}
+
+    def test_create_rejects_unknown_type(self) -> None:
+        with assert_querysets_unchanged(workflows=Workflow.objects.all()):
+            response = self.get_error_response(
+                self.organization.slug,
+                raw_data={**self.valid_workflow, "type": "bogus"},
+                status_code=400,
+            )
+
+        assert response.data == {"type": ["Invalid workflow type: bogus"]}
+
+    def test_create_with_type_open_for_post_creates_that_type(self) -> None:
+        with override_workflow_api_availability(
+            WorkflowType.INBOX, WorkflowSettings.DEFAULT_API_AVAILABILITY
+        ):
+            response = self.get_success_response(
+                self.organization.slug, raw_data={**self.valid_workflow, "type": "inbox"}
+            )
+
+        assert response.data["type"] == "inbox"
+
+        assert Workflow.objects.get(id=response.data["id"]).type == WorkflowType.INBOX
+
+    def test_create_is_rejected_when_post_feature_gate_is_off(self) -> None:
+        with (
+            self.feature({GATE_FEATURE: False}),
+            override_workflow_api_availability(
+                WorkflowType.ALERT, {WorkflowEngineAPIOperation.POST: FeatureGate(GATE_FEATURE)}
+            ),
+            assert_querysets_unchanged(workflows=Workflow.objects.all()),
+        ):
+            response = self.get_error_response(
+                self.organization.slug, raw_data=self.valid_workflow, status_code=400
+            )
+
+        assert response.data == {"type": ["Invalid workflow type: alert"]}
+
+    def test_create_succeeds_when_post_feature_gate_is_on(self) -> None:
+        with (
+            self.feature({GATE_FEATURE: True}),
+            override_workflow_api_availability(
+                WorkflowType.ALERT, {WorkflowEngineAPIOperation.POST: FeatureGate(GATE_FEATURE)}
+            ),
+        ):
+            response = self.get_success_response(
+                self.organization.slug, raw_data=self.valid_workflow
+            )
+
+        assert Workflow.objects.get(id=response.data["id"]).type == WorkflowType.ALERT
 
     def test_create_workflow__rejects_action_filter_in_triggers(self) -> None:
         self.valid_workflow["triggers"] = {
