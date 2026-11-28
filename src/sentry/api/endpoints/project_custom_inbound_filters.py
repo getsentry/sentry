@@ -896,7 +896,7 @@ class CustomInboundFilterDetailsEndpoint(ProjectCustomInboundFilterEndpoint):
             if legacy_list and "conditions" in changes:
                 # The lines of a legacy list change in the row and in its option together.
                 legacy_filter_lists.set_list(
-                    project, legacy_list, custom_filter.conditions[0]["value"]
+                    project, legacy_list, custom_filter.conditions[0]["value"], actor=actor
                 )
                 update_fields.remove("conditions")
             custom_filter.save(update_fields=update_fields)
@@ -962,7 +962,10 @@ class CustomInboundFilterDetailsEndpoint(ProjectCustomInboundFilterEndpoint):
             # The row holds a filter list of the project settings: deleting it empties the
             # list, in its option too.
             legacy_filter_lists.set_list(
-                project, legacy_filter_lists.filter_type_of(custom_filter.legacy_filter), []
+                project,
+                legacy_filter_lists.filter_type_of(custom_filter.legacy_filter),
+                [],
+                actor=get_actor_reference(request),
             )
         else:
             custom_filter.delete()
