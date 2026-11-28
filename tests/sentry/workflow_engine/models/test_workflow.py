@@ -4,7 +4,8 @@ from django.core.exceptions import ValidationError
 from sentry.constants import ObjectStatus
 from sentry.workflow_engine.models import Workflow
 from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.types import WorkflowEventData
+from sentry.workflow_engine.registry import WorkflowSettingsRegistry, workflow_settings_registry
+from sentry.workflow_engine.types import WorkflowEventData, WorkflowSettings, WorkflowType
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
@@ -132,3 +133,26 @@ class WorkflowTest(BaseWorkflowTest):
             config={"frequency": 5},
         )
         assert Workflow.objects.filter(name=name).count() == 2
+
+
+@pytest.mark.parametrize("workflow_type", list(WorkflowType))
+def test_every_workflow_type_is_registered(workflow_type: WorkflowType) -> None:
+    assert workflow_type.value in workflow_settings_registry.registrations
+
+
+def test_workflow_settings_registered_with_a_workflow_type_support_string_lookup() -> None:
+    registry = WorkflowSettingsRegistry()
+
+    registry.register(WorkflowType.ALERT)(WorkflowSettings)
+
+    assert registry.get("alert") is WorkflowSettings
+
+
+@pytest.mark.parametrize("workflow_type", ["alert", "unknown_workflow"])
+def test_workflow_settings_registration_rejects_strings(workflow_type: str) -> None:
+    registry = WorkflowSettingsRegistry()
+
+    with pytest.raises(ValueError, match="must be registered with a WorkflowType member"):
+        registry.register(workflow_type)(WorkflowSettings)
+
+    assert registry.registrations == {}

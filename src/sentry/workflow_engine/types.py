@@ -82,6 +82,17 @@ class DetectorType(StrEnum):
     QUERY_INJECTION_VULNERABILITY = "query_injection_vulnerability"
 
 
+class WorkflowType(StrEnum):
+    # A user-configured alert
+    ALERT = "alert"
+
+    # A hidden workflow to support inbox notifications
+    INBOX = "inbox"
+
+    # A Seer automation's workflow, managed through the Seer automations API instead of Alerts
+    SEER_INVESTIGATION = "seer_investigation"
+
+
 class DetectorPriorityLevel(IntEnum):
     OK = 0
     LOW = PriorityLevel.LOW
@@ -454,6 +465,10 @@ class DetectorSettings(BaseWorkflowEngineSettings):
     # None preserves legacy detectors whose configuration is validated outside this model.
     config_schema: ClassVar[dict[str, Any] | None] = {}
     filter: ClassVar[Q | None] = None
+
+
+class WorkflowSettings(BaseWorkflowEngineSettings):
+    pass
 
 
 WorkflowActivityHandler: TypeAlias = Callable[["Group", "Activity", DetectorId | None], None]

@@ -9,6 +9,8 @@ from sentry.workflow_engine.types import (
     DetectorSettings,
     DetectorType,
     WorkflowActivityHandler,
+    WorkflowSettings,
+    WorkflowType,
 )
 
 data_source_type_registry = Registry[type[DataSourceTypeHandler[Any]]]()
@@ -25,3 +27,14 @@ class DetectorSettingsRegistry(Registry[type[DetectorSettings]]):
 
 
 detector_settings_registry = DetectorSettingsRegistry(enable_reverse_lookup=False)
+
+
+class WorkflowSettingsRegistry(Registry[type[WorkflowSettings]]):
+    def register(self, key: str) -> Callable[[type[WorkflowSettings]], type[WorkflowSettings]]:
+        if not isinstance(key, WorkflowType):
+            raise ValueError("Workflow settings must be registered with a WorkflowType member")
+
+        return super().register(key)
+
+
+workflow_settings_registry = WorkflowSettingsRegistry(enable_reverse_lookup=False)

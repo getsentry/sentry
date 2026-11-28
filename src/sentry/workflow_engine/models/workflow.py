@@ -2,8 +2,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import replace
-from enum import StrEnum
-from typing import Any, ClassVar, TypedDict
+from typing import Any, ClassVar, TypeAlias, TypedDict
 
 from django.conf import settings
 from django.db import models
@@ -23,7 +22,7 @@ from sentry.workflow_engine.models.data_condition_group import (
     DataConditionGroupSnapshot,
 )
 from sentry.workflow_engine.processors.evaluations import DataConditionGroupEvaluation
-from sentry.workflow_engine.types import ConditionError, WorkflowEventData
+from sentry.workflow_engine.types import ConditionError, WorkflowEventData, WorkflowType
 
 from .json_config import JSONConfigBase
 
@@ -65,15 +64,7 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     objects: ClassVar[WorkflowManager] = WorkflowManager()
     objects_for_deletion: ClassVar[BaseManager[Workflow]] = BaseManager()
 
-    class Type(StrEnum):
-        # A user-configured alert
-        ALERT = "alert"
-
-        # A hidden workflow to support inbox notifications
-        INBOX = "inbox"
-
-        # A Seer automation's workflow, managed through the Seer automations API instead of Alerts
-        SEER_INVESTIGATION = "seer_investigation"
+    Type: TypeAlias = WorkflowType
 
     name = models.CharField(max_length=256)
     organization = FlexibleForeignKey("sentry.Organization")
