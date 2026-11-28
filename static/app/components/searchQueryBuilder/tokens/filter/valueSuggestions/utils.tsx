@@ -64,11 +64,18 @@ export function cleanFilterValue({
 
   switch (valueType) {
     case FieldValueType.NUMBER:
-    case FieldValueType.CURRENCY:
       if (FILTER_VALUE_NUMERIC.test(value)) {
         return value;
       }
       return null;
+    case FieldValueType.CURRENCY: {
+      // Currency values are displayed with a `$` prefix, so accept it when typed
+      const amount = value.replace(/^\$/, '');
+      if (FILTER_VALUE_NUMERIC.test(amount)) {
+        return amount;
+      }
+      return null;
+    }
     case FieldValueType.INTEGER:
       if (FILTER_VALUE_INT.test(value)) {
         return value;
