@@ -19,6 +19,17 @@ from sentry.seer.models.run import SeerRun
 # its queue and can strand unfinished actions; taken when the next drain dispatches.
 OUT_OF_CREDITS_EXTRA = "pr_iteration_out_of_credits"
 
+# Goes before the next feedback when the run's last turn ran out of credits before it finished.
+# That turn's request already left the queue, so nothing else asks the agent to finish it. A turn
+# on a branch that moved since starts on the new commit without the edits that weren't pushed,
+# though its history still shows them.
+STOPPED_TURN_NOTE = (
+    "Your previous turn stopped before it finished because the organization ran out of Seer "
+    "credits. First finish the request from that turn, then address the feedback below. Check "
+    "the current code before you continue: changes from that turn that weren't pushed may be "
+    "gone."
+)
+
 
 class StrandedAction(StrEnum):
     """What the drain redoes before it takes new feedback."""
@@ -121,9 +132,21 @@ def _unfinished_action(
     ):
         return "push"
     # Check if the agent's turn ran out of credits mid-run in Seer.
-    if state.status == "error" and state.failure_reason == OUT_OF_CREDITS:
+    if stopped_mid_turn_for_credits(state):
         return "agent_turn"
     return None
+
+
+def stopped_mid_turn_for_credits(state: SeerRunState) -> bool:
+    """Whether the run's last turn ran out of credits in Seer before it finished."""
+    return state.status == "error" and state.failure_reason == OUT_OF_CREDITS
+
+
+def feedback_prompt(state: SeerRunState, feedback: str) -> str:
+    """The next turn's prompt for ``feedback``. A turn credits stopped partway comes first."""
+    if not stopped_mid_turn_for_credits(state):
+        return feedback
+    return f"{STOPPED_TURN_NOTE}\n\n{feedback}"
 
 
 def pr_iteration_out_of_credits(

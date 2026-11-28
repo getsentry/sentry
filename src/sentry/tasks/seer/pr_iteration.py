@@ -114,8 +114,10 @@ from sentry.seer.autofix.pr_iteration.nudge import (
     queue_not_requested_nudge,
 )
 from sentry.seer.autofix.pr_iteration.out_of_credits import (
+    feedback_prompt,
     get_out_of_credits,
     mark_out_of_credits,
+    stopped_mid_turn_for_credits,
     take_out_of_credits,
 )
 from sentry.seer.autofix.pr_iteration.out_of_credits_comment import (
@@ -947,6 +949,7 @@ def _drain_queued_autofix_feedback(
         feedback_ids=[item.feedback.feedback_id for item in consumable_items],
         referrer=referrer.value,
         actor_user_id=actor_user_id,
+        finishes_stopped_turn=stopped_mid_turn_for_credits(state),
     )
 
     if iteration_id is not None:
@@ -966,6 +969,10 @@ def _drain_queued_autofix_feedback(
 
     if out_of_credits is not None:
         take_out_of_credits(run_id=run_id, organization_id=organization_id)
+
+    # A turn that credits stopped partway took its feedback off the queue, so the prompt asks
+    # the agent to finish it first.
+    prompt = feedback_prompt(state, feedback_text(feedback_items))
 
     # a drain (from the log above) with no trigger autofix agent below it means this call never came back.
     try:
@@ -988,6 +995,7 @@ def _drain_queued_autofix_feedback(
             continue_single_run_from_pr_feedback(
                 agent_run,
                 group,
+                reply=prompt,
                 feedback=feedback_items,
                 iteration_index=get_open_iteration_index(state),
                 iteration_id=iteration_id,
@@ -1002,7 +1010,7 @@ def _drain_queued_autofix_feedback(
                 referrer=referrer,
                 billing_feature=get_run_billing_feature(state),
                 run_id=run_id,
-                user_context=feedback_text(feedback_items),
+                user_context=prompt,
                 feedback=feedback_items,
                 actor_user_id=actor_user_id,
                 commit_author=commit_author,

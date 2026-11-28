@@ -30,7 +30,11 @@ from sentry.seer.autofix.pr_iteration.emit import (
     PrIterationOutcome,
     bootstrap_iteration,
 )
-from sentry.seer.autofix.pr_iteration.feedback import Feedback, serialize_feedback
+from sentry.seer.autofix.pr_iteration.feedback import (
+    Feedback,
+    feedback_text,
+    serialize_feedback,
+)
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import (
     ConsumeTask,
     ConsumeTriggerSource,
@@ -52,6 +56,7 @@ from sentry.seer.autofix.pr_iteration.logs import (
     PrIterationLogContext,
 )
 from sentry.seer.autofix.pr_iteration.out_of_credits import (
+    STOPPED_TURN_NOTE,
     OutOfCreditsMarker,
     StrandedAction,
     get_out_of_credits,
@@ -1913,6 +1918,49 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
 
         assert mock_trigger.call_count == 2
 
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_feedback_after_a_turn_credits_stopped_asks_to_finish_that_turn_first(
+        self,
+        mock_fetch: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        # The stopped turn's feedback left the queue when it started, so only the prompt
+        # brings it back.
+        self.create_seer_run(organization=self.organization, seer_run_state_id=67890)
+        mark_out_of_credits(run_id=67890, organization_id=self.organization.id)
+        mock_fetch.return_value = self._state(
+            status="error", failure_reason="out_of_credits", blocks=[self._unpushed_block()]
+        )
+        self._enqueue_ui_feedback("add a type hint")
+
+        self._call()
+
+        mock_trigger.assert_called_once()
+        assert (
+            mock_trigger.call_args.kwargs["user_context"]
+            == f"{STOPPED_TURN_NOTE}\n\nadd a type hint"
+        )
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_feedback_after_a_credit_refusal_before_the_turn_is_sent_as_is(
+        self,
+        mock_fetch: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        # A refusal before the turn started held its feedback in the queue, and the run's last
+        # turn finished.
+        self.create_seer_run(organization=self.organization, seer_run_state_id=67890)
+        mark_out_of_credits(run_id=67890, organization_id=self.organization.id)
+        mock_fetch.return_value = self._state_with_pr_number()
+        self._enqueue_ui_feedback("add a type hint")
+
+        self._call()
+
+        mock_trigger.assert_called_once()
+        assert mock_trigger.call_args.kwargs["user_context"] == "add a type hint"
+
     @patch(f"{TASK_PATH}.count_queued_autofix_feedback", return_value=3)
     @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
     @patch(f"{TASK_PATH}.fetch_run_status")
@@ -2131,6 +2179,29 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         assert called_group.id == self.group.id
         assert [f.feedback_id for f in kwargs["feedback"]] == ["777"]
         assert kwargs["iteration_index"] == 2
+        assert kwargs["reply"] == feedback_text([self._review_feedback(777)])
+
+    @patch(f"{TASK_PATH}.continue_single_run_from_pr_feedback")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_single_run_feedback_after_a_turn_credits_stopped_asks_to_finish_that_turn_first(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_continue: MagicMock,
+    ) -> None:
+        self._single_run_record()
+        mock_fetch.return_value = self._single_run_state(
+            status="error", failure_reason="out_of_credits", blocks=[self._iteration_block(1)]
+        )
+        mock_pop.return_value = [self._queued(self._review_feedback(777))]
+
+        self._call()
+
+        mock_continue.assert_called_once()
+        assert mock_continue.call_args.kwargs["reply"] == (
+            f"{STOPPED_TURN_NOTE}\n\n{feedback_text([self._review_feedback(777)])}"
+        )
 
     def _unpushed_edits_block(self) -> MemoryBlock:
         return MemoryBlock(

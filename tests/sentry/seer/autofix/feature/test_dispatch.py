@@ -1031,6 +1031,7 @@ class TestContinueSingleRunFromPrFeedback(TestCase):
             continue_single_run_from_pr_feedback(
                 self.agent_run,
                 self.group,
+                reply="rename it",
                 feedback=self.feedback,
                 iteration_index=2,
                 iteration_id=7,
