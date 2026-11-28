@@ -1,6 +1,6 @@
+import {hashKey} from '@tanstack/react-query';
 import type {Location} from 'history';
 
-import {getInterval} from 'sentry/components/charts/utils';
 import type {PageFilters} from 'sentry/types/core';
 import type {Group} from 'sentry/types/group';
 import type {
@@ -10,6 +10,7 @@ import type {
   SavedQuery,
 } from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {parseQueryKey, type ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
@@ -24,10 +25,8 @@ export function useIssueDetailsEventView({
   group,
   pageFilters,
   queryProps,
-  isSmallContainer = false,
 }: {
   group: Group;
-  isSmallContainer?: boolean;
   pageFilters?: PageFilters;
   queryProps?: Partial<SavedQuery>;
 }) {
@@ -48,11 +47,6 @@ export function useIssueDetailsEventView({
         })
       : defaultStatsPeriod;
 
-  const interval = getInterval(
-    {start: periodQuery?.start, end: periodQuery?.end, period: periodQuery?.statsPeriod},
-    // Switch to low fidelity intervals on small screens
-    isSmallContainer ? 'low' : 'issues'
-  );
   const config = getConfigForIssueType(group, group.project);
 
   // Group each filter so OR branches cannot escape the issue or other filters.
@@ -63,7 +57,6 @@ export function useIssueDetailsEventView({
 
   const discoverQuery: NewQuery = {
     ...periodQuery,
-    interval,
     environment: environments,
     dataset: config.usesIssuePlatform
       ? DiscoverDatasets.ISSUE_PLATFORM
@@ -116,6 +109,16 @@ export function issueDetailsEventsStatsApiOptions(params: IssueDetailsEventsQuer
       staleTime: 60_000,
     }
   );
+}
+
+/**
+ * Hashes an events-stats query key without its interval. Two queries with the
+ * same hash differ only in bar size, so the graph can keep showing the old bars
+ * while the new ones load.
+ */
+export function getEventsStatsHashWithoutInterval(queryKey: ApiQueryKey) {
+  const {url, options} = parseQueryKey(queryKey);
+  return hashKey([url, {...options, query: {...options.query, interval: undefined}}]);
 }
 
 export function issueDetailsEventsApiOptions<T>({

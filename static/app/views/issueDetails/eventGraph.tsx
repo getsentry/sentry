@@ -1,11 +1,12 @@
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
-import {mergeProps, mergeRefs, useResizeObserver} from '@react-aria/utils';
+import {mergeProps, mergeRefs} from '@react-aria/utils';
+import {useDebouncedCallback} from '@tanstack/react-pacer';
 import {useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, type ButtonProps} from '@sentry/scraps/button';
-import {Container, Flex, Grid, type FlexProps, Stack} from '@sentry/scraps/layout';
+import {Container, Grid, type FlexProps, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {BarChart, type BarChartSeries} from 'sentry/components/charts/barChart';
@@ -25,7 +26,6 @@ import type {Group} from 'sentry/types/group';
 import type {EventsStats} from 'sentry/types/organization';
 import type {ReleaseMetaBasic} from 'sentry/types/release';
 import type {EventView} from 'sentry/utils/discover/eventView';
-import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -33,7 +33,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
-import {getBucketSize} from 'sentry/views/dashboards/utils/getBucketSize';
 import {
   RELEASE_BUBBLE_SERIES_NAME,
   useReleaseBubbles,
@@ -41,6 +40,7 @@ import {
 import {makeReleaseDrawerPathname} from 'sentry/views/explore/releases/utils/pathnames';
 
 import {
+  getEventsStatsHashWithoutInterval,
   issueDetailsEventsApiOptions,
   issueDetailsEventsStatsApiOptions,
   useIssueDetailsEventView,
@@ -49,6 +49,7 @@ import {useCurrentEventMarklineSeries} from './hooks/useEventMarkLineSeries';
 import {useReleaseMarkLineSeries} from './hooks/useReleaseMarkLineSeries';
 import {EVENT_GRAPH_WIDGET_ID} from './constants';
 import {useIssueDetails} from './context';
+import {getEventGraphInterval, getMaxBars} from './eventGraphInterval';
 import {Tab} from './types';
 import {useGroupDetailsRoute} from './useGroupDetailsRoute';
 
@@ -104,57 +105,92 @@ export function EventGraph({
   const theme = useTheme();
   const organization = useOrganization();
   const navigate = useNavigate();
-  const chartContainerRef = useRef<HTMLDivElement | null>(null);
   const location = useLocation();
   const [visibleSeries, setVisibleSeries] = useState(EventGraphSeries.EVENT);
   const {dispatch} = useIssueDetails();
   const {currentTab} = useGroupDetailsRoute();
-  const [isSmallContainer, setIsSmallContainer] = useState(false);
+  // Undefined until the chart is measured, so the stats aren't fetched at a
+  // guessed interval first.
+  const [maxBars, setMaxBars] = useState<number>();
 
-  const onResize = useCallback(() => {
-    if (!chartContainerRef.current) {
-      return;
-    }
+  // Wait for resizes (like a side panel animating open) to settle so only the
+  // final size is fetched.
+  const setMaxBarsAfterResize = useDebouncedCallback(setMaxBars, {wait: 150});
 
-    const {width} = chartContainerRef.current.getBoundingClientRect();
-    setIsSmallContainer(width < 450);
-  }, []);
+  // Measure as soon as the chart mounts, then whenever it resizes
+  const chartContainerRef = useCallback(
+    (element: HTMLDivElement) => {
+      setMaxBars(getMaxBars(element.clientWidth));
+      const observer = new ResizeObserver(() =>
+        setMaxBarsAfterResize(getMaxBars(element.clientWidth))
+      );
+      observer.observe(element);
+      return () => observer.disconnect();
+    },
+    [setMaxBarsAfterResize]
+  );
 
-  useResizeObserver({ref: chartContainerRef, onResize});
-  const eventViewHook = useIssueDetailsEventView({group, isSmallContainer});
+  const eventViewHook = useIssueDetailsEventView({group});
   const eventView = eventViewProps || eventViewHook;
 
+  // Size the bars to the chart. Only the stats queries use this interval, so
+  // resizing doesn't refetch anything else.
+  const interval = getEventGraphInterval(
+    {start: eventView.start, end: eventView.end, period: eventView.statsPeriod},
+    maxBars ?? 0
+  );
+  const graphEventView = eventView.clone();
+  graphEventView.interval = interval;
+
+  const statsOptions = issueDetailsEventsStatsApiOptions({
+    eventView: graphEventView,
+    group,
+    location,
+    organization,
+    referrer: 'issue_details.streamline_graph',
+  });
+  const statsHash = getEventsStatsHashWithoutInterval(statsOptions.queryKey);
   const {
     data: groupStats,
     isPending: isLoadingStats,
     error,
-  } = useQuery(
-    issueDetailsEventsStatsApiOptions({
-      eventView,
-      group,
-      location,
-      organization,
-      referrer: 'issue_details.streamline_graph',
-    })
-  );
+  } = useQuery({
+    ...statsOptions,
+    enabled: maxBars !== undefined,
+    // Keep the old bars while a resize refetches them at a new interval
+    placeholderData: (previousData, previousQuery) =>
+      previousQuery &&
+      getEventsStatsHashWithoutInterval(previousQuery.queryKey) === statsHash
+        ? previousData
+        : undefined,
+  });
 
   const shouldShowBubbles = showReleasesAs !== 'line';
 
-  const noQueryEventView = eventView.clone();
+  const noQueryEventView = graphEventView.clone();
   noQueryEventView.query = `issue.id:${group.id}`;
   noQueryEventView.environment = [];
 
   const isUnfilteredStatsEnabled =
     eventView.query !== noQueryEventView.query || eventView.environment.length > 0;
+  const unfilteredStatsOptions = issueDetailsEventsStatsApiOptions({
+    eventView: noQueryEventView,
+    group,
+    location,
+    organization,
+    referrer: 'issue_details.streamline_graph',
+  });
+  const unfilteredStatsHash = getEventsStatsHashWithoutInterval(
+    unfilteredStatsOptions.queryKey
+  );
   const {data: unfilteredGroupStats} = useQuery({
-    ...issueDetailsEventsStatsApiOptions({
-      eventView: noQueryEventView,
-      group,
-      location,
-      organization,
-      referrer: 'issue_details.streamline_graph',
-    }),
-    enabled: isUnfilteredStatsEnabled,
+    ...unfilteredStatsOptions,
+    enabled: isUnfilteredStatsEnabled && maxBars !== undefined,
+    placeholderData: (previousData, previousQuery) =>
+      previousQuery &&
+      getEventsStatsHashWithoutInterval(previousQuery.queryKey) === unfilteredStatsHash
+        ? previousData
+        : undefined,
   });
 
   // Unique users can't be summed across buckets, so the total is its own query
@@ -262,15 +298,12 @@ export function EventGraph({
   // always show flag lines regardless of release line/bubble display
   const flagSeries = useFlagSeries({event, flags});
 
-  // Do some manipulation to make sure the release buckets match up to `eventSeries`
-  const lastEventSeries = eventSeries.at(-1);
-  const penultEventSeries = eventSeries.at(-2);
-  const lastEventSeriesTimestamp = lastEventSeries?.name;
-  const penultEventSeriesTimestamp = penultEventSeries?.name;
-  const eventSeriesInterval =
-    lastEventSeriesTimestamp &&
-    penultEventSeriesTimestamp &&
-    lastEventSeriesTimestamp - penultEventSeriesTimestamp;
+  // Read the bucket size off the bars on screen, which are still the previous
+  // interval's while a resize refetches. Release buckets and tooltips both
+  // line up to it.
+  const [firstBar, secondBar] = eventSeries;
+  const lastBar = eventSeries.at(-1);
+  const bucketSize = firstBar && secondBar ? secondBar.name - firstBar.name : undefined;
 
   const {
     connectReleaseBubbleChartRef,
@@ -284,11 +317,8 @@ export function EventGraph({
     alignInMiddle: true,
     legendSelected: legendSelected.Releases,
     desiredBuckets: eventSeries.length,
-    minTime: eventSeries.length && eventSeries.at(0)?.name,
-    maxTime:
-      lastEventSeriesTimestamp && eventSeriesInterval
-        ? lastEventSeriesTimestamp + eventSeriesInterval
-        : undefined,
+    minTime: firstBar?.name,
+    maxTime: lastBar && bucketSize ? lastBar.name + bucketSize : undefined,
     releases: shouldShowBubbles ? releases : [],
     flags: shouldShowBubbles ? flags : [],
     projects: eventView.project,
@@ -389,10 +419,6 @@ export function EventGraph({
     currentTab,
   ]);
 
-  const bucketSize = eventView.interval
-    ? intervalToMilliseconds(eventView.interval)
-    : getBucketSize(series);
-
   const legendConfig = legend({
     theme,
     orient: 'horizontal',
@@ -427,40 +453,33 @@ export function EventGraph({
     );
   }
 
-  if (isLoadingStats || isPendingUniqueUsersCount) {
-    return (
-      <Grid columns="auto 1fr" {...styleProps}>
-        {showSummary ? (
-          <SummaryContainer>
-            <GraphButton disabled label={t('Events')} />
-            <GraphButton disabled label={t('Users')} />
-          </SummaryContainer>
-        ) : (
-          <div />
-        )}
-        <Flex ref={chartContainerRef} justify="center" align="center" margin="0 md 0 xs">
-          <Placeholder height="90px" testId="event-graph-loading" />
-        </Flex>
-      </Grid>
-    );
-  }
+  const isLoading = isLoadingStats || isPendingUniqueUsersCount;
 
   return (
     <Grid columns="auto 1fr" {...styleProps}>
       {showSummary ? (
         <SummaryContainer>
-          <GraphButton
-            onClick={() => setVisibleSeries(EventGraphSeries.EVENT)}
-            disabled={visibleSeries === EventGraphSeries.EVENT}
-            label={tn('Event', 'Events', eventCount)}
-            count={String(eventCount)}
-          />
-          <GraphButton
-            onClick={() => setVisibleSeries(EventGraphSeries.USER)}
-            disabled={visibleSeries === EventGraphSeries.USER}
-            label={tn('User', 'Users', userCount)}
-            count={String(userCount)}
-          />
+          {isLoading ? (
+            <Fragment>
+              <GraphButton disabled label={t('Events')} />
+              <GraphButton disabled label={t('Users')} />
+            </Fragment>
+          ) : (
+            <Fragment>
+              <GraphButton
+                onClick={() => setVisibleSeries(EventGraphSeries.EVENT)}
+                disabled={visibleSeries === EventGraphSeries.EVENT}
+                label={tn('Event', 'Events', eventCount)}
+                count={String(eventCount)}
+              />
+              <GraphButton
+                onClick={() => setVisibleSeries(EventGraphSeries.USER)}
+                disabled={visibleSeries === EventGraphSeries.USER}
+                label={tn('User', 'Users', userCount)}
+                count={String(userCount)}
+              />
+            </Fragment>
+          )}
         </SummaryContainer>
       ) : (
         <div />
@@ -472,50 +491,58 @@ export function EventGraph({
         padding={{zero: 'sm 0', '5xl': 'sm md sm 0'}}
         width="calc(100% + 2px)"
       >
-        <BarChart
-          ref={mergedChartRef}
-          height={100}
-          series={series}
-          additionalSeries={releaseBubbleSeries ? [releaseBubbleSeries] : []}
-          legend={legendConfig}
-          onLegendSelectChanged={onLegendSelectChanged}
-          showTimeInTooltip
-          utc={location.query.utc === 'true'}
-          grid={{left: 8, right: 8, top: 20, bottom: 0, ...releaseBubbleGrid}}
-          tooltip={{
-            appendToBody: true,
-            formatAxisLabel: (
-              value,
-              isTimestamp,
-              utc,
-              showTimeInTooltip,
-              addSecondsToTimeFormat,
-              _bucketSize,
-              _seriesParamsOrParam
-            ) =>
-              String(
-                defaultFormatAxisLabel(
-                  value,
-                  isTimestamp,
-                  utc,
-                  showTimeInTooltip,
-                  addSecondsToTimeFormat,
-                  bucketSize
-                )
-              ),
-          }}
-          yAxis={{
-            splitNumber: 2,
-            minInterval: 1,
-            axisLabel: {
-              formatter: (value: number) => {
-                return formatAbbreviatedNumber(value);
+        {isLoading ? (
+          <Placeholder height="100px" testId="event-graph-loading" />
+        ) : (
+          <BarChart
+            ref={mergedChartRef}
+            height={100}
+            series={series}
+            additionalSeries={releaseBubbleSeries ? [releaseBubbleSeries] : []}
+            legend={legendConfig}
+            onLegendSelectChanged={onLegendSelectChanged}
+            showTimeInTooltip
+            utc={location.query.utc === 'true'}
+            grid={{left: 8, right: 8, top: 20, bottom: 0, ...releaseBubbleGrid}}
+            tooltip={{
+              appendToBody: true,
+              formatAxisLabel: (
+                value,
+                isTimestamp,
+                utc,
+                showTimeInTooltip,
+                addSecondsToTimeFormat,
+                _bucketSize,
+                _seriesParamsOrParam
+              ) =>
+                String(
+                  defaultFormatAxisLabel(
+                    value,
+                    isTimestamp,
+                    utc,
+                    showTimeInTooltip,
+                    addSecondsToTimeFormat,
+                    bucketSize
+                  )
+                ),
+            }}
+            yAxis={{
+              splitNumber: 2,
+              minInterval: 1,
+              axisLabel: {
+                formatter: (value: number) => {
+                  return formatAbbreviatedNumber(value);
+                },
               },
-            },
-          }}
-          xAxis={{axisTick: {show: false}, axisLabel: {margin: 8}, ...releaseBubbleXAxis}}
-          {...chartZoomProps}
-        />
+            }}
+            xAxis={{
+              axisTick: {show: false},
+              axisLabel: {margin: 8},
+              ...releaseBubbleXAxis,
+            }}
+            {...chartZoomProps}
+          />
+        )}
       </Container>
     </Grid>
   );
