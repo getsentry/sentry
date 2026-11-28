@@ -31,6 +31,16 @@ PROCESSING_ERROR_ATTRIBUTE_DEFINITIONS = {
             search_type="string",
         ),
         ResolvedAttribute(
+            public_alias="file_name",
+            internal_name="file_name",
+            search_type="string",
+        ),
+        ResolvedAttribute(
+            public_alias="debug_id",
+            internal_name="debug_id",
+            search_type="string",
+        ),
+        ResolvedAttribute(
             public_alias="release",
             internal_name="release",
             search_type="string",
