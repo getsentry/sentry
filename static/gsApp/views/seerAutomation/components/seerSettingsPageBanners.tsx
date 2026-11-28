@@ -22,9 +22,8 @@ export function SeerSettingsPageBanners({
   const canWrite = useCanWriteSettings();
   const hasNewSeerPlan = orgHasNewSeerPlan(organization);
   const hasLegacySeer = organization.features.includes('seer-added');
-  const hasCodeReviewBeta = organization.features.includes('code-review-beta');
   const showNoActiveSeerSubscriptionBanner =
-    !hasNewSeerPlan && (hasLegacySeer || hasCodeReviewBeta) && subscription?.canSelfServe;
+    !hasNewSeerPlan && hasLegacySeer && subscription?.canSelfServe;
 
   return (
     <Fragment>

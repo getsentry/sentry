@@ -20,7 +20,7 @@ describe('SeerAutomationRoot', () => {
 
   it('shows no-access screen for non-seat-based orgs with AI disabled', () => {
     const organization = OrganizationFixture({
-      features: ['code-review-beta'],
+      features: ['seer-added'],
       hideAiFeatures: true,
     });
 

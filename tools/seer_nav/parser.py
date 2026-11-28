@@ -56,14 +56,13 @@ _KNOWN_ALIASES = {
         "organization.features.includes('seat-based-seer-enabled') || "
         "organization.features.includes('token-billed-seer-enabled') || ("
         "!organization.features.includes('seer-added') && "
-        "!organization.features.includes('code-review-beta') && "
         "organization.features.includes('seer-user-billing-launch'))"
     ),
 }
 # Source files the hand-copied aliases above were written from, with a hash of their code
 # (comments and whitespace ignored). A changed file means the alias may be stale.
 _ALIAS_SOURCES = {
-    "utils/seer/showNewSeer.ts": "96a95fd07e5ce7da",
+    "utils/seer/showNewSeer.ts": "561eb28cc31ec473",
     "utils/seer/orgHasNewSeerPlan.ts": "ec7683ec625ced39",
     "views/settings/useSettingsV3.ts": "360452eb683738f5",
 }

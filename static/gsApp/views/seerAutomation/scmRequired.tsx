@@ -31,7 +31,6 @@ export default function SeerAutomationSCMRequired() {
   const {hasFreeAutofixAccess, isLoading: isSetupLoading} = useOrganizationSeerSetup();
 
   const hasNewSeerPlan = orgHasNewSeerPlan(organization);
-  const hasCodeReviewBeta = organization.features.includes('code-review-beta');
   const isSeerSupportedProvider = useIsSeerSupportedProvider();
 
   const {
@@ -70,7 +69,7 @@ export default function SeerAutomationSCMRequired() {
     }
   }
 
-  if (!showNewSeer(organization) && !hasCodeReviewBeta) {
+  if (!showNewSeer(organization)) {
     return <Redirect to={normalizeUrl(`/settings/${organization.slug}/seer/`)} />;
   }
 

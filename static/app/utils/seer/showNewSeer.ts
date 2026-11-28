@@ -8,7 +8,6 @@ import {orgHasNewSeerPlan} from './orgHasNewSeerPlan';
  * This is based on the following factors:
  *  - The organization is on the new seat-based or token-billed Seer plan. This supersedes all other checks.
  *  - The organization is on the old Seer plan
- *  - The organization is on the code-review-beta trial
  *  - If the new Seer billing is released
  */
 export function showNewSeer(organization: Organization) {
@@ -17,11 +16,8 @@ export function showNewSeer(organization: Organization) {
     return true;
   }
 
-  // Old seer plan or code-review-beta orgs
-  if (
-    organization.features.includes('seer-added') ||
-    organization.features.includes('code-review-beta')
-  ) {
+  // Old seer plan
+  if (organization.features.includes('seer-added')) {
     return false;
   }
 

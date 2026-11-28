@@ -5,8 +5,5 @@ import type {Organization} from 'sentry/types/organization';
  * Note that legacy usage-based Seer (`seer-added` only) is excluded.
  */
 export function orgHasCodeReviewFeature(organization: Organization) {
-  return (
-    organization.features.includes('seat-based-seer-enabled') ||
-    organization.features.includes('code-review-beta')
-  );
+  return organization.features.includes('seat-based-seer-enabled');
 }
