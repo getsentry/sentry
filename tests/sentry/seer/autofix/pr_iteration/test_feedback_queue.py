@@ -19,6 +19,7 @@ from sentry.seer.autofix.pr_iteration.queue import (
     _parse_queued_item,
     clear_queued_autofix_feedback,
     enqueue_autofix_feedback,
+    peek_in_flight_autofix_feedback,
     peek_queued_autofix_feedback,
     pop_queued_autofix_feedback,
     requeue_autofix_feedback,
@@ -252,6 +253,21 @@ class TryEnqueueAutofixFeedbackTest(TestCase):
             "second",
             "newer",
         ]
+        # Moved, not copied: the UI would otherwise show the batch twice.
+        assert peek_in_flight_autofix_feedback(5050) == []
+
+    def test_requeue_keeps_feedback_that_already_left_the_in_flight_list(self) -> None:
+        self._enqueue(
+            run_id=5151,
+            feedback=Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback="fix it")),
+        )
+        batch = pop_queued_autofix_feedback(5151)
+        # The in-flight list expired before the requeue.
+        clear_queued_autofix_feedback(5151)
+
+        requeue_autofix_feedback(5151, batch)
+
+        assert [item.feedback.text for item in peek_queued_autofix_feedback(5151)] == ["fix it"]
 
     def test_clear_empties_the_queue(self) -> None:
         feedback = Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback="fix it"))
