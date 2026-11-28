@@ -35,6 +35,12 @@ class OrganizationProjectDetectorPermission(ProjectPermission):
     scope_map = {
         "POST": ["project:write", "project:admin", "alerts:write"],
     }
+    # Connecting workflows (``workflowIds``) checks org:write/org:admin in
+    # ``can_edit_workflows`` after admission. Declare them for the scope audit
+    # without letting org-scoped tokens into this endpoint.
+    checked_scope_map = {
+        "POST": ["org:write", "org:admin"],
+    }
 
 
 @cell_silo_endpoint

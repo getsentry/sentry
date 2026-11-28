@@ -23,6 +23,9 @@ class EndpointScopeDeclaration:
     permission_scopes: dict[str, frozenset[str]]
     declared_scopes: frozenset[str]
     effective_scopes: frozenset[str]
+    # Scopes the endpoint checks after admission to refine authorization. They are
+    # audited as declared but, unlike ``scope_map``, never grant access.
+    checked_scopes: frozenset[str] = frozenset()
     reported_scopes: set[str] = field(default_factory=set)
     audit_enabled: bool | None = None
 
@@ -54,9 +57,15 @@ def bind_endpoint_scope_declaration(
     The audit unions declarations from every permission class, but each ``scope_map``
     remains an any-of token admission list. Adding a scope to resolve a warning can
     therefore broaden endpoint access and requires a separate authorization review.
+
+    Scopes that an endpoint only checks after admission (for example, to decide whether
+    the caller may edit related objects) can be declared in a permission class's
+    ``checked_scope_map`` instead. Those scopes are audited as declared without being
+    added to the admission list.
     """
     method = method.upper()
     declared_scopes: set[str] = set()
+    checked_scopes: set[str] = set()
     permission_class_names: list[str] = []
     permission_scopes: dict[str, frozenset[str]] = {}
 
@@ -70,8 +79,12 @@ def bind_endpoint_scope_declaration(
             declared_scopes.update(scopes)
         else:
             permission_scopes[permission_class_name] = frozenset()
+        checked_scope_map: Any = getattr(permission_class, "checked_scope_map", None)
+        if isinstance(checked_scope_map, Mapping):
+            checked_scopes.update(checked_scope_map.get(method, ()))
 
     frozen_declared_scopes = frozenset(declared_scopes)
+    frozen_checked_scopes = frozenset(checked_scopes)
     token = _endpoint_scope_declaration.set(
         EndpointScopeDeclaration(
             endpoint=endpoint,
@@ -79,7 +92,10 @@ def bind_endpoint_scope_declaration(
             permission_classes=tuple(permission_class_names),
             permission_scopes=permission_scopes,
             declared_scopes=frozen_declared_scopes,
-            effective_scopes=_expand_scope_hierarchy(frozen_declared_scopes),
+            effective_scopes=_expand_scope_hierarchy(
+                frozen_declared_scopes | frozen_checked_scopes
+            ),
+            checked_scopes=frozen_checked_scopes,
         )
     )
     try:
@@ -108,7 +124,9 @@ def update_permission_scope_declaration(
         for scope in permission_scopes
     )
     declaration.declared_scopes = declared_scopes
-    declaration.effective_scopes = _expand_scope_hierarchy(declared_scopes)
+    declaration.effective_scopes = _expand_scope_hierarchy(
+        declared_scopes | declaration.checked_scopes
+    )
 
 
 def check_scope_declaration(scope: str) -> None:
