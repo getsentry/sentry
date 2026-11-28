@@ -40,6 +40,15 @@ from sentry.workflow_engine.types import ActionInvocation
 logger = logging.getLogger(__name__)
 
 
+def _activity_has_metric_evidence(activity: Activity) -> bool:
+    """
+    Only resolutions emitted by the metric detector carry metric evidence data.
+    Manual or integration-driven resolutions (e.g. via GitHub/Jira status sync)
+    store unrelated data such as `provider`/`integration_id`.
+    """
+    return bool(activity.data) and "detector_id" in activity.data
+
+
 def execute_via_group_type_registry(invocation: ActionInvocation) -> None:
     """
     Generic "notification action handler" this method will lookup which registry
@@ -60,6 +69,7 @@ def execute_via_group_type_registry(invocation: ActionInvocation) -> None:
         if (
             invocation.event_data.event.type in BaseMetricAlertHandler.ACTIVITIES_TO_INVOKE_ON
             and invocation.event_data.require_group().type == MetricIssue.type_id
+            and _activity_has_metric_evidence(invocation.event_data.event)
         ):
             return execute_via_metric_alert_handler(invocation)
 

@@ -86,6 +86,7 @@ class TestMetricAlertRegistryInvoker(BaseWorkflowTest):
         activity = self.create_group_activity(
             group=group,
             type=ActivityType.SET_RESOLVED.value,
+            data={"detector_id": self.detector.id},
         )
         self.event_data = WorkflowEventData(event=activity, group=group)
 
