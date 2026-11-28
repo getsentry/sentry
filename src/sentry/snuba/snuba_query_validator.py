@@ -228,6 +228,7 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
 
     def validate(self, data: dict[str, Any]) -> dict[str, Any]:
         data = super().validate(data)
+        self._validate_required_query_fields(data)
         self._validate_aggregate(data)
         self._validate_query(data)
 
@@ -255,6 +256,25 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
             )
 
         return data
+
+    def _validate_required_query_fields(self, data: dict[str, Any]) -> None:
+        """
+        Partial updates (e.g. PUT on a detector) skip DRF's required-field checks,
+        including for nested data sources. The query and aggregate validation below
+        needs these fields, so reject a data source that leaves them out instead of
+        validating a partial query.
+        """
+        missing = [field for field in ("aggregate", "time_window") if field not in data]
+        if missing:
+            raise serializers.ValidationError(
+                {
+                    field: _(
+                        "This field is required. Data source fields must be set at the "
+                        "top level of each data source."
+                    )
+                    for field in missing
+                }
+            )
 
     def _validate_aggregate(self, data: dict[str, Any]) -> None:
         dataset = data.setdefault("dataset", Dataset.Events)
