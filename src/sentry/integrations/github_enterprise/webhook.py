@@ -118,6 +118,11 @@ def get_installation_metadata(
 
 
 class GitHubEnterpriseWebhook:
+    # Listed first in every handler's bases, so this wins over a GitHub.com handler
+    # that opted in. Control signs no context for GitHub Enterprise, and a cell must
+    # not act on one: the customer holds the secret that signs the request body.
+    USES_DELIVERY_CONTEXT = False
+
     @property
     def provider(self) -> str:
         return IntegrationProviderSlug.GITHUB_ENTERPRISE.value

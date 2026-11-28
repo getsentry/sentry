@@ -3038,6 +3038,25 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Whether a cell's GitHub webhook handler uses the routing context control signs
+# onto a queued delivery, instead of asking control for the integration again.
+# "off" ignores the context. "shadow" still asks control and reports whether the
+# context agreed. "enforce" acts on the context and skips the lookup. Read by cells.
+register(
+    "github.webhook.delivery-context.mode",
+    type=String,
+    default="off",
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# How old a delivery context may be before a cell ignores it and asks control. This
+# is how long an organization that unlinked the installation can still be handled
+# from a webhook queued before it did.
+register(
+    "github.webhook.delivery-context.max-age-seconds",
+    type=Int,
+    default=30,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Kill switches for the extra per-tick outbox observability queries run by the
 # outbox scheduler. Both add full or per-shard aggregates over the outbox
 # tables, so they can be turned off if they become expensive during a backlog.
