@@ -310,6 +310,46 @@ describe('OrgDashboards', () => {
     expect(resultFilters).toHaveLength(prebuiltGlobalFilters.length);
   });
 
+  it('drops saved global filters that are missing a tag', async () => {
+    const validFilter = {
+      dataset: 'spans',
+      tag: {key: 'browser.name', name: 'browser.name'},
+      value: 'browser.name:[Chrome]',
+    };
+    const mockDashboardWithBadFilter = {
+      dateCreated: '2021-08-10T21:20:46.798237Z',
+      id: '1',
+      title: 'Test Dashboard',
+      widgets: [],
+      projects: [],
+      filters: {globalFilter: [validFilter, {dataset: 'spans', value: 'foo:bar'}]},
+    };
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/1/',
+      method: 'GET',
+      body: mockDashboardWithBadFilter,
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/',
+      body: [mockDashboardWithBadFilter],
+    });
+
+    let receivedDashboard: any;
+    render(
+      <OrgDashboards>
+        {({dashboard}) => {
+          receivedDashboard = dashboard;
+          return <div>Test</div>;
+        }}
+      </OrgDashboards>,
+      {initialRouterConfig, organization}
+    );
+
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+
+    expect(receivedDashboard?.filters?.globalFilter).toEqual([validFilter]);
+  });
+
   it('applies saved filters after navigating back from a dashboard without filters', async () => {
     const mockDashboardWithFilters = {
       dateCreated: '2021-08-10T21:20:46.798237Z',
