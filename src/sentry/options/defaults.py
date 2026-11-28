@@ -3080,6 +3080,12 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Leave telling control about a deleted project to the scheduled outbox drain.
+register(
+    "hybridcloud.outbox.project_delete_async.enabled",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Break glass controls
 register(
     "hybrid_cloud.rpc.disabled-service-methods",

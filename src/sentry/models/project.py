@@ -16,7 +16,7 @@ from django.utils.translation import gettext_lazy as _
 from sentry_sdk import traces
 
 from bitfield import TypedClassBitField
-from sentry import features
+from sentry import features, options
 from sentry.backup.dependencies import ImportKind, PrimaryKeyMap
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
@@ -962,7 +962,12 @@ class Project(Model):
         except Exception:
             logger.warning("Failed to delete group hashes for project %s", self.id)
 
-        with outbox_context(transaction.atomic(router.db_for_write(Project))):
+        # None keeps the flag of an enclosing outbox_context, or drains on commit without one.
+        flush: bool | None = None
+        if options.get("hybridcloud.outbox.project_delete_async.enabled"):
+            flush = False
+
+        with outbox_context(transaction.atomic(router.db_for_write(Project)), flush=flush):
             Project.outbox_for_update(self.id, self.organization_id).save()
             return super().delete(*args, **kwargs)
 

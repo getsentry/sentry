@@ -10,6 +10,8 @@ from sentry.db.models.fields.slug import SentrySlugField
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs_control
 from sentry.grouping.grouptype import ErrorGroupType
+from sentry.hybridcloud.models.outbox import CellOutbox
+from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.integrations.models.external_issue import ExternalIssue
@@ -1330,3 +1332,17 @@ class ProjectDeletionTest(TestCase):
 
             # Ensure they are all now gone.
             assert not UserOption.objects.filter(project_id=proj_id).exists()
+
+    def test_option_leaves_outbox_pending(self) -> None:
+        pending = CellOutbox.objects.filter(category=OutboxCategory.PROJECT_UPDATE)
+        drained_project = self.create_project()
+        deferred_project = self.create_project()
+
+        with self.captureOnCommitCallbacks(execute=True):
+            drained_project.delete()
+        assert not pending.exists()
+
+        option = "hybridcloud.outbox.project_delete_async.enabled"
+        with self.options({option: True}), self.captureOnCommitCallbacks(execute=True):
+            deferred_project.delete()
+        assert pending.exists()
