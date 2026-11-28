@@ -348,7 +348,7 @@ class NotificationService[T: NotificationData]:
             )
 
         # If we hit this point, it either means the result is malformed
-        # or the provider was requested to use threading but didn't (e.g Discord, Email, MSTeams)
+        # or the provider was requested to use threading but didn't (e.g Discord, MSTeams)
         return None
 
 

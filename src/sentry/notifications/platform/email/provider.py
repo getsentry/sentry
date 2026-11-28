@@ -191,5 +191,29 @@ class EmailNotificationProvider(NotificationProvider[EmailRenderable]):
     ) -> SendResult:
         email = renderable
         email.to = [target.resource_id]
+
+        if thread_context is not None:
+            return cls._send_with_threading(email=email, thread_context=thread_context)
+
         send_messages([email])
-        return SendSuccessResult()
+        return SendSuccessResult(provider_message_id=email.extra_headers.get("Message-Id"))
+
+    @classmethod
+    def _send_with_threading(
+        cls, *, email: EmailRenderable, thread_context: ThreadContext
+    ) -> SendResult:
+        # The first message's Message-Id is the thread root. Replies point at it, so mail clients
+        # group them; reply_broadcast has no email equivalent.
+        thread_identifier = (
+            thread_context.thread.thread_identifier if thread_context.thread else None
+        )
+        if thread_identifier is not None:
+            email.extra_headers["In-Reply-To"] = thread_identifier
+            email.extra_headers["References"] = thread_identifier
+
+        send_messages([email])
+        return SendSuccessResult(
+            provider_message_id=email.extra_headers.get("Message-Id"),
+            is_threaded=True,
+            thread_identifier=thread_identifier,
+        )
