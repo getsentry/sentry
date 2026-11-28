@@ -1,5 +1,9 @@
 from .actionable_items import ActionableItemsEndpoint
 from .group_activities import GroupActivitiesEndpoint
+from .group_comment_attachments import (
+    GroupCommentAttachmentDetailsEndpoint,
+    GroupCommentAttachmentsEndpoint,
+)
 from .group_details import GroupDetailsEndpoint
 from .group_event_details import GroupEventDetailsEndpoint
 from .group_events import GroupEventsEndpoint
@@ -49,6 +53,8 @@ __all__ = (
     "GroupEventsEndpoint",
     "GroupHashesEndpoint",
     "GroupImpactAssessmentEndpoint",
+    "GroupCommentAttachmentDetailsEndpoint",
+    "GroupCommentAttachmentsEndpoint",
     "GroupNotesDetailsEndpoint",
     "GroupNotesEndpoint",
     "GroupPullRequestsEndpoint",
