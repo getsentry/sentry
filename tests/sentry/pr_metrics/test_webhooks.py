@@ -283,8 +283,7 @@ class HandleWebhookForPrMetricsTest(TestCase):
         )
         cache.set(cache_key_for_issue_view(group.id, "mcp"), "cursor", ISSUE_VIEW_CACHE_KEY_TTL)
 
-        with self.feature("organizations:mcp-issue-view-attribution"):
-            self._call(user_id=999)
+        self._call(user_id=999)
 
         attr = PullRequestAttribution.objects.get(
             pull_request=self.pr,
@@ -303,8 +302,7 @@ class HandleWebhookForPrMetricsTest(TestCase):
             linked_id=self.pr.id,
         )
 
-        with self.feature("organizations:mcp-issue-view-attribution"):
-            self._call(user_id=999)
+        self._call(user_id=999)
 
         assert not PullRequestAttribution.objects.filter(
             pull_request=self.pr,
@@ -312,8 +310,7 @@ class HandleWebhookForPrMetricsTest(TestCase):
         ).exists()
 
     def test_mcp_attribution_not_recorded_without_group_link(self) -> None:
-        with self.feature("organizations:mcp-issue-view-attribution"):
-            self._call(user_id=999)
+        self._call(user_id=999)
 
         assert not PullRequestAttribution.objects.filter(
             pull_request=self.pr,
@@ -331,8 +328,7 @@ class HandleWebhookForPrMetricsTest(TestCase):
         )
         cache.set(cache_key_for_issue_view(group.id, "mcp"), "cursor", ISSUE_VIEW_CACHE_KEY_TTL)
 
-        with self.feature("organizations:mcp-issue-view-attribution"):
-            self._call(user_id=settings.SEER_AUTOFIX_GITHUB_APP_USER_ID)
+        self._call(user_id=settings.SEER_AUTOFIX_GITHUB_APP_USER_ID)
 
         assert PullRequestAttribution.objects.filter(
             pull_request=self.pr,

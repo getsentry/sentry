@@ -207,8 +207,7 @@ def handle_attribution(
         _write_author_attribution(
             pr, github_user, pr_url=pr_url, group_ids=group_ids, run_id=seer_run_id
         )
-    if features.has("organizations:mcp-issue-view-attribution", organization):
-        _write_mcp_attribution(pr)
+    _write_mcp_attribution(pr)
     # Checked on open and re-checked on close, mirroring the SENTRY_APP author
     # attribution above — the same out-of-order/missed-webhook concern applies,
     # and record_attribution_signal is idempotent against the repeat check.
