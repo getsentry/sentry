@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable, Mapping, Sequence
 from typing import TYPE_CHECKING, Any, ClassVar
 
@@ -16,6 +17,8 @@ from sentry.utils.cache import cache
 
 if TYPE_CHECKING:
     from sentry.models.project import Project
+
+logger = logging.getLogger(__name__)
 
 # Explicitly allow options that are safe to return in project-list responses.
 # Internal options, including credentials, belong only in OPTION_KEYS below.
@@ -155,23 +158,24 @@ class ProjectOptionManager(OptionManager["ProjectOption"]):
             project_id = project
 
         is_value_changed = False
-        with transaction.atomic(router.db_for_write(ProjectOption)):
+        using = self._db or router.db_for_write(self.model)
+        with transaction.atomic(using=using):
             # select_for_update lock rows until the end of the transaction
-            obj, created = self.select_for_update().get_or_create(
-                project_id=project_id, key=key, defaults={"value": value}
+            obj, created = (
+                self.using(using)
+                .select_for_update()
+                .get_or_create(project_id=project_id, key=key, defaults={"value": value})
             )
             if created:
                 is_value_changed = True
             elif obj.value != value:
                 # update the value via ORM update() to avoid post save signals which
                 # might cause cache reload when it is not needed (e.g. post_save signal)
-                self.filter(id=obj.id).update(value=value)
+                self.using(using).filter(id=obj.id).update(value=value)
                 is_value_changed = True
 
         if is_value_changed:
-            # invalidate the cached project config only if the value has changed,
-            # and reload_cache is set to True
-            self.reload_cache(project_id, "projectoption.set_value", key)
+            self.reload_cache(project_id, "projectoption.set_value", key, using=using)
 
         return is_value_changed
 
@@ -180,6 +184,15 @@ class ProjectOptionManager(OptionManager["ProjectOption"]):
             project_id = project.id
         else:
             project_id = project
+        using = self._db or router.db_for_write(self.model)
+        connection = transaction.get_connection(using)
+        # Inspect state without opening a database connection for a cache hit.
+        if connection.in_atomic_block or (
+            connection.connection is not None and not connection.autocommit
+        ):
+            # Read our own writes without exposing data that a savepoint or the
+            # enclosing transaction can still roll back to either cache.
+            return self._get_values_from_database(project_id, using)
         cache_key = self._make_key(project_id)
 
         if cache_key not in self._option_cache:
@@ -192,25 +205,97 @@ class ProjectOptionManager(OptionManager["ProjectOption"]):
         return self._option_cache.get(cache_key, {})
 
     def reload_cache(
-        self, project_id: int, update_reason: str, option_key: str | None = None
-    ) -> Mapping[str, Any]:
+        self,
+        project_id: int,
+        update_reason: str,
+        option_key: str | None = None,
+        *,
+        using: str | None = None,
+    ) -> None:
+        using = using or self._db or router.db_for_write(self.model)
+        connection = transaction.get_connection(using)
+        if not connection.get_autocommit():
+            self._option_cache.pop(self._make_key(project_id), None)
+
+            def reload_after_commit() -> None:
+                try:
+                    self._reload_cache(project_id, update_reason, option_key, using)
+                except Exception:
+                    # The write already committed. Allow unrelated commit hooks to run.
+                    logger.exception(
+                        "projectoption.cache_reload_failed",
+                        extra={
+                            "project_id": project_id,
+                            "using": using,
+                            "update_reason": update_reason,
+                            "option_key": option_key,
+                        },
+                    )
+
+            # Register inside an atomic block so this also works when a caller
+            # manages autocommit manually. Rollback discards the callback.
+            with transaction.atomic(using=using, savepoint=False):
+                transaction.on_commit(reload_after_commit, using=using)
+            return
+
+        self._reload_cache(project_id, update_reason, option_key, using)
+
+    def _get_values_from_database(self, project_id: int, using: str) -> dict[str, Any]:
+        return dict(self.using(using).filter(project_id=project_id).values_list("key", "value"))
+
+    def _reload_cache(
+        self, project_id: int, update_reason: str, option_key: str | None, using: str
+    ) -> None:
         from sentry.tasks.relay import schedule_invalidate_project_config
 
-        if update_reason != "projectoption.get_all_values":
-            schedule_invalidate_project_config(
-                project_id=project_id, trigger=update_reason, trigger_details=option_key
-            )
+        def invalidate_relay_config() -> None:
+            if update_reason != "projectoption.get_all_values":
+                schedule_invalidate_project_config(
+                    project_id=project_id,
+                    trigger=update_reason,
+                    trigger_details=option_key,
+                    transaction_db=using,
+                )
+
+        # Query when the callback runs, rather than publishing a snapshot taken
+        # before commit (which may include writes rolled back to a savepoint).
         cache_key = self._make_key(project_id)
-        result = {i.key: i.value for i in self.filter(project=project_id)}
-        cache.set(cache_key, result)
+        try:
+            result = self._get_values_from_database(project_id, using)
+            cache.set(cache_key, result)
+        except Exception:
+            # Let a subsequent read recover from the database rather than stale caches.
+            self._option_cache.pop(cache_key, None)
+            log_context = {
+                "project_id": project_id,
+                "using": using,
+                "update_reason": update_reason,
+                "option_key": option_key,
+            }
+            try:
+                cache.delete(cache_key)
+            except Exception:
+                logger.exception("projectoption.cache_eviction_failed", extra=log_context)
+            # Relay caches its own config. Evicting the option cache doesn't rebuild it.
+            try:
+                invalidate_relay_config()
+            except Exception:
+                logger.exception("projectoption.relay_invalidation_failed", extra=log_context)
+            raise
         self._option_cache[cache_key] = result
-        return result
+        invalidate_relay_config()
 
-    def post_save(self, *, instance: ProjectOption, created: bool, **kwargs: object) -> None:
-        self.reload_cache(instance.project_id, "projectoption.post_save", option_key=instance.key)
+    def post_save(
+        self, *, instance: ProjectOption, created: bool, using: str | None = None, **kwargs: object
+    ) -> None:
+        self.reload_cache(
+            instance.project_id, "projectoption.post_save", option_key=instance.key, using=using
+        )
 
-    def post_delete(self, instance: ProjectOption, **kwargs: Any) -> None:
-        self.reload_cache(instance.project_id, "projectoption.post_delete", option_key=instance.key)
+    def post_delete(self, instance: ProjectOption, using: str | None = None, **kwargs: Any) -> None:
+        self.reload_cache(
+            instance.project_id, "projectoption.post_delete", option_key=instance.key, using=using
+        )
 
     def isset(self, project: Project, key: str) -> bool:
         return self.get_value(project, key, default=Ellipsis) is not Ellipsis

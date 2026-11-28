@@ -1,5 +1,13 @@
+from collections.abc import Iterator
+from unittest.mock import Mock, patch
+
+import pytest
+from django.db import OperationalError, connections, router, transaction
+
+from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.models.options.project_option import ProjectOption
-from sentry.testutils.cases import TestCase
+from sentry.testutils.cases import TestCase, TransactionTestCase
+from sentry.testutils.hybrid_cloud import simulated_transaction_watermarks
 from sentry.utils.cache import cache
 
 
@@ -30,6 +38,8 @@ class ProjectOptionManagerTest(TestCase):
         result = ProjectOption.objects.get_value_bulk([self.project], "foo")
         assert result == {self.project: "bar"}
 
+
+class ProjectOptionCacheTest(TransactionTestCase):
     def test_reload_task_local_cache_takes_values_saved_by_another_process(self) -> None:
         ProjectOption.objects.set_value(self.project, "foo", "bar")
         cache_key = ProjectOption.objects._make_key(self.project.id)
@@ -57,3 +67,158 @@ class ProjectOptionManagerTest(TestCase):
         ProjectOption.objects.reload_task_local_cache(self.project.id)
 
         assert ProjectOption.objects.get_value(self.project, "foo") == "baz"
+
+
+class ProjectOptionTransactionTest(TransactionTestCase):
+    @pytest.fixture(autouse=True)
+    def disable_simulated_commits(self) -> Iterator[None]:
+        # Use real commits, including when autocommit is managed manually.
+        with (
+            patch.dict(
+                simulated_transaction_watermarks.state, {alias: -1 for alias in connections}
+            ),
+            in_test_hide_transaction_boundary(),
+        ):
+            yield
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.project = self.create_project(organization=self.create_organization(), teams=[])
+        self.manager = ProjectOption.objects
+        self.using = router.db_for_write(ProjectOption)
+        self.cache_key = self.manager._make_key(self.project.id)
+        self.manager.set_value(self.project, "foo", "old")
+
+    def test_cache_updates_after_commit(self) -> None:
+        before = cache.get(self.cache_key)
+        expected = before | {"foo": "new", "created": True}
+        with transaction.atomic(using=self.using):
+            # Only the writes, locking reads, and savepoints; cache reloads wait for commit.
+            with self.assertNumQueries(10):
+                self.manager.set_value(self.project, "foo", "new")
+                self.manager.set_value(self.project, "created", True)
+            assert self.manager.get_all_values(self.project) == expected
+            assert cache.get(self.cache_key) == before
+
+        assert cache.get(self.cache_key) == expected
+        assert self.manager.get_all_values(self.project) == expected
+
+    def test_failed_refresh_does_not_interrupt_commit_callbacks(self) -> None:
+        sibling_callback = Mock()
+        with (
+            patch.object(
+                self.manager,
+                "_get_values_from_database",
+                side_effect=OperationalError("disconnected"),
+            ),
+            patch("sentry.tasks.relay.schedule_invalidate_project_config") as invalidate,
+            patch("sentry.models.options.project_option.logger") as logger,
+        ):
+            with transaction.atomic(using=self.using):
+                self.manager.set_value(self.project, "foo", "new")
+                transaction.on_commit(sibling_callback, using=self.using)
+
+        assert self.manager.get(project=self.project, key="foo").value == "new"
+        invalidate.assert_called_once_with(
+            project_id=self.project.id,
+            trigger="projectoption.set_value",
+            trigger_details="foo",
+            transaction_db=self.using,
+        )
+        logger.exception.assert_called_once_with(
+            "projectoption.cache_reload_failed",
+            extra={
+                "project_id": self.project.id,
+                "using": self.using,
+                "update_reason": "projectoption.set_value",
+                "option_key": "foo",
+            },
+        )
+        sibling_callback.assert_called_once_with()
+        assert cache.get(self.cache_key) is None
+        assert self.cache_key not in self.manager._option_cache
+        assert self.project.get_option("foo") == "new"
+        assert cache.get(self.cache_key)["foo"] == "new"
+
+    def test_failed_eviction_does_not_interrupt_commit_callbacks(self) -> None:
+        sibling_callback = Mock()
+        refresh_error = OperationalError("disconnected")
+        with (
+            patch.object(self.manager, "_get_values_from_database", side_effect=refresh_error),
+            patch(
+                "sentry.tasks.relay.schedule_invalidate_project_config",
+                side_effect=RuntimeError("scheduler unavailable"),
+            ),
+            patch.object(cache, "delete", side_effect=RuntimeError("cache unavailable")),
+            self.assertLogs("sentry.models.options.project_option", level="ERROR") as logs,
+        ):
+            with transaction.atomic(using=self.using):
+                self.manager.set_value(self.project, "foo", "new")
+                transaction.on_commit(sibling_callback, using=self.using)
+
+        assert self.manager.get(project=self.project, key="foo").value == "new"
+        assert [record.getMessage() for record in logs.records] == [
+            "projectoption.cache_eviction_failed",
+            "projectoption.relay_invalidation_failed",
+            "projectoption.cache_reload_failed",
+        ]
+        assert logs.records[-1].exc_info and logs.records[-1].exc_info[1] is refresh_error
+        sibling_callback.assert_called_once_with()
+
+    def test_rollback_preserves_cached_options(self) -> None:
+        before = cache.get(self.cache_key)
+        with transaction.atomic(using=self.using):
+            self.manager.set_value(self.project, "foo", "new")
+            self.manager.set_value(self.project, "created", True)
+            assert cache.get(self.cache_key) == before
+            transaction.set_rollback(True, using=self.using)
+
+        assert cache.get(self.cache_key) == before
+        assert self.manager.get_all_values(self.project) == before
+
+    def test_nested_rollback_reloads_committed_state(self) -> None:
+        with transaction.atomic(using=self.using):
+            self.manager.set_value(self.project, "foo", "outer")
+            with transaction.atomic(using=self.using):
+                self.manager.set_value(self.project, "foo", "inner")
+                self.manager.set_value(self.project, "rolled-back-option", True)
+                transaction.set_rollback(True, using=self.using)
+            assert self.project.get_option("foo") == "outer"
+            assert cache.get(self.cache_key)["foo"] == "old"
+
+        assert cache.get(self.cache_key)["foo"] == "outer"
+        assert "rolled-back-option" not in cache.get(self.cache_key)
+
+    def test_cold_read_does_not_publish_uncommitted_data(self) -> None:
+        with transaction.atomic(using=self.using):
+            self.manager.set_value(self.project, "foo", "new")
+            cache.delete(self.cache_key)
+            self.manager.clear_local_cache()
+            assert self.project.get_option("foo") == "new"
+            assert cache.get(self.cache_key) is None
+            assert self.cache_key not in self.manager._option_cache
+            transaction.set_rollback(True, using=self.using)
+
+        assert self.project.get_option("foo") == "old"
+        assert cache.get(self.cache_key)["foo"] == "old"
+
+    def test_manual_transactions(self) -> None:
+        connection = transaction.get_connection(self.using)
+        connection.set_autocommit(False)
+        try:
+            self.manager.set_value(self.project, "foo", "committed")
+            assert cache.get(self.cache_key)["foo"] == "old"
+            connection.commit()
+            connection.set_autocommit(True)
+            assert cache.get(self.cache_key)["foo"] == "committed"
+
+            connection.set_autocommit(False)
+            self.manager.set_value(self.project, "foo", "rolled-back")
+            assert self.project.get_option("foo") == "rolled-back"
+            assert cache.get(self.cache_key)["foo"] == "committed"
+        finally:
+            connection.rollback()
+            connection.set_autocommit(True)
+
+        assert cache.get(self.cache_key)["foo"] == "committed"
+        assert self.project.get_option("foo") == "committed"
