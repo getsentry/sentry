@@ -1,13 +1,17 @@
-import {Fragment} from 'react';
+import {useEffect} from 'react';
 
 import {
   render,
   renderGlobalModal,
   screen,
   userEvent,
+  waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import {AdminConfirmationModal} from 'admin/components/adminConfirmationModal';
+import {
+  AdminConfirmationModal,
+  type AdminConfirmRenderProps,
+} from 'admin/components/adminConfirmationModal';
 
 describe('Admin confirmation modal', () => {
   const mockOnConfirm = jest.fn();
@@ -111,19 +115,19 @@ describe('Admin confirmation modal', () => {
     expect(screen.getByTestId('top-half-div')).toBeInTheDocument();
   });
 
-  it('renders content given by a function', async () => {
-    const testFunc = (handlers: any) => (
-      <Fragment>
-        <button onClick={handlers.close}>close</button>
-        <button onClick={handlers.confirm}>confirm</button>
-      </Fragment>
-    );
+  it('lets render content decide what to confirm with', async () => {
+    function ActionContent({onConfirm, setConfirmCallback}: AdminConfirmRenderProps) {
+      useEffect(() => {
+        setConfirmCallback(params => onConfirm?.({...params, extra: 'value'}));
+      }, [onConfirm, setConfirmCallback]);
+      return <div>Action content</div>;
+    }
 
     render(
       <AdminConfirmationModal
         onConfirm={mockOnConfirm}
         onCancel={mockOnCancel}
-        renderModalSpecificContent={testFunc}
+        renderModalSpecificContent={deps => <ActionContent {...deps} />}
       >
         <button>Open Modal</button>
       </AdminConfirmationModal>
@@ -132,18 +136,11 @@ describe('Admin confirmation modal', () => {
     await userEvent.click(screen.getByRole('button'));
     const {waitForModalToHide} = renderGlobalModal();
 
-    // check that confirm works
-    await userEvent.click(screen.getByRole('button', {name: 'confirm'}));
-    expect(mockOnConfirm).toHaveBeenCalled();
+    expect(await screen.findByText('Action content')).toBeInTheDocument();
+    await setNotes('notes');
+    await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
 
-    await waitForModalToHide();
-
-    // re-open the modal
-    await userEvent.click(screen.getByRole('button'));
-
-    // check that close works
-    await userEvent.click(screen.getByRole('button', {name: 'close'}));
-
+    expect(mockOnConfirm).toHaveBeenCalledWith({notes: 'notes', extra: 'value'});
     await waitForModalToHide();
   });
 
@@ -168,28 +165,7 @@ describe('Admin confirmation modal', () => {
     });
   });
 
-  // TODO: adapt this for custom renderer including a confirm button (click on that button instead)
-  // eslint-disable-next-line jest/no-commented-out-tests
-  // it('no-ops on URL error', function() {
-  //   render(
-  //     <AdminConfirmationModal onConfirm={mockOnConfirm} onCancel={mockOnCancel}>
-  //       <div id="testing"  />
-  //     </AdminConfirmationModal>
-  //   );
-
-  //   const instance = wrapper.instance();
-  //   const spy = jest.spyOn(instance, 'handleConfirm');
-  //   instance.forceUpdate();
-
-  //   wrapper.find('div[id="testing"]').simulate('click');
-
-  //   setTicketURL(wrapper, 'ttp://im.missing.the.h');
-  //   wrapper.find('button[data-test-id="confirm-button"]').simulate('click');
-  //   expect(spy).toHaveBeenCalled();
-  //   expect(mockOnConfirm).not.toHaveBeenCalled();
-  // });
-
-  it('disables confirm button on initial render', async () => {
+  it('keeps confirm enabled on initial render', async () => {
     render(
       <AdminConfirmationModal onConfirm={mockOnConfirm} onCancel={mockOnCancel}>
         <button>Open Modal</button>
@@ -202,7 +178,7 @@ describe('Admin confirmation modal', () => {
     expect(screen.getByRole('button', {name: 'Confirm'})).toBeEnabled();
   });
 
-  it('disables confirm button on URL error', async () => {
+  it('shows the URL error on confirm and stays open', async () => {
     render(
       <AdminConfirmationModal onConfirm={mockOnConfirm} onCancel={mockOnCancel}>
         <button>Open Modal</button>
@@ -214,27 +190,16 @@ describe('Admin confirmation modal', () => {
 
     await setTicketURL('1invalid');
 
-    // Trigger blur validity check
-    await userEvent.click(screen.getByRole('textbox', {name: 'Notes'}));
+    const confirmButton = screen.getByRole('button', {name: 'Confirm'});
+    expect(confirmButton).toBeEnabled();
+    await userEvent.click(confirmButton);
 
-    expect(screen.getByRole('button', {name: 'Confirm'})).toBeDisabled();
+    expect(await screen.findByText('Invalid ticket URL')).toBeInTheDocument();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(mockOnConfirm).not.toHaveBeenCalled();
   });
 
-  it('enables confirm button on valid URL input', async () => {
-    render(
-      <AdminConfirmationModal onConfirm={mockOnConfirm} onCancel={mockOnCancel}>
-        <button>Open Modal</button>
-      </AdminConfirmationModal>
-    );
-
-    await userEvent.click(screen.getByRole('button'));
-    renderGlobalModal();
-
-    await setTicketURL('http://www.goodwebsite.com');
-    expect(screen.getByRole('button', {name: 'Confirm'})).toBeEnabled();
-  });
-
-  it('handles url change', async () => {
+  it('clears the URL error once the URL is fixed', async () => {
     render(
       <AdminConfirmationModal onConfirm={mockOnConfirm} onCancel={mockOnCancel}>
         <button>Open Modal</button>
@@ -245,17 +210,19 @@ describe('Admin confirmation modal', () => {
     renderGlobalModal();
 
     await setTicketURL('1invalid');
-
-    // Trigger blur validity check
-    await userEvent.click(screen.getByRole('textbox', {name: 'Notes'}));
-
-    expect(screen.getByText('Invalid ticket URL')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
+    expect(await screen.findByText('Invalid ticket URL')).toBeInTheDocument();
 
     await setTicketURL('https://sentry.zendesk.com/agent/tickets/1234');
+    await waitFor(() =>
+      expect(screen.queryByText('Invalid ticket URL')).not.toBeInTheDocument()
+    );
 
-    // Trigger blur validity check
-    await userEvent.click(screen.getByRole('textbox', {name: 'Notes'}));
-
-    expect(screen.queryByText('Invalid ticket URL')).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
+    await waitFor(() =>
+      expect(mockOnConfirm).toHaveBeenCalledWith({
+        ticketURL: 'https://sentry.zendesk.com/agent/tickets/1234',
+      })
+    );
   });
 });
