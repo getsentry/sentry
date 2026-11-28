@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from unittest.mock import MagicMock, patch
 
 import orjson
@@ -222,6 +223,29 @@ class SyncForgeInstallationTest(TestCase):
 
         integration = Integration.objects.get(provider="jira", external_id=CLOUD_ID)
         assert integration.metadata["forge"] == self.forge_metadata()
+
+    @responses.activate
+    @override_options({"jira.forge.native-app-ids": [APP_ID]})
+    @patch("sentry.integrations.jira.tasks.metrics")
+    def test_records_time_left_on_the_old_token(self, mock_metrics: MagicMock) -> None:
+        responses.get(
+            self.server_info_url,
+            json={"baseUrl": "https://example.atlassian.net", "serverTitle": "Example"},
+        )
+
+        with freeze_time(datetime.fromtimestamp(SYSTEM_TOKEN_EXPIRES_AT - 2 * 3600, UTC)):
+            self.sync()
+        assert not mock_metrics.distribution.called
+        # The next hourly refresh, with an hour left on the stored token.
+        with freeze_time(datetime.fromtimestamp(SYSTEM_TOKEN_EXPIRES_AT - 3600, UTC)):
+            self.sync(system_token_expires_at=SYSTEM_TOKEN_EXPIRES_AT + 3600)
+
+        mock_metrics.distribution.assert_called_once_with(
+            "jira.forge.token_remaining_at_refresh",
+            3600,
+            tags={"kind": "forge"},
+            unit="second",
+        )
 
     @responses.activate
     def test_does_not_record_unless_the_site_matches(self) -> None:

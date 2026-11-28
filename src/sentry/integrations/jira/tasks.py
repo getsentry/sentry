@@ -1,3 +1,5 @@
+import time
+
 import orjson
 from django.db import router, transaction
 from taskbroker_client.retry import Retry
@@ -9,6 +11,7 @@ from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_control_tasks
+from sentry.utils import metrics
 from sentry.utils.security.encrypted_field_key_store import FernetKeyStore
 
 FORGE_INSTALLATION_PAYLOAD_TTL = 15 * 60
@@ -94,5 +97,14 @@ def sync_forge_installation(key_id: str, encrypted_payload: str) -> None:
         # A delayed retry can arrive after a newer token was stored.
         if existing.get("system_token_expires_at", 0) > forge["system_token_expires_at"]:
             return
+        # Hourly refreshes leave about an hour on the old token. Less means refreshes
+        # are late or missing, which would otherwise only show once a call finds no token.
+        if "system_token_expires_at" in existing:
+            metrics.distribution(
+                "jira.forge.token_remaining_at_refresh",
+                existing["system_token_expires_at"] - time.time(),
+                tags={"kind": "connect" if "shared_secret" in integration.metadata else "forge"},
+                unit="second",
+            )
         if existing != forge:
             integration.update(metadata={**integration.metadata, "forge": forge})
