@@ -28,6 +28,11 @@ describe('ProjectSymbolicationErrors', () => {
 
   beforeEach(() => {
     MockApiClient.addMockResponse({url: statsUrl, body: {data: []}});
+    MockApiClient.addMockResponse({url: eventsUrl, body: {data: []}});
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/`,
+      body: [{id: '1', status: 'unresolved'}],
+    });
     MockApiClient.addMockResponse({
       url: statsUrl,
       match: [MockApiClient.matchQuery({dataset: 'errors', topEvents: 10})],
@@ -106,6 +111,29 @@ describe('ProjectSymbolicationErrors', () => {
       match: [MockApiClient.matchQuery({field: ['event_id']})],
       body: {data: [{event_id: 'abc123'}]},
     });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/files/dsyms/`,
+      match: [MockApiClient.matchQuery({debug_id: 'abc-def'})],
+      body: [{id: '1'}],
+    });
+    MockApiClient.addMockResponse({
+      url: eventsUrl,
+      match: [
+        MockApiClient.matchQuery({
+          field: ['file_name', 'debug_id', 'count_unique(event_id)'],
+        }),
+      ],
+      body: {
+        data: [
+          {
+            file_name: '/usr/lib/libgame.so',
+            debug_id: 'abc-def',
+            'count_unique(event_id)': 7,
+          },
+          {file_name: null, debug_id: null, 'count_unique(event_id)': 3},
+        ],
+      },
+    });
 
     render(<ProjectSymbolicationErrors />, {
       organization,
@@ -133,6 +161,12 @@ describe('ProjectSymbolicationErrors', () => {
       'href',
       `/organizations/${organization.slug}/issues/1/events/abc123/`
     );
+    expect(await within(drawer).findByText('/usr/lib/libgame.so')).toBeInTheDocument();
+    expect(within(drawer).getByText('abc-def')).toBeInTheDocument();
+    expect(await within(drawer).findByText('Uploaded')).toBeInTheDocument();
+    expect(
+      within(drawer).getByRole('button', {name: 'Reprocess Events'})
+    ).toBeInTheDocument();
 
     const writeText = jest.fn().mockResolvedValue(undefined);
     Object.assign(navigator, {clipboard: {writeText}});
@@ -147,6 +181,60 @@ describe('ProjectSymbolicationErrors', () => {
     expect(prompt).toContain(
       `sentry-cli debug-files upload --org ${organization.slug} --project ${project.slug}`
     );
+  });
+
+  it('marks an issue that is reprocessing', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/`,
+      body: [
+        {
+          id: '1',
+          status: 'reprocessing',
+          statusDetails: {pendingEvents: 4, info: {totalEvents: 6}},
+        },
+      ],
+    });
+
+    render(<ProjectSymbolicationErrors />, {
+      organization,
+      outletContext: {project},
+      initialRouterConfig,
+    });
+
+    expect(await screen.findByText('Reprocessing: 2 of 6 events')).toBeInTheDocument();
+  });
+
+  it('applies the filters of the URL to the failures', async () => {
+    const failures = MockApiClient.addMockResponse({
+      url: eventsUrl,
+      match: [
+        MockApiClient.matchQuery({
+          field: FAILURE_FIELDS,
+          query: 'error_type:native_missing_dsym environment:"prod" release:"app@1.2.3"',
+        }),
+      ],
+      body: {data: []},
+    });
+
+    render(<ProjectSymbolicationErrors />, {
+      organization,
+      outletContext: {project},
+      initialRouterConfig: {
+        location: {
+          pathname: initialRouterConfig.location.pathname,
+          query: {
+            cause: 'native_missing_dsym',
+            environment: 'prod',
+            release: 'app@1.2.3',
+          },
+        },
+      },
+    });
+
+    expect(
+      await screen.findByText('No symbolication errors match the filters.')
+    ).toBeInTheDocument();
+    expect(failures).toHaveBeenCalled();
   });
 
   it('shows the empty state when no errors exist', async () => {
