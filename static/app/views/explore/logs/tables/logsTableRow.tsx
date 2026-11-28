@@ -25,6 +25,7 @@ import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {escapeDoubleQuotes} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -133,6 +134,7 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {TraceIcons} from 'sentry/views/performance/traceDetails/traceIcons';
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
+import {getAddInboundFilterAvailability} from 'sentry/views/settings/project/projectFilters/addInboundFilterAvailability';
 
 import {getMessageFilter, type MessageFilter} from './getMessageFilter';
 
@@ -215,11 +217,11 @@ function getExploreConnectedSpansMenuItems({
   organization: Organization;
   selection: PageFilters;
   showExploreConnectedSpansLink?: boolean;
-}): MenuItemProps[] | undefined {
+}): MenuItemProps[] {
   const messageString = String(message ?? '');
 
   if (!showExploreConnectedSpansLink || messageString.length === 0) {
-    return undefined;
+    return [];
   }
 
   return [
@@ -237,6 +239,16 @@ function getExploreConnectedSpansMenuItems({
           }),
     },
   ];
+}
+
+async function openCustomFilterModalFromLog(project: Project, message: string) {
+  const {getFilterDraftFromLog, openCustomFilterModal} =
+    await import('sentry/views/settings/project/projectFilters/customFilterModal');
+  openCustomFilterModal({
+    project,
+    initialValues: getFilterDraftFromLog(message),
+    draftSource: 'log',
+  });
 }
 
 function isInsideButton(element: Element | null): boolean {
@@ -450,6 +462,28 @@ export const LogRowContent = memo(function LogRowContentImpl({
     onError: (_error, {cellValue}) => exploreConnectedSpansFor(cellValue),
   });
 
+  // Filters on logs need logs ingestion as well as the shared inbound filter
+  // gating, otherwise the API rejects the `log` data type.
+  const addInboundFilterAvailability =
+    project && organization.features.includes('ourlogs-ingestion')
+      ? getAddInboundFilterAvailability(organization, project)
+      : undefined;
+
+  const addInboundFilter = useMutation({
+    mutationFn: ({cellValue, field}: {cellValue: string | number; field: string}) =>
+      resolveFullCellValue(field, cellValue),
+    onSuccess: value => {
+      if (project) {
+        openCustomFilterModalFromLog(project, String(value));
+      }
+    },
+    onError: (_error, {cellValue}) => {
+      if (project) {
+        openCustomFilterModalFromLog(project, String(cellValue));
+      }
+    },
+  });
+
   const filterOnCellValue = useMutation({
     mutationFn: ({
       cellValue,
@@ -575,6 +609,50 @@ export const LogRowContent = memo(function LogRowContentImpl({
           ? [getViewInContextMenuItem('trace', traceContextQuery)]
           : []),
       ];
+
+  const message = dataRow[OurLogKnownFieldKey.MESSAGE];
+
+  const exploreConnectedSpansMenuItems = getExploreConnectedSpansMenuItems({
+    message: typeof fullMessage === 'string' ? fullMessage : message,
+    onResolveMessage:
+      typeof fullMessage === 'string'
+        ? undefined
+        : () =>
+            exploreConnectedSpans.mutate({
+              cellValue: message ?? '',
+              field: OurLogKnownFieldKey.MESSAGE,
+            }),
+    organization,
+    selection,
+    showExploreConnectedSpansLink,
+  });
+
+  const addInboundFilterMenuItems: MenuItemProps[] =
+    addInboundFilterAvailability?.isVisible
+      ? [
+          {
+            key: 'add-inbound-filter',
+            label: t('Add Inbound Filter'),
+            disabled: addInboundFilterAvailability.disabledReason !== undefined,
+            details: addInboundFilterAvailability.disabledReason,
+            onAction: () => {
+              trackAnalytics('logs.table.add_inbound_filter_clicked', {
+                log_id: rowId,
+                organization,
+              });
+              addInboundFilter.mutate({
+                cellValue: message ?? '',
+                field: OurLogKnownFieldKey.MESSAGE,
+              });
+            },
+          },
+        ]
+      : [];
+
+  const messageMenuItems = [
+    ...exploreConnectedSpansMenuItems,
+    ...addInboundFilterMenuItems,
+  ];
 
   const buttonSize = 'xs';
   const chevronIcon = (
@@ -706,19 +784,7 @@ export const LogRowContent = memo(function LogRowContentImpl({
             const value = dataRow[field];
 
             const extraMenuItems =
-              field === OurLogKnownFieldKey.MESSAGE
-                ? getExploreConnectedSpansMenuItems({
-                    message: typeof fullMessage === 'string' ? fullMessage : value,
-                    onResolveMessage:
-                      typeof fullMessage === 'string'
-                        ? undefined
-                        : () =>
-                            exploreConnectedSpans.mutate({cellValue: value ?? '', field}),
-                    organization,
-                    selection,
-                    showExploreConnectedSpansLink,
-                  })
-                : undefined;
+              field === OurLogKnownFieldKey.MESSAGE ? messageMenuItems : [];
 
             if (!defined(value)) {
               return (
@@ -807,7 +873,7 @@ export const LogRowContent = memo(function LogRowContentImpl({
                     }}
                     allowActions={ALLOWED_CELL_ACTIONS}
                     extraMenuItems={[
-                      ...(extraMenuItems ?? []),
+                      ...extraMenuItems,
                       ...scrollToLogMenuItems,
                       ...viewInContextMenuItems,
                     ]}

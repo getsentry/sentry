@@ -11,6 +11,7 @@ import {EntryType} from 'sentry/types/event';
 
 import {
   getFilterDraftFromEvent,
+  getFilterDraftFromLog,
   getFilterDraftFromRelease,
   openCustomFilterModal,
 } from './customFilterModal';
@@ -127,6 +128,35 @@ describe('getFilterDraftFromRelease', () => {
   });
 });
 
+describe('getFilterDraftFromLog', () => {
+  it('matches logs whose body is exactly the message', () => {
+    expect(getFilterDraftFromLog('silo_client.http_response')).toEqual({
+      name: 'silo_client.http_response',
+      dataType: 'log',
+      conditions: 'log_message:silo_client.http_response',
+    });
+  });
+
+  it('escapes characters that would otherwise widen or break the match', () => {
+    expect(getFilterDraftFromLog('Retrying *job* "sync"').conditions).toBe(
+      'log_message:"Retrying \\*job\\* \\"sync\\""'
+    );
+  });
+
+  it('globs over the line breaks of a multi-line message', () => {
+    expect(getFilterDraftFromLog('Traceback:\n  at [handler]\n')).toEqual({
+      name: 'Traceback: at [handler]',
+      dataType: 'log',
+      conditions: 'log_message:"Traceback:*at \\[handler\\]*"',
+    });
+  });
+
+  it('cuts the name to the longest the API accepts', () => {
+    const message = 'a'.repeat(300);
+    expect(getFilterDraftFromLog(message).name).toBe('a'.repeat(256));
+  });
+});
+
 describe('openCustomFilterModal', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture({slug: 'backend'});
@@ -163,5 +193,30 @@ describe('openCustomFilterModal', () => {
     ).toBeInTheDocument();
     expect(screen.getByRole('textbox', {name: 'Name'})).toHaveValue('Release 2.41.0');
     expect(screen.getByRole('row', {name: 'release:2.41.0'})).toBeInTheDocument();
+  });
+
+  it('introduces a draft from a log, naming the project', async () => {
+    renderGlobalModal({
+      organization: OrganizationFixture({features: ['ourlogs-ingestion']}),
+    });
+    act(() =>
+      openCustomFilterModal({
+        project,
+        initialValues: getFilterDraftFromLog('silo_client.http_response'),
+        draftSource: 'log',
+      })
+    );
+
+    expect(
+      await screen.findByText(
+        /The condition below matches the message of the log you were looking at, in backend\./
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByRole('textbox', {name: 'Name'})).toHaveValue(
+      'silo_client.http_response'
+    );
+    expect(
+      screen.getByRole('row', {name: 'log_message:silo_client.http_response'})
+    ).toBeInTheDocument();
   });
 });

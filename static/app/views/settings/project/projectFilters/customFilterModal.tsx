@@ -138,7 +138,7 @@ type FilterFormValues = {conditions: string; dataType: FilterDataType; name: str
 
 // Where a draft passed to the modal comes from, which decides how the modal
 // introduces it.
-type InboundFilterDraftSource = 'event' | 'release';
+type InboundFilterDraftSource = 'event' | 'log' | 'release';
 
 type DataTypeSpec = {
   label: string;
@@ -850,6 +850,12 @@ function getModalDescription(
       'The conditions below come from the event you were looking at. Remove the ones you do not want, and widen the rest with another operator or a * wildcard where one exact value is too narrow. Sentry drops data that meets every condition.'
     );
   }
+  if (draftSource === 'log') {
+    return t(
+      'The condition below matches the message of the log you were looking at, in %s. To also drop messages whose values change, widen it with another operator, like contains, or a * wildcard. Sentry drops logs that meet every condition.',
+      project.slug
+    );
+  }
   if (draftSource === 'release') {
     return t(
       'The condition below matches the release you were looking at, in %s. To cover more releases, widen it with another operator, like greater than, or a * wildcard. Sentry drops data that meets every condition.',
@@ -932,6 +938,9 @@ function conditionFromLiterals(
   return {type, operator: 'equals', value: literals};
 }
 
+// The API rejects filter names longer than this.
+export const MAX_FILTER_NAME_LENGTH = 256;
+
 // A draft filter that matches the event: one condition per property the event
 // carries a value for, so the user removes what they do not want instead of
 // typing what they do. Exception types and messages come from the raw values
@@ -966,7 +975,7 @@ export function getFilterDraftFromEvent(event: Event): FilterFormValues {
   }
 
   return {
-    name: event.title.slice(0, 256),
+    name: event.title.slice(0, MAX_FILTER_NAME_LENGTH),
     dataType: 'error',
     conditions: conditionsToQuery(conditions),
   };
@@ -977,9 +986,21 @@ export function getFilterDraftFromEvent(event: Event): FilterFormValues {
 // user widens it in the modal if they want more releases.
 export function getFilterDraftFromRelease(version: string): FilterFormValues {
   return {
-    name: t('Release %s', formatVersion(version)).slice(0, 256),
+    name: t('Release %s', formatVersion(version)).slice(0, MAX_FILTER_NAME_LENGTH),
     dataType: 'all',
     conditions: conditionsToQuery([conditionFromLiterals('release', [version])]),
+  };
+}
+
+export function getFilterDraftFromLog(message: string): FilterFormValues {
+  return {
+    // The name is a single-line text field, so fold any line breaks.
+    name: message
+      .trim()
+      .replace(/\s*\n\s*/g, ' ')
+      .slice(0, MAX_FILTER_NAME_LENGTH),
+    dataType: 'log',
+    conditions: conditionsToQuery([conditionFromLiterals('log_message', [message])]),
   };
 }
 

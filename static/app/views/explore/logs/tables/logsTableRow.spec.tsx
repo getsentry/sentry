@@ -7,6 +7,7 @@ import {UserFixture} from 'sentry-fixture/user';
 import {
   act,
   render,
+  renderGlobalModal,
   screen,
   userEvent,
   waitFor,
@@ -16,6 +17,7 @@ import {
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import * as analytics from 'sentry/utils/analytics';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import * as qs from 'sentry/utils/url/qs';
 import {LOGS_CURSOR_KEY} from 'sentry/views/explore/contexts/logs/constants';
@@ -35,6 +37,7 @@ import {LogsSidebarProvider} from 'sentry/views/explore/logs/logsSidebarContext'
 import {LOGS_PINNED_KEY} from 'sentry/views/explore/logs/pinning/useLogsPinning';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {ID_KEY, TITLE_KEY} from 'sentry/views/explore/queryParams/savedQuery';
+import {MAX_FILTER_NAME_LENGTH} from 'sentry/views/settings/project/projectFilters/customFilterModal';
 
 import {LogRowContent} from './logsTableRow';
 
@@ -1662,5 +1665,234 @@ describe('logsTableRow', () => {
         /\[Replace\] \[MAC addresses\] with \[ITS_GONE\] from \[not_zzz_not_exact_match\]/
       )
     ).toBeInTheDocument();
+  });
+
+  describe('add inbound filter', () => {
+    const inboundFilterOrganization = OrganizationFixture({
+      features: [
+        'ourlogs-enabled',
+        'ourlogs-ingestion',
+        'inbound-filters-v2',
+        'inbound-filters-v2-ui',
+        'inbound-filters-in-product-flows',
+      ],
+      access: [...OrganizationFixture().access, 'project:write'],
+    });
+    const inboundFilterProject = ProjectFixture({
+      id: project.id,
+      slug: project.slug,
+      features: ['custom-inbound-filters'],
+    });
+
+    async function openMessageCellMenu() {
+      const logTableRow = await screen.findByTestId('log-table-row');
+      await userEvent.hover(logTableRow, {delay: null});
+      await userEvent.click(
+        within(screen.getByTestId('log-table-cell-message')).getByRole('button', {
+          name: 'Actions',
+        })
+      );
+    }
+
+    beforeEach(() => {
+      ProjectsStore.loadInitialData([inboundFilterProject]);
+    });
+
+    it('opens the filter modal on the untruncated message of the log', async () => {
+      const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+      renderGlobalModal({organization: inboundFilterOrganization});
+      render(
+        <LogRowContent
+          dataRow={rowDataWithTruncatedMessage}
+          highlightTerms={[]}
+          meta={LogFixtureMeta(rowDataWithTruncatedMessage)}
+          sharedHoverTimeoutRef={{current: null}}
+        />,
+        {
+          organization: inboundFilterOrganization,
+          initialRouterConfig,
+          additionalWrapper: ProviderWrapper,
+        }
+      );
+
+      await openMessageCellMenu();
+      await userEvent.click(
+        await screen.findByRole('menuitemradio', {name: 'Add Inbound Filter'})
+      );
+
+      expect(
+        await screen.findByText(
+          /The condition below matches the message of the log you were looking at/
+        )
+      ).toBeInTheDocument();
+      expect(screen.getByRole('textbox', {name: 'Name'})).toHaveValue(
+        fullMessage.slice(0, MAX_FILTER_NAME_LENGTH)
+      );
+      expect(
+        screen.getByRole('row', {name: `log_message:${fullMessage}`})
+      ).toBeInTheDocument();
+      expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+        'logs.table.add_inbound_filter_clicked',
+        expect.objectContaining({
+          log_id: rowDataWithTruncatedMessage[OurLogKnownFieldKey.ID],
+        })
+      );
+    });
+
+    it('opens the filter modal on the table message when the details request fails', async () => {
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/trace-items/${rowDataWithTruncatedMessage[OurLogKnownFieldKey.ID]}/`,
+        method: 'GET',
+        statusCode: 500,
+      });
+      renderGlobalModal({organization: inboundFilterOrganization});
+      render(
+        <LogRowContent
+          dataRow={rowDataWithTruncatedMessage}
+          highlightTerms={[]}
+          meta={LogFixtureMeta(rowDataWithTruncatedMessage)}
+          sharedHoverTimeoutRef={{current: null}}
+        />,
+        {
+          organization: inboundFilterOrganization,
+          initialRouterConfig,
+          additionalWrapper: ProviderWrapper,
+        }
+      );
+
+      await openMessageCellMenu();
+      await userEvent.click(
+        await screen.findByRole('menuitemradio', {name: 'Add Inbound Filter'})
+      );
+
+      expect(
+        await screen.findByRole('row', {name: `log_message:${truncatedMessage}`})
+      ).toBeInTheDocument();
+    });
+
+    it('is only offered on the message cell', async () => {
+      render(
+        <LogRowContent
+          dataRow={rowData}
+          highlightTerms={[]}
+          meta={LogFixtureMeta(rowData)}
+          sharedHoverTimeoutRef={{current: null}}
+        />,
+        {
+          organization: inboundFilterOrganization,
+          initialRouterConfig,
+          additionalWrapper: ProviderWrapper,
+        }
+      );
+
+      const logTableRow = await screen.findByTestId('log-table-row');
+      await userEvent.hover(logTableRow, {delay: null});
+      await userEvent.click(
+        within(screen.getByTestId('log-table-cell-timestamp')).getByRole('button', {
+          name: 'Actions',
+        })
+      );
+
+      expect(
+        await screen.findByRole('menuitemradio', {name: 'Copy to clipboard'})
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Add Inbound Filter'})
+      ).not.toBeInTheDocument();
+    });
+
+    it.each([
+      'inbound-filters-v2',
+      'inbound-filters-v2-ui',
+      'inbound-filters-in-product-flows',
+      'ourlogs-ingestion',
+    ])('is hidden without the %s feature', async feature => {
+      const orgWithoutFeature = OrganizationFixture({
+        ...inboundFilterOrganization,
+        features: inboundFilterOrganization.features.filter(f => f !== feature),
+      });
+      render(
+        <LogRowContent
+          dataRow={rowData}
+          highlightTerms={[]}
+          meta={LogFixtureMeta(rowData)}
+          sharedHoverTimeoutRef={{current: null}}
+        />,
+        {
+          organization: orgWithoutFeature,
+          initialRouterConfig,
+          additionalWrapper: ProviderWrapper,
+        }
+      );
+
+      await openMessageCellMenu();
+
+      expect(
+        await screen.findByRole('menuitemradio', {name: 'Copy to clipboard'})
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Add Inbound Filter'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('is disabled when the plan does not include custom inbound filters', async () => {
+      ProjectsStore.loadInitialData([{...inboundFilterProject, features: []}]);
+      render(
+        <LogRowContent
+          dataRow={rowData}
+          highlightTerms={[]}
+          meta={LogFixtureMeta(rowData)}
+          sharedHoverTimeoutRef={{current: null}}
+        />,
+        {
+          organization: inboundFilterOrganization,
+          initialRouterConfig,
+          additionalWrapper: ProviderWrapper,
+        }
+      );
+
+      await openMessageCellMenu();
+
+      const menuItem = await screen.findByRole('menuitemradio', {
+        name: /Add Inbound Filter/,
+      });
+      expect(menuItem).toHaveAttribute('aria-disabled', 'true');
+      expect(
+        within(menuItem).getByText('Your plan does not include custom inbound filters')
+      ).toBeInTheDocument();
+    });
+
+    it('is disabled without project write access', async () => {
+      render(
+        <LogRowContent
+          dataRow={rowData}
+          highlightTerms={[]}
+          meta={LogFixtureMeta(rowData)}
+          sharedHoverTimeoutRef={{current: null}}
+        />,
+        {
+          organization: OrganizationFixture({
+            ...inboundFilterOrganization,
+            access: inboundFilterOrganization.access.filter(
+              scope => scope !== 'project:write'
+            ),
+          }),
+          initialRouterConfig,
+          additionalWrapper: ProviderWrapper,
+        }
+      );
+
+      await openMessageCellMenu();
+
+      const menuItem = await screen.findByRole('menuitemradio', {
+        name: /Add Inbound Filter/,
+      });
+      expect(menuItem).toHaveAttribute('aria-disabled', 'true');
+      expect(
+        within(menuItem).getByText(
+          'You need project write access to add custom inbound filters'
+        )
+      ).toBeInTheDocument();
+    });
   });
 });

@@ -75,6 +75,7 @@ export type LogsAnalyticsEventParameters = {
     save_type: 'star_query' | 'unstar_query';
     ui_source: 'table' | 'explorer';
   };
+  'logs.table.add_inbound_filter_clicked': {log_id: string; organization: Organization};
   'logs.table.pinned_row_not_in_results': {log_id: string; organization: Organization};
   'logs.table.pinned_row_scrolled_to': {log_id: string; organization: Organization};
   'logs.table.row_copied_as_json': {log_id: string; organization: Organization};
@@ -108,6 +109,7 @@ export const logsAnalyticsEventMap: Record<LogsAnalyticsEventKey, string | null>
   'logs.delete_query': 'Logs Delete Query',
   'logs.onboarding_platform_docs_viewed':
     'Logs Explore Empty State (Onboarding) - Platform Docs Viewed',
+  'logs.table.add_inbound_filter_clicked': 'Logs Row Add Inbound Filter Clicked',
   'logs.table.pinned_row_not_in_results': 'Logs Pinned Row Not in Results',
   'logs.table.pinned_row_scrolled_to': 'Logs Pinned Row Scrolled To',
   'logs.table.row_copied_as_json': 'Logs Row Copied as JSON',
