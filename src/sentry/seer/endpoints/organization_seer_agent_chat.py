@@ -370,7 +370,10 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
                 acting_user_id(request.user),
                 resolved.seer_run_state_id,
                 state,
-                can_install_integrations=request.access.has_scope("org:integrations"),
+                # Analytics only; this does not gate access. Read scopes directly rather than
+                # via has_scope(): declaring org:integrations in the GET scope_map would
+                # admit tokens holding only that scope, since scope_map is any-of.
+                can_install_integrations="org:integrations" in request.access.scopes,
             )
             session = state if has_elevated_mode(request) else redact_autofix_prompts(state)
             return Response(
