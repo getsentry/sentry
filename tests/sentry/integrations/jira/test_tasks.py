@@ -1,9 +1,12 @@
-from unittest.mock import patch
+import time
+from unittest.mock import MagicMock, patch
+from uuid import uuid4
 
 import responses
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.jira.client import JiraCloudClient
-from sentry.integrations.jira.tasks import sync_metadata
+from sentry.integrations.jira.tasks import find_stale_forge_tokens, sync_metadata
 from sentry.integrations.models.integration import Integration
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
@@ -90,3 +93,30 @@ class SyncMetadataTest(TestCase):
         assert integration.name == "Acme Jira"
         assert integration.metadata["icon"] == "https://example.com/avatar.jpg"
         assert integration.metadata["forge"] == {"system_token": "token"}
+
+
+@control_silo_test
+class FindStaleForgeTokensTest(TestCase):
+    def jira(self, metadata: dict[str, object], **kwargs: int) -> Integration:
+        return self.create_provider_integration(
+            provider="jira", external_id=uuid4().hex, metadata=metadata, **kwargs
+        )
+
+    @patch("sentry.integrations.jira.tasks.metrics")
+    def test_counts_tokens_expired_over_a_day_ago(self, mock_metrics: MagicMock) -> None:
+        now = int(time.time())
+        stale = {"system_token_expires_at": now - 25 * 3600}
+        self.jira({"forge": stale})
+        self.jira({"forge": stale, "shared_secret": "secret"})
+        # Expired recently, refreshed, never on Forge, or already disabled.
+        self.jira({"forge": {"system_token_expires_at": now - 3600}})
+        self.jira({"forge": {"system_token_expires_at": now + 3600}})
+        self.jira({"shared_secret": "secret"})
+        self.jira({"forge": stale}, status=ObjectStatus.DISABLED)
+
+        find_stale_forge_tokens()
+
+        assert sorted(call.kwargs["tags"]["kind"] for call in mock_metrics.incr.call_args_list) == [
+            "connect",
+            "forge",
+        ]

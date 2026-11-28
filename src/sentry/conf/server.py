@@ -1331,6 +1331,10 @@ TASKWORKER_CONTROL_SCHEDULES: ScheduleConfigMap = {
         "task": "deletions.control:sentry.deletions.tasks.hybrid_cloud.schedule_hybrid_cloud_foreign_key_jobs_control",
         "schedule": crontab("*/15", "*", "*", "*", "*"),
     },
+    "find-stale-jira-forge-tokens": {
+        "task": "integrations.control:sentry.integrations.jira.tasks.find_stale_forge_tokens",
+        "schedule": crontab("0", "6", "*", "*", "*"),
+    },
     "schedule-vsts-integration-subscription-check": {
         "task": "integrations.control:sentry.integrations.vsts.tasks.kickoff_vsts_subscription_check",
         "schedule": crontab("0", "*/6", "*", "*", "*"),
