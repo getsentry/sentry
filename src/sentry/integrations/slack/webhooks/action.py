@@ -410,6 +410,17 @@ class SlackActionEndpoint(Endpoint):
         if not identity or not identity_user:
             return self._respond_link_identity(slack_request)
 
+        # Org membership is enforced per action (update_group, Seer's not-member prompt);
+        # this only rejects members who can't act on the issue's project.
+        access = from_user(identity_user, group.organization)
+        if group.organization.has_access(identity_user) and not access.has_any_project_scope(
+            group.project, ("event:write", "event:admin")
+        ):
+            for action in action_list:
+                if dialog := _DIALOGS.get(action.name):
+                    dialog.show_error(slack_request, NO_PROJECT_ACCESS_MESSAGE)
+            return self.respond_ephemeral(NO_PROJECT_ACCESS_MESSAGE)
+
         original_tags_from_request = slack_request.get_tags()
 
         if slack_request.type == "view_submission":
@@ -1166,6 +1177,33 @@ class _ModalDialog(ABC):
             view=modal_payload,
         )
 
+    def show_error(self, slack_request: SlackActionRequest, text: str) -> None:
+        """
+        Replace the loading modal that control opens for this dialog with an error.
+        """
+        external_id = slack_request.get_action_ts()
+        if not external_id:
+            return
+
+        error_view = View(
+            type="modal",
+            title={"type": "plain_text", "text": f"{self.dialog_type.capitalize()} Issue"},
+            blocks=[{"type": "section", "text": {"type": "mrkdwn", "text": text}}],
+            close={"type": "plain_text", "text": "Close"},
+        )
+        slack_client = SlackSdkClient(integration_id=slack_request.integration.id)
+        try:
+            slack_client.views_update(external_id=external_id, view=error_view)
+        except SlackApiError as e:
+            _logger.info(
+                "slack.action.modal-error-update-failed",
+                extra={
+                    **slack_request.get_logging_data(),
+                    "dialog": self.dialog_type,
+                    "exec_summary": repr(e),
+                },
+            )
+
     def open_dialog(self, slack_request: SlackActionRequest, group: Group) -> None:
         # XXX(epurkhiser): In order to update the original message we have to
         # keep track of the response_url in the callback_id. Definitely hacky,
@@ -1247,3 +1285,9 @@ class _ArchiveDialog(_ModalDialog):
             callback_id=callback_id,
             metadata=metadata,
         )
+
+
+_DIALOGS: dict[str, _ModalDialog] = {
+    "resolve_dialog": _ResolveDialog(),
+    "archive_dialog": _ArchiveDialog(),
+}
