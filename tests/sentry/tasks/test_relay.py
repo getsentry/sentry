@@ -460,6 +460,38 @@ class TestInvalidationTask:
             },
         ]
 
+    def test_debounced_project_skips_organization_lookup(
+        self,
+        default_project: Project,
+        invalidation_debounce_cache: RedisProjectConfigDebounceCache,
+        django_cache: object,
+    ) -> None:
+        tasks = []
+
+        def apply_async(
+            args: object = None, kwargs: object = None, countdown: object = None
+        ) -> None:
+            tasks.append(kwargs)
+
+        invalidation_debounce_cache.mark_task_done(
+            public_key=None, project_id=default_project.id, organization_id=None
+        )
+        with mock.patch("sentry.tasks.relay.invalidate_project_config.apply_async", apply_async):
+            # First call looks up the organization and schedules the task.
+            _schedule_invalidate_project_config(project_id=default_project.id, trigger="test")
+
+            # Subsequent calls for the same project are debounced at the project
+            # level before hitting the database.
+            with mock.patch.object(
+                Project.objects, "values_list", side_effect=AssertionError("unexpected query")
+            ):
+                for _ in range(5):
+                    _schedule_invalidate_project_config(
+                        project_id=default_project.id, trigger="test"
+                    )
+
+        assert len(tasks) == 1
+
     def test_invalidate(
         self,
         default_project: Project,
