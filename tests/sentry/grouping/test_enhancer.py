@@ -10,7 +10,11 @@ import pytest
 
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.grouping.api import get_grouping_config_dict_for_project, load_grouping_config
-from sentry.grouping.component import FrameGroupingComponent, StacktraceGroupingComponent
+from sentry.grouping.component import (
+    FrameGroupingComponent,
+    FunctionGroupingComponent,
+    StacktraceGroupingComponent,
+)
 from sentry.grouping.enhancer import (
     DEFAULT_ENHANCEMENTS_BASE,
     ENHANCEMENT_BASES,
@@ -223,6 +227,73 @@ family:javascript,native -group
 )
 def test_keep_profiling_rules(test_input: str, expected: str) -> None:
     assert keep_profiling_rules(test_input) == expected
+
+
+@pytest.mark.parametrize("platform", ["cocoa", "native", "swift"])
+@pytest.mark.parametrize("variant", ["app", "system"])
+@pytest.mark.parametrize(
+    "function",
+    [
+        "-[SentryDefaultThreadInspector getCurrentThreads]",
+        "SentryDefaultThreadInspector.getCurrentThreads",
+        "SentryDefaultThreadInspector.getCurrentThreads()",
+        "@objc SentryDefaultThreadInspector.getCurrentThreads()",
+        "Sentry.SentryDefaultThreadInspector.getCurrentThreads()",
+        "SentrySDK.capture(message: String) -> SentryId",
+        "SentrySRDefaultBreadcrumbConverter.convert()",
+        "closure #1 in SentrySDK.capture(message: String)",
+        "partial apply for closure #1 in SentrySDK.capture(message: String)",
+        "initializer expression of SentryDefaultThreadInspector.init()",
+        "Sentry.Options.init()",
+        "closure #1 in Sentry.Options.init()",
+    ],
+)
+def test_cocoa_sdk_frames_do_not_affect_grouping(
+    function: str, platform: str, variant: str
+) -> None:
+    enhancements = ENHANCEMENT_BASES[DEFAULT_ENHANCEMENTS_BASE]
+    frames: list[dict[str, Any]] = [
+        {"function": "MyApp.reportInfo", "in_app": True},
+        {"function": function, "in_app": True},
+    ]
+    # Statically linked SDK frames have the same package as application frames.
+    for frame in frames:
+        frame["package"] = "/var/containers/Bundle/Application/MyApp.app/MyApp"
+
+    enhancements.apply_category_and_updated_in_app_to_frames(frames, platform, {})
+    assert [frame["in_app"] for frame in frames] == [True, False]
+
+    components = [
+        FrameGroupingComponent(
+            values=[FunctionGroupingComponent(values=[frame["function"]])],
+            in_app=frame["in_app"],
+        )
+        for frame in frames
+    ]
+    stacktrace = enhancements.assemble_stacktrace_component(
+        variant, components, frames, platform, {}
+    )
+    assert [component.contributes for component in stacktrace.values] == [True, False]
+    assert stacktrace.get_hash() == StacktraceGroupingComponent(values=[components[0]]).get_hash()
+
+
+@pytest.mark.parametrize(
+    ("function", "platform"),
+    [
+        ("MyApp.reportInfo", "cocoa"),
+        ("MyApp.SentryHelper.reportInfo()", "cocoa"),
+        ("CustomerSentry.capture()", "cocoa"),
+        ("SentrySetupInteractor.setupSentry()", "cocoa"),
+        ("closure #1 in SentrySetupInteractor.setupSentry()", "cocoa"),
+        ("SentrySDK_capture", "native"),
+        ("SentrySDK.capture", "javascript"),
+    ],
+)
+def test_cocoa_sdk_rules_preserve_other_frames(function: str, platform: str) -> None:
+    enhancements = ENHANCEMENT_BASES[DEFAULT_ENHANCEMENTS_BASE]
+    frames = [{"function": function, "in_app": True}]
+    enhancements.apply_category_and_updated_in_app_to_frames(frames, platform, {})
+    assert frames[0]["in_app"] is True
 
 
 def test_legacy_rules_are_not_updated() -> None:
