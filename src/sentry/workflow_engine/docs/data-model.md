@@ -261,7 +261,8 @@ one per period; ID grouping does not change this selection policy.
 ### `WorkflowActionGroupStatus`
 
 [`WorkflowActionGroupStatus`](../models/workflow_action_group_status.py) records when a
-`(workflow, action, group)` tuple last passed repeat-frequency filtering. It is updated
+`(workflow, action, group)` tuple last passed repeat-frequency filtering. Only events with
+a group and a positive workflow frequency use this table. It is updated
 before event-level deduplication and task execution, so it does not prove that an
 external action completed.
 

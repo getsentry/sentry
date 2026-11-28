@@ -370,6 +370,9 @@ normal successful cleanup. They remain until expiry or manual cleanup.
 
 ## Action Selection and Dispatch
 
+Actions whose handlers reject the event are excluded before frequency checks and history
+creation.
+
 [`processors/action.py`](../processors/action.py) applies two different controls:
 
 ### Repeat frequency
@@ -379,6 +382,9 @@ workflow, action, and issue group tuple last passed the frequency check. It is u
 before event-level deduplication and task execution. A tuple is suppressed when it
 passed within `Workflow.config.frequency` minutes, even if a later equivalent action was
 deduplicated or an external handler failed.
+
+A zero or omitted frequency disables suppression. These workflows and evaluations without
+an issue group skip the status table entirely.
 
 ### Event-level deduplication
 
@@ -392,7 +398,7 @@ imply Workflow execution order.
 
 The processor updates frequency statuses and creates
 [`WorkflowFireHistory`](../models/workflow_fire_history.py) rows before `fire_actions`
-removes unsupported or inactive actions and deduplicates by key. It then schedules
+removes inactive actions and deduplicates by key. It then schedules
 [`trigger_action`](../tasks/actions.py) for retained actions. Fire-history rows describe
 scheduling, not successful external delivery, and can exist for actions that are later
 filtered or deduplicated.

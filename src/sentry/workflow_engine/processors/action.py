@@ -21,7 +21,6 @@ from sentry.workflow_engine.models import (
     DataCondition,
     DataConditionGroup,
     DataConditionGroupAction,
-    Workflow,
     WorkflowActionGroupStatus,
 )
 from sentry.workflow_engine.registry import action_handler_registry
@@ -76,7 +75,7 @@ def get_workflow_action_group_statuses(
 def process_workflow_action_group_statuses(
     action_to_workflows_ids: dict[int, set[int]],
     action_to_statuses: dict[int, list[WorkflowActionGroupStatus]],
-    workflows: BaseQuerySet[Workflow],
+    workflow_frequencies: dict[int, timedelta],
     group: Group,
     now: datetime,
 ) -> tuple[dict[int, set[int]], set[int], list[WorkflowActionGroupStatus]]:
@@ -86,18 +85,11 @@ def process_workflow_action_group_statuses(
     """
 
     updated_action_to_workflows_ids: dict[int, set[int]] = defaultdict(set)
-    workflow_frequencies: dict[int, timedelta] = {
-        workflow.id: workflow.config.get("frequency", 0) * timedelta(minutes=1)
-        for workflow in workflows
-    }
     statuses_to_update: set[int] = set()
 
-    zero_timedelta = timedelta(minutes=0)
     for action_id, statuses in action_to_statuses.items():
         for status in statuses:
-            if (now - status.date_updated) > workflow_frequencies.get(
-                status.workflow_id, zero_timedelta
-            ):
+            if (now - status.date_updated) > workflow_frequencies[status.workflow_id]:
                 # we should fire the workflow for this action
                 updated_action_to_workflows_ids[action_id].add(status.workflow_id)
                 statuses_to_update.add(status.id)
@@ -284,8 +276,8 @@ def fire_actions(
     workflow_uuid_map: dict[WorkflowId, str],
     action_to_workflow_id: dict[ActionId, WorkflowId],
 ) -> None:
-    supported_actions = get_supported_actions(actions, event_data)
-    deduped_actions = get_unique_active_actions(supported_actions, event_data.group)
+    """Dispatch the eligible actions returned by filter_recently_fired_workflow_actions."""
+    deduped_actions = get_unique_active_actions(actions, event_data.group)
 
     for action in deduped_actions:
         workflow_id = action_to_workflow_id[action.id]
@@ -293,6 +285,77 @@ def fire_actions(
             action, event_data, workflow_uuid_map, workflow_id=workflow_id
         )
         trigger_action.apply_async(kwargs=task_params, headers={"sentry-propagate-traces": False})
+
+
+def _filter_by_group_frequency(
+    action_to_workflows_ids: dict[int, set[int]],
+    workflow_frequencies: dict[int, timedelta],
+    group: Group,
+) -> dict[int, set[int]]:
+    action_to_statuses = get_workflow_action_group_statuses(
+        action_to_workflows_ids=action_to_workflows_ids,
+        group=group,
+        workflow_ids=set(workflow_frequencies),
+    )
+    now = timezone.now()
+    action_to_workflows_ids, statuses_to_update, missing_statuses = (
+        process_workflow_action_group_statuses(
+            action_to_workflows_ids=action_to_workflows_ids,
+            action_to_statuses=action_to_statuses,
+            workflow_frequencies=workflow_frequencies,
+            group=group,
+            now=now,
+        )
+    )
+    update_result = update_workflow_action_group_statuses(now, statuses_to_update, missing_statuses)
+
+    # if statuses were not created for some reason, we should not fire for them
+    for workflow_id, action_id in update_result.not_created:
+        action_to_workflows_ids[action_id].remove(workflow_id)
+        if not action_to_workflows_ids[action_id]:
+            action_to_workflows_ids.pop(action_id)
+
+    return action_to_workflows_ids
+
+
+def get_eligible_action_workflows(
+    filtered_action_groups: set[DataConditionGroup], event_data: WorkflowEventData
+) -> dict[ActionId, set[WorkflowId]]:
+    """Return eligible workflow IDs per action, applying per-group frequency where configured."""
+    organization = event_data.get_organization()
+    associations = DataConditionGroupAction.objects.filter(
+        condition_group__in=filtered_action_groups,
+        condition_group__workflowdataconditiongroup__workflow__organization_id=organization.id,
+    ).values_list(
+        "action_id",
+        "condition_group__workflowdataconditiongroup__workflow_id",
+        "condition_group__workflowdataconditiongroup__workflow__config",
+    )
+    supported_actions = get_supported_actions(
+        Action.objects.filter(id__in={action_id for action_id, _, _ in associations}), event_data
+    )
+    supported_action_ids = {action.id for action in supported_actions}
+    eligible_actions: dict[int, set[int]] = defaultdict(set)
+    actions_with_frequency: dict[int, set[int]] = defaultdict(set)
+    workflow_frequencies: dict[int, timedelta] = {}
+    group = event_data.group
+    for action_id, workflow_id, config in associations:
+        if action_id not in supported_action_ids:
+            continue
+        frequency = config.get("frequency", 0)
+        if group is None or frequency == 0:
+            eligible_actions[action_id].add(workflow_id)
+        else:
+            actions_with_frequency[action_id].add(workflow_id)
+            workflow_frequencies[workflow_id] = timedelta(minutes=frequency)
+
+    if group is not None and actions_with_frequency:
+        for action_id, workflow_ids in _filter_by_group_frequency(
+            actions_with_frequency, workflow_frequencies, group
+        ).items():
+            eligible_actions[action_id].update(workflow_ids)
+
+    return eligible_actions
 
 
 def filter_recently_fired_workflow_actions(
@@ -305,43 +368,7 @@ def filter_recently_fired_workflow_actions(
     WorkflowActionGroupStatus objects.
     """
 
-    data_condition_group_actions = DataConditionGroupAction.objects.filter(
-        condition_group__in=filtered_action_groups
-    ).values_list("action_id", "condition_group__workflowdataconditiongroup__workflow_id")
-
-    action_to_workflows_ids: dict[int, set[int]] = defaultdict(set)
-    workflow_ids: set[int] = set()
-
-    for action_id, workflow_id in data_condition_group_actions:
-        # If we are mid-deletion, the workflow_id can be none.
-        if workflow_id is not None:
-            action_to_workflows_ids[action_id].add(workflow_id)
-            workflow_ids.add(workflow_id)
-
-    workflows = Workflow.objects.filter(id__in=workflow_ids)
-
-    action_to_statuses = get_workflow_action_group_statuses(
-        action_to_workflows_ids=action_to_workflows_ids,
-        group=event_data.require_group(),
-        workflow_ids=workflow_ids,
-    )
-    now = timezone.now()
-    action_to_workflows_ids, statuses_to_update, missing_statuses = (
-        process_workflow_action_group_statuses(
-            action_to_workflows_ids=action_to_workflows_ids,
-            action_to_statuses=action_to_statuses,
-            workflows=workflows,
-            group=event_data.require_group(),
-            now=now,
-        )
-    )
-    update_result = update_workflow_action_group_statuses(now, statuses_to_update, missing_statuses)
-
-    # if statuses were not created for some reason, we should not fire for them
-    for workflow_id, action_id in update_result.not_created:
-        action_to_workflows_ids[action_id].remove(workflow_id)
-        if not action_to_workflows_ids[action_id]:
-            action_to_workflows_ids.pop(action_id)
+    action_to_workflows_ids = get_eligible_action_workflows(filtered_action_groups, event_data)
 
     actions_queryset = Action.objects.filter(id__in=list(action_to_workflows_ids.keys()))
 
