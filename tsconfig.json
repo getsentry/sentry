@@ -36,6 +36,7 @@
     "static/app",
     "static/gsApp",
     "static/gsAdmin",
+    "src/sentry/workflow_lab/**/*.tsx",
     "static/oxlint",
     "tests/js",
     "config",
