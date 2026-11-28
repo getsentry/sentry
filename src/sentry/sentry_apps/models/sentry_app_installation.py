@@ -144,7 +144,14 @@ class SentryAppInstallation(ReplicatedControlModel, ParanoidModel):
     def delete(
         self, using: str | None = None, keep_parents: bool = False
     ) -> tuple[int, dict[str, int]]:
-        with outbox_context(transaction.atomic(using=router.db_for_write(SentryAppInstallation))):
+        flush = (
+            False
+            if options.get("hybridcloud.outbox.sentry_app_installation_delete_async.enabled")
+            else None
+        )
+        with outbox_context(
+            transaction.atomic(using=router.db_for_write(SentryAppInstallation)), flush=flush
+        ):
             for outbox in self.outboxes_for_delete():
                 outbox.save()
 
