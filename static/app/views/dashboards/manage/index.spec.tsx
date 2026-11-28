@@ -116,10 +116,8 @@ describe('Dashboards > Detail', () => {
     expect(router.location.query).toEqual({sort: 'title'});
   });
 
-  it('defaults to recently viewed sort with dashboards-user-last-visited', async () => {
-    const org = OrganizationFixture({
-      features: [...FEATURES, 'dashboards-user-last-visited'],
-    });
+  it('defaults to recently viewed sort', async () => {
+    const org = OrganizationFixture({features: FEATURES});
 
     const request = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/',
@@ -253,11 +251,13 @@ describe('Dashboards > Detail', () => {
       },
     });
 
-    await waitFor(() => expect(router.location.query).toEqual({sort: 'mydashboards'}));
+    await waitFor(() => expect(router.location.query).toEqual({sort: 'recentlyViewed'}));
     await waitFor(() =>
       expect(dashboardsRequest).toHaveBeenLastCalledWith(
         expect.anything(),
-        expect.objectContaining({query: expect.objectContaining({sort: 'mydashboards'})})
+        expect.objectContaining({
+          query: expect.objectContaining({sort: 'recentlyViewed'}),
+        })
       )
     );
   });

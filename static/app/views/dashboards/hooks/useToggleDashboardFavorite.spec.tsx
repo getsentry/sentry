@@ -11,7 +11,7 @@ import {useToggleDashboardFavorite} from './useToggleDashboardFavorite';
 
 const organization = OrganizationFixture({
   slug: 'org-slug',
-  features: ['dashboards-starred', 'dashboards-user-last-visited'],
+  features: ['dashboards-starred'],
 });
 
 const starredQueryKey = getStarredDashboardsQueryKey(organization);
@@ -19,10 +19,10 @@ const tableQueryKey = dashboardsApiOptions(organization, {
   query: {sort: 'recentlyViewed', pin: 'favorites'},
 }).queryKey;
 
-function renderToggleHook(org = organization) {
+function renderToggleHook() {
   return renderHookWithProviders(
     () => ({queryClient: useQueryClient(), toggleFavorite: useToggleDashboardFavorite()}),
-    {organization: org}
+    {organization}
   );
 }
 
@@ -75,39 +75,5 @@ describe('useToggleDashboardFavorite', () => {
       '/organizations/org-slug/dashboards/2/favorite/',
       expect.objectContaining({method: 'PUT', data: {shouldFavorite: true}})
     );
-  });
-
-  it('does not reorder the table without the dashboards-user-last-visited flag', async () => {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/dashboards/2/favorite/',
-      method: 'PUT',
-      body: {},
-    });
-
-    const {result} = renderToggleHook(
-      OrganizationFixture({slug: 'org-slug', features: ['dashboards-starred']})
-    );
-    const existingFavorite = DashboardListItemFixture({id: '1', isFavorited: true});
-    const dashboardToStar = DashboardListItemFixture({id: '2', isFavorited: false});
-
-    act(() => {
-      result.current.queryClient.setQueryData(starredQueryKey, {
-        json: [existingFavorite],
-        headers: {},
-      });
-      result.current.queryClient.setQueryData(tableQueryKey, {
-        json: [existingFavorite, dashboardToStar],
-        headers: {},
-      });
-    });
-
-    act(() => {
-      result.current.toggleFavorite({dashboard: dashboardToStar, shouldFavorite: true});
-    });
-
-    await waitFor(() => {
-      expect(starredIds(result.current.queryClient)).toEqual(['1', '2']);
-    });
-    expect(tableIds(result.current.queryClient)).toEqual(['1', '2']);
   });
 });

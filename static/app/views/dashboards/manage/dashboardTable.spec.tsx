@@ -267,7 +267,7 @@ describe('Dashboards - DashboardTable', () => {
 
     renderGlobalModal();
 
-    expect(await screen.findAllByTestId('grid-head-cell')).toHaveLength(4);
+    expect(await screen.findAllByTestId('grid-head-cell')).toHaveLength(5);
     expect(screen.queryByText('Access')).not.toBeInTheDocument();
 
     await openRowActions(1);
@@ -430,11 +430,7 @@ describe('Dashboards - DashboardTable', () => {
     );
   });
 
-  describe('with dashboards-user-last-visited feature flag', () => {
-    const organizationWithLastVisited = OrganizationFixture({
-      features: ['discover-query', 'dashboards-user-last-visited'],
-    });
-
+  describe('last visited column', () => {
     let lastVisitedDashboards: DashboardListItem[];
 
     beforeEach(() => {
@@ -458,12 +454,12 @@ describe('Dashboards - DashboardTable', () => {
       render(
         <DashboardTable
           onDashboardsChange={jest.fn()}
-          organization={organizationWithLastVisited}
+          organization={organization}
           dashboards={lastVisitedDashboards}
           location={location}
           isOnlyPrebuilt={false}
         />,
-        {organization: organizationWithLastVisited}
+        {organization}
       );
 
       const headers = await screen.findAllByTestId('grid-head-cell');
@@ -485,12 +481,12 @@ describe('Dashboards - DashboardTable', () => {
       render(
         <DashboardTable
           onDashboardsChange={jest.fn()}
-          organization={organizationWithLastVisited}
+          organization={organization}
           dashboards={lastVisitedDashboards}
           location={location}
           isOnlyPrebuilt
         />,
-        {organization: organizationWithLastVisited}
+        {organization}
       );
 
       const headers = await screen.findAllByTestId('grid-head-cell');
@@ -509,12 +505,12 @@ describe('Dashboards - DashboardTable', () => {
       render(
         <DashboardTable
           onDashboardsChange={jest.fn()}
-          organization={organizationWithLastVisited}
+          organization={organization}
           dashboards={lastVisitedDashboards}
           location={location}
           isOnlyPrebuilt
         />,
-        {organization: organizationWithLastVisited}
+        {organization}
       );
 
       expect(

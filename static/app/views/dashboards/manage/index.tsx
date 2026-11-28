@@ -47,15 +47,9 @@ import {RouteError} from 'sentry/views/routeError';
 
 import {getIsOnlyPrebuilt} from './utils/getIsOnlyPrebuilt';
 import {DashboardTable} from './dashboardTable';
-import {DASHBOARD_TABLE_NUM_ROWS, DEFAULT_PREBUILT_SORT} from './settings';
+import {DASHBOARD_TABLE_NUM_ROWS, DEFAULT_SORT} from './settings';
 
-function getSortOptions({
-  isOnlyPrebuilt,
-  hasUserLastVisited,
-}: {
-  hasUserLastVisited: boolean;
-  isOnlyPrebuilt: boolean;
-}) {
+function getSortOptions({isOnlyPrebuilt}: {isOnlyPrebuilt: boolean}) {
   const options = [];
 
   if (!isOnlyPrebuilt) {
@@ -65,7 +59,7 @@ function getSortOptions({
     {label: t('Dashboard Name (A-Z)'), value: 'title'},
     {label: t('Dashboard Name (Z-A)'), value: '-title'}
   );
-  if (!hasUserLastVisited || !isOnlyPrebuilt) {
+  if (!isOnlyPrebuilt) {
     options.push(
       {label: t('Date Created (Newest)'), value: '-dateCreated'},
       {label: t('Date Created (Oldest)'), value: 'dateCreated'}
@@ -77,20 +71,6 @@ function getSortOptions({
   );
 
   return options;
-}
-
-function getDefaultSort({
-  isOnlyPrebuilt,
-  hasUserLastVisited,
-}: {
-  hasUserLastVisited: boolean;
-  isOnlyPrebuilt: boolean;
-}) {
-  if (isOnlyPrebuilt && !hasUserLastVisited) {
-    return DEFAULT_PREBUILT_SORT;
-  }
-
-  return hasUserLastVisited ? 'recentlyViewed' : 'mydashboards';
 }
 
 function ManageDashboards() {
@@ -125,10 +105,7 @@ function ManageDashboards() {
 
   const {hasProjectAccess, projectsLoaded} = useHasProjectAccess();
 
-  const hasUserLastVisited = organization.features.includes(
-    'dashboards-user-last-visited'
-  );
-  const sortOptions = getSortOptions({isOnlyPrebuilt, hasUserLastVisited});
+  const sortOptions = getSortOptions({isOnlyPrebuilt});
 
   const {
     data: dashboardsResponse,
@@ -183,36 +160,24 @@ function ManageDashboards() {
   const dashboardsPageLinks = dashboardsResponse?.headers.Link ?? '';
 
   useEffect(() => {
-    const defaultSort = getDefaultSort({isOnlyPrebuilt, hasUserLastVisited});
     if (urlSort && !sortOptions.some(option => option.value === urlSort)) {
       // The sort option is not valid, so we need to set the default sort
       // in the URL
-      setQueryParams({sort: defaultSort});
+      setQueryParams({sort: DEFAULT_SORT});
     }
-  }, [
-    isOnlyPrebuilt,
-    urlSort,
-    setQueryParams,
-    // oxlint-disable-next-line react/exhaustive-effect-dependencies
-    organization,
-    sortOptions,
-    hasUserLastVisited,
-  ]);
+  }, [urlSort, setQueryParams, sortOptions]);
 
   function getActiveSort() {
-    const defaultSort = getDefaultSort({isOnlyPrebuilt, hasUserLastVisited});
-    const activeUrlSort = urlSort || defaultSort;
+    const activeUrlSort = urlSort || DEFAULT_SORT;
 
-    if (activeUrlSort) {
-      // Check if the URL sort is valid
-      const foundSort = sortOptions.find(item => item.value === activeUrlSort);
-      if (foundSort) {
-        return foundSort;
-      }
+    // Check if the URL sort is valid
+    const foundSort = sortOptions.find(item => item.value === activeUrlSort);
+    if (foundSort) {
+      return foundSort;
     }
 
     // If it is not valid, try the default sort, and only if that is not valid, use the first option
-    return sortOptions.find(item => item.value === defaultSort) || sortOptions[0];
+    return sortOptions.find(item => item.value === DEFAULT_SORT) || sortOptions[0];
   }
 
   function handleSearch(query: string) {
