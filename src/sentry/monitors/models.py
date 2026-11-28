@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import uuid
 import zoneinfo
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Collection, Iterable, Mapping, Sequence
 from datetime import datetime
 from functools import cache
 from typing import TYPE_CHECKING, Any, ClassVar, Self, override
@@ -11,10 +11,10 @@ from uuid import uuid4
 
 import jsonschema
 from django.conf import settings
-from django.db import models
+from django.db import models, router, transaction
 from django.db.models import Case, IntegerField, Q, Value, When
 from django.db.models.base import ModelBase
-from django.db.models.signals import pre_save
+from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from django.utils import timezone
 
@@ -40,6 +40,7 @@ from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.deletions.base import ModelRelation
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
+from sentry.monitors.logic.missing_monitor import clear_monitor_missing
 from sentry.monitors.types import DATA_SOURCE_CRON_MONITOR, CrontabSchedule, IntervalSchedule
 from sentry.types.actor import Actor
 from sentry.workflow_engine.models import DataSource, Detector
@@ -477,6 +478,27 @@ def check_organization_monitor_limits_on_save(
 ) -> None:
     if getattr(instance, "pk", None) is None:
         check_organization_monitor_limit(instance.organization_id)
+
+
+_LOOKUP_FIELDS = frozenset({"organization_id", "project_id", "slug"})
+
+
+@receiver(post_save, sender=Monitor)
+def clear_missing_marker_on_save(
+    sender: type[Monitor],
+    instance: Monitor,
+    created: bool,
+    update_fields: Collection[str] | None = None,
+    **kwargs: object,
+) -> None:
+    # Monitor.update() sends post_save with the fields it changed.
+    if not created and update_fields is not None and _LOOKUP_FIELDS.isdisjoint(update_fields):
+        return
+    project_id, slug = instance.project_id, instance.slug
+    # A check-in that misses before the commit would set the marker again.
+    transaction.on_commit(
+        lambda: clear_monitor_missing(project_id, slug), using=router.db_for_write(Monitor)
+    )
 
 
 @cell_silo_model

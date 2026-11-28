@@ -10,6 +10,7 @@ from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.models.rule import Rule
 from sentry.monitors.constants import TIMEOUT
 from sentry.monitors.logic.mark_ok import mark_ok
+from sentry.monitors.logic.missing_monitor import is_monitor_marked_missing, mark_monitor_missing
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -281,6 +282,16 @@ class BaseUpdateMonitorTest(MonitorTestCase):
         self.get_error_response(
             self.organization.slug, monitor.slug, method="PUT", status_code=400, **{"slug": None}
         )
+
+    def test_slug_clears_missing_marker(self) -> None:
+        monitor = self._create_monitor()
+        mark_monitor_missing(monitor.project_id, "my-monitor")
+
+        self.get_success_response(
+            self.organization.slug, monitor.slug, method="PUT", **{"slug": "my-monitor"}
+        )
+
+        assert not is_monitor_marked_missing(monitor.project_id, "my-monitor")
 
     def test_sluggification(self) -> None:
         monitor = self._create_monitor()
