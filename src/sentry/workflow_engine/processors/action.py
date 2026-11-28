@@ -270,7 +270,7 @@ def fire_actions(
 
 def filter_recently_fired_workflow_actions(
     filtered_action_groups: set[DataConditionGroup], event_data: WorkflowEventData
-) -> tuple[BaseQuerySet[Action], dict[ActionId, WorkflowId]]:
+) -> tuple[BaseQuerySet[Action], dict[ActionId, WorkflowId], set[WorkflowId]]:
     """
     Returns actions associated with the provided DataConditionGroups, excluding
     those that have been recently fired, along with a mapping of action_id to
@@ -323,7 +323,8 @@ def filter_recently_fired_workflow_actions(
         action_id: min(wf_ids) for action_id, wf_ids in action_to_workflows_ids.items()
     }
 
-    return actions_queryset, action_to_workflow_id
+    eligible_workflow_ids = {wf_id for ids in action_to_workflows_ids.values() for wf_id in ids}
+    return actions_queryset, action_to_workflow_id, eligible_workflow_ids
 
 
 def get_available_action_integrations_for_org(organization: Organization) -> list[RpcIntegration]:

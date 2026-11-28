@@ -32,6 +32,7 @@ class TestWorkflowFireHistory(BaseWorkflowTest):
             Action.objects.filter(id=self.action.id),
             self.event_data,
             is_delayed=False,
+            eligible_workflow_ids={self.workflow.id},
         )
         assert (
             WorkflowFireHistory.objects.filter(
@@ -54,7 +55,9 @@ class TestWorkflowFireHistory(BaseWorkflowTest):
         assert event_data.get_organization() == self.organization
         assert event_data.project_id == self.project.id
         histories = create_workflow_fire_histories(
-            Action.objects.filter(id=self.action.id), event_data
+            Action.objects.filter(id=self.action.id),
+            event_data,
+            eligible_workflow_ids={self.workflow.id},
         )
         assert histories[0].event_id == str(activity.id)
 
@@ -72,7 +75,10 @@ class TestWorkflowFireHistory(BaseWorkflowTest):
         other_workflow = self.create_workflow(organization=self.create_organization())
         self.create_workflow_action(other_workflow, action=self.action)
         histories = create_workflow_fire_histories(
-            Action.objects.filter(id=self.action.id), event_data, start_timestamp=timezone.now()
+            Action.objects.filter(id=self.action.id),
+            event_data,
+            start_timestamp=timezone.now(),
+            eligible_workflow_ids={self.workflow.id, other_workflow.id},
         )
         assert len(histories) == 1
         history = WorkflowFireHistory.objects.get(id=histories[0].id)
