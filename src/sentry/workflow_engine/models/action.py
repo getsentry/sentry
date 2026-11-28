@@ -80,6 +80,7 @@ class Action(DefaultFieldsModel, JSONConfigBase):
         PLUGIN = "plugin"
         WEBHOOK = "webhook"
         SEER_INVESTIGATION = "seer_investigation"
+        ADD_TO_INBOX = "add_to_inbox"
 
         def is_integration(self) -> bool:
             """
@@ -92,6 +93,7 @@ class Action(DefaultFieldsModel, JSONConfigBase):
                 Action.Type.PLUGIN,
                 Action.Type.WEBHOOK,
                 Action.Type.SEER_INVESTIGATION,
+                Action.Type.ADD_TO_INBOX,
             ]
 
     # The type field is used to denote the type of action we want to trigger
