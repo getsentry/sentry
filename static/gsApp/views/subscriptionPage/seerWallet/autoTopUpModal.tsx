@@ -37,9 +37,9 @@ import {useSeerTopUpRequest} from 'getsentry/components/ai/useSeerTopUpRequest';
 import {AuthenticatePayment} from 'getsentry/components/authenticatePayment';
 import {CreditCardForm} from 'getsentry/components/creditCardEdit/form';
 import {StripeWrapper} from 'getsentry/components/stripeWrapper';
-import {withSubscription} from 'getsentry/components/withSubscription';
+import {SubscriptionLoadingFallback} from 'getsentry/components/subscriptionLoadingFallback';
 import {usePaymentIntentData} from 'getsentry/hooks/useIntentData';
-import type {Subscription} from 'getsentry/types';
+import {useSubscription} from 'getsentry/hooks/useSubscription';
 import {displayPrice, displayPriceWithCents} from 'getsentry/utils/billing';
 import {
   seerWalletAutoTopUpOptions,
@@ -228,13 +228,14 @@ function useSeerStatus(
  * Loads the subscription itself, so the modal doesn't depend on the page having
  * loaded it. Who the member can ask depends on it.
  */
-const ContactAdminContent = withSubscription(function ContactAdminContent({
+function ContactAdminContent({
   Body,
   Footer,
   closeModal,
   organization,
   denialReason: linkDenialReason,
-}: AutoTopUpModalProps & {subscription: Subscription}) {
+}: AutoTopUpModalProps) {
+  const subscription = useSubscription({organization});
   const {escalation, isLoading, hasRequested, isRequesting, requestCredits} =
     useSeerTopUpRequest(organization);
   const {denialReason, isAvailable, isPending, recheck} = useSeerStatus(
@@ -242,6 +243,10 @@ const ContactAdminContent = withSubscription(function ContactAdminContent({
     linkDenialReason
   );
   const [isRechecking, setIsRechecking] = useState(false);
+
+  if (!subscription) {
+    return <SubscriptionLoadingFallback organization={organization} />;
+  }
 
   async function handleContactAdmin() {
     setIsRechecking(true);
@@ -296,7 +301,7 @@ const ContactAdminContent = withSubscription(function ContactAdminContent({
       </Footer>
     </Fragment>
   );
-});
+}
 
 /**
  * Members without billing access can't read or change auto-reload. Members of

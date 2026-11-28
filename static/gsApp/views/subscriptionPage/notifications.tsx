@@ -18,16 +18,13 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
-import {withSubscription} from 'getsentry/components/withSubscription';
+import {SubscriptionLoadingFallback} from 'getsentry/components/subscriptionLoadingFallback';
+import {useSubscription} from 'getsentry/hooks/useSubscription';
 import type {Subscription} from 'getsentry/types';
 import {displayBudgetName} from 'getsentry/utils/billing';
 import {ContactBillingMembers} from 'getsentry/views/contactBillingMembers';
 import {SubscriptionPageContainer} from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 import {hasSpendVisibilityNotificationsFeature} from 'getsentry/views/subscriptionPage/utils';
-
-interface SubscriptionNotificationsProps {
-  subscription: Subscription;
-}
 
 type ThresholdsType = {perProductOndemandPercent: number[]; reservedPercent: number[]};
 
@@ -45,8 +42,9 @@ const THRESHOLD_OPTIONS = [90, 80, 70, 60, 50, 40, 30, 20, 10].map(value => ({
   value,
 }));
 
-function SubscriptionNotifications({subscription}: SubscriptionNotificationsProps) {
+export default function SubscriptionNotifications() {
   const organization = useOrganization();
+  const subscription = useSubscription();
 
   const {
     data: backendThresholds,
@@ -62,6 +60,10 @@ function SubscriptionNotifications({subscription}: SubscriptionNotificationsProp
   });
 
   const hasBillingPerms = organization.access?.includes('org:billing');
+
+  if (!subscription) {
+    return <SubscriptionLoadingFallback />;
+  }
 
   if (!hasSpendVisibilityNotificationsFeature(organization)) {
     return <Redirect to={`/settings/${organization.slug}/billing/overview/`} />;
@@ -197,5 +199,3 @@ function ThresholdsForm({
     </form.AppForm>
   );
 }
-
-export default withSubscription(SubscriptionNotifications);

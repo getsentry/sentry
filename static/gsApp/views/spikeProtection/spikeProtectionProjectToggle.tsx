@@ -10,8 +10,8 @@ import {makeDetailedProjectQueryKey} from 'sentry/utils/project/useDetailedProje
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-import {withSubscription} from 'getsentry/components/withSubscription';
-import type {Subscription} from 'getsentry/types';
+import {SubscriptionLoadingFallback} from 'getsentry/components/subscriptionLoadingFallback';
+import {useSubscription} from 'getsentry/hooks/useSubscription';
 import type {SpendVisibilityBaseParams} from 'getsentry/utils/trackSpendVisibilityAnalytics';
 import {
   SpendVisibilityEvents,
@@ -23,7 +23,6 @@ const spikeProtectionSchema = z.object({enabled: z.boolean()});
 
 interface SpikeProtectionProjectToggleProps {
   project: ProjectSummaryWithOptions;
-  subscription: Subscription;
   analyticsView?: SpendVisibilityBaseParams['view'];
   disabled?: boolean;
   help?: React.ReactNode;
@@ -35,9 +34,8 @@ interface SpikeProtectionProjectToggleProps {
 export const isSpikeProtectionEnabled = (p: ProjectSummaryWithOptions) =>
   !p?.options?.[SPIKE_PROTECTION_OPTION_DISABLED];
 
-function SpikeProtectionProjectToggle({
+export function SpikeProtectionProjectToggle({
   project,
-  subscription,
   analyticsView,
   disabled = false,
   onChange,
@@ -46,6 +44,11 @@ function SpikeProtectionProjectToggle({
 }: SpikeProtectionProjectToggleProps) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
+  const subscription = useSubscription();
+
+  if (!subscription) {
+    return <SubscriptionLoadingFallback />;
+  }
 
   const testId = `${project.slug}-spike-protection-toggle`;
 
@@ -130,5 +133,3 @@ function SpikeProtectionProjectToggle({
     </div>
   );
 }
-
-export default withSubscription(SpikeProtectionProjectToggle);

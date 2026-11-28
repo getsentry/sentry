@@ -13,7 +13,8 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 
 import {openOnDemandBudgetEditModal} from 'getsentry/actionCreators/modal';
-import {withSubscription} from 'getsentry/components/withSubscription';
+import {SubscriptionLoadingFallback} from 'getsentry/components/subscriptionLoadingFallback';
+import {useSubscription} from 'getsentry/hooks/useSubscription';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import type {CustomerUsage, Subscription} from 'getsentry/types';
 import {ContactBillingMembers} from 'getsentry/views/contactBillingMembers';
@@ -27,13 +28,12 @@ import {RecurringCredits} from './recurringCredits';
 import {SubscriptionHeader} from './subscriptionHeader';
 import {UsageAlert} from './usageAlert';
 
-type Props = {subscription: Subscription};
-
 /**
  * Subscription overview page.
  */
-function Overview({subscription}: Props) {
+export default function Overview() {
   const organization = useOrganization();
+  const subscription = useSubscription();
 
   const hasBillingPerms = organization.access?.includes('org:billing');
   // we fetch an expanded view of the subscription which includes usage
@@ -53,7 +53,7 @@ function Overview({subscription}: Props) {
   useEffect(() => {
     // Open on-demand budget modal if hash fragment present
     // Modal logic handles checking perms
-    if (window.location.hash === '#open-ondemand-modal') {
+    if (subscription && window.location.hash === '#open-ondemand-modal') {
       openOnDemandBudgetEditModal({organization, subscription});
 
       // Clear hash to prevent modal reopening on refresh
@@ -64,6 +64,10 @@ function Overview({subscription}: Props) {
       );
     }
   }, [organization, subscription]);
+
+  if (!subscription) {
+    return <SubscriptionLoadingFallback />;
+  }
 
   // The customer endpoint returns 200 with an empty body when it cannot
   // serialize the customer, so the subscription has no plan details.
@@ -174,5 +178,3 @@ function Footer({subscription}: {subscription: Subscription}) {
     </Stack>
   );
 }
-
-export default withSubscription(Overview);

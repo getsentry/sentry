@@ -28,8 +28,9 @@ import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/or
 
 import {LearnMoreButton} from 'getsentry/components/features/learnMoreButton';
 import PlanFeature from 'getsentry/components/features/planFeature';
-import {withSubscription} from 'getsentry/components/withSubscription';
+import {SubscriptionLoadingFallback} from 'getsentry/components/subscriptionLoadingFallback';
 import {AllocationTargetTypes} from 'getsentry/constants';
+import {useSubscription} from 'getsentry/hooks/useSubscription';
 import type {Subscription} from 'getsentry/types';
 import {displayPlanName} from 'getsentry/utils/billing';
 import {
@@ -503,7 +504,15 @@ export function SpendAllocationsRoot({subscription}: Props) {
   );
 }
 
-export default withSubscription(SpendAllocationsRoot);
+export default function SpendAllocationsContainer() {
+  const subscription = useSubscription();
+
+  if (!subscription) {
+    return <SubscriptionLoadingFallback />;
+  }
+
+  return <SpendAllocationsRoot subscription={subscription} />;
+}
 
 const DropdownDataCategory = styled(CompactSelect)`
   grid-column: auto / span 1;
