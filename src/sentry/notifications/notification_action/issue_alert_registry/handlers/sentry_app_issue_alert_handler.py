@@ -1,3 +1,4 @@
+import logging
 from dataclasses import asdict
 from typing import Any
 
@@ -8,6 +9,7 @@ from sentry.notifications.notification_action.types import BaseIssueAlertHandler
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.utils.errors import SentryAppError
 from sentry.workflow_engine.models import Action
+from sentry.workflow_engine.types import ActionInvocation
 from sentry.workflow_engine.typings.notification_action import (
     ActionFieldMapping,
     ActionFieldMappingKeys,
@@ -15,11 +17,34 @@ from sentry.workflow_engine.typings.notification_action import (
     SentryAppFormConfigDataBlob,
 )
 
+logger = logging.getLogger(__name__)
+
 ValidationError = serializers.ValidationError
+
+
+class SentryAppInstallationNotFound(ValueError):
+    """The action's sentry app is no longer installed in the organization."""
 
 
 @issue_alert_handler_registry.register(Action.Type.SENTRY_APP)
 class SentryAppIssueAlertHandler(BaseIssueAlertHandler):
+    @classmethod
+    def invoke_legacy_registry(cls, invocation: ActionInvocation) -> None:
+        try:
+            super().invoke_legacy_registry(invocation)
+        except SentryAppInstallationNotFound:
+            # Uninstalling disables the app's actions through an outbox, so an action can
+            # still be active for a short time after the installation is gone. Nothing
+            # can be sent, so skip it instead of retrying and reporting an error.
+            logger.info(
+                "sentry_app.issue_alert.missing_installation",
+                extra={
+                    "action_id": invocation.action.id,
+                    "sentry_app_id": invocation.action.config.get("target_identifier"),
+                    "detector_id": invocation.detector.id,
+                },
+            )
+
     @classmethod
     def get_integration_id(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
         return {}
@@ -41,7 +66,12 @@ class SentryAppIssueAlertHandler(BaseIssueAlertHandler):
                 filter=dict(app_ids=[int(target_identifier)], organization_id=organization_id)
             )
 
-            if sentry_app_installations is None or len(sentry_app_installations) != 1:
+            if not sentry_app_installations:
+                raise SentryAppInstallationNotFound(
+                    f"No sentry app installation for action type: {action.type}, target_identifier: {target_identifier}"
+                )
+
+            if len(sentry_app_installations) != 1:
                 raise ValueError(
                     f"Expected 1 sentry app installation for action type: {action.type}, target_identifier: {target_identifier}, but got {len(sentry_app_installations)}"
                 )
