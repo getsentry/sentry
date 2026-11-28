@@ -9,6 +9,10 @@ import {Markdown} from '@sentry/scraps/markdown';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Text} from '@sentry/scraps/text';
 
+import {
+  CommentAttachmentButton,
+  commentAttachmentMarkdown,
+} from 'sentry/components/activity/note/commentAttachmentButton';
 import {t} from 'sentry/locale';
 import type {NoteType} from 'sentry/types/alerts';
 import {serializeMentions} from 'sentry/utils/mentions/serializeMentions';
@@ -16,6 +20,11 @@ import {useOrgMentionPlugins} from 'sentry/utils/mentions/useOrgMentionPlugins';
 
 interface CreateComposerProps {
   onSubmit: (data: NoteType) => Promise<void>;
+  /**
+   * Issue that files are uploaded to. Without it the composer has no attach
+   * button.
+   */
+  attachmentIssueId?: string;
   initialValue?: string;
   minHeight?: number;
   onValueChange?: (value: string) => void;
@@ -142,6 +151,19 @@ export function MentionComposer(props: MentionComposerProps) {
             />
           )}
           <Flex align="center" gap="sm">
+            {props.mode === 'create' && props.attachmentIssueId && (
+              <CommentAttachmentButton
+                issueId={props.attachmentIssueId}
+                onUploaded={attachment => {
+                  const {text, mentions} = form.getFieldValue('value');
+                  const link = commentAttachmentMarkdown(attachment);
+                  const nextText =
+                    text.trim() === '' ? link : `${text.trimEnd()}\n${link}`;
+                  form.setFieldValue('value', {text: nextText, mentions});
+                  props.onValueChange?.(nextText);
+                }}
+              />
+            )}
             {props.mode === 'edit' && (
               <form.Subscribe selector={state => state.isSubmitting}>
                 {isSubmitting => (

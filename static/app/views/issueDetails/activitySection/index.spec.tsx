@@ -300,6 +300,265 @@ describe('ActivitySection', () => {
     expect(screen.getByText('10min ago')).toBeInTheDocument();
   });
 
+  it('plays uploaded comment videos inline', async () => {
+    const videoUrl = '/api/0/organizations/org-slug/issues/1339/comment-attachments/5/';
+    const videoGroup = GroupFixture({
+      id: '1339',
+      activity: [
+        {
+          type: GroupActivityType.NOTE,
+          id: 'note-1',
+          commentId: 'note-1',
+          data: {
+            text: `[video_1.mp4](${videoUrl}) and [docs](https://docs.sentry.io/) and [other](/api/0/organizations/../issues/1/comment-attachments/5/)`,
+          },
+          dateCreated: tenMinutesAgo(),
+          user,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={videoGroup} project={videoGroup.project}>
+        <ActivitySection group={videoGroup} />
+      </GroupDataContextProvider>
+    );
+
+    const videos = await screen.findAllByTestId('note-video');
+    expect(videos).toHaveLength(1);
+    expect(videos[0]).toHaveAttribute('src', videoUrl);
+    const fileLink = screen.getByRole('link', {name: 'video_1.mp4'});
+    expect(fileLink).toHaveAttribute('href', videoUrl);
+    // Opens the file itself instead of routing inside the app.
+    expect(fileLink).toHaveAttribute('target', '_blank');
+    expect(screen.getByRole('link', {name: 'docs'})).toBeInTheDocument();
+  });
+
+  it('links other uploaded files as downloads without a player', async () => {
+    const fileUrl = '/api/0/organizations/org-slug/issues/1341/comment-attachments/6/';
+    const fileGroup = GroupFixture({
+      id: '1341',
+      activity: [
+        {
+          type: GroupActivityType.NOTE,
+          id: 'note-1',
+          commentId: 'note-1',
+          data: {text: `[trace.zip](${fileUrl})`},
+          dateCreated: tenMinutesAgo(),
+          user,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={fileGroup} project={fileGroup.project}>
+        <ActivitySection group={fileGroup} />
+      </GroupDataContextProvider>
+    );
+
+    const fileLink = await screen.findByRole('link', {name: 'trace.zip'});
+    expect(fileLink).toHaveAttribute('href', fileUrl);
+    expect(fileLink).toHaveAttribute('target', '_blank');
+    expect(screen.queryByTestId('note-video')).not.toBeInTheDocument();
+  });
+
+  it('loads comment videos from the region host', async () => {
+    const originalFeatures = ConfigStore.get('features');
+    const originalLinks = ConfigStore.get('links');
+    ConfigStore.set('features', new Set(['system:multi-region']));
+    ConfigStore.set('links', {...originalLinks, regionUrl: 'https://us.sentry.io'});
+    const videoUrl = '/api/0/organizations/org-slug/issues/1340/comment-attachments/5/';
+    const regionGroup = GroupFixture({
+      id: '1340',
+      activity: [
+        {
+          type: GroupActivityType.NOTE,
+          id: 'note-1',
+          commentId: 'note-1',
+          data: {text: `[video_1.mp4](${videoUrl})`},
+          dateCreated: tenMinutesAgo(),
+          user,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={regionGroup} project={regionGroup.project}>
+        <ActivitySection group={regionGroup} />
+      </GroupDataContextProvider>
+    );
+
+    expect(await screen.findByTestId('note-video')).toHaveAttribute(
+      'src',
+      `https://us.sentry.io${videoUrl}`
+    );
+    expect(screen.getByRole('link', {name: 'video_1.mp4'})).toHaveAttribute(
+      'href',
+      `https://us.sentry.io${videoUrl}`
+    );
+    ConfigStore.set('features', originalFeatures);
+    ConfigStore.set('links', originalLinks);
+  });
+
+  it('uploads a video and links it in the comment', async () => {
+    const organization = OrganizationFixture({features: ['issue-comment-attachments']});
+    const videoUrl = '/api/0/organizations/org-slug/issues/1337/comment-attachments/5/';
+    const uploadMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1337/comment-attachments/',
+      method: 'POST',
+      statusCode: 201,
+      body: {
+        id: '5',
+        name: 'video_1.mp4',
+        size: 4,
+        contentType: 'video/mp4',
+        url: videoUrl,
+      },
+    });
+    const postMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1337/comments/',
+      method: 'POST',
+      body: {
+        id: 'note-4',
+        commentId: 'note-4',
+        user,
+        type: 'note',
+        data: {text: `[video_1.mp4](${videoUrl})`},
+        dateCreated: '2024-10-31T00:00:00.000000Z',
+      },
+    });
+
+    render(
+      <GroupDataContextProvider group={group} project={group.project}>
+        <ActivitySection group={group} />
+      </GroupDataContextProvider>,
+      {organization}
+    );
+
+    await userEvent.click(getCommentEditor());
+    await userEvent.upload(
+      screen.getByLabelText('Attachment file'),
+      new File(['data'], 'video_1.mp4', {type: 'video/mp4'})
+    );
+
+    await waitFor(() => expect(uploadMock).toHaveBeenCalled());
+    const submitButton = screen.getByRole('button', {name: 'Submit comment'});
+    await waitFor(() => expect(submitButton).toBeEnabled());
+    await userEvent.click(submitButton);
+
+    expect(postMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/issues/1337/comments/',
+      expect.objectContaining({
+        method: 'POST',
+        data: {text: `[video_1.mp4](${videoUrl})`, mentions: []},
+      })
+    );
+  });
+
+  it('uploads any file and links it in the comment', async () => {
+    const organization = OrganizationFixture({features: ['issue-comment-attachments']});
+    const fileUrl = '/api/0/organizations/org-slug/issues/1337/comment-attachments/6/';
+    const uploadMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1337/comment-attachments/',
+      method: 'POST',
+      statusCode: 201,
+      body: {
+        id: '6',
+        name: 'trace.zip',
+        size: 4,
+        contentType: 'application/octet-stream',
+        url: fileUrl,
+      },
+    });
+    const postMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1337/comments/',
+      method: 'POST',
+      body: {
+        id: 'note-5',
+        commentId: 'note-5',
+        user,
+        type: 'note',
+        data: {text: `[trace.zip](${fileUrl})`},
+        dateCreated: '2024-10-31T00:00:00.000000Z',
+      },
+    });
+
+    render(
+      <GroupDataContextProvider group={group} project={group.project}>
+        <ActivitySection group={group} />
+      </GroupDataContextProvider>,
+      {organization}
+    );
+
+    await userEvent.click(getCommentEditor());
+    const fileInput = screen.getByLabelText('Attachment file');
+    expect(fileInput).not.toHaveAttribute('accept');
+    await userEvent.upload(
+      fileInput,
+      new File(['data'], 'trace.zip', {type: 'application/zip'})
+    );
+
+    await waitFor(() => expect(uploadMock).toHaveBeenCalled());
+    const submitButton = screen.getByRole('button', {name: 'Submit comment'});
+    await waitFor(() => expect(submitButton).toBeEnabled());
+    await userEvent.click(submitButton);
+
+    expect(postMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/issues/1337/comments/',
+      expect.objectContaining({
+        method: 'POST',
+        data: {text: `[trace.zip](${fileUrl})`, mentions: []},
+      })
+    );
+  });
+
+  it('shows why a video upload was rejected', async () => {
+    jest.spyOn(toast, 'error');
+    const organization = OrganizationFixture({features: ['issue-comment-attachments']});
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1337/comment-attachments/',
+      method: 'POST',
+      statusCode: 413,
+      body: {detail: 'File is too large. The maximum size is 100 MB.'},
+    });
+
+    render(
+      <GroupDataContextProvider group={group} project={group.project}>
+        <ActivitySection group={group} />
+      </GroupDataContextProvider>,
+      {organization}
+    );
+
+    await userEvent.click(getCommentEditor());
+    await userEvent.upload(
+      screen.getByLabelText('Attachment file'),
+      new File(['data'], 'big.mp4', {type: 'video/mp4'})
+    );
+
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith(
+        'File is too large. The maximum size is 100 MB.'
+      )
+    );
+    expect(screen.getByRole('button', {name: 'Submit comment'})).toBeDisabled();
+  });
+
+  it('hides the video attach button without the feature', async () => {
+    render(
+      <GroupDataContextProvider group={group} project={group.project}>
+        <ActivitySection group={group} />
+      </GroupDataContextProvider>
+    );
+
+    await userEvent.click(getCommentEditor());
+
+    expect(screen.getByRole('button', {name: 'Submit comment'})).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Attach file'})).not.toBeInTheDocument();
+  });
+
   it('renders activity actor markers', async () => {
     const activityGroup = GroupFixture({
       id: '1338',
