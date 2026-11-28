@@ -1,15 +1,16 @@
 import {Fragment} from 'react';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {DisplayField} from '@sentry/scraps/form';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {useFeatureFlagOnboarding} from 'sentry/components/events/featureFlags/onboarding/useFeatureFlagOnboarding';
-import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {PanelItem} from 'sentry/components/panels/panelItem';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -37,37 +38,37 @@ function OrganizationFeatureFlagsIndex() {
       <Panel>
         <PanelHeader>{t('Features')}</PanelHeader>
         <PanelBody>
-          <FieldGroup
-            alignRight
-            flexibleControlStateSize
-            label={<Text size="lg">{t('Evaluation Tracking')}</Text>}
-            help={t(
-              'Evaluation tracking enables Sentry to capture flag values on your error events. Flag evaluations will appear in the "Feature Flags" section of the Issue Details page.'
-            )}
-          >
-            <Button
-              aria-label={t('Set Up Evaluation Tracking')}
-              onClick={mouseEvent => {
-                activateSidebar(mouseEvent);
-              }}
+          <PanelItem>
+            <DisplayField.Row
+              label={<Text size="lg">{t('Evaluation Tracking')}</Text>}
+              hintText={t(
+                'Evaluation tracking enables Sentry to capture flag values on your error events. Flag evaluations will appear in the "Feature Flags" section of the Issue Details page.'
+              )}
             >
-              {t('Set Up Project')}
-            </Button>
-          </FieldGroup>
-          <FieldGroup
-            alignRight
-            flexibleControlStateSize
-            label={<Text size="lg">{t('Change Tracking')}</Text>}
-            help={t(
-              'Change tracking enables Sentry to listen for additions, removals, and modifications to your feature flags.'
-            )}
-          >
-            <LinkButton
-              to={`/settings/${organization.slug}/feature-flags/change-tracking/`}
+              <Button
+                aria-label={t('Set Up Evaluation Tracking')}
+                onClick={mouseEvent => {
+                  activateSidebar(mouseEvent);
+                }}
+              >
+                {t('Set Up Project')}
+              </Button>
+            </DisplayField.Row>
+          </PanelItem>
+          <PanelItem>
+            <DisplayField.Row
+              label={<Text size="lg">{t('Change Tracking')}</Text>}
+              hintText={t(
+                'Change tracking enables Sentry to listen for additions, removals, and modifications to your feature flags.'
+              )}
             >
-              {t('Manage Providers')}
-            </LinkButton>
-          </FieldGroup>
+              <LinkButton
+                to={`/settings/${organization.slug}/feature-flags/change-tracking/`}
+              >
+                {t('Manage Providers')}
+              </LinkButton>
+            </DisplayField.Row>
+          </PanelItem>
         </PanelBody>
       </Panel>
     </Fragment>

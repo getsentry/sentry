@@ -5,6 +5,7 @@ import {useMutation} from '@tanstack/react-query';
 import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Confirm} from '@sentry/scraps/confirm';
+import {DisplayField} from '@sentry/scraps/form';
 import {Grid, Container} from '@sentry/scraps/layout';
 import {LinkTabs} from '@sentry/scraps/tabs';
 import {toast} from '@sentry/scraps/toast';
@@ -12,7 +13,6 @@ import {toast} from '@sentry/scraps/toast';
 import {openEmailVerification} from 'sentry/actionCreators/modal';
 import {CircleIndicator} from 'sentry/components/circleIndicator';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
-import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
@@ -110,23 +110,23 @@ export default function AccountSecurity() {
       <Panel>
         <PanelHeader>{t('Sessions')}</PanelHeader>
         <PanelBody>
-          <FieldGroup
-            alignRight
-            flexibleControlStateSize
-            label={t('Sign out of all devices')}
-            help={t(
-              'Signing out of all devices will sign you out of this device as well.'
-            )}
-          >
-            <Confirm
-              onConfirm={handleSessionClose}
-              message={t(
-                'You will need to re-authenticate on all devices you were previously signed in on. Are you sure?'
+          <PanelItem>
+            <DisplayField.Row
+              label={t('Sign out of all devices')}
+              hintText={t(
+                'Signing out of all devices will sign you out of this device as well.'
               )}
             >
-              <Button>{t('Sign out of all devices')}</Button>
-            </Confirm>
-          </FieldGroup>
+              <Confirm
+                onConfirm={handleSessionClose}
+                message={t(
+                  'You will need to re-authenticate on all devices you were previously signed in on. Are you sure?'
+                )}
+              >
+                <Button>{t('Sign out of all devices')}</Button>
+              </Confirm>
+            </DisplayField.Row>
+          </PanelItem>
         </PanelBody>
       </Panel>
 

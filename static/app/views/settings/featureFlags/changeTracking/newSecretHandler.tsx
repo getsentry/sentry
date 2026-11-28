@@ -3,11 +3,11 @@ import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import {DisplayField} from '@sentry/scraps/form';
 import {Container} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {PROVIDER_TO_SETUP_WEBHOOK_URL} from 'sentry/components/events/featureFlags/utils';
-import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
@@ -32,9 +32,10 @@ export function NewSecretHandler({
 
       <StyledPanelItem>
         <Container flex="1">
-          <StyledFieldGroup
+          <DisplayField.Row
+            padding="md"
             label={t('Webhook URL')}
-            help={tct(
+            hintText={tct(
               "Create a webhook integration with your [link:feature flag service]. When you do so, you'll need to enter this URL.",
               {
                 link: (
@@ -48,23 +49,20 @@ export function NewSecretHandler({
                 ),
               }
             )}
-            inline
-            flexibleControlStateSize
           >
             <TextCopyInput
               aria-label={t('Webhook URL')}
             >{`https://sentry.io/api/0/organizations/${organization.slug}/flags/hooks/provider/${provider.toLowerCase()}/`}</TextCopyInput>
-          </StyledFieldGroup>
-          <StyledFieldGroup
+          </DisplayField.Row>
+          <DisplayField.Row
+            padding="md"
             label={t('Secret')}
-            help={t(
+            hintText={t(
               'The secret should not be shared and will not be retrievable once you leave this page.'
             )}
-            inline
-            flexibleControlStateSize
           >
             <TextCopyInput aria-label={t('Secret')}>{secret}</TextCopyInput>
-          </StyledFieldGroup>
+          </DisplayField.Row>
         </Container>
       </StyledPanelItem>
 
@@ -78,10 +76,6 @@ export function NewSecretHandler({
     </div>
   );
 }
-
-const StyledFieldGroup = styled(FieldGroup)`
-  padding: ${p => p.theme.space.md};
-`;
 
 const ButtonWrapper = styled('div')`
   margin-left: auto;

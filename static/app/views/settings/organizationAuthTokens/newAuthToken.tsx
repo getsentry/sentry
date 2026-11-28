@@ -3,12 +3,11 @@ import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormOptions, DisplayField, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {toast} from '@sentry/scraps/toast';
 
-import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -101,9 +100,9 @@ function AuthTokenCreateForm({
           )}
         </form.AppField>
 
-        <FieldGroup
+        <DisplayField.Row
           label={t('Scopes')}
-          help={t('Organization tokens currently have a limited set of scopes.')}
+          hintText={t('Organization tokens currently have a limited set of scopes.')}
         >
           <div>
             <div>org:ci</div>
@@ -111,7 +110,7 @@ function AuthTokenCreateForm({
               {t('Source Map Upload, Release Creation, Code Mappings')}
             </ScopeHelpText>
           </div>
-        </FieldGroup>
+        </DisplayField.Row>
       </form.FieldGroup>
       <Flex justify="end" gap="md" padding="md">
         <Button onClick={handleGoBack}>{t('Cancel')}</Button>
