@@ -11,12 +11,16 @@ import {AgenticSetup} from 'sentry/components/onboarding/agenticProgress/agentic
 import type {AgentSetupCopySource} from 'sentry/components/onboarding/agenticProgress/agentSetupCard';
 import type {AgenticRunSession} from 'sentry/components/onboarding/agenticProgress/types';
 import {useAgenticSetupRun} from 'sentry/components/onboarding/agenticProgress/useAgenticSetupRun';
+import {isTeamAdminForProjectCreation} from 'sentry/components/projects/canCreateProject';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
+
+import {TeamAdminProjectCreationAlert} from './teamAdminProjectCreationAlert';
 
 function getSetupHeading({
   hasRunFailed,
@@ -63,6 +67,14 @@ export function AgenticCreateProject({
 }) {
   const organization = useOrganization();
   const canCreateProject = useCanCreateProject();
+  const {teams} = useUserTeams();
+  // The project-create endpoints don't know about the run, so a 403 the agent
+  // hits never reaches this page. Warn up front instead.
+  const projectCreationTeams =
+    organization.access.includes('project:admin') ||
+    organization.allowMemberProjectCreation
+      ? []
+      : teams.filter(isTeamAdminForProjectCreation);
   const [session, setSession] = useState<AgenticRunSession>();
   const [setupMethod, setSetupMethod] = useState<'agent' | 'manual'>('agent');
   const [hasOpenedManualSetup, setHasOpenedManualSetup] = useState(false);
@@ -102,6 +114,17 @@ export function AgenticCreateProject({
     });
   };
 
+  const handleSetupInBrowser = () => {
+    trackAnalytics('project_creation.agent_setup_manual_clicked', {
+      organization,
+      variant: 'scm',
+      run_id: run?.runId,
+    });
+
+    setHasOpenedManualSetup(true);
+    setSetupMethod('manual');
+  };
+
   const heading = getSetupHeading({hasRunFailed, isSetupComplete, isAgentConnected});
 
   return (
@@ -116,6 +139,16 @@ export function AgenticCreateProject({
                   {heading.description}
                 </Text>
               </Stack>
+              {projectCreationTeams.length > 0 && !isSetupComplete && (
+                <TeamAdminProjectCreationAlert
+                  teams={projectCreationTeams}
+                  // AgenticSetup hides its manual link while a run is active,
+                  // which is when an agent stuck on a 403 needs a way out.
+                  onSetupInBrowser={
+                    isAgentConnected && !hasRunFailed ? handleSetupInBrowser : undefined
+                  }
+                />
+              )}
               <AgenticSetup
                 handoffFlow={AgentHandoffFlow.CREATE_PROJECT}
                 run={run}
@@ -129,16 +162,7 @@ export function AgenticCreateProject({
                 onSelectSnippet={handleSelectSnippet}
                 feedbackSource="project-creation-agent-setup"
                 issueLinkReferrer="project-creation-agentic-first-issue"
-                onSetupInBrowser={() => {
-                  trackAnalytics('project_creation.agent_setup_manual_clicked', {
-                    organization,
-                    variant: 'scm',
-                    run_id: run?.runId,
-                  });
-
-                  setHasOpenedManualSetup(true);
-                  setSetupMethod('manual');
-                }}
+                onSetupInBrowser={handleSetupInBrowser}
               />
               {isSetupComplete && (
                 <LinkButton
