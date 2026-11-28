@@ -82,6 +82,28 @@ class TestGetTransactionsForProject(APITransactionTestCase, SnubaTestCase, SpanT
             assert isinstance(transaction.name, str)
             assert len(transaction.name) > 0
 
+    def test_get_trace_for_transaction_with_special_characters(self) -> None:
+        transaction_name = "/media/images/*/glass\\_brain_1.jpg"
+        trace_id = uuid.uuid4().hex
+        span = self.create_span(
+            {
+                "description": "span-0",
+                "sentry_tags": {"transaction": transaction_name},
+                "trace_id": trace_id,
+                "is_segment": True,
+            },
+            start_ts=self.ten_mins_ago,
+        )
+        self.store_spans([span])
+
+        result = get_trace_for_transaction(transaction_name, self.project.id)
+
+        assert result is not None
+        assert result.trace_id == trace_id
+
+    def test_get_trace_for_transaction_unrepresentable_name(self) -> None:
+        assert get_trace_for_transaction("/media/glass\\*_1.jpg", self.project.id) is None
+
     def test_get_trace_for_transaction(self) -> None:
         transaction_name = "api/users/profile"
 

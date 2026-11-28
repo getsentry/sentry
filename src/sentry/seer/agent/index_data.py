@@ -11,7 +11,9 @@ from sentry.api.event_search import SearchFilter
 from sentry.api.helpers.group_index.index import parse_and_convert_issue_search_query
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.event import EventSerializer
+from sentry.exceptions import InvalidSearchQuery
 from sentry.models.project import Project
+from sentry.search.eap.occurrences.query_utils import build_escaped_term_filter
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.seer.agent.utils import (
@@ -150,10 +152,19 @@ def get_trace_for_transaction(transaction_name: str, project_id: int) -> TraceDa
     )
 
     # Step 1: Get a random trace ID for the transaction
-    escaped_transaction_name = UNESCAPED_QUOTE_RE.sub('\\"', transaction_name)
+    try:
+        # Escape the name so `*` and `"` are matched literally rather than parsed as search syntax.
+        transaction_filter = build_escaped_term_filter("transaction", [transaction_name])
+    except InvalidSearchQuery:
+        logger.warning(
+            "Transaction name cannot be represented as an exact search term",
+            extra={"project_id": project_id, "transaction_name": transaction_name},
+        )
+        return None
+
     traces_result = Spans.run_table_query(
         params=snuba_params,
-        query_string=f'transaction:"{escaped_transaction_name}" project.id:{project_id}',
+        query_string=f"{transaction_filter} project.id:{project_id}",
         selected_columns=[
             "trace",
             "precise.start_ts",
