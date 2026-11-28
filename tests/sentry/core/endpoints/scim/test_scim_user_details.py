@@ -351,6 +351,36 @@ class SCIMMemberRoleUpdateTests(SCIMTestCase):
         assert self.unrestricted_custom_role_member.role == same_role
         assert self.unrestricted_custom_role_member.flags["idp:role-restricted"]
 
+    def test_unchanged_member_is_not_saved(self) -> None:
+        member = self.unrestricted_default_role_member
+        member.flags["idp:provisioned"] = True
+        member.save()
+
+        with patch.object(OrganizationMember, "save", autospec=True) as mock_save:
+            self.get_success_response(
+                self.organization.slug, member.id, **generate_put_data(member)
+            )
+        assert not mock_save.called
+
+    def test_unchanged_owner_is_not_saved(self) -> None:
+        owner = self.create_member(
+            user=self.create_user(), organization=self.organization, role="owner"
+        )
+        owner.flags["idp:provisioned"] = True
+        owner.save()
+
+        with patch.object(OrganizationMember, "save", autospec=True) as mock_save:
+            self.get_success_response(self.organization.slug, owner.id, **generate_put_data(owner))
+        assert not mock_save.called
+
+    def test_first_provision_is_saved(self) -> None:
+        member = self.unrestricted_default_role_member
+        assert not member.flags["idp:provisioned"]
+
+        self.get_success_response(self.organization.slug, member.id, **generate_put_data(member))
+        member.refresh_from_db()
+        assert member.flags["idp:provisioned"]
+
     def test_cannot_set_partnership_member_role(self) -> None:
         self.partnership_member = self.create_member(
             user=self.create_user(),
