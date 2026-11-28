@@ -41,6 +41,10 @@ export function useHasImpactAssessment() {
   return hasImpactAssessment(useOrganization());
 }
 
+export function hasImpactFeedback(organization: Organization) {
+  return organization.features.includes('seer-impact-assessment-feedback');
+}
+
 export function hasImpactCitations(organization: Organization) {
   return organization.features.includes('seer-impact-assessment-citations');
 }

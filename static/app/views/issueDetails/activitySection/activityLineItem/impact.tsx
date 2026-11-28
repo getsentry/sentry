@@ -6,7 +6,11 @@ import {Text} from '@sentry/scraps/text';
 
 import {ImpactBadge} from 'sentry/components/issues/impact/impactBadge';
 import {ImpactCitations} from 'sentry/components/issues/impact/impactCitations';
-import {hasImpactCitations} from 'sentry/components/issues/impact/utils';
+import {ImpactFeedback} from 'sentry/components/issues/impact/impactFeedback';
+import {
+  hasImpactCitations,
+  hasImpactFeedback,
+} from 'sentry/components/issues/impact/utils';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
 import {
@@ -74,6 +78,7 @@ function ImpactActivityDetails({
   group: Group;
 }) {
   const organization = useOrganization();
+  const showFeedback = activity.data.level !== null && hasImpactFeedback(organization);
   return (
     <Stack gap="md" data-test-id="impact-activity-details">
       <Text as="p" density="comfortable">
@@ -83,6 +88,12 @@ function ImpactActivityDetails({
         <Fragment>
           <Stack.Separator border="secondary" />
           <ImpactCitations impact={activity.data} group={group} />
+        </Fragment>
+      )}
+      {showFeedback && (
+        <Fragment>
+          <Stack.Separator border="secondary" />
+          <ImpactFeedback impact={activity.data} group={group} />
         </Fragment>
       )}
     </Stack>
