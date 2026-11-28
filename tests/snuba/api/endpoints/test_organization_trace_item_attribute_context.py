@@ -392,6 +392,35 @@ class OrganizationTraceItemAttributeContextEndpointTest(
         assert response.status_code == 400, response.data
         assert "dataset" in response.data
 
+    def test_accepts_attribute_name_containing_slashes(self) -> None:
+        self.store_attribute(**{"checkout/payment/step": "value"})
+
+        response = self.do_request(
+            "checkout/payment/step",
+            {
+                "dataset": "spans",
+                "attributeType": "string",
+                "brief": "My custom attribute",
+            },
+        )
+
+        assert response.status_code == 201, response.data
+        assert response.data["attributeKey"] == "checkout/payment/step"
+
+    def test_rejects_array_attribute_type(self) -> None:
+        response = self.do_request(
+            "my_custom_attr",
+            {
+                "dataset": "spans",
+                "attributeType": "array",
+                "brief": "My custom attribute",
+            },
+        )
+
+        assert response.status_code == 400, response.data
+        assert "attributeType" in response.data
+        assert not TraceItemAttributeContext.objects.filter(attribute_key="my_custom_attr").exists()
+
     def test_member_role_can_write_context(self) -> None:
         # Authoring attribute context is scoped to `event:write`, which the
         # base member role has, rather than `org:write` (Manager/Owner only).
