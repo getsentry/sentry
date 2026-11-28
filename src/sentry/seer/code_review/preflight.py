@@ -83,7 +83,7 @@ class CodeReviewPreflightService:
         return None
 
     def _check_org_feature_enablement(self) -> PreflightDenialReason | None:
-        if self._is_seat_based_seer_plan_org or self._is_code_review_beta_org:
+        if self._is_seat_based_seer_plan_org:
             return None
 
         return PreflightDenialReason.ORG_NOT_ELIGIBLE_FOR_CODE_REVIEW
@@ -147,7 +147,3 @@ class CodeReviewPreflightService:
     @cached_property
     def _is_seat_based_seer_plan_org(self) -> bool:
         return features.has("organizations:seat-based-seer-enabled", self.organization)
-
-    @cached_property
-    def _is_code_review_beta_org(self) -> bool:
-        return features.has("organizations:code-review-beta", self.organization)
