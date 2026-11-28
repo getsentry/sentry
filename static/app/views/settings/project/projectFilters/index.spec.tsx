@@ -19,6 +19,8 @@ import {GlobalModal} from '@sentry/scraps/modal';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import ProjectFilters from 'sentry/views/settings/project/projectFilters';
 
+import type {CustomInboundFilterEditor} from './customFilterModal';
+
 // The custom filter modal saves through the query client of the tree it renders
 // in, so it mounts next to the page instead of in a render of its own.
 function ProjectFiltersWithModal() {
@@ -83,6 +85,7 @@ describe('ProjectFilters', () => {
     dateUpdated: string;
     id: string;
     name: string | null;
+    updatedBy: CustomInboundFilterEditor | null;
     dataType?: string;
     legacyFilter?: string;
   };
@@ -98,6 +101,7 @@ describe('ProjectFilters', () => {
       conditions: [{type: 'error_message', value: ['*Error*']}],
       dateCreated: '2024-01-01T00:00:00Z',
       dateUpdated: '2024-01-01T00:00:00Z',
+      updatedBy: null,
       ...params,
     };
   }
@@ -639,6 +643,131 @@ describe('ProjectFilters', () => {
         }),
       })
     );
+  });
+
+  describe('last editor', () => {
+    const updatedByOrg = OrganizationFixture({
+      ...inboundFiltersV2Org,
+      features: [...inboundFiltersV2Org.features, 'inbound-filters-updated-by'],
+    });
+
+    const userEditor: CustomInboundFilterEditor = {
+      type: 'user',
+      id: '7',
+      name: 'Jane Doe',
+      email: 'jane@example.com',
+      username: 'jane@example.com',
+      ip_address: '',
+      avatarUrl: 'https://gravatar.com/avatar/example',
+      avatar: {avatarType: 'letter_avatar', avatarUuid: null, avatarUrl: null},
+    };
+
+    // The cell of a filter's row that sits under the given column header.
+    function getCell(filterName: string, column: string) {
+      const columnIndex = screen
+        .getAllByRole('columnheader')
+        .findIndex(header => header.textContent === column);
+      const row = screen
+        .getAllByRole('row')
+        .find(candidate => within(candidate).queryByText(filterName));
+      return within(row!).getAllByRole('cell')[columnIndex]!;
+    }
+
+    it('shows the avatar of the user who last edited a filter', async () => {
+      renderInboundFilters(
+        [CustomInboundFilterFixture({name: 'Edited by a person', updatedBy: userEditor})],
+        businessProject,
+        updatedByOrg
+      );
+      expect(await screen.findByText('Edited by a person')).toBeInTheDocument();
+
+      const edited = getCell('Edited by a person', 'Edited');
+      await userEvent.hover(within(edited).getByTitle('Jane Doe'));
+      expect(await screen.findByText('Jane Doe (jane@example.com)')).toBeInTheDocument();
+    });
+
+    it('shows a bot icon for a service account that last edited a filter', async () => {
+      renderInboundFilters(
+        [
+          CustomInboundFilterFixture({
+            name: 'Edited by automation',
+            updatedBy: {
+              type: 'service_account',
+              id: '56',
+              name: 'filter-bot',
+              isActive: true,
+            },
+          }),
+        ],
+        businessProject,
+        updatedByOrg
+      );
+      expect(await screen.findByText('Edited by automation')).toBeInTheDocument();
+
+      const edited = getCell('Edited by automation', 'Edited');
+      await userEvent.hover(
+        within(edited).getByRole('img', {name: 'Service account: filter-bot'})
+      );
+      expect(await screen.findByText('Service account: filter-bot')).toBeInTheDocument();
+    });
+
+    it('marks a deleted service account in its tooltip', async () => {
+      renderInboundFilters(
+        [
+          CustomInboundFilterFixture({
+            name: 'Edited by old automation',
+            updatedBy: {
+              type: 'service_account',
+              id: '56',
+              name: 'old-bot',
+              isActive: false,
+            },
+          }),
+        ],
+        businessProject,
+        updatedByOrg
+      );
+      expect(await screen.findByText('Edited by old automation')).toBeInTheDocument();
+
+      const edited = getCell('Edited by old automation', 'Edited');
+      await userEvent.hover(
+        within(edited).getByRole('img', {name: 'Service account: old-bot (deleted)'})
+      );
+      expect(
+        await screen.findByText('Service account: old-bot (deleted)')
+      ).toBeInTheDocument();
+    });
+
+    it('shows only the time when no editor is recorded', async () => {
+      renderInboundFilters(
+        [CustomInboundFilterFixture({name: 'Edited by nobody known', updatedBy: null})],
+        businessProject,
+        updatedByOrg
+      );
+      expect(await screen.findByText('Edited by nobody known')).toBeInTheDocument();
+
+      // The fixture was created and edited at the same moment, so both cells read
+      // the same time, and the edited cell holds nothing else.
+      const created = getCell('Edited by nobody known', 'Created');
+      const edited = getCell('Edited by nobody known', 'Edited');
+      expect(edited).toHaveTextContent(created.textContent);
+      expect(within(edited).queryByRole('img')).not.toBeInTheDocument();
+      expect(within(edited).queryByTitle('Jane Doe')).not.toBeInTheDocument();
+    });
+
+    it('shows no editor without the flag', async () => {
+      renderInboundFilters(
+        [CustomInboundFilterFixture({name: 'Edited by a person', updatedBy: userEditor})],
+        businessProject,
+        inboundFiltersV2Org
+      );
+      expect(await screen.findByText('Edited by a person')).toBeInTheDocument();
+
+      const created = getCell('Edited by a person', 'Created');
+      const edited = getCell('Edited by a person', 'Edited');
+      expect(edited).toHaveTextContent(created.textContent);
+      expect(within(edited).queryByTitle('Jane Doe')).not.toBeInTheDocument();
+    });
   });
 
   it('saves a list of values as alternatives of one condition', async () => {
