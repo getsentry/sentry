@@ -12,12 +12,18 @@ class MigratingBackend(Backend):
     """
     Moves digests from one backend to another. New records go to ``new``, while ``old`` is
     still scheduled and digested until it drains.
+
+    With ``add_to_old``, new records stay on ``old``. Deploy that first, so a rollback from
+    ``new`` lands on code that still reads both.
     """
 
-    def __init__(self, old: Mapping[str, Any], new: Mapping[str, Any]) -> None:
+    def __init__(
+        self, old: Mapping[str, Any], new: Mapping[str, Any], add_to_old: bool = False
+    ) -> None:
         super().__init__()
         self.old = load(old)
         self.new = load(new)
+        self.add_to_old = add_to_old
 
     def validate(self) -> None:
         self.old.validate()
@@ -31,7 +37,8 @@ class MigratingBackend(Backend):
         maximum_delay: int | None = None,
         timestamp: float | None = None,
     ) -> bool:
-        return self.new.add(key, record, increment_delay, maximum_delay, timestamp)
+        backend = self.old if self.add_to_old else self.new
+        return backend.add(key, record, increment_delay, maximum_delay, timestamp)
 
     @contextmanager
     def digest(self, key: str, minimum_delay: int | None = None) -> Generator[list[Record]]:
