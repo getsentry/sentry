@@ -55,6 +55,7 @@ from sentry.workflow_engine.types import (
     ConditionError,
     WorkflowEventData,
     WorkflowTriggerDataConditionHandler,
+    WorkflowType,
 )
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest, OrganizationEvent
@@ -693,7 +694,7 @@ class TestActivityWorkflowSelection(BaseWorkflowTest):
         self.detector = self.create_detector(type=ErrorGroupType.slug)
         self.alert = self.create_workflow()
         self.create_detector_workflow(detector=self.detector, workflow=self.alert)
-        self.inbox = self.create_workflow(type=Workflow.Type.INBOX)
+        self.inbox = self.create_workflow(type=WorkflowType.INBOX)
         self.activity = self.create_group_activity(
             group=self.group,
             type=ActivityType.ASSIGNED.value,
@@ -718,7 +719,7 @@ class TestActivityWorkflowSelection(BaseWorkflowTest):
 
     def test_group_event_keeps_type_agnostic_detector_lookup(self) -> None:
         group, _, event = self.create_group_event()
-        hidden = self.create_workflow(type=Workflow.Type.SEER_INVESTIGATION)
+        hidden = self.create_workflow(type=WorkflowType.SEER_INVESTIGATION)
         self.create_detector_workflow(detector=self.detector, workflow=hidden)
         with (
             self.feature("organizations:workflow-engine-activity-workflows"),

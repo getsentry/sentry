@@ -43,6 +43,7 @@ from sentry.workflow_engine.endpoints.validators.utils import (
     should_include_all_projects_detector,
 )
 from sentry.workflow_engine.models import Detector, Workflow
+from sentry.workflow_engine.types import WorkflowType
 
 logger = logging.getLogger(__name__)
 
@@ -204,7 +205,7 @@ class OrganizationSeerChatSuggestionsEndpoint(OrganizationEndpoint):
             workflow = Workflow.objects.get_or_none(
                 id=workflow_id,
                 organization_id=organization.id,
-                type=Workflow.Type.ALERT,
+                type=WorkflowType.ALERT,
             )
             if workflow:
                 try:

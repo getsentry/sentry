@@ -10,8 +10,9 @@ from sentry.workflow_engine.endpoints.serializers.workflow_group_history_seriali
     WorkflowGroupHistory,
     WorkflowGroupHistorySerializer,
 )
-from sentry.workflow_engine.models import DetectorGroup, Workflow
+from sentry.workflow_engine.models import DetectorGroup
 from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHistory
+from sentry.workflow_engine.types import WorkflowType
 
 pytestmark = [requires_snuba]
 
@@ -100,7 +101,7 @@ class WorkflowGroupHistoryEndpointTest(APITestCase):
 
     def test_hidden_workflow_is_not_found(self) -> None:
         hidden_workflow = self.create_workflow(
-            organization=self.organization, type=Workflow.Type.INBOX
+            organization=self.organization, type=WorkflowType.INBOX
         )
 
         self.get_error_response(

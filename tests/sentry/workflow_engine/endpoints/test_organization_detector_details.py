@@ -43,7 +43,6 @@ from sentry.workflow_engine.models import (
     DataSource,
     DataSourceDetector,
     Detector,
-    Workflow,
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
@@ -52,6 +51,7 @@ from sentry.workflow_engine.types import (
     DetectorPriorityLevel,
     FeatureGate,
     WorkflowEngineAPIOperation,
+    WorkflowType,
 )
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 from tests.sentry.workflow_engine.endpoints.test_helpers import (
@@ -998,7 +998,7 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
 
     def test_update_workflows_cannot_attach_hidden_workflow(self) -> None:
         hidden_workflow = self.create_workflow(
-            organization_id=self.organization.id, type=Workflow.Type.INBOX
+            organization_id=self.organization.id, type=WorkflowType.INBOX
         )
 
         response = self.get_error_response(
@@ -1016,7 +1016,7 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         alert_workflow = self.create_workflow(organization_id=self.organization.id)
 
         hidden_workflow = self.create_workflow(
-            organization_id=self.organization.id, type=Workflow.Type.INBOX
+            organization_id=self.organization.id, type=WorkflowType.INBOX
         )
 
         self.create_detector_workflow(detector=self.detector, workflow=hidden_workflow)

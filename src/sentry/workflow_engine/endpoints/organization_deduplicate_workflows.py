@@ -21,6 +21,7 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.models.data_condition import DataCondition
 from sentry.workflow_engine.models.data_condition_group import DataConditionGroup
+from sentry.workflow_engine.types import WorkflowType
 
 
 class OrganizationDeduplicateWorkflowsPermission(OrganizationPermission):
@@ -109,7 +110,7 @@ class WorkflowData:
 
 def deduplicate_workflows(organization: Organization) -> None:
     workflows = (
-        Workflow.objects.filter(organization=organization, type=Workflow.Type.ALERT)
+        Workflow.objects.filter(organization=organization, type=WorkflowType.ALERT)
         .select_related("when_condition_group")
         .prefetch_related(
             Prefetch(

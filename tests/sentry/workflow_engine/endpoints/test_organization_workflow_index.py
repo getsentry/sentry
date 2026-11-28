@@ -33,6 +33,7 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import condition_handler_registry
+from sentry.workflow_engine.types import WorkflowType
 from sentry.workflow_engine.typings.notification_action import ActionTarget, ActionType
 from tests.sentry.workflow_engine.test_base import (
     BaseWorkflowTest,
@@ -674,7 +675,7 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
 
     def test_hidden_workflows_are_not_returned_by_default(self) -> None:
         hidden_workflow = self.create_workflow(
-            organization_id=self.organization.id, name="Hidden Workflow", type=Workflow.Type.INBOX
+            organization_id=self.organization.id, name="Hidden Workflow", type=WorkflowType.INBOX
         )
 
         response = self.get_success_response(self.organization.slug, qs_params={"project": "-1"})
@@ -685,7 +686,7 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
 
     def test_filter_by_visible_workflow_types(self) -> None:
         self.create_workflow(
-            organization_id=self.organization.id, name="Hidden Workflow", type=Workflow.Type.INBOX
+            organization_id=self.organization.id, name="Hidden Workflow", type=WorkflowType.INBOX
         )
 
         response = self.get_success_response(
@@ -700,7 +701,7 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
 
     def test_filter_by_hidden_workflow_type_returns_error(self) -> None:
         self.create_workflow(
-            organization_id=self.organization.id, name="Hidden Workflow", type=Workflow.Type.INBOX
+            organization_id=self.organization.id, name="Hidden Workflow", type=WorkflowType.INBOX
         )
 
         response = self.get_error_response(
@@ -2303,7 +2304,7 @@ class OrganizationWorkflowPutTest(OrganizationWorkflowAPITestCase):
             organization_id=self.organization.id,
             name="Hidden Workflow",
             enabled=False,
-            type=Workflow.Type.INBOX,
+            type=WorkflowType.INBOX,
         )
 
         self.get_success_response(
@@ -2323,7 +2324,7 @@ class OrganizationWorkflowPutTest(OrganizationWorkflowAPITestCase):
             organization_id=self.organization.id,
             name="Hidden Workflow",
             enabled=False,
-            type=Workflow.Type.INBOX,
+            type=WorkflowType.INBOX,
         )
 
         response = self.get_success_response(
@@ -2631,7 +2632,7 @@ class OrganizationWorkflowDeleteTest(OrganizationWorkflowAPITestCase):
 
     def test_bulk_delete_by_query_skips_hidden_workflow(self) -> None:
         hidden_workflow = self.create_workflow(
-            organization_id=self.organization.id, name="Hidden Workflow", type=Workflow.Type.INBOX
+            organization_id=self.organization.id, name="Hidden Workflow", type=WorkflowType.INBOX
         )
 
         with outbox_runner():
@@ -2649,7 +2650,7 @@ class OrganizationWorkflowDeleteTest(OrganizationWorkflowAPITestCase):
 
     def test_bulk_delete_by_id_skips_hidden_workflow(self) -> None:
         hidden_workflow = self.create_workflow(
-            organization_id=self.organization.id, name="Hidden Workflow", type=Workflow.Type.INBOX
+            organization_id=self.organization.id, name="Hidden Workflow", type=WorkflowType.INBOX
         )
 
         response = self.get_success_response(

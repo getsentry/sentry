@@ -7,6 +7,7 @@ from sentry.constants import ObjectStatus
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.caches.workflow import get_activity_workflows_by_organization
 from sentry.workflow_engine.models import Workflow
+from sentry.workflow_engine.types import WorkflowType
 
 
 class WorkflowReceiverTests(TestCase):
@@ -57,7 +58,7 @@ class WorkflowReceiverTests(TestCase):
 
 class ActivityWorkflowCacheInvalidationTest(TestCase):
     def setUp(self) -> None:
-        self.workflow = self.create_workflow(type=Workflow.Type.INBOX)
+        self.workflow = self.create_workflow(type=WorkflowType.INBOX)
         assert get_activity_workflows_by_organization(self.organization.id, None) == {self.workflow}
 
     def test_creation_invalidates_empty_cache_after_commit(self) -> None:
@@ -65,7 +66,7 @@ class ActivityWorkflowCacheInvalidationTest(TestCase):
         assert get_activity_workflows_by_organization(other_org.id, None) == set()
         with self.capture_on_commit_callbacks(execute=True):
             with transaction.atomic(router.db_for_write(Workflow)):
-                workflow = self.create_workflow(organization=other_org, type=Workflow.Type.INBOX)
+                workflow = self.create_workflow(organization=other_org, type=WorkflowType.INBOX)
                 assert get_activity_workflows_by_organization(other_org.id, None) == set()
 
         assert get_activity_workflows_by_organization(other_org.id, None) == {workflow}
@@ -85,10 +86,10 @@ class ActivityWorkflowCacheInvalidationTest(TestCase):
 
     def test_type_change_in_both_directions(self) -> None:
         with self.capture_on_commit_callbacks(execute=True):
-            self.workflow.update(type=Workflow.Type.ALERT)
+            self.workflow.update(type=WorkflowType.ALERT)
         assert get_activity_workflows_by_organization(self.organization.id, None) == set()
         with self.capture_on_commit_callbacks(execute=True):
-            self.workflow.update(type=Workflow.Type.INBOX)
+            self.workflow.update(type=WorkflowType.INBOX)
         assert get_activity_workflows_by_organization(self.organization.id, None) == {self.workflow}
 
     def test_changed_configuration_is_reloaded(self) -> None:

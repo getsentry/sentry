@@ -37,7 +37,7 @@ from sentry.service_accounts.models import (
 from sentry.service_accounts.outbox import service_account_grant_update_outbox
 from sentry.utils import json
 from sentry.workflow_engine.models import Action, Workflow
-from sentry.workflow_engine.types import ActionInvocation
+from sentry.workflow_engine.types import ActionInvocation, WorkflowType
 
 logger = logging.getLogger(__name__)
 
@@ -365,7 +365,7 @@ class ConfigUpdate:
         workflow = Workflow.objects.create(
             organization_id=self.config.organization_id,
             name=name or "Seer automation",
-            type=Workflow.Type.SEER_INVESTIGATION,
+            type=WorkflowType.SEER_INVESTIGATION,
             enabled=enabled,
             created_by_id=created_by_id,
             config={"frequency": 0},

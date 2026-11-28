@@ -108,8 +108,8 @@ A [`Workflow`](models/workflow.py) belongs to an organization and connects to de
 through [`DetectorWorkflow`](models/detector_workflow.py). It can be global or limited
 to one environment.
 
-Every workflow has a `type` ([`Workflow.Type`](models/workflow.py)) indicating its use-case. The `VISIBLE_WORKFLOW_TYPES` constant lists the types that are exposed to users.
-For example, the `Workflow.Type.ALERT` type is the user-facing type for alerts (as seen on the Alerts page), while `Workflow.Type.INBOX` is a hidden automation type.
+Every workflow has a `type` ([`WorkflowType`](types.py)) indicating its use-case. The `VISIBLE_WORKFLOW_TYPES` constant lists the types that are exposed to users.
+For example, the `WorkflowType.ALERT` type is the user-facing type for alerts (as seen on the Alerts page), while `WorkflowType.INBOX` is a hidden automation type.
 
 Each workflow has zero or more IF groups through
 [`WorkflowDataConditionGroup`](models/workflow_data_condition_group.py). Actions are
@@ -150,7 +150,7 @@ The package initializes registries and signal receivers from
 | Condition type    | `condition_handler_registry.register(...)`                                                                                            |
 | Action type       | `action_handler_registry.register(...)`                                                                                               |
 | Workflow activity | `workflow_activity_registry.register(...)`                                                                                            |
-| Workflow type     | Add a `Workflow.Type` member; add it to `VISIBLE_WORKFLOW_TYPES` only if users should see it                                          |
+| Workflow type     | Add a `WorkflowType` member; add it to `VISIBLE_WORKFLOW_TYPES` only if users should see it                                           |
 
 Import-time registration only works when the owning module is imported during
 application startup. Follow an existing product integration and add a focused test that

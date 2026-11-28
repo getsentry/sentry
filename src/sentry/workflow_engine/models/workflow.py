@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 class WorkflowSnapshot(TypedDict):
     id: int
-    type: Workflow.Type
+    type: WorkflowType
     enabled: bool
     environment_id: int | None
     status: int
@@ -71,9 +71,9 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
     type = models.CharField(
         max_length=256,
-        choices=[(t.value, t.value) for t in Type],
-        default=Type.ALERT,
-        db_default=Type.ALERT,
+        choices=[(t.value, t.value) for t in WorkflowType],
+        default=WorkflowType.ALERT,
+        db_default=WorkflowType.ALERT,
     )
 
     # If the workflow is not enabled, it will not be evaluated / invoke actions. This is how we "snooze" a workflow
@@ -169,7 +169,7 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
         return {
             "id": self.id,
-            "type": Workflow.Type(self.type),
+            "type": WorkflowType(self.type),
             "enabled": self.enabled,
             "environment_id": environment_id,
             "status": self.status,
@@ -241,7 +241,7 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         return group_evaluation, remaining_conditions
 
 
-VISIBLE_WORKFLOW_TYPES = frozenset({Workflow.Type.ALERT})
+VISIBLE_WORKFLOW_TYPES = frozenset({WorkflowType.ALERT})
 
 
 def get_slow_conditions(workflow: Workflow) -> list[DataCondition]:

@@ -80,7 +80,7 @@ from sentry.workflow_engine.models import DetectorWorkflow, Workflow
 from sentry.workflow_engine.models.workflow import VISIBLE_WORKFLOW_TYPES
 from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHistory
 from sentry.workflow_engine.processors.detector import get_all_projects_detector
-from sentry.workflow_engine.types import DetectorId
+from sentry.workflow_engine.types import DetectorId, WorkflowType
 
 # Maps API field name to database field name, with synthetic aggregate fields keeping
 # to our field naming scheme for consistency.
@@ -107,7 +107,7 @@ workflow_search_config = SearchConfig.create_from(
 parse_workflow_query = partial(base_parse_search_query, config=workflow_search_config)
 
 
-def parse_visible_workflow_types(raw_types: list[str]) -> frozenset[Workflow.Type]:
+def parse_visible_workflow_types(raw_types: list[str]) -> frozenset[WorkflowType]:
     """
     Handle the requested `type` value
     - If not specified, all visible types are returned
@@ -125,7 +125,7 @@ def parse_visible_workflow_types(raw_types: list[str]) -> frozenset[Workflow.Typ
             {"type": [f"Invalid workflow type(s): {', '.join(invalid_types)}"]}
         )
 
-    return frozenset(Workflow.Type(raw_type) for raw_type in raw_types)
+    return frozenset(WorkflowType(raw_type) for raw_type in raw_types)
 
 
 class OrganizationWorkflowPermission(OrganizationPermission):

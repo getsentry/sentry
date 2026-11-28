@@ -15,30 +15,31 @@ from sentry.workflow_engine.caches.workflow import (
 )
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.models.workflow import Workflow
+from sentry.workflow_engine.types import WorkflowType
 
 
 class TestActivityWorkflowsByOrganization(TestCase):
     def test_only_enabled_inbox_workflows_in_organization(self) -> None:
-        inbox = self.create_workflow(type=Workflow.Type.INBOX)
-        second = self.create_workflow(type=Workflow.Type.INBOX)
-        self.create_workflow(type=Workflow.Type.ALERT)
-        self.create_workflow(type=Workflow.Type.SEER_INVESTIGATION)
-        self.create_workflow(type=Workflow.Type.INBOX, enabled=False)
-        self.create_workflow(type=Workflow.Type.INBOX, status=ObjectStatus.PENDING_DELETION)
-        self.create_workflow(type=Workflow.Type.INBOX, status=ObjectStatus.DELETION_IN_PROGRESS)
+        inbox = self.create_workflow(type=WorkflowType.INBOX)
+        second = self.create_workflow(type=WorkflowType.INBOX)
+        self.create_workflow(type=WorkflowType.ALERT)
+        self.create_workflow(type=WorkflowType.SEER_INVESTIGATION)
+        self.create_workflow(type=WorkflowType.INBOX, enabled=False)
+        self.create_workflow(type=WorkflowType.INBOX, status=ObjectStatus.PENDING_DELETION)
+        self.create_workflow(type=WorkflowType.INBOX, status=ObjectStatus.DELETION_IN_PROGRESS)
         other_org = self.create_organization()
-        other = self.create_workflow(organization=other_org, type=Workflow.Type.INBOX)
+        other = self.create_workflow(organization=other_org, type=WorkflowType.INBOX)
 
         assert get_activity_workflows_by_organization(self.organization.id, None) == {inbox, second}
         assert get_activity_workflows_by_organization(other_org.id, None) == {other}
         assert get_activity_workflows_by_organization(self.organization.id, None) == {inbox, second}
 
     def test_environment_filter_reuses_organization_cache(self) -> None:
-        global_workflow = self.create_workflow(type=Workflow.Type.INBOX)
+        global_workflow = self.create_workflow(type=WorkflowType.INBOX)
         environment = self.create_environment()
         other_environment = self.create_environment(name="other")
-        scoped = self.create_workflow(type=Workflow.Type.INBOX, environment=environment)
-        other = self.create_workflow(type=Workflow.Type.INBOX, environment=other_environment)
+        scoped = self.create_workflow(type=WorkflowType.INBOX, environment=environment)
+        other = self.create_workflow(type=WorkflowType.INBOX, environment=other_environment)
         organization_id = self.organization.id
 
         with self.assertNumQueries(1):
