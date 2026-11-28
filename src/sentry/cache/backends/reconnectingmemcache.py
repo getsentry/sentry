@@ -34,7 +34,7 @@ class ReconnectingMemcache(PyMemcacheCache):
     accessed from a different thread.
     """
 
-    _class: pymemcache.Client
+    _class: type[pymemcache.Client]
     _options: Mapping[str, str] | None = None
 
     def __init__(self, server: str | Sequence[str], params: dict[str, object]) -> None:
