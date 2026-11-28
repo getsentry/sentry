@@ -6,6 +6,7 @@ import {useStore} from 'zustand';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import {InlineCode} from '@sentry/scraps/code';
 import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {Confirm} from '@sentry/scraps/confirm';
 import {
@@ -19,26 +20,17 @@ import {
 } from '@sentry/scraps/form';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
+import {openModal, type ModalRenderProps} from '@sentry/scraps/modal';
 import {createFilter} from '@sentry/scraps/select';
-import {Text} from '@sentry/scraps/text';
+import {Heading, Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
-import {
-  changeProjectSlug,
-  removeProject,
-  transferProject,
-} from 'sentry/actionCreators/projects';
+import {changeProjectSlug, removeProject} from 'sentry/actionCreators/projects';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {FieldGroup as SettingsFieldGroup} from 'sentry/components/forms/fieldGroup';
-import {TextField} from 'sentry/components/forms/fields/textField';
-import {Form} from 'sentry/components/forms/form';
-import type {FieldValue} from 'sentry/components/forms/model';
 import {Hovercard} from 'sentry/components/hovercard';
 import {LoadingError} from 'sentry/components/loadingError';
 import {Override} from 'sentry/components/override';
 import {removePageFiltersStorage} from 'sentry/components/pageFilters/persistence';
-import {Panel} from 'sentry/components/panels/panel';
-import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {consoles} from 'sentry/data/platformCategories';
 import {allPlatforms as platforms} from 'sentry/data/platforms';
@@ -48,9 +40,11 @@ import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/platform';
 import type {DetailedProject} from 'sentry/types/project';
 import {convertMultilineFieldValue, extractMultilineFields} from 'sentry/utils';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getDynamicText} from 'sentry/utils/getDynamicText';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {useUpdateProjectMutationOptions} from 'sentry/utils/project/useUpdateProject';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {recreateRoute} from 'sentry/utils/recreateRoute';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
@@ -61,7 +55,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 import {getSettingsScopeTitle} from 'sentry/views/settings/settingsScope';
@@ -138,11 +131,11 @@ function RemoveProjectSection({
   const {isInternal} = project;
 
   return (
-    <SettingsFieldGroup
+    <DisplayField.Row
       label={t('Remove Project')}
-      help={tct(
+      hintText={tct(
         'Remove the [project] project and all related data. [linebreak] Careful, this action cannot be undone.',
-        {project: <strong>{project.slug}</strong>, linebreak: <br />}
+        {project: <Text bold>{project.slug}</Text>, linebreak: <br />}
       )}
     >
       {!isProjectAdmin &&
@@ -157,24 +150,20 @@ function RemoveProjectSection({
           priority="danger"
           confirmText={t('Remove Project')}
           message={
-            <div>
-              <TextBlock>
-                <strong>
-                  {t('Removing this project is permanent and cannot be undone!')}
-                </strong>
-              </TextBlock>
-              <TextBlock>
-                {t('This will also remove all associated event data.')}
-              </TextBlock>
-            </div>
+            <Stack gap="2xl" paddingBottom="2xl">
+              <Text as="p" bold>
+                {t('Removing this project is permanent and cannot be undone!')}
+              </Text>
+              <Text as="p">{t('This will also remove all associated event data.')}</Text>
+            </Stack>
           }
         >
-          <div>
+          <Container>
             <Button variant="danger">{t('Remove Project')}</Button>
-          </div>
+          </Container>
         </Confirm>
       )}
-    </SettingsFieldGroup>
+    </DisplayField.Row>
   );
 }
 
@@ -537,9 +526,114 @@ function SecurityTokenHeaderForm({
   );
 }
 
+const transferProjectSchema = z.object({
+  email: z.email(t('Enter a valid email address')),
+});
+
+function TransferProjectModal({
+  Body,
+  Footer,
+  Header,
+  closeModal,
+  organization,
+  project,
+}: ModalRenderProps & {organization: Organization; project: DetailedProject}) {
+  const transfer = useMutation({
+    mutationFn: ({email}: {email: string}) =>
+      fetchMutation<void>({
+        method: 'POST',
+        url: getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/transfer/', {
+          path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
+        }),
+        data: {email},
+      }),
+    onSuccess: () => {
+      toast.success(
+        tct('A request was sent to move [project] to a different organization', {
+          project: project.slug,
+        })
+      );
+      closeModal();
+    },
+    onError: error => {
+      const message =
+        error instanceof RequestError && typeof error.responseJSON?.detail === 'string'
+          ? error.responseJSON.detail
+          : '';
+
+      toast.error(
+        message
+          ? tct('Error transferring [project]. [message]', {
+              project: project.slug,
+              message,
+            })
+          : tct('Error transferring [project]', {project: project.slug})
+      );
+
+      if (error instanceof RequestError && (error.status ?? 0) >= 500) {
+        handleXhrErrorResponse('Unable to transfer project', error);
+      }
+    },
+  });
+
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {email: ''},
+    validators: {onDynamic: transferProjectSchema},
+    onSubmit: ({value}) => transfer.mutateAsync(value).catch(() => {}),
+  });
+
+  return (
+    <form.AppForm form={form}>
+      <Header closeButton>
+        <Heading as="h4">{t('Transfer Project')}</Heading>
+      </Header>
+      <Body>
+        <Stack gap="lg" paddingBottom="lg">
+          <Alert variant="warning">
+            {t('Transferring this project is permanent and cannot be undone!')}
+          </Alert>
+          <Alert variant="info">
+            {t(
+              'Projects cannot be transferred between organizations in different regions.'
+            )}
+          </Alert>
+          <Text as="p">
+            {t(
+              'Please enter the email of an organization owner to whom you would like to transfer this project.'
+            )}
+          </Text>
+        </Stack>
+        <form.AppField name="email">
+          {field => (
+            <field.Layout.Stack
+              label={t('Organization Owner')}
+              hintText={t(
+                'A request will be emailed to this address, asking the organization owner to accept the project transfer.'
+              )}
+              required
+            >
+              <field.Input
+                value={field.state.value}
+                onChange={field.handleChange}
+                placeholder="admin@example.com"
+              />
+            </field.Layout.Stack>
+          )}
+        </form.AppField>
+      </Body>
+      <Footer>
+        <Flex gap="sm" justify="end">
+          <Button onClick={closeModal}>{t('Cancel')}</Button>
+          <form.SubmitButton variant="danger">{t('Transfer project')}</form.SubmitButton>
+        </Flex>
+      </Footer>
+    </form.AppForm>
+  );
+}
+
 export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
   const settingsV3 = useSettingsV3();
-  const transferForm: Record<string, FieldValue> = {};
   const navigate = useNavigate();
   const isSelfHosted = useStore(ConfigStore, state => state.isSelfHosted);
 
@@ -551,10 +645,6 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
 
   const projectMutationOptions = useUpdateProjectMutationOptions(project);
   const updateProject = useMutation(projectMutationOptions);
-
-  const handleTransferFieldChange = (id: string, value: FieldValue) => {
-    transferForm[id] = value;
-  };
 
   const handleRemoveProject = async () => {
     removePageFiltersStorage(organization.slug);
@@ -577,25 +667,6 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
 
     toast.success(tct('[project] was successfully removed', {project: project.slug}));
     navigate(`/settings/${organization.slug}/projects/`);
-  };
-
-  const handleTransferProject = async () => {
-    if (!project) {
-      return;
-    }
-    if (typeof transferForm.email !== 'string' || transferForm.email.length < 1) {
-      return;
-    }
-
-    try {
-      await transferProject(api, organization.slug, project, transferForm.email);
-      // Need to hard reload because lots of components do not listen to Projects Store
-      window.location.assign('/');
-    } catch (err: any) {
-      if (err.status >= 500) {
-        handleXhrErrorResponse('Unable to transfer project', err);
-      }
-    }
   };
 
   const platformOptions = useMemo(
@@ -661,7 +732,7 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
   });
 
   return (
-    <div>
+    <Container>
       <SentryDocumentTitle
         title={getSettingsScopeTitle('project')}
         projectSlug={project.slug}
@@ -813,7 +884,7 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
 
         <FieldGroup title={t('Client Security')}>
           <Alert variant="info" system>
-            <TextBlock noMargin>
+            <Text as="p">
               {tct(
                 'Configure origin URLs which Sentry should accept events from. This is used for communication with clients like [link].',
                 {
@@ -826,9 +897,9 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
               )}{' '}
               {tct(
                 'This will restrict requests based on the [code:Origin] and [code:Referer] headers.',
-                {code: <code />}
+                {code: <InlineCode />}
               )}
-            </TextBlock>
+            </Text>
           </Alert>
 
           <AutoSaveForm
@@ -947,18 +1018,17 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
         </FieldGroup>
       </FormSearch>
 
-      <Panel>
-        <PanelHeader>{t('Project Administration')}</PanelHeader>
+      <FieldGroup title={t('Project Administration')}>
         <RemoveProjectSection
           onRemoveProject={handleRemoveProject}
           organization={organization}
           project={project}
         />
-        <SettingsFieldGroup
+        <DisplayField.Row
           label={t('Transfer Project')}
-          help={tct(
+          hintText={tct(
             'Transfer the [project] project and all related data. [linebreak] Careful, this action cannot be undone.',
-            {project: <strong>{project.slug}</strong>, linebreak: <br />}
+            {project: <Text bold>{project.slug}</Text>, linebreak: <br />}
           )}
         >
           {!isOrgOwner &&
@@ -970,55 +1040,26 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
             )}
 
           {isOrgOwner && !project.isInternal && (
-            <Confirm
-              onConfirm={() => {
-                handleTransferProject();
-              }}
-              priority="danger"
-              confirmText={t('Transfer project')}
-              renderMessage={({confirm}) => (
-                <div>
-                  <TextBlock>
-                    <strong>
-                      {t('Transferring this project is permanent and cannot be undone!')}
-                    </strong>
-                  </TextBlock>
-                  <TextBlock>
-                    {t(
-                      'Please enter the email of an organization owner to whom you would like to transfer this project. Note: It is not possible to transfer projects between organizations in different regions.'
-                    )}
-                  </TextBlock>
-                  <Panel>
-                    <Form
-                      hideFooter
-                      onFieldChange={handleTransferFieldChange}
-                      onSubmit={(_data, _onSuccess, _onError, e) => {
-                        e.stopPropagation();
-                        confirm();
-                      }}
-                    >
-                      <TextField
-                        name="email"
-                        label={t('Organization Owner')}
-                        placeholder="admin@example.com"
-                        required
-                        help={t(
-                          'A request will be emailed to this address, asking the organization owner to accept the project transfer.'
-                        )}
-                      />
-                    </Form>
-                  </Panel>
-                </div>
-              )}
-            >
-              <div>
-                <Button variant="danger">{t('Transfer Project')}</Button>
-              </div>
-            </Confirm>
+            <Container>
+              <Button
+                variant="danger"
+                onClick={() =>
+                  openModal(deps => (
+                    <TransferProjectModal
+                      {...deps}
+                      organization={organization}
+                      project={project}
+                    />
+                  ))
+                }
+              >
+                {t('Transfer Project')}
+              </Button>
+            </Container>
           )}
-        </SettingsFieldGroup>
-      </Panel>
-    </div>
+        </DisplayField.Row>
+      </FieldGroup>
+    </Container>
   );
 }
 
