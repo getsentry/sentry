@@ -75,15 +75,17 @@ const TableWrapper = styled('div')`
   }
 `;
 
-function getStatusLabel({orchestration}: InvestigationListItem) {
+function getStatusLabel({orchestration, workflowStatus}: InvestigationListItem) {
   // Manual investigations have no run, and Seer can add statuses we don't know yet.
-  switch (orchestration?.status) {
+  switch (workflowStatus ?? orchestration?.status) {
     case 'pending':
       return t('Queued');
+    case 'running':
     case 'processing':
       return t('Running');
     case 'awaiting_input':
       return t('Needs input');
+    case 'succeeded':
     case 'completed':
       return t('Completed');
     case 'failed':
@@ -96,7 +98,9 @@ function getStatusLabel({orchestration}: InvestigationListItem) {
 }
 
 function isRunActive(investigation: InvestigationListItem) {
-  return ['pending', 'processing'].includes(investigation.orchestration?.status ?? '');
+  return ['pending', 'running', 'processing'].includes(
+    investigation.workflowStatus ?? investigation.orchestration?.status ?? ''
+  );
 }
 
 function TriggerCell({trigger}: {trigger: InvestigationTrigger}) {

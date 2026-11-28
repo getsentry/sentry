@@ -188,6 +188,11 @@ describe('Explore Investigations', () => {
       url: listUrl,
       body: [
         InvestigationFixture({id: 'manual', title: 'manual'}),
+        InvestigationFixture({
+          id: 'workflow',
+          title: 'Workflow checkout',
+          workflowStatus: 'running',
+        }),
         ...statuses.map(([status]) =>
           InvestigationFixture({
             id: status,
@@ -209,8 +214,8 @@ describe('Explore Investigations', () => {
     const rows = screen.getAllByRole('row').map(row => row.textContent);
     expect(rows).toEqual(
       expect.arrayContaining(
-        [['manual', 'Active'], ...statuses].map(([title, label]) =>
-          expect.stringMatching(new RegExp(`${title}.*${label}`))
+        [['manual', 'Active'], ['Workflow checkout', 'Running'], ...statuses].map(
+          ([title, label]) => expect.stringMatching(new RegExp(`${title}.*${label}`))
         )
       )
     );

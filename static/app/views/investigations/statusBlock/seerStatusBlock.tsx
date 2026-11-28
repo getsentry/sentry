@@ -202,6 +202,8 @@ type SeerStatusBlockProps = {
    * something to count.
    */
   meta?: string;
+  /** The worker has not started the queued run yet. */
+  showThinking?: boolean;
   /**
    * When the run started working, on this browser's clock. A running block's
    * thinking block counts up from it, so its clock is the run's rather than how
@@ -243,6 +245,7 @@ export function SeerStatusBlock({
   elapsed,
   meta,
   startTime,
+  showThinking = true,
   title,
   toolActivity,
   trailing,
@@ -300,7 +303,7 @@ export function SeerStatusBlock({
                 </Text>
               ) : null}
 
-              {variant === 'running' ? (
+              {variant === 'running' && showThinking ? (
                 <SeerThinking startTime={startTime} toolActivity={toolActivity} />
               ) : null}
             </Stack>

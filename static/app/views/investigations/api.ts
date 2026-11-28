@@ -47,6 +47,16 @@ export function investigationListQueryOptions({
   );
 }
 
+export function workflowPollInterval(detail?: InvestigationDetail): number | false {
+  if (detail?.workflowReport?.active) {
+    return detail.workflowReport.status === 'awaiting_input' ? 30_000 : 2_000;
+  }
+  if (detail?.workflowLaunch?.status === 'starting') {
+    return 2_000;
+  }
+  return detail?.workflowLaunch?.status === 'unconfirmed' ? 30_000 : false;
+}
+
 export function getInvestigationDetailQueryOptions(
   organizationSlug: string,
   investigationId: string
@@ -434,7 +444,8 @@ function useInvestigationMutation<TData, TVariables>(
 
 export function useLaunchInvestigationMutation(
   organizationSlug: string,
-  options?: MutationOptions<InvestigationDetail, MetricOpenPeriodInvestigationSource>
+  options?: MutationOptions<InvestigationDetail, MetricOpenPeriodInvestigationSource>,
+  version?: 2
 ) {
   return useInvestigationMutation(
     organizationSlug,
@@ -445,9 +456,10 @@ export function useLaunchInvestigationMutation(
         }),
         method: 'POST',
         data: {source},
+        options: version ? {query: {version}} : undefined,
       }),
     options,
-    {invalidateCandidates: true}
+    {invalidateCandidates: !version}
   );
 }
 

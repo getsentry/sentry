@@ -96,7 +96,7 @@ export function defineSeerEmbed<N extends SeerEmbedName>({
 }: DefineSeerEmbedOptions<N>) {
   const {schema} = ALL_SEER_EMBED_SCHEMAS[name];
 
-  function Embed({data, level, index}: SeerEmbedProps) {
+  function Embed({data, level, index, fallback = null}: SeerEmbedProps) {
     const parsed = schema.safeParse(data);
     // Called before the early return so the hook stays unconditional; it
     // no-ops for an embed that failed validation and renders nothing.
@@ -111,7 +111,7 @@ export function defineSeerEmbed<N extends SeerEmbedName>({
     });
     if (!parsed.success) {
       reportInvalidEmbed({name, level, schema, data, issues: parsed.error.issues});
-      return null;
+      return fallback;
     }
     const parsedData = parsed.data as EmbedOutput<N>;
     return (

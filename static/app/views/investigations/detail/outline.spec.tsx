@@ -58,6 +58,22 @@ describe('getInvestigationOutline', () => {
     });
   });
 
+  it('links a saved widget by its displayed title when the narrative has one heading', () => {
+    const outline = outlineOf([
+      textBlock('what', '## What happened'),
+      InvestigationBlockFixture({
+        kind: 'embed',
+        id: 'widget',
+        embed: {name: 'spansQuery', body: {title: 'Connection pool wait'}},
+      }),
+    ]);
+    expect(outline.map(entry => entry.label)).toEqual([
+      'What happened',
+      'Connection pool wait',
+    ]);
+    expect(outline[1]?.target).toEqual({blockId: 'widget', headingIndex: null});
+  });
+
   it('is empty until the blocks have two headings between them', () => {
     expect(
       getInvestigationOutline({

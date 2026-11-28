@@ -234,10 +234,14 @@ export function ActionRequestCard({
       </Stack>
       {canRetryFollowUp(actionRequest) ? (
         <Flex>
-          <TryAgainButton
+          <Button
+            size="xs"
             busy={retryingFollowUp}
+            disabled={retryingFollowUp}
             onClick={() => retryFollowUpMutation.mutate(actionRequest)}
-          />
+          >
+            {t('Retry follow-up')}
+          </Button>
         </Flex>
       ) : null}
       {staleError ? (

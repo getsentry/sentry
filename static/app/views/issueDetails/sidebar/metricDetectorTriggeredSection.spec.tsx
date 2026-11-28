@@ -4,7 +4,14 @@ import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  cleanup,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {ConfigStore} from 'sentry/stores/configStore';
@@ -369,165 +376,201 @@ describe('MetricDetectorTriggeredSection', () => {
     expect(screen.queryByTestId('seer-status-block')).not.toBeInTheDocument();
   });
 
-  it('polls the run status until the run stops', async () => {
-    jest.useFakeTimers();
-    const organization = OrganizationFixture({
-      slug: 'org-slug',
-      features: ['investigations'],
-      openMembership: true,
+  describe('polling active investigations', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
     });
-    const orchestrationUrl = '/organizations/org-slug/investigations/4567/orchestration/';
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/investigations/candidates/',
-      method: 'POST',
-      body: {items: [{status: 'view', investigationId: '4567'}]},
+
+    afterEach(async () => {
+      try {
+        cleanup();
+        await act(() => jest.runOnlyPendingTimersAsync());
+      } finally {
+        jest.useRealTimers();
+      }
     });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/notebooks/4567/',
-      body: {
-        id: '4567',
-        summary: null,
-        summaryDescription: null,
-        titleGeneration: {status: 'completed'},
-        orchestration: {
+
+    it('polls the run status until the run stops', async () => {
+      const organization = OrganizationFixture({
+        slug: 'org-slug',
+        features: ['investigations'],
+        openMembership: true,
+      });
+      const orchestrationUrl =
+        '/organizations/org-slug/investigations/4567/orchestration/';
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/investigations/candidates/',
+        method: 'POST',
+        body: {items: [{status: 'view', investigationId: '4567'}]},
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/notebooks/4567/',
+        body: {
+          id: '4567',
+          summary: null,
+          summaryDescription: null,
+          titleGeneration: {status: 'completed'},
+          orchestration: {
+            phase: 'broad_scan',
+            status: 'processing',
+            heartbeatAt: '2026-08-27T11:06:30Z',
+            notebookRevision: 1,
+          },
+        },
+      });
+      MockApiClient.addMockResponse({
+        url: orchestrationUrl,
+        body: InvestigationOrchestrationFixture({
+          investigationId: '4567',
           phase: 'broad_scan',
           status: 'processing',
-          heartbeatAt: '2026-08-27T11:06:30Z',
-          notebookRevision: 1,
+          hypotheses: [],
+        }),
+      });
+
+      render(<MetricIssueSeerInvestigationSection {...defaultProps} />, {organization});
+
+      expect(await screen.findByText('Seer is gathering context')).toBeInTheDocument();
+
+      MockApiClient.addMockResponse({
+        url: orchestrationUrl,
+        body: InvestigationOrchestrationFixture({
+          investigationId: '4567',
+          phase: 'planning',
+          status: 'processing',
+          hypotheses: [],
+        }),
+      });
+      act(() => jest.advanceTimersByTime(2000));
+      expect(
+        await screen.findByText('Seer is looking for likely causes')
+      ).toBeInTheDocument();
+
+      const stoppedRequest = MockApiClient.addMockResponse({
+        url: orchestrationUrl,
+        body: InvestigationOrchestrationFixture({
+          investigationId: '4567',
+          phase: 'cancelled',
+          status: 'cancelled',
+        }),
+      });
+      act(() => jest.advanceTimersByTime(2000));
+      expect(
+        await screen.findByText('This investigation was stopped')
+      ).toBeInTheDocument();
+
+      act(() => jest.advanceTimersByTime(10_000));
+      expect(stoppedRequest).toHaveBeenCalledTimes(1);
+    });
+
+    it('keeps polling briefly while metadata generation is starting', async () => {
+      const organization = OrganizationFixture({
+        slug: 'org-slug',
+        features: ['investigations'],
+        openMembership: true,
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/investigations/candidates/',
+        method: 'POST',
+        body: {items: [{status: 'view', investigationId: '4567'}]},
+      });
+      const detailRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/notebooks/4567/',
+        body: {
+          id: '4567',
+          summary: null,
+          summaryDescription: null,
+          titleGeneration: {status: null},
+          blocks: [
+            {
+              id: 'block-1',
+              config: {autoRun: true},
+              dependencies: [],
+              outputStatus: 'completed',
+              currentExecution: {status: 'completed'},
+            },
+          ],
         },
-      },
-    });
-    MockApiClient.addMockResponse({
-      url: orchestrationUrl,
-      body: InvestigationOrchestrationFixture({
-        investigationId: '4567',
-        phase: 'broad_scan',
-        status: 'processing',
-        hypotheses: [],
-      }),
-    });
+      });
 
-    render(<MetricIssueSeerInvestigationSection {...defaultProps} />, {organization});
+      render(<MetricIssueSeerInvestigationSection {...defaultProps} />, {organization});
 
-    expect(await screen.findByText('Seer is gathering context')).toBeInTheDocument();
-
-    MockApiClient.addMockResponse({
-      url: orchestrationUrl,
-      body: InvestigationOrchestrationFixture({
-        investigationId: '4567',
-        phase: 'planning',
-        status: 'processing',
-        hypotheses: [],
-      }),
-    });
-    act(() => jest.advanceTimersByTime(2000));
-    expect(
-      await screen.findByText('Seer is looking for likely causes')
-    ).toBeInTheDocument();
-
-    const stoppedRequest = MockApiClient.addMockResponse({
-      url: orchestrationUrl,
-      body: InvestigationOrchestrationFixture({
-        investigationId: '4567',
-        phase: 'cancelled',
-        status: 'cancelled',
-      }),
-    });
-    act(() => jest.advanceTimersByTime(2000));
-    expect(await screen.findByText('This investigation was stopped')).toBeInTheDocument();
-
-    act(() => jest.advanceTimersByTime(10_000));
-    expect(stoppedRequest).toHaveBeenCalledTimes(1);
-    jest.useRealTimers();
-  });
-
-  it('keeps polling briefly while metadata generation is starting', async () => {
-    jest.useFakeTimers();
-    const organization = OrganizationFixture({
-      slug: 'org-slug',
-      features: ['investigations'],
-      openMembership: true,
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/investigations/candidates/',
-      method: 'POST',
-      body: {items: [{status: 'view', investigationId: '4567'}]},
-    });
-    const detailRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/notebooks/4567/',
-      body: {
-        id: '4567',
-        summary: null,
-        summaryDescription: null,
-        titleGeneration: {status: null},
-        blocks: [
-          {
-            id: 'block-1',
-            config: {autoRun: true},
-            dependencies: [],
-            outputStatus: 'completed',
-            currentExecution: {status: 'completed'},
-          },
-        ],
-      },
+      expect(
+        await screen.findByRole('button', {name: 'View Investigation'})
+      ).toBeInTheDocument();
+      act(() => jest.advanceTimersByTime(2000));
+      await waitFor(() => expect(detailRequest).toHaveBeenCalledTimes(2));
     });
 
-    render(<MetricIssueSeerInvestigationSection {...defaultProps} />, {organization});
+    it('keeps polling while a parallel branch is active after another branch fails', async () => {
+      const organization = OrganizationFixture({
+        slug: 'org-slug',
+        features: ['investigations'],
+        openMembership: true,
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/investigations/candidates/',
+        method: 'POST',
+        body: {items: [{status: 'view', investigationId: '4567'}]},
+      });
+      const detailRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/notebooks/4567/',
+        body: {
+          id: '4567',
+          summary: null,
+          summaryDescription: null,
+          titleGeneration: {status: null},
+          blocks: [
+            {
+              id: 'block-1',
+              config: {autoRun: true},
+              dependencies: [],
+              outputStatus: 'failed',
+              currentExecution: {status: 'failed'},
+            },
+            {
+              id: 'block-2',
+              config: {autoRun: true},
+              dependencies: [],
+              outputStatus: 'running',
+              currentExecution: {status: 'running'},
+            },
+          ],
+        },
+      });
 
-    expect(
-      await screen.findByRole('button', {name: 'View Investigation'})
-    ).toBeInTheDocument();
-    act(() => jest.advanceTimersByTime(2000));
-    await waitFor(() => expect(detailRequest).toHaveBeenCalledTimes(2));
-    jest.useRealTimers();
-  });
+      render(<MetricIssueSeerInvestigationSection {...defaultProps} />, {organization});
 
-  it('keeps polling while a parallel branch is active after another branch fails', async () => {
-    jest.useFakeTimers();
-    const organization = OrganizationFixture({
-      slug: 'org-slug',
-      features: ['investigations'],
-      openMembership: true,
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/investigations/candidates/',
-      method: 'POST',
-      body: {items: [{status: 'view', investigationId: '4567'}]},
-    });
-    const detailRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/notebooks/4567/',
-      body: {
-        id: '4567',
-        summary: null,
-        summaryDescription: null,
-        titleGeneration: {status: null},
-        blocks: [
-          {
-            id: 'block-1',
-            config: {autoRun: true},
-            dependencies: [],
-            outputStatus: 'failed',
-            currentExecution: {status: 'failed'},
-          },
-          {
-            id: 'block-2',
-            config: {autoRun: true},
-            dependencies: [],
-            outputStatus: 'running',
-            currentExecution: {status: 'running'},
-          },
-        ],
-      },
+      expect(
+        await screen.findByRole('button', {name: 'View Investigation'})
+      ).toBeInTheDocument();
+      act(() => jest.advanceTimersByTime(2000));
+      await waitFor(() => expect(detailRequest).toHaveBeenCalledTimes(2));
     });
 
-    render(<MetricIssueSeerInvestigationSection {...defaultProps} />, {organization});
-
-    expect(
-      await screen.findByRole('button', {name: 'View Investigation'})
-    ).toBeInTheDocument();
-    act(() => jest.advanceTimersByTime(2000));
-    await waitFor(() => expect(detailRequest).toHaveBeenCalledTimes(2));
-    jest.useRealTimers();
+    it('polls a beta notebook slowly while waiting for an answer', async () => {
+      const url = '/organizations/org-slug/notebooks/7654/';
+      const details = MockApiClient.addMockResponse({
+        url,
+        body: {workflowReport: {active: true, status: 'awaiting_input', hypotheses: []}},
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/investigations/candidates/',
+        method: 'POST',
+        body: {items: [{status: 'investigate', workflowInvestigationId: '7654'}]},
+      });
+      render(<MetricIssueSeerInvestigationSection {...defaultProps} />, {
+        organization: OrganizationFixture({
+          features: ['investigations'],
+          openMembership: true,
+        }),
+      });
+      await screen.findByText('View investigation with v2 (beta)');
+      await act(() => jest.advanceTimersByTimeAsync(2000));
+      expect(details).toHaveBeenCalledTimes(1);
+      await act(() => jest.advanceTimersByTimeAsync(28_000));
+      expect(details).toHaveBeenCalledTimes(2);
+    });
   });
 
   it('launches an investigation for the selected open period', async () => {
@@ -588,11 +631,90 @@ describe('MetricDetectorTriggeredSection', () => {
     expect(router.location.pathname).toBe('/seer/investigations/4567/');
   });
 
-  it('hides the investigation section for a closed-membership organization', () => {
+  it('opens the v2 notebook for the same open period as the legacy button', async () => {
     const organization = OrganizationFixture({
-      slug: 'org-slug',
+      features: ['investigations'],
+      openMembership: true,
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/candidates/',
+      method: 'POST',
+      body: {items: [{status: 'investigate'}]},
+    });
+    const launch = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/',
+      method: 'POST',
+      body: {id: '7654'},
+    });
+    const {router} = render(<MetricIssueSeerInvestigationSection {...defaultProps} />, {
+      organization,
+    });
+    expect(
+      await screen.findByRole('button', {name: 'Launch Investigation'})
+    ).toBeEnabled();
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Investigation with v2 (beta)'})
+    );
+    await waitFor(() =>
+      expect(router.location.pathname).toBe(
+        '/organizations/org-slug/seer/investigations/7654/'
+      )
+    );
+    expect(launch).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: {version: 2},
+        data: {
+          source: {
+            type: 'metric_open_period',
+            ref: {groupId: defaultGroup.id, openPeriodId: '101'},
+          },
+        },
+      })
+    );
+  });
+
+  it('reopens the existing beta notebook directly', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/notebooks/7654/',
+      body: {workflowReport: null},
+    });
+    const organization = OrganizationFixture({
+      features: ['investigations'],
+      openMembership: true,
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/candidates/',
+      method: 'POST',
+      body: {items: [{status: 'investigate', workflowInvestigationId: '7654'}]},
+    });
+    const {router} = render(<MetricIssueSeerInvestigationSection {...defaultProps} />, {
+      organization,
+    });
+    await userEvent.click(await screen.findByText('View investigation with v2 (beta)'));
+    await waitFor(() =>
+      expect(router.location.pathname).toBe(
+        '/organizations/org-slug/seer/investigations/7654/'
+      )
+    );
+  });
+
+  it.each([
+    {
+      scenario: 'a closed-membership organization',
       features: ['investigations'],
       openMembership: false,
+    },
+    {
+      scenario: 'an organization with investigations disabled',
+      features: [],
+      openMembership: true,
+    },
+  ])('hides the investigation section for $scenario', ({features, openMembership}) => {
+    const organization = OrganizationFixture({
+      slug: 'org-slug',
+      features,
+      openMembership,
     });
     const candidatesMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/investigations/candidates/',

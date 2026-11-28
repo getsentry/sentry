@@ -23,6 +23,7 @@ type NextStepCardProps = {
   orchestrationLoading?: boolean;
   source?: InvestigationDetail['source'];
   waitingOnRun?: boolean;
+  workflowNextStepStatus?: string | null;
 };
 
 export function NextStepCard({
@@ -33,6 +34,7 @@ export function NextStepCard({
   orchestrationLoading = false,
   source,
   waitingOnRun = false,
+  workflowNextStepStatus,
 }: NextStepCardProps) {
   const heading = t('Recommended action');
 
@@ -49,7 +51,10 @@ export function NextStepCard({
     return (
       <ActionRequestCard
         actionRequest={actionRequest}
-        finishing={orchestration?.report.nextStep?.status === 'generating'}
+        finishing={
+          workflowNextStepStatus === 'running' ||
+          orchestration?.report.nextStep?.status === 'generating'
+        }
         heading={heading}
         investigationId={investigationId}
         runProcessing={isRunWorking(orchestration) || waitingOnRun}
@@ -58,11 +63,17 @@ export function NextStepCard({
     );
   }
 
-  if (isNextStepPending(orchestration, actionRequestsStale)) {
+  if (
+    ['ready', 'pending', 'running'].includes(workflowNextStepStatus ?? '') ||
+    isNextStepPending(orchestration, actionRequestsStale)
+  ) {
     return <NextStepPlaceholder heading={heading} />;
   }
 
-  if (orchestration?.report.nextStep?.status === 'failed') {
+  if (
+    workflowNextStepStatus === 'failed' ||
+    orchestration?.report.nextStep?.status === 'failed'
+  ) {
     return <NextStepFailed heading={heading} />;
   }
 

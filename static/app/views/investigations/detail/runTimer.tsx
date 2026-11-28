@@ -1,6 +1,8 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useState, type ReactNode} from 'react';
 
+import {Tag} from '@sentry/scraps/badge';
 import {formatElapsedDuration} from '@sentry/scraps/duration';
+import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
@@ -8,7 +10,10 @@ import {
   getInvestigationActiveTime,
   isOnlyNextStepPending,
 } from 'sentry/views/investigations/runState';
-import type {InvestigationOrchestration} from 'sentry/views/investigations/types';
+import type {
+  InvestigationOrchestration,
+  WorkflowReport,
+} from 'sentry/views/investigations/types';
 
 export function InvestigationRunTimer({
   orchestration,
@@ -55,7 +60,59 @@ export function InvestigationRunTimer({
   );
 }
 
-function LiveDuration({seconds, active}: {active: boolean; seconds: number}) {
+const STATUS_TAG_VARIANT = {
+  running: 'info',
+  awaitingInput: 'warning',
+  failed: 'danger',
+  complete: 'success',
+  cancelled: 'muted',
+} as const;
+
+export function InvestigationRunStatus({
+  variant,
+  label,
+  children,
+}: {
+  children: ReactNode;
+  label: string;
+  variant: keyof typeof STATUS_TAG_VARIANT;
+}) {
+  return (
+    <Flex align="center" gap="md" wrap="nowrap">
+      <Tag variant={STATUS_TAG_VARIANT[variant]}>{label}</Tag>
+      {children}
+    </Flex>
+  );
+}
+
+export function WorkflowRunTimer({report}: {report: WorkflowReport}) {
+  const elapsed = report.queued
+    ? report.elapsedSeconds
+    : (report.activeSeconds ?? report.elapsedSeconds);
+  const ticking =
+    report.queued ||
+    (typeof report.activeSeconds === 'number'
+      ? report.clockRunning === true
+      : report.active);
+  return typeof elapsed === 'number' ? (
+    <LiveDuration
+      key={`${report.runId}:${elapsed}:${ticking}`}
+      seconds={elapsed}
+      active={ticking}
+      label={t('Investigation elapsed time')}
+    />
+  ) : null;
+}
+
+function LiveDuration({
+  seconds,
+  active,
+  label = t('Investigation active time'),
+}: {
+  active: boolean;
+  seconds: number;
+  label?: string;
+}) {
   const [localSeconds, setLocalSeconds] = useState(0);
   useEffect(() => {
     if (!active) {
@@ -80,7 +137,7 @@ function LiveDuration({seconds, active}: {active: boolean; seconds: number}) {
       density="fixed"
       wrap="nowrap"
       role="timer"
-      aria-label={t('Investigation active time')}
+      aria-label={label}
     >
       {formatElapsedDuration((seconds + localSeconds) * 1000)}
     </Text>

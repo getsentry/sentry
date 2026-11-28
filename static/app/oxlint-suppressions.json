@@ -2050,9 +2050,6 @@
   "views/issueDetails/occurrenceSummary.tsx": {
     "@sentry/scraps/prefer-primitives": {"count": 1}
   },
-  "views/issueDetails/sidebar/metricDetectorTriggeredSection.spec.tsx": {
-    "@sentry/require-fake-timer-cleanup": {"count": 3}
-  },
   "views/issueDetails/sidebar/metricDetectorTriggeredSection.tsx": {
     "@sentry/scraps/prefer-primitives": {"count": 1}
   },

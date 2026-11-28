@@ -4,7 +4,6 @@ import {IconChat} from '@sentry/icons/chat';
 import {IconIssues} from '@sentry/icons/issues';
 import {useIsFetching, useQuery, useQueryClient} from '@tanstack/react-query';
 
-import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {DateTime} from '@sentry/scraps/dateTime';
 import {Input} from '@sentry/scraps/input';
@@ -33,6 +32,7 @@ import {
   investigationCommentCountsQueryOptions,
   investigationOrchestrationQueryOptions,
   isFollowUpPending,
+  useLaunchInvestigationMutation,
 } from 'sentry/views/investigations/api';
 import {useBlockCommentsDrawer} from 'sentry/views/investigations/comments/useBlockCommentsDrawer';
 import {useInvestigationComments} from 'sentry/views/investigations/comments/useInvestigationComments';
@@ -40,6 +40,7 @@ import {
   InvestigationHypotheses,
   shouldPollInvestigationRun,
 } from 'sentry/views/investigations/hypotheses/investigationHypotheses';
+import {WorkflowInvestigationReport} from 'sentry/views/investigations/hypotheses/workflowInvestigationReport';
 import {
   getHypothesisLLMContext,
   getInvestigationLLMContext,
@@ -47,8 +48,14 @@ import {
   useInvestigationAskSeer,
 } from 'sentry/views/investigations/investigationLLMContext';
 import {InvestigationSummaryCard} from 'sentry/views/investigations/investigationSummaryCard';
-import {getInvestigationSource} from 'sentry/views/investigations/source';
-import {getSeerStatusBlock} from 'sentry/views/investigations/statusBlock/getSeerStatusBlock';
+import {
+  getInvestigationSource,
+  parseMetricOpenPeriodSource,
+} from 'sentry/views/investigations/source';
+import {
+  getSeerStatusBlock,
+  getWorkflowStatusBlock,
+} from 'sentry/views/investigations/statusBlock/getSeerStatusBlock';
 import type {
   InvestigationActionRequest,
   InvestigationBlock,
@@ -72,16 +79,12 @@ import {
   SUMMARY_ELEMENT_ID,
 } from './outline';
 import {InvestigationViewers} from './presence';
-import {InvestigationRunTimer} from './runTimer';
+import {
+  InvestigationRunStatus,
+  InvestigationRunTimer,
+  WorkflowRunTimer,
+} from './runTimer';
 import type {InvestigationTitle} from './useInvestigationTitle';
-
-const STATUS_TAG_VARIANT = {
-  running: 'info',
-  awaitingInput: 'warning',
-  failed: 'danger',
-  complete: 'success',
-  cancelled: 'muted',
-} as const;
 
 /**
  * Action requests come with the investigation, which stops polling once the run is done
@@ -268,27 +271,48 @@ export function InvestigationPageContent({
     orchestration,
     investigation.actionRequests
   );
+  const workflow = investigation.workflowReport;
+  const workflowStatus =
+    workflow &&
+    getWorkflowStatusBlock(
+      workflow,
+      queryClient.getQueryState(
+        getInvestigationDetailQueryOptions(organization.slug, investigation.id).queryKey
+      )?.dataUpdatedAt
+    );
   const runStatus =
-    investigation.orchestration && orchestration
+    workflowStatus ??
+    (investigation.orchestration && orchestration
       ? getSeerStatusBlock(orchestration)
-      : null;
+      : null);
 
-  const visibleBlocks = (investigation.blocks ?? []).filter(block =>
-    shouldDisplayInvestigationBlock(block)
+  const visibleBlocks = (investigation.blocks ?? []).filter(
+    block =>
+      shouldDisplayInvestigationBlock(block) &&
+      !(
+        block.version === 1 &&
+        block.producerKey &&
+        investigation.workflowReport?.hypothesisBlockKeys.includes(block.producerKey)
+      )
   );
   const awaitingReportBlock = isAwaitingReportBlock(investigation);
-  const runProcessing = isRunWorking(orchestration) || recheckRunWait.waiting;
+  const runProcessing =
+    Boolean(investigation.workflowReport?.active) ||
+    isRunWorking(orchestration) ||
+    recheckRunWait.waiting;
+  const reportHypotheses =
+    orchestration?.hypotheses ?? investigation.workflowReport?.hypotheses;
   const hypothesisStatements = new Map(
-    orchestration?.hypotheses.map(({id, statement}) => [id, statement])
+    reportHypotheses?.map(({id, statement}) => [id, statement])
   );
   const placedActionRequests = groupActionRequestsByPlacement(
     investigation.actionRequests ?? [],
     anchor => {
-      if (anchor?.type === 'hypothesis' && investigation.orchestration) {
-        if (orchestration) {
+      if (anchor?.type === 'hypothesis') {
+        if (reportHypotheses) {
           return hypothesisStatements.has(anchor.id) ? 'hypotheses' : 'unplaced';
         }
-        return orchestrationPending ? null : 'unplaced';
+        return investigation.orchestration && orchestrationPending ? null : 'unplaced';
       }
       if (
         anchor?.type === 'block' &&
@@ -300,8 +324,24 @@ export function InvestigationPageContent({
     }
   );
   const source = getInvestigationSource(investigation);
+  const launchSource =
+    investigation.workflowLaunch && parseMetricOpenPeriodSource(investigation.source);
+  const retryLaunch = useLaunchInvestigationMutation(
+    organization.slug,
+    {
+      onSuccess: async () => {
+        await queryClient.invalidateQueries({
+          queryKey: getInvestigationDetailQueryOptions(
+            organization.slug,
+            investigation.id
+          ).queryKey,
+        });
+      },
+    },
+    2
+  );
   const hasDetails =
-    Boolean(investigation.orchestration) ||
+    Boolean(investigation.orchestration || investigation.workflowReport) ||
     visibleBlocks.length > 0 ||
     awaitingReportBlock;
   const hasSummary = Boolean(investigation.summary && investigation.summaryDescription);
@@ -324,7 +364,9 @@ export function InvestigationPageContent({
             investigation: getInvestigationReference(investigation),
             hypothesis: getHypothesisLLMContext(
               hypothesis,
-              hypothesis.id === orchestration?.report.primaryHypothesisId
+              hypothesis.id ===
+                (workflow?.primaryHypothesisId ??
+                  orchestration?.report.primaryHypothesisId)
             ),
           },
         })
@@ -338,7 +380,9 @@ export function InvestigationPageContent({
             hypotheses: hypotheses.map(hypothesis =>
               getHypothesisLLMContext(
                 hypothesis,
-                hypothesis.id === orchestration?.report.primaryHypothesisId
+                hypothesis.id ===
+                  (workflow?.primaryHypothesisId ??
+                    orchestration?.report.primaryHypothesisId)
               )
             ),
           },
@@ -347,9 +391,7 @@ export function InvestigationPageContent({
   const outline = getInvestigationOutline({
     blocks: visibleBlocks,
     hasActivity: showActivity,
-    hasHypotheses: Boolean(
-      investigation.orchestration && orchestration?.hypotheses.length
-    ),
+    hasHypotheses: Boolean(reportHypotheses?.length),
     hasSummary,
   });
 
@@ -371,14 +413,16 @@ export function InvestigationPageContent({
               aria-busy={title.isSaving}
             />
             {runStatus ? (
-              <Flex align="center" gap="md" wrap="nowrap">
-                <Tag variant={STATUS_TAG_VARIANT[runStatus.variant]}>
-                  {runStatus.statusLabel}
-                </Tag>
-                {orchestration ? (
-                  <InvestigationRunTimer orchestration={orchestration} />
-                ) : null}
-              </Flex>
+              <InvestigationRunStatus
+                variant={runStatus.variant}
+                label={runStatus.statusLabel}
+              >
+                {workflow ? (
+                  <WorkflowRunTimer report={workflow} />
+                ) : (
+                  orchestration && <InvestigationRunTimer orchestration={orchestration} />
+                )}
+              </InvestigationRunStatus>
             ) : null}
           </Grid>
           <Flex minWidth={0} align="center" gap="sm" wrap="wrap">
@@ -454,6 +498,36 @@ export function InvestigationPageContent({
               </Container>
             ) : null}
             <Stack column="2" minWidth={0} gap="3xl">
+              {investigation.workflowLaunch && investigation.status === 'active' && (
+                <Stack gap="sm" align="start">
+                  <Text role="status">
+                    {investigation.workflowLaunch.status === 'starting'
+                      ? t('Starting investigation…')
+                      : investigation.workflowLaunch.status === 'failed'
+                        ? tct('Investigation could not start. [reason]', {
+                            reason: investigation.workflowLaunch.detail,
+                          })
+                        : t('Waiting for confirmation that the investigation started.')}
+                  </Text>
+                  {investigation.workflowLaunch.status !== 'starting' && launchSource && (
+                    <Button
+                      size="sm"
+                      disabled={retryLaunch.isPending}
+                      onClick={() =>
+                        retryLaunch.mutate({
+                          type: launchSource.type,
+                          ref: launchSource.ref,
+                        })
+                      }
+                    >
+                      {t('Retry start')}
+                    </Button>
+                  )}
+                  {retryLaunch.isError && (
+                    <Text role="alert">{t('Unable to retry the investigation.')}</Text>
+                  )}
+                </Stack>
+              )}
               <InvestigationSummaryCard
                 id={SUMMARY_ELEMENT_ID}
                 summary={investigation.summary}
@@ -468,10 +542,15 @@ export function InvestigationPageContent({
                 orchestrationLoading={
                   Boolean(investigation.orchestration) && orchestrationPending
                 }
-                waitingOnRun={recheckRunWait.waiting}
+                waitingOnRun={recheckRunWait.waiting || Boolean(workflow?.active)}
+                workflowNextStepStatus={workflow?.nextStepStatus}
               />
               <AnchoredActionRequests
                 actionRequests={placedActionRequests.get('unplaced')}
+                showRecommendationHeading={
+                  Boolean(workflow) &&
+                  !investigation.actionRequests?.some(action => action.primary)
+                }
                 investigationId={investigation.id}
                 runProcessing={runProcessing}
                 source={investigation.source}
@@ -487,13 +566,48 @@ export function InvestigationPageContent({
                     </Heading>
                   ) : null}
                   <DetailsBody gap="3xl">
+                    {workflow && workflowStatus && (
+                      <WorkflowInvestigationReport
+                        notebookId={investigation.id}
+                        report={workflow}
+                        statusBlock={workflowStatus}
+                        onAskSeerAboutHypotheses={askSeerAboutHypotheses}
+                        getActions={hypothesis => {
+                          const block =
+                            hypothesis.notebookBlockKey &&
+                            investigation.blocks?.find(
+                              item => item.producerKey === hypothesis.notebookBlockKey
+                            );
+                          return [
+                            ...(askSeerAboutHypothesis
+                              ? [
+                                  {
+                                    key: 'ask-seer',
+                                    label: t('Ask Seer'),
+                                    onAction: () => askSeerAboutHypothesis(hypothesis),
+                                  },
+                                ]
+                              : []),
+                            ...(block && (!isArchived || commentCounts?.[block.id])
+                              ? [
+                                  {
+                                    key: 'comments',
+                                    label: t('Comments'),
+                                    onAction: () => openBlockComments(block.id),
+                                  },
+                                ]
+                              : []),
+                          ];
+                        }}
+                      />
+                    )}
                     {/*
                      * Only an agentic investigation has hypotheses, and `orchestration`
                      * being present is the only thing that says one is: it is null for
                      * manual and template investigations, whose orchestration endpoint
                      * 404s.
                      */}
-                    {investigation.orchestration ? (
+                    {investigation.orchestration && !workflow ? (
                       <InvestigationHypotheses
                         id={HYPOTHESES_ELEMENT_ID}
                         investigationId={investigation.id}
@@ -588,7 +702,13 @@ function getBlockSpacing(block: InvestigationBlock, index: number) {
 // placeholder block, unless a block is already running — that one shows its own.
 function isAwaitingReportBlock(investigation: InvestigationDetail) {
   const {orchestration} = investigation;
-  if (orchestration?.status !== 'processing' || orchestration.phase !== 'reporting') {
+  if (
+    !(
+      investigation.workflowReport?.status === 'running' &&
+      investigation.workflowReport.phase === 'reporting'
+    ) &&
+    !(orchestration?.status === 'processing' && orchestration.phase === 'reporting')
+  ) {
     return false;
   }
   // Only a block Seer is working on rules this out, because that block is already
@@ -602,6 +722,9 @@ function isAwaitingReportBlock(investigation: InvestigationDetail) {
 // investigations have no run, so their feed always shows.
 function isInvestigationRunDone(investigation: InvestigationDetail) {
   const {orchestration} = investigation;
+  if (investigation.workflowReport) {
+    return !investigation.workflowReport.active;
+  }
   return !orchestration || RUN_DONE_STATUSES.has(orchestration.status);
 }
 

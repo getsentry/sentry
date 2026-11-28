@@ -1,5 +1,5 @@
 import type {ReactNode} from 'react';
-import {createContext, Fragment, isValidElement, useContext} from 'react';
+import {createContext, createElement, Fragment, isValidElement, useContext} from 'react';
 import {matchRoutes, type RouteObject} from 'react-router';
 import * as Sentry from '@sentry/react';
 
@@ -159,40 +159,65 @@ function reportUnhandledTag(
   });
 }
 
+/** Render a resolved Code Mode payload from a chat message or a saved notebook block. */
+export function SeerEmbed({
+  name,
+  data,
+  level,
+  index,
+  hostActions = null,
+  attrs = {},
+  fallback = null,
+}: {
+  data: unknown;
+  level: 'block' | 'inline';
+  name: string;
+  attrs?: Record<string, string>;
+  fallback?: ReactNode;
+  hostActions?: SeerEmbedBlockHostActions | null;
+  index?: number;
+}) {
+  const Embed = SeerEmbedRegistry.get(name);
+  if (!Embed) {
+    reportUnhandledTag(name, level, attrs);
+    return fallback;
+  }
+  const embed = createElement(Embed, {name, data, level, index, fallback});
+  if (level === 'inline') {
+    return embed;
+  }
+  return (
+    <Container>
+      <SeerEmbedBlockHostActionsContext.Provider value={hostActions}>
+        {embed}
+      </SeerEmbedBlockHostActionsContext.Provider>
+    </Container>
+  );
+}
+
 const SEER_EMBED_COMPONENTS: MarkdownProps['components'] = {
   Tag: function SeerTag({name, data, level, attrs, index, raw}) {
     const structuredContent = useContext(StructuredContentContext);
     const leading = useContext(LeadingEmbedContext);
-    const Embed = SeerEmbedRegistry.get(name);
-    if (Embed) {
-      const embedData =
-        name in STRUCTURED_SEER_EMBED_SCHEMAS
-          ? structuredContent?.[name]
-          : data === undefined
-            ? structuredContent?.[name]
-            : data;
-      const embed = <Embed name={name} data={embedData} level={level} index={index} />;
-      if (level === 'inline') {
-        return embed;
-      }
-      // Only the tag the message opens with takes the host's actions. `index`
-      // keeps an identical tag further down from matching too.
-      const hostActions =
-        leading && index === 0 && leading.raw.trimStart().startsWith(raw.trim())
-          ? leading.actions
-          : null;
-      return (
-        <Container>
-          <SeerEmbedBlockHostActionsContext.Provider value={hostActions}>
-            {embed}
-          </SeerEmbedBlockHostActionsContext.Provider>
-        </Container>
-      );
-    }
-    // Unknown embeds are expected to be registered here; drop them and report
-    // instead of echoing plaintext like default Markdown.
-    reportUnhandledTag(name, level, attrs);
-    return null;
+    const embedData =
+      name in STRUCTURED_SEER_EMBED_SCHEMAS || data === undefined
+        ? structuredContent?.[name]
+        : data;
+    // Only the tag the message opens with takes the host's actions.
+    const hostActions =
+      leading && index === 0 && leading.raw.trimStart().startsWith(raw.trim())
+        ? leading.actions
+        : null;
+    return (
+      <SeerEmbed
+        name={name}
+        data={embedData}
+        level={level}
+        index={index}
+        attrs={attrs}
+        hostActions={hostActions}
+      />
+    );
   },
   Link: function SeerLink({children, Default, href, title}) {
     const routeConfig = useRouteConfig();

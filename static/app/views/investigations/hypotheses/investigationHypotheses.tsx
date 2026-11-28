@@ -327,6 +327,7 @@ export function InvestigationHypotheses({
             <HypothesisList
               hypotheses={projection.hypotheses}
               primaryHypothesisId={projection.report.primaryHypothesisId}
+              showFindings
               getActions={getActions}
             />
           ) : (
@@ -343,18 +344,20 @@ export function InvestigationHypotheses({
  * first hypothesis lands — only its contents change. Uses the same card as the
  * report's query blocks.
  */
-function HypothesesPanel({
+export function HypothesesPanel({
   children,
+  defaultExpanded,
   expanded,
   hypotheses = [],
   onAskSeer,
   onExpandedChange,
 }: {
   children: React.ReactNode;
-  expanded: boolean;
-  onExpandedChange: (expanded: boolean) => void;
+  defaultExpanded?: boolean;
+  expanded?: boolean;
   hypotheses?: InvestigationHypothesis[];
   onAskSeer?: () => void;
+  onExpandedChange?: (expanded: boolean) => void;
 }) {
   const tally = getHypothesisTally(hypotheses);
 
@@ -378,6 +381,7 @@ function HypothesesPanel({
           />
         ) : null
       }
+      defaultExpanded={defaultExpanded}
       expanded={expanded}
       onExpandedChange={onExpandedChange}
       status={

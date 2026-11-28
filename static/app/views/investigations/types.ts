@@ -51,6 +51,7 @@ export type InvestigationListItem = {
   orchestration?: InvestigationOrchestrationSummary | null;
   titleGeneration?: {status: 'pending' | 'running' | 'completed' | 'failed' | null};
   trigger?: InvestigationTrigger | null;
+  workflowStatus?: WorkflowReport['status'];
 };
 
 // Expand this response type as the detail UI begins consuming additional fields.
@@ -74,9 +75,13 @@ export type InvestigationBlock = {
   staleAt: string | null;
   title: string;
   version: number;
+  embed?: {body: Record<string, unknown>; name: string} | null;
+  embedSource?: string | null;
+  embedSummary?: string | null;
+  producerKey?: string | null;
 };
 
-export type InvestigationBlockKind = 'query' | 'text';
+export type InvestigationBlockKind = 'embed' | 'query' | 'text';
 
 export type InvestigationViewer = {active: boolean; lastSeen: string; userId: string};
 
@@ -161,6 +166,39 @@ export type InvestigationQueryOutput = {
   tableMarkdown: string;
 };
 
+export type WorkflowReport = {
+  active: boolean;
+  activity: string[];
+  hypotheses: InvestigationHypothesis[];
+  hypothesisBlockKeys: string[];
+  runId: string;
+  summary: string | null;
+  activeSeconds?: number | null;
+  awaitingHypotheses?: boolean;
+  canCommand?: boolean;
+  canSteer?: boolean;
+  clockRunning?: boolean;
+  currentActivity?: Array<
+    InvestigationToolActivity | {id: string; kind: 'thought'; text: string}
+  >;
+  elapsedSeconds?: number | null;
+  error?: string | null;
+  nextStepStatus?: string | null;
+  pendingInputs?: Array<{inputId: string; nodeId: string; questions: string[]}>;
+  phase?: InvestigationOrchestrationPhase;
+  primaryHypothesisId?: string | null;
+  queued?: boolean;
+  reportReady?: boolean;
+  status?:
+    | 'pending'
+    | 'running'
+    | 'awaiting_input'
+    | 'succeeded'
+    | 'failed'
+    | 'cancelled';
+  titlePreview?: string | null;
+};
+
 export type InvestigationDetail = InvestigationListItem & {
   actionRequests?: InvestigationActionRequest[];
   blocks?: InvestigationBlock[];
@@ -173,6 +211,8 @@ export type InvestigationDetail = InvestigationListItem & {
     type: string;
     snapshot?: Record<string, unknown>;
   };
+  workflowLaunch?: {detail: string; status: 'starting' | 'unconfirmed' | 'failed'};
+  workflowReport?: WorkflowReport;
 };
 
 export type InvestigationTitleGeneration = {
@@ -195,10 +235,11 @@ export type ManualInvestigationSource = {
   timeRange?: {end: string; start: string};
 };
 
-export type InvestigationCandidate =
+export type InvestigationCandidate = (
   | {status: 'investigate'}
   | {status: 'unavailable'}
-  | {investigationId: string; status: 'view'};
+  | {investigationId: string; status: 'view'}
+) & {workflowInvestigationId?: string};
 
 // The orchestration projection: the whole live state of an agentic run, which
 // Seer pushes as one JSON blob on every orchestration event and Sentry serves
@@ -402,6 +443,7 @@ export type InvestigationHypothesis = {
   automaticRetryCount?: number;
   heartbeatAt?: string | null;
   investigatorRunId?: number | null;
+  notebookBlockKey?: string;
   thoughts?: InvestigationThought[];
   toolActivity?: InvestigationToolActivity[];
   /**

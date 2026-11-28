@@ -33,6 +33,7 @@ import {
   InvestigationBlockFixture,
   InvestigationCommentFixture,
   InvestigationDetailFixture,
+  InvestigationHypothesisFixture,
   InvestigationMetricSourceFixture,
   InvestigationOrchestrationFixture,
   InvestigationQueryOutputFixture,
@@ -173,6 +174,240 @@ describe('Investigation detail', () => {
         body: {actionRequest: InvestigationActionRequestFixture({id})},
       });
     }
+  });
+
+  it('retries a rejected workflow start on the same notebook', async () => {
+    const source = {type: 'metric_open_period', ref: {groupId: '1', openPeriodId: '2'}};
+    const notebook = InvestigationDetailFixture({
+      source: {...source, revision: 1},
+      workflowLaunch: {status: 'failed', detail: 'Detector unavailable.'},
+    });
+    const detail = MockApiClient.addMockResponse({url: detailUrl, body: notebook});
+    const launch = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/',
+      method: 'POST',
+      body: notebook,
+    });
+    renderView();
+    expect(await screen.findByText(/Detector unavailable/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Retry start'}));
+    expect(launch).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({data: {source}, query: {version: 2}})
+    );
+    await waitFor(() => expect(detail).toHaveBeenCalledTimes(2));
+  });
+
+  it.each(['failed', 'cancelled'] as const)(
+    'restarts a %s workflow from the same notebook',
+    async status => {
+      MockApiClient.addMockResponse({
+        url: detailUrl,
+        body: InvestigationDetailFixture({
+          workflowReport: {
+            runId: 'stopped-run',
+            status,
+            active: false,
+            canCommand: true,
+            activity: [],
+            hypotheses: [],
+            hypothesisBlockKeys: [],
+            summary: null,
+          },
+        }),
+      });
+      const command = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/investigation-workflows/runs/stopped-run/commands/',
+        method: 'POST',
+        body: {id: 'new-run'},
+      });
+      renderView();
+      const restart = await screen.findByRole('button', {name: 'Restart investigation'});
+      MockApiClient.addMockResponse({
+        url: detailUrl,
+        body: InvestigationDetailFixture({
+          workflowReport: {
+            runId: 'new-run',
+            status: 'running',
+            active: true,
+            canCommand: true,
+            activity: [],
+            hypotheses: [],
+            hypothesisBlockKeys: [],
+            summary: null,
+          },
+        }),
+      });
+      await userEvent.click(restart);
+      expect(command).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({data: {command: 'retry', requestId: expect.any(String)}})
+      );
+      expect(
+        await screen.findByRole('button', {name: 'Stop investigation'})
+      ).toBeEnabled();
+      expect(
+        screen.queryByRole('button', {name: 'Restart investigation'})
+      ).not.toBeInTheDocument();
+    }
+  );
+
+  describe('while a workflow notebook is running', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
+    afterEach(async () => {
+      try {
+        cleanup();
+        await act(() => jest.runOnlyPendingTimersAsync());
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+    it('answers the question for the paused node and keeps the timer paused', async () => {
+      const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
+      const detail = MockApiClient.addMockResponse({
+        url: detailUrl,
+        body: InvestigationDetailFixture({
+          blocks: [],
+          workflowReport: {
+            runId: 'workflow-1',
+            status: 'awaiting_input',
+            phase: 'investigating',
+            active: true,
+            canCommand: true,
+            clockRunning: false,
+            activeSeconds: 23,
+            elapsedSeconds: 90,
+            activity: [],
+            hypotheses: [],
+            hypothesisBlockKeys: [],
+            summary: null,
+            pendingInputs: [
+              {nodeId: 'node-1', inputId: 'ask-1', questions: ['Which release?']},
+            ],
+          },
+        }),
+      });
+      const command = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/investigation-workflows/runs/workflow-1/commands/',
+        method: 'POST',
+        body: {status: 'running'},
+      });
+      renderView();
+      const answer = await screen.findByRole('textbox', {name: 'Which release?'});
+      await act(() => jest.advanceTimersByTimeAsync(2000));
+      expect(detail).toHaveBeenCalledTimes(1);
+      await act(() => jest.advanceTimersByTimeAsync(28_000));
+      expect(detail).toHaveBeenCalledTimes(2);
+      expect(screen.getByRole('timer')).toHaveTextContent('23.0s');
+      await user.type(answer, 'release-42');
+      await user.click(screen.getByRole('button', {name: 'Send answer'}));
+      await waitFor(() => expect(detail).toHaveBeenCalledTimes(3));
+      expect(command).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: {
+            command: 'provide_input',
+            nodeId: 'node-1',
+            inputId: 'ask-1',
+            answers: ['release-42'],
+            requestId: expect.any(String),
+          },
+        })
+      );
+    });
+    it('shows queued time, live checks, then the finished report and comments', async () => {
+      const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
+      const report = {
+        runId: 'workflow-1',
+        phase: 'broad_scan',
+        awaitingHypotheses: true,
+        elapsedSeconds: 15,
+        active: true,
+        activity: [],
+        hypotheses: [],
+        hypothesisBlockKeys: [],
+        summary: null,
+      };
+      MockApiClient.addMockResponse({
+        url: detailUrl,
+        body: InvestigationDetailFixture({
+          title: 'Investigating monitor',
+          workflowReport: {...report, status: 'pending'},
+        }),
+      });
+      renderView();
+      expect(await screen.findByText('Waiting for a worker')).toBeInTheDocument();
+      expect(screen.getByLabelText('Loading possible causes')).toBeInTheDocument();
+      expect(
+        screen.getByRole('timer', {name: 'Investigation elapsed time'})
+      ).toHaveTextContent('15.0s');
+      await act(() => jest.advanceTimersByTimeAsync(500));
+      expect(
+        screen.getByRole('timer', {name: 'Investigation elapsed time'})
+      ).toHaveTextContent('15.5s');
+      expect(screen.queryByRole('heading', {name: 'Activity'})).not.toBeInTheDocument();
+      MockApiClient.addMockResponse({
+        url: detailUrl,
+        body: InvestigationDetailFixture({
+          workflowReport: {
+            ...report,
+            status: 'running',
+            currentActivity: [
+              {id: 'msg1', kind: 'thought', text: 'Comparing release versions'},
+              {
+                id: 'call1',
+                kind: 'api',
+                status: 'running',
+                title: 'Query checkout errors',
+              },
+            ],
+          },
+        }),
+      });
+      await act(() => jest.advanceTimersByTimeAsync(2000));
+      expect(await screen.findByText('Seer is gathering context')).toBeInTheDocument();
+      expect(screen.getAllByText('Query checkout errors').length).toBeGreaterThan(0);
+      const hypothesis = InvestigationHypothesisFixture();
+      MockApiClient.addMockResponse({
+        url: detailUrl,
+        body: InvestigationDetailFixture({
+          title: 'Cache misses delayed checkout',
+          actionRequests: [
+            InvestigationActionRequestFixture({primary: false, anchor: null}),
+          ],
+          workflowReport: {
+            ...report,
+            status: 'succeeded',
+            awaitingHypotheses: false,
+            elapsedSeconds: 17,
+            active: false,
+            hypotheses: [hypothesis],
+          },
+        }),
+      });
+      await act(() => jest.advanceTimersByTimeAsync(2000));
+      expect(
+        await screen.findByDisplayValue('Cache misses delayed checkout')
+      ).toBeInTheDocument();
+      await act(() => jest.advanceTimersByTimeAsync(500));
+      expect(
+        screen.getByRole('timer', {name: 'Investigation elapsed time'})
+      ).toHaveTextContent('17.0s');
+      expect(
+        screen.getByRole('heading', {name: 'Recommended action'})
+      ).toBeInTheDocument();
+      expect(screen.getByRole('heading', {name: 'Activity'})).toBeInTheDocument();
+      expect(screen.queryByLabelText('Loading possible causes')).not.toBeInTheDocument();
+      expect(
+        screen.getByText('Every check points at the same cache regression.')
+      ).toBeInTheDocument();
+      await user.click(screen.getByRole('button', {name: /show 3 steps/i}));
+      expect(
+        screen.getByText('The lookup slowed sharply during the incident window.')
+      ).toBeInTheDocument();
+    });
   });
 
   it('loads and renders the complete investigation response', async () => {
@@ -2474,6 +2709,35 @@ describe('Investigation detail', () => {
         },
       },
     });
+  });
+
+  it('shows a saved embed and gives Seer its summary when there is no block execution', async () => {
+    const block = InvestigationBlockFixture({
+      title: 'Fixture chart',
+      kind: 'embed',
+      content: '',
+      output: null,
+      embed: {
+        name: 'chart',
+        body: {
+          title: 'Sample volumes',
+          visualization: 'bar',
+          x_axis: 'category',
+          series: [{label: 'Samples', data: [{x: 'Release', y: 3}]}],
+        },
+      },
+      embedSummary: 'Three samples from the release.',
+    });
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture({blocks: [block]}),
+    });
+    const openChatPrompt = jest.fn();
+    renderView(askSeerOrganization, makeTestQueryClient(), openChatPrompt);
+    expect(await screen.findByText('Sample volumes')).toBeInTheDocument();
+    expect(screen.queryByText(block.embedSummary!)).not.toBeInTheDocument();
+    await chooseBlockAction('Fixture chart', 'Ask Seer');
+    expect(openChatPrompt.mock.calls[0][0].context.block.output).toBe(block.embedSummary);
   });
 
   it('renders block output instead of block content', async () => {

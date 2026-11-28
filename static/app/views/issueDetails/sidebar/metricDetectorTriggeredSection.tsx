@@ -64,19 +64,26 @@ import {loadQueryParamsFromLocation} from 'sentry/views/explore/queryParams/pars
 import {
   investigationCandidatesQueryOptions,
   getInvestigationDetailQueryOptions,
+  workflowPollInterval,
   investigationOrchestrationQueryOptions,
   useLaunchInvestigationMutation,
 } from 'sentry/views/investigations/api';
 import {shouldPollInvestigationBlocks} from 'sentry/views/investigations/detail/block';
 import {shouldPollInvestigationRun} from 'sentry/views/investigations/hypotheses/investigationHypotheses';
-import {getSeerStatusBlock} from 'sentry/views/investigations/statusBlock/getSeerStatusBlock';
+import {
+  getSeerStatusBlock,
+  getWorkflowStatusBlock,
+} from 'sentry/views/investigations/statusBlock/getSeerStatusBlock';
 import {SeerStatusBlock} from 'sentry/views/investigations/statusBlock/seerStatusBlock';
 import type {
   InvestigationDetail,
   InvestigationOrchestration,
   MetricOpenPeriodInvestigationSource,
 } from 'sentry/views/investigations/types';
-import {getInvestigationPath} from 'sentry/views/investigations/utils';
+import {
+  getInvestigationPath,
+  useInvestigationsEnabled,
+} from 'sentry/views/investigations/utils';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {useGroupId} from 'sentry/views/issueDetails/groupIdContext';
 
@@ -692,6 +699,28 @@ function SeerInvestigationSection({
     onError: () => toast.error(t('Unable to launch investigation.')),
   });
 
+  const betaId = candidate?.workflowInvestigationId;
+  const beta = useQuery({
+    ...getInvestigationDetailQueryOptions(organization.slug, betaId ?? 'disabled'),
+    enabled: Boolean(betaId),
+    select: response => response.json.workflowReport,
+    refetchInterval: query => workflowPollInterval(query.state.data?.json),
+    refetchOnWindowFocus: 'always',
+  });
+
+  const launchV2Mutation = useLaunchInvestigationMutation(
+    organization.slug,
+    {
+      onSuccess: notebook => {
+        void queryClient.invalidateQueries({queryKey: candidateOptions.queryKey});
+        navigate(getInvestigationPath(organization.slug, notebook.id));
+      },
+      onError: () =>
+        toast.error(t('Unable to launch the v2 investigation. Please try again.')),
+    },
+    2
+  );
+
   const investigationPath =
     candidate?.status === 'view'
       ? getInvestigationPath(organization.slug, candidate.investigationId)
@@ -708,6 +737,23 @@ function SeerInvestigationSection({
     return null;
   }
 
+  const betaButton = betaId ? (
+    <LinkButton
+      size={statusBlock ? 'sm' : 'md'}
+      to={getInvestigationPath(organization.slug, betaId)}
+    >
+      {t('View investigation with v2 (beta)')}
+    </LinkButton>
+  ) : (
+    <Button
+      size={statusBlock ? 'sm' : 'md'}
+      busy={launchV2Mutation.isPending}
+      onClick={() => launchV2Mutation.mutate(source)}
+    >
+      {t('Investigation with v2 (beta)')}
+    </Button>
+  );
+
   return (
     <FoldSection
       title={
@@ -723,14 +769,20 @@ function SeerInvestigationSection({
         <Placeholder height="40px" width="160px" />
       ) : (
         <Stack gap="xl">
+          {beta.data?.active && (
+            <SeerStatusBlock {...getWorkflowStatusBlock(beta.data, beta.dataUpdatedAt)} />
+          )}
           {statusBlock ? (
             <SeerStatusBlock
               {...statusBlock}
               trailing={
                 investigationPath ? (
-                  <LinkButton size="sm" variant="primary" to={investigationPath}>
-                    {t('View Investigation')}
-                  </LinkButton>
+                  <Flex gap="sm" wrap="wrap">
+                    <LinkButton size="sm" variant="primary" to={investigationPath}>
+                      {t('View Investigation')}
+                    </LinkButton>
+                    {betaButton}
+                  </Flex>
                 ) : undefined
               }
             />
@@ -742,7 +794,7 @@ function SeerInvestigationSection({
             </Text>
           )}
           {statusBlock && investigationPath ? null : (
-            <Flex>
+            <Flex gap="sm" wrap="wrap">
               {investigationPath ? (
                 <LinkButton size="md" variant="primary" to={investigationPath}>
                   {t('View Investigation')}
@@ -757,6 +809,7 @@ function SeerInvestigationSection({
                   {t('Launch Investigation')}
                 </Button>
               )}
+              {betaButton}
             </Flex>
           )}
         </Stack>
@@ -827,8 +880,8 @@ export function MetricIssueSeerInvestigationSection({
   group,
   event,
 }: MetricDetectorTriggeredSectionProps) {
-  const organization = useOrganization();
-  if (!organization.openMembership) {
+  const investigationsEnabled = useInvestigationsEnabled();
+  if (!investigationsEnabled) {
     return null;
   }
 

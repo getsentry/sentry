@@ -7,6 +7,7 @@ import {
   getInvestigationDetailQueryOptions,
   investigationOrchestrationQueryOptions,
   isFollowUpPending,
+  workflowPollInterval,
 } from 'sentry/views/investigations/api';
 import {shouldPollInvestigationRun} from 'sentry/views/investigations/hypotheses/investigationHypotheses';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
@@ -42,9 +43,11 @@ export function useInvestigationDetail(investigationId: string) {
         shouldPollInvestigationBlocks(data?.blocks ?? []) ||
         isTitleGenerationActive(data?.titleGeneration?.status)
         ? 2000
-        : false;
+        : workflowPollInterval(data);
     },
     refetchOnWindowFocus: query =>
+      query.state.data?.json.workflowReport ||
+      query.state.data?.json.workflowLaunch ||
       query.state.data?.json.actionRequests?.some(shouldRefreshOnFocus)
         ? 'always'
         : false,
