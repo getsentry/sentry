@@ -1,16 +1,16 @@
 import {Fragment, useEffect, useState} from 'react';
 import {IconGithub} from '@sentry/icons/github';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
+import {z} from 'zod';
 
-import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {type ModalRenderProps} from '@sentry/scraps/modal';
 import {Prose} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
-import {SelectField} from 'sentry/components/forms/fields/selectField';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {CONSOLE_PLATFORM_METADATA} from 'sentry/constants/consolePlatforms';
@@ -21,10 +21,12 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 
-type GamingPlatform = 'playstation' | 'xbox' | 'nintendo-switch';
+const GAMING_PLATFORMS = ['playstation', 'xbox', 'nintendo-switch'] as const;
+
+type GamingPlatform = (typeof GAMING_PLATFORMS)[number];
 
 interface ConsoleSdkInvitePlatformError {
   error: string;
@@ -39,6 +41,12 @@ interface ConsoleSdkInviteResponse {
 interface ConsoleSdkInviteRequest {
   platforms: GamingPlatform[];
 }
+
+const schema = z.object({
+  platforms: z
+    .array(z.enum(GAMING_PLATFORMS))
+    .min(1, t('Select at least one gaming platform')),
+});
 
 export interface PrivateGamingSdkAccessModalProps {
   organization: Organization;
@@ -59,9 +67,6 @@ export function PrivateGamingSdkAccessModal({
   onSubmit,
   origin,
 }: PrivateGamingSdkAccessModalProps & ModalRenderProps) {
-  const [gamingPlatforms, setGamingPlatforms] = useState(
-    gamingPlatform ? [gamingPlatform] : []
-  );
   const [submittedPlatforms, setSubmittedPlatforms] = useState<GamingPlatform[]>([]);
   const location = useLocation();
   const currentPath = location.pathname + location.search;
@@ -79,13 +84,9 @@ export function PrivateGamingSdkAccessModal({
     })
   );
 
-  const mutation = useMutation<
-    ConsoleSdkInviteResponse,
-    RequestError,
-    ConsoleSdkInviteRequest
-  >({
+  const mutation = useMutation({
     mutationFn: ({platforms}: ConsoleSdkInviteRequest) =>
-      fetchMutation({
+      fetchMutation<ConsoleSdkInviteResponse>({
         url: getApiUrl('/organizations/$organizationIdOrSlug/console-sdk-invites/', {
           path: {organizationIdOrSlug: organization.slug},
         }),
@@ -123,25 +124,53 @@ export function PrivateGamingSdkAccessModal({
         )
       );
     },
-    onError: errorResponse => {
-      const errorMessage = tct('[error] - [detail]', {
-        error:
-          typeof errorResponse.responseJSON?.error === 'string'
-            ? errorResponse.responseJSON.error
-            : t('Error occurred'),
-        detail:
-          typeof errorResponse.responseJSON?.detail === 'string'
-            ? errorResponse.responseJSON.detail
-            : t('Unknown Error occurred'),
-      });
-      toast.error(errorMessage);
+    onError: error => {
+      const response = error instanceof RequestError ? error.responseJSON : undefined;
+      toast.error(
+        tct('[error] - [detail]', {
+          error:
+            typeof response?.error === 'string' ? response.error : t('Error occurred'),
+          detail:
+            typeof response?.detail === 'string'
+              ? response.detail
+              : t('Unknown Error occurred'),
+        })
+      );
     },
+  });
+
+  const defaultValues: z.infer<typeof schema> = {
+    platforms: gamingPlatform ? [gamingPlatform] : [],
+  };
+
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues,
+    validators: {onDynamic: schema},
+    onSubmit: ({value}) => {
+      trackAnalytics('gaming.private_sdk_access_modal_submitted', {
+        platform: gamingPlatform,
+        project_id: projectId,
+        organization,
+        origin,
+        platforms: value.platforms,
+      });
+
+      onSubmit?.();
+      return mutation.mutateAsync({platforms: value.platforms}).catch(() => {});
+    },
+  });
+
+  const platformOptions = (organization.enabledConsolePlatforms ?? []).flatMap(value => {
+    const platform = GAMING_PLATFORMS.find(p => p === value);
+    return platform
+      ? [{value: platform, label: CONSOLE_PLATFORM_METADATA[platform].displayName}]
+      : [];
   });
 
   const hasGithubIdentity = userIdentities?.some(
     userIdentity => userIdentity.provider.key === 'github'
   );
-  const isFormValid = hasGithubIdentity && gamingPlatforms.length > 0;
   const showSuccessView = mutation.isSuccess && submittedPlatforms.length > 0;
 
   const sdkName =
@@ -158,25 +187,8 @@ export function PrivateGamingSdkAccessModal({
     });
   }, [gamingPlatform, organization, projectId, origin]);
 
-  function handleSubmit() {
-    if (!isFormValid) {
-      return;
-    }
-
-    trackAnalytics('gaming.private_sdk_access_modal_submitted', {
-      platform: gamingPlatform,
-      project_id: projectId,
-      organization,
-      origin,
-      platforms: gamingPlatforms,
-    });
-
-    onSubmit?.();
-    mutation.mutate({platforms: gamingPlatforms});
-  }
-
   return (
-    <Fragment>
+    <form.AppForm form={form}>
       <Header closeButton>
         <h3>{tct('Request [sdkName] SDK Access', {sdkName})}</h3>
       </Header>
@@ -218,23 +230,19 @@ export function PrivateGamingSdkAccessModal({
                   'Select the gaming platforms you need access to. You will receive GitHub repository invitations for each platform.'
                 )}
               </p>
-              <SelectField
-                name="gamingPlatforms"
-                label={t('Select Gaming Platforms')}
-                placeholder={t('Select one or more gaming platforms')}
-                options={organization.enabledConsolePlatforms?.map(value => ({
-                  value,
-                  label:
-                    CONSOLE_PLATFORM_METADATA[value as GamingPlatform]?.displayName ??
-                    value,
-                }))}
-                value={gamingPlatforms}
-                onChange={setGamingPlatforms}
-                multiple
-                required
-                stacked
-                inline={false}
-              />
+              <form.AppField name="platforms">
+                {field => (
+                  <field.Layout.Stack label={t('Select Gaming Platforms')} required>
+                    <field.Select
+                      multiple
+                      value={field.state.value}
+                      onChange={field.handleChange}
+                      options={platformOptions}
+                      placeholder={t('Select one or more gaming platforms')}
+                    />
+                  </field.Layout.Stack>
+                )}
+              </form.AppField>
             </Fragment>
           ) : (
             <Fragment>
@@ -256,20 +264,6 @@ export function PrivateGamingSdkAccessModal({
               </Button>
             </Fragment>
           )}
-          {mutation.error && (
-            <Alert variant="danger">
-              {tct('[error] - [detail]', {
-                error:
-                  typeof mutation.error.responseJSON?.error === 'string'
-                    ? mutation.error.responseJSON.error
-                    : t('Error occurred'),
-                detail:
-                  typeof mutation.error.responseJSON?.detail === 'string'
-                    ? mutation.error.responseJSON.detail
-                    : t('Unknown Error occurred'),
-              })}
-            </Alert>
-          )}
         </Fragment>
       </Body>
       <Footer>
@@ -282,19 +276,12 @@ export function PrivateGamingSdkAccessModal({
             <Fragment>
               <Button onClick={closeModal}>{t('Cancel')}</Button>
               {hasGithubIdentity && (
-                <Button
-                  variant="primary"
-                  onClick={handleSubmit}
-                  disabled={!isFormValid}
-                  busy={mutation.isPending}
-                >
-                  {mutation.isPending ? t('Sending Invitation') : t('Send Invitation')}
-                </Button>
+                <form.SubmitButton>{t('Send Invitation')}</form.SubmitButton>
               )}
             </Fragment>
           )}
         </Grid>
       </Footer>
-    </Fragment>
+    </form.AppForm>
   );
 }
