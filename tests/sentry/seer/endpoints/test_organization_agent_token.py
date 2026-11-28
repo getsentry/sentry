@@ -1882,6 +1882,7 @@ class AgentTokenPublicGetMatrixTest(APITestCase, OurLogTestCase):
             "EventAttachmentDetailsEndpoint": "organizations:event-attachments",
             "GroupIntegrationDetailsEndpoint": "organizations:integrations-issue-basic",
             "OrganizationDashboardsStarredEndpoint": "organizations:dashboards-starred",
+            "OrganizationEvaluationArtifactsEndpoint": "organizations:workflow-engine-evaluation-artifacts-eap",
             "OrganizationEventsEndpoint": "organizations:discover-basic",
             "OrganizationGroupSearchViewsEndpoint": "organizations:issue-views",
             "OrganizationProfilingChunksEndpoint": "organizations:continuous-profiling",
