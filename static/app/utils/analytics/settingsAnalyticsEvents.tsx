@@ -1,3 +1,5 @@
+import type {TraceItemAttributeType} from 'sentry/views/explore/utils/traceItemAttributeKeysOptions';
+
 /**
  * Places outside of the settings navigation that open a settings page, as a link or a button.
  * - `org_menu`: "Settings" item in the organization avatar menu
@@ -28,6 +30,11 @@ export type SettingsEventParameters = {
     notification_type: string;
     tuning_field_type: string;
   };
+  /**
+   * A custom attribute's description, notes, or examples were saved from the
+   * project settings attribute details page.
+   */
+  'settings.attribute_metadata.changed': {attribute_type: TraceItemAttributeType};
   /**
    * A link or button outside of the settings navigation was clicked and opened a
    * settings page. `entry_point` says where it was.
@@ -64,6 +71,7 @@ export const settingsEventMap: Record<SettingsEventKey, string | null> = {
   'notification_settings.tuning_page_viewed': 'Notification Settings: Tuning Page Viewed',
   'notification_settings.updated_tuning_setting':
     'Notification Settings: Updated Tuning Setting',
+  'settings.attribute_metadata.changed': 'Settings: Attribute Metadata Changed',
   'settings.entry_point_clicked': 'Settings: Entry Point Clicked',
   'settings.org_menu.project_bookmark_toggled':
     'Settings: Org Menu Project Bookmark Toggled',

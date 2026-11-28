@@ -1,8 +1,11 @@
-import {Fragment} from 'react';
-import {useQuery} from '@tanstack/react-query';
+import {Fragment, useRef, useState} from 'react';
+import {flushSync} from 'react-dom';
+import {IconEdit} from '@sentry/icons/edit';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 import {parseAsStringLiteral, useQueryState} from 'nuqs';
 
 import {FeatureBadge, Tag} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
 import {InlineCode} from '@sentry/scraps/code';
 import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {EmptyState} from '@sentry/scraps/emptyState';
@@ -26,6 +29,7 @@ import {useParams} from 'sentry/utils/useParams';
 import type {TraceItemAttributeType} from 'sentry/views/explore/utils/traceItemAttributeKeysOptions';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
+import {ProjectAttributeMetadataForm} from './projectAttributeMetadataForm';
 import {
   ATTRIBUTES_STATS_PERIOD,
   ATTRIBUTES_STATS_PERIOD_LABEL,
@@ -76,28 +80,36 @@ function AttributeDetails({
     parseAsStringLiteral(['sentry', 'user'] as const)
   );
 
-  const {
-    data: attribute,
-    error,
-    isPending,
-    isError,
-    refetch,
-  } = useQuery(
-    apiOptions.as<AttributeDetailsResponse>()(
-      '/organizations/$organizationIdOrSlug/trace-items/attributes/details/',
-      {
-        path: {organizationIdOrSlug: organization.slug},
-        query: {
-          attributeName,
-          attributeSource: attributeSource ?? undefined,
-          attributeType,
-          project: [project.id],
-          statsPeriod: ATTRIBUTES_STATS_PERIOD,
-        },
-        staleTime: 0,
-      }
-    )
+  const queryClient = useQueryClient();
+  const detailsOptions = apiOptions.as<AttributeDetailsResponse>()(
+    '/organizations/$organizationIdOrSlug/trace-items/attributes/details/',
+    {
+      path: {organizationIdOrSlug: organization.slug},
+      query: {
+        attributeName,
+        attributeSource: attributeSource ?? undefined,
+        attributeType,
+        project: [project.id],
+        statsPeriod: ATTRIBUTES_STATS_PERIOD,
+      },
+      staleTime: 0,
+    }
   );
+  const {data: attribute, error, isPending, isError, refetch} = useQuery(detailsOptions);
+
+  function handleSave(context: Attribute['context']) {
+    queryClient.cancelQueries({queryKey: detailsOptions.queryKey, exact: true});
+    queryClient.setQueryData(
+      detailsOptions.queryKey,
+      previous => previous && {...previous, json: {...previous.json, context}}
+    );
+    queryClient.invalidateQueries(
+      apiOptions.queryFilter(
+        '/organizations/$organizationIdOrSlug/trace-items/attributes/merged/',
+        {path: {organizationIdOrSlug: organization.slug}}
+      )
+    );
+  }
 
   if (isPending) {
     return <LoadingIndicator />;
@@ -125,7 +137,7 @@ function AttributeDetails({
         gap="xl"
         align="start"
       >
-        <AttributeMetadata attribute={attribute} />
+        <AttributeMetadata attribute={attribute} onSave={handleSave} />
         <AttributeSidebar attribute={attribute} />
       </Grid>
     </Stack>
@@ -191,70 +203,156 @@ function AttributeNotFound() {
   );
 }
 
-function AttributeMetadata({attribute}: {attribute: Attribute}) {
+function getEditDisabledReason(
+  attribute: AttributeDetailsResponse,
+  hasWriteAccess: boolean
+): string | undefined {
+  if (attribute.isEditable) {
+    return hasWriteAccess
+      ? undefined
+      : t("You don't have permission to edit attribute metadata.");
+  }
+  if (
+    attribute.attributeSource.source_type === 'sentry' ||
+    attribute.context?.isConvention
+  ) {
+    return t("Sentry-defined attributes can't be edited.");
+  }
+  if (attribute.attributeType === 'array') {
+    return t("Array attributes can't be edited.");
+  }
+  return t("This attribute can't be edited.");
+}
+
+function AttributeMetadata({
+  attribute,
+  onSave,
+}: {
+  attribute: AttributeDetailsResponse;
+  onSave: (context: Attribute['context']) => void;
+}) {
+  const organization = useOrganization();
+  const {project} = useProjectSettingsOutlet();
+  const [isEditing, setIsEditing] = useState(false);
+  const editButtonRef = useRef<HTMLButtonElement>(null);
   const {context} = attribute;
+  function stopEditing() {
+    flushSync(() => setIsEditing(false));
+    editButtonRef.current?.focus();
+  }
+
+  const editDisabledReason = getEditDisabledReason(
+    attribute,
+    organization.access.includes('event:write')
+  );
 
   return (
     <Container border="primary" radius="md" padding="lg">
       <Stack gap="lg">
-        <Heading as="h3">{t('Metadata')}</Heading>
-        <DescriptionList gap="md lg">
-          <DescriptionList.Term>{t('Description')}</DescriptionList.Term>
-          <DescriptionList.Details>
-            {context?.brief ? (
-              <Markdown raw={context.brief} />
+        <Flex justify="between" align="center" gap="md">
+          <Stack gap="xs">
+            <Heading as="h3">{t('Metadata')}</Heading>
+            {isEditing ? (
+              <Text size="sm" variant="muted">
+                {t('Changes apply to this project only.')}
+              </Text>
             ) : (
-              <Text variant="muted">—</Text>
+              context?.isCustom && (
+                <Text size="sm" variant="muted">
+                  {context.isProjectScoped
+                    ? t('Applies to this project only.')
+                    : t('Applies to every project in this organization.')}
+                </Text>
+              )
             )}
-          </DescriptionList.Details>
-          {context?.isDeprecated && (
-            <Fragment>
-              <DescriptionList.Term>{t('Status')}</DescriptionList.Term>
-              <DescriptionList.Details>
-                <Flex align="center" gap="sm" wrap="wrap">
-                  <Tag variant="warning">{t('Deprecated')}</Tag>
-                  {context.replacementAttribute && (
-                    <Text>
-                      {tct('Use [replacement] instead.', {
-                        replacement: (
-                          <Text monospace>{context.replacementAttribute}</Text>
-                        ),
-                      })}
-                    </Text>
-                  )}
-                </Flex>
-              </DescriptionList.Details>
-            </Fragment>
-          )}
-          {context?.details?.length ? (
-            <Fragment>
-              <DescriptionList.Term>{t('Notes')}</DescriptionList.Term>
-              <DescriptionList.Details>
-                <Stack gap="lg">
-                  {context.details.map(detail => (
-                    <Markdown key={detail} raw={detail} />
-                  ))}
-                </Stack>
-              </DescriptionList.Details>
-            </Fragment>
-          ) : null}
-          {context?.examples?.length ? (
-            <Fragment>
-              <DescriptionList.Term>{t('Examples')}</DescriptionList.Term>
-              <DescriptionList.Details>
-                <Flex gap="xs" wrap="wrap">
-                  {context.examples.map(example => (
-                    <InlineCode key={String(example)} variant="neutral">
-                      {String(example)}
-                    </InlineCode>
-                  ))}
-                </Flex>
-              </DescriptionList.Details>
-            </Fragment>
-          ) : null}
-        </DescriptionList>
+          </Stack>
+          {organization.features.includes('data-browsing-attribute-context') &&
+            !isEditing && (
+              <Button
+                ref={editButtonRef}
+                size="xs"
+                icon={<IconEdit />}
+                disabled={editDisabledReason !== undefined}
+                tooltipProps={{title: editDisabledReason}}
+                onClick={() => setIsEditing(true)}
+              >
+                {t('Edit')}
+              </Button>
+            )}
+        </Flex>
+        {isEditing ? (
+          <ProjectAttributeMetadataForm
+            attribute={attribute}
+            project={project}
+            onCancel={stopEditing}
+            onSave={savedContext => {
+              onSave(savedContext);
+              stopEditing();
+            }}
+          />
+        ) : (
+          <AttributeMetadataDetails context={context} />
+        )}
       </Stack>
     </Container>
+  );
+}
+
+function AttributeMetadataDetails({context}: {context: Attribute['context']}) {
+  return (
+    <DescriptionList gap="md lg">
+      <DescriptionList.Term>{t('Description')}</DescriptionList.Term>
+      <DescriptionList.Details>
+        {context?.brief ? (
+          <Markdown raw={context.brief} />
+        ) : (
+          <Text variant="muted">—</Text>
+        )}
+      </DescriptionList.Details>
+      {context?.isDeprecated && (
+        <Fragment>
+          <DescriptionList.Term>{t('Status')}</DescriptionList.Term>
+          <DescriptionList.Details>
+            <Flex align="center" gap="sm" wrap="wrap">
+              <Tag variant="warning">{t('Deprecated')}</Tag>
+              {context.replacementAttribute && (
+                <Text>
+                  {tct('Use [replacement] instead.', {
+                    replacement: <Text monospace>{context.replacementAttribute}</Text>,
+                  })}
+                </Text>
+              )}
+            </Flex>
+          </DescriptionList.Details>
+        </Fragment>
+      )}
+      {context?.details?.length ? (
+        <Fragment>
+          <DescriptionList.Term>{t('Notes')}</DescriptionList.Term>
+          <DescriptionList.Details>
+            <Stack gap="lg">
+              {context.details.map(detail => (
+                <Markdown key={detail} raw={detail} />
+              ))}
+            </Stack>
+          </DescriptionList.Details>
+        </Fragment>
+      ) : null}
+      {context?.examples?.length ? (
+        <Fragment>
+          <DescriptionList.Term>{t('Examples')}</DescriptionList.Term>
+          <DescriptionList.Details>
+            <Flex gap="xs" wrap="wrap">
+              {context.examples.map(example => (
+                <InlineCode key={String(example)} variant="neutral">
+                  {String(example)}
+                </InlineCode>
+              ))}
+            </Flex>
+          </DescriptionList.Details>
+        </Fragment>
+      ) : null}
+    </DescriptionList>
   );
 }
 

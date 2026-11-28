@@ -36,6 +36,7 @@ export interface Attribute extends Pick<
     isCustom?: boolean;
     isDeprecated?: boolean;
     isInOtel?: boolean;
+    isProjectScoped?: boolean;
     replacementAttribute?: string;
     unit?: AttributeUnit;
   };
@@ -54,6 +55,7 @@ interface AttributeChangelogEntry {
 }
 
 export interface AttributeDetails extends Attribute {
+  isEditable: boolean;
   lastSeen: string | null;
   stats: Partial<Record<AttributeDataset, AttributeDatasetStats>>;
   changelog?: AttributeChangelogEntry[];
