@@ -75,6 +75,7 @@ __all__ = [
     "agentic_breached_metric_source_key",
     "agentic_detector_source_key",
     "archive_investigation_with_orchestration",
+    "breached_metric_orchestration_source",
     "create_agentic_breached_metric_investigation",
     "create_agentic_detector_investigation",
     "create_agentic_manual_investigation",
@@ -646,7 +647,7 @@ def _redispatch_undelivered_run(investigation: Notebook) -> None:
         _schedule_orchestration_create(run.id)
 
 
-def _breached_metric_orchestration_source(source: dict[str, Any]) -> dict[str, Any]:
+def breached_metric_orchestration_source(source: dict[str, Any]) -> dict[str, Any]:
     """Build internal orchestration context from Sentry's canonical metric snapshot."""
 
     snapshot = source["snapshot"]
@@ -712,12 +713,43 @@ def rebuild_orchestration_source(investigation: Notebook) -> dict[str, Any] | No
     ).get(source_ref)
     if resolved is None:
         return None
-    return _breached_metric_orchestration_source(resolved.source)
+    return breached_metric_orchestration_source(resolved.source)
 
 
 def agentic_breached_metric_source_key(source: dict[str, Any]) -> str:
     ref = source["ref"]
     return f"metric_open_period:{ref['groupId']}:{ref['openPeriodId']}"
+
+
+def get_or_create_metric_workflow_notebook(
+    *,
+    organization: Organization,
+    creator: ActorId,
+    title: str | None,
+    resolved_source: BreachedMetricSource,
+    project_ids: list[int],
+    filters: dict[str, Any],
+) -> tuple[Notebook, bool]:
+    """Persist the canonical v2 notebook for an authorized actor and resolved breach."""
+    source_key = f"v2:{agentic_breached_metric_source_key(resolved_source.source)}"
+    return get_or_create_source_notebook(
+        organization=organization,
+        source_key=source_key,
+        create=lambda revision: create_notebook(
+            organization=organization,
+            created_by_id=creator.id if creator.type == ActorType.USER else None,
+            created_by_service_account_id=creator.id
+            if creator.type == ActorType.SERVICE_ACCOUNT
+            else None,
+            title=title or default_notebook_title(NotebookSourceType.METRIC_OPEN_PERIOD),
+            source_type=NotebookSourceType.METRIC_OPEN_PERIOD,
+            source_key=source_key,
+            source=resolved_source.source,
+            source_revision=revision,
+            project_ids=project_ids,
+            filters=filters,
+        ),
+    )
 
 
 def create_agentic_breached_metric_investigation(
@@ -728,10 +760,21 @@ def create_agentic_breached_metric_investigation(
     resolved_source: BreachedMetricSource,
     project_ids: list[int],
     filters: dict[str, Any],
+    use_workflow: bool = False,
 ) -> tuple[Notebook, bool]:
     _validate_creation_actor(organization=organization, creator=creator, project_ids=project_ids)
-    if resolved_source.project_id not in project_ids:
+    org_wide_workflow = use_workflow and not project_ids
+    if not org_wide_workflow and resolved_source.project_id not in project_ids:
         raise NotebookValidationError({"projectIds": "The metric project must be selected."})
+    if use_workflow:
+        return get_or_create_metric_workflow_notebook(
+            organization=organization,
+            creator=creator,
+            title=title,
+            resolved_source=resolved_source,
+            project_ids=project_ids,
+            filters=filters,
+        )
     normalized_source = resolved_source.source
     source_key = agentic_breached_metric_source_key(normalized_source)
 
@@ -741,7 +784,7 @@ def create_agentic_breached_metric_investigation(
             creator=creator,
             title=title,
             source=normalized_source,
-            orchestration_source=_breached_metric_orchestration_source(normalized_source),
+            orchestration_source=breached_metric_orchestration_source(normalized_source),
             project_ids=project_ids,
             filters=filters,
             source_type=NotebookSourceType.METRIC_OPEN_PERIOD,
@@ -771,6 +814,7 @@ def start_investigation(
     project_ids: list[int],
     accessible_project_ids: AbstractSet[int],
     filters: dict[str, Any],
+    use_workflow: bool = False,
 ) -> tuple[Notebook, bool]:
     """Start the engine for a validated source. The bool is False when an active metric
     investigation is reused.
@@ -784,14 +828,22 @@ def start_investigation(
         )
         requested_project_ids = sorted(set(project_ids) | {resolved_source.project_id})
         _require_accessible_projects(requested_project_ids, accessible_project_ids)
+        actor = creator()
+        # Open-membership users can investigate across projects. Keep the monitor in the
+        # workflow input, but leave an unspecified notebook scope open for related evidence.
+        if use_workflow and not project_ids and actor.type == ActorType.USER:
+            requested_project_ids = []
         return create_agentic_breached_metric_investigation(
             organization=organization,
-            creator=creator(),
+            creator=actor,
             title=title,
             resolved_source=resolved_source,
             project_ids=requested_project_ids,
             filters=filters,
+            use_workflow=use_workflow,
         )
+    if use_workflow:
+        raise NotebookValidationError({"source": "Version 2 requires a metric open period."})
     _require_accessible_projects(project_ids, accessible_project_ids)
     investigation, _ = create_agentic_manual_investigation(
         organization=organization,

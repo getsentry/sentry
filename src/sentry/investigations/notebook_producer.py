@@ -5,6 +5,7 @@ from typing import Any
 from uuid import UUID, uuid4, uuid5
 
 from django.db.models import Q
+from django.utils import timezone
 
 from sentry.investigations.endpoints.serializers.orchestration import (
     orchestration_summaries_by_investigation,
@@ -16,6 +17,7 @@ from sentry.investigations.models import (
     InvestigationOrchestrationRerun,
     InvestigationOrchestrationRun,
     InvestigationOrchestrationStatus,
+    WorkflowRun,
 )
 from sentry.investigations.seer_client import CommandRejectionCode
 from sentry.investigations.services.orchestration import (
@@ -34,7 +36,12 @@ from sentry.notebooks.endpoints.serializers.action_request import (
 from sentry.notebooks.endpoints.serializers.notebook import (
     NotebookOrchestrationSerializerResponse,
 )
-from sentry.notebooks.models import Notebook, NotebookActionRequest
+from sentry.notebooks.models import (
+    Notebook,
+    NotebookActionRequest,
+    NotebookSourceType,
+    NotebookWorkflowRun,
+)
 from sentry.notebooks.services.action_kinds.base import (
     ApplyErrorCode,
     ApplyFailed,
@@ -161,6 +168,97 @@ def _failed_follow_up(
     ).first()  # noqa: S035
 
 
+def _workflow_accepts_follow_ups(status: str) -> bool:
+    return status not in ("failed", "cancelled")
+
+
+class WorkflowProducerRun(NotebookProducerRun):
+    def __init__(self, notebook: Notebook, run: WorkflowRun) -> None:
+        self.notebook = notebook
+        self.run = run
+
+    def record_applied(
+        self, action_request: NotebookActionRequest, *, applied_by: int | None
+    ) -> None:
+        # The shared apply transaction records the actor, result and observed settings on the request.
+        pass
+
+    def wake_writer(self) -> None:
+        writer = self.run.nodes.get(checkpoint__node_id="notebook/write")
+        now = timezone.now()
+        writer.update(
+            checkpoint={**writer.checkpoint, "next_check_at": now.isoformat()}, next_check_at=now
+        )
+
+    def queue_follow_up(self, command: FollowUpCommand, actor_id: int | None) -> UUID:
+        if (
+            not _workflow_accepts_follow_ups(self.run.checkpoint["status"])
+            or self.notebook.status == "archived"
+        ):
+            raise ApplyFailed(
+                {"detail": "The investigation has stopped.", "code": ApplyErrorCode.NOT_RETRYABLE}
+            )
+        followups = self.run.checkpoint.setdefault("followups", {})
+        for key, item in followups.items():
+            if item["status"] == "accepted" and item["command"] == command:
+                return UUID(key)
+        key = uuid4()
+        source = None
+        if (
+            self.notebook.source_type == NotebookSourceType.METRIC_OPEN_PERIOD
+            and self.run.definition.get("name") == "breached_metrics"
+        ):
+            source = rebuild_orchestration_source(self.notebook)
+            if source is None:
+                raise ApplyFailed(
+                    {
+                        "detail": "The source monitor is unavailable.",
+                        "code": ApplyErrorCode.NOT_RETRYABLE,
+                    }
+                )
+        followups[str(key)] = {
+            "status": "accepted",
+            "command": command,
+            "actor": actor_id,
+            "source": source,
+        }
+        self.run.update(checkpoint=self.run.checkpoint, version=self.run.version + 1)
+        self.wake_writer()
+        return key
+
+    def queue_recheck(self, action_request: NotebookActionRequest, actor_id: int) -> UUID | None:
+        try:
+            return self.queue_follow_up(
+                {"type": "recheck_action_requests", "payload": {"key": action_request.key}},
+                actor_id,
+            )
+        except ApplyFailed:
+            # Recording the stale values succeeds even when a follow-up is unavailable.
+            return None
+
+    def follow_up_failed(self, action_request: NotebookActionRequest) -> bool:
+        return (
+            self.run.checkpoint.get("followups", {})
+            .get(str(action_request.followup_request_id), {})
+            .get("status")
+            == "failed"
+        )
+
+    def retry_recheck(self, action_request: NotebookActionRequest, actor_id: int) -> bool:
+        return False  # A fresh recheck uses the current monitor snapshot.
+
+    def can_resend_follow_up(self, action_request: NotebookActionRequest) -> bool:
+        return _workflow_accepts_follow_ups(
+            self.run.checkpoint["status"]
+        ) and self.follow_up_failed(action_request)
+
+    def resend_follow_up(self, action_request: NotebookActionRequest) -> None:
+        item = self.run.checkpoint["followups"][str(action_request.followup_request_id)]
+        item["status"] = "accepted"
+        self.run.update(checkpoint=self.run.checkpoint, version=self.run.version + 1)
+        self.wake_writer()
+
+
 class OrchestrationProducerRun(NotebookProducerRun):
     def __init__(self, investigation: Notebook, run: InvestigationOrchestrationRun) -> None:
         self.investigation = investigation
@@ -233,7 +331,30 @@ class OrchestrationProducer(NotebookProducer):
     follow_up_rerun_hint = InvestigationOrchestrationRerun | None
     run_statuses = InvestigationOrchestrationStatus.values
 
-    def lock_run(self, notebook: Notebook, *, lock: bool) -> OrchestrationProducerRun:
+    def lock_run(
+        self, notebook: Notebook, *, lock: bool, workflow_binding_id: int | None = None
+    ) -> NotebookProducerRun:
+        if workflow_binding_id is not None:
+            binding = NotebookWorkflowRun.objects.filter(notebook=notebook).order_by("-id").first()
+            if binding is None or binding.id != workflow_binding_id:
+                raise ApplyFailed(
+                    {
+                        "detail": "A newer investigation owns this notebook.",
+                        "code": ApplyErrorCode.NOT_RETRYABLE,
+                    }
+                )
+            workflows = WorkflowRun.objects.filter(organization_id=notebook.organization_id)
+            run = (workflows.select_for_update() if lock else workflows).get_or_none(
+                uuid=binding.run_id
+            )
+            if run is None:
+                raise ApplyFailed(
+                    {
+                        "detail": "The underlying investigation has expired.",
+                        "code": ApplyErrorCode.NOT_RETRYABLE,
+                    }
+                )
+            return WorkflowProducerRun(notebook, run)
         runs = InvestigationOrchestrationRun.objects.all()
         if lock:
             runs = runs.select_for_update()
@@ -247,7 +368,7 @@ class OrchestrationProducer(NotebookProducer):
         }
         if not request_ids:
             return {}
-        return {
+        results: dict[tuple[int, UUID], NotebookActionRequestFollowUpResponse] = {
             (investigation_id, request_id): {
                 "status": InvestigationOrchestrationCommandStatus(status),
                 "reason": (error or {}).get("reason"),
@@ -271,6 +392,27 @@ class OrchestrationProducer(NotebookProducer):
                 )
             )
         }
+        bindings = {
+            (org_id, run_id): notebook_id
+            for run_id, notebook_id, org_id in NotebookWorkflowRun.objects.filter(
+                id__in={item.workflow_run_id for item in item_list if item.workflow_run_id}
+            ).values_list("run_id", "notebook_id", "organization_id")
+        }
+        for org_id, run_id, run_status, saved in WorkflowRun.objects.filter(
+            uuid__in=[run_id for _, run_id in bindings], checkpoint__has_key="followups"
+        ).values_list("organization_id", "uuid", "checkpoint__status", "checkpoint__followups"):
+            notebook_id = bindings.get((org_id, run_id))
+            if notebook_id is None:
+                continue
+            for key, command in saved.items():
+                results[notebook_id, UUID(key)] = {
+                    "status": command["status"],
+                    "reason": command.get("reason"),
+                    "rerun": "started" if command["status"] == "acknowledged" else None,
+                    "retryable": command["status"] == "failed"
+                    and _workflow_accepts_follow_ups(run_status),
+                }
+        return results
 
     def orchestration_summaries(
         self, notebooks: Sequence[Notebook]

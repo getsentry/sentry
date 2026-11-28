@@ -38,11 +38,15 @@ def test_investigation_schema_selects_only_private_frontend_routes() -> None:
     with patched_settings({"PREPROCESSING_HOOKS": []}):
         endpoints = CustomEndpointEnumerator().collect_endpoints()
     selected = investigation_endpoints(endpoints)
-    assert selected
+    assert (
+        "/api/0/organizations/{organization_id_or_slug}/notebooks/workflow-runs/{workflow_run_id}/writer/",
+        "PUT",
+    ) in {(path, method) for path, _regex, method, _callback in selected}
     assert all(
         path.startswith(
             (
                 "/api/0/organizations/{organization_id_or_slug}/investigations/",
+                "/api/0/organizations/{organization_id_or_slug}/investigation-workflows/",
                 "/api/0/organizations/{organization_id_or_slug}/notebooks/",
             )
         )

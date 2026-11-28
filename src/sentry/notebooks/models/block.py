@@ -18,6 +18,7 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 class NotebookBlockKind(models.TextChoices):
     TEXT = "text", "Text"
     QUERY = "query", "Query"
+    EMBED = "embed", "Code Mode embed"
 
 
 @cell_silo_model

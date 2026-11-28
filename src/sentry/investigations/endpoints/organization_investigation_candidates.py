@@ -11,6 +11,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.apidocs import constants
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.access import ServiceAccountAccess
 from sentry.investigations.endpoints.serializers import orchestration_summaries_by_investigation
 from sentry.investigations.endpoints.serializers.responses import (
     InvestigationCandidateResponse,
@@ -94,6 +95,9 @@ class OrganizationInvestigationCandidatesEndpoint(OrganizationNotebooksBaseEndpo
             for source in resolved_sources
             if source is not None
         }
+        include_workflows = not isinstance(request.access, ServiceAccountAccess)
+        if include_workflows:
+            source_keys |= {f"v2:{key}" for key in source_keys}
         existing = list(
             Notebook.objects.filter(
                 organization=organization,
@@ -127,5 +131,11 @@ class OrganizationInvestigationCandidatesEndpoint(OrganizationNotebooksBaseEndpo
                 items.append({"status": "investigate"})
             else:
                 items.append({"status": "unavailable"})
+            if include_workflows:
+                workflow = existing_by_source_key.get(
+                    f"v2:{agentic_breached_metric_source_key(source.source)}"
+                )
+                if workflow is not None:
+                    items[-1]["workflowInvestigationId"] = str(workflow.id)
         response_data: InvestigationCandidatesResponse = {"items": items}
         return Response(response_data)

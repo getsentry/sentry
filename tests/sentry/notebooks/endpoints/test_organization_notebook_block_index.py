@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from typing import Any
+from unittest.mock import patch
+from uuid import UUID, uuid4
 
 from django.test import override_settings
 from django.urls import reverse
@@ -18,6 +20,7 @@ from sentry.notebooks.models import (
     NotebookStatus,
 )
 from sentry.notebooks.services.producer_writes import MAX_REVISION_STEP
+from sentry.notebooks.services.workflow import link_writer_run
 from sentry.seer import agent_token
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
@@ -240,6 +243,447 @@ class NotebookProducerBlockTest(APITestCase):
             self.url,
             data={"key": "summary", "revision": 1, "kind": "text", "content": "Text", **data},
             format="json",
+        )
+
+    def workflow_url(self, run_id: UUID | None = None) -> str:
+        return reverse(
+            "sentry-api-0-organization-notebook-workflow",
+            args=[self.organization.slug, run_id or uuid4()],
+        )
+
+    def bind_workflow(self, run_id: UUID, previous: UUID | None = None) -> str:
+        url = self.workflow_url(run_id)
+        opened = self.client.post(
+            url,
+            {
+                "title": "Draft",
+                "notebookId": self.notebook.id,
+                "projectIds": [self.project.id],
+                **({"previousRunId": str(previous)} if previous else {}),
+            },
+        )
+        assert opened.data["notebookId"] == str(self.notebook.id)
+        return url
+
+    def test_workflow_destinations(self) -> None:
+        url = self.workflow_url()
+        body = {"title": "Investigation", "projectIds": [self.project.id]}
+        first = self.client.post(url, body)
+        assert first.status_code == 200, first.data
+        assert self.client.post(url, body).data == first.data
+        second_id = uuid4()
+        second = self.client.post(self.workflow_url(second_id), body)
+        assert second.data["notebookId"] != first.data["notebookId"]
+        destination = {**body, "notebookId": second.data["notebookId"]}
+        assert self.client.post(self.workflow_url(), destination).status_code == 409
+        assert (
+            self.client.post(
+                self.workflow_url(), {**destination, "previousRunId": str(second_id)}
+            ).data
+            == second.data
+        )
+        assert self.client.post(url, destination).status_code == 409
+
+    def test_two_workflows_can_upsert_the_same_key_in_one_notebook(self) -> None:
+        first, second = uuid4(), uuid4()
+        first_url = self.bind_workflow(first)
+        link_writer_run(self.organization, first, 91, None)
+        a = {"workflowRunId": str(first), "writerRunId": 91, "key": "summary:latency"}
+        b = {**a, "workflowRunId": str(second), "writerRunId": 92}
+
+        first_block = self.write(**a)
+        assert first_block.status_code == 201
+        assert self.write(**a, revision=2, blockVersion=1, content="Updated").status_code == 200
+        self.bind_workflow(second, first)
+        link_writer_run(self.organization, second, 92, None)
+        second_block = self.write(**b)
+        assert first_block.status_code == second_block.status_code == 201
+        assert first_block.data["id"] != second_block.data["id"]
+        assert self.write(**b).data == second_block.data
+        assert self.write(**a, revision=3, blockVersion=2, content="Late").status_code == 409
+
+        detail = reverse(
+            "sentry-api-0-organization-notebook-details",
+            args=[self.organization.slug, self.notebook.id],
+        )
+        blocks = self.client.get(detail).data["blocks"]
+        assert [
+            (block["workflowRunId"], block["producerKey"], block["content"]) for block in blocks
+        ] == [(str(first), "summary:latency", "Updated"), (str(second), "summary:latency", "Text")]
+        suggestion = {
+            "key": "inspect",
+            "title": "Inspect latency",
+            "rationale": "Verify.",
+            "anchor": {"type": "block", "id": "summary:latency"},
+        }
+        revision = self.client.get(first_url).data["revision"]
+        assert (
+            self.client.put(
+                self.workflow_url(second),
+                {
+                    "section": "nextSteps",
+                    "writerRunId": 92,
+                    "revision": revision,
+                    "result": {"suggestions": [suggestion]},
+                },
+                format="json",
+            ).status_code
+            == 204
+        )
+        assert self.client.get(detail).data["actionRequests"][0]["anchor"] == {
+            "type": "block",
+            "id": "summary:latency",
+            "blockId": second_block.data["id"],
+        }
+
+        key_limit = 128 - len(f":workflow:{first}:")
+        assert self.write(**{**b, "key": "a" * key_limit}).status_code == 201
+        oversized = self.write(**{**b, "key": "a" * (key_limit + 1)})
+        assert oversized.status_code == 400
+        assert "key" in oversized.data
+
+    def test_preflight_checks_destination_without_opening_notebook(self) -> None:
+        url = self.workflow_url()
+        before = Notebook.objects.filter(organization=self.organization).count()
+        query = {"preflight": 1, "notebookId": self.notebook.id, "projectId": [self.project.id]}
+        assert self.client.get(url, query).data["notebookId"] is None
+        other = self.create_project(organization=self.organization)
+        assert (
+            self.client.get(url, {**query, "projectId": [self.project.id, other.id]}).status_code
+            == 400
+        )
+        assert self.client.get(url, {**query, "notebookId": 999999999}).status_code == 404
+        assert self.client.get(url).data["notebookId"] is None
+        assert Notebook.objects.filter(organization=self.organization).count() == before
+
+    def test_workflow_embed_replays_and_rejects_stale_writes(self) -> None:
+        run_id = uuid4()
+        url = self.bind_workflow(run_id)
+        link_writer_run(self.organization, run_id, 91, None)
+        block_body = {
+            "workflowRunId": str(run_id),
+            "writerRunId": 91,
+            "key": "evidence",
+            "revision": 1,
+            "kind": "embed",
+            "embed": {"name": "issue", "body": {"id": "123", "shortId": "TEST-123"}},
+            "embedSource": "issue TEST-123",
+        }
+        invalid = self.client.post(
+            self.url,
+            {**block_body, "embed": {"name": "issue", "body": {"id": "123", "shortId": 17}}},
+            format="json",
+        )
+        assert invalid.status_code == 400
+        assert invalid.data["embed"] == {
+            "field": "embed.body.shortId",
+            "reason": "Expected string.",
+        }
+        block = self.client.post(self.url, block_body)
+        assert block.status_code == 201, block.data
+        retry = self.client.post(self.url, block_body)
+        assert retry.status_code == 200
+        assert retry.data == block.data
+        summary = {
+            "writerRunId": 91,
+            "blockId": block.data["id"],
+            "version": block.data["version"],
+            "finding": "The issue recurred.",
+        }
+        caption = self.client.patch(url, summary)
+        assert caption.data == {"version": 2, "summary": "The issue recurred.\nissue TEST-123"}
+        assert self.client.patch(url, summary).data == caption.data
+        details = reverse(
+            "sentry-api-0-organization-notebook-details",
+            args=[self.organization.slug, self.notebook.id],
+        )
+        saved = self.client.get(details).data["blocks"][0]
+        assert saved["embed"] == block_body["embed"]
+        assert saved["embedSource"] == block_body["embedSource"]
+        assert saved["embedSummary"] == caption.data["summary"]
+        changed = {**block_body, "revision": 2, "embedSource": "updated issue reference"}
+        stale = self.client.post(self.url, {**changed, "blockVersion": 1})
+        assert stale.status_code == 409
+        assert stale.data["detail"] == "Read the block before changing its contents."
+        edited = self.client.post(self.url, {**changed, "blockVersion": saved["version"]})
+        assert edited.status_code == 200
+        assert edited.data["embedSummary"] is None
+        first, second = NotebookBlockExecution.objects.filter(block_id=saved["id"]).order_by("id")
+        assert first.input_snapshot["embedSource"] == block_body["embedSource"]
+        assert second.input_snapshot["embedSource"] == changed["embedSource"]
+        assert first.result == {"embed": block_body["embed"], "summary": caption.data["summary"]}
+        assert second.result == {"embed": block_body["embed"]}
+        assert first.seer_run and first.seer_run.seer_run_state_id == 91
+        assert list(first.data_projects.values_list("id", flat=True)) == [self.project.id]
+        assert self.client.patch(url, summary).status_code == 409
+        self.notebook.blocks.filter(pk=saved["id"]).update(deleted_at=timezone.now())
+        latest = edited.data["version"]
+        assert self.client.patch(url, {**summary, "version": latest}).status_code == 409
+        next_write = {**changed, "revision": 3, "blockVersion": latest}
+        assert self.client.post(self.url, next_write).status_code == 409
+
+    def test_workflow_delete_only_removes_blocks_created_by_that_run(self) -> None:
+        first, current = uuid4(), uuid4()
+        human = self.create_notebook_block(notebook=self.notebook, position=0, kind="text")
+        self.bind_workflow(first)
+        link_writer_run(self.organization, first, 91, None)
+        earlier = self.write(workflowRunId=str(first), writerRunId=91, key="earlier").data
+        self.bind_workflow(current, first)
+        link_writer_run(self.organization, current, 92, None)
+        author = {"workflowRunId": str(current), "writerRunId": 92}
+        own = self.write(**author, key="current").data
+        self.notebook.refresh_from_db()
+        for block_id, version, expected in (
+            (human.id, human.version, 409),
+            (earlier["id"], earlier["version"], 409),
+            (own["id"], own["version"], 204),
+        ):
+            url = reverse(
+                "sentry-api-0-organization-notebook-block-details",
+                args=[self.organization.slug, self.notebook.id, block_id],
+            )
+            response = self.client.delete(
+                url,
+                {**author, "version": version, "notebookVersion": self.notebook.version},
+                format="json",
+            )
+            assert response.status_code == expected
+            if expected == 409:
+                assert response.data["code"] == "foreign_block"
+        assert set(
+            self.notebook.blocks.filter(deleted_at__isnull=True).values_list("id", flat=True)
+        ) == {human.id, int(earlier["id"])}
+
+    def test_replacing_writer_fences_all_block_mutations(self) -> None:
+        run_id = uuid4()
+        url = self.bind_workflow(run_id)
+        author = {"workflowRunId": str(run_id), "writerRunId": 91}
+        assert self.write(**author).status_code == 409
+        link_writer_run(self.organization, run_id, 91, None)
+        saved = self.client.post(
+            self.url,
+            {
+                **author,
+                "key": "original",
+                "kind": "embed",
+                "revision": 1,
+                "embed": {"name": "issue", "body": {"id": "123", "shortId": "TEST-123"}},
+                "embedSource": "TEST-123",
+            },
+        )
+        assert saved.status_code == 201
+        link_writer_run(self.organization, run_id, 92, None)
+        assert (
+            self.client.put(
+                url,
+                {
+                    "section": "nextSteps",
+                    "revision": self.client.get(url).data["revision"],
+                    "writerRunId": 91,
+                    "result": {"suggestions": []},
+                },
+                format="json",
+            ).status_code
+            == 409
+        )
+        assert self.write(**author, key="late").status_code == 409
+        assert (
+            self.client.patch(
+                url,
+                {"writerRunId": 91, "blockId": saved.data["id"], "version": 1, "finding": "Late."},
+            ).status_code
+            == 409
+        )
+        assert self.notebook.blocks.get(pk=saved.data["id"]).embed_summary is None
+        self.notebook.refresh_from_db()
+        detail = reverse(
+            "sentry-api-0-organization-notebook-block-details",
+            args=[self.organization.slug, self.notebook.id, saved.data["id"]],
+        )
+        removal = {
+            **author,
+            "version": saved.data["version"],
+            "notebookVersion": self.notebook.version,
+        }
+        assert self.client.delete(detail, removal, format="json").status_code == 409
+        assert (
+            self.client.delete(detail, {**removal, "writerRunId": 92}, format="json").status_code
+            == 204
+        )
+        posted = self.write(**{**author, "writerRunId": 92}, key="new")
+        assert posted.status_code == 201
+        assert self.notebook.blocks.get(pk=posted.data["id"]).producing_seer_run_id == 92
+
+    def test_workflow_finalizers_share_a_revision_and_save_once(self) -> None:
+        run_id = uuid4()
+        url = self.workflow_url(run_id)
+        opened = self.client.post(url, {"title": "Draft"})
+        assert opened.status_code == 200
+        link_writer_run(self.organization, run_id, 91, None)
+        notebook = Notebook.objects.get(id=opened.data["notebookId"])
+        self.create_notebook_block(notebook=notebook, content="Issue recurred")
+        revision = self.client.get(url).data["revision"]
+
+        def deliver(section: str, result: dict[str, Any]) -> None:
+            body = {"writerRunId": 91, "revision": revision, "section": section, "result": result}
+            response = self.client.put(url, body)
+            assert response.status_code == 204, response.data
+
+        steps = {
+            "suggestions": [{"key": "inspect", "title": "Inspect issue", "rationale": "Verify."}]
+        }
+        deliver("nextSteps", steps)
+        deliver(
+            "metadata",
+            {"title": "Recurrence", "summary": "One issue", "description": "It recurred."},
+        )
+        notebook.refresh_from_db()
+        assert notebook.title == "Recurrence"
+        assert notebook.action_requests.get().key == "inspect"
+        version = notebook.version
+        deliver("nextSteps", steps)
+        notebook.refresh_from_db()
+        assert notebook.version == version
+
+    def test_takeover_supersedes_only_the_previous_workflows_suggestions(self) -> None:
+        first, second = uuid4(), uuid4()
+        first_url = self.bind_workflow(first)
+        link_writer_run(self.organization, first, 91, None)
+        self.create_notebook_block(notebook=self.notebook, content="Evidence")
+        self.create_notebook_action_request(self.notebook, key="inspect")
+        revision = self.client.get(first_url).data["revision"]
+        steps = {
+            "writerRunId": 91,
+            "section": "nextSteps",
+            "revision": revision,
+            "result": {
+                "suggestions": [{"key": "inspect", "title": "Inspect", "rationale": "Verify."}]
+            },
+        }
+        assert self.client.put(first_url, steps, format="json").status_code == 204
+        second_url = self.bind_workflow(second, first)
+        link_writer_run(self.organization, second, 92, None)
+        assert self.client.put(first_url, steps, format="json").status_code == 409
+        steps["writerRunId"] = 92
+        assert self.client.put(second_url, steps, format="json").status_code == 204
+        assert self.notebook.action_requests.filter(key="inspect", state="suggested").count() == 2
+        self.create_notebook_block(notebook=self.notebook, position=1, content="New evidence")
+        latest = self.client.get(first_url).data["revision"]
+        assert (
+            self.client.put(
+                second_url,
+                {**steps, "revision": latest, "result": {"suggestions": []}},
+                format="json",
+            ).status_code
+            == 204
+        )
+        assert self.notebook.action_requests.get(workflow_run__run_id=first).state == "superseded"
+        assert self.notebook.action_requests.get(workflow_run__run_id=second).state == "superseded"
+        assert self.notebook.action_requests.get(workflow_run__isnull=True).state == "suggested"
+
+    def test_finalizer_validates_nested_items_before_delivery(self) -> None:
+        url = self.bind_workflow(uuid4())
+        revision = self.client.get(url).data["revision"]
+        with patch(
+            "sentry.notebooks.endpoints.organization_notebook_workflow.deliver_finalizer"
+        ) as deliver:
+            metadata = self.client.put(
+                url,
+                {
+                    "writerRunId": 91,
+                    "revision": revision,
+                    "section": "metadata",
+                    "result": {"title": "Report"},
+                },
+                format="json",
+            )
+            assert metadata.status_code == 400
+            assert set(metadata.data["result"]) == {"summary", "description"}
+            valid = {"key": "inspect", "title": "Inspect", "rationale": "Verify."}
+            steps = self.client.put(
+                url,
+                {
+                    "revision": revision,
+                    "writerRunId": 91,
+                    "section": "nextSteps",
+                    "result": {"suggestions": [valid, {**valid, "key": "Bad Key"}]},
+                },
+                format="json",
+            )
+            assert steps.status_code == 400
+            errors = steps.json()["result"]["suggestions"]
+            assert errors[0] == {}
+            assert "key" in errors[1]
+            deliver.assert_not_called()
+
+    def test_manual_title_survives_metadata_delivery(self) -> None:
+        run_id = uuid4()
+        url = self.workflow_url(run_id)
+        opened = self.client.post(url, {"title": "Draft", "projectIds": [self.project.id]})
+        assert opened.status_code == 200
+        link_writer_run(self.organization, run_id, 91, None)
+        self.notebook = Notebook.objects.get(pk=opened.data["notebookId"])
+        self.create_notebook_block(notebook=self.notebook, content="Evidence")
+        revision = self.client.get(url).data["revision"]
+        detail = reverse(
+            "sentry-api-0-organization-notebook-details",
+            args=[self.organization.slug, self.notebook.id],
+        )
+        renamed = self.client.put(
+            detail,
+            {"title": "Maintainer title", "notebookVersion": self.notebook.version},
+            format="json",
+        )
+        assert renamed.status_code == 200
+        metadata = {"title": "Generated title", "summary": "New summary", "description": "Details"}
+        assert (
+            self.client.put(
+                url,
+                {
+                    "writerRunId": 91,
+                    "section": "metadata",
+                    "revision": revision,
+                    "result": metadata,
+                },
+                format="json",
+            ).status_code
+            == 204
+        )
+        next_run = uuid4()
+        later_url = self.bind_workflow(next_run, run_id)
+        link_writer_run(self.organization, next_run, 92, None)
+        assert (
+            self.client.put(
+                url,
+                {
+                    "writerRunId": 91,
+                    "section": "metadata",
+                    "revision": revision,
+                    "result": metadata,
+                },
+                format="json",
+            ).status_code
+            == 409
+        )
+        metadata["summary"] = "Second run summary"
+        assert (
+            self.client.put(
+                later_url,
+                {
+                    "writerRunId": 92,
+                    "section": "metadata",
+                    "revision": revision,
+                    "result": metadata,
+                },
+                format="json",
+            ).status_code
+            == 204
+        )
+        self.notebook.refresh_from_db()
+        assert (self.notebook.title, self.notebook.summary, self.notebook.summary_description) == (
+            "Maintainer title",
+            "Second run summary",
+            "Details",
         )
 
     def test_creates_then_updates_by_key(self) -> None:

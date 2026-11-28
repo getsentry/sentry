@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
-from typing import Annotated, Any, TypedDict, override
+from typing import Annotated, Any, NotRequired, TypedDict, override
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Count, Q
@@ -35,6 +35,7 @@ from sentry.notebooks.models import (
 )
 from sentry.notebooks.services.action_requests import STALE
 from sentry.notebooks.services.producer import orchestration_summaries
+from sentry.notebooks.services.workflow import block_revision
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.viewer_context import ActorType
@@ -141,19 +142,24 @@ class NotebookSerializerResponse(TypedDict):
         NotebookTitleGenerationSerializerResponse,
         ApiDescription("The state of automatic title generation"),
     ]
+    workflowStatus: NotRequired[
+        Annotated[str, ApiDescription("Status of the latest bound workflow run")]
+    ]
     orchestration: Annotated[
         NotebookOrchestrationSerializerResponse | None,
         ApiDescription("The agent's run for the notebook, if it has one"),
     ]
 
 
-class NotebookDetailsSerializerResponse(NotebookSerializerResponse):
+class SerializedNotebookDetails(NotebookSerializerResponse):
     """
     Full notebook with ordered active blocks, parameter definitions and saved values, project
     IDs, and source context. source.snapshot is present only for source-backed investigations.
     actionRequests has Seer's action requests that aren't superseded, plus stale ones while Seer
     re-checks them, newest report first, with that report's primary at the top.
     """
+
+    contentRevision: Annotated[str, ApiDescription("Revision of the ordered block contents")]
 
     template: Annotated[
         NotebookTemplateSerializerResponse | None,
@@ -176,6 +182,23 @@ class NotebookDetailsSerializerResponse(NotebookSerializerResponse):
     actionRequests: Annotated[
         list[NotebookActionRequestSerializerResponse],
         ApiDescription("Steps the agent suggests, newest report first"),
+    ]
+
+
+class NotebookDetailsSerializerResponse(SerializedNotebookDetails):
+    workflowReport: NotRequired[
+        Annotated[
+            dict[str, JsonValue],
+            ApiDescription(
+                "Progress, hypotheses, and results from the workflow producing this notebook"
+            ),
+        ]
+    ]
+    workflowLaunch: NotRequired[
+        Annotated[
+            dict[str, str],
+            ApiDescription("Dispatch status for the workflow requested for this notebook"),
+        ]
     ]
 
 
@@ -224,7 +247,7 @@ class NotebookSerializer(Serializer):
     ) -> NotebookSerializerResponse:
         source = obj.source
         creator = obj.creator_actor
-        return {
+        result: NotebookSerializerResponse = {
             "id": str(obj.id),
             "title": obj.title,
             "summary": obj.summary,
@@ -248,6 +271,9 @@ class NotebookSerializer(Serializer):
             "titleGeneration": {"status": obj.title_generation_status},
             "orchestration": attrs["orchestration"],
         }
+        if workflow_status := getattr(obj, "workflow_run_status", None):
+            result["workflowStatus"] = workflow_status
+        return result
 
 
 class NotebookDetailsSerializer(NotebookSerializer):
@@ -262,9 +288,12 @@ class NotebookDetailsSerializer(NotebookSerializer):
         self.access = access
         super().__init__(**kwargs)
 
-    def _blocks_by_notebook(
-        self, item_list: Sequence[Notebook], user: User | RpcUser | AnonymousUser
-    ) -> MutableMapping[int, list[NotebookBlockSerializerResponse]]:
+    def _add_blocks(
+        self,
+        item_list: Sequence[Notebook],
+        user: User | RpcUser | AnonymousUser,
+        attrs: MutableMapping[Notebook, dict[str, Any]],
+    ) -> None:
         blocks = list(
             NotebookBlock.objects.filter(notebook__in=item_list, deleted_at__isnull=True).order_by(
                 "position", "id"
@@ -277,9 +306,15 @@ class NotebookDetailsSerializer(NotebookSerializer):
         )
 
         by_notebook: MutableMapping[int, list[NotebookBlockSerializerResponse]] = defaultdict(list)
+        revisions: dict[int, list[tuple[int, int, int | None]]] = defaultdict(list)
         for block, block_response in zip(blocks, serialized):
             by_notebook[block.notebook_id].append(block_response)
-        return by_notebook
+            revisions[block.notebook_id].append(
+                (block.id, block.version, block.result_execution_id)
+            )
+        for notebook in item_list:
+            attrs[notebook]["blocks"] = by_notebook[notebook.id]
+            attrs[notebook]["content_revision"] = block_revision(revisions[notebook.id])
 
     def _action_requests_by_notebook(
         self, item_list: Sequence[Notebook], user: User | RpcUser | AnonymousUser
@@ -311,7 +346,7 @@ class NotebookDetailsSerializer(NotebookSerializer):
     ) -> MutableMapping[Notebook, dict[str, Any]]:
         attrs = super().get_attrs(item_list, user, **kwargs)
 
-        blocks_by_notebook = self._blocks_by_notebook(item_list, user)
+        self._add_blocks(item_list, user, attrs)
         action_requests_by_notebook = self._action_requests_by_notebook(item_list, user)
 
         project_ids_by_notebook: MutableMapping[int, list[int]] = defaultdict(list)
@@ -323,7 +358,6 @@ class NotebookDetailsSerializer(NotebookSerializer):
             project_ids_by_notebook[notebook_id].append(project_id)
 
         for notebook in item_list:
-            attrs[notebook]["blocks"] = blocks_by_notebook[notebook.id]
             attrs[notebook]["project_ids"] = project_ids_by_notebook[notebook.id]
             attrs[notebook]["action_requests"] = action_requests_by_notebook[notebook.id]
 
@@ -336,7 +370,7 @@ class NotebookDetailsSerializer(NotebookSerializer):
         attrs: Mapping[Any, Any],
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
-    ) -> NotebookDetailsSerializerResponse:
+    ) -> SerializedNotebookDetails:
         resolved_source = obj.source
         source: NotebookSourceSerializerResponse = {
             "type": resolved_source.get("type", NotebookSourceType.MANUAL),
@@ -354,6 +388,7 @@ class NotebookDetailsSerializer(NotebookSerializer):
             "projectIds": attrs["project_ids"],
             "parameters": [],
             "blocks": attrs["blocks"],
+            "contentRevision": attrs["content_revision"],
             "actionRequests": attrs["action_requests"],
             "titleGeneration": {"status": obj.title_generation_status},
         }

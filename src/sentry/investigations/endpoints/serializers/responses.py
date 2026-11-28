@@ -225,6 +225,7 @@ class InvestigationCommandResponse(TypedDict):
 
 
 class InvestigationCandidateResponse(TypedDict):
+    workflowInvestigationId: NotRequired[str]
     status: str
     investigationId: NotRequired[str]
     orchestration: NotRequired[NotebookOrchestrationSerializerResponse]

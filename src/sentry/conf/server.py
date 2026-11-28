@@ -1236,6 +1236,14 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         # Run once a month at midnight
         "schedule": crontab("0", "0", "*", "1", "*"),
     },
+    "seer-expire-workflow-runs": {
+        "task": "seer:sentry.tasks.seer.investigation.expire_workflow_runs",
+        "schedule": crontab("*/5", "*", "*", "*", "*"),
+    },
+    "seer-recover-workflow-nodes": {
+        "task": "seer:sentry.tasks.seer.investigation.recover_workflow_nodes",
+        "schedule": crontab("*", "*", "*", "*", "*"),
+    },
     "seer-night-shift": {
         "task": "seer:sentry.tasks.seer.night_shift.schedule_night_shift",
         # Run every 12 hours, at 10:00 and 22:00 UTC

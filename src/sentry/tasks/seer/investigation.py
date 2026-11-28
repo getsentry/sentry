@@ -5,7 +5,9 @@ from contextlib import AbstractContextManager, nullcontext
 from datetime import timedelta
 from typing import Any, Literal
 
+import orjson
 from django.db import OperationalError, router, transaction
+from django.db.models import Count, Min
 from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
@@ -22,6 +24,8 @@ from sentry.investigations.models import (
     InvestigationOrchestrationRerun,
     InvestigationOrchestrationRun,
     InvestigationOrchestrationStatus,
+    WorkflowNodeRun,
+    WorkflowRun,
 )
 from sentry.investigations.seer_client import (
     CommandRejectionCode,
@@ -52,14 +56,22 @@ from sentry.investigations.services.orchestration_events import (
     schedule_investigation_updates,
     synchronize_orchestration_projection,
 )
+from sentry.investigations.services.workflow_runtime import claim_due_nodes
 from sentry.models.organization import Organization
 from sentry.notebooks.models import Notebook
 from sentry.notebooks.services.action_requests import complete_action_requests
 from sentry.notebooks.services.notebooks import NotebookValidationError
 from sentry.seer.models import SeerApiError
-from sentry.seer.signed_seer_api import SeerViewerContext
+from sentry.seer.signed_seer_api import (
+    SeerViewerContext,
+    make_signed_seer_api_request,
+    seer_autofix_default_connection_pool,
+)
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
+from sentry.types.cell import get_local_cell
+from sentry.utils import metrics
+from sentry.utils.cache import cache
 from sentry.viewer_context import Actor, ActorType, ViewerContext, viewer_context_scope
 
 logger = logging.getLogger(__name__)
@@ -77,6 +89,7 @@ COMMAND_VERSION_CONFLICT_MESSAGE = (
 )
 INTERNAL_COMMAND_REJECTED_MESSAGE = "Seer turned down this update."
 AUTO_CONNECT_MAX_AGE = timedelta(days=1)
+RECOVERY_ORGS_PER_TICK = 32
 
 
 def _is_last_dispatch_attempt() -> bool:
@@ -630,3 +643,116 @@ def mark_investigation_telemetry_connected(
         applied_by=user_id,
         details=ConnectTelemetryAppliedDetails(provider=provider),
     )
+
+
+@instrumented_task(
+    name="sentry.tasks.seer.investigation.recover_workflow_nodes",
+    namespace=seer_tasks,
+    processing_deadline_duration=60,
+)
+def recover_workflow_nodes() -> None:
+    """Give each organization with overdue nodes a turn, even if earlier jobs are still queued."""
+    now = timezone.now()
+    due = WorkflowNodeRun.objects.filter(next_check_at__lte=now)
+    oldest = due.order_by("next_check_at").values_list("next_check_at", flat=True).first()
+    metrics.gauge(
+        "seer.workflow.recovery.oldest_due_seconds",
+        (now - oldest).total_seconds() if oldest else 0,
+        unit="second",
+    )
+    if oldest is None:
+        return
+
+    cursor_key = f"workflow:recovery:org-cursor:{get_local_cell().name}"
+    cursor = cache.get(cursor_key, 0)
+    organizations = (
+        due.values("run__organization_id")
+        .annotate(backlog=Count("id"), oldest=Min("next_check_at"))
+        .order_by("run__organization_id")
+    )
+    page = list(organizations.filter(run__organization_id__gt=cursor)[:RECOVERY_ORGS_PER_TICK])
+    if cursor and len(page) < RECOVERY_ORGS_PER_TICK:
+        page.extend(
+            organizations.filter(run__organization_id__lte=cursor)[
+                : RECOVERY_ORGS_PER_TICK - len(page)
+            ]
+        )
+    if page:
+        cache.set(cursor_key, page[-1]["run__organization_id"], timeout=86400)
+
+    for row in page:
+        org = row["run__organization_id"]
+        age = (now - row["oldest"]).total_seconds()
+        metrics.distribution("seer.workflow.recovery.organization_due_nodes", row["backlog"])
+        metrics.distribution(
+            "seer.workflow.recovery.organization_oldest_due_seconds", age, unit="second"
+        )
+        logger.info(
+            "workflow.node_recovery_backlog",
+            extra={"organization_id": org, "due_nodes": row["backlog"], "oldest_due_seconds": age},
+        )
+        try:
+            recover_workflow_nodes_for_organization.delay(organization_id=org)
+        except Exception:
+            logger.exception(
+                "workflow.node_recovery_enqueue_failed", extra={"organization_id": org}
+            )
+
+
+@instrumented_task(
+    name="sentry.tasks.seer.investigation.recover_workflow_nodes_for_organization",
+    namespace=seer_tasks,
+    processing_deadline_duration=30,
+    expires=timedelta(minutes=5),
+)
+def recover_workflow_nodes_for_organization(organization_id: int) -> None:
+    claim = claim_due_nodes(organization_id)
+    if not claim.node_ids:
+        return
+
+    with viewer_context_scope(
+        ViewerContext(actor=Actor(type=ActorType.SYSTEM), organization_id=organization_id)
+    ):
+        try:
+            response = make_signed_seer_api_request(
+                seer_autofix_default_connection_pool,
+                "/v1/automation/investigation-workflows/recover",
+                body=orjson.dumps({"nodes": claim.node_ids}),
+                timeout=5,
+                retries=False,
+            )
+        except HTTPError:
+            logger.exception(
+                "workflow.node_recovery_unavailable", extra={"organization_id": organization_id}
+            )
+            return
+    if response.status == 200:
+        try:
+            receipt = orjson.loads(response.data)
+        except orjson.JSONDecodeError:
+            receipt = None
+        if isinstance(receipt, dict) and receipt.get("accepted") == len(claim.node_ids):
+            claim.acknowledge()
+            return
+    logger.error(
+        "workflow.node_recovery_rejected",
+        extra={"organization_id": organization_id, "status": response.status},
+    )
+
+
+@instrumented_task(
+    name="sentry.tasks.seer.investigation.expire_workflow_runs",
+    namespace=seer_tasks,
+    processing_deadline_duration=60,
+)
+def expire_workflow_runs() -> None:
+    """Expire run inputs and cascading node state 91 days after the run was created."""
+    cutoff = timezone.now() - timedelta(days=91)
+    with transaction.atomic(using=router.db_for_write(WorkflowRun)):
+        ids = list(
+            WorkflowRun.objects.select_for_update(skip_locked=True)
+            .filter(date_added__lt=cutoff)
+            .order_by("date_added", "id")
+            .values_list("id", flat=True)[:1000]
+        )
+        WorkflowRun.objects.filter(pk__in=ids).delete()

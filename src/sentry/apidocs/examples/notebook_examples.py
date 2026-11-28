@@ -31,7 +31,11 @@ BLOCK: dict[str, object] = {
     "createdBy": None,
     "lastEditedBy": None,
     "producerKey": "summary",
+    "workflowRunId": None,
     "producerRevision": 1,
+    "embed": None,
+    "embedSource": None,
+    "embedSummary": None,
 }
 
 NOTEBOOK: dict[str, object] = {
@@ -56,6 +60,7 @@ NOTEBOOK: dict[str, object] = {
     "projectIds": [1],
     "parameters": [],
     "blocks": [BLOCK],
+    "contentRevision": "49f69f64dff2960207bf1194ed34ccdd69f791e05155395c00ec121061c8ae22",
     "actionRequests": [],
 }
 
@@ -67,7 +72,13 @@ class NotebookExamples:
     CREATE_NOTEBOOK = [
         OpenApiExample(
             "Created notebook",
-            value={**NOTEBOOK, "version": 1, "blockCount": 0, "blocks": []},
+            value={
+                **NOTEBOOK,
+                "version": 1,
+                "blockCount": 0,
+                "blocks": [],
+                "contentRevision": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+            },
             status_codes=["201"],
             response_only=True,
         ),

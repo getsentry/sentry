@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from datetime import timedelta
 from typing import Any
+from uuid import uuid4
 
 from django.test import override_settings
 from django.urls import reverse
@@ -19,6 +20,8 @@ from sentry.investigations.models import (
     InvestigationOrchestrationCommandStatus,
     InvestigationOrchestrationPhase,
     InvestigationOrchestrationRun,
+    WorkflowNodeRun,
+    WorkflowRun,
 )
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.environment import Environment
@@ -29,6 +32,7 @@ from sentry.notebooks.models import (
     NotebookActionRequestState,
     NotebookBlock,
     NotebookStatus,
+    NotebookWorkflowRun,
 )
 from sentry.notebooks.services.action_kinds import ACTION_KINDS
 from sentry.notebooks.services.action_kinds.base import (
@@ -188,6 +192,128 @@ class OrganizationNotebookActionRequestApplyTest(APITestCase):
             condition.id: (condition.condition_result, condition.comparison)
             for condition in self.detector.workflow_condition_group.conditions.all()
         }
+
+    def test_applies_a_workflow_suggestion_using_its_own_source_monitor(self) -> None:
+        self.orchestration_run.delete()
+        self.notebook.update(source={"snapshot": {"monitor": {"id": str(self.detector.id)}}})
+        run = WorkflowRun.objects.create(
+            organization=self.organization,
+            uuid=uuid4(),
+            request_id=uuid4(),
+            user_id=self.user.id,
+            checkpoint={"status": "succeeded"},
+            definition={},
+        )
+        binding = NotebookWorkflowRun.objects.create(
+            organization=self.organization, notebook=self.notebook, run_id=run.uuid
+        )
+        action = self.suggest(workflow_run=binding)
+        response = self.apply(action)
+        assert response.status_code == 200, response.data
+        assert self.snuba_query().time_window == 900
+
+    def test_retry_follow_up_only_wakes_a_workflow_that_can_process_it(self) -> None:
+        self.notebook.update(source={"snapshot": {"monitor": {"id": str(self.detector.id)}}})
+        key = uuid4()
+        followups = {str(key): {"status": "failed", "command": {"type": "rerun"}}}
+        run = WorkflowRun.objects.create(
+            organization=self.organization,
+            user_id=self.user.id,
+            uuid=uuid4(),
+            request_id=uuid4(),
+            checkpoint={"status": "failed", "followups": followups},
+            definition={},
+        )
+        writer = WorkflowNodeRun.objects.create(
+            run=run,
+            uuid=uuid4(),
+            checkpoint={"node_id": "notebook/write"},
+        )
+        binding = NotebookWorkflowRun.objects.create(
+            organization=self.organization, notebook=self.notebook, run_id=run.uuid
+        )
+        action = self.suggest(workflow_run=binding, state="applied", followup_request_id=key)
+        kwargs = {
+            "organization_id_or_slug": self.organization.slug,
+            "notebook_id": self.notebook.id,
+        }
+        detail = reverse("sentry-api-0-organization-notebook-details", kwargs=kwargs)
+        retry = reverse(
+            "sentry-api-0-organization-notebook-action-request-retry-follow-up",
+            kwargs={**kwargs, "action_request_id": action.id},
+        )
+        for status in ("failed", "cancelled", "succeeded"):
+            run.update(checkpoint={"status": status, "followups": followups})
+            retryable = status == "succeeded"
+            response = self.client.get(detail)
+            assert response.status_code == 200, response.data
+            (request,) = response.data["actionRequests"]
+            assert request["followUp"]["retryable"] is retryable
+            response = self.client.post(
+                retry, data={"action": action.action_payload}, format="json"
+            )
+            writer.refresh_from_db()
+            run.refresh_from_db()
+            if retryable:
+                assert response.status_code == 200, response.data
+                assert writer.next_check_at is not None
+                assert run.checkpoint["followups"][str(key)]["status"] == "accepted"
+            else:
+                assert response.status_code == 409, response.data
+                assert response.data["code"] == "not_retryable"
+                assert writer.next_check_at is None
+                assert run.checkpoint["followups"][str(key)]["status"] == "failed"
+
+    def test_stopped_workflow_records_stale_settings_without_a_recheck(self) -> None:
+        run = WorkflowRun.objects.create(
+            organization=self.organization,
+            uuid=uuid4(),
+            request_id=uuid4(),
+            user_id=self.user.id,
+            checkpoint={"status": "failed"},
+            definition={},
+        )
+        binding = NotebookWorkflowRun.objects.create(
+            organization=self.organization, notebook=self.notebook, run_id=run.uuid
+        )
+        self.notebook.update(source={"snapshot": {"monitor": {"id": str(self.detector.id)}}})
+        action = self.suggest(
+            workflow_run=binding,
+            before={"timeWindowSeconds": 600},
+            changes={"timeWindowSeconds": 900},
+        )
+        assert self.apply(action).status_code == 409
+        action.refresh_from_db()
+        assert action.error is not None
+        assert action.error["current"] == {"timeWindowSeconds": 300}
+        assert action.followup_request_id is None
+
+    def test_expired_workflow_does_not_interrupt_other_notebook_actions(self) -> None:
+        expired = self.create_notebook(
+            organization=self.organization,
+            created_by=self.user,
+            source={"snapshot": {"monitor": {"id": str(self.detector.id)}}},
+        )
+        binding = NotebookWorkflowRun.objects.create(
+            organization=self.organization, notebook=expired, run_id=uuid4()
+        )
+        stale = self.suggest(workflow_run=binding)
+        stale.update(notebook=expired)
+        individual = self.client.post(self.apply_url(stale.id, expired.id), format="json")
+        assert individual.status_code == 409
+        assert "expired" in individual.data["detail"]
+        live = self.suggest()
+        complete_action_requests(
+            NotebookActionRequest.objects.filter(pk__in=[stale.pk, live.pk]).order_by(
+                "-notebook_id"
+            ),
+            applied_by=self.user.id,
+            details={},
+        )
+        live.refresh_from_db()
+        stale.refresh_from_db()
+        assert live.state == NotebookActionRequestState.APPLIED
+        assert stale.state == NotebookActionRequestState.SUGGESTED
 
     def test_applies_a_threshold_change(self) -> None:
         action_request = self.suggest(

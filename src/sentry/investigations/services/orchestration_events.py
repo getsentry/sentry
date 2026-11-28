@@ -684,7 +684,7 @@ def _remove_replaced_report_blocks(
     return bool(removed)
 
 
-def _complete_metadata(
+def complete_report_metadata(
     run: InvestigationOrchestrationRun,
     payload: dict[str, Any],
     *,
@@ -782,7 +782,7 @@ def _apply_snapshot(
     if metadata is not None:
         metadata = {**metadata, "reportRevision": revision}
         metadata = _validate_event_payload("metadata_completed", metadata)
-        _complete_metadata(run, metadata, bump=False)
+        complete_report_metadata(run, metadata, bump=False)
     # An older snapshot doesn't clear the report, so its list isn't the full current one.
     if "actionRequests" in payload and revision == _report_revision(run):
         _sync_snapshot_action_requests(run, payload["actionRequests"])
@@ -953,7 +953,7 @@ def _apply_generation_event(
                     metadata.update({"status": "generating", "title": title})
                 _bump_notebook(run, writes)
         elif event.type == "metadata_completed":
-            _complete_metadata(run, payload)
+            complete_report_metadata(run, payload)
     elif event.type == "action_requested":
         request = payload["request"]
         if request is None:
