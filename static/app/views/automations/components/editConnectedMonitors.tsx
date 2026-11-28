@@ -9,8 +9,8 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {useDrawer, DrawerHeader} from '@sentry/scraps/drawer';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {RadioGroup, type RadioOption} from '@sentry/scraps/radio';
 
-import {RadioGroup, type RadioOption} from 'sentry/components/forms/controls/radioGroup';
 import {SentryProjectSelectorField} from 'sentry/components/forms/fields/sentryProjectSelectorField';
 import {FormContext} from 'sentry/components/forms/formContext';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -338,25 +338,22 @@ function EditConnectedMonitorsContent({
   const {form} = useContext(FormContext);
   const errorContext = useContext(AutomationBuilderErrorContext);
 
-  const handleModeChange = useCallback(
-    (newMode: MonitorMode) => {
-      // Keep the selection outside the form while another source mode is active.
-      if (monitorMode === 'specific') {
-        specificMonitorIds.current = connectedIds;
-      }
-      setMonitorMode(newMode);
-      setConnectedIds(newMode === 'specific' ? specificMonitorIds.current : []);
-      form?.setValue('projectIds', []);
-      form?.setValue('allProjects', newMode === 'allProjects');
-      if (
-        newMode === 'allProjects' ||
-        (newMode === 'specific' && specificMonitorIds.current.length > 0)
-      ) {
-        errorContext?.removeError(CONNECTED_MONITORS_ERROR_ID);
-      }
-    },
-    [connectedIds, errorContext, form, monitorMode, setConnectedIds]
-  );
+  const handleModeChange = (newMode: MonitorMode) => {
+    // Keep the selection outside the form while another source mode is active.
+    if (monitorMode === 'specific') {
+      specificMonitorIds.current = connectedIds;
+    }
+    setMonitorMode(newMode);
+    setConnectedIds(newMode === 'specific' ? specificMonitorIds.current : []);
+    form?.setValue('projectIds', []);
+    form?.setValue('allProjects', newMode === 'allProjects');
+    if (
+      newMode === 'allProjects' ||
+      (newMode === 'specific' && specificMonitorIds.current.length > 0)
+    ) {
+      errorContext?.removeError(CONNECTED_MONITORS_ERROR_ID);
+    }
+  };
   const handleProjectChange = useCallback(
     (projectIds: string[]) => {
       if (projectIds.length) {

@@ -7,11 +7,10 @@ import cloneDeep from 'lodash/cloneDeep';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {Radio} from '@sentry/scraps/radio';
+import {Radio, RadioLineItem} from '@sentry/scraps/radio';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import type {SelectValue} from '@sentry/scraps/select';
 
-import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';

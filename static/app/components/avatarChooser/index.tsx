@@ -13,10 +13,9 @@ import type {AvatarProps} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {RadioGroup, type RadioOption} from '@sentry/scraps/radio';
 import {toast} from '@sentry/scraps/toast';
 
-import type {RadioOption} from 'sentry/components/forms/controls/radioGroup';
-import {RadioGroup} from 'sentry/components/forms/controls/radioGroup';
 import {Hovercard} from 'sentry/components/hovercard';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelFooter} from 'sentry/components/panels/panelFooter';

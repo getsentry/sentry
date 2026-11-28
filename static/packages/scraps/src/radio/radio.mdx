@@ -16,7 +16,7 @@ resources:
 import {useState} from 'react';
 
 import {Flex} from '@sentry/scraps/layout';
-import {Radio} from '@sentry/scraps/radio';
+import {Radio, RadioGroup} from '@sentry/scraps/radio';
 
 import * as Storybook from 'sentry/stories';
 
@@ -171,6 +171,47 @@ const [selected, setSelected] = useState('option2');
     Option 2
   </label>
 </div>;
+```
+
+### RadioGroup
+
+`<RadioGroup>` renders a labelled group from a list of `[id, label, description?]` choices. Use it for a standalone choice outside a form. Inside a Scraps form, use `field.RadioGroup` instead.
+
+`disabledChoices` takes `[id, reason?]` pairs. The reason appears in a tooltip on hover. Set `orientInline` to lay the choices out in a row.
+
+export function RadioGroupDemo() {
+  const [value, setValue] = useState('npm');
+  return (
+    <RadioGroup
+      label="Installation method"
+      value={value}
+      onChange={setValue}
+      choices={[
+        ['npm', 'Package manager', 'Install the SDK with npm or yarn.'],
+        ['loader', 'Loader script', 'Add a script tag to your page.'],
+        ['cdn', 'CDN'],
+      ]}
+      disabledChoices={[['cdn', 'Not available for this platform']]}
+    />
+  );
+}
+
+<Storybook.Demo>
+  <RadioGroupDemo />
+</Storybook.Demo>
+
+```jsx
+<RadioGroup
+  label="Installation method"
+  value={value}
+  onChange={setValue}
+  choices={[
+    ['npm', 'Package manager', 'Install the SDK with npm or yarn.'],
+    ['loader', 'Loader script', 'Add a script tag to your page.'],
+    ['cdn', 'CDN'],
+  ]}
+  disabledChoices={[['cdn', 'Not available for this platform']]}
+/>
 ```
 
 ## Usage Patterns
