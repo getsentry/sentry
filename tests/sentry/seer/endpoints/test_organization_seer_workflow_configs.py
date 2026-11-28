@@ -319,14 +319,18 @@ class OrganizationSeerWorkflowConfigsTest(APITestCase):
             self.create_detector(project=first_project, type=MetricIssue.slug),
             self.create_detector(project=second_project, type=MetricIssue.slug),
         ]
-        disabled = self.create_detector(project=self.create_project(), type=MetricIssue.slug)
+        plan_disabled = self.create_detector(
+            project=second_project, type=MetricIssue.slug, status=ObjectStatus.DISABLED
+        )
+        monitors.append(plan_disabled)
+        deleted = self.create_detector(project=self.create_project(), type=MetricIssue.slug)
         metric = SeerWorkflow.create(
             organization_id=self.organization.id,
             strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION,
-            scope=SelectedMonitors((*(m.id for m in monitors), disabled.id)),
+            scope=SelectedMonitors((*(m.id for m in monitors), deleted.id)),
             service_account_grant=GRANT,
         )
-        disabled.update(status=ObjectStatus.DISABLED)
+        deleted.update(status=ObjectStatus.PENDING_DELETION)
         triage = self.create_config()
 
         response = self.get_success_response(self.organization.slug)
@@ -1103,7 +1107,7 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         ineligible = [
             self.create_detector(project=self.project),
             self.create_detector(
-                project=self.project, type=MetricIssue.slug, status=ObjectStatus.DISABLED
+                project=self.project, type=MetricIssue.slug, status=ObjectStatus.PENDING_DELETION
             ),
             self.create_metric_monitor(
                 self.create_project(organization=self.create_organization())
@@ -1860,7 +1864,7 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
         ineligible = [
             self.create_detector(project=self.project),
             self.create_detector(
-                project=self.project, type=MetricIssue.slug, status=ObjectStatus.DISABLED
+                project=self.project, type=MetricIssue.slug, status=ObjectStatus.PENDING_DELETION
             ),
             self.create_metric_monitor(
                 self.create_project(organization=self.create_organization())
