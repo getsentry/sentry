@@ -99,7 +99,7 @@
     "esbuild": "0.28.1",
     "fast-check": "4.10.2",
     "oxlint": "1.94.0",
-    "tsrs": "7.1.0-beta.tsrs2",
+    "tsrs": "7.1.0-beta.tsrs5",
     "typescript": "npm:@typescript/typescript6@6.0.2",
     "valibot": "1.4.2",
     "vitest": "5.1.0",
