@@ -118,4 +118,23 @@ describe('GsBillingCommandPaletteActions', () => {
       screen.queryByRole('option', {name: /Billing Information/})
     ).not.toBeInTheDocument();
   });
+
+  it('renders without billing information when the subscription has no planDetails', async () => {
+    const organization = OrganizationFixture({access: ['org:billing']});
+    // Shape returned by /customers/ for members disabled by the member limit
+    act(() =>
+      SubscriptionStore.set(organization.slug, {
+        slug: organization.slug,
+        totalLicenses: 1,
+      } as Partial<Subscription>)
+    );
+
+    renderPalette(organization);
+    await search('billing');
+
+    expect(await screen.findByRole('option', {name: /Subscription/})).toBeInTheDocument();
+    expect(
+      screen.queryByRole('option', {name: /Billing Information/})
+    ).not.toBeInTheDocument();
+  });
 });
