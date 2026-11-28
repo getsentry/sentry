@@ -1,18 +1,28 @@
-import pytest
+from threading import Barrier
+from unittest.mock import patch
 
+import pytest
+from django.db import connections
+from django.db.models import QuerySet
+
+from sentry.constants import ObjectStatus
+from sentry.models.organization import Organization
 from sentry.notifications.types import FallthroughChoiceType
-from sentry.testutils.cases import TestCase
+from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.helpers.options import override_options
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.workflow_engine.defaults.detectors import (
     ensure_default_all_projects_detector,
     ensure_default_detectors,
 )
 from sentry.workflow_engine.defaults.workflows import (
+    INBOX_WORKFLOW_LABEL,
     connect_workflows_to_issue_stream,
     create_and_connect_pull_request_workflow,
     create_priority_workflow,
     ensure_default_organization_workflows,
     ensure_default_workflows,
+    ensure_inbox_workflow,
     ensure_pull_request_workflow,
 )
 from sentry.workflow_engine.handlers.condition.seer_activity_trigger_handler import (
@@ -374,3 +384,127 @@ class TestEnsureDefaultOrganizationWorkflows(TestCase):
     def test_skips_pull_request_workflow_when_option_disabled(self) -> None:
         workflows = ensure_default_organization_workflows(self.organization)
         assert workflows == []
+
+
+class TestEnsureInboxWorkflow(TestCase):
+    def test_graph(self) -> None:
+        org = self.create_organization()
+        workflow = ensure_inbox_workflow(org)
+        assert workflow.organization == org
+        assert workflow.type == Workflow.Type.INBOX
+        assert workflow.enabled
+        assert workflow.environment_id is None
+        assert workflow.config == {"frequency": 0, "default_key": "inbox_default"}
+        assert not DetectorWorkflow.objects.filter(workflow=workflow).exists()
+
+        trigger = workflow.when_condition_group
+        assert trigger is not None
+        assert trigger.organization == org
+        condition = trigger.conditions.get()
+        assert condition.type == Condition.ACTIVITY_TYPE_IN
+        assert condition.comparison == ["issue.assigned", "issue.mentioned"]
+        assert condition.condition_result is True
+
+        action_group = WorkflowDataConditionGroup.objects.get(workflow=workflow).condition_group
+        assert action_group.organization == org
+        assert not action_group.conditions.exists()
+        action = DataConditionGroupAction.objects.get(condition_group=action_group).action
+        assert action.type == Action.Type.ADD_TO_INBOX
+        assert action.config == {}
+        assert action.data == {}
+
+    def test_reuses_only_the_managed_default(self) -> None:
+        org = self.create_organization()
+        other = self.create_workflow(
+            organization=org, type=Workflow.Type.INBOX, name=INBOX_WORKFLOW_LABEL
+        )
+        priority = create_priority_workflow(org)
+        pr_ready = create_and_connect_pull_request_workflow(
+            org, ensure_default_all_projects_detector(org.id)
+        )
+        first = ensure_inbox_workflow(org)
+        assert first != other
+        first.update(name="Renamed", enabled=False)
+        second = ensure_inbox_workflow(org)
+        assert second == first
+        assert second.name == "Renamed"
+        assert not second.enabled
+        assert second.when_condition_group_id == first.when_condition_group_id
+        assert set(Workflow.objects.filter(organization=org)) == {first, other, priority, pr_ready}
+        assert ensure_inbox_workflow(self.create_organization()) != first
+
+    def test_replaces_default_pending_deletion(self) -> None:
+        original = ensure_inbox_workflow(self.organization)
+        original.update(status=ObjectStatus.PENDING_DELETION)
+
+        replacement = ensure_inbox_workflow(self.organization)
+        assert replacement != original
+        assert replacement.status == ObjectStatus.ACTIVE
+        assert ensure_inbox_workflow(self.organization) == replacement
+
+    def test_duplicate_default_markers_raise(self) -> None:
+        original = ensure_inbox_workflow(self.organization)
+        self.create_workflow(type=Workflow.Type.INBOX, config=original.config)
+        with pytest.raises(Workflow.MultipleObjectsReturned):
+            ensure_inbox_workflow(self.organization)
+
+    def test_rollback_and_retry(self) -> None:
+        org = self.create_organization()
+        with (
+            patch.object(
+                WorkflowDataConditionGroup.objects,
+                "create",
+                side_effect=RuntimeError("link failed"),
+            ),
+            pytest.raises(RuntimeError, match="link failed"),
+        ):
+            ensure_inbox_workflow(org)
+        assert not Workflow.objects.filter(organization=org).exists()
+        assert not DataConditionGroup.objects.filter(organization=org).exists()
+        assert not DataCondition.objects.filter(type=Condition.ACTIVITY_TYPE_IN).exists()
+        assert not Action.objects.filter(type=Action.Type.ADD_TO_INBOX).exists()
+
+        workflow = ensure_inbox_workflow(org)
+        action_group = WorkflowDataConditionGroup.objects.get(workflow=workflow).condition_group
+        assert (
+            DataConditionGroupAction.objects.get(condition_group=action_group).action.type
+            == Action.Type.ADD_TO_INBOX
+        )
+
+
+class TestConcurrentInboxWorkflow(TransactionTestCase):
+    def test_concurrent_first_calls(self) -> None:
+        org = self.create_organization()
+        ready = Barrier(2, timeout=20)
+        select_for_update = Organization.objects.select_for_update
+
+        def lock_after_both_lookups(*, no_key: bool) -> QuerySet[Organization]:
+            ready.wait()
+            return select_for_update(no_key=no_key)
+
+        def provision() -> Workflow:
+            try:
+                return ensure_inbox_workflow(org)
+            finally:
+                connections.close_all()
+
+        with (
+            patch.object(
+                Organization.objects, "select_for_update", side_effect=lock_after_both_lookups
+            ) as lock,
+            ContextPropagatingThreadPoolExecutor(max_workers=2) as executor,
+        ):
+            results = [executor.submit(provision) for _ in range(2)]
+            first, second = [result.result(timeout=30) for result in results]
+
+        assert lock.call_count == 2
+        assert first == second == Workflow.objects.get(organization=org)
+        assert DataConditionGroup.objects.filter(organization=org).count() == 2
+        assert (
+            DataCondition.objects.get(condition_group__organization=org).condition_group_id
+            == first.when_condition_group_id
+        )
+        action_group = WorkflowDataConditionGroup.objects.get(workflow=first).condition_group
+        assert DataConditionGroupAction.objects.get(
+            condition_group=action_group
+        ).action == Action.objects.get(type=Action.Type.ADD_TO_INBOX)

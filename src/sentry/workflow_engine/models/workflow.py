@@ -112,7 +112,9 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
     DEFAULT_FREQUENCY = 30
 
-    config_schema = {
+    INBOX_DEFAULT_KEY = "inbox_default"
+
+    config_schema: dict[str, Any] = {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "title": "Workflow Schema",
         "type": "object",
@@ -124,6 +126,11 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
             },
         },
         "additionalProperties": False,
+    }
+    # The Alerts API uses config_schema; only internally saved Inbox workflows accept this key.
+    inbox_config_schema = {
+        **config_schema,
+        "properties": {**config_schema["properties"], "default_key": {"const": INBOX_DEFAULT_KEY}},
     }
 
     __repr__ = sane_repr("organization_id")
