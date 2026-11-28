@@ -72,7 +72,6 @@ from sentry.issues.models.groupderiveddata import GroupDerivedData
 from sentry.models.activity import Activity
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.group import Group
-from sentry.models.groupinbox import get_inbox_details
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupowner import get_owner_details
 from sentry.models.groupseen import GroupSeen
@@ -314,11 +313,6 @@ class GroupDetailsEndpoint(GroupEndpoint):
                     group_id=group.id, environment_id__in=environment_ids
                 )
             )
-
-            if "inbox" in expand:
-                inbox_map = get_inbox_details([group])
-                inbox_reason = inbox_map.get(group.id)
-                data.update({"inbox": inbox_reason})
 
             if "owners" in expand:
                 owner_details = get_owner_details([group])

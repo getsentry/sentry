@@ -10,7 +10,6 @@ from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.models.group import Group, GroupStatus
-from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox, remove_group_from_inbox
 from sentry.models.groupowner import GROUP_OWNER_TYPE, GroupOwner, GroupOwnerType
 from sentry.models.release import Release
 from sentry.testutils.cases import APITestCase, SnubaTestCase
@@ -141,30 +140,6 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         )
         assert response.data["firstRelease"]["firstEvent"].ctime() == first_event.ctime()
         assert response.data["lastRelease"] is None
-
-    def test_group_expand_inbox(self) -> None:
-        self.login_as(user=self.user)
-
-        event = self.store_event(
-            data={"timestamp": before_now(minutes=3).isoformat()},
-            project_id=self.project.id,
-        )
-        group = event.group
-        assert group is not None
-        add_group_to_inbox(group, GroupInboxReason.NEW)
-
-        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/?expand=inbox"
-
-        response = self.client.get(url, format="json")
-        assert response.status_code == 200, response.content
-        assert response.data["inbox"] is not None
-        assert response.data["inbox"]["reason"] == GroupInboxReason.NEW.value
-        assert response.data["inbox"]["reason_details"] is None
-        assert event.group is not None
-        remove_group_from_inbox(event.group)
-        response = self.client.get(url, format="json")
-        assert response.status_code == 200, response.content
-        assert response.data["inbox"] is None
 
     def test_group_expand_owners(self) -> None:
         self.login_as(user=self.user)

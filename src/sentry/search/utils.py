@@ -748,7 +748,6 @@ def parse_query(
     | - query: str: the general query portion of the query string
     | Optional:
     | - unassigned: bool: 'is:unassigned'
-    | - for_review: bool: 'is:for_review'
     | - linked: bool: 'is:linked'
     | - status: int: 'is:<resolved,unresolved,ignored,muted,reprocessing>'
     | - assigned_to: Optional[Union[User, Team]]: 'assigned:<user or team>'
@@ -779,8 +778,6 @@ def parse_query(
                     results["unassigned"] = True
                 elif value == "assigned":
                     results["unassigned"] = False
-                elif value == "for_review":
-                    results["for_review"] = True
                 elif value == "linked":
                     results["linked"] = True
                 elif value == "unlinked":

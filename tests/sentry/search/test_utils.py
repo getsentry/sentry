@@ -532,10 +532,6 @@ class ParseQueryTest(APITestCase, SnubaTestCase):
         result = self.parse_query("is:assigned")
         assert result == {"unassigned": False, "tags": {}, "query": ""}
 
-    def test_is_inbox(self) -> None:
-        result = self.parse_query("is:for_review")
-        assert result == {"for_review": True, "tags": {}, "query": ""}
-
     def test_is_unlinked(self) -> None:
         result = self.parse_query("is:unlinked")
         assert result == {"linked": False, "tags": {}, "query": ""}

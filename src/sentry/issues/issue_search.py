@@ -49,7 +49,6 @@ from sentry.users.services.user import RpcUser
 is_filter_translation: dict[str, tuple[str, int]] = {
     "assigned": ("unassigned", False),
     "unassigned": ("unassigned", True),
-    "for_review": ("for_review", True),
     "linked": ("linked", True),
     "unlinked": ("linked", False),
 }
