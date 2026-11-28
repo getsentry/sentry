@@ -4,7 +4,10 @@ import type {
   UptimeDetectorUpdatePayload,
 } from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils/defined';
-import {createEmptyAssertionRoot} from 'sentry/views/detectors/components/uptime/assertions/field';
+import {
+  createEmptyAssertionRoot,
+  sanitizeLoadedAssertion,
+} from 'sentry/views/detectors/components/uptime/assertions/field';
 import type {UptimeAssertion} from 'sentry/views/detectors/components/uptime/types';
 import {UptimeMonitorMode} from 'sentry/views/detectors/components/uptime/types';
 import {getDetectorEnvironment} from 'sentry/views/detectors/utils/getDetectorEnvironment';
@@ -158,7 +161,9 @@ export function uptimeSavedDetectorToFormData(
       body: dataSource.queryObj.body ?? '',
       // Use empty assertion structure for null - FormField converts null to '' which
       // we can't distinguish from "new form". Empty children signals "edit with no assertions".
-      assertion: dataSource.queryObj.assertion ?? {root: createEmptyAssertionRoot()},
+      // The API stores assertions as free-form JSON, so sanitize them into a
+      // shape the assertion editor can render (e.g. group ops missing children).
+      assertion: sanitizeLoadedAssertion(dataSource.queryObj.assertion, detector.id),
       workflowIds: detector.workflowIds,
     };
   }
