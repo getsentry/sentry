@@ -275,7 +275,7 @@ export type InvestigationUpdateDetectorAction = {
 
 export type InvestigationConnectTelemetryAction = {
   kind: 'connect_telemetry';
-  provider: 'datadog' | 'gcp';
+  provider: 'datadog' | 'gcp' | 'grafana';
 };
 
 export type InvestigationAction =

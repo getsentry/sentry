@@ -7,7 +7,7 @@ from sentry.investigations.services.action_kinds.connect_telemetry import (
 )
 
 
-@pytest.mark.parametrize("provider", ["datadog", "gcp"])
+@pytest.mark.parametrize("provider", ["datadog", "gcp", "grafana"])
 def test_accepts_supported_providers(provider: str) -> None:
     action = {"kind": "connect_telemetry", "provider": provider}
     serializer = ConnectTelemetryActionSerializer(data=action)

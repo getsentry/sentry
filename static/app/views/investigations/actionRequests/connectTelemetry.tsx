@@ -185,6 +185,8 @@ function getProviderName(provider: InvestigationConnectTelemetryAction['provider
       return t('Datadog');
     case 'gcp':
       return t('Google Cloud');
+    case 'grafana':
+      return t('Grafana');
     default:
       return provider;
   }
