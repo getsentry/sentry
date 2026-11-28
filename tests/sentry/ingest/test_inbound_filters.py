@@ -408,6 +408,49 @@ def release_version_rule_condition(comparator: str, release: str) -> dict[str, o
     }
 
 
+# The guard a filter on one data type carries, so that it matches only that type.
+EXPECTED_ERROR_GUARD = {
+    "op": "or",
+    "inner": [
+        {"op": "glob", "name": "error.platform", "value": ["*"]},
+        {"op": "glob", "name": "default.platform", "value": ["*"]},
+        {"op": "glob", "name": "csp.platform", "value": ["*"]},
+    ],
+}
+EXPECTED_SPAN_GUARD = {
+    "op": "glob",
+    "name": "span.attributes.sentry.observed_timestamp_nanos.value",
+    "value": ["*"],
+}
+EXPECTED_LOG_GUARD = {
+    "op": "glob",
+    "name": "log.attributes.sentry.observed_timestamp_nanos.value",
+    "value": ["*"],
+}
+EXPECTED_METRIC_GUARD = {
+    "op": "glob",
+    "name": "trace_metric.attributes.sentry.observed_timestamp_nanos.value",
+    "value": ["*"],
+}
+
+
+EXPECTED_GUARDS = {
+    "error": EXPECTED_ERROR_GUARD,
+    "span": EXPECTED_SPAN_GUARD,
+    "log": EXPECTED_LOG_GUARD,
+    "metric": EXPECTED_METRIC_GUARD,
+}
+
+
+def guarded(data_type: str, *conditions: dict[str, object]) -> dict[str, object]:
+    """A filter on one data type: its guard and its conditions, combined with AND."""
+    return {"op": "and", "inner": [EXPECTED_GUARDS[data_type], *conditions]}
+
+
+def client_ip_condition(values: list[str]) -> dict[str, object]:
+    return {"op": "cidr", "name": "envelope.client_ip", "value": values}
+
+
 @django_db_all
 @pytest.mark.parametrize(
     ("data_type", "conditions", "expected_condition"),
@@ -418,19 +461,17 @@ def release_version_rule_condition(comparator: str, release: str) -> dict[str, o
                 {"type": "error_message", "value": ["*ConnectionError*"]},
                 {"type": "release", "value": ["1.*", "2.*"]},
             ],
-            {
-                "op": "and",
-                "inner": [
-                    error_message_rule_condition(["*ConnectionError*"]),
-                    {"op": "glob", "name": "event.release", "value": ["1.*", "2.*"]},
-                ],
-            },
+            guarded(
+                "error",
+                error_message_rule_condition(["*ConnectionError*"]),
+                {"op": "glob", "name": "event.release", "value": ["1.*", "2.*"]},
+            ),
             id="error_message_and_release",
         ),
         pytest.param(
             "error",
             [{"type": "error_type", "value": ["TypeError", "*Timeout"]}],
-            error_type_rule_condition(["TypeError", "*Timeout"]),
+            guarded("error", error_type_rule_condition(["TypeError", "*Timeout"])),
             id="error_type_only",
         ),
         pytest.param(
@@ -439,13 +480,11 @@ def release_version_rule_condition(comparator: str, release: str) -> dict[str, o
                 {"type": "error_type", "value": ["TypeError"]},
                 {"type": "error_message", "value": ["*undefined*"]},
             ],
-            {
-                "op": "and",
-                "inner": [
-                    error_type_rule_condition(["TypeError"]),
-                    error_message_rule_condition(["*undefined*"]),
-                ],
-            },
+            guarded(
+                "error",
+                error_type_rule_condition(["TypeError"]),
+                error_message_rule_condition(["*undefined*"]),
+            ),
             id="error_type_and_error_message",
         ),
         pytest.param(
@@ -454,13 +493,11 @@ def release_version_rule_condition(comparator: str, release: str) -> dict[str, o
                 {"type": "error_type", "value": ["TypeError"]},
                 {"type": "release", "value": ["1.*"]},
             ],
-            {
-                "op": "and",
-                "inner": [
-                    error_type_rule_condition(["TypeError"]),
-                    {"op": "glob", "name": "event.release", "value": ["1.*"]},
-                ],
-            },
+            guarded(
+                "error",
+                error_type_rule_condition(["TypeError"]),
+                {"op": "glob", "name": "event.release", "value": ["1.*"]},
+            ),
             id="error_type_and_release",
         ),
         pytest.param(
@@ -469,17 +506,15 @@ def release_version_rule_condition(comparator: str, release: str) -> dict[str, o
                 {"type": "log_message", "value": ["*DEBUG*"]},
                 {"type": "release", "value": ["1.2.3"]},
             ],
-            {
-                "op": "and",
-                "inner": [
-                    {"op": "glob", "name": "log.body", "value": ["*DEBUG*"]},
-                    {
-                        "op": "glob",
-                        "name": "log.attributes.sentry.release.value",
-                        "value": ["1.2.3"],
-                    },
-                ],
-            },
+            guarded(
+                "log",
+                {"op": "glob", "name": "log.body", "value": ["*DEBUG*"]},
+                {
+                    "op": "glob",
+                    "name": "log.attributes.sentry.release.value",
+                    "value": ["1.2.3"],
+                },
+            ),
             id="log_message_and_release",
         ),
         pytest.param(
@@ -488,35 +523,36 @@ def release_version_rule_condition(comparator: str, release: str) -> dict[str, o
                 {"type": "metric_name", "value": ["checkout.*"]},
                 {"type": "release", "value": ["1.2.3"]},
             ],
-            {
-                "op": "and",
-                "inner": [
-                    {"op": "glob", "name": "trace_metric.name", "value": ["checkout.*"]},
-                    {
-                        "op": "glob",
-                        "name": "trace_metric.attributes.sentry.release.value",
-                        "value": ["1.2.3"],
-                    },
-                ],
-            },
+            guarded(
+                "metric",
+                {"op": "glob", "name": "trace_metric.name", "value": ["checkout.*"]},
+                {
+                    "op": "glob",
+                    "name": "trace_metric.attributes.sentry.release.value",
+                    "value": ["1.2.3"],
+                },
+            ),
             id="metric_name_and_release",
         ),
         pytest.param(
             "metric",
             [{"type": "metric_name", "value": ["checkout.*"]}],
-            {"op": "glob", "name": "trace_metric.name", "value": ["checkout.*"]},
-            id="single_condition_is_not_wrapped",
+            guarded("metric", {"op": "glob", "name": "trace_metric.name", "value": ["checkout.*"]}),
+            id="metric_name_only",
         ),
         pytest.param(
             "span",
             [{"type": "release", "value": ["1.2.3"]}],
-            {"op": "glob", "name": "span.attributes.sentry.release.value", "value": ["1.2.3"]},
+            guarded(
+                "span",
+                {"op": "glob", "name": "span.attributes.sentry.release.value", "value": ["1.2.3"]},
+            ),
             id="release_on_spans",
         ),
         pytest.param(
             "error",
             [{"type": "release", "value": ["1.*"]}],
-            {"op": "glob", "name": "event.release", "value": ["1.*"]},
+            guarded("error", {"op": "glob", "name": "event.release", "value": ["1.*"]}),
             id="release_on_errors_reads_the_event_field_only",
         ),
         pytest.param(
@@ -528,33 +564,46 @@ def release_version_rule_condition(comparator: str, release: str) -> dict[str, o
         pytest.param(
             "error",
             [{"type": "environment", "operator": "equals", "value": ["staging"]}],
-            {"op": "glob", "name": "event.environment", "value": ["staging"]},
+            guarded("error", {"op": "glob", "name": "event.environment", "value": ["staging"]}),
             id="environment_on_errors",
         ),
         pytest.param(
             "log",
             [{"type": "environment", "operator": "equals", "value": ["staging"]}],
-            {"op": "glob", "name": "log.attributes.sentry.environment.value", "value": ["staging"]},
+            guarded(
+                "log",
+                {
+                    "op": "glob",
+                    "name": "log.attributes.sentry.environment.value",
+                    "value": ["staging"],
+                },
+            ),
             id="environment_on_logs",
         ),
         pytest.param(
             "metric",
             [{"type": "environment", "operator": "starts_with", "value": ["dev"]}],
-            {
-                "op": "glob",
-                "name": "trace_metric.attributes.sentry.environment.value",
-                "value": ["dev*"],
-            },
+            guarded(
+                "metric",
+                {
+                    "op": "glob",
+                    "name": "trace_metric.attributes.sentry.environment.value",
+                    "value": ["dev*"],
+                },
+            ),
             id="environment_on_metrics",
         ),
         pytest.param(
             "span",
             [{"type": "environment", "operator": "glob", "value": ["staging-*"]}],
-            {
-                "op": "glob",
-                "name": "span.attributes.sentry.environment.value",
-                "value": ["staging-*"],
-            },
+            guarded(
+                "span",
+                {
+                    "op": "glob",
+                    "name": "span.attributes.sentry.environment.value",
+                    "value": ["staging-*"],
+                },
+            ),
             id="environment_on_spans",
         ),
         pytest.param(
@@ -617,34 +666,35 @@ def release_version_rule_condition(comparator: str, release: str) -> dict[str, o
                 {"type": "release", "operator": "gt", "value": ["1.2.0"]},
                 {"type": "release", "operator": "lte", "value": ["myapp@2.0"]},
             ],
-            {
-                "op": "and",
-                "inner": [
-                    {
-                        "op": "release",
-                        "name": "event.release",
-                        "comparator": "gt",
-                        "value": "1.2.0",
-                    },
-                    {
-                        "op": "release",
-                        "name": "event.release",
-                        "comparator": "lte",
-                        "value": "myapp@2.0",
-                    },
-                ],
-            },
+            guarded(
+                "error",
+                {
+                    "op": "release",
+                    "name": "event.release",
+                    "comparator": "gt",
+                    "value": "1.2.0",
+                },
+                {
+                    "op": "release",
+                    "name": "event.release",
+                    "comparator": "lte",
+                    "value": "myapp@2.0",
+                },
+            ),
             id="release_version_comparison_on_errors",
         ),
         pytest.param(
             "span",
             [{"type": "release", "operator": "lt", "value": ["3.0.0"]}],
-            {
-                "op": "release",
-                "name": "span.attributes.sentry.release.value",
-                "comparator": "lt",
-                "value": "3.0.0",
-            },
+            guarded(
+                "span",
+                {
+                    "op": "release",
+                    "name": "span.attributes.sentry.release.value",
+                    "comparator": "lt",
+                    "value": "3.0.0",
+                },
+            ),
             id="release_version_comparison_on_spans",
         ),
         pytest.param(
@@ -653,24 +703,24 @@ def release_version_rule_condition(comparator: str, release: str) -> dict[str, o
                 {"type": "browser_name", "operator": "equals", "value": ["Chrome"]},
                 {"type": "browser_version", "operator": "lt", "value": ["110"]},
             ],
-            {
-                "op": "and",
-                "inner": [
-                    {"op": "glob", "name": "event.contexts.browser.name", "value": ["Chrome"]},
-                    {
-                        "op": "release",
-                        "name": "event.contexts.browser.version",
-                        "comparator": "lt",
-                        "value": "110",
-                    },
-                ],
-            },
+            guarded(
+                "error",
+                {"op": "glob", "name": "event.contexts.browser.name", "value": ["Chrome"]},
+                {
+                    "op": "release",
+                    "name": "event.contexts.browser.version",
+                    "comparator": "lt",
+                    "value": "110",
+                },
+            ),
             id="browser_on_errors_reads_the_browser_context",
         ),
         pytest.param(
             "error",
             [{"type": "browser_name", "operator": "glob", "value": ["Chrome*"]}],
-            {"op": "glob", "name": "event.contexts.browser.name", "value": ["Chrome*"]},
+            guarded(
+                "error", {"op": "glob", "name": "event.contexts.browser.name", "value": ["Chrome*"]}
+            ),
             id="browser_name_trailing_wildcard",
         ),
         pytest.param(
@@ -688,13 +738,23 @@ def release_version_rule_condition(comparator: str, release: str) -> dict[str, o
         pytest.param(
             "span",
             [{"type": "browser_name", "operator": "glob", "value": ["Edge?Mobile"]}],
-            {"op": "glob", "name": "span.attributes.browser.name.value", "value": ["Edge?Mobile"]},
+            guarded(
+                "span",
+                {
+                    "op": "glob",
+                    "name": "span.attributes.browser.name.value",
+                    "value": ["Edge?Mobile"],
+                },
+            ),
             id="browser_name_single_character_wildcard",
         ),
         pytest.param(
             "error",
             [{"type": "browser_name", "operator": "equals", "value": ["Chrome*"]}],
-            {"op": "glob", "name": "event.contexts.browser.name", "value": [r"Chrome\*"]},
+            guarded(
+                "error",
+                {"op": "glob", "name": "event.contexts.browser.name", "value": [r"Chrome\*"]},
+            ),
             id="browser_name_equals_reads_the_wildcard_literally",
         ),
         pytest.param(
@@ -704,57 +764,61 @@ def release_version_rule_condition(comparator: str, release: str) -> dict[str, o
                 {"type": "browser_version", "operator": "gte", "value": ["120"]},
                 {"type": "browser_version", "operator": "lte", "value": ["122.0.6261"]},
             ],
-            {
-                "op": "and",
-                "inner": [
-                    {
-                        "op": "glob",
-                        "name": "span.attributes.browser.name.value",
-                        "value": ["Chrome*"],
-                    },
-                    {
-                        "op": "release",
-                        "name": "span.attributes.browser.version.value",
-                        "comparator": "gte",
-                        "value": "120",
-                    },
-                    {
-                        "op": "release",
-                        "name": "span.attributes.browser.version.value",
-                        "comparator": "lte",
-                        "value": "122.0.6261",
-                    },
-                ],
-            },
+            guarded(
+                "span",
+                {
+                    "op": "glob",
+                    "name": "span.attributes.browser.name.value",
+                    "value": ["Chrome*"],
+                },
+                {
+                    "op": "release",
+                    "name": "span.attributes.browser.version.value",
+                    "comparator": "gte",
+                    "value": "120",
+                },
+                {
+                    "op": "release",
+                    "name": "span.attributes.browser.version.value",
+                    "comparator": "lte",
+                    "value": "122.0.6261",
+                },
+            ),
             id="browser_version_range_on_spans",
         ),
         pytest.param(
             "log",
             [{"type": "browser_version", "operator": "starts_with", "value": ["109."]}],
-            {"op": "glob", "name": "log.attributes.browser.version.value", "value": ["109.*"]},
+            guarded(
+                "log",
+                {"op": "glob", "name": "log.attributes.browser.version.value", "value": ["109.*"]},
+            ),
             id="browser_version_text_operator_on_logs",
         ),
         pytest.param(
             "metric",
             [{"type": "browser_name", "operator": "does_not_contain", "value": ["Mobile"]}],
-            {
-                "op": "and",
-                "inner": [
-                    {
-                        "op": "glob",
-                        "name": "trace_metric.attributes.browser.name.value",
-                        "value": ["*"],
-                    },
-                    {
-                        "op": "not",
-                        "inner": {
+            guarded(
+                "metric",
+                {
+                    "op": "and",
+                    "inner": [
+                        {
                             "op": "glob",
                             "name": "trace_metric.attributes.browser.name.value",
-                            "value": ["*Mobile*"],
+                            "value": ["*"],
                         },
-                    },
-                ],
-            },
+                        {
+                            "op": "not",
+                            "inner": {
+                                "op": "glob",
+                                "name": "trace_metric.attributes.browser.name.value",
+                                "value": ["*Mobile*"],
+                            },
+                        },
+                    ],
+                },
+            ),
             id="browser_name_negated_on_metrics",
         ),
         pytest.param(
@@ -787,58 +851,68 @@ def release_version_rule_condition(comparator: str, release: str) -> dict[str, o
         pytest.param(
             "error",
             [{"type": "release", "operator": "equals", "value": ["1.0", "2.0"]}],
-            {"op": "glob", "name": "event.release", "value": ["1.0", "2.0"]},
+            guarded("error", {"op": "glob", "name": "event.release", "value": ["1.0", "2.0"]}),
             id="equals_is_the_literal_glob",
         ),
         pytest.param(
             "error",
             [{"type": "release", "operator": "starts_with", "value": ["1."]}],
-            {"op": "glob", "name": "event.release", "value": ["1.*"]},
+            guarded("error", {"op": "glob", "name": "event.release", "value": ["1.*"]}),
             id="starts_with",
         ),
         pytest.param(
             "log",
             [{"type": "log_message", "operator": "contains", "value": ["timeout", "refused"]}],
-            {"op": "glob", "name": "log.body", "value": ["*timeout*", "*refused*"]},
+            guarded("log", {"op": "glob", "name": "log.body", "value": ["*timeout*", "*refused*"]}),
             id="contains",
         ),
         pytest.param(
             "metric",
             [{"type": "metric_name", "operator": "ends_with", "value": [".count"]}],
-            {"op": "glob", "name": "trace_metric.name", "value": ["*.count"]},
+            guarded("metric", {"op": "glob", "name": "trace_metric.name", "value": ["*.count"]}),
             id="ends_with",
         ),
         pytest.param(
             "error",
             [{"type": "release", "operator": "glob", "value": ["1.*", "2.?"]}],
-            {"op": "glob", "name": "event.release", "value": ["1.*", "2.?"]},
+            guarded("error", {"op": "glob", "name": "event.release", "value": ["1.*", "2.?"]}),
             id="glob_passes_the_values_through",
         ),
         pytest.param(
             "log",
             [{"type": "log_message", "operator": "does_not_contain", "value": ["ok", "[2*"]}],
-            {
-                "op": "and",
-                "inner": [
-                    {"op": "glob", "name": "log.body", "value": ["*"]},
-                    {
-                        "op": "not",
-                        "inner": {"op": "glob", "name": "log.body", "value": ["*ok*", r"*\[2\**"]},
-                    },
-                ],
-            },
+            guarded(
+                "log",
+                {
+                    "op": "and",
+                    "inner": [
+                        {"op": "glob", "name": "log.body", "value": ["*"]},
+                        {
+                            "op": "not",
+                            "inner": {
+                                "op": "glob",
+                                "name": "log.body",
+                                "value": ["*ok*", r"*\[2\**"],
+                            },
+                        },
+                    ],
+                },
+            ),
             id="does_not_contain",
         ),
         pytest.param(
             "error",
             [{"type": "error_type", "operator": "does_not_start_with", "value": ["Http"]}],
-            {
-                "op": "and",
-                "inner": [
-                    error_type_rule_condition(["*"]),
-                    {"op": "not", "inner": error_type_rule_condition(["Http*"])},
-                ],
-            },
+            guarded(
+                "error",
+                {
+                    "op": "and",
+                    "inner": [
+                        error_type_rule_condition(["*"]),
+                        {"op": "not", "inner": error_type_rule_condition(["Http*"])},
+                    ],
+                },
+            ),
             id="does_not_start_with_on_error_type",
         ),
         pytest.param(
@@ -859,35 +933,60 @@ def release_version_rule_condition(comparator: str, release: str) -> dict[str, o
                 {"type": "error_message", "operator": "contains", "value": ["*[401]*"]},
                 {"type": "release", "operator": "equals", "value": ["a?b{c,d}\\e"]},
             ],
-            {
-                "op": "and",
-                "inner": [
-                    error_message_rule_condition([r"*\*\[401\]\**"]),
-                    {"op": "glob", "name": "event.release", "value": [r"a\?b\{c,d\}\\e"]},
-                ],
-            },
+            guarded(
+                "error",
+                error_message_rule_condition([r"*\*\[401\]\**"]),
+                {"op": "glob", "name": "event.release", "value": [r"a\?b\{c,d\}\\e"]},
+            ),
             id="glob_characters_in_a_value_are_escaped",
         ),
         pytest.param(
             "error",
             [{"type": "error_type", "operator": "ends_with", "value": ["Error"]}],
-            error_type_rule_condition(["*Error"]),
+            guarded("error", error_type_rule_condition(["*Error"])),
             id="text_operator_on_error_type",
         ),
         pytest.param(
             "error",
             [{"type": "ip_address", "operator": "cidr", "value": ["10.0.0.0/8"]}],
-            {"op": "cidr", "name": "envelope.client_ip", "value": ["10.0.0.0/8"]},
+            guarded("error", client_ip_condition(["10.0.0.0/8"])),
             id="cidr_on_ip_address",
         ),
         pytest.param(
             "error",
             [{"type": "ip_address", "operator": "not_cidr", "value": ["10.0.0.0/8"]}],
-            {
-                "op": "not",
-                "inner": {"op": "cidr", "name": "envelope.client_ip", "value": ["10.0.0.0/8"]},
-            },
+            guarded("error", {"op": "not", "inner": client_ip_condition(["10.0.0.0/8"])}),
             id="not_cidr_on_ip_address",
+        ),
+        pytest.param(
+            "span",
+            [{"type": "ip_address", "operator": "not_cidr", "value": ["10.0.0.0/8"]}],
+            guarded("span", {"op": "not", "inner": client_ip_condition(["10.0.0.0/8"])}),
+            id="not_cidr_on_one_data_type_is_guarded",
+        ),
+        pytest.param(
+            "error",
+            [{"type": "ip_address", "value": ["10.0.0.0/8"]}],
+            guarded("error", client_ip_condition(["10.0.0.0/8"])),
+            id="ip_address_on_errors_matches_only_errors",
+        ),
+        pytest.param(
+            "span",
+            [{"type": "ip_address", "value": ["10.0.0.0/8"]}],
+            guarded("span", client_ip_condition(["10.0.0.0/8"])),
+            id="ip_address_on_spans_matches_only_spans",
+        ),
+        pytest.param(
+            "log",
+            [{"type": "ip_address", "value": ["10.0.0.0/8"]}],
+            guarded("log", client_ip_condition(["10.0.0.0/8"])),
+            id="ip_address_on_logs_matches_only_logs",
+        ),
+        pytest.param(
+            "metric",
+            [{"type": "ip_address", "value": ["10.0.0.0/8"]}],
+            guarded("metric", client_ip_condition(["10.0.0.0/8"])),
+            id="ip_address_on_metrics_matches_only_metrics",
         ),
         pytest.param(
             "all",
@@ -902,32 +1001,33 @@ def release_version_rule_condition(comparator: str, release: str) -> dict[str, o
                 {"type": "release", "operator": "gte", "value": ["2.0"]},
                 {"type": "ip_address", "operator": "cidr", "value": ["10.0.0.0/8"]},
             ],
-            {
-                "op": "and",
-                "inner": [
-                    error_message_rule_condition(["*timeout*"]),
-                    {"op": "release", "name": "event.release", "comparator": "gte", "value": "2.0"},
-                    {"op": "cidr", "name": "envelope.client_ip", "value": ["10.0.0.0/8"]},
-                ],
-            },
+            guarded(
+                "error",
+                error_message_rule_condition(["*timeout*"]),
+                {"op": "release", "name": "event.release", "comparator": "gte", "value": "2.0"},
+                client_ip_condition(["10.0.0.0/8"]),
+            ),
             id="operators_combine_with_and",
         ),
         pytest.param(
             "error",
             [{"type": "ip_address", "value": ["10.0.0.0/8", "203.0.113.7"]}],
-            {"op": "cidr", "name": "envelope.client_ip", "value": ["10.0.0.0/8", "203.0.113.7"]},
+            guarded("error", client_ip_condition(["10.0.0.0/8", "203.0.113.7"])),
             id="ip_address_reads_the_envelope_client_ip",
         ),
         pytest.param(
             "error",
             [{"type": "release", "value": ["1.*", "[23].?"]}],
-            {"op": "glob", "name": "event.release", "value": ["1.*", "[23].?"]},
+            guarded("error", {"op": "glob", "name": "event.release", "value": ["1.*", "[23].?"]}),
             id="a_condition_without_an_operator_holds_raw_globs",
         ),
         pytest.param(
             "error",
             [{"type": "geo_country_code", "value": ["US", "CA"]}],
-            {"op": "glob", "name": "event.user.geo.country_code", "value": ["US", "CA"]},
+            guarded(
+                "error",
+                {"op": "glob", "name": "event.user.geo.country_code", "value": ["US", "CA"]},
+            ),
             id="geo_country_code_reads_the_event_user_geo",
         ),
         pytest.param(
@@ -942,13 +1042,11 @@ def release_version_rule_condition(comparator: str, release: str) -> dict[str, o
                 {"type": "log_message", "value": ["*DEBUG*"]},
                 {"type": "ip_address", "value": ["10.0.0.0/8"]},
             ],
-            {
-                "op": "and",
-                "inner": [
-                    {"op": "glob", "name": "log.body", "value": ["*DEBUG*"]},
-                    {"op": "cidr", "name": "envelope.client_ip", "value": ["10.0.0.0/8"]},
-                ],
-            },
+            guarded(
+                "log",
+                {"op": "glob", "name": "log.body", "value": ["*DEBUG*"]},
+                client_ip_condition(["10.0.0.0/8"]),
+            ),
             id="ip_address_combines_with_item_conditions",
         ),
     ],
@@ -994,6 +1092,21 @@ def relay_matches(condition: Mapping[str, Any], item: Mapping[str, str]) -> bool
 
 RELEASE_FIELD_BY_DATA_TYPE = dict(zip(["error", "log", "metric", "span"], RELEASE_FIELDS))
 
+# The field each guard checks. Relay sets it on every item of the data type before filtering.
+GUARD_FIELD_BY_DATA_TYPE = {
+    "error": "error.platform",
+    "log": "log.attributes.sentry.observed_timestamp_nanos.value",
+    "metric": "trace_metric.attributes.sentry.observed_timestamp_nanos.value",
+    "span": "span.attributes.sentry.observed_timestamp_nanos.value",
+}
+
+
+def relay_item(data_type: str, release: str | None) -> dict[str, str]:
+    item = {GUARD_FIELD_BY_DATA_TYPE[data_type]: "1"}
+    if release is not None:
+        item[RELEASE_FIELD_BY_DATA_TYPE[data_type]] = release
+    return item
+
 
 @django_db_all
 @pytest.mark.parametrize("data_type", ["error", "log", "metric", "span"])
@@ -1014,15 +1127,68 @@ def test_negated_condition_drops_only_items_of_its_data_type(
 
     dropped = {
         item_type
-        for item_type, release_field in RELEASE_FIELD_BY_DATA_TYPE.items()
-        if relay_matches(condition, {release_field: "2.3.4"})
+        for item_type in RELEASE_FIELD_BY_DATA_TYPE
+        if relay_matches(condition, relay_item(item_type, "2.3.4"))
     }
     assert dropped == {data_type}
 
-    kept_release = {RELEASE_FIELD_BY_DATA_TYPE[data_type]: "1.0.0"}
-    assert not relay_matches(condition, kept_release)
+    assert not relay_matches(condition, relay_item(data_type, "1.0.0"))
     # An item without a release, of any type.
-    assert not relay_matches(condition, {})
+    assert not any(
+        relay_matches(condition, relay_item(item_type, None))
+        for item_type in RELEASE_FIELD_BY_DATA_TYPE
+    )
+
+
+# Items that share `event.*` fields with errors, as Relay's getters answer them.
+ERROR_FILTER_ITEMS = {
+    "error": {
+        "error.platform": "python",
+        "event.environment": "staging",
+        "event.release": "1.0",
+        "event.user.geo.country_code": "CA",
+    },
+    "transaction": {
+        "transaction.platform": "python",
+        "event.environment": "staging",
+        "event.release": "1.0",
+        "event.user.geo.country_code": "CA",
+    },
+    "replay": {
+        "event.environment": "staging",
+        "event.release": "1.0",
+        "event.user.geo.country_code": "CA",
+    },
+    "session": {"event.environment": "staging", "event.release": "1.0"},
+}
+
+
+@django_db_all
+@pytest.mark.parametrize(
+    "condition",
+    [
+        {"type": "environment", "value": ["staging"]},
+        {"type": "release", "value": ["1.0"]},
+        {"type": "geo_country_code", "value": ["CA"]},
+    ],
+    ids=["environment", "release", "geo_country_code"],
+)
+def test_error_filter_drops_only_errors(
+    default_project: Project, factories: Factories, condition: dict[str, object]
+) -> None:
+    factories.create_project_custom_inbound_filter(
+        default_project, data_type="error", conditions=[condition]
+    )
+    [generic_filter] = get_custom_inbound_filter_generic_filters(default_project)
+    relay_condition = generic_filter["condition"]
+    assert relay_condition is not None
+
+    dropped = {
+        item_type
+        for item_type, item in ERROR_FILTER_ITEMS.items()
+        if relay_matches(relay_condition, item)
+    }
+    assert dropped == {"error"}
 
 
 @django_db_all
@@ -1062,6 +1228,14 @@ def test_custom_inbound_filter_row_becomes_relay_config(
                 "condition": {
                     "op": "and",
                     "inner": [
+                        {
+                            "op": "or",
+                            "inner": [
+                                {"op": "glob", "name": "error.platform", "value": ["*"]},
+                                {"op": "glob", "name": "default.platform", "value": ["*"]},
+                                {"op": "glob", "name": "csp.platform", "value": ["*"]},
+                            ],
+                        },
                         {
                             "op": "or",
                             "inner": [
