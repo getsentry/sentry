@@ -7,6 +7,7 @@ import {Button} from '@sentry/scraps/button';
 import {Confirm} from '@sentry/scraps/confirm';
 import {
   defaultFormOptions,
+  DisplayField,
   FieldGroup,
   FormSearch,
   useScrapsForm,
@@ -17,7 +18,6 @@ import {toast} from '@sentry/scraps/toast';
 import {removeTeam, updateTeamSuccess} from 'sentry/actionCreators/teams';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {AvatarChooser} from 'sentry/components/avatarChooser';
-import {FieldGroup as LegacyFieldGroup} from 'sentry/components/forms/fieldGroup';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -173,10 +173,10 @@ export default function TeamSettings() {
 
       <Panel>
         <PanelHeader>{t('Team Administration')}</PanelHeader>
-        <LegacyFieldGroup
-          disabled={isIdpProvisioned}
+        <DisplayField.Row
+          padding="xl"
           label={t('Remove Team')}
-          help={t(
+          hintText={t(
             "This may affect team members' access to projects and associated alert delivery."
           )}
         >
@@ -200,7 +200,7 @@ export default function TeamSettings() {
               </Button>
             </Confirm>
           </div>
-        </LegacyFieldGroup>
+        </DisplayField.Row>
       </Panel>
     </FormSearch>
   );

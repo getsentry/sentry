@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 import {Confirm} from '@sentry/scraps/confirm';
+import {DisplayField} from '@sentry/scraps/form';
 import {toast} from '@sentry/scraps/toast';
 
 import {
@@ -9,7 +10,6 @@ import {
   removeAndRedirectToRemainingOrganization,
   updateOrganization,
 } from 'sentry/actionCreators/organizations';
-import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {List} from 'sentry/components/list';
 import {ListItem} from 'sentry/components/list/listItem';
 import {Panel} from 'sentry/components/panels/panel';
@@ -117,9 +117,10 @@ export default function OrganizationGeneralSettings() {
         {organization.access.includes('org:admin') && !organization.isDefault && (
           <Panel>
             <PanelHeader>{t('Remove Organization')}</PanelHeader>
-            <FieldGroup
+            <DisplayField.Row
+              padding="xl"
               label={t('Remove Organization')}
-              help={t(
+              hintText={t(
                 'Removing this organization will delete all data including projects and their associated events.'
               )}
             >
@@ -133,7 +134,7 @@ export default function OrganizationGeneralSettings() {
                   <Button variant="danger">{t('Remove Organization')}</Button>
                 </Confirm>
               </div>
-            </FieldGroup>
+            </DisplayField.Row>
           </Panel>
         )}
       </div>

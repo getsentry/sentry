@@ -4,14 +4,14 @@ import styled from '@emotion/styled';
 import {skipToken, useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
+import {DisplayField} from '@sentry/scraps/form';
 import {Input} from '@sentry/scraps/input';
-import {Grid} from '@sentry/scraps/layout';
+import {Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {Select} from '@sentry/scraps/select';
 import {toast} from '@sentry/scraps/toast';
 
-import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -170,18 +170,13 @@ export function TransactionThresholdModal({
   };
 
   const modalFields = (
-    <Fragment>
-      <FieldGroup
-        data-test-id="response-metric"
+    <Stack gap="xl">
+      <DisplayField.Stack
+        variant="compact"
         label={t('Calculation Method')}
-        inline={false}
-        help={t(
+        hintText={t(
           'This determines which duration metric is used for the Response Time Threshold.'
         )}
-        showHelpInTooltip
-        flexibleControlStateSize
-        stacked
-        required
       >
         <Select
           options={[
@@ -200,18 +195,13 @@ export function TransactionThresholdModal({
             setMetric(option.value);
           }}
         />
-      </FieldGroup>
-      <FieldGroup
-        data-test-id="response-time-threshold"
+      </DisplayField.Stack>
+      <DisplayField.Stack
+        variant="compact"
         label={t('Response Time Threshold (ms)')}
-        inline={false}
-        help={t(
+        hintText={t(
           'The satisfactory response time for the calculation method defined above. This is used to calculate Apdex and User Misery scores.'
         )}
-        showHelpInTooltip
-        flexibleControlStateSize
-        stacked
-        required
       >
         <Input
           type="number"
@@ -224,8 +214,8 @@ export function TransactionThresholdModal({
           step={100}
           min={100}
         />
-      </FieldGroup>
-    </Fragment>
+      </DisplayField.Stack>
+    </Stack>
   );
 
   const summaryView = eventView.clone();

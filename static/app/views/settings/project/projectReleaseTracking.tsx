@@ -4,14 +4,13 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {Confirm} from '@sentry/scraps/confirm';
-import {FieldGroup as FormFieldGroup} from '@sentry/scraps/form';
+import {DisplayField, FieldGroup} from '@sentry/scraps/form';
 import {Container, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -123,7 +122,7 @@ export default function ProjectReleaseTracking() {
         </Alert.Container>
       )}
 
-      <FormFieldGroup title={t('Client Configuration')}>
+      <FieldGroup title={t('Client Configuration')}>
         <Stack gap="xl">
           <Text as="p">
             {tct(
@@ -147,23 +146,21 @@ export default function ProjectReleaseTracking() {
             )}
           </Text>
         </Stack>
-      </FormFieldGroup>
+      </FieldGroup>
 
-      <FormFieldGroup title={t('Deploy Token')}>
-        <FieldGroup
+      <FieldGroup title={t('Deploy Token')}>
+        <DisplayField.Row
           label={t('Token')}
-          help={t('A unique secret which is used to generate deploy hook URLs')}
-          hideControlState
+          hintText={t('A unique secret which is used to generate deploy hook URLs')}
         >
           <TextCopyInput aria-label={t('Token')}>{releaseTokenData.token}</TextCopyInput>
-        </FieldGroup>
+        </DisplayField.Row>
 
-        <FieldGroup
+        <DisplayField.Row
           label={t('Regenerate Token')}
-          help={t(
+          hintText={t(
             'If a service becomes compromised, you should regenerate the token and re-configure any deploy hooks with the newly generated URL.'
           )}
-          hideControlState
         >
           <Container>
             <Confirm
@@ -179,36 +176,32 @@ export default function ProjectReleaseTracking() {
               </Button>
             </Confirm>
           </Container>
-        </FieldGroup>
-      </FormFieldGroup>
+        </DisplayField.Row>
+      </FieldGroup>
 
-      <FormFieldGroup title={t('Webhook')}>
-        <FieldGroup
+      <FieldGroup title={t('Webhook')}>
+        <DisplayField.Stack
           label={t('Webhook URL')}
-          help={t(
+          hintText={t(
             'If you simply want to integrate with an existing system, sometimes its easiest just to use a webhook.'
           )}
-          inline={false}
-          hideControlState
         >
           <TextCopyInput aria-label={t('Webhook URL')}>
             {releaseTokenData.webhookUrl}
           </TextCopyInput>
-        </FieldGroup>
+        </DisplayField.Stack>
 
-        <FieldGroup
+        <DisplayField.Stack
           label={t('Request Example')}
-          help={t(
+          hintText={t(
             'The release webhook accepts the same parameters as the "Create a new Release" API endpoint.'
           )}
-          inline={false}
-          hideControlState
         >
           <CodeBlock language="bash">{getReleaseWebhookInstructions()}</CodeBlock>
-        </FieldGroup>
-      </FormFieldGroup>
+        </DisplayField.Stack>
+      </FieldGroup>
 
-      <FormFieldGroup title={t('API')}>
+      <FieldGroup title={t('API')}>
         <Stack gap="xl">
           <Text as="p">
             {t(
@@ -221,7 +214,7 @@ export default function ProjectReleaseTracking() {
             })}
           </Text>
         </Stack>
-      </FormFieldGroup>
+      </FieldGroup>
     </SentryDocumentTitle>
   );
 }

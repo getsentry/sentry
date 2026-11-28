@@ -6,13 +6,13 @@ import {useQueryStates} from 'nuqs';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import type {SelectOption} from '@sentry/scraps/compactSelect';
+import {DisplayField} from '@sentry/scraps/form';
 import {Stack} from '@sentry/scraps/layout';
 import {singleLineRenderer} from '@sentry/scraps/markdown';
 import {Select} from '@sentry/scraps/select';
 import {Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
-import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {IdBadge} from 'sentry/components/idBadge';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {NarrowLayout} from 'sentry/components/narrowLayout';
@@ -500,14 +500,14 @@ export default function IntegrationOrganizationLink() {
           {organization: <strong />, integation: <strong>{integrationSlug}</strong>}
         )}
       </p>
-      <FieldGroup label={t('Organization')} inline={false} stacked required>
+      <DisplayField.Stack label={t('Organization')} padding="0 xl xl 0">
         <Select
           onChange={(option: SelectOption<string>) => selectOrganization(option.value)}
           value={selectedOrgSlug}
           placeholder={t('Select an organization')}
           options={options}
         />
-      </FieldGroup>
+      </DisplayField.Stack>
       {renderBottom}
     </NarrowLayout>
   );

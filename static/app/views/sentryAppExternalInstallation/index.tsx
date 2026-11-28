@@ -5,13 +5,13 @@ import {useQueryState} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
 import {OrganizationAvatar} from '@sentry/scraps/avatar';
+import {DisplayField} from '@sentry/scraps/form';
 import {Select} from '@sentry/scraps/select';
 import {toast} from '@sentry/scraps/toast';
 
 import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import {installSentryApp} from 'sentry/actionCreators/sentryAppInstallations';
 import {sentryAppApiOptions} from 'sentry/actionCreators/sentryApps';
-import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryAppDetailsModal} from 'sentry/components/modals/sentryAppDetailsModal';
 import {NarrowLayout} from 'sentry/components/narrowLayout';
@@ -338,7 +338,7 @@ function MultiOrgView({
           {organization: <strong />, sentryAppName: <strong>{sentryApp.name}</strong>}
         )}
       </p>
-      <FieldGroup label={t('Organization')} inline={false} stacked required>
+      <DisplayField.Stack label={t('Organization')} padding="0 xl 0 0">
         <Select
           onChange={({value}: any) => onSelectOrg(value)}
           value={selectedOrgSlug ?? null}
@@ -346,7 +346,7 @@ function MultiOrgView({
           options={getOrganizationOptions(organizations)}
           data-test-id="org-select"
         />
-      </FieldGroup>
+      </DisplayField.Stack>
     </div>
   );
 }
