@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "generated": "2026-11-26",
-  "commit": "d37c6d45649da5f8e7e8d5a1ad26449e9ecea205",
+  "generated": "2026-11-28",
+  "commit": "8dd7ca92a1d8dc717eacb352d04ed38a68d91d42",
   "entries": [
     {
       "rule": "S026",
@@ -4286,6 +4286,18 @@
       "status": "debt-breaking",
       "reason": "legacy: predates S026",
       "first_seen": "2026-11-26"
+    },
+    {
+      "rule": "S026",
+      "path": "src/sentry/integrations/api/endpoints/organization_integration_request.py",
+      "scope": "OrganizationIntegrationRequestEndpoint.post",
+      "key": "body:repoName",
+      "count": 1,
+      "owner": "integration-platform",
+      "publish_status": "private",
+      "status": "debt-breaking",
+      "reason": "new since the baseline",
+      "first_seen": "2026-11-28"
     },
     {
       "rule": "S026",
