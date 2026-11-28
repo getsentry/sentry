@@ -94,14 +94,24 @@ def _upgrade(
         nodestore.backend.bootstrap()
 
     if create_kafka_topics:
-        from sentry_kafka_schemas import list_topics
+        from sentry_kafka_schemas import get_topic, list_topics
 
         from sentry.utils.batching_kafka_consumer import create_topics
         from sentry.utils.kafka_config import get_topic_definition
 
         for topic in list_topics():
             topic_defn = get_topic_definition(topic)
-            create_topics(topic_defn["cluster"], [topic_defn["real_topic_name"]])
+            topic_data = get_topic(topic)
+            create_topics(
+                topic_defn["cluster"],
+                [topic_defn["real_topic_name"]],
+                topic_creation_configs={
+                    topic_defn["real_topic_name"]: (
+                        topic_data["enforced_partition_count"] or 1,
+                        topic_data["topic_creation_config"],
+                    )
+                },
+            )
 
     if repair:
         from sentry.runner import call_command
