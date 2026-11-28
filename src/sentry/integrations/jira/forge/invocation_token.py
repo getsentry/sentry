@@ -65,6 +65,9 @@ class ForgeInvocation:
     module_key: str | None
     # The invoking user's account ID. Only present for calls from UI modules.
     principal: str | None
+    # The issue a Jira issue module was rendered on, from the signed module context, so a
+    # caller can only ask about the issue they're viewing.
+    issue_key: str | None = None
 
 
 class ForgeSigningKeysClient(ApiClient):
@@ -154,7 +157,15 @@ def verify_forge_invocation_token(token: str) -> ForgeInvocation:
         environment_type=(app.get("environment") or {}).get("type"),
         module_key=(app.get("module") or {}).get("key"),
         principal=claims.get("principal"),
+        issue_key=_issue_key(claims.get("context")),
     )
+
+
+def _issue_key(context: object) -> str | None:
+    extension = context.get("extension") if isinstance(context, Mapping) else None
+    issue = extension.get("issue") if isinstance(extension, Mapping) else None
+    key = issue.get("key") if isinstance(issue, Mapping) else None
+    return key if isinstance(key, str) and key else None
 
 
 def verify_forge_request(request: HttpRequest) -> ForgeInvocation:
