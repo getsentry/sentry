@@ -15,7 +15,12 @@ from sentry.notifications.notification_action.utils import execute_via_group_typ
 from sentry.types.activity import ActivityType
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.models import Action
-from sentry.workflow_engine.types import ActionInvocation, DetectorType, WorkflowEventData
+from sentry.workflow_engine.types import (
+    ActionInvocation,
+    ActionTargetNotFoundError,
+    DetectorType,
+    WorkflowEventData,
+)
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
@@ -134,3 +139,28 @@ class TestGroupTypeNotificationRegistryHandler(BaseWorkflowTest):
         )
         execute_via_group_type_registry(invocation)
         mock_execute_via_issue_alert_handler.assert_called_once_with(invocation)
+
+    @mock.patch("sentry.notifications.notification_action.utils.logger")
+    @mock.patch(
+        "sentry.notifications.notification_action.registry.issue_alert_handler_registry.get"
+    )
+    def test_action_target_not_found_is_not_logged(
+        self, mock_registry_get: mock.MagicMock, mock_logger: mock.MagicMock
+    ) -> None:
+        mock_registry_get.return_value.invoke_legacy_registry.side_effect = (
+            ActionTargetNotFoundError("app uninstalled")
+        )
+        error_detector = self.create_detector(project=self.project, type=DetectorType.ERROR)
+
+        for detector in (self.detector, error_detector):
+            invocation = ActionInvocation(
+                event_data=self.event_data,
+                action=self.action,
+                detector=detector,
+                notification_uuid=str(uuid.uuid4()),
+                workflow_id=self.workflow.id,
+            )
+            with pytest.raises(ActionTargetNotFoundError):
+                execute_via_group_type_registry(invocation)
+
+        mock_logger.exception.assert_not_called()
