@@ -15,6 +15,7 @@ from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_ke
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.models.activity import Activity
 from sentry.models.authidentity import AuthIdentity
+from sentry.models.custominboundfilter import CustomInboundFilter
 from sentry.models.dashboard import (
     Dashboard,
     DashboardFavoriteUser,
@@ -472,6 +473,7 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
         ORG_MEMBER_MERGE_TESTED,
         Activity,
         AlertRule,
+        CustomInboundFilter,
         Dashboard,
         DashboardFavoriteUser,
         DashboardLastVisited,
@@ -514,6 +516,7 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
         ORG_MEMBER_MERGE_TESTED,
         Activity,
         AlertRule,
+        CustomInboundFilter,
         Dashboard,
         DashboardFavoriteUser,
         DashboardLastVisited,

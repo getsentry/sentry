@@ -26,6 +26,7 @@ from sentry.hybridcloud.rpc import OptionValue, logger
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.models.activity import Activity
+from sentry.models.custominboundfilter import CustomInboundFilter
 from sentry.models.dashboard import (
     Dashboard,
     DashboardFavoriteUser,
@@ -748,6 +749,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
             model_list = [
                 Activity,
                 AlertRule,
+                CustomInboundFilter,
                 Dashboard,
                 DashboardFavoriteUser,
                 DashboardLastVisited,

@@ -6,6 +6,7 @@ from django.db import models
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, cell_silo_model, sane_repr
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 
 
 class ConditionType(StrEnum):
@@ -118,6 +119,12 @@ class CustomInboundFilter(DefaultFieldsModel):
         choices=[(legacy_filter, legacy_filter) for legacy_filter in LegacyFilter],
         null=True,
     )
+    # Who last saved the filter: a user or a service account, never both. Null on rows
+    # not saved since these columns were added, and once the editor's user is deleted.
+    updated_by_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
+    updated_by_service_account_id = HybridCloudForeignKey(
+        "service_accounts.ServiceAccount", null=True, on_delete="SET_NULL"
+    )
 
     class Meta:
         app_label = "sentry"
@@ -126,7 +133,14 @@ class CustomInboundFilter(DefaultFieldsModel):
             models.UniqueConstraint(
                 fields=["project", "legacy_filter"],
                 name="sentry_custominboundfilter_legacy_filter_per_project",
-            )
+            ),
+            models.CheckConstraint(
+                condition=(
+                    models.Q(updated_by_id__isnull=True)
+                    | models.Q(updated_by_service_account_id__isnull=True)
+                ),
+                name="sentry_custominboundfilter_at_most_one_updater",
+            ),
         ]
 
     __repr__ = sane_repr("project_id", "name")
