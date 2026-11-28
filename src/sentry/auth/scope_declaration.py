@@ -111,9 +111,31 @@ def update_permission_scope_declaration(
     declaration.effective_scopes = _expand_scope_hierarchy(declared_scopes)
 
 
+_privilege_ceiling_check: ContextVar[bool] = ContextVar("privilege_ceiling_check", default=False)
+
+
+@contextmanager
+def privilege_ceiling_check() -> Iterator[None]:
+    """Mark scope checks that cap what a requester may grant, not what they may access.
+
+    Some endpoints compare the requester's scopes against scopes they are asking to
+    grant to another credential (e.g. the scopes requested for a new Sentry App), to
+    prevent privilege escalation. Those checks never admit the request, so they are not
+    expected to appear in the endpoint's ``scope_map`` and must not be reported as
+    undeclared. Declaring them in ``scope_map`` would instead broaden endpoint access.
+    """
+    token = _privilege_ceiling_check.set(True)
+    try:
+        yield
+    finally:
+        _privilege_ceiling_check.reset(token)
+
+
 def check_scope_declaration(scope: str) -> None:
     declaration = _endpoint_scope_declaration.get()
     if declaration is None or scope in declaration.effective_scopes:
+        return
+    if _privilege_ceiling_check.get():
         return
     if scope in declaration.reported_scopes:
         return
