@@ -5,9 +5,8 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
-import {Grid} from '@sentry/scraps/layout';
+import {Grid, Stack} from '@sentry/scraps/layout';
 
-import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
@@ -36,7 +35,6 @@ interface Props {
   onChange: (fields: QueryFieldValue[]) => void;
   columns?: QueryFieldValue[];
   disable?: boolean;
-  style?: React.CSSProperties;
   widgetType?: WidgetType;
 }
 
@@ -44,7 +42,6 @@ export function GroupBySelector({
   fieldOptions,
   columns = [],
   onChange,
-  style,
   widgetType,
   disable,
 }: Props) {
@@ -113,6 +110,7 @@ export function GroupBySelector({
 
   const canDrag = columns.length > 1;
   const canDelete = canDrag || hasOnlySingleColumnWithValue;
+  const canAddGroup = columns.length < GROUP_BY_LIMIT;
   const columnFieldsAsString = columns.map(generateFieldAsString);
 
   const {filteredFieldOptions, columnsAsFieldOptions} = useMemo(() => {
@@ -156,7 +154,7 @@ export function GroupBySelector({
 
   return (
     <Fragment>
-      <StyledField inline={false} style={style} flexibleControlStateSize stacked>
+      <Stack paddingBottom={canAddGroup ? 'md' : undefined}>
         {columns.length === 0 ? (
           <QueryField
             value={EMPTY_FIELD}
@@ -234,8 +232,8 @@ export function GroupBySelector({
             </DragOverlay>
           </DndContext>
         )}
-      </StyledField>
-      {columns.length < GROUP_BY_LIMIT && (
+      </Stack>
+      {canAddGroup && (
         <Button
           size="sm"
           variant="link"
@@ -249,10 +247,6 @@ export function GroupBySelector({
     </Fragment>
   );
 }
-
-const StyledField = styled(FieldGroup)`
-  padding-bottom: ${p => p.theme.space.md};
-`;
 
 const Ghost = styled('div')`
   position: absolute;

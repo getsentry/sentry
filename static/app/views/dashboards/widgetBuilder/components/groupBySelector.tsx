@@ -115,7 +115,6 @@ export function WidgetBuilderGroupBySelector({
         columns={groupByColumns}
         fieldOptions={groupByOptions}
         onChange={handleGroupByChange}
-        style={{paddingRight: 0}}
         widgetType={state.dataset}
         disable={disableTransactionWidget}
       />
