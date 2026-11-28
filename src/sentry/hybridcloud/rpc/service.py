@@ -517,6 +517,12 @@ def _create_request_session(retry_count: int) -> requests.Session:
 _connections = local()
 
 
+@dataclass
+class _PooledSession:
+    session: requests.Session
+    last_used: float
+
+
 def _get_connection(retry_count: int) -> requests.Session:
     """
     Get a shared requests.Session.
@@ -527,11 +533,22 @@ def _get_connection(retry_count: int) -> requests.Session:
     if not hasattr(_connections, "lookup"):
         _connections.lookup = {}
 
-    if not _connections.lookup.get(retry_count, None):
-        http = _create_request_session(retry_count)
-        _connections.lookup[retry_count] = http
+    now = time.monotonic()
+    max_idle = options.get("hybridcloud.rpc.connection_max_idle_seconds")
+    pooled: _PooledSession | None = _connections.lookup.get(retry_count)
 
-    return _connections.lookup[retry_count]
+    # The cross-region path can drop idle connections silently; reusing one hangs.
+    if pooled is not None and max_idle and now - pooled.last_used > max_idle:
+        pooled.session.close()
+        pooled = None
+        metrics.incr("hybrid_cloud.dispatch_rpc.idle_session_reset")
+
+    if pooled is None:
+        pooled = _PooledSession(session=_create_request_session(retry_count), last_used=now)
+        _connections.lookup[retry_count] = pooled
+
+    pooled.last_used = now
+    return pooled.session
 
 
 @dataclass(frozen=True)

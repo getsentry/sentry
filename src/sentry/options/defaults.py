@@ -2901,6 +2901,12 @@ register("features.error.capture_rate", default=0.1, flags=FLAG_AUTOMATOR_MODIFI
 # Retry controls
 register("hybridcloud.regionsiloclient.retries", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("hybridcloud.rpc.retries", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
+# Seconds a pooled RPC session may sit idle before it is replaced; 0 disables.
+register(
+    "hybridcloud.rpc.connection_max_idle_seconds",
+    default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 register("hybridcloud.integrationproxy.retries", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register(
     "hybridcloud.integrationproxy.retry_max_sleep",
