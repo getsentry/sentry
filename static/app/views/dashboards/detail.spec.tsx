@@ -502,9 +502,8 @@ describe('Dashboards > Detail', () => {
 
     it('renames from the actions menu without touching widgets', async () => {
       MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/dashboards/',
+        url: '/organizations/org-slug/dashboards/starred/',
         body: [DashboardFixture([], {id: '1', title: 'Custom Errors'})],
-        match: [MockApiClient.matchQuery({filter: 'onlyFavorites'})],
       });
 
       render(
@@ -533,9 +532,8 @@ describe('Dashboards > Detail', () => {
         body: DashboardFixture(widgets, {id: '1', title: 'Renamed Dashboard'}),
       });
       MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/dashboards/',
+        url: '/organizations/org-slug/dashboards/starred/',
         body: [DashboardFixture([], {id: '1', title: 'Renamed Dashboard'})],
-        match: [MockApiClient.matchQuery({filter: 'onlyFavorites'})],
       });
 
       await userEvent.click(screen.getByRole('button', {name: 'Dashboard actions'}));

@@ -148,7 +148,7 @@ function setupMocks() {
     body: [],
   });
   MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/dashboards/',
+    url: '/organizations/org-slug/dashboards/starred/',
     body: [
       // This ensures that we test the "All Projects", "My projects", "multiple projects" icons
       DashboardListItemFixture({id: '1', title: 'All projects', projects: []}),

@@ -43,6 +43,10 @@ function setupMocks() {
     body: [],
   });
   MockApiClient.addMockResponse({url: '/organizations/org-slug/dashboards/', body: []});
+  MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/dashboards/starred/',
+    body: [],
+  });
 }
 
 describe('SecondarySidebar', () => {

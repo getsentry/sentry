@@ -11,7 +11,7 @@ import {useToggleDashboardFavorite} from './useToggleDashboardFavorite';
 
 const organization = OrganizationFixture({
   slug: 'org-slug',
-  features: ['dashboards-starred', 'dashboards-user-last-visited'],
+  features: ['dashboards-user-last-visited'],
 });
 
 const starredQueryKey = getStarredDashboardsQueryKey(organization);
@@ -84,9 +84,7 @@ describe('useToggleDashboardFavorite', () => {
       body: {},
     });
 
-    const {result} = renderToggleHook(
-      OrganizationFixture({slug: 'org-slug', features: ['dashboards-starred']})
-    );
+    const {result} = renderToggleHook(OrganizationFixture({slug: 'org-slug'}));
     const existingFavorite = DashboardListItemFixture({id: '1', isFavorited: true});
     const dashboardToStar = DashboardListItemFixture({id: '2', isFavorited: false});
 
