@@ -259,6 +259,9 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         feedback_turn = is_pr_feedback_turn(state)
         if feedback_turn and state.status == "error":
             fail_pr_iteration(organization, run_id, state, group_id)
+            cls._log_reaction_outcomes(
+                organization, run_id, react_to_completed_iteration(organization, run_id, state)
+            )
             return
         group = cls._fetch_group(organization, run_id, group_id)
         if group is None:
@@ -449,6 +452,9 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
     ) -> None:
         if state.status == "error":
             fail_pr_iteration(organization, run_id, state, group_id)
+            cls._log_reaction_outcomes(
+                organization, run_id, react_to_completed_iteration(organization, run_id, state)
+            )
             return
 
         group = cls._fetch_group(organization, run_id, group_id)
