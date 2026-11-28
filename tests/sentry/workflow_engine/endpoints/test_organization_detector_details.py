@@ -1232,7 +1232,7 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
             )
 
         assert "config" in response.data
-        assert "detection_type" in str(response.data["config"])
+        assert "`detectionType` is required" in str(response.data["config"])
 
         # Verify config was not updated
         self.detector.refresh_from_db()

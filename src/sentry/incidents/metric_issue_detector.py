@@ -226,7 +226,9 @@ def format_extrapolation_mode(
 
 
 class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
-    data_sources = serializers.ListField(child=SnubaQueryValidator(), required=False)
+    data_sources = serializers.ListField(
+        child=SnubaQueryValidator(), required=False, allow_empty=False
+    )
     condition_group = MetricIssueConditionGroupValidator(required=True)
 
     def validate_eap_rule(self, attrs: dict[str, Any]) -> None:
@@ -251,12 +253,11 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
             if len(conditions) > 3:
                 raise serializers.ValidationError("Too many conditions")
 
-        if "data_sources" in attrs:
-            self.validate_eap_rule(attrs)
-            self._validate_metric_subscription_allowed(attrs)
-
         if "config" in attrs:
-            self._validate_config(attrs["config"])
+            self._validate_config(attrs)
+
+        if "data_sources" in attrs:
+            self._validate_data_sources(attrs)
 
         return attrs
 
@@ -287,13 +288,28 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
                 f"{extrapolation_mode.name.lower()} extrapolation mode is not supported for new detectors. Allowed modes are: client_and_server_weighted, unknown."
             )
 
-    def _validate_config(self, config: Any) -> None:
+    def _validate_data_sources(self, attrs: dict[str, Any]) -> None:
+        self.validate_eap_rule(attrs)
+        self._validate_metric_subscription_allowed(attrs)
+
+    def _validate_config(self, attrs: dict[str, Any]) -> None:
+        config = attrs.get("config")
         if not isinstance(config, dict):
             raise serializers.ValidationError({"config": ["`config` must be an object."]})
 
-        # Ensure that all percent-type detectors have a lookback (`comparison_delta`) value and that
-        # no other detector types do
         detection_type = config.get("detection_type")
+        if not detection_type:
+            raise serializers.ValidationError({"config": ["`detectionType` is required."]})
+
+        self._validate_comparison_delta(detection_type, config)
+
+    def _validate_comparison_delta(
+        self, detection_type: AlertRuleDetectionType, config: dict[str, Any]
+    ) -> None:
+        """
+        Ensure that all percent-type detectors have a lookback (`comparison_delta`) value and that
+        no other detector types do
+        """
         has_comparison_delta = config.get("comparison_delta") is not None
         if detection_type == AlertRuleDetectionType.PERCENT and not has_comparison_delta:
             raise serializers.ValidationError(
