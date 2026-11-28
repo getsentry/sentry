@@ -192,16 +192,16 @@ def test_cancel_rejects_completed_run(service: OnboardingProgressService) -> Non
     created, token = create_run(
         service, user_id=1, organization_id=2, client_run_id="browser-session"
     )
-    service.update(
-        token=token,
-        user_id=1,
-        organization_id=2,
-        update=ProgressUpdate(
+    updates: tuple[ProgressUpdate[Any], ...] = (
+        ProgressUpdate(stage=Stage.RECEIVE_VERIFICATION_ERROR, status=StageStatus.COMPLETED),
+        ProgressUpdate(
             stage=Stage.CHECK_STACK_TRACE_QUALITY,
             status=StageStatus.SKIPPED,
             run_status=RunStatus.COMPLETED,
         ),
     )
+    for update in updates:
+        service.update(token=token, user_id=1, organization_id=2, update=update)
 
     with pytest.raises(OnboardingRunTerminal):
         service.cancel(run_id=created.run_id, user_id=1, organization_id=2)

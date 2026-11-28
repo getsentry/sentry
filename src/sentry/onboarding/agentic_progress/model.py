@@ -18,6 +18,9 @@ from pydantic import (
 
 SCHEMA_VERSION = 1
 MAX_EVENT_NOTE_LENGTH = 256
+VERIFICATION_ERROR_REQUIRED_DETAIL = (
+    "The receive_verification_error stage must be completed before setup can finish"
+)
 
 
 class RunOrigin(StrEnum):
@@ -333,6 +336,13 @@ class InvalidProgressUpdate(ValueError):
         super().__init__(message)
 
 
+class VerificationErrorRequired(InvalidProgressUpdate):
+    """The run cannot finish until a test error has been received."""
+
+    def __init__(self) -> None:
+        super().__init__(ProgressUpdateField.STATUS, VERIFICATION_ERROR_REQUIRED_DETAIL)
+
+
 class OnboardingRunExpired(ValueError):
     """The onboarding run has passed its absolute expiry."""
 
@@ -594,10 +604,22 @@ def apply_update(run: OnboardingRun, update: ProgressUpdate[Any], now: datetime)
         if update.run_status is run.run_status:
             return run
         raise OnboardingRunTerminal("Onboarding run is terminal")
+    # Earlier stages are normally bypassed when an agent jumps ahead, but the received test
+    # error is the proof that setup works, so the run cannot finish without it.
+    if (
+        update.stage is STAGE_DEFINITIONS[-1].stage
+        and update.status in {StageStatus.COMPLETED, StageStatus.SKIPPED}
+        and run.stages[STAGE_INDEX[Stage.RECEIVE_VERIFICATION_ERROR]].status
+        is not StageStatus.COMPLETED
+    ):
+        raise VerificationErrorRequired()
 
     stages = {state.stage: state for state in run.stages}
     current_index = STAGE_INDEX[update.stage]
     for definition in STAGE_DEFINITIONS[:current_index]:
+        # Bypassed is frozen, so bypassing the receipt stage would block the final-stage gate.
+        if definition.stage is Stage.RECEIVE_VERIFICATION_ERROR:
+            continue
         current = stages[definition.stage]
         if current.status not in {
             StageStatus.COMPLETED,
