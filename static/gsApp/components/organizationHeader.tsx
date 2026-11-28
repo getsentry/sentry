@@ -3,7 +3,7 @@ import {css, Global} from '@emotion/react';
 
 import type {Organization} from 'sentry/types/organization';
 
-import GSBanner from 'getsentry/components/gsBanner';
+import {GSBanner} from 'getsentry/components/gsBanner';
 import {useSeerAutoReloadModalLink} from 'getsentry/views/subscriptionPage/seerWallet/useSeerAutoReloadModalLink';
 
 /**

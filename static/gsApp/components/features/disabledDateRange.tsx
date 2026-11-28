@@ -1,17 +1,19 @@
 import {DateRange} from 'sentry/components/timeRangeSelector/dateRange';
 import {MAX_PICKABLE_DAYS} from 'sentry/constants';
 
-import {withSubscription} from 'getsentry/components/withSubscription';
-import type {Subscription} from 'getsentry/types';
+import {useSubscription} from 'getsentry/hooks/useSubscription';
 
-type Props = React.ComponentProps<typeof DateRange> & {subscription: Subscription};
+type Props = React.ComponentProps<typeof DateRange>;
 
-function DisabledDateRange(props: Props) {
-  const {subscription} = props;
+export function DisabledDateRange(props: Props) {
+  const subscription = useSubscription({organization: props.organization});
+
+  if (!subscription) {
+    return null;
+  }
+
   const maxPickableDays =
     props.maxPickableDays ?? subscription.planDetails?.retentionDays;
 
   return <DateRange {...props} maxPickableDays={maxPickableDays || MAX_PICKABLE_DAYS} />;
 }
-
-export default withSubscription(DisabledDateRange, {noLoader: true});

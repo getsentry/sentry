@@ -4,9 +4,8 @@ import {IconBusiness} from '@sentry/icons/business';
 
 import {Feature} from 'sentry/components/acl/feature';
 
-import PowerFeatureHovercard from 'getsentry/components/powerFeatureHovercard';
-import {withSubscription} from 'getsentry/components/withSubscription';
-import type {Subscription} from 'getsentry/types';
+import {PowerFeatureHovercard} from 'getsentry/components/powerFeatureHovercard';
+import {useSubscription} from 'getsentry/hooks/useSubscription';
 
 const SSO = 'sso';
 const ALLOCATIONS = 'allocations-upsell';
@@ -34,9 +33,15 @@ const POWER_FEATURE_CONFIG = [
   {id: TEAM_ROLES, features: ['team-roles'], partial: false},
 ];
 
-type Props = {children: React.ReactNode; subscription: Subscription; id?: string};
+type Props = {children: React.ReactNode; id?: string};
 
-function LabelWithPowerIcon({children, id, subscription}: Props) {
+export function LabelWithPowerIcon({children, id}: Props) {
+  const subscription = useSubscription();
+
+  if (!subscription) {
+    return null;
+  }
+
   // Must return React Elements
   // @see https://github.com/DefinitelyTyped/DefinitelyTyped/issues/20544
 
@@ -50,7 +55,7 @@ function LabelWithPowerIcon({children, id, subscription}: Props) {
     return children as React.ReactElement;
   }
 
-  if (!subscription?.plan || subscription.planDetails?.isEnterprise) {
+  if (!subscription.plan || subscription.planDetails?.isEnterprise) {
     return children as React.ReactElement;
   }
 
@@ -94,5 +99,3 @@ const StyledLabel = styled('div')<{leftAligned?: boolean}>`
     margin-left: ${p => p.theme.space.md};
   }
 `;
-
-export default withSubscription(LabelWithPowerIcon, {noLoader: true});

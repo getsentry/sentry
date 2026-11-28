@@ -4,7 +4,7 @@ import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {PlanFixture} from 'getsentry/__fixtures__/plan';
-import DisabledSelectorItems from 'getsentry/components/features/disabledSelectorItems';
+import {DisabledSelectorItems} from 'getsentry/components/features/disabledSelectorItems';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 
 describe('DisabledSelectorItems', () => {
@@ -78,6 +78,39 @@ describe('DisabledSelectorItems', () => {
     expect(screen.getByText('Last 30 days')).toBeInTheDocument();
     expect(screen.getByText('Last 90 days')).toBeInTheDocument();
     expect(screen.getByText(/Start Trial/)).toBeInTheDocument();
+  });
+
+  it('renders items after loading the subscription when it is not cached', async () => {
+    const organization = OrganizationFixture({slug: 'free-unloaded'});
+    const customerRequest = MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/`,
+      body: SubscriptionFixture({
+        organization,
+        plan: 'mm2_f',
+        planDetails: PlanFixture({retentionDays: 30}),
+      }),
+    });
+
+    render(
+      <DisabledSelectorItems
+        shouldShowRelative
+        shouldShowAbsolute
+        handleSelectRelative={handleSelectRelative}
+      >
+        {items => (
+          <div>
+            {items.map(item => (
+              <div key={item.value}>{item.label}</div>
+            ))}
+          </div>
+        )}
+      </DisabledSelectorItems>,
+      {organization}
+    );
+
+    expect(await screen.findByText(/Start Trial/)).toBeInTheDocument();
+    expect(screen.getByText('Last hour')).toBeInTheDocument();
+    expect(customerRequest).toHaveBeenCalledTimes(1);
   });
 
   it('does not render upsell when 90 day is not a relative option for free plan', () => {
