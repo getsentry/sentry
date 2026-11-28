@@ -24,6 +24,25 @@ export function assignSequentialLabels(queries: BaseMetricQuery[]): string[] {
   });
 }
 
+const EQUATION_LABEL_PREFIX = getVisualizeLabel(1, true).charAt(0);
+
+/**
+ * Whether every stored label still matches the type of the query at its
+ * position. Equations must carry an equation label (ƒ1, ƒ2...) and metrics a
+ * letter label (A, B...). A mismatch happens when the queries change without
+ * the count changing (e.g. an external navigation that reorders rows).
+ */
+function labelsMatchQueryTypes(labels: string[], queries: BaseMetricQuery[]): boolean {
+  return queries.every((query, i) => {
+    const label = labels[i];
+    if (label === undefined) {
+      return false;
+    }
+    const isEquation = isVisualizeEquation(query.queryParams.visualizes[0]!);
+    return label.startsWith(EQUATION_LABEL_PREFIX) === isEquation;
+  });
+}
+
 /**
  * Returns the next available label for the given query type.
  */
@@ -73,14 +92,19 @@ function parseEquationIndex(label: string): number {
  * The ref tracks label assignments across URL navigations. Mutations (insert/remove)
  * update the ref before navigating so the next render preserves the labels.
  * When the ref length doesn't match the query count (fresh load or external
- * navigation), labels are reassigned sequentially.
+ * navigation), or a stored label no longer matches its query's type, labels
+ * are reassigned sequentially.
  */
 export function useStableLabels(queries: BaseMetricQuery[]) {
   const labelsRef = useRef<string[]>([]);
   const rowIdsRef = useRef<string[]>([]);
 
-  // oxlint-disable-next-line react/refs
-  if (labelsRef.current.length !== queries.length) {
+  if (
+    // oxlint-disable-next-line react/refs
+    labelsRef.current.length !== queries.length ||
+    // oxlint-disable-next-line react/refs
+    !labelsMatchQueryTypes(labelsRef.current, queries)
+  ) {
     // oxlint-disable-next-line react/refs
     labelsRef.current = assignSequentialLabels(queries);
     // oxlint-disable-next-line react/refs
