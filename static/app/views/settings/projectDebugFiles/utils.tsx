@@ -12,6 +12,7 @@ const PRETTY_SYMBOL_TYPES = {
   portablepdb: t('Portable PDB'),
   sourcebundle: t('SourceBundle'),
   wasm: t('WebAssembly'),
+  wasmsourcemap: t('WebAssembly source map'),
   bcsymbolmap: t('BCSymbolMap'),
   il2cpp: t('IL2CPP mapping'),
 };
