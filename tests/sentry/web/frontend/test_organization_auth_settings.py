@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from django.core import mail
 from django.db import models
+from django.http import HttpResponse
 from django.urls import reverse
 
 from bitfield.types import Bit
@@ -17,6 +18,8 @@ from sentry.auth.providers.dummy import (
 )
 from sentry.auth.providers.saml2.generic.provider import GenericSAML2Provider
 from sentry.auth.providers.saml2.provider import Attributes
+from sentry.constants import SentryAppStatus
+from sentry.deletions.models.scheduleddeletion import ScheduledDeletion
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions_control
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.authidentity import AuthIdentity
@@ -445,6 +448,89 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
             SentryAppInstallationForProvider.objects.get(
                 organization_id=self.organization.id, provider="dummy_scim"
             )
+
+    def _post_scim_settings(self, path: str, *, enabled: bool) -> HttpResponse:
+        with self.feature({"organizations:sso-basic": True}):
+            return self.client.post(
+                path,
+                {
+                    "op": "settings",
+                    "require_link": True,
+                    "enable_scim": enabled,
+                    "default_role": "member",
+                },
+            )
+
+    def test_reenable_scim_before_scheduled_deletion_completes(self) -> None:
+        organization, _ = self.create_org_and_auth_provider()
+        self.create_om_and_link_sso(organization)
+        path = reverse("sentry-organization-auth-provider-settings", args=[organization.slug])
+        self.login_as(self.user, organization_id=organization.id)
+
+        assert self._post_scim_settings(path, enabled=True).status_code == 200
+
+        install = SentryAppInstallationForProvider.objects.get(
+            organization_id=organization.id, provider="dummy_scim"
+        )
+        sentry_app = install.sentry_app_installation.sentry_app
+
+        assert self._post_scim_settings(path, enabled=False).status_code == 200
+
+        sentry_app.refresh_from_db()
+        assert sentry_app.status == SentryAppStatus.DELETION_IN_PROGRESS
+        assert ScheduledDeletion.objects.filter(
+            model_name="SentryApp", object_id=sentry_app.id
+        ).exists()
+
+        # Re-enable before the scheduled deletion has a chance to run.
+        assert self._post_scim_settings(path, enabled=True).status_code == 200
+
+        auth_provider = AuthProvider.objects.get(organization_id=organization.id)
+        assert auth_provider.flags.scim_enabled
+        assert auth_provider.get_scim_token() is not None
+
+        installs = SentryAppInstallationForProvider.objects.filter(
+            organization_id=organization.id, provider="dummy_scim"
+        )
+        assert installs.count() == 1
+        assert installs.get().sentry_app_installation.sentry_app == sentry_app
+
+        sentry_app.refresh_from_db()
+        assert sentry_app.status == SentryAppStatus.INTERNAL
+        assert not ScheduledDeletion.objects.filter(
+            model_name="SentryApp", object_id=sentry_app.id
+        ).exists()
+
+    def test_reenable_scim_after_deletion_started(self) -> None:
+        organization, _ = self.create_org_and_auth_provider()
+        self.create_om_and_link_sso(organization)
+        path = reverse("sentry-organization-auth-provider-settings", args=[organization.slug])
+        self.login_as(self.user, organization_id=organization.id)
+
+        assert self._post_scim_settings(path, enabled=True).status_code == 200
+
+        install = SentryAppInstallationForProvider.objects.get(
+            organization_id=organization.id, provider="dummy_scim"
+        )
+        old_app = install.sentry_app_installation.sentry_app
+
+        assert self._post_scim_settings(path, enabled=False).status_code == 200
+
+        # Simulate the deletion job picking up the app before SCIM is re-enabled.
+        ScheduledDeletion.objects.filter(model_name="SentryApp", object_id=old_app.id).update(
+            in_progress=True
+        )
+
+        assert self._post_scim_settings(path, enabled=True).status_code == 200
+
+        auth_provider = AuthProvider.objects.get(organization_id=organization.id)
+        assert auth_provider.flags.scim_enabled
+
+        installs = SentryAppInstallationForProvider.objects.filter(
+            organization_id=organization.id, provider="dummy_scim"
+        )
+        assert installs.count() == 1
+        assert installs.get().sentry_app_installation.sentry_app_id != old_app.id
 
     def test_edit_sso_settings(self) -> None:
         # EDITING SSO SETTINGS

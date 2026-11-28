@@ -123,16 +123,43 @@ class AuthProvider(ReplicatedControlModel):
             )
             return
 
-        # check if we have a scim app already
+        provider_key = f"{self.provider}_scim"
 
-        if SentryAppInstallationForProvider.objects.filter(
-            organization_id=self.organization_id, provider="okta_scim"
-        ).exists():
-            logger.warning(
-                "SCIM installation already exists",
-                extra={"organization_id": self.organization_id},
-            )
-            return
+        # SCIM may have been enabled before. If it was disabled and re-enabled before
+        # the scheduled deletion of the old app completed, the installation link is
+        # still around and creating another one would violate the (provider,
+        # organization) uniqueness constraint.
+        existing_install = SentryAppInstallationForProvider.objects.select_related(
+            "sentry_app_installation__sentry_app"
+        ).get_or_none(organization_id=self.organization_id, provider=provider_key)
+
+        if existing_install is not None:
+            sentry_app = existing_install.sentry_app_installation.sentry_app
+            deletion_started = False
+            if sentry_app.status == SentryAppStatus.DELETION_IN_PROGRESS:
+                # `disable_scim` marks the app for deletion asynchronously. Cancel the
+                # pending deletion so the existing app and its token can be reused.
+                ScheduledDeletion.cancel(sentry_app)
+                deletion_started = ScheduledDeletion.objects.filter(
+                    model_name=type(sentry_app).__name__,
+                    object_id=sentry_app.id,
+                    in_progress=True,
+                ).exists()
+
+                if deletion_started:
+                    # Deletion cannot be stopped anymore, so drop the stale link and
+                    # let a fresh app be created below.
+                    existing_install.delete()
+                else:
+                    sentry_app.update(status=SentryAppStatus.INTERNAL)
+
+            if not deletion_started:
+                logger.info(
+                    "Reusing existing SCIM installation",
+                    extra={"organization_id": self.organization_id, "provider": provider_key},
+                )
+                self.flags.scim_enabled = True
+                return
 
         sentry_app = SentryAppCreator(
             name="SCIM Internal Integration",
@@ -153,7 +180,7 @@ class AuthProvider(ReplicatedControlModel):
         SentryAppInstallationForProvider.objects.create(
             sentry_app_installation=sentry_app_installation,
             organization_id=self.organization_id,
-            provider=f"{self.provider}_scim",
+            provider=provider_key,
         )
         self.flags.scim_enabled = True
 
