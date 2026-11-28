@@ -359,9 +359,16 @@ class Pipeline[M: Model, S: PipelineSessionStore](abc.ABC):
         result = api_step.handle_post(validated_data, self, request)
 
         if result.action == PipelineStepAction.ADVANCE:
-            self.state.step_index = step_index + 1
-            if self.step_index >= len(api_steps):
-                return self.api_finish_pipeline()
+            next_step_index = step_index + 1
+            # Commit the advance before finalizing so a completed pipeline never
+            # stays on the last step. If finalization fails, move back so the
+            # last step can be retried instead of indexing past the steps.
+            self.state.step_index = next_step_index
+            if next_step_index >= len(api_steps):
+                finish_result = self.api_finish_pipeline()
+                if finish_result.action != PipelineStepAction.COMPLETE:
+                    self.state.step_index = step_index
+                return finish_result
 
         return result
 
