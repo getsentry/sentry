@@ -10,8 +10,10 @@ from unittest import mock
 from unittest.mock import ANY, MagicMock, Mock, PropertyMock, patch
 
 import pytest
-from django.db import router
+from django.db import connections, router
+from django.db.utils import OperationalError
 from django.test import override_settings
+from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 from google.api_core.exceptions import ServiceUnavailable
 
@@ -39,7 +41,7 @@ from sentry.issues.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.models.activity import Activity, ActivityIntegration
 from sentry.models.commit import Commit
 from sentry.models.environment import Environment
-from sentry.models.eventattachment import EventAttachment
+from sentry.models.eventattachment import EventAttachment, PendingEventAttachment
 from sentry.models.group import GROUP_SUBSTATUS_TO_STATUS_MAP, Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupinbox import GroupInbox, GroupInboxReason
@@ -68,12 +70,16 @@ from sentry.tasks.post_process import (
     HIGHER_ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT,
     ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT,
     PostProcessJob,
+    _get_event_link_probe,
+    _probe_event_links,
     feedback_filter_decorator,
+    link_event_to_user_report,
     locks,
     post_process_group,
     process_siem_security_logging,
     run_post_process_job,
     set_siem_security_log_hook,
+    update_existing_attachments,
 )
 from sentry.testutils.cases import BaseTestCase, PerformanceIssueTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers import with_feature
@@ -94,6 +100,36 @@ from sentry.utils.sdk_crashes.sdk_crash_detection_config import SdkName
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 pytestmark = [requires_snuba]
+
+CONSOLIDATED_LINK_PROBE = {"post_process.consolidated-link-probe.rollout-rate": 1.0}
+LINK_PROBE_TABLES = (
+    "sentry_pendingeventattachment",
+    "sentry_eventattachment",
+    "sentry_userreport",
+)
+
+
+def link_probe_table_statements(queries: CaptureQueriesContext) -> list[str]:
+    """The captured statements that touch a table the consolidated link probe reads."""
+    return [
+        query["sql"]
+        for query in queries.captured_queries
+        if any(table in query["sql"] for table in LINK_PROBE_TABLES)
+    ]
+
+
+def create_pending_attachment(project_id: int, event_id: str) -> PendingEventAttachment:
+    return PendingEventAttachment.objects.create(
+        project_id=project_id,
+        event_id=event_id,
+        type="event.attachment",
+        name="hello.txt",
+        content_type="text/plain",
+        size=5,
+        blob_path=":hello",
+        date_expires=timezone.now() + timedelta(hours=1),
+        date_expires_retention=timezone.now() + timedelta(days=30),
+    )
 
 
 def require_group(event: Event | GroupEvent) -> Group:
@@ -209,6 +245,37 @@ class PipelineStepNamesTest(TestCase):
             names = [step.__name__ for step in pipeline]
             assert "wrapper" not in names
             assert len(names) == len(set(names))
+
+
+class EventLinkProbeTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        event = self.store_event(data={"message": "testing"}, project_id=self.project.id)
+        self.group_event = event.for_group(require_group(event))
+
+    def test_event_is_not_probed_while_the_rollout_is_off(self) -> None:
+        job: PostProcessJob = {
+            "event": self.group_event,
+            "is_reprocessed": False,
+            "event_link_steps_enabled": True,
+        }
+
+        with CaptureQueriesContext(connections[router.db_for_write(EventAttachment)]) as queries:
+            assert _get_event_link_probe(job) is None
+
+        assert link_probe_table_statements(queries) == []
+
+    def test_tables_in_different_databases_are_not_probed(self) -> None:
+        with (
+            CaptureQueriesContext(connections[router.db_for_write(EventAttachment)]) as queries,
+            patch(
+                "sentry.tasks.post_process.router.db_for_write",
+                side_effect=lambda model, **hints: model._meta.db_table,
+            ),
+        ):
+            assert _probe_event_links(self.group_event) is None
+
+        assert link_probe_table_statements(queries) == []
 
 
 class BasePostProcessGroupMixin(BaseTestCase, metaclass=abc.ABCMeta):
@@ -2630,6 +2697,134 @@ class UpdateExistingAttachmentsTestMixin(BasePostProcessGroupMixin):
         assert unrelated.group_id is None
 
 
+class EventLinkProbeTestMixin(UserReportEventLinkTestMixin, UpdateExistingAttachmentsTestMixin):
+    """
+    Post-processing with the consolidated link probe on. The probe only runs for events
+    whose pipeline has both the attachment step and the user report step.
+    """
+
+    @override_options(CONSOLIDATED_LINK_PROBE)
+    def test_links_attachment_ingested_before_event_with_link_probe(self) -> None:
+        self.test_links_attachment_ingested_before_event()
+
+    @override_options(CONSOLIDATED_LINK_PROBE)
+    def test_promotes_pending_attachment_with_link_probe(self) -> None:
+        event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+        # Parked after the event was saved, so only post-processing can promote it.
+        pending = create_pending_attachment(self.project.id, event.event_id)
+
+        self.call_post_process_group(
+            is_new=True, is_regression=False, is_new_group_environment=True, event=event
+        )
+
+        attachment = EventAttachment.objects.get(
+            project_id=self.project.id, event_id=event.event_id
+        )
+        assert attachment.group_id == event.group_id
+        assert not PendingEventAttachment.objects.filter(id=pending.id).exists()
+
+    @override_options(CONSOLIDATED_LINK_PROBE)
+    def test_attempts_promotion_after_relink_with_link_probe(self) -> None:
+        """
+        The probe looks for pending attachments before the relink runs. An attachment
+        parked while the relink runs would be missed, so promotion is attempted again
+        after a relink even though the probe found nothing pending.
+        """
+        event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+        self.create_attachment(event.event_id, group_id=None)
+
+        with patch("sentry.event_manager.save_pending_attachments") as promote:
+            self.call_post_process_group(
+                is_new=True, is_regression=False, is_new_group_environment=True, event=event
+            )
+
+        promote.assert_called_once_with(
+            project=event.project,
+            event_id=event.event_id,
+            group_id=event.group_id,
+            source="post_process",
+        )
+
+    @override_options(CONSOLIDATED_LINK_PROBE)
+    def test_links_attachment_when_user_reports_cannot_be_read_with_link_probe(self) -> None:
+        """
+        The probe reads the user report table too. A failure there must not stop an
+        attachment from being linked.
+        """
+        event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+        attachment = self.create_attachment(event.event_id, group_id=None)
+
+        def fail_user_report_statements(
+            execute: Any, sql: str, params: Any, many: bool, context: Any
+        ) -> Any:
+            if "sentry_userreport" in sql:
+                raise OperationalError("canceling statement due to lock timeout")
+            return execute(sql, params, many, context)
+
+        with connections[router.db_for_write(EventAttachment)].execute_wrapper(
+            fail_user_report_statements
+        ):
+            self.call_post_process_group(
+                is_new=True, is_regression=False, is_new_group_environment=True, event=event
+            )
+
+        attachment.refresh_from_db()
+        assert attachment.group_id == event.group_id
+
+    @override_options(CONSOLIDATED_LINK_PROBE)
+    def test_event_without_links_costs_one_statement_with_link_probe(self) -> None:
+        event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+
+        with CaptureQueriesContext(connections[router.db_for_write(EventAttachment)]) as queries:
+            self.call_post_process_group(
+                is_new=True, is_regression=False, is_new_group_environment=True, event=event
+            )
+
+        (statement,) = link_probe_table_statements(queries)
+        assert all(table in statement for table in LINK_PROBE_TABLES)
+
+    @override_options(CONSOLIDATED_LINK_PROBE)
+    def test_user_report_shims_to_feedback_with_link_probe(self) -> None:
+        self.test_user_report_shims_to_feedback()
+
+    @override_options(
+        {
+            **CONSOLIDATED_LINK_PROBE,
+            "post_process.disable-pipeline-steps": [
+                {"pipeline_step": "update_existing_attachments"}
+            ],
+        }
+    )
+    def test_disabled_attachment_step_leaves_its_tables_alone_with_link_probe(self) -> None:
+        """
+        A step that is switched off must not have its tables read on its behalf. The
+        user report step still does its own work.
+        """
+        event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+        report = UserReport.objects.create(
+            project_id=self.project.id,
+            event_id=event.event_id,
+            name="foo",
+            email="bar@example.com",
+            comments="It Broke!!!",
+        )
+
+        with CaptureQueriesContext(connections[router.db_for_write(EventAttachment)]) as queries:
+            self.call_post_process_group(
+                is_new=True, is_regression=False, is_new_group_environment=True, event=event
+            )
+
+        report.refresh_from_db()
+        assert report.group_id == event.group_id
+        # Linking the report creates a feedback event, which has attachment queries of its
+        # own, so only look at statements about the event that was post-processed.
+        assert not [
+            statement
+            for statement in link_probe_table_statements(queries)
+            if "eventattachment" in statement and event.event_id in statement
+        ]
+
+
 class DetectBaseUrlsForUptimeTestMixin(BasePostProcessGroupMixin):
     def assert_organization_key(self, organization: Organization, exists: bool) -> None:
         key = get_organization_bucket_key(organization)
@@ -3103,6 +3298,65 @@ class PipelineKillswitchTestMixin(BasePostProcessGroupMixin):
         ):
             assert not self.run_pipeline(mock_safe_execute)
 
+    def count_step_killswitch_matches(self, mock_incr: MagicMock) -> int:
+        return len(
+            [
+                call
+                for call in mock_incr.call_args_list
+                if call.args[0] == "killswitches.run"
+                and call.kwargs["tags"]
+                == {
+                    "killswitch_name": "post_process.disable-pipeline-steps",
+                    "decision": "matched",
+                }
+            ]
+        )
+
+    @override_options(
+        {"post_process.disable-pipeline-steps": [{"pipeline_step": "update_existing_attachments"}]}
+    )
+    def test_disabled_step_is_counted_once(self) -> None:
+        """
+        Deciding whether the event link probe may run looks at the killswitch before the
+        pipeline does. That look must not count as a second match.
+        """
+        event = self.create_event(data={}, project_id=self.project.id)
+
+        with patch("sentry.killswitches.metrics.incr") as mock_incr:
+            self.call_post_process_group(
+                is_new=True, is_regression=False, is_new_group_environment=False, event=event
+            )
+
+        assert self.count_step_killswitch_matches(mock_incr) == 1
+
+    @override_options(
+        {"post_process.disable-pipeline-steps": [{"pipeline_step": "link_event_to_user_report"}]}
+    )
+    def test_disabled_step_is_not_counted_when_the_pipeline_halts_before_it(self) -> None:
+        def halt(job: PostProcessJob) -> None:
+            job["halt_post_process"] = True
+
+        event = self.create_event(data={}, project_id=self.project.id)
+
+        with (
+            patch(
+                "sentry.tasks.post_process.GROUP_CATEGORY_POST_PROCESS_PIPELINE",
+                {
+                    GroupCategory.ERROR: [
+                        halt,
+                        update_existing_attachments,
+                        link_event_to_user_report,
+                    ]
+                },
+            ),
+            patch("sentry.killswitches.metrics.incr") as mock_incr,
+        ):
+            self.call_post_process_group(
+                is_new=True, is_regression=False, is_new_group_environment=False, event=event
+            )
+
+        assert self.count_step_killswitch_matches(mock_incr) == 0
+
 
 class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
     @patch("sentry.tasks.seer.autofix.generate_summary_and_run_automation.delay")
@@ -3557,6 +3811,7 @@ class PostProcessGroupErrorTest(
     ProcessingErrorsEAPTestMixin,
     ReplayLinkageTestMixin,
     DetectNewEscalationTestMixin,
+    EventLinkProbeTestMixin,
     UserReportEventLinkTestMixin,
     UpdateExistingAttachmentsTestMixin,
     DetectBaseUrlsForUptimeTestMixin,
@@ -4149,6 +4404,20 @@ class PostProcessGroupFeedbackTest(
     SnoozeTestMixin,
     UpdateExistingAttachmentsTestMixin,
 ):
+    @override_options(CONSOLIDATED_LINK_PROBE)
+    def test_does_not_read_user_reports_with_link_probe(self) -> None:
+        """The feedback pipeline has no user report step, so nothing may read that table."""
+        event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+
+        with CaptureQueriesContext(connections[router.db_for_write(EventAttachment)]) as queries:
+            self.call_post_process_group(
+                is_new=True, is_regression=False, is_new_group_environment=True, event=event
+            )
+
+        statements = link_probe_table_statements(queries)
+        assert statements
+        assert not [statement for statement in statements if "sentry_userreport" in statement]
+
     def test_promotes_pending_attachments(self) -> None:
         self.assert_promotes_pending_attachments(
             is_spam=False, feedback_type=FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE

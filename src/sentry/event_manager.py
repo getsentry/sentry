@@ -2644,9 +2644,9 @@ def save_pending_attachments(
     ``source`` tags the metric so the two can be told apart.
     """
 
-    # This runs for every error event of a flagged project, and almost none of them have
-    # a pending attachment. Probe outside a transaction so the common case stays a single
-    # unlocked SELECT rather than a BEGIN/COMMIT round trip.
+    # This runs for nearly every event that is saved, and almost none of them have a pending
+    # attachment. Probe outside a transaction so the common case stays a single unlocked
+    # SELECT rather than a BEGIN/COMMIT round trip.
     if not PendingEventAttachment.objects.filter(project_id=project.id, event_id=event_id).exists():
         return
 
