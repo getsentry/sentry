@@ -10,7 +10,13 @@ from sentry.explore.models import (
     TraceItemAttributeTypes,
     TraceItemTypes,
 )
-from sentry.testutils.cases import APITestCase, BaseSpansTestCase, SnubaTestCase
+from sentry.testutils.cases import (
+    APITestCase,
+    BaseSpansTestCase,
+    OurLogTestCase,
+    SnubaTestCase,
+    TraceMetricsTestCase,
+)
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils import snuba_rpc
 
@@ -18,7 +24,7 @@ TRUNCATED_ATTRIBUTE_NAME_LIMIT = 5
 
 
 class OrganizationTraceItemAttributeContextEndpointTest(
-    APITestCase, BaseSpansTestCase, SnubaTestCase
+    APITestCase, BaseSpansTestCase, SnubaTestCase, OurLogTestCase, TraceMetricsTestCase
 ):
     viewname = "sentry-api-0-organization-trace-item-attribute-context"
 
@@ -40,6 +46,9 @@ class OrganizationTraceItemAttributeContextEndpointTest(
             timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
             tags=tags,
         )
+
+    def store_log_attribute(self, **attributes: str) -> None:
+        self.store_eap_items([self.create_ourlog(attributes=attributes)])
 
     def do_request(
         self,
@@ -185,6 +194,52 @@ class OrganizationTraceItemAttributeContextEndpointTest(
 
         assert response.status_code == 400, response.data
         assert "brief" in response.data
+
+    def test_clears_brief_when_blank(self) -> None:
+        self.store_attribute(my_custom_attr="value")
+        data = {"dataset": "spans", "attributeType": "string"}
+        self.do_request(
+            "my_custom_attr",
+            {
+                **data,
+                "brief": "My custom attribute",
+                "additionalContext": "Longer notes about the attribute.",
+                "examples": ["value"],
+            },
+        )
+
+        response = self.do_request("my_custom_attr", {**data, "brief": ""})
+
+        assert response.status_code == 200, response.data
+        assert response.data["brief"] is None
+        assert response.data["additionalContext"] == "Longer notes about the attribute."
+        assert response.data["examples"] == ["value"]
+        context = TraceItemAttributeContext.objects.get(attribute_key="my_custom_attr")
+        assert context.brief is None
+
+    def test_clears_brief_when_null(self) -> None:
+        self.store_attribute(my_custom_attr="value")
+        data = {"dataset": "spans", "attributeType": "string"}
+        self.do_request("my_custom_attr", {**data, "brief": "My custom attribute"})
+
+        response = self.do_request("my_custom_attr", {**data, "brief": None})
+
+        assert response.status_code == 200, response.data
+        assert response.data["brief"] is None
+        context = TraceItemAttributeContext.objects.get(attribute_key="my_custom_attr")
+        assert context.brief is None
+
+    def test_clears_additional_context_when_blank(self) -> None:
+        self.store_attribute(my_custom_attr="value")
+        data = {"dataset": "spans", "attributeType": "string", "brief": "My custom attribute"}
+        self.do_request("my_custom_attr", {**data, "additionalContext": "Longer notes."})
+
+        response = self.do_request("my_custom_attr", {**data, "additionalContext": ""})
+
+        assert response.status_code == 200, response.data
+        assert response.data["additionalContext"] is None
+        context = TraceItemAttributeContext.objects.get(attribute_key="my_custom_attr")
+        assert context.additional_context is None
 
     def test_org_wide_context(self) -> None:
         self.store_attribute(my_custom_attr="value")
@@ -380,7 +435,6 @@ class OrganizationTraceItemAttributeContextEndpointTest(
         assert response.status_code == 404
 
     def test_invalid_payload(self) -> None:
-        # `dataset` is required in the body.
         response = self.do_request(
             "my_custom_attr",
             {
@@ -406,6 +460,142 @@ class OrganizationTraceItemAttributeContextEndpointTest(
 
         assert response.status_code == 201, response.data
         assert response.data["attributeKey"] == "checkout/payment/step"
+
+    def test_saves_context_for_several_datasets(self) -> None:
+        self.store_attribute(my_custom_attr="value")
+        self.store_log_attribute(my_custom_attr="value")
+
+        response = self.do_request(
+            "my_custom_attr",
+            {
+                "datasets": ["spans", "logs"],
+                "attributeType": "string",
+                "brief": "My custom attribute",
+            },
+        )
+
+        assert response.status_code == 201, response.data
+        assert [context["dataset"] for context in response.data["contexts"]] == [
+            "spans",
+            "logs",
+        ]
+        assert [context["brief"] for context in response.data["contexts"]] == [
+            "My custom attribute",
+            "My custom attribute",
+        ]
+        assert TraceItemAttributeContext.objects.filter(attribute_key="my_custom_attr").count() == 2
+
+    def test_saves_context_for_spans_and_trace_metrics(self) -> None:
+        self.store_attribute(my_custom_attr="value")
+        self.store_eap_items(
+            [
+                self.create_trace_metric(
+                    "my.metric", 1.0, "counter", attributes={"my_custom_attr": "value"}
+                )
+            ]
+        )
+
+        response = self.do_request(
+            "my_custom_attr",
+            {
+                "datasets": ["spans", "tracemetrics"],
+                "attributeType": "string",
+                "brief": "My custom attribute",
+            },
+        )
+
+        assert response.status_code == 201, response.data
+        assert [context["dataset"] for context in response.data["contexts"]] == [
+            "spans",
+            "tracemetrics",
+        ]
+
+    def test_returns_200_when_every_dataset_already_has_context(self) -> None:
+        self.store_attribute(my_custom_attr="value")
+        self.store_log_attribute(my_custom_attr="value")
+        data = {"datasets": ["spans", "logs"], "attributeType": "string"}
+        self.do_request("my_custom_attr", {**data, "brief": "First"})
+
+        response = self.do_request("my_custom_attr", {**data, "brief": "Second"})
+
+        assert response.status_code == 200, response.data
+        assert [context["brief"] for context in response.data["contexts"]] == [
+            "Second",
+            "Second",
+        ]
+
+    def test_returns_201_when_any_dataset_gets_new_context(self) -> None:
+        self.store_attribute(my_custom_attr="value")
+        self.store_log_attribute(my_custom_attr="value")
+        self.do_request(
+            "my_custom_attr",
+            {"dataset": "spans", "attributeType": "string", "brief": "First"},
+        )
+
+        response = self.do_request(
+            "my_custom_attr",
+            {"datasets": ["spans", "logs"], "attributeType": "string", "brief": "Second"},
+        )
+
+        assert response.status_code == 201, response.data
+        assert [context["brief"] for context in response.data["contexts"]] == [
+            "Second",
+            "Second",
+        ]
+
+    def test_saves_no_context_when_any_dataset_is_rejected(self) -> None:
+        self.store_attribute(my_custom_attr="value")
+
+        response = self.do_request(
+            "my_custom_attr",
+            {
+                "datasets": ["spans", "logs"],
+                "attributeType": "string",
+                "brief": "My custom attribute",
+            },
+        )
+
+        assert response.status_code == 400, response.data
+        assert response.data["detail"] == "Attribute `my_custom_attr` was not found in logs."
+        assert not TraceItemAttributeContext.objects.filter(attribute_key="my_custom_attr").exists()
+
+    def test_saves_repeated_datasets_once(self) -> None:
+        self.store_attribute(my_custom_attr="value")
+
+        response = self.do_request(
+            "my_custom_attr",
+            {
+                "datasets": ["spans", "spans"],
+                "attributeType": "string",
+                "brief": "My custom attribute",
+            },
+        )
+
+        assert response.status_code == 201, response.data
+        assert len(response.data["contexts"]) == 1
+
+    def test_rejects_both_dataset_and_datasets(self) -> None:
+        response = self.do_request(
+            "my_custom_attr",
+            {
+                "dataset": "spans",
+                "datasets": ["spans"],
+                "attributeType": "string",
+                "brief": "My custom attribute",
+            },
+        )
+
+        assert response.status_code == 400, response.data
+        assert "dataset" in response.data
+
+    def test_rejects_empty_datasets(self) -> None:
+        response = self.do_request(
+            "my_custom_attr",
+            {"datasets": [], "attributeType": "string", "brief": "My custom attribute"},
+        )
+
+        assert response.status_code == 400, response.data
+        assert "datasets" in response.data
 
     def test_rejects_array_attribute_type(self) -> None:
         response = self.do_request(

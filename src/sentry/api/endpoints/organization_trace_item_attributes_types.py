@@ -45,7 +45,7 @@ class TraceItemAttributeContext(TypedDict):
         Annotated[bool, ApiDescription("Whether this context was written by a user")]
     ]
     # A short, human-readable description of the attribute. Present for a known
-    # convention, and for user-authored context (where it is required).
+    # convention, and for user-authored context that has one.
     brief: NotRequired[Annotated[str, ApiDescription("Short description of the attribute")]]
     # Whether the convention has been deprecated. Present for a known
     # convention; not modeled for user-authored context.

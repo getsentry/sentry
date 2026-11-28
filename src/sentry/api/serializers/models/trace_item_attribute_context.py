@@ -27,6 +27,10 @@ class TraceItemAttributeContextResponse(TypedDict):
     dateUpdated: datetime
 
 
+class TraceItemAttributeContextListResponse(TypedDict):
+    contexts: list[TraceItemAttributeContextResponse]
+
+
 @register(TraceItemAttributeContext)
 class TraceItemAttributeContextSerializer(Serializer):
     def serialize(

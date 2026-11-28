@@ -511,15 +511,17 @@ def build_custom_attribute_context(
     """
     Build context for a custom (user-authored) attribute from its stored row.
     Marked ``isCustom`` so clients can tell it from convention and Sentry-defined
-    context. Deprecation isn't modeled for custom attributes.
+    context, unless the row is empty. Deprecation isn't modeled for custom attributes.
     """
-    context: TraceItemAttributeContext = {"isCustom": True}
-    if row.brief is not None:
+    context: TraceItemAttributeContext = {}
+    if row.brief:
         context["brief"] = row.brief
     if row.additional_context:
         context["details"] = [row.additional_context]
     if row.examples:
         context["examples"] = list(row.examples)
+    if context:
+        context["isCustom"] = True
     return context
 
 
