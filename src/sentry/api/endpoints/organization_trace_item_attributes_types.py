@@ -44,6 +44,15 @@ class TraceItemAttributeContext(TypedDict):
     isCustom: NotRequired[
         Annotated[bool, ApiDescription("Whether this context was written by a user")]
     ]
+    isProjectScoped: NotRequired[
+        Annotated[
+            bool,
+            ApiDescription(
+                "Whether this user-written context was saved for a single project, overriding "
+                "any organization-wide context there. Present (and true) only for such context"
+            ),
+        ]
+    ]
     # A short, human-readable description of the attribute. Present for a known
     # convention, and for user-authored context that has one.
     brief: NotRequired[Annotated[str, ApiDescription("Short description of the attribute")]]

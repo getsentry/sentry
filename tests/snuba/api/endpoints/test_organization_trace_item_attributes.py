@@ -1165,7 +1165,11 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         assert response.status_code == 200, response.data
 
         attributes = {item["key"]: item for item in response.data}
-        assert attributes["foo"]["context"]["brief"] == "Project brief"
+        assert attributes["foo"]["context"] == {
+            "isCustom": True,
+            "isProjectScoped": True,
+            "brief": "Project brief",
+        }
 
     def test_expand_context_custom_attribute_without_brief(self) -> None:
         self._store_basic_segment()

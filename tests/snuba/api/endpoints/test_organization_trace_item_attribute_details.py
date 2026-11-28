@@ -1,6 +1,6 @@
 from collections.abc import Sequence
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, Literal
 from unittest import mock
 from uuid import uuid4
 
@@ -20,6 +20,12 @@ from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 
 from sentry import options
+from sentry.api.endpoints.organization_trace_item_attribute_details import is_editable
+from sentry.api.endpoints.organization_trace_item_attributes_merged import (
+    MergedTraceItemAttribute,
+)
+from sentry.search.eap.types import ColumnType
+from sentry.search.events.types import SnubaParams
 from sentry.snuba.referrer import Referrer
 from sentry.testutils.cases import (
     APITestCase,
@@ -50,6 +56,59 @@ def names_response(
             attribute.last_seen.CopyFrom(timestamp)
         attributes.append(attribute)
     return TraceItemAttributeNamesResponse(attributes=attributes)
+
+
+def merged_attribute(
+    name: str,
+    attribute_type: ColumnType = "string",
+    source_type: Literal["sentry", "user"] = "user",
+    datasets: Sequence[str] = ("spans",),
+) -> MergedTraceItemAttribute:
+    return {
+        "name": name,
+        "attributeType": attribute_type,
+        "attributeSource": {"source_type": source_type},
+        "datasets": list(datasets),
+    }
+
+
+class TestIsEditable:
+    def test_returns_true_when_the_attribute_is_custom(self) -> None:
+        assert is_editable(merged_attribute("cart.size", "number"), SnubaParams()) is True
+
+    def test_returns_true_when_the_name_contains_slashes(self) -> None:
+        assert is_editable(merged_attribute("checkout/step"), SnubaParams()) is True
+
+    def test_returns_false_when_the_attribute_is_from_sentry(self) -> None:
+        attribute = merged_attribute("cart.size", "number", source_type="sentry")
+
+        assert is_editable(attribute, SnubaParams()) is False
+
+    def test_returns_false_when_the_attribute_is_an_array(self) -> None:
+        assert is_editable(merged_attribute("csv_headers", "array"), SnubaParams()) is False
+
+    def test_returns_false_when_the_name_is_a_sentry_alias(self) -> None:
+        assert is_editable(merged_attribute("organization.id"), SnubaParams()) is False
+
+    def test_returns_false_when_the_name_is_a_sentry_column_in_one_of_its_datasets(
+        self,
+    ) -> None:
+        attribute = merged_attribute("is_starred_transaction", datasets=["logs", "spans"])
+
+        assert is_editable(attribute, SnubaParams()) is False
+
+    def test_returns_false_when_saving_would_store_the_context_under_another_name(
+        self,
+    ) -> None:
+        attribute = merged_attribute("message.parameter.0", datasets=["logs"])
+
+        assert is_editable(attribute, SnubaParams()) is False
+
+    def test_returns_false_when_the_name_is_too_long_to_resolve(self) -> None:
+        assert is_editable(merged_attribute("a" * 300), SnubaParams()) is False
+
+    def test_returns_false_when_the_name_is_a_sentry_convention(self) -> None:
+        assert is_editable(merged_attribute("http.route"), SnubaParams()) is False
 
 
 class OrganizationTraceItemAttributeDetailsEndpointTest(
@@ -142,7 +201,11 @@ class OrganizationTraceItemAttributeDetailsEndpointTest(
                 "attributeName": "shared.attribute",
                 "attributeType": "string",
                 "statsPeriod": "14d",
-            }
+            },
+            features={
+                **self.feature_flags,
+                "organizations:data-browsing-attribute-context": True,
+            },
         )
 
         assert response.status_code == 200, response.content
@@ -161,7 +224,18 @@ class OrganizationTraceItemAttributeDetailsEndpointTest(
                 "logs": {"lastSeen": log_timestamp.isoformat(), "cardinality": 1},
             },
             "lastSeen": log_timestamp.isoformat(),
+            "isEditable": True,
         }
+
+    def test_returns_not_editable_when_attribute_context_is_disabled(self) -> None:
+        self._store_span({"shared.attribute": "span"})
+
+        response = self.do_request(
+            query={"attributeName": "shared.attribute", "attributeType": "string"}
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["isEditable"] is False
 
     def test_returns_404_when_only_longer_names_contain_the_attribute_name(self) -> None:
         self._store_span({"cart.id": "a"})
