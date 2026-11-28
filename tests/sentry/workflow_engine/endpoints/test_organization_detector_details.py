@@ -51,6 +51,7 @@ from sentry.workflow_engine.types import (
     DetectorPriorityLevel,
     FeatureGate,
     WorkflowEngineAPIOperation,
+    WorkflowSettings,
     WorkflowType,
 )
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
@@ -58,6 +59,7 @@ from tests.sentry.workflow_engine.endpoints.test_helpers import (
     GATE_FEATURE,
     assert_querysets_unchanged,
     override_detector_api_availability,
+    override_workflow_api_availability,
 )
 from tests.sentry.workflow_engine.test_base import ProjectAccessTestMixin
 
@@ -1038,6 +1040,58 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         )
 
         assert connected_workflow_ids == {alert_workflow.id, hidden_workflow.id}
+
+    def test_update_workflows_can_attach_workflow_type_open_for_list(self) -> None:
+        inbox_workflow = self.create_workflow(
+            organization_id=self.organization.id, type=WorkflowType.INBOX
+        )
+
+        with (
+            override_workflow_api_availability(
+                WorkflowType.INBOX, WorkflowSettings.DEFAULT_API_AVAILABILITY
+            ),
+            outbox_runner(),
+        ):
+            response = self.get_success_response(
+                self.organization.slug,
+                self.detector.id,
+                **{**self.valid_data, "workflowIds": [inbox_workflow.id]},
+                status_code=200,
+            )
+
+        assert response.data["workflowIds"] == [str(inbox_workflow.id)]
+
+    def test_update_workflows_removes_omitted_connection_to_workflow_type_open_for_list(
+        self,
+    ) -> None:
+        alert_workflow = self.create_workflow(organization_id=self.organization.id)
+
+        inbox_workflow = self.create_workflow(
+            organization_id=self.organization.id, type=WorkflowType.INBOX
+        )
+
+        self.create_detector_workflow(detector=self.detector, workflow=inbox_workflow)
+
+        with (
+            override_workflow_api_availability(
+                WorkflowType.INBOX, WorkflowSettings.DEFAULT_API_AVAILABILITY
+            ),
+            outbox_runner(),
+        ):
+            self.get_success_response(
+                self.organization.slug,
+                self.detector.id,
+                workflowIds=[alert_workflow.id],
+                status_code=200,
+            )
+
+        connected_workflow_ids = set(
+            DetectorWorkflow.objects.filter(detector=self.detector).values_list(
+                "workflow_id", flat=True
+            )
+        )
+
+        assert connected_workflow_ids == {alert_workflow.id}
 
     def test_update_workflows_invalid_workflow_ids(self) -> None:
         """Test validation failure with non-existent workflow IDs"""

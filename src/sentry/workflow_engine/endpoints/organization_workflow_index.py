@@ -1,6 +1,6 @@
 from datetime import datetime
 from functools import partial
-from typing import Any
+from typing import Any, Collection, Sequence
 
 from django.db import router, transaction
 from django.db.models import (
@@ -66,6 +66,7 @@ from sentry.workflow_engine.endpoints.serializers.workflow_serializer import (
 from sentry.workflow_engine.endpoints.utils.filters import apply_filter
 from sentry.workflow_engine.endpoints.utils.permissions import enforce_workflow_creation_permissions
 from sentry.workflow_engine.endpoints.utils.sortby import SortByParam
+from sentry.workflow_engine.endpoints.utils.workflow_filters import get_excluded_workflow_types
 from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowValidator
 from sentry.workflow_engine.endpoints.validators.detector_workflow_mutation import (
     DetectorWorkflowMutationValidator,
@@ -77,10 +78,9 @@ from sentry.workflow_engine.endpoints.validators.utils import (
     should_include_all_projects_detector_workflows_or_raise,
 )
 from sentry.workflow_engine.models import DetectorWorkflow, Workflow
-from sentry.workflow_engine.models.workflow import VISIBLE_WORKFLOW_TYPES
 from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHistory
 from sentry.workflow_engine.processors.detector import get_all_projects_detector
-from sentry.workflow_engine.types import DetectorId, WorkflowType
+from sentry.workflow_engine.types import DetectorId, WorkflowEngineAPIOperation, WorkflowType
 
 # Maps API field name to database field name, with synthetic aggregate fields keeping
 # to our field naming scheme for consistency.
@@ -94,9 +94,6 @@ SORT_COL_MAP = {
     "lastTriggered": "last_triggered",
 }
 
-VISIBLE_WORKFLOW_TYPE_VALUES = {workflow_type.value for workflow_type in VISIBLE_WORKFLOW_TYPES}
-
-
 workflow_search_config = SearchConfig.create_from(
     default_config,
     text_operator_keys={"name", "action"},
@@ -107,17 +104,18 @@ workflow_search_config = SearchConfig.create_from(
 parse_workflow_query = partial(base_parse_search_query, config=workflow_search_config)
 
 
-def parse_visible_workflow_types(raw_types: list[str]) -> frozenset[WorkflowType]:
+def parse_requested_workflow_types(
+    raw_types: Sequence[str], excluded_types: Collection[str]
+) -> frozenset[WorkflowType]:
     """
     Handle the requested `type` value
-    - If not specified, all visible types are returned
-    - Reject any value that is not a visible type
+    - If not specified, every type available for the operation is returned
+    - Reject any value that is not a workflow type available for the operation
     """
-    if not raw_types:
-        return VISIBLE_WORKFLOW_TYPES
-
     invalid_types = [
-        raw_type for raw_type in raw_types if raw_type not in VISIBLE_WORKFLOW_TYPE_VALUES
+        raw_type
+        for raw_type in raw_types
+        if raw_type not in WorkflowType or raw_type in excluded_types
     ]
 
     if invalid_types:
@@ -144,13 +142,17 @@ class OrganizationWorkflowEndpoint(OrganizationEndpoint):
         self, request: Request, workflow_id: str, *args: Any, **kwargs: Any
     ) -> tuple[tuple[Any, ...], dict[str, Organization | Workflow]]:
         args, kwargs = super().convert_args(request, *args, **kwargs)
+
+        organization = kwargs["organization"]
+
         validated_workflow_id = to_valid_int_id("workflow_id", workflow_id, raise_404=True)
+
         try:
-            kwargs["workflow"] = Workflow.objects.get(
-                organization=kwargs["organization"],
-                id=validated_workflow_id,
-                type__in=VISIBLE_WORKFLOW_TYPES,
-            )
+            kwargs["workflow"] = Workflow.objects.exclude(
+                type__in=get_excluded_workflow_types(
+                    request.method, organization, actor=request.user
+                )
+            ).get(organization=organization, id=validated_workflow_id)
         except Workflow.DoesNotExist:
             raise ResourceDoesNotExist
 
@@ -177,18 +179,30 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
     owner = ApiOwner.ISSUES
     permission_classes = (OrganizationWorkflowPermission,)
 
-    def filter_workflows(self, request: Request, organization: Organization) -> QuerySet[Workflow]:
+    def filter_workflows(
+        self,
+        request: Request,
+        organization: Organization,
+        operation: WorkflowEngineAPIOperation,
+    ) -> QuerySet[Workflow]:
         """
         Helper function to filter workflows based on request parameters.
         Project filtering is ALWAYS applied to ensure users can only
         access workflows connected to projects they have access to.
-        Only workflow types in VISIBLE_WORKFLOW_TYPES are ever returned.
+        Workflow types that do not allow the operation are never returned.
         """
-        visible_types = parse_visible_workflow_types(request.GET.getlist("type"))
+        excluded_types = get_excluded_workflow_types(operation, organization, actor=request.user)
+
+        requested_types = parse_requested_workflow_types(
+            request.GET.getlist("type"), excluded_types
+        )
 
         queryset: QuerySet[Workflow] = Workflow.objects.filter(
-            organization_id=organization.id, type__in=visible_types
-        )
+            organization_id=organization.id
+        ).exclude(type__in=excluded_types)
+
+        if requested_types:
+            queryset = queryset.filter(type__in=requested_types)
 
         if raw_idlist := request.GET.getlist("id"):
             ids = to_valid_int_id_list("id", raw_idlist)
@@ -275,10 +289,14 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         return queryset
 
     def _get_workflows_for_mutation(
-        self, request: Request, organization: Organization
+        self,
+        request: Request,
+        organization: Organization,
+        operation: WorkflowEngineAPIOperation,
     ) -> tuple[QuerySet[Workflow], list[Workflow]]:
         """Return the complete set of workflows that the request is allowed to mutate."""
-        queryset = self.filter_workflows(request, organization)
+        queryset = self.filter_workflows(request, organization, operation)
+
         workflows = list(queryset)
 
         if raw_idlist := request.GET.getlist("id"):
@@ -338,7 +356,7 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         """
         sort_by = SortByParam.parse(request.GET.get("sortBy", "id"), SORT_COL_MAP)
 
-        queryset = self.filter_workflows(request, organization)
+        queryset = self.filter_workflows(request, organization, WorkflowEngineAPIOperation.LIST)
 
         # When the `priorityDetector` query param is provided, workflows connected to this detector are sorted first
         priority_detector_id: DetectorId | None = None
@@ -481,7 +499,9 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         validator.is_valid(raise_exception=True)
         enabled = validator.validated_data["enabled"]
 
-        queryset, workflows = self._get_workflows_for_mutation(request, organization)
+        queryset, workflows = self._get_workflows_for_mutation(
+            request, organization, WorkflowEngineAPIOperation.PUT
+        )
 
         if not workflows:
             return Response(
@@ -540,7 +560,9 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        _, workflows = self._get_workflows_for_mutation(request, organization)
+        _, workflows = self._get_workflows_for_mutation(
+            request, organization, WorkflowEngineAPIOperation.DELETE
+        )
 
         if not workflows:
             return Response(

@@ -14,6 +14,7 @@ from rest_framework.request import Request
 from sentry import audit_log
 from sentry.api.permissions import enforce_scope
 from sentry.auth.access import Access
+from sentry.auth.principal import RequestPrincipal
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.types.actor import Actor
@@ -22,10 +23,15 @@ from sentry.users.services.user import RpcUser
 from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.endpoints.utils.detector_filters import get_visible_detector_types
+from sentry.workflow_engine.endpoints.utils.workflow_filters import get_excluded_workflow_types
 from sentry.workflow_engine.models import Detector, DetectorWorkflow, Workflow
-from sentry.workflow_engine.models.workflow import VISIBLE_WORKFLOW_TYPES
 from sentry.workflow_engine.registry import detector_settings_registry
-from sentry.workflow_engine.types import DetectorId, DetectorType, WorkflowId
+from sentry.workflow_engine.types import (
+    DetectorId,
+    DetectorType,
+    WorkflowEngineAPIOperation,
+    WorkflowId,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -184,11 +190,13 @@ def validate_detectors_exist_and_have_permissions(
 
 
 def validate_workflows_exist(
-    workflow_ids: list[int], organization: Organization
+    workflow_ids: list[int], organization: Organization, *, actor: RequestPrincipal
 ) -> QuerySet[Workflow]:
-    # Users should not be able to reference the ids of hidden workflows
-    workflows = Workflow.objects.filter(
-        organization=organization, id__in=workflow_ids, type__in=VISIBLE_WORKFLOW_TYPES
+    # Users should not be able to reference the ids of workflows they cannot list
+    workflows = Workflow.objects.filter(organization=organization, id__in=workflow_ids).exclude(
+        type__in=get_excluded_workflow_types(
+            WorkflowEngineAPIOperation.LIST, organization, actor=actor
+        )
     )
     found_workflow_ids = set(workflows.values_list("id", flat=True))
     missing_workflow_ids = set(workflow_ids) - found_workflow_ids
@@ -301,7 +309,8 @@ def validate_workflow_connections(
     request: Request,
     detector_id: DetectorId | None = None,
 ) -> None:
-    workflows = validate_workflows_exist(workflow_ids, organization)
+    workflows = validate_workflows_exist(workflow_ids, organization, actor=request.user)
+
     if detector_id is not None:
         # Retaining or removing an existing connection only requires permission
         # on the detector. Check workflow permissions for new connections.
@@ -391,15 +400,19 @@ def connect_detectors_to_workflows(
             return detector_workflows_to_add
 
         if update:
-            # Since users do not receive hidden workflow ids through the API,
+            # Since users do not receive the ids of workflows they cannot list,
             # these connections need to be left untouched
             existing_detector_workflows = list(
                 DetectorWorkflow.objects.filter(
                     detector_id=detector_id,
                     detector__in=Detector.objects.by_organization(organization.id),
-                    workflow__type__in=VISIBLE_WORKFLOW_TYPES,
+                ).exclude(
+                    workflow__type__in=get_excluded_workflow_types(
+                        WorkflowEngineAPIOperation.LIST, organization, actor=request.user
+                    )
                 )
             )
+
             new_workflow_ids = set(workflow_ids) - {
                 dw.workflow_id for dw in existing_detector_workflows
             }

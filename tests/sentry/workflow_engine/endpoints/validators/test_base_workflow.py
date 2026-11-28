@@ -34,7 +34,8 @@ from sentry.workflow_engine.models import (
     Workflow,
     WorkflowDataConditionGroup,
 )
-from sentry.workflow_engine.types import WorkflowType
+from sentry.workflow_engine.types import WorkflowSettings, WorkflowType
+from tests.sentry.workflow_engine.endpoints.test_helpers import override_workflow_api_availability
 from tests.sentry.workflow_engine.test_base import MockActionHandler, MockActionValidatorTranslator
 
 
@@ -757,6 +758,23 @@ class TestWorkflowValidatorCreate(TestCase):
         self.create_workflow(organization=self.organization, type=WorkflowType.INBOX)
 
         with self.options({"workflow_engine.max_workflows_per_org": 1}):
+            validator = WorkflowValidator(data=self.valid_data, context=self.context)
+
+            assert validator.is_valid() is True
+
+            workflow = validator.create(validator.validated_data)
+
+        assert workflow.id is not None
+
+    def test_create_workflow_limit_only_counts_alerts(self) -> None:
+        self.create_workflow(organization=self.organization, type=WorkflowType.INBOX)
+
+        with (
+            override_workflow_api_availability(
+                WorkflowType.INBOX, WorkflowSettings.DEFAULT_API_AVAILABILITY
+            ),
+            self.options({"workflow_engine.max_workflows_per_org": 1}),
+        ):
             validator = WorkflowValidator(data=self.valid_data, context=self.context)
 
             assert validator.is_valid() is True

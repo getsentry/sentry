@@ -33,8 +33,18 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import condition_handler_registry
-from sentry.workflow_engine.types import WorkflowType
+from sentry.workflow_engine.types import (
+    FeatureGate,
+    WorkflowEngineAPIOperation,
+    WorkflowSettings,
+    WorkflowType,
+)
 from sentry.workflow_engine.typings.notification_action import ActionTarget, ActionType
+from tests.sentry.workflow_engine.endpoints.test_helpers import (
+    GATE_FEATURE,
+    GET_AND_PUT_ONLY_AVAILABILITY,
+    override_workflow_api_availability,
+)
 from tests.sentry.workflow_engine.test_base import (
     BaseWorkflowTest,
     MockActionValidatorTranslator,
@@ -723,6 +733,62 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
         )
 
         assert "Invalid workflow type" in str(response.data)
+
+    def test_readable_type_closed_for_list_is_not_returned(self) -> None:
+        inbox_workflow = self.create_workflow(
+            organization_id=self.organization.id, name="Inbox Workflow", type=WorkflowType.INBOX
+        )
+
+        with override_workflow_api_availability(WorkflowType.INBOX, GET_AND_PUT_ONLY_AVAILABILITY):
+            response = self.get_success_response(
+                self.organization.slug, qs_params={"project": "-1"}
+            )
+
+        assert str(inbox_workflow.id) not in {w["id"] for w in response.data}
+
+    def test_type_open_for_list_is_returned(self) -> None:
+        inbox_workflow = self.create_workflow(
+            organization_id=self.organization.id, name="Inbox Workflow", type=WorkflowType.INBOX
+        )
+
+        with override_workflow_api_availability(
+            WorkflowType.INBOX, WorkflowSettings.DEFAULT_API_AVAILABILITY
+        ):
+            response = self.get_success_response(
+                self.organization.slug, qs_params={"project": "-1", "type": "inbox"}
+            )
+
+        assert [w["id"] for w in response.data] == [str(inbox_workflow.id)]
+
+    def test_list_feature_gate_off_rejects_filtering_by_the_type(self) -> None:
+        with (
+            self.feature({GATE_FEATURE: False}),
+            override_workflow_api_availability(
+                WorkflowType.ALERT, {WorkflowEngineAPIOperation.LIST: FeatureGate(GATE_FEATURE)}
+            ),
+        ):
+            response = self.get_error_response(
+                self.organization.slug, qs_params={"type": "alert"}, status_code=400
+            )
+
+        assert "Invalid workflow type" in str(response.data)
+
+    def test_list_feature_gate_on_returns_the_type(self) -> None:
+        with (
+            self.feature({GATE_FEATURE: True}),
+            override_workflow_api_availability(
+                WorkflowType.ALERT, {WorkflowEngineAPIOperation.LIST: FeatureGate(GATE_FEATURE)}
+            ),
+        ):
+            response = self.get_success_response(
+                self.organization.slug, qs_params={"project": "-1"}
+            )
+
+        assert {w["id"] for w in response.data} == {
+            str(self.workflow.id),
+            str(self.workflow_two.id),
+            str(self.workflow_three.id),
+        }
 
 
 @cell_silo_test
@@ -2339,6 +2405,25 @@ class OrganizationWorkflowPutTest(OrganizationWorkflowAPITestCase):
 
         assert hidden_workflow.enabled is False
 
+    def test_bulk_update_by_query_updates_type_open_for_put(self) -> None:
+        inbox_workflow = self.create_workflow(
+            organization_id=self.organization.id,
+            name="Inbox Workflow",
+            enabled=False,
+            type=WorkflowType.INBOX,
+        )
+
+        with override_workflow_api_availability(WorkflowType.INBOX, GET_AND_PUT_ONLY_AVAILABILITY):
+            self.get_success_response(
+                self.organization.slug,
+                qs_params={"project": "-1", "query": "Workflow"},
+                raw_data={"enabled": True},
+            )
+
+        inbox_workflow.refresh_from_db()
+
+        assert inbox_workflow.enabled is True
+
 
 @cell_silo_test
 class OrganizationWorkflowDeleteTest(OrganizationWorkflowAPITestCase):
@@ -2660,6 +2745,33 @@ class OrganizationWorkflowDeleteTest(OrganizationWorkflowAPITestCase):
         assert response.data == {"detail": "No workflows found."}
 
         self.assert_unaffected_workflows([hidden_workflow])
+
+    def test_bulk_delete_by_query_skips_type_closed_for_delete(self) -> None:
+        inbox_workflow = self.create_workflow(
+            organization_id=self.organization.id, name="Inbox Workflow", type=WorkflowType.INBOX
+        )
+
+        with (
+            override_workflow_api_availability(
+                WorkflowType.INBOX,
+                {
+                    **WorkflowSettings.DEFAULT_API_AVAILABILITY,
+                    WorkflowEngineAPIOperation.DELETE: False,
+                },
+            ),
+            outbox_runner(),
+        ):
+            self.get_success_response(
+                self.organization.slug,
+                qs_params={"project": "-1", "query": "Workflow"},
+                status_code=204,
+            )
+
+        self.assert_unaffected_workflows([inbox_workflow])
+
+        self.workflow.refresh_from_db()
+
+        assert self.workflow.status == ObjectStatus.PENDING_DELETION
 
 
 @cell_silo_test

@@ -38,8 +38,7 @@ from sentry.workflow_engine.models import (
     WorkflowDataConditionGroup,
 )
 from sentry.workflow_engine.models.data_condition import Condition, get_internal_condition_types
-from sentry.workflow_engine.models.workflow import VISIBLE_WORKFLOW_TYPES
-from sentry.workflow_engine.types import DataConditionHandler
+from sentry.workflow_engine.types import DataConditionHandler, WorkflowType
 
 InputData = dict[str, Any]
 ListInputData = list[InputData]
@@ -419,9 +418,8 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
         org = self.context["organization"]
         assert isinstance(org, Organization)
 
-        # hidden workflows do not count towards user limit
         workflow_count = Workflow.objects.filter(
-            organization_id=org.id, type__in=VISIBLE_WORKFLOW_TYPES
+            organization_id=org.id, type=WorkflowType.ALERT
         ).count()
 
         if features.has("organizations:more-workflows", org):
