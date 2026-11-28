@@ -5004,9 +5004,12 @@ class OrganizationDashboardVisitTest(OrganizationDashboardDetailsTestCase):
         assert dashboard.visits == 2
         assert dashboard.last_visited is not None
         assert dashboard.last_visited > last_visited
+        assert DashboardLastVisited.objects.filter(
+            dashboard=self.dashboard, user_id=self.user.id
+        ).exists()
 
     @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
-    @with_feature(["organizations:service-accounts", "organizations:dashboards-user-last-visited"])
+    @with_feature("organizations:service-accounts")
     def test_visit_dashboard_as_service_account(self) -> None:
         service_account = self.create_service_account(organization=self.organization)
         viewer_context = encode_viewer_context(

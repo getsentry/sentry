@@ -595,21 +595,13 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         if should_filter_by_prebuilt_ids:
             dashboards = dashboards.filter(prebuilt_id__in=prebuilt_ids)
 
-        # TODO: Only keep the last_visited per user logic once `dashboards-user-last-visited` is fully rolled out
-        use_user_last_visited = features.has(
-            "organizations:dashboards-user-last-visited", organization, actor=request.user
-        )
-
         sort_by = request.query_params.get("sort")
         if sort_by and sort_by.startswith("-"):
             sort_by, desc = sort_by[1:], True
         else:
             desc = False
 
-        if use_user_last_visited and sort_by in (
-            "recentlyViewed",
-            "myDashboardsAndRecentlyViewed",
-        ):
+        if sort_by in ("recentlyViewed", "myDashboardsAndRecentlyViewed"):
             dashboards = dashboards.annotate(
                 user_last_visited=Subquery(
                     DashboardLastVisited.objects.filter(
@@ -636,15 +628,11 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             ]
 
         elif sort_by == "recentlyViewed":
-            # TODO: Only keep the last_visited per user logic once `dashboards-user-last-visited` is fully rolled out
-            if use_user_last_visited:
-                order_by = [
-                    F("user_last_visited").asc(nulls_last=True)
-                    if desc
-                    else F("user_last_visited").desc(nulls_last=True)
-                ]
-            else:
-                order_by = ["last_visited" if desc else "-last_visited"]
+            order_by = [
+                F("user_last_visited").asc(nulls_last=True)
+                if desc
+                else F("user_last_visited").desc(nulls_last=True)
+            ]
 
         elif sort_by == "mydashboards":
             user_name_dict = {
@@ -680,14 +668,11 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             ]
 
         elif sort_by == "myDashboardsAndRecentlyViewed":
-            # TODO: Only keep the last_visited per user logic once `dashboards-user-last-visited` is fully rolled out
             order_by = [
                 Case(
                     When(is_owned_by_acting_user(request.user, "created_by_id"), then=-1), default=1
                 ),
-                F("user_last_visited").desc(nulls_last=True)
-                if use_user_last_visited
-                else "-last_visited",
+                F("user_last_visited").desc(nulls_last=True),
             ]
         elif "onlyFavorites" in filters and has_dashboards_starred:
             favorite_dashboards = DashboardFavoriteUser.objects.get_favorite_dashboards(
@@ -702,8 +687,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
 
         # Entries with null last visited need a deterministic tiebreaker,
         # hence adding id to serve this purpose.
-        if use_user_last_visited:
-            order_by.append("-id")
+        order_by.append("-id")
 
         pin_by = request.query_params.get("pin")
         if pin_by == "favorites":
@@ -725,12 +709,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         list_serializer = DashboardListSerializer()
 
         def handle_results(results: list[Dashboard]) -> list[DashboardListResponse]:
-            return serialize(
-                results,
-                request.user,
-                serializer=list_serializer,
-                context={"organization": organization},
-            )
+            return serialize(results, request.user, serializer=list_serializer)
 
         return self.paginate(
             request=request,

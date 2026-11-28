@@ -226,13 +226,22 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             assert values == expected
 
     def test_get_sortby_recently_viewed(self) -> None:
-        Dashboard.objects.create(
+        dashboard_a = Dashboard.objects.create(
             title="A",
             created_by_id=self.user.id,
             organization=self.organization,
             visits=3,
-            last_visited=before_now(minutes=5),
         )
+        for dashboard, minutes_ago in (
+            (self.dashboard, 5),
+            (self.dashboard_2, 1),
+            (dashboard_a, 10),
+        ):
+            DashboardLastVisited.objects.create(
+                user_id=self.user.id,
+                dashboard=dashboard,
+                last_visited=before_now(minutes=minutes_ago),
+            )
 
         for forward_sort in [True, False]:
             sorting = "recentlyViewed" if forward_sort else "-recentlyViewed"
@@ -269,42 +278,52 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         user_2 = self.create_user(username="user_2")
         self.create_member(organization=self.organization, user=user_2)
 
-        Dashboard.objects.create(
+        dashboard_3 = Dashboard.objects.create(
             title="Dashboard 3",
             created_by_id=user_1.id,
             organization=self.organization,
-            last_visited=before_now(minutes=5),
         )
         Dashboard.objects.create(
             title="Dashboard 4",
             created_by_id=user_2.id,
             organization=self.organization,
-            last_visited=before_now(minutes=0),
         )
-        Dashboard.objects.create(
+        dashboard_5 = Dashboard.objects.create(
             title="Dashboard 5",
             created_by_id=self.user.id,
             organization=self.organization,
-            last_visited=before_now(minutes=5),
         )
-        Dashboard.objects.create(
+        dashboard_6 = Dashboard.objects.create(
             title="Dashboard 6",
             created_by_id=self.user.id,
             organization=self.organization,
-            last_visited=before_now(minutes=0),
         )
+        # Only this user's own visits order the results, so the dashboards they
+        # never visited (3 and 4) sort last within their group.
+        for dashboard, minutes_ago in (
+            (dashboard_6, 0),
+            (self.dashboard_2, 1),
+            (self.dashboard, 2),
+            (dashboard_5, 5),
+            (dashboard_3, 0),
+        ):
+            DashboardLastVisited.objects.create(
+                user_id=self.user.id,
+                dashboard=dashboard,
+                last_visited=before_now(minutes=minutes_ago),
+            )
 
         response = self.client.get(self.url, data={"sort": "myDashboardsAndRecentlyViewed"})
         assert response.status_code == 200, response.content
 
-        values = [row["title"] for row in response.data if row["dateCreated"]]
+        values = [row["title"] for row in response.data]
         assert values == [
             "Dashboard 6",
             "Dashboard 2",
             "Dashboard 1",
             "Dashboard 5",
-            "Dashboard 4",
             "Dashboard 3",
+            "Dashboard 4",
         ]
 
     def test_get_sortby_mydashboards_with_owner_name(self) -> None:
@@ -989,40 +1008,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert response.data[0].get("environment") == ["alpha"]
         assert response.data[0].get("filters") == {"release": ["v1"]}
 
-    def test_get_last_visited_field_without_reordering_flag(self) -> None:
-        # Clean up existing dashboards setup for this test.
-        Dashboard.objects.all().delete()
-
-        one_hour_ago = before_now(hours=1)
-        Dashboard.objects.create(
-            title="Dashboard visited oldest",
-            organization=self.organization,
-            created_by_id=self.user.id,
-            last_visited=one_hour_ago,
-        )
-
-        now = before_now(minutes=0)
-        Dashboard.objects.create(
-            title="Dashboard visited most recently",
-            organization=self.organization,
-            created_by_id=self.user.id,
-            last_visited=now,
-        )
-
-        response = self.client.get(self.url, data={"sort": "recentlyViewed"})
-        assert response.status_code == 200, response.content
-        assert len(response.data) == 2
-
-        titles = [row["title"] for row in response.data]
-        assert titles == [
-            "Dashboard visited most recently",
-            "Dashboard visited oldest",
-        ]
-
-        visited_at = [row.get("lastVisited") for row in response.data]
-        assert visited_at == [now, one_hour_ago]
-
-    def test_recently_viewed_sort_is_per_user_with_flag(self) -> None:
+    def test_recently_viewed_sort_is_per_user(self) -> None:
         Dashboard.objects.all().delete()
 
         now = before_now(minutes=0)
@@ -1053,8 +1039,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             last_visited=now,
         )
 
-        with self.feature("organizations:dashboards-user-last-visited"):
-            response = self.client.get(self.url, data={"sort": "recentlyViewed"})
+        response = self.client.get(self.url, data={"sort": "recentlyViewed"})
 
         assert response.status_code == 200, response.content
         titles = [row["title"] for row in response.data]
@@ -1063,7 +1048,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         visited_at = [row.get("lastVisited") for row in response.data]
         assert visited_at == [now, one_hour_ago]
 
-    def test_recently_viewed_sort_unvisited_last_with_flag(self) -> None:
+    def test_recently_viewed_sort_unvisited_last(self) -> None:
         Dashboard.objects.all().delete()
 
         now = before_now(minutes=0)
@@ -1087,8 +1072,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             last_visited=now,
         )
 
-        with self.feature("organizations:dashboards-user-last-visited"):
-            response = self.client.get(self.url, data={"sort": "recentlyViewed"})
+        response = self.client.get(self.url, data={"sort": "recentlyViewed"})
 
         assert response.status_code == 200, response.content
         titles = [row["title"] for row in response.data]
@@ -1099,7 +1083,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert response.data[1]["title"] == never_visited.title
         assert response.data[1].get("lastVisited") is None
 
-    def test_recently_viewed_sort_unvisited_stable_order_with_flag(self) -> None:
+    def test_recently_viewed_sort_unvisited_stable_order(self) -> None:
         Dashboard.objects.all().delete()
 
         first = Dashboard.objects.create(
@@ -1118,8 +1102,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             created_by_id=self.user.id,
         )
 
-        with self.feature("organizations:dashboards-user-last-visited"):
-            response = self.client.get(self.url, data={"sort": "recentlyViewed"})
+        response = self.client.get(self.url, data={"sort": "recentlyViewed"})
 
         assert response.status_code == 200, response.content
         ids = [row["id"] for row in response.data]
