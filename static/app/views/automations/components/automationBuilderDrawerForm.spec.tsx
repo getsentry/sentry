@@ -145,7 +145,11 @@ describe('AutomationBuilderDrawerForm', () => {
         expect.anything(),
         expect.objectContaining({
           method: 'POST',
-          data: expect.objectContaining({name: 'My Test Alert', detectorIds: ['123']}),
+          data: expect.objectContaining({
+            name: 'My Test Alert',
+            detectorIds: ['123'],
+            type: 'alert',
+          }),
         })
       );
     });

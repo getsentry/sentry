@@ -876,6 +876,7 @@ describe('ScmCreateProject', () => {
                 ],
               },
             ],
+            type: 'alert',
           },
         })
       );
@@ -1067,6 +1068,7 @@ describe('ScmCreateProject', () => {
                 ],
               },
             ],
+            type: 'alert',
           },
         })
       );
