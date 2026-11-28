@@ -8,7 +8,7 @@ from typing import Any
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.http.request import HttpRequest
-from django.utils.crypto import constant_time_compare
+from django.utils.crypto import constant_time_compare, salted_hmac
 from django.utils.functional import cached_property
 
 from sentry import options
@@ -33,6 +33,18 @@ def get_system_token() -> str:
     return token
 
 
+def _derived_system_token() -> str:
+    return salted_hmac("sentry.auth.system", "system-token", algorithm="sha256").hexdigest()
+
+
+def _matches_system_token(token: str) -> bool:
+    # During a rolling deploy, SaaS pods may mint either the stored token or the
+    # derived one, so accept both.
+    if not settings.SENTRY_SELF_HOSTED and constant_time_compare(_derived_system_token(), token):
+        return True
+    return constant_time_compare(get_system_token(), token)
+
+
 class SystemToken:
     """
     API token authenticating the system user.
@@ -51,8 +63,7 @@ class SystemToken:
     @classmethod
     def from_request(cls, request: HttpRequest, token: str) -> SystemToken | None:
         """Returns a system token if this is a valid system request."""
-        system_token = get_system_token()
-        if constant_time_compare(system_token, token):
+        if _matches_system_token(token):
             if is_internal_ip(request):
                 return cls()
             # else:
