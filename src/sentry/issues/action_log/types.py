@@ -655,6 +655,9 @@ class ImpactAssessmentAction(GroupAction):
     description: str
     citations: list[ImpactCitation]
     source_event_id: str
+    # Null for assessments delivered before these were recorded.
+    run_uuid: str | None = None
+    prompt_version: str | None = None
 
     @classmethod
     def get_type(cls) -> GroupActionType:

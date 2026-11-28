@@ -70,6 +70,8 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
                     }
                 ],
                 "source_event_id": "event-id",
+                "run_uuid": "run-uuid",
+                "prompt_version": "3",
             },
         )
 
@@ -88,6 +90,8 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
                 }
             ],
             "sourceEventId": "event-id",
+            "runUuid": "run-uuid",
+            "promptVersion": "3",
         }
 
     def test_impact_assessment_is_in_activity(self) -> None:

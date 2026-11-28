@@ -240,6 +240,8 @@ def track_impact(state: StateView, entry: GroupActionLogEntry) -> AggregatorResu
         description=action.description,
         citations=citations,
         sourceEventId=action.source_event_id,
+        runUuid=action.run_uuid,
+        promptVersion=action.prompt_version,
     )
 
     return emit(IMPACT.value(impact))

@@ -68,4 +68,4 @@ LAST_COMPLETED_AUTOFIX_STEP = Feature[IssueAutofixStep](
 BLOCKER = Feature[IssueBlocker]("blocker", default=IssueBlocker.NONE, codec=EnumCodec(IssueBlocker))
 
 # Current issue Impact, projected from the latest assessment action.
-IMPACT = Feature[ImpactDerivedData | None]("impact", default=None)
+IMPACT = Feature[ImpactDerivedData | None]("impact", default=None, version=2)

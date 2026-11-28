@@ -531,6 +531,8 @@ class GroupSerializerDerivedDataTest(TestCase):
                     }
                 ],
                 "sourceEventId": "a" * 32,
+                "runUuid": None,
+                "promptVersion": None,
             },
         }
 

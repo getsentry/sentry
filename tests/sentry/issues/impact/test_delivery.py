@@ -46,6 +46,7 @@ class DeliverImpactAssessmentTest(TestCase):
                     ],
                 },
                 error=None,
+                prompt_version="3",
             )
 
         entry = GroupActionLogEntry.objects.get(
@@ -59,6 +60,8 @@ class DeliverImpactAssessmentTest(TestCase):
         assert action.citations[0].source == "event"
         assert action.citations[0].reference == f"entire-event:{'a' * 32}"
         assert action.citations[0].claim == "The request failed before order creation."
+        assert action.run_uuid == str(self.agent_run.run.uuid)
+        assert action.prompt_version == "3"
 
     def test_completed_delivery_is_idempotent(self) -> None:
         for _ in range(2):

@@ -299,8 +299,26 @@ def _data_overrides(resolve: Callable[[Any], dict[str, Any]]) -> dict[str, dict[
                     "type": "string",
                     "description": "ID of the event the assessment is based on",
                 },
+                "runUuid": {
+                    "type": "string",
+                    "nullable": True,
+                    "description": "UUID of the Seer run that produced the assessment",
+                },
+                "promptVersion": {
+                    "type": "string",
+                    "nullable": True,
+                    "description": "Version of the prompt that produced the assessment",
+                },
             },
-            required=("score", "level", "description", "citations", "sourceEventId"),
+            required=(
+                "score",
+                "level",
+                "description",
+                "citations",
+                "sourceEventId",
+                "runUuid",
+                "promptVersion",
+            ),
         ),
         "investigation_linked": _object(
             {

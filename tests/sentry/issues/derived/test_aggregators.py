@@ -226,6 +226,8 @@ def test_impact_assessment_is_projected() -> None:
         description="Users cannot submit an order.",
         citations=[{"reference": "trace", "claim": "The request failed.", "source": "trace"}],
         source_event_id="a" * 32,
+        run_uuid="run-uuid",
+        prompt_version="3",
     )
 
     impact = _run_for_feature(IMPACT, [_impact_entry(action)])
@@ -236,6 +238,8 @@ def test_impact_assessment_is_projected() -> None:
         "description": "Users cannot submit an order.",
         "citations": [{"reference": "trace", "claim": "The request failed.", "source": "trace"}],
         "sourceEventId": "a" * 32,
+        "runUuid": "run-uuid",
+        "promptVersion": "3",
     }
 
 
