@@ -196,9 +196,10 @@ class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMi
         )
 
         self.ScheduledDeletion.schedule(instance=project, days=0)
-        with self.tasks():
+        with self.tasks(), mock.patch("sentry.snuba.tasks._delete_from_snuba") as unsubscribe:
             run_scheduled_deletions()
 
+        unsubscribe.assert_not_called()
         assert not Project.objects.filter(id=project.id).exists()
         assert not Rule.objects.filter(id=rule.id).exists()
         assert not EnvironmentProject.objects.filter(
@@ -312,9 +313,11 @@ class DeleteWorkflowEngineModelsTest(DeleteProjectTest):
     def test_delete_detector_data_source(self) -> None:
         self.ScheduledDeletion.schedule(instance=self.workflow_engine_project, days=0)
 
-        with self.tasks():
+        with self.tasks(), mock.patch("sentry.snuba.tasks._delete_from_snuba") as unsubscribe:
             run_scheduled_deletions()
 
+        unsubscribe.assert_not_called()
+        assert not Project.objects.filter(id=self.workflow_engine_project.id).exists()
         assert not Detector.objects.filter(id=self.detector.id).exists()
         assert not DataSource.objects.filter(id=self.data_source.id).exists()
         assert not DataSourceDetector.objects.filter(id=self.data_source_detector.id).exists()

@@ -1,9 +1,58 @@
 import logging
 
+from django.db import Error as DjangoDBError
+from django.db import router, transaction
+
 from sentry.deletions.base import BaseRelation, ModelDeletionTask, ModelRelation
+from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+from sentry.snuba.models import QuerySubscription
+from sentry.snuba.tasks import remove_remote_subscription
+from sentry.utils import metrics
+from sentry.workflow_engine.models.data_source_detector import DataSourceDetector
 from sentry.workflow_engine.models.detector import Detector
+from sentry.workflow_engine.types import DetectorType
 
 logger = logging.getLogger(__name__)
+
+
+class DataSourceDetectorDeletionTask(ModelDeletionTask[DataSourceDetector]):
+    def delete_instance(self, instance: DataSourceDetector) -> None:
+        from sentry.workflow_engine.models import DataSource
+
+        with transaction.atomic(using=router.db_for_write(DataSource)):
+            source = DataSource.objects.select_for_update().get_or_none(id=instance.data_source_id)
+            if (
+                source is None
+                or DataSourceDetector.objects.filter(data_source=source)
+                .exclude(id=instance.id)
+                .exists()
+            ):
+                # Release our link under the lock so the last owner will clean up the source.
+                super().delete_instance(instance)
+                return
+
+        # Keep the final link until the local cascade succeeds. Snuba I/O runs outside the lock.
+        if (
+            source.type == DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+            and instance.detector.type == DetectorType.METRIC_ISSUE
+        ):
+            subscription = QuerySubscription.objects.get_or_none(
+                id=source.source_id, project_id=instance.detector.project_id
+            )
+            if subscription is not None:
+                try:
+                    remove_remote_subscription(subscription)
+                except DjangoDBError:
+                    raise
+                except Exception:
+                    # The result consumer can unsubscribe after the local row is gone.
+                    logger.exception(
+                        "detector.deletion.unsubscribe_failed",
+                        extra={"query_subscription_id": subscription.id},
+                    )
+                    metrics.incr("snuba.subscriptions.detector_delete.failed")
+
+        self.delete_children([ModelRelation(DataSource, {"id": source.id})])
 
 
 class DetectorDeletionTask(ModelDeletionTask[Detector]):
@@ -14,7 +63,6 @@ class DetectorDeletionTask(ModelDeletionTask[Detector]):
         from sentry.workflow_engine.models import (
             AlertRuleDetector,
             DataConditionGroup,
-            DataSource,
         )
 
         model_relations: list[BaseRelation] = []
@@ -33,17 +81,13 @@ class DetectorDeletionTask(ModelDeletionTask[Detector]):
         if alert_rule_ids:
             model_relations.append(ModelRelation(AlertRule, {"id__in": alert_rule_ids}))
 
-        # check that no other rows are related to the data source
-        data_source_ids = DataSource.objects.filter(detector=instance.id).values_list(
-            "id", flat=True
+        model_relations.append(
+            ModelRelation(
+                DataSourceDetector,
+                {"detector_id": instance.id},
+                task=DataSourceDetectorDeletionTask,
+            )
         )
-        if data_source_ids:
-            # this ensures we're not deleting a data source that's connected to another detector
-            if (
-                Detector.objects_for_deletion.filter(data_sources__in=[data_source_ids[0]]).count()
-                == 1
-            ):
-                model_relations.append(ModelRelation(DataSource, {"detector": instance.id}))
 
         if instance.workflow_condition_group_id:
             model_relations.append(
