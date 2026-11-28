@@ -131,11 +131,11 @@ describe('CustomCommitsResolutionModal', () => {
     });
 
     // Type in the search box to filter
-    const selectInput = screen.getByRole('textbox');
+    const selectInput = screen.getByRole('combobox');
     await userEvent.type(selectInput, 'abc');
 
     // Wait for filtered results to appear and select the commit
-    await selectEvent.select(screen.getByRole('textbox'), 'Filtered commit message');
+    await selectEvent.select(screen.getByRole('combobox'), 'Filtered commit message');
 
     await userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
 

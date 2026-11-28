@@ -159,8 +159,8 @@ describe('ServiceAccountTokens', () => {
     await userEvent.click(screen.getByRole('checkbox', {name: 'org:read'}));
     expect(screen.queryByRole('checkbox', {name: 'event:read'})).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('textbox', {name: 'Expiration'}));
-    await userEvent.click(screen.getByRole('menuitemradio', {name: 'No expiration'}));
+    await userEvent.click(screen.getByRole('combobox', {name: 'Expiration'}));
+    await userEvent.click(screen.getByRole('option', {name: 'No expiration'}));
     await userEvent.click(
       within(screen.getByRole('dialog')).getByRole('button', {name: 'Create Token'})
     );

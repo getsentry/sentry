@@ -173,8 +173,11 @@ export function ChannelSelect({
       isLoading={isLoading}
       disabled={disabled}
       value={value?.value ?? null}
-      onChange={onChange}
+      onChange={option =>
+        onChange(optionsWithSelectedValue?.find(channel => channel === option) ?? null)
+      }
       onCreateOption={onCreateOption}
+      blurInputOnSelect={false}
       clearable
       creatable
       formatCreateLabel={(inputValue: string) => inputValue}

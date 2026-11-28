@@ -121,6 +121,12 @@ class OnboardingTest(AcceptanceTestCase):
             }
             yield
 
+    def click_platform_option(self, label: str) -> None:
+        option = (
+            f'//*[@role="option"][.//*[@data-test-id="menu-list-item-label"][text()="{label}"]]'
+        )
+        self.browser.click_when_visible(xpath=option, timeout=10)
+
     def continue_past_platform_features(self, platform_search: str, platform_label: str) -> None:
         """Skip connect → pick platform → Continue.
 
@@ -133,12 +139,7 @@ class OnboardingTest(AcceptanceTestCase):
         self.browser.wait_until('input[aria-autocomplete="list"]')
         input_el = self.browser.element('input[aria-autocomplete="list"]')
         input_el.send_keys(platform_search)
-        self.browser.wait_until(
-            xpath=f'//p[@data-test-id="menu-list-item-label"][text()="{platform_label}"]'
-        )
-        self.browser.click(
-            xpath=f'//p[@data-test-id="menu-list-item-label"][text()="{platform_label}"]'
-        )
+        self.click_platform_option(platform_label)
         self.browser.wait_until_clickable(xpath='//button[contains(., "Continue")]')
         self.browser.click(xpath='//button[contains(., "Continue")]')
 
@@ -547,10 +548,7 @@ class OnboardingTest(AcceptanceTestCase):
             self.browser.wait_until('input[aria-autocomplete="list"]')
             input_el = self.browser.element('input[aria-autocomplete="list"]')
             input_el.send_keys("React")
-            self.browser.wait_until(
-                xpath='//p[@data-test-id="menu-list-item-label"][text()="React"]'
-            )
-            self.browser.click(xpath='//p[@data-test-id="menu-list-item-label"][text()="React"]')
+            self.click_platform_option("React")
             self.browser.wait_until_clickable(xpath='//button[contains(., "Continue")]')
             self.browser.click(xpath='//button[contains(., "Continue")]')
 
@@ -621,9 +619,7 @@ class OnboardingTest(AcceptanceTestCase):
 
         input_el = self.browser.element('input[aria-autocomplete="list"]')
         input_el.send_keys("Browser JavaScript")
-        platform_label = '//p[@data-test-id="menu-list-item-label"][text()="Browser JavaScript"]'
-        self.browser.wait_until(xpath=platform_label)
-        self.browser.click(xpath=platform_label)
+        self.click_platform_option("Browser JavaScript")
         self.browser.wait_until(xpath='//h6[text()="Do you use a framework?"]')
         self.browser.click('[aria-label="Close Modal"]')
         self.browser.wait_until_not(xpath='//h6[text()="Do you use a framework?"]')
@@ -631,8 +627,7 @@ class OnboardingTest(AcceptanceTestCase):
         input_el = self.browser.element('input[aria-autocomplete="list"]')
         input_el.clear()
         input_el.send_keys("Browser JavaScript")
-        self.browser.wait_until(xpath=platform_label)
-        self.browser.click(xpath=platform_label)
+        self.click_platform_option("Browser JavaScript")
         self.browser.click('[aria-label="Configure SDK"]')
         self.browser.wait_until_clickable(xpath='//button[contains(., "Continue")]')
         self.browser.click(xpath='//button[contains(., "Continue")]')
@@ -762,8 +757,7 @@ class OnboardingTest(AcceptanceTestCase):
         self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
         input_el = self.browser.element('input[aria-autocomplete="list"]')
         input_el.send_keys("React")
-        self.browser.wait_until(xpath='//p[@data-test-id="menu-list-item-label"][text()="React"]')
-        self.browser.click(xpath='//p[@data-test-id="menu-list-item-label"][text()="React"]')
+        self.click_platform_option("React")
         self.browser.wait_until_clickable(xpath='//button[contains(., "Continue")]')
         self.browser.click(xpath='//button[contains(., "Continue")]')
 
@@ -815,8 +809,7 @@ class OnboardingTest(AcceptanceTestCase):
             self.browser.wait_until('input[aria-autocomplete="list"]')
             input_el = self.browser.element('input[aria-autocomplete="list"]')
             input_el.send_keys("Vue")
-            self.browser.wait_until(xpath='//p[@data-test-id="menu-list-item-label"][text()="Vue"]')
-            self.browser.click(xpath='//p[@data-test-id="menu-list-item-label"][text()="Vue"]')
+            self.click_platform_option("Vue")
             self.browser.wait_until_clickable(xpath='//button[contains(., "Continue")]')
             self.browser.click(xpath='//button[contains(., "Continue")]')
 

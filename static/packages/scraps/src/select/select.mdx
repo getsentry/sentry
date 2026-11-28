@@ -15,8 +15,8 @@ resources:
 ---
 
 import {useState} from 'react';
+import {IconSearch} from '@sentry/icons/search';
 
-import {Container} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 import {Text} from '@sentry/scraps/text';
 
@@ -156,16 +156,12 @@ Use the `disabled` prop to disable the select, preventing user interaction.
 
 ## Leading Content
 
-Use `controlLeadingItems` to add content before the selected value and search input.
+Pass an icon or text to `leadingItems`. Select adds padding and centers the content vertically before the value and search input.
 
 <Storybook.Demo>
   <Storybook.Grid>
     <SingleSelectDemo
-      controlLeadingItems={
-        <Container paddingLeft="lg">
-          <Text bold>Environment</Text>
-        </Container>
-      }
+      leadingItems={<IconSearch size="sm" variant="muted" aria-hidden />}
       size="md"
       placeholder="medium"
       options={[
@@ -176,11 +172,7 @@ Use `controlLeadingItems` to add content before the selected value and search in
     <SingleSelectDemo
       size="sm"
       placeholder="small"
-      controlLeadingItems={
-        <Container paddingLeft="lg">
-          <Text bold>Environment</Text>
-        </Container>
-      }
+      leadingItems={<Text bold>Environment</Text>}
       initialValue={'item1'}
       options={[
         {value: 'item1', label: 'Item 1'},
@@ -190,11 +182,7 @@ Use `controlLeadingItems` to add content before the selected value and search in
     <SingleSelectDemo
       size="xs"
       placeholder="x-small"
-      controlLeadingItems={
-        <Container paddingLeft="lg">
-          <Text bold>Environment</Text>
-        </Container>
-      }
+      leadingItems={<IconSearch size="xs" variant="muted" aria-hidden />}
       options={[
         {value: 'item1', label: 'Item 1'},
         {value: 'item2', label: 'Item 2'},
@@ -207,11 +195,8 @@ Use `controlLeadingItems` to add content before the selected value and search in
 <Select
   value={value}
   onChange={option => setValue(option?.value ?? null)}
-  controlLeadingItems={
-    <Container paddingLeft="lg">
-      <Text bold>Environment</Text>
-    </Container>
-  }
+  aria-label="Environment"
+  leadingItems={<IconSearch size="sm" variant="muted" aria-hidden />}
   placeholder="Choose environment"
   options={options}
 />
@@ -424,13 +409,12 @@ Set `multiple` to enable multi-select mode, allowing users to select multiple op
 
 ### Multiple Selection with Clear
 
-Combine `multiple` and `clearable` to allow clearing all selections at once.
+Multi-selects show a button to clear all selections by default. Set `clearable={false}` to hide it.
 
 <Storybook.Demo>
   <Storybook.Grid>
     <MultipleSelectDemo
       multiple
-      clearable
       initialValue={['item1', 'item3']}
       size="md"
       placeholder="medium"
@@ -441,7 +425,6 @@ Combine `multiple` and `clearable` to allow clearing all selections at once.
       ]}
     />
     <MultipleSelectDemo
-      clearable
       multiple
       size="sm"
       placeholder="small"
@@ -453,7 +436,6 @@ Combine `multiple` and `clearable` to allow clearing all selections at once.
       ]}
     />
     <MultipleSelectDemo
-      clearable
       multiple
       initialValue={['item1', 'item3']}
       size="xs"
@@ -471,7 +453,6 @@ Combine `multiple` and `clearable` to allow clearing all selections at once.
 <Select
   onChange={options => setValue(options.map(option => option.value))}
   multiple
-  clearable
   value={value}
   options={options}
 />
@@ -597,26 +578,27 @@ Use multi-select for tag or category selection:
 Use the select's content props to customize its appearance. The select owns input,
 option, and chip behavior; callers do not need implementation components or their props.
 
-| Prop                         | Purpose                                                         |
-| ---------------------------- | --------------------------------------------------------------- |
-| `components.Value`           | Selected value content. Receives `option`.                      |
-| `components.OptionLabel`     | Option label content. Receives `option`.                        |
-| `components.MultiValueLabel` | Chip content. Receives `option` and `children`.                 |
-| `controlLeadingItems`        | Add content before the value and search input.                  |
-| `dropdownIndicator`          | Replace the dropdown icon, or pass `null` to hide it.           |
-| `components.Indicators`      | Indicator wrapper. Receives `children`; pass `null` to hide it. |
-| `menuFooter`                 | Add content after the options, outside the scroll container.    |
-| `virtualized`                | Virtualize a large list, including grouped options.             |
+| Prop                         | Purpose                                                      |
+| ---------------------------- | ------------------------------------------------------------ |
+| `components.Value`           | Selected value content. Receives `option`.                   |
+| `components.OptionLabel`     | Option label content. Receives `option`.                     |
+| `components.MultiValueLabel` | Chip content. Receives `option` and `children`.              |
+| `leadingItems`               | Add content before the value and search input.               |
+| `trailingItems`              | Add content beside the clear button and dropdown icon.       |
+| `dropdownIndicator`          | Replace the dropdown icon, or pass `null` to hide it.        |
+| `menuAlign`                  | Align the menu with the control’s start or end edge.         |
+| `maxMenuWidth`               | Cap width in pixels. Use `"100%"` for the control width.     |
+| `menuFooter`                 | Add content after the options, outside the scroll container. |
+| `virtualized`                | Virtualize a large list, including grouped options.          |
 
 Pass component types in `components`, for example:
 
 ```tsx
-<Select options={options} components={{Value: FruitValue, Indicators: FruitIndicators}} />
+<Select options={options} components={{Value: FruitValue}} />
 ```
 
 Option components receive the full option as their `option` prop.
-`MultiValueLabel` receives the default label as `children`, and `Indicators`
-receives the default indicator controls as `children`. Define these components
+`MultiValueLabel` receives the default label as `children`. Define these components
 outside the parent component so they keep the same identity between renders.
 
 Set `isOpen` and `onOpenChange` to control the menu. The component `ref` exposes
@@ -657,7 +639,7 @@ The component follows the [WAI-ARIA Combobox](https://www.w3.org/WAI/ARIA/apg/pa
 
 - Every select must have an associated label
 - Use a `<label>` element with `htmlFor`, wrap the select in a `<label>`, or provide `aria-label`
-- Leading content (`controlLeadingItems`) does not replace an accessible label
+- Leading content (`leadingItems`) does not replace an accessible label
 
 ```jsx
 // Good: Visible label with htmlFor

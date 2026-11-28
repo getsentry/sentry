@@ -74,10 +74,8 @@ updates:
 
       # We ignore everything that hasn't yet been upgrade, this way we will
       # only get the _freshest_ of new packages to consider upgrading
-      - dependency-name: '@types/react-select'
       - dependency-name: 'gettext-parser'
       - dependency-name: 'react-lazyload'
-      - dependency-name: 'react-select'
       - dependency-name: 'sprintf-js'
   - package-ecosystem: 'docker'
     directory: 'self-hosted/'

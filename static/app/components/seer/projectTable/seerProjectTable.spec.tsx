@@ -134,7 +134,7 @@ describe('SeerProjectTable', () => {
     // The agent dropdown renders its current value, "Seer".
     await userEvent.click(await screen.findByText('Seer'));
     await userEvent.click(
-      await screen.findByRole('menuitemradio', {name: 'Cursor Cloud Agent'})
+      await screen.findByRole('option', {name: 'Cursor Cloud Agent'})
     );
 
     await waitFor(() =>
@@ -177,7 +177,7 @@ describe('SeerProjectTable', () => {
 
     await userEvent.click(await screen.findByText('Seer'));
     await userEvent.click(
-      await screen.findByRole('menuitemradio', {name: 'Cursor Cloud Agent'})
+      await screen.findByRole('option', {name: 'Cursor Cloud Agent'})
     );
 
     // The guard drains every page, so the second-page GitLab repo still blocks.
@@ -202,7 +202,7 @@ describe('SeerProjectTable', () => {
 
     await userEvent.click(await screen.findByText('Seer'));
     await userEvent.click(
-      await screen.findByRole('menuitemradio', {name: 'Cursor Cloud Agent'})
+      await screen.findByRole('option', {name: 'Cursor Cloud Agent'})
     );
 
     // The check passes, so the selection is persisted and no warning is shown.
@@ -442,7 +442,7 @@ describe('SeerProjectTable', () => {
     // Change project-slug's row from "Root Cause" to "PR drafted".
     await userEvent.click(await screen.findByText('Stop after Root Cause'));
     await userEvent.click(
-      await screen.findByRole('menuitemradio', {name: 'Stop after PR drafted'})
+      await screen.findByRole('option', {name: 'Stop after PR drafted'})
     );
     await waitFor(() =>
       expect(rowPuts['project-slug']).toHaveBeenCalledWith(

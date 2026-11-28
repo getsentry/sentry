@@ -6,10 +6,6 @@ import {RepositoryFixture} from 'sentry-fixture/repository';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {mockElementSize} from 'sentry/utils/fixtures/virtualization';
-
-mockElementSize();
-
 import {
   makeClosableHeader,
   makeCloseButton,
@@ -17,7 +13,16 @@ import {
   ModalFooter,
 } from '@sentry/scraps/modal';
 
+import {mockElementSize} from 'sentry/utils/fixtures/virtualization';
+
 import {ConnectRepositoryModal} from './connectRepositoryModal';
+
+mockElementSize();
+jest.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockImplementation(function (
+  this: HTMLElement
+) {
+  return this.hasAttribute('data-index') ? 32 : 500;
+});
 
 describe('ConnectRepositoryModal', () => {
   const organization = OrganizationFixture();
@@ -147,13 +152,13 @@ describe('ConnectRepositoryModal', () => {
     expect(
       screen.getByText(`Connect a repository to ${project.slug}`)
     ).toBeInTheDocument();
-    expect(screen.getByRole('textbox', {name: /project/i})).toBeDisabled();
+    expect(screen.getByRole('combobox', {name: /project/i})).toBeDisabled();
     expect(
       await screen.findByText('Select a repository first to configure code paths')
     ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Save'})).toBeDisabled();
     expect(
-      screen.queryByRole('textbox', {name: /stack trace prefix/i})
+      screen.queryByRole('combobox', {name: /stack trace prefix/i})
     ).not.toBeInTheDocument();
   });
 
@@ -184,7 +189,7 @@ describe('ConnectRepositoryModal', () => {
     expect(await screen.findByText('sentry')).toBeInTheDocument();
     expect(screen.getByText('relay')).toBeInTheDocument();
 
-    await userEvent.type(screen.getByRole('textbox', {name: 'Repository'}), 'sen');
+    await userEvent.type(screen.getByRole('combobox', {name: 'Repository'}), 'sen');
 
     expect(screen.getByText('sentry')).toBeInTheDocument();
     expect(screen.queryByText('relay')).not.toBeInTheDocument();
@@ -214,18 +219,18 @@ describe('ConnectRepositoryModal', () => {
       screen.queryByText('Select a repository first to configure code paths')
     ).not.toBeInTheDocument();
     expect(
-      screen.getByRole('textbox', {name: /stack trace prefix/i})
+      screen.getByRole('combobox', {name: /stack trace prefix/i})
     ).toBeInTheDocument();
     expect(await screen.findByRole('button', {name: 'Save'})).toBeEnabled();
 
     await userEvent.type(
-      screen.getByRole('textbox', {name: /stack trace prefix/i}),
+      screen.getByRole('combobox', {name: /stack trace prefix/i}),
       'src/'
     );
     expect(screen.getByRole('button', {name: 'Save'})).toBeEnabled();
 
     await userEvent.type(
-      screen.getByRole('textbox', {name: /repository prefix/i}),
+      screen.getByRole('combobox', {name: /repository prefix/i}),
       'app/'
     );
     expect(screen.getByRole('button', {name: 'Save'})).toBeEnabled();
@@ -245,11 +250,11 @@ describe('ConnectRepositoryModal', () => {
     await selectRepository('getsentry/sentry');
 
     await userEvent.type(
-      screen.getByRole('textbox', {name: /stack trace prefix/i}),
+      screen.getByRole('combobox', {name: /stack trace prefix/i}),
       'src/'
     );
     await userEvent.type(
-      screen.getByRole('textbox', {name: /repository prefix/i}),
+      screen.getByRole('combobox', {name: /repository prefix/i}),
       'app/'
     );
 
@@ -257,7 +262,7 @@ describe('ConnectRepositoryModal', () => {
 
     expect(screen.getByText(/Paths \(2\)/)).toBeInTheDocument();
     expect(
-      screen.getByRole('textbox', {name: /stack trace prefix/i})
+      screen.getByRole('combobox', {name: /stack trace prefix/i})
     ).toBeInTheDocument();
   });
 
@@ -269,11 +274,11 @@ describe('ConnectRepositoryModal', () => {
 
     // Fill first mapping: src/ → app/
     await userEvent.type(
-      screen.getByRole('textbox', {name: /stack trace prefix/i}),
+      screen.getByRole('combobox', {name: /stack trace prefix/i}),
       'src/'
     );
     await userEvent.type(
-      screen.getByRole('textbox', {name: /repository prefix/i}),
+      screen.getByRole('combobox', {name: /repository prefix/i}),
       'app/'
     );
 
@@ -281,11 +286,11 @@ describe('ConnectRepositoryModal', () => {
     // Clicking the button blurs the repo prefix field, committing 'app/'.
     await userEvent.click(screen.getByRole('button', {name: 'Add another path'}));
     await userEvent.type(
-      screen.getByRole('textbox', {name: /stack trace prefix/i}),
+      screen.getByRole('combobox', {name: /stack trace prefix/i}),
       'src/app/'
     );
     await userEvent.type(
-      screen.getByRole('textbox', {name: /repository prefix/i}),
+      screen.getByRole('combobox', {name: /repository prefix/i}),
       'dist/'
     );
     await userEvent.tab();
@@ -293,18 +298,18 @@ describe('ConnectRepositoryModal', () => {
 
     // Change second stack root to src/ — same stack, different source root (sameStack warning)
     // → Save stays enabled because the pair src/+dist/ is distinct from src/+app/
-    await userEvent.clear(screen.getByRole('textbox', {name: /stack trace prefix/i}));
+    await userEvent.clear(screen.getByRole('combobox', {name: /stack trace prefix/i}));
     await userEvent.type(
-      screen.getByRole('textbox', {name: /stack trace prefix/i}),
+      screen.getByRole('combobox', {name: /stack trace prefix/i}),
       'src/'
     );
     await userEvent.tab();
     expect(screen.getByRole('button', {name: 'Save'})).toBeEnabled();
 
     // Now make source roots identical too → exact duplicate → Save disabled
-    await userEvent.clear(screen.getByRole('textbox', {name: /repository prefix/i}));
+    await userEvent.clear(screen.getByRole('combobox', {name: /repository prefix/i}));
     await userEvent.type(
-      screen.getByRole('textbox', {name: /repository prefix/i}),
+      screen.getByRole('combobox', {name: /repository prefix/i}),
       'app/'
     );
     await userEvent.tab();
@@ -472,7 +477,7 @@ describe('ConnectRepositoryModal', () => {
       renderModal();
       await selectRepository('getsentry/sentry');
 
-      await userEvent.click(screen.getByRole('textbox', {name: /stack trace prefix/i}));
+      await userEvent.click(screen.getByRole('combobox', {name: /stack trace prefix/i}));
       await userEvent.click(await screen.findByText('src/'));
 
       // Picked value shows as the selected label and in the path preview.
@@ -484,7 +489,7 @@ describe('ConnectRepositoryModal', () => {
       await selectRepository('getsentry/sentry');
 
       await userEvent.type(
-        screen.getByRole('textbox', {name: /stack trace prefix/i}),
+        screen.getByRole('combobox', {name: /stack trace prefix/i}),
         'custom/'
       );
       await userEvent.tab();
@@ -502,7 +507,7 @@ describe('ConnectRepositoryModal', () => {
       renderModal();
       await selectRepository('getsentry/sentry');
 
-      const stackField = screen.getByRole('textbox', {name: /stack trace prefix/i});
+      const stackField = screen.getByRole('combobox', {name: /stack trace prefix/i});
       expect(stackField).toBeInTheDocument();
 
       await userEvent.type(stackField, 'fallback/');
@@ -534,7 +539,7 @@ describe('ConnectRepositoryModal', () => {
       renderModal(closeModal);
       await selectRepository('getsentry/sentry');
 
-      await userEvent.click(screen.getByRole('textbox', {name: /repository prefix/i}));
+      await userEvent.click(screen.getByRole('combobox', {name: /repository prefix/i}));
       await userEvent.click(await screen.findByText('src/app/'));
 
       await userEvent.click(await screen.findByRole('button', {name: 'Save'}));
@@ -596,7 +601,7 @@ describe('ConnectRepositoryModal', () => {
 
       expect(screen.getByText('Edit code mappings')).toBeInTheDocument();
       // Both selects are disabled in edit mode.
-      const [projectSelect, repoSelect] = screen.getAllByRole('textbox');
+      const [projectSelect, repoSelect] = screen.getAllByRole('combobox');
       expect(projectSelect).toBeDisabled();
       expect(repoSelect).toBeDisabled();
 
@@ -639,9 +644,9 @@ describe('ConnectRepositoryModal', () => {
 
       // Expand and edit the remaining row (vendor/) to change its stack root.
       await userEvent.click(screen.getByRole('button', {name: 'Expand path mapping'}));
-      await userEvent.clear(screen.getByRole('textbox', {name: /stack trace prefix/i}));
+      await userEvent.clear(screen.getByRole('combobox', {name: /stack trace prefix/i}));
       await userEvent.type(
-        screen.getByRole('textbox', {name: /stack trace prefix/i}),
+        screen.getByRole('combobox', {name: /stack trace prefix/i}),
         'vendor/updated/'
       );
       await userEvent.click(screen.getByRole('button', {name: 'Collapse path mapping'}));
@@ -649,7 +654,7 @@ describe('ConnectRepositoryModal', () => {
       // Add a brand-new mapping (no id → POST).
       await userEvent.click(screen.getByRole('button', {name: 'Add another path'}));
       await userEvent.type(
-        screen.getByRole('textbox', {name: /stack trace prefix/i}),
+        screen.getByRole('combobox', {name: /stack trace prefix/i}),
         'src/'
       );
 
@@ -711,8 +716,8 @@ describe('ConnectRepositoryModal', () => {
       ).toBeInTheDocument();
 
       // Both prefix inputs are disabled; branch is still editable.
-      const stackInput = screen.getByRole('textbox', {name: /stack trace prefix/i});
-      const sourceInput = screen.getByRole('textbox', {name: /repository prefix/i});
+      const stackInput = screen.getByRole('combobox', {name: /stack trace prefix/i});
+      const sourceInput = screen.getByRole('combobox', {name: /repository prefix/i});
       const branchInput = screen.getByRole('textbox', {name: /branch/i});
       expect(stackInput).toBeDisabled();
       expect(sourceInput).toBeDisabled();
@@ -730,7 +735,7 @@ describe('ConnectRepositoryModal', () => {
 
       expect(await screen.findByText('No paths configured')).toBeInTheDocument();
       expect(
-        screen.queryByRole('textbox', {name: /stack trace prefix/i})
+        screen.queryByRole('combobox', {name: /stack trace prefix/i})
       ).not.toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Save'})).toHaveAttribute(
         'aria-disabled',
@@ -826,7 +831,7 @@ describe('ConnectRepositoryModal', () => {
       await userEvent.click(await screen.findByRole('button', {name: 'Add path'}));
 
       expect(
-        await screen.findByRole('textbox', {name: /stack trace prefix/i})
+        await screen.findByRole('combobox', {name: /stack trace prefix/i})
       ).toBeInTheDocument();
       await userEvent.click(await screen.findByRole('button', {name: 'Save'}));
 
@@ -893,9 +898,9 @@ describe('ConnectRepositoryModal', () => {
       await userEvent.click(deleteFirst!);
 
       await userEvent.click(screen.getByRole('button', {name: 'Expand path mapping'}));
-      await userEvent.clear(screen.getByRole('textbox', {name: /stack trace prefix/i}));
+      await userEvent.clear(screen.getByRole('combobox', {name: /stack trace prefix/i}));
       await userEvent.type(
-        screen.getByRole('textbox', {name: /stack trace prefix/i}),
+        screen.getByRole('combobox', {name: /stack trace prefix/i}),
         'vendor/updated/'
       );
 
@@ -1014,11 +1019,11 @@ describe('ConnectRepositoryModal', () => {
     await userEvent.click(await screen.findByText('getsentry/sentry'));
 
     await userEvent.type(
-      screen.getByRole('textbox', {name: /stack trace prefix/i}),
+      screen.getByRole('combobox', {name: /stack trace prefix/i}),
       'src/'
     );
     await userEvent.type(
-      screen.getByRole('textbox', {name: /repository prefix/i}),
+      screen.getByRole('combobox', {name: /repository prefix/i}),
       'app/'
     );
     await userEvent.tab();
@@ -1053,11 +1058,11 @@ describe('ConnectRepositoryModal', () => {
     await userEvent.click(await screen.findByText('getsentry/sentry'));
 
     await userEvent.type(
-      screen.getByRole('textbox', {name: /stack trace prefix/i}),
+      screen.getByRole('combobox', {name: /stack trace prefix/i}),
       'src/'
     );
     await userEvent.type(
-      screen.getByRole('textbox', {name: /repository prefix/i}),
+      screen.getByRole('combobox', {name: /repository prefix/i}),
       'app/'
     );
     await userEvent.tab();
@@ -1185,7 +1190,7 @@ describe('ConnectRepositoryModal', () => {
           await screen.findByText('Connect a project to getsentry/sentry')
         ).toBeInTheDocument();
         // Repository field is locked (disabled).
-        expect(screen.getByRole('textbox', {name: /repository/i})).toBeDisabled();
+        expect(screen.getByRole('combobox', {name: /repository/i})).toBeDisabled();
         // Paths placeholder until a project is chosen.
         expect(
           await screen.findByText('Select a project first to configure code paths')
@@ -1203,7 +1208,7 @@ describe('ConnectRepositoryModal', () => {
           screen.queryByText('Select a project first to configure code paths')
         ).not.toBeInTheDocument();
         expect(
-          screen.getByRole('textbox', {name: /stack trace prefix/i})
+          screen.getByRole('combobox', {name: /stack trace prefix/i})
         ).toBeInTheDocument();
         expect(await screen.findByRole('button', {name: 'Save'})).toBeEnabled();
       });
@@ -1298,7 +1303,7 @@ describe('ConnectRepositoryModal', () => {
         renderRepoLockedEdit();
 
         // Both selects are locked in edit mode.
-        const [repoSelect, projectSelect] = screen.getAllByRole('textbox');
+        const [repoSelect, projectSelect] = screen.getAllByRole('combobox');
         expect(repoSelect).toBeDisabled();
         expect(projectSelect).toBeDisabled();
 

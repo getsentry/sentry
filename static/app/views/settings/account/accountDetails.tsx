@@ -302,6 +302,7 @@ function AccountDetails() {
                   value={field.state.value}
                   onChange={field.handleChange}
                   options={timezoneOptions}
+                  virtualized
                 />
               </field.Layout.Row>
             )}

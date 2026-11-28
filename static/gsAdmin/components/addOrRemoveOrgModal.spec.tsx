@@ -34,8 +34,8 @@ describe('AddToOrgModal', () => {
       screen.getByRole('textbox', {name: 'Organization Slug'}),
       'org-slug'
     );
-    await userEvent.click(screen.getByRole('textbox', {name: 'Role'}));
-    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Member'}));
+    await userEvent.click(screen.getByRole('combobox', {name: 'Role'}));
+    await userEvent.click(screen.getByRole('option', {name: 'Member'}));
     await userEvent.click(screen.getByRole('button', {name: 'Submit'}));
 
     await waitFor(() => {

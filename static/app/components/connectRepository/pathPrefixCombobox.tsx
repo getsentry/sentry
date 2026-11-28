@@ -16,20 +16,6 @@ const CATCH_ALL_OPTION: SelectValue<string> = {
   label: t('No prefix (match all)'),
 };
 
-function prefixMenuStyles(menuWidth: string | undefined, menuAlign: 'start' | 'end') {
-  if (!menuWidth) {
-    return;
-  }
-  const anchor = menuAlign === 'end' ? {right: 0, left: 'auto'} : undefined;
-  return {
-    menu: <T extends Record<string, unknown>>(base: T) => ({
-      ...base,
-      width: menuWidth,
-      ...anchor,
-    }),
-  };
-}
-
 function toPrefixSelectValue(opt: PathPrefixOption): SelectValue<string> {
   return {value: opt.path, label: opt.path, textValue: opt.path};
 }
@@ -154,7 +140,8 @@ export function PathPrefixCombobox({
       formatCreateLabel={(input: string) => tct('Use "[path]"', {path: input})}
       virtualized
       maxMenuHeight={maxMenuHeight}
-      styles={prefixMenuStyles(menuWidth, menuAlign)}
+      menuAlign={menuAlign}
+      styles={menuWidth ? {menu: base => ({...base, width: menuWidth})} : undefined}
     />
   );
 }

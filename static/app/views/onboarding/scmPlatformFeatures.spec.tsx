@@ -337,7 +337,7 @@ describe('ScmPlatformFeatures', () => {
     await screen.findByText('Search');
 
     // Type into the Select to search and pick a base language
-    await userEvent.type(screen.getByRole('textbox'), 'JavaScript');
+    await userEvent.type(screen.getByRole('combobox'), 'JavaScript');
     await userEvent.click(await screen.findByText('Browser JavaScript'));
 
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
@@ -353,7 +353,7 @@ describe('ScmPlatformFeatures', () => {
     await screen.findByText('Search');
 
     // Type into the Select to search and pick a console platform
-    await userEvent.type(screen.getByRole('textbox'), 'Nintendo');
+    await userEvent.type(screen.getByRole('combobox'), 'Nintendo');
     await userEvent.click(await screen.findByText('Nintendo Switch'));
 
     expect(await screen.findByRole('dialog')).toBeInTheDocument();

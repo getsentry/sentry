@@ -113,7 +113,7 @@ describe('BackendJsonAutoSaveForm', () => {
       {organization: org}
     );
 
-    await userEvent.type(screen.getByRole('textbox'), 'my-own-project');
+    await userEvent.type(screen.getByRole('combobox'), 'my-own-project');
     await userEvent.keyboard('{Enter}');
     await userEvent.keyboard('{Escape}');
 

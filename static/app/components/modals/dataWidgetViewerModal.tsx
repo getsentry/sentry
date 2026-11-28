@@ -692,7 +692,8 @@ function DataWidgetViewerModal(props: Props) {
           <Select
             value={selectedQueryIndex}
             options={queryOptions}
-            onChange={(option: SelectValue<number>) => {
+            dropdownIndicator={widget.queries.length < 2 ? null : undefined}
+            onChange={option => {
               navigate(
                 {
                   pathname: location.pathname,
@@ -712,16 +713,11 @@ function DataWidgetViewerModal(props: Props) {
                 display_type: widget.displayType,
               });
             }}
-            components={{
-              Value: QueryValue,
-              OptionLabel: QueryOptionLabel,
-              ...(widget.queries.length < 2 && {Indicators: null}),
-            }}
+            components={{Value: QueryValue, OptionLabel: QueryOptionLabel}}
             styles={{
-              singleValue: () => ({
+              singleValue: base => ({
+                ...base,
                 wordBreak: 'break-word',
-                flex: 1,
-                display: 'flex',
                 padding: `0 ${theme.space.xs}`,
               }),
             }}

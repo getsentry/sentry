@@ -1,4 +1,5 @@
-import {createFilter as createReactSelectFilter} from './reactSelectWrapper';
+import {getSearchScore} from '../fzf';
+
 import type {SelectValue} from './types';
 
 export function createFilter<
@@ -7,19 +8,11 @@ export function createFilter<
 >(config?: {
   stringify: (option: TOption) => string;
 }): (option: TOption, input: string) => boolean {
-  const filter = createReactSelectFilter({
-    stringify: ({data}: {data: TOption}) =>
-      config?.stringify(data) ??
-      data.textValue ??
-      `${typeof data.label === 'string' || typeof data.label === 'number' ? data.label : ''} ${data.value}`,
-  });
-  return (option, input) =>
-    filter(
-      {
-        data: option,
-        label: typeof option.label === 'string' ? option.label : '',
-        value: String(option.value),
-      },
-      input
-    );
+  return (option, input) => {
+    const text =
+      config?.stringify(option) ??
+      option.textValue ??
+      `${typeof option.label === 'string' || typeof option.label === 'number' ? option.label : ''} ${option.value}`;
+    return getSearchScore(text, input.trim()) > 0;
+  };
 }

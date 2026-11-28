@@ -1,13 +1,9 @@
-import {css} from '@emotion/react';
+import {type CSSObject, css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import type {FormSize} from '@sentry/scraps/theme';
+import type {FormSize, Theme} from '@sentry/scraps/theme';
 
-export const CheckWrap = styled('div')<{
-  isMultiple: boolean;
-  isSelected: boolean;
-  size: FormSize;
-}>`
+export const CheckWrap = styled('div')<{isMultiple: boolean; isSelected: boolean}>`
   display: flex;
   justify-content: center;
   align-items: center;
@@ -28,6 +24,7 @@ export const CheckWrap = styled('div')<{
             css`
               background: ${p.theme.tokens.background.accent.vibrant};
               border-color: ${p.theme.tokens.border.accent};
+              color: ${p.theme.tokens.content.onVibrant.light};
             `
           }
         `
@@ -40,3 +37,145 @@ export const CheckWrap = styled('div')<{
           }
         `}
 `;
+
+const chipLabelHeights = {xs: 16, sm: 18, md: 20} satisfies Record<FormSize, number>;
+
+export function getSelectStyles(
+  theme: Theme,
+  size: FormSize,
+  {
+    disabled,
+    focused,
+    hasChips,
+    hasQuery,
+    searchable,
+  }: {
+    focused: boolean;
+    hasChips: boolean;
+    hasQuery: boolean;
+    searchable: boolean;
+    disabled?: boolean;
+  }
+) {
+  const border = theme.tokens.border.primary;
+  const background = theme.tokens.interactive.chonky.debossed.neutral;
+  const color = disabled ? theme.tokens.content.disabled : theme.tokens.content.primary;
+  const insetShadow = `0 1px 0 0 ${background.chonk} inset`;
+  const form = theme.form[size];
+  // An empty input only needs room for the caret beside the last chip.
+  const inputWidth = hasQuery ? '1em' : 2;
+  return {
+    container: {position: 'relative'},
+    control: {
+      display: 'flex',
+      alignItems: 'center',
+      color,
+      background: disabled ? theme.tokens.background.primary : background.background,
+      border: `1px solid ${border}`,
+      borderRadius: form.borderRadius,
+      boxShadow: insetShadow,
+      ...(focused && theme.focusRing(insetShadow)),
+      minHeight: form.minHeight,
+      fontSize: form.fontSize,
+      lineHeight: form.lineHeight,
+      cursor: disabled ? 'not-allowed' : 'pointer',
+      opacity: disabled ? 0.6 : undefined,
+    },
+    leadingItems: {paddingInlineStart: form.paddingLeft},
+    values: {
+      display: hasChips ? 'flex' : 'grid',
+      flex: 1,
+      minWidth: 0,
+      alignItems: 'center',
+      flexWrap: hasChips ? 'wrap' : undefined,
+      maxHeight: hasChips ? '12em' : undefined,
+      overflowY: hasChips ? 'auto' : undefined,
+      paddingLeft: form.paddingLeft,
+      gap: hasChips ? theme.space.xs : undefined,
+    },
+    input: {
+      gridArea: hasChips ? undefined : '1 / 1',
+      flex: hasChips ? '1 1 auto' : undefined,
+      minWidth: 0,
+      width: hasChips ? inputWidth : '100%',
+      border: 0,
+      padding: 0,
+      margin: 0,
+      background: 'transparent',
+      color,
+      font: 'inherit',
+      outline: 'none',
+      cursor: !disabled && searchable ? 'text' : 'inherit',
+      ':disabled': {cursor: 'not-allowed'},
+    },
+    singleValue: {
+      gridArea: '1 / 1',
+      display: 'flex',
+      alignItems: 'center',
+      gap: theme.space.md,
+      minWidth: 0,
+      color,
+    },
+    valueLabel: {whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden'},
+    placeholder: {
+      gridArea: '1 / 1',
+      color: disabled ? color : theme.tokens.content.secondary,
+    },
+    indicators: {marginInlineStart: theme.space.sm, marginInlineEnd: form.paddingRight},
+    clearIcon: {width: 10, height: 10},
+    chip: {
+      display: 'flex',
+      alignItems: 'center',
+      borderRadius: 4,
+      border: `1px solid ${border}`,
+      background: theme.tokens.background.primary,
+      boxShadow: `0 1px 0 0 ${border}`,
+      marginBlock: 2,
+    },
+    chipLabel: {
+      display: 'flex',
+      alignItems: 'center',
+      minHeight: chipLabelHeights[size],
+      paddingInlineEnd: size === 'md' ? theme.space.xs : theme.space['2xs'],
+      paddingInlineStart: theme.space[size],
+    },
+    chipRemove: {
+      display: 'flex',
+      alignItems: 'center',
+      alignSelf: 'stretch',
+      padding: `0 ${theme.space.xs}`,
+      paddingRight: theme.space[size],
+      border: 0,
+      background: 'transparent',
+      color: 'inherit',
+      cursor: 'pointer',
+      ':hover': {
+        background: theme.tokens.interactive.transparent.neutral.background.hover,
+      },
+    },
+    chipRemoveIcon: {width: 8, height: 8},
+    menu: {
+      background: theme.tokens.background.primary,
+      borderRadius: theme.radius.md,
+      border: `1px solid ${border}`,
+      minWidth: '100%',
+      width: 'max-content',
+      maxHeight: 'inherit',
+      display: 'flex',
+      flexDirection: 'column',
+    },
+    menuList: {listStyle: 'none', margin: 0, padding: '4px 0', overflowY: 'auto'},
+    heading: {
+      fontWeight: 600,
+      lineHeight: 1.5,
+      color: theme.tokens.content.secondary,
+      padding: `${theme.space.xs} ${theme.space.lg}`,
+      ':empty': {display: 'none'},
+    },
+    message: {
+      padding: theme.space.md,
+      color: theme.tokens.content.disabled,
+      textAlign: 'center',
+    },
+  } satisfies Record<string, CSSObject>;
+}

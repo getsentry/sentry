@@ -74,7 +74,7 @@ describe('OrganizationMembershipSettings', () => {
   it('disables default role selection if user does not have invite-members', () => {
     const organization = OrganizationFixture({features: [], access: ['org:admin']});
     renderComponent(organization);
-    expect(screen.getByRole('textbox', {name: 'Default Role'})).toBeDisabled();
+    expect(screen.getByRole('combobox', {name: 'Default Role'})).toBeDisabled();
   });
 
   it('disables default role selection if user does not have org:admin access', () => {
@@ -83,7 +83,7 @@ describe('OrganizationMembershipSettings', () => {
       access: ['org:write'],
     });
     renderComponent(organization);
-    expect(screen.getByRole('textbox', {name: 'Default Role'})).toBeDisabled();
+    expect(screen.getByRole('combobox', {name: 'Default Role'})).toBeDisabled();
   });
 
   it('enables default role selection if user has org:admin access', () => {
@@ -92,7 +92,7 @@ describe('OrganizationMembershipSettings', () => {
       access: ['org:write', 'org:admin'],
     });
     renderComponent(organization);
-    expect(screen.getByRole('textbox', {name: 'Default Role'})).toBeEnabled();
+    expect(screen.getByRole('combobox', {name: 'Default Role'})).toBeEnabled();
   });
 
   it('enables member project creation without team-roles when user has org:write', () => {
@@ -147,7 +147,7 @@ describe('OrganizationMembershipSettings', () => {
       screen.getByRole('checkbox', {name: 'Restrict Replay Access'})
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole('textbox', {name: 'Replay Access Members'})
+      screen.queryByRole('combobox', {name: 'Replay Access Members'})
     ).not.toBeInTheDocument();
   });
 
@@ -159,7 +159,7 @@ describe('OrganizationMembershipSettings', () => {
     });
     renderComponent(organization);
     expect(
-      screen.getByRole('textbox', {name: 'Replay Access Members'})
+      screen.getByRole('combobox', {name: 'Replay Access Members'})
     ).toBeInTheDocument();
   });
 
@@ -170,7 +170,7 @@ describe('OrganizationMembershipSettings', () => {
       hasGranularReplayPermissions: true,
     });
     renderComponent(organization);
-    expect(screen.getByRole('textbox', {name: 'Replay Access Members'})).toBeDisabled();
+    expect(screen.getByRole('combobox', {name: 'Replay Access Members'})).toBeDisabled();
   });
 
   it('saves when Restrict Replay Access toggle is enabled', async () => {
@@ -235,7 +235,7 @@ describe('OrganizationMembershipSettings', () => {
     renderComponent(organization);
 
     expect(
-      screen.getByRole('textbox', {name: 'Replay Access Members'})
+      screen.getByRole('combobox', {name: 'Replay Access Members'})
     ).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('checkbox', {name: 'Restrict Replay Access'}));
@@ -245,7 +245,7 @@ describe('OrganizationMembershipSettings', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
 
     expect(
-      screen.getByRole('textbox', {name: 'Replay Access Members'})
+      screen.getByRole('combobox', {name: 'Replay Access Members'})
     ).toBeInTheDocument();
   });
 
@@ -262,8 +262,8 @@ describe('OrganizationMembershipSettings', () => {
     });
     renderComponent(organization);
 
-    await userEvent.click(screen.getByRole('textbox', {name: 'Replay Access Members'}));
-    await userEvent.click(await screen.findByRole('menuitemcheckbox', {name: 'Foo Bar'}));
+    await userEvent.click(screen.getByRole('combobox', {name: 'Replay Access Members'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Foo Bar'}));
     await userEvent.keyboard('{Escape}');
     await userEvent.tab();
 

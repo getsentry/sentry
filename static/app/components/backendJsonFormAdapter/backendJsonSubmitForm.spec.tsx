@@ -181,7 +181,7 @@ describe('BackendJsonSubmitForm', () => {
       );
 
       expect(screen.getByRole('textbox', {name: /title/i})).toBeDisabled();
-      expect(screen.getByRole('textbox', {name: 'Priority'})).toBeDisabled();
+      expect(screen.getByRole('combobox', {name: 'Priority'})).toBeDisabled();
       expect(screen.getByRole('button', {name: 'Save'})).toBeDisabled();
     });
 
@@ -536,7 +536,7 @@ describe('BackendJsonSubmitForm', () => {
         }
 
         await selectEvent.select(
-          screen.getByRole('textbox', {name: 'Labels'}),
+          screen.getByRole('combobox', {name: 'Labels'}),
           'Feature'
         );
         await userEvent.click(screen.getByRole('button', {name: 'Create'}));
@@ -565,7 +565,7 @@ describe('BackendJsonSubmitForm', () => {
       );
 
       await selectEvent.select(
-        screen.getByRole('textbox', {name: 'Issue'}),
+        screen.getByRole('combobox', {name: 'Issue'}),
         '#25 Example issue'
       );
       await userEvent.click(screen.getByRole('button', {name: 'Link'}));
@@ -599,8 +599,8 @@ describe('BackendJsonSubmitForm', () => {
         {organization: org}
       );
 
-      await selectEvent.select(screen.getByRole('textbox', {name: 'Labels'}), 'bug');
-      await selectEvent.select(screen.getByRole('textbox', {name: 'Labels'}), 'feature');
+      await selectEvent.select(screen.getByRole('combobox', {name: 'Labels'}), 'bug');
+      await selectEvent.select(screen.getByRole('combobox', {name: 'Labels'}), 'feature');
 
       await userEvent.click(screen.getByRole('button', {name: 'Create'}));
 
@@ -633,7 +633,7 @@ describe('BackendJsonSubmitForm', () => {
       );
 
       // Open the select — static choices should be available
-      await userEvent.click(screen.getByRole('textbox', {name: 'Repository'}));
+      await userEvent.click(screen.getByRole('combobox', {name: 'Repository'}));
       expect(await screen.findByText('My Repo')).toBeInTheDocument();
       expect(screen.getByText('Other Repo')).toBeInTheDocument();
     });
@@ -671,7 +671,7 @@ describe('BackendJsonSubmitForm', () => {
 
       await waitFor(() => expect(prefetchResponse).toHaveBeenCalled());
 
-      const textbox = screen.getByRole('textbox', {name: 'Repository'});
+      const textbox = screen.getByRole('combobox', {name: 'Repository'});
       await userEvent.click(textbox);
       expect(await screen.findByText('prefetched-repo')).toBeInTheDocument();
 
@@ -745,7 +745,7 @@ describe('BackendJsonSubmitForm', () => {
         {organization: org}
       );
 
-      const textbox = screen.getByRole('textbox', {name: 'Repository'});
+      const textbox = screen.getByRole('combobox', {name: 'Repository'});
       await userEvent.click(textbox);
       await userEvent.type(textbox, 'test');
 
@@ -777,14 +777,14 @@ describe('BackendJsonSubmitForm', () => {
         {organization: org}
       );
 
-      const textbox = screen.getByRole('textbox', {name: 'Repository'});
+      const textbox = screen.getByRole('combobox', {name: 'Repository'});
       await userEvent.click(textbox);
       await userEvent.type(textbox, '123');
 
       // Should not crash — falls back to empty options
       await waitFor(() => {
         // The select should still be interactive (no crash)
-        expect(screen.getByRole('textbox', {name: 'Repository'})).toBeInTheDocument();
+        expect(screen.getByRole('combobox', {name: 'Repository'})).toBeInTheDocument();
       });
     });
   });
@@ -815,7 +815,7 @@ describe('BackendJsonSubmitForm', () => {
       );
 
       await selectEvent.select(
-        screen.getByRole('textbox', {name: 'Project'}),
+        screen.getByRole('combobox', {name: 'Project'}),
         'Project 1'
       );
 
@@ -961,8 +961,8 @@ describe('BackendJsonSubmitForm', () => {
         {organization: org}
       );
 
-      await selectEvent.select(screen.getByRole('textbox', {name: 'Labels'}), 'Bug');
-      await selectEvent.select(screen.getByRole('textbox', {name: 'Labels'}), 'Feature');
+      await selectEvent.select(screen.getByRole('combobox', {name: 'Labels'}), 'Bug');
+      await selectEvent.select(screen.getByRole('combobox', {name: 'Labels'}), 'Feature');
 
       rerender(
         <BackendJsonSubmitForm
@@ -1014,7 +1014,7 @@ describe('BackendJsonSubmitForm', () => {
       );
 
       await selectEvent.select(
-        screen.getByRole('textbox', {name: 'Repository'}),
+        screen.getByRole('combobox', {name: 'Repository'}),
         'Async Repo'
       );
 

@@ -20,7 +20,7 @@ describe('AdminSearchCombobox', () => {
         renderResult={item => item.name}
       />
     );
-    const input = screen.getByRole('textbox', {name: 'Users'});
+    const input = screen.getByRole('combobox', {name: 'Users'});
 
     await userEvent.click(input);
     expect(screen.queryByText('No results found')).not.toBeInTheDocument();
@@ -48,7 +48,7 @@ describe('AdminSearchCombobox', () => {
       />
     );
     const user = userEvent.setup();
-    const input = screen.getByRole('textbox', {name: 'Users'});
+    const input = screen.getByRole('combobox', {name: 'Users'});
 
     await user.type(input, 'ali');
     expect(await screen.findByText('Alice')).toBeInTheDocument();

@@ -59,7 +59,7 @@ describe('ContextPickerModal', () => {
     render(getComponent());
 
     expect(screen.getByText('Select an Organization')).toBeInTheDocument();
-    expect(screen.getByRole('textbox')).toHaveFocus();
+    expect(screen.getByRole('combobox')).toHaveFocus();
     expect(screen.queryByText('Select a Project to continue')).not.toBeInTheDocument();
   });
 
@@ -139,7 +139,7 @@ describe('ContextPickerModal', () => {
     // Wait for projects to load before checking focus
     expect(await screen.findByText('My Projects')).toBeInTheDocument();
     // Project selector should have focus (there are two textboxes: org and project)
-    const textboxes = screen.getAllByRole('textbox');
+    const textboxes = screen.getAllByRole('combobox');
     expect(textboxes[1]).toHaveFocus();
     expect(screen.getByText(project.slug)).toBeInTheDocument();
     expect(screen.getByText(project2.slug)).toBeInTheDocument();
@@ -169,7 +169,7 @@ describe('ContextPickerModal', () => {
 
     // Should not have anything selected
     expect(screen.getByText('Select an Organization')).toBeInTheDocument();
-    expect(screen.getByRole('textbox')).toHaveFocus();
+    expect(screen.getByRole('combobox')).toHaveFocus();
 
     // Select org2
     await selectEvent.select(screen.getByText('Select an Organization'), org2.slug);
@@ -533,7 +533,7 @@ describe('ContextPickerModal', () => {
     expect(await screen.findByText(`#${team1.slug}`)).toBeInTheDocument();
 
     // Team selector should have focus, not the org selector
-    const textboxes = screen.getAllByRole('textbox');
+    const textboxes = screen.getAllByRole('combobox');
     expect(textboxes[1]).toHaveFocus();
   });
 

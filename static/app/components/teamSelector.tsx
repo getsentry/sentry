@@ -8,7 +8,7 @@ import {useDebouncedCallback} from '@tanstack/react-pacer';
 import type {DistributedOmit} from 'type-fest';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import type {
   ControlProps,
   SelectHandle,
@@ -68,25 +68,6 @@ const getUnassignedSelectStyles = (theme: Theme): StylesConfig => ({
   }),
 });
 
-const getPlaceholderSelectStyles = (theme: Theme): StylesConfig => ({
-  input: provided => ({
-    ...provided,
-    display: 'grid',
-    gridTemplateColumns: 'max-content 1fr',
-    alignItems: 'center',
-    gridGap: theme.space.md,
-    ':before': {
-      backgroundColor: theme.tokens.background.secondary,
-      height: 24,
-      width: 24,
-      borderRadius: 3,
-      content: '""',
-      display: 'block',
-    },
-  }),
-  placeholder: provided => ({...provided, paddingLeft: 32}),
-});
-
 type Props = DistributedOmit<
   ControlProps<string | null, TeamOption>,
   'onChange' | 'options'
@@ -133,6 +114,7 @@ export function TeamSelector(props: Props) {
     allowCreate,
     includeUnassigned,
     filterByUserMembership = false,
+    leadingItems,
     styles: stylesProp,
     onChange,
     useTeamDefaultIfOnlyOne = false,
@@ -342,11 +324,13 @@ export function TeamSelector(props: Props) {
   const styles = useMemo(
     () => ({
       ...(includeUnassigned ? getUnassignedSelectStyles(theme) : {}),
-      ...(multiple ? {} : getPlaceholderSelectStyles(theme)),
       ...stylesProp,
     }),
-    [includeUnassigned, multiple, stylesProp, theme]
+    [includeUnassigned, stylesProp, theme]
   );
+
+  const showPlaceholderAvatar =
+    !multiple && !options.some(option => option.value === value);
 
   useEffect(() => {
     // Only take action after we've finished loading the teams
@@ -373,6 +357,18 @@ export function TeamSelector(props: Props) {
       options={options}
       onInputChange={handleInputChange}
       filterOption={filterOption}
+      leadingItems={
+        leadingItems ??
+        (showPlaceholderAvatar ? (
+          <Container
+            aria-hidden
+            width="24px"
+            height="24px"
+            background="secondary"
+            radius="xs"
+          />
+        ) : undefined)
+      }
       styles={styles}
       isLoading={fetching || loadingSelectedTeams}
       onChange={handleChange as never}

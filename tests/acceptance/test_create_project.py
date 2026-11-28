@@ -25,7 +25,7 @@ class CreateProjectTest(AcceptanceTestCase):
 
     def test_no_teams(self) -> None:
         self.load_project_creation_page()
-        self.browser.click(None, "//*[text()='Select a Team']")
+        self.browser.click('[role="combobox"][aria-label="Select a Team"]')
         self.browser.click('[data-test-id="create-team-option"]')
         self.browser.wait_until("[role='dialog']")
         input = self.browser.element('input[name="slug"]')
@@ -240,10 +240,9 @@ class ScmCreateProjectTest(AcceptanceTestCase):
 
             platform_input = self.browser.element('input[aria-autocomplete="list"]')
             platform_input.send_keys("React")
-            self.browser.wait_until(
-                xpath='//p[@data-test-id="menu-list-item-label"][text()="React"]'
-            )
-            self.browser.click(xpath='//p[@data-test-id="menu-list-item-label"][text()="React"]')
+            react_option = '[role="option"][data-test-id="javascript-react"]'
+            self.browser.wait_until(react_option)
+            self.browser.click(react_option)
 
             self.browser.wait_until(
                 xpath='//*[@role="checkbox" or (self::label and .//input[@type="checkbox"])][.//*[text()="Tracing"]]'

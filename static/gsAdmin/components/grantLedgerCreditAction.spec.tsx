@@ -30,7 +30,7 @@ describe('GrantLedgerCreditAction', () => {
   });
 
   async function selectLineItemAndAmount() {
-    await userEvent.click(await screen.findByRole('textbox', {name: 'Line Item'}));
+    await userEvent.click(await screen.findByRole('combobox', {name: 'Line Item'}));
     await userEvent.click(screen.getByText('Seer Credit (balance $12.50)'));
     await userEvent.type(screen.getByRole('spinbutton', {name: 'Amount'}), '25');
   }

@@ -160,7 +160,7 @@ describe('ScmIntegrationConnect', () => {
     act(() => onComplete?.(githubGetsentry));
 
     expect(
-      await screen.findByRole('textbox', {name: 'Search repositories'})
+      await screen.findByRole('combobox', {name: 'Search repositories'})
     ).toHaveFocus();
   });
 

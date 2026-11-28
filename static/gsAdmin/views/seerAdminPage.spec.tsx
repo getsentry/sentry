@@ -35,7 +35,7 @@ describe('SeerAdminPage', () => {
       name: 'Dry run (triage only, no autofix triggered)',
     });
 
-    await selectEvent.select(screen.getAllByRole('textbox', {name: 'Region'})[0]!, 'EU');
+    await selectEvent.select(screen.getAllByRole('combobox', {name: 'Region'})[0]!, 'EU');
     await userEvent.type(organizationId, '123');
     await userEvent.type(maxCandidates, '5');
     await userEvent.click(dryRun);
@@ -230,7 +230,7 @@ describe('SyntheticMetricBreachForm', () => {
 
     expect(await screen.findByText('Default organization (sentry)')).toBeInTheDocument();
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Metric monitor'}),
+      screen.getByRole('combobox', {name: 'Metric monitor'}),
       'Checkout latency (Project ID: 7, Monitor ID: 42)'
     );
     expect(monitors).toHaveBeenCalledWith(
@@ -250,9 +250,9 @@ describe('SyntheticMetricBreachForm', () => {
     });
     render(<SyntheticMetricBreachForm />);
 
-    await userEvent.type(screen.getByRole('textbox', {name: 'Organization'}), 'Test');
+    await userEvent.type(screen.getByRole('combobox', {name: 'Organization'}), 'Test');
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Organization'}),
+      screen.getByRole('combobox', {name: 'Organization'}),
       'Test organization (test-org)'
     );
     await act(async () => {
@@ -280,8 +280,11 @@ describe('SyntheticMetricBreachForm', () => {
     });
     render(<SyntheticMetricBreachForm />);
 
-    await selectEvent.select(screen.getByRole('textbox', {name: 'Region'}), 'EU');
-    await userEvent.type(screen.getByRole('textbox', {name: 'Organization'}), 'TEST-ORG');
+    await selectEvent.select(screen.getByRole('combobox', {name: 'Region'}), 'EU');
+    await userEvent.type(
+      screen.getByRole('combobox', {name: 'Organization'}),
+      'TEST-ORG'
+    );
     expect(await screen.findByText('Other organization (other-org)')).toBeInTheDocument();
     expect(firstPage).toHaveBeenCalledWith(
       '/_admin/cells/eu/customers/',
@@ -292,11 +295,12 @@ describe('SyntheticMetricBreachForm', () => {
     );
     await userEvent.click(screen.getByRole('button', {name: 'Load more organizations'}));
     expect(await screen.findByText('Test organization (test-org)')).toBeInTheDocument();
-    expect(
-      screen.getAllByRole('menuitemradio').map(option => option.textContent)
-    ).toEqual(['Test organization (test-org)', 'Other organization (other-org)']);
+    expect(screen.getAllByRole('option').map(option => option.textContent)).toEqual([
+      'Test organization (test-org)',
+      'Other organization (other-org)',
+    ]);
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Organization'}),
+      screen.getByRole('combobox', {name: 'Organization'}),
       'Test organization (test-org)'
     );
     expect(nextPage).toHaveBeenCalledWith(
@@ -328,14 +332,14 @@ describe('SyntheticMetricBreachForm', () => {
     });
     render(<SyntheticMetricBreachForm />);
 
-    await selectEvent.select(screen.getByRole('textbox', {name: 'Region'}), 'EU');
-    await userEvent.type(screen.getByRole('textbox', {name: 'Organization'}), 'Te');
+    await selectEvent.select(screen.getByRole('combobox', {name: 'Region'}), 'EU');
+    await userEvent.type(screen.getByRole('combobox', {name: 'Organization'}), 'Te');
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Organization'}),
+      screen.getByRole('combobox', {name: 'Organization'}),
       'Test organization (test-org)'
     );
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Metric monitor'}),
+      screen.getByRole('combobox', {name: 'Metric monitor'}),
       'Checkout latency (Project ID: 8, Monitor ID: 44)'
     );
     const submit = screen.getByRole('button', {name: 'Create test breach'});
@@ -390,13 +394,13 @@ describe('SyntheticMetricBreachForm', () => {
       body: [otherMonitor],
     });
     render(<SyntheticMetricBreachForm />);
-    await userEvent.type(screen.getByRole('textbox', {name: 'Organization'}), 'Test');
+    await userEvent.type(screen.getByRole('combobox', {name: 'Organization'}), 'Test');
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Organization'}),
+      screen.getByRole('combobox', {name: 'Organization'}),
       'Test organization (test-org)'
     );
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Metric monitor'}),
+      screen.getByRole('combobox', {name: 'Metric monitor'}),
       'Checkout latency (Project ID: 7, Monitor ID: 42)'
     );
     await userEvent.click(screen.getByRole('button', {name: 'Create test breach'}));
@@ -408,9 +412,9 @@ describe('SyntheticMetricBreachForm', () => {
       body: {issueId: '9', issueUrl: 'https://example.com/issues/9/', eventId: 'event-9'},
     });
     await userEvent.click(screen.getByRole('button', {name: 'Create test breach'}));
-    await userEvent.type(screen.getByRole('textbox', {name: 'Organization'}), 'Other');
+    await userEvent.type(screen.getByRole('combobox', {name: 'Organization'}), 'Other');
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Organization'}),
+      screen.getByRole('combobox', {name: 'Organization'}),
       'Other organization (other-org)'
     );
     expect(
@@ -422,7 +426,7 @@ describe('SyntheticMetricBreachForm', () => {
       await response.promise;
     });
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Metric monitor'}),
+      screen.getByRole('combobox', {name: 'Metric monitor'}),
       'API errors (Project ID: 8, Monitor ID: 43)'
     );
     await waitFor(() =>
@@ -436,7 +440,7 @@ describe('SyntheticMetricBreachForm', () => {
       })
     );
     expect(screen.queryByRole('link', {name: 'Open issue'})).not.toBeInTheDocument();
-    await selectEvent.select(screen.getByRole('textbox', {name: 'Region'}), 'EU');
+    await selectEvent.select(screen.getByRole('combobox', {name: 'Region'}), 'EU');
     expect(screen.queryByText('Other organization (other-org)')).not.toBeInTheDocument();
     expect(
       screen.queryByText('API errors (Project ID: 8, Monitor ID: 43)')
@@ -462,13 +466,13 @@ describe('SyntheticMetricBreachForm', () => {
       body: {detail: 'Synthetic breach was dropped by ingestion controls.'},
     });
     render(<SyntheticMetricBreachForm />);
-    await userEvent.type(screen.getByRole('textbox', {name: 'Organization'}), 'Test');
+    await userEvent.type(screen.getByRole('combobox', {name: 'Organization'}), 'Test');
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Organization'}),
+      screen.getByRole('combobox', {name: 'Organization'}),
       'Test organization (test-org)'
     );
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Metric monitor'}),
+      screen.getByRole('combobox', {name: 'Metric monitor'}),
       'Checkout latency (Project ID: 7, Monitor ID: 42)'
     );
     await userEvent.click(screen.getByRole('button', {name: 'Create test breach'}));

@@ -183,7 +183,9 @@ describe('Team Selector', () => {
     createWrapper({allowCreate: true, onChange: onChangeMock}, orgWithAccess);
 
     await userEvent.type(screen.getByText('Select...'), '{keyDown}');
-    await userEvent.click(screen.getByText('Create team'));
+    const createTeam = screen.getByRole('option', {name: 'Create team'});
+    expect(createTeam).toHaveAttribute('data-test-id', 'create-team-option');
+    await userEvent.click(createTeam);
     // it opens the create team modal
     expect(openCreateTeamModal).toHaveBeenCalled();
   });
@@ -206,7 +208,7 @@ describe('Team Selector', () => {
       <TeamSelector allowCreate multiple value={['team1']} onChange={onChangeMock} />
     );
 
-    await selectEvent.select(screen.getByRole('textbox'), ['#team2', 'Create team']);
+    await selectEvent.select(screen.getByRole('combobox'), ['#team2', 'Create team']);
     // it opens the create team modal since the create team option is selected
     expect(openCreateTeamModal).toHaveBeenCalled();
   });

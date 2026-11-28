@@ -1,3 +1,4 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptorObject} from 'history';
 import pick from 'lodash/pick';
@@ -61,6 +62,7 @@ export function TeamStatsControls({
   currentEnvironment,
   showEnvironment,
 }: Props) {
+  const theme = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
   const {projects} = useProjects({
@@ -145,17 +147,16 @@ export function TeamStatsControls({
     >
       <TeamSelector
         name="select-team"
-        controlLeadingItems={
-          <Container paddingLeft="lg" flexShrink={0}>
-            <Text bold wrap="nowrap">
-              {t('Team:')}
-            </Text>
-          </Container>
+        leadingItems={
+          <Text bold wrap="nowrap">
+            {t('Team:')}
+          </Text>
         }
+        styles={{singleValue: base => ({...base, paddingInlineStart: theme.space.xs})}}
         value={currentTeam?.slug ?? null}
-        onChange={(choice: any) => handleChangeTeam(choice.actor.id)}
+        onChange={choice => handleChangeTeam(choice.actor.id)}
         teamFilter={
-          isSuperuser || isOrgOwner ? undefined : (filterTeam: any) => filterTeam.isMember
+          isSuperuser || isOrgOwner ? undefined : filterTeam => filterTeam.isMember
         }
       />
       {showEnvironment && (
@@ -163,12 +164,10 @@ export function TeamStatsControls({
           options={[{value: '', label: t('All')}, ...environmentOptions]}
           value={currentEnvironment ?? ''}
           onChange={handleEnvironmentChange}
-          controlLeadingItems={
-            <Container paddingLeft="lg" flexShrink={0}>
-              <Text bold wrap="nowrap">
-                {t('Environment:')}
-              </Text>
-            </Container>
+          leadingItems={
+            <Text bold wrap="nowrap">
+              {t('Environment:')}
+            </Text>
           }
         />
       )}

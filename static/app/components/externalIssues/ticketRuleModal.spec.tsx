@@ -118,13 +118,13 @@ describe('ProjectAlerts -> TicketRuleModal', () => {
 
     it('should save the modal data when "Apply Changes" is clicked with valid data', async () => {
       await renderTicketRuleModal();
-      await selectEvent.select(screen.getByRole('textbox', {name: 'Reporter'}), 'a');
+      await selectEvent.select(screen.getByRole('combobox', {name: 'Reporter'}), 'a');
       await submitSuccess();
     });
 
     it('should reload fields when an "updatesForm" field changes', async () => {
       await renderTicketRuleModal();
-      await selectEvent.select(screen.getByRole('textbox', {name: 'Reporter'}), 'a');
+      await selectEvent.select(screen.getByRole('combobox', {name: 'Reporter'}), 'a');
 
       const dynamicQuery = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/integrations/1/',
@@ -151,11 +151,11 @@ describe('ProjectAlerts -> TicketRuleModal', () => {
       });
 
       await selectEvent.select(
-        screen.getByRole('textbox', {name: 'Issue Type'}),
+        screen.getByRole('combobox', {name: 'Issue Type'}),
         issueTypeLabel
       );
       expect(dynamicQuery).toHaveBeenCalled();
-      await selectEvent.select(screen.getByRole('textbox', {name: 'Assignee'}), 'b');
+      await selectEvent.select(screen.getByRole('combobox', {name: 'Assignee'}), 'b');
       await submitSuccess();
     });
 
@@ -237,7 +237,7 @@ describe('ProjectAlerts -> TicketRuleModal', () => {
       );
 
       await screen.findByRole('button', {name: 'Apply Changes'});
-      const projectField = screen.getByRole('textbox', {name: 'Project'});
+      const projectField = screen.getByRole('combobox', {name: 'Project'});
       await userEvent.click(projectField);
       await userEvent.type(projectField, 'Selected');
       await userEvent.click(await screen.findByText('Selected Project'));
@@ -249,18 +249,16 @@ describe('ProjectAlerts -> TicketRuleModal', () => {
       );
 
       const detailsField = screen.getByRole('textbox', {name: 'Details'});
-      const reloadedProjectField = screen.getByRole('textbox', {name: 'Project'});
+      const reloadedProjectField = screen.getByRole('combobox', {name: 'Project'});
       await userEvent.click(reloadedProjectField);
       await userEvent.type(reloadedProjectField, 'Other');
       expect(await screen.findByText('Other Project')).toBeInTheDocument();
       expect(laterSearchQuery).toHaveBeenCalledTimes(1);
       await userEvent.clear(reloadedProjectField);
       expect(
-        await screen.findByRole('menuitemradio', {name: 'Initial Project'})
+        await screen.findByRole('option', {name: 'Initial Project'})
       ).toBeInTheDocument();
-      expect(
-        screen.getByRole('menuitemradio', {name: 'Selected Project'})
-      ).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'Selected Project'})).toBeInTheDocument();
       await userEvent.click(detailsField);
       expect(screen.getByText('Selected Project')).toBeInTheDocument();
 
@@ -312,11 +310,11 @@ describe('ProjectAlerts -> TicketRuleModal', () => {
         screen.queryAllByText('Could not fetch saved option for Labels. Please reselect.')
       ).toHaveLength(0);
       await selectEvent.select(
-        screen.getByRole('textbox', {name: 'Issue Type'}),
+        screen.getByRole('combobox', {name: 'Issue Type'}),
         issueTypeLabel
       );
       expect(dynamicQuery).toHaveBeenCalled();
-      await selectEvent.select(screen.getByRole('textbox', {name: 'Labels'}), 'bug');
+      await selectEvent.select(screen.getByRole('combobox', {name: 'Labels'}), 'bug');
       await submitSuccess();
     });
 
@@ -398,11 +396,11 @@ describe('ProjectAlerts -> TicketRuleModal', () => {
 
       // Switch Issue Type so we refetch the config and update Reporter choices
       await selectEvent.select(
-        screen.getByRole('textbox', {name: 'Issue Type'}),
+        screen.getByRole('combobox', {name: 'Issue Type'}),
         issueTypeLabel
       );
       expect(dynamicQuery).toHaveBeenCalled();
-      await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Reporter'}));
+      await selectEvent.openMenu(screen.getByRole('combobox', {name: 'Reporter'}));
       const newChoice = await screen.findByText('b');
       expect(screen.queryByText('a')).not.toBeInTheDocument();
 
@@ -498,7 +496,7 @@ describe('ProjectAlerts -> TicketRuleModal', () => {
       });
 
       await selectEvent.select(
-        screen.getByRole('textbox', {name: 'Issue Type'}),
+        screen.getByRole('combobox', {name: 'Issue Type'}),
         issueTypeLabel
       );
 
@@ -513,7 +511,7 @@ describe('ProjectAlerts -> TicketRuleModal', () => {
       });
 
       expect(dynamicQuery).toHaveBeenCalled();
-      const menu = screen.getByRole('textbox', {name: 'Assignee'});
+      const menu = screen.getByRole('combobox', {name: 'Assignee'});
       await userEvent.click(menu);
       await userEvent.type(menu, 'Joe');
 
@@ -556,7 +554,7 @@ describe('ProjectAlerts -> TicketRuleModal', () => {
       });
 
       await selectEvent.select(
-        screen.getByRole('textbox', {name: 'Issue Type'}),
+        screen.getByRole('combobox', {name: 'Issue Type'}),
         issueTypeLabel
       );
 
@@ -569,7 +567,7 @@ describe('ProjectAlerts -> TicketRuleModal', () => {
       });
 
       expect(dynamicQuery).toHaveBeenCalled();
-      const menu = screen.getByRole('textbox', {name: 'Assignee'});
+      const menu = screen.getByRole('combobox', {name: 'Assignee'});
       await userEvent.click(menu);
       await userEvent.type(menu, 'Joe');
       await waitFor(() =>

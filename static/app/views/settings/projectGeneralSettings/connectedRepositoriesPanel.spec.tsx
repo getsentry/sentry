@@ -246,7 +246,7 @@ describe('ConnectedRepositoriesPanel', () => {
 
     // Both fields are locked in edit mode.
     expect(await screen.findByText('Edit code mappings')).toBeInTheDocument();
-    const [projectSelect, repoSelect] = screen.getAllByRole('textbox');
+    const [projectSelect, repoSelect] = screen.getAllByRole('combobox');
     expect(projectSelect).toBeDisabled();
     expect(repoSelect).toBeDisabled();
 
@@ -324,7 +324,7 @@ describe('ConnectedRepositoriesPanel', () => {
     expect(await screen.findByRole('button', {name: 'Save'})).toBeEnabled();
     await userEvent.click(screen.getByRole('button', {name: 'Add another path'}));
     await userEvent.type(
-      screen.getByRole('textbox', {name: /stack trace prefix/i}),
+      screen.getByRole('combobox', {name: /stack trace prefix/i}),
       'src/'
     );
     await userEvent.click(screen.getByRole('button', {name: 'Save'}));

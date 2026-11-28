@@ -7,7 +7,6 @@ export type {SelectValue} from '@sentry/scraps/menu';
 
 /** Content components receive public option data, without implementation props. */
 export interface SelectComponents<Option extends SelectValue<any> = SelectValue<any>> {
-  Indicators?: React.ComponentType<{children: React.ReactNode}> | null;
   MultiValueLabel?: React.ComponentType<{children: React.ReactNode; option: Option}>;
   OptionLabel?: React.ComponentType<{option: Option}>;
   Value?: React.ComponentType<{option: Option}>;
@@ -71,6 +70,17 @@ type SelectStyleSlot =
   | 'placeholder'
   | 'singleValue';
 
+type SelectStyleSlotState<Slot extends SelectStyleSlot, TOption> = Slot extends
+  | 'option'
+  | 'singleValue'
+  | 'multiValue'
+  | 'multiValueLabel'
+  | 'multiValueRemove'
+  ? SelectStyleState & {data: TOption}
+  : Slot extends 'control' | 'container'
+    ? Pick<SelectStyleState, 'isDisabled'>
+    : unknown;
+
 /** Style overrides receive CSS and selection state, without implementation components. */
 export type StylesConfig<
   TValue = unknown,
@@ -78,15 +88,19 @@ export type StylesConfig<
 > = {
   [Slot in SelectStyleSlot]?: (
     base: CSSObject,
-    state: Slot extends
-      | 'option'
-      | 'singleValue'
-      | 'multiValue'
-      | 'multiValueLabel'
-      | 'multiValueRemove'
-      ? SelectStyleState & {data: TOption}
-      : Slot extends 'control' | 'container'
-        ? Pick<SelectStyleState, 'isDisabled'>
-        : unknown
+    state: SelectStyleSlotState<Slot, TOption>
   ) => CSSObject;
 };
+
+export function applyStyleSlot<
+  TValue,
+  TOption extends SelectValue<TValue>,
+  Slot extends SelectStyleSlot,
+>(
+  styles: StylesConfig<TValue, TOption> | undefined,
+  slot: Slot,
+  base: CSSObject,
+  state: SelectStyleSlotState<NoInfer<Slot>, NoInfer<TOption>>
+): CSSObject {
+  return styles?.[slot]?.(base, state) ?? base;
+}

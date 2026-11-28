@@ -195,7 +195,7 @@ describe('ScmPlatformFeaturesCore', () => {
       organization,
     });
 
-    await userEvent.click(screen.getByRole('textbox'));
+    await userEvent.click(screen.getByRole('combobox'));
 
     expect(screen.getByText('Popular')).toBeInTheDocument();
     expect(screen.getByText('Other platforms')).toBeInTheDocument();
@@ -215,7 +215,7 @@ describe('ScmPlatformFeaturesCore', () => {
       {organization}
     );
 
-    await user.type(screen.getByRole('textbox'), 'java ');
+    await user.type(screen.getByRole('combobox'), 'java ');
 
     expect(trackAnalyticsSpy).not.toHaveBeenCalledWith(
       'growth.platformpicker_search',
@@ -236,7 +236,7 @@ describe('ScmPlatformFeaturesCore', () => {
       variant: 'scm',
     });
 
-    await user.type(screen.getByRole('textbox'), 'script');
+    await user.type(screen.getByRole('combobox'), 'script');
     expect(trackAnalyticsSpy).toHaveBeenCalledTimes(1);
     unmount();
     expect(trackAnalyticsSpy).toHaveBeenCalledTimes(2);
@@ -280,7 +280,7 @@ describe('ScmPlatformFeaturesCore', () => {
     await userEvent.click(
       await screen.findByRole('button', {name: "Not what you're building? Pick another"})
     );
-    expect(screen.getByRole('textbox', {name: 'Platform'})).toHaveFocus();
+    expect(screen.getByRole('combobox', {name: 'Platform'})).toHaveFocus();
 
     await userEvent.click(screen.getByRole('button', {name: 'Back to what we found'}));
     expect(screen.getByRole('radio', {name: /Python/})).toHaveFocus();
