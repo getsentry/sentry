@@ -216,20 +216,42 @@ failed as part of an uptime incident.
 
 
 class EapCheckEntrySerializerResponse(TypedDict):
-    uptimeCheckId: str
-    timestamp: str
-    scheduledCheckTime: str
-    checkStatus: SerializedCheckStatus
-    checkStatusReason: CheckStatusReasonType | None
-    assertionFailureData: Assertion | None
-    httpStatusCode: int | None
-    durationMs: int
-    traceId: str
-    traceItemId: str
-    incidentStatus: int
-    environment: str
-    region: str
-    regionName: str
+    uptimeCheckId: Annotated[str, ApiDescription("ID of the check")]
+    timestamp: Annotated[str, ApiDescription("When the check ran, in ISO 8601 format")]
+    scheduledCheckTime: Annotated[
+        str, ApiDescription("When the check was scheduled to run, in ISO 8601 format")
+    ]
+    checkStatus: Annotated[
+        SerializedCheckStatus,
+        ApiDescription(
+            "Outcome of the check. `failure_incident` is a failure during an open incident"
+        ),
+    ]
+    checkStatusReason: Annotated[
+        CheckStatusReasonType | None,
+        ApiDescription("Why the check didn't succeed. Null when it succeeded"),
+    ]
+    assertionFailureData: Annotated[
+        Assertion | None,
+        ApiDescription("The assertion the response failed. Null when no assertion failed"),
+        ApiSchema(_assertion_schema),
+    ]
+    httpStatusCode: Annotated[
+        int | None,
+        ApiDescription("HTTP status code of the response. Null when there was no response"),
+    ]
+    durationMs: Annotated[int, ApiDescription("How long the check took, in milliseconds")]
+    traceId: Annotated[str, ApiDescription("ID of the trace the check request started")]
+    traceItemId: Annotated[str, ApiDescription("ID of the stored check result")]
+    incidentStatus: Annotated[
+        int,
+        ApiDescription("Whether the monitor had an open incident: 0 for no, 1 for yes"),
+    ]
+    environment: Annotated[str, ApiDescription("Environment of the uptime monitor")]
+    region: Annotated[str, ApiDescription("Slug of the region the check ran from")]
+    regionName: Annotated[
+        str, ApiDescription("Name of the region the check ran from, or `Unknown`")
+    ]
 
 
 @register(EapCheckEntry)
@@ -270,11 +292,13 @@ class EapCheckEntrySerializer(Serializer[EapCheckEntrySerializerResponse]):
 
 
 class UptimeSummarySerializerResponse(TypedDict):
-    totalChecks: int
-    failedChecks: int
-    downtimeChecks: int
-    missedWindowChecks: int
-    avgDurationUs: float
+    totalChecks: Annotated[int, ApiDescription("Checks that ran in the time range")]
+    failedChecks: Annotated[int, ApiDescription("Checks that failed outside an open incident")]
+    downtimeChecks: Annotated[int, ApiDescription("Checks that failed during an open incident")]
+    missedWindowChecks: Annotated[
+        int, ApiDescription("Checks that didn't run in their time window")
+    ]
+    avgDurationUs: Annotated[float, ApiDescription("Average check duration, in microseconds")]
 
 
 @register(UptimeSummary)
