@@ -15,6 +15,12 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {AnsiText} from 'sentry/components/ansiText';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {EventMessage} from 'sentry/components/events/eventMessage';
+import {AssessImpactButton} from 'sentry/components/issues/impact/assessImpact';
+import {ImpactBadge} from 'sentry/components/issues/impact/impactBadge';
+import {
+  useAssessedImpact,
+  useHasImpactAssessment,
+} from 'sentry/components/issues/impact/utils';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
@@ -36,12 +42,6 @@ import {IssueDetailsContextProvider} from 'sentry/views/issueDetails/context';
 import {EventDetailsHeader} from 'sentry/views/issueDetails/eventDetailsHeader';
 import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
 import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
-import {
-  AssessImpactButton,
-  GroupImpactBadge,
-  useAssessedImpact,
-  useHasImpactAssessment,
-} from 'sentry/views/issueDetails/groupImpact';
 import {GroupPriority} from 'sentry/views/issueDetails/groupPriority';
 import {
   relatedIssuesApiOptions,
@@ -156,6 +156,7 @@ interface InboxIssueSectionProps {
 
 function InboxIssuePreviewHeader({group, project, event}: InboxIssueSectionProps) {
   const organization = useOrganization();
+  const impact = useAssessedImpact(group);
   const {title = ''} = getTitle(group);
   const {userParticipants, teamParticipants} = useMemo(
     () => ({
@@ -192,7 +193,7 @@ function InboxIssuePreviewHeader({group, project, event}: InboxIssueSectionProps
       <Flex justify="between" align="center" gap="md" wrap="wrap">
         <GroupActions group={group} project={project} event={event ?? null} />
         <Flex align="center" gap="md">
-          <GroupImpactBadge group={group} />
+          {impact && <ImpactBadge impact={impact} hovercard />}
           {hasParticipants && (
             <ParticipantList
               users={userParticipants}
@@ -274,18 +275,18 @@ function InboxIssueSidebar({group, project, event}: InboxIssueSectionProps) {
 }
 
 function InboxImpactField({group}: {group: Group}) {
-  const hasImpact = useAssessedImpact(group) !== null;
+  const impact = useAssessedImpact(group);
   const canAssessImpact = useHasImpactAssessment();
 
-  if (!hasImpact && !canAssessImpact) {
+  if (!impact && !canAssessImpact) {
     return null;
   }
 
   return (
     <SidebarField label={t('Impact')} leadingItems={<FeatureBadge type="alpha" />}>
-      {hasImpact ? (
+      {impact ? (
         <Flex>
-          <GroupImpactBadge group={group} />
+          <ImpactBadge impact={impact} hovercard />
         </Flex>
       ) : (
         <AssessImpactButton group={group} />

@@ -15,6 +15,8 @@ import {AnsiText} from 'sentry/components/ansiText';
 import {Count} from 'sentry/components/count';
 import {EventMessage} from 'sentry/components/events/eventMessage';
 import {useFeedbackSDKIntegration} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
+import {ImpactBadge} from 'sentry/components/issues/impact/impactBadge';
+import {useAssessedImpact} from 'sentry/components/issues/impact/utils';
 import {TourElement} from 'sentry/components/tours/components';
 import {MAX_PICKABLE_DAYS} from 'sentry/constants';
 import {t} from 'sentry/locale';
@@ -29,7 +31,6 @@ import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {GroupActions} from 'sentry/views/issueDetails/actions/index';
-import {GroupImpactBadge, useAssessedImpact} from 'sentry/views/issueDetails/groupImpact';
 import {GroupPriority} from 'sentry/views/issueDetails/groupPriority';
 import {
   IssueDetailsTour,
@@ -72,7 +73,7 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
   const issueTypeConfig = getConfigForIssueType(group, project);
 
   const issueItem = useIssueIdBreadcrumbItem({project, group});
-  const hasImpact = useAssessedImpact(group) !== null;
+  const impact = useAssessedImpact(group);
 
   return (
     <Fragment>
@@ -225,10 +226,10 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
                   <Text variant="muted">{t('Priority')}</Text>
                   <GroupPriority group={group} />
                 </Flex>
-                {hasImpact && (
+                {impact && (
                   <Flex align="center" gap="xs">
                     <Text variant="muted">{t('Impact')}</Text>
-                    <GroupImpactBadge group={group} />
+                    <ImpactBadge impact={impact} hovercard />
                   </Flex>
                 )}
                 <Flex align="center" gap="xs">

@@ -5,6 +5,7 @@ import {DateTime} from '@sentry/scraps/dateTime';
 import {Link} from '@sentry/scraps/link';
 
 import {Duration} from 'sentry/components/duration';
+import {ImpactBadge} from 'sentry/components/issues/impact/impactBadge';
 import {t, tct, tn} from 'sentry/locale';
 import type {
   GroupActivity,
@@ -17,7 +18,6 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {formatDuration} from 'sentry/utils/duration/formatDuration';
 import {getIntegrationDisplayName} from 'sentry/utils/integrationUtil';
-import {ImpactChip} from 'sentry/views/issueDetails/groupImpact';
 
 import {getAssignedActivityItem} from './activityItem/assignment';
 import {getResolvedInCommitDetails} from './activityItem/commitDetails';
@@ -617,7 +617,7 @@ function getActivityItemContent({
       }
       return {
         title: t('Impact assessed'),
-        details: tct('as [impact]', {impact: <ImpactChip level={level} score={score} />}),
+        details: tct('as [impact]', {impact: <ImpactBadge impact={{level, score}} />}),
       };
     }
     case GroupActivityType.INVESTIGATION_LINKED: {

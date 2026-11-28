@@ -1,11 +1,12 @@
 import {Fragment} from 'react';
 
-import {FeatureBadge, Tag} from '@sentry/scraps/badge';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {Link} from '@sentry/scraps/link';
+import {FeatureBadge} from '@sentry/scraps/badge';
+import {Container, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {ImpactBadge} from 'sentry/components/issues/impact/impactBadge';
+import {ImpactCitations} from 'sentry/components/issues/impact/impactCitations';
+import {hasImpactCitations} from 'sentry/components/issues/impact/utils';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
 import {
@@ -14,10 +15,8 @@ import {
   type GroupActivity,
   type GroupActivityImpactAssessment,
 } from 'sentry/types/group';
-import {getShortEventId} from 'sentry/utils/events';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {Timeline} from 'sentry/views/issueDetails/activitySection/timeline';
-import {ImpactChip} from 'sentry/views/issueDetails/groupImpact';
 
 import {ActivityLineHeadline} from './layout';
 import {ActivityLineMarker} from './marker';
@@ -48,7 +47,7 @@ export function ActivityLineImpact({
           title={assessed ? t('Impact assessed') : t("Impact wasn't assessed")}
           details={
             assessed
-              ? tct('as [impact]', {impact: <ImpactChip level={level} score={score} />})
+              ? tct('as [impact]', {impact: <ImpactBadge impact={{level, score}} />})
               : undefined
           }
           timestamp={
@@ -75,45 +74,16 @@ function ImpactActivityDetails({
   group: Group;
 }) {
   const organization = useOrganization();
-  const {description, citations, sourceEventId} = activity.data;
-  const eventUrl = `/organizations/${organization.slug}/issues/${group.id}/events/${sourceEventId}/`;
-  const showCitations = organization.features.includes(
-    'seer-impact-assessment-citations'
-  );
   return (
     <Stack gap="md" data-test-id="impact-activity-details">
       <Text as="p" density="comfortable">
-        {description}
+        {activity.data.description}
       </Text>
-      {showCitations && (
-        <Flex gap="xs" wrap="wrap" borderTop="secondary" paddingTop="md">
-          <Container>
-            <Text bold size="xs">
-              {t('Citations:')}
-            </Text>
-          </Container>
-          {citations.map((citation, index) => (
-            <Tooltip
-              key={`${citation.source}:${citation.reference}:${index}`}
-              title={
-                <Fragment>
-                  <Tooltip.Header
-                    trailingItems={
-                      <Link to={eventUrl}>{getShortEventId(sourceEventId)}</Link>
-                    }
-                  >
-                    <Text size="sm">{t('Source Event')}</Text>
-                  </Tooltip.Header>
-                  <Text size="sm" align="left">
-                    {citation.claim}
-                  </Text>
-                </Fragment>
-              }
-            >
-              <Tag variant="muted">{citation.source}</Tag>
-            </Tooltip>
-          ))}
-        </Flex>
+      {hasImpactCitations(organization) && (
+        <Fragment>
+          <Stack.Separator border="secondary" />
+          <ImpactCitations impact={activity.data} group={group} />
+        </Fragment>
       )}
     </Stack>
   );
