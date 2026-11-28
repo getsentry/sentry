@@ -7,12 +7,20 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.notification_action.utils import execute_via_group_type_registry
 from sentry.workflow_engine.transformers import TargetTypeConfigTransformer
-from sentry.workflow_engine.types import ActionHandler, ActionInvocation, ConfigTransformer
+from sentry.workflow_engine.types import (
+    ActionHandler,
+    ActionInvocation,
+    ConfigTransformer,
+    require_issue_group,
+    require_project_scoped_detector,
+)
 
 logger = logging.getLogger(__name__)
 
 
 class IntegrationActionHandler(ActionHandler, ABC):
+    event_validators = (require_issue_group,)
+    invocation_validators = (require_project_scoped_detector,)
     provider_slug: IntegrationProviderSlug
 
 

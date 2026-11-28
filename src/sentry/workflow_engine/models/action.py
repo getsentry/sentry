@@ -21,6 +21,7 @@ from sentry.workflow_engine.registry import action_handler_registry
 from sentry.workflow_engine.types import (
     ActionHandler,
     ActionInvocation,
+    UnsupportedActionEvent,
     WorkflowEventData,
     WorkflowId,
 )
@@ -134,14 +135,20 @@ class Action(DefaultFieldsModel, JSONConfigBase):
     ) -> None:
         from sentry.workflow_engine.processors.detector import get_preferred_detector
 
+        organization = event_data.get_organization()
+        handler = self.get_handler()
+        handler.validate_event_data(event_data)
         detector = get_preferred_detector(event_data)
+        if detector.get_organization_id() != organization.id:
+            raise UnsupportedActionEvent(
+                "Action detector and event must belong to the same organization"
+            )
 
         with metrics.timer(
             "workflow_engine.action.trigger.execution_time",
             tags={"action_type": self.type, "detector_type": detector.type},
             sample_rate=1.0,
         ):
-            handler = self.get_handler()
             invocation = ActionInvocation(
                 event_data=event_data,
                 action=self,
@@ -149,6 +156,7 @@ class Action(DefaultFieldsModel, JSONConfigBase):
                 notification_uuid=notification_uuid,
                 workflow_id=workflow_id,
             )
+            handler.validate_invocation(invocation)
             handler.execute(invocation)
 
         metrics.incr(
@@ -162,6 +170,8 @@ class Action(DefaultFieldsModel, JSONConfigBase):
             extra={
                 "detector_id": detector.id,
                 "action_id": self.id,
+                "organization_id": organization.id,
+                "group_id": event_data.group_id,
             },
         )
 

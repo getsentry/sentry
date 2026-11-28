@@ -22,6 +22,7 @@ from sentry.db.models.utils import is_model_attr_cached
 from sentry.issues import grouptype
 from sentry.issues.grouptype import GroupType
 from sentry.models.owner_base import OwnerModel
+from sentry.models.project import Project
 from sentry.utils.cache import cache
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.endpoints.utils.detector_filters import get_detector_type_filters
@@ -33,7 +34,6 @@ from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 from .json_config import JSONConfigBase
 
 if TYPE_CHECKING:
-    from sentry.models.project import Project
     from sentry.workflow_engine.handlers.detector import BaseDetectorHandler
     from sentry.workflow_engine.models.data_condition_group import DataConditionGroupSnapshot
 
@@ -298,6 +298,15 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     }
 
     CACHE_TTL = 60 * 10
+
+    def get_organization_id(self) -> int | None:
+        """Projectless detectors store their owning organization ID in config."""
+        if self.project_id is None:
+            return self.config.get("organization_id")
+
+        if is_model_attr_cached(self, "project"):
+            return self.linked_project.organization_id
+        return Project.objects.get_from_cache(id=self.project_id).organization_id
 
     @property
     def linked_project(self) -> Project:

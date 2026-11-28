@@ -7,16 +7,29 @@ from jsonschema import ValidationError
 from sentry.services.eventstore.models import GroupEvent
 from sentry.testutils.cases import TestCase
 from sentry.utils.registry import NoRegistrationExistsError
-from sentry.workflow_engine.models import Action, Detector
-from sentry.workflow_engine.types import ActionHandler, ActionInvocation, WorkflowEventData
+from sentry.workflow_engine.models import Action
+from sentry.workflow_engine.types import (
+    ActionHandler,
+    ActionInvocation,
+    UnsupportedActionEvent,
+    WorkflowEventData,
+)
+from tests.sentry.workflow_engine.test_base import OrganizationEvent
 
 
 class TestAction(TestCase):
     def setUp(self) -> None:
         mock_group_event = Mock(spec=GroupEvent)
         self.group = self.create_group()
+        mock_group_event.project = self.group.project
+        mock_group_event.project_id = self.group.project_id
+        self.detector = self.create_detector(project=self.group.project)
 
         self.mock_event = WorkflowEventData(event=mock_group_event, group=self.group)
+        self.organization_event = WorkflowEventData(
+            event=OrganizationEvent(organization_id=self.organization.id, event_id=uuid.uuid4()),
+            organization=self.organization,
+        )
         self.action = Action(type=Action.Type.SLACK)
         self.workflow = self.create_workflow()
         self.config_schema = {
@@ -85,29 +98,27 @@ class TestAction(TestCase):
             mock_get.assert_called_once_with(Action.Type.SLACK)
 
     @patch("sentry.workflow_engine.processors.detector.get_preferred_detector")
-    def test_trigger_calls_handler_execute(self, mock_get_detector: MagicMock) -> None:
-        mock_handler = Mock(spec=ActionHandler)
-        mock_detector = Mock(spec=Detector, type="error")
-        mock_get_detector.return_value = mock_detector
-
+    def test_group_less_invocation(self, mock_get_detector: MagicMock) -> None:
+        detector = self.create_all_projects_detector(self.organization)
+        # ISWF-3709 adds concrete investigation detector resolution and task transport.
+        mock_get_detector.return_value = detector
         notification_uuid = str(uuid.uuid4())
-        with patch.object(self.action, "get_handler", return_value=mock_handler):
-            self.action.trigger(
-                self.mock_event, notification_uuid=notification_uuid, workflow_id=self.workflow.id
+        with (
+            patch.object(Action, "get_handler", return_value=ActionHandler),
+            patch.object(ActionHandler, "execute") as execute,
+        ):
+            self.action.trigger(self.organization_event, notification_uuid, self.workflow.id)
+        execute.assert_called_once_with(
+            ActionInvocation(
+                self.organization_event, self.action, detector, notification_uuid, self.workflow.id
             )
-
-            assert mock_handler.execute.call_count == 1
-            invocation = mock_handler.execute.call_args[0][0]
-            assert isinstance(invocation, ActionInvocation)
-            assert invocation.event_data == self.mock_event
-            assert invocation.action == self.action
-            assert invocation.detector == mock_detector
+        )
 
     @patch("sentry.workflow_engine.processors.detector.get_preferred_detector")
     def test_trigger_with_failing_handler(self, mock_get_detector: MagicMock) -> None:
         mock_handler = Mock(spec=ActionHandler)
         mock_handler.execute.side_effect = Exception("Handler failed")
-        mock_get_detector.return_value = Mock(spec=Detector, type="error")
+        mock_get_detector.return_value = self.detector
 
         with patch.object(self.action, "get_handler", return_value=mock_handler):
             with pytest.raises(Exception, match="Handler failed"):
@@ -121,7 +132,7 @@ class TestAction(TestCase):
     @patch("sentry.workflow_engine.processors.detector.get_preferred_detector")
     def test_trigger_metrics(self, mock_get_detector: MagicMock, mock_incr: MagicMock) -> None:
         mock_handler = Mock(spec=ActionHandler)
-        mock_get_detector.return_value = Mock(spec=Detector, type="error")
+        mock_get_detector.return_value = self.detector
 
         with patch.object(self.action, "get_handler", return_value=mock_handler):
             self.action.trigger(
@@ -179,3 +190,55 @@ class TestAction(TestCase):
                 params = self.valid_params.copy()
                 params["data"] = {"baz": 42}
                 Action.objects.create(**params)
+
+    @patch("sentry.workflow_engine.processors.detector.get_preferred_detector")
+    def test_rejects_project_less_detector_for_issue_action(
+        self, mock_get_detector: MagicMock
+    ) -> None:
+        mock_get_detector.return_value = self.create_all_projects_detector(self.organization)
+        with pytest.raises(UnsupportedActionEvent, match="project-scoped detector"):
+            self.action.trigger(self.mock_event, str(uuid.uuid4()), self.workflow.id)
+
+    @patch("sentry.workflow_engine.processors.detector.get_preferred_detector")
+    def test_rejects_detector_from_another_organization(self, mock_get_detector: MagicMock) -> None:
+        mock_get_detector.return_value = self.create_detector(
+            project=self.create_project(organization=self.create_organization())
+        )
+        with pytest.raises(UnsupportedActionEvent, match="same organization"):
+            self.action.trigger(self.mock_event, str(uuid.uuid4()), self.workflow.id)
+
+    @patch("sentry.workflow_engine.processors.detector.get_preferred_detector")
+    def test_group_less_detector_organization_must_match(
+        self, mock_get_detector: MagicMock
+    ) -> None:
+        mock_get_detector.return_value = self.create_all_projects_detector(
+            self.create_organization()
+        )
+        with (
+            patch.object(Action, "get_handler", return_value=ActionHandler),
+            pytest.raises(UnsupportedActionEvent, match="same organization"),
+        ):
+            self.action.trigger(self.organization_event, str(uuid.uuid4()), self.workflow.id)
+
+    def test_issue_handler_rejects_group_less_event(self) -> None:
+        with (
+            patch.object(self.action.get_handler(), "execute") as execute,
+            pytest.raises(UnsupportedActionEvent, match="issue group"),
+        ):
+            self.action.trigger(self.organization_event, str(uuid.uuid4()), self.workflow.id)
+        execute.assert_not_called()
+
+    def test_seer_handler_rejects_group_less_event(self) -> None:
+        self.action.type = Action.Type.SEER_INVESTIGATION
+        with pytest.raises(UnsupportedActionEvent, match="issue group"):
+            self.action.trigger(self.organization_event, str(uuid.uuid4()), self.workflow.id)
+
+    @patch("sentry.workflow_engine.processors.detector.get_preferred_detector")
+    def test_seer_action_does_not_require_detector_project(
+        self, mock_get_detector: MagicMock
+    ) -> None:
+        mock_get_detector.return_value = self.create_all_projects_detector(self.organization)
+        self.action.type = Action.Type.SEER_INVESTIGATION
+        with patch.object(self.action.get_handler(), "execute") as execute:
+            self.action.trigger(self.mock_event, str(uuid.uuid4()), self.workflow.id)
+        execute.assert_called_once()

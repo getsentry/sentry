@@ -392,7 +392,7 @@ imply Workflow execution order.
 
 The processor updates frequency statuses and creates
 [`WorkflowFireHistory`](../models/workflow_fire_history.py) rows before `fire_actions`
-removes inactive actions and deduplicates by key. It then schedules
+removes unsupported or inactive actions and deduplicates by key. It then schedules
 [`trigger_action`](../tasks/actions.py) for retained actions. Fire-history rows describe
 scheduling, not successful external delivery, and can exist for actions that are later
 filtered or deduplicated.
@@ -402,8 +402,8 @@ The action task:
 1. Requires exactly one event ID or activity ID.
 2. Rebuilds `WorkflowEventData`.
 3. Loads the action and preferred detector.
-4. Creates an [`ActionInvocation`](../types.py).
-5. Calls the handler registered for the action type.
+4. Validates handler compatibility and detector/event organization consistency.
+5. Creates an [`ActionInvocation`](../types.py) and calls the registered handler.
 
 External integration calls therefore run outside the workflow evaluation task. Action
 handlers must handle deleted integrations and other expected external-state changes.

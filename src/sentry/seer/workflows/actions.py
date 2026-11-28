@@ -10,13 +10,19 @@ from sentry.services.eventstore.models import GroupEvent
 from sentry.utils import metrics
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.registry import action_handler_registry
-from sentry.workflow_engine.types import ActionHandler, ActionInvocation, FeatureGate
+from sentry.workflow_engine.types import (
+    ActionHandler,
+    ActionInvocation,
+    FeatureGate,
+    require_issue_group,
+)
 
 logger = logging.getLogger(__name__)
 
 
 @action_handler_registry.register(Action.Type.SEER_INVESTIGATION)
 class SeerInvestigationActionHandler(ActionHandler):
+    event_validators = (require_issue_group,)
     group = ActionHandler.Group.OTHER
     required_features = (FeatureGate("organizations:seer-automations"),)
     config_schema = {"type": "object", "properties": {}, "additionalProperties": False}
