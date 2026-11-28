@@ -31,6 +31,7 @@ describe('EventTraceView', () => {
     eventID: 'issue-5',
   });
   beforeEach(() => {
+    MockApiClient.addMockResponse({url: '/customers/org-slug/', method: 'GET', body: {}});
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/`,
       body: [],
@@ -48,7 +49,6 @@ describe('EventTraceView', () => {
 
   it('renders a trace', async () => {
     const size = 20;
-    MockApiClient.addMockResponse({url: '/customers/org-slug/', method: 'GET', body: {}});
     MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/${organization.slug}/trace-meta/${traceId}/`,
@@ -117,7 +117,6 @@ describe('EventTraceView', () => {
   });
 
   it('does not render the trace preview if it has no transactions', async () => {
-    MockApiClient.addMockResponse({url: '/customers/org-slug/', method: 'GET', body: {}});
     MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/${organization.slug}/trace-meta/${traceId}/`,
@@ -141,112 +140,151 @@ describe('EventTraceView', () => {
     expect(await screen.findByText('Trace Preview')).toBeInTheDocument();
   });
 
-  it('opens on Agent Activity when the error was raised inside an agent run', async () => {
+  describe('agent runs', () => {
     const agentOrganization = {
       ...organization,
       features: [...organization.features, 'issue-details-agent-run'],
     };
-    ProjectsStore.loadInitialData([
-      ProjectFixture({id: group.project.id, hasInsightsAgentMonitoring: true}),
-    ]);
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events/`,
-      match: [MockApiClient.matchQuery({dataset: 'spans'})],
-      body: {data: [{id: 'agent-span'}]},
-    });
-    MockApiClient.addMockResponse({url: '/customers/org-slug/', method: 'GET', body: {}});
-    MockApiClient.addMockResponse({
-      method: 'GET',
-      url: `/organizations/${organization.slug}/trace-meta/${traceId}/`,
-      body: {
-        errorsCount: 1,
-        logsCount: 0,
-        metricsCount: 0,
-        performanceIssuesCount: 0,
-        spansCount: 2,
-        spansCountMap: {},
-        uptimeCount: 0,
-      },
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/trace/${traceId}/`,
-      body: [
-        makeEAPSpan({
-          event_id: 'agent-span',
-          op: 'gen_ai.invoke_agent',
-          name: 'gen_ai.invoke_agent',
-          description: 'invoke_agent support-agent',
-          is_transaction: true,
-          additional_attributes: {
-            'gen_ai.operation.type': 'agent',
-            'gen_ai.agent.name': 'support-agent',
-          },
-          children: [
-            makeEAPSpan({
-              event_id: 'tool-span',
-              op: 'gen_ai.execute_tool',
-              name: 'gen_ai.execute_tool',
-              description: 'execute_tool search_docs',
-              additional_attributes: {
-                'gen_ai.operation.type': 'tool',
-                'gen_ai.tool.name': 'search_docs',
-              },
-              errors: [makeEAPError({event_id: 'issue-5'})],
-            }),
-          ],
-        }),
-      ],
+
+    beforeEach(() => {
+      ProjectsStore.loadInitialData([
+        ProjectFixture({id: group.project.id, hasInsightsAgentMonitoring: true}),
+      ]);
     });
 
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/users/`,
-      body: [],
+    it('opens on Agent Activity when the error was raised inside an agent run', async () => {
+      const trace = Promise.withResolvers<void>();
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events/`,
+        match: [MockApiClient.matchQuery({dataset: 'spans'})],
+        body: {data: [{id: 'agent-span'}]},
+      });
+      MockApiClient.addMockResponse({
+        method: 'GET',
+        url: `/organizations/${organization.slug}/trace-meta/${traceId}/`,
+        body: {
+          errorsCount: 1,
+          logsCount: 0,
+          metricsCount: 0,
+          performanceIssuesCount: 0,
+          spansCount: 2,
+          spansCountMap: {},
+          uptimeCount: 0,
+        },
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/trace/${traceId}/`,
+        asyncDelay: trace.promise,
+        body: [
+          makeEAPSpan({
+            event_id: 'agent-span',
+            op: 'gen_ai.invoke_agent',
+            name: 'gen_ai.invoke_agent',
+            description: 'invoke_agent support-agent',
+            is_transaction: true,
+            additional_attributes: {
+              'gen_ai.operation.type': 'agent',
+              'gen_ai.agent.name': 'support-agent',
+            },
+            children: [
+              makeEAPSpan({
+                event_id: 'tool-span',
+                op: 'gen_ai.execute_tool',
+                name: 'gen_ai.execute_tool',
+                description: 'execute_tool search_docs',
+                additional_attributes: {
+                  'gen_ai.operation.type': 'tool',
+                  'gen_ai.tool.name': 'search_docs',
+                },
+                errors: [makeEAPError({event_id: 'issue-5'})],
+              }),
+            ],
+          }),
+        ],
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/users/`,
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/`,
+        body: [GroupFixture({id: '2', shortId: 'EXAMPLE-2'})],
+        headers: {'X-Hits': '1'},
+        match: [
+          MockApiClient.matchQuery({query: `trace:${traceId} !issue.id:${group.id}`}),
+        ],
+      });
+
+      render(
+        <EventTraceView group={group} event={event} organization={agentOrganization} />,
+        {organization: agentOrganization}
+      );
+
+      expect(await screen.findByTestId('agent-activity-skeleton')).toBeInTheDocument();
+      trace.resolve();
+      const steps = await screen.findByText('search_docs');
+      expect(screen.queryByTestId('agent-activity-skeleton')).not.toBeInTheDocument();
+      // The trace's other issues sit below the view, outside the toggle.
+      const linkedIssues = screen.getByText('1 other issue appears in this trace.');
+      expect(
+        steps.compareDocumentPosition(linkedIssues) & Node.DOCUMENT_POSITION_FOLLOWING
+      ).toBeTruthy();
+      expect(screen.getByRole('radio', {name: 'Agent Activity'})).toBeChecked();
+      expect(trackAnalytics).toHaveBeenCalledWith('issue_details.agent_run.viewed', {
+        organization: agentOrganization,
+      });
+      expect(screen.getByRole('button', {name: 'View Full Trace'})).toHaveAttribute(
+        'href',
+        expect.stringContaining('tab=ai-spans')
+      );
+
+      await userEvent.click(screen.getByRole('radio', {name: 'Waterfall'}));
+      expect(screen.getAllByText('1 other issue appears in this trace.')).toHaveLength(1);
+      expect(screen.getByRole('button', {name: 'View Full Trace'})).not.toHaveAttribute(
+        'href',
+        expect.stringContaining('tab=ai-spans')
+      );
+
+      // Switching back to Agent Activity doesn't count as another view.
+      await userEvent.click(screen.getByRole('radio', {name: 'Agent Activity'}));
+      expect(
+        jest
+          .mocked(trackAnalytics)
+          .mock.calls.filter(([key]) => key === 'issue_details.agent_run.viewed')
+      ).toHaveLength(1);
     });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/`,
-      body: [GroupFixture({id: '2', shortId: 'EXAMPLE-2'})],
-      headers: {'X-Hits': '1'},
-      match: [
-        MockApiClient.matchQuery({query: `trace:${traceId} !issue.id:${group.id}`}),
-      ],
+
+    it('stays on the waterfall when no AI span was active at the error', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events/`,
+        match: [MockApiClient.matchQuery({dataset: 'spans'})],
+        body: {data: []},
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/trace/${traceId}/`,
+        body: [
+          makeEAPSpan({
+            event_id: 'checkout-span',
+            op: 'http.server',
+            description: 'POST /checkout',
+            is_transaction: true,
+            errors: [makeEAPError({event_id: 'issue-5'})],
+          }),
+        ],
+      });
+
+      render(
+        <EventTraceView group={group} event={event} organization={agentOrganization} />,
+        {organization: agentOrganization}
+      );
+
+      expect(await screen.findByText('POST /checkout')).toBeInTheDocument();
+      expect(screen.queryByTestId('agent-activity-skeleton')).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('radio', {name: 'Agent Activity'})
+      ).not.toBeInTheDocument();
     });
-
-    render(
-      <EventTraceView group={group} event={event} organization={agentOrganization} />,
-      {organization: agentOrganization}
-    );
-
-    expect(screen.getByTestId('trace-view-skeleton')).toBeInTheDocument();
-    const steps = await screen.findByText('search_docs');
-    expect(screen.queryByTestId('trace-view-skeleton')).not.toBeInTheDocument();
-    // The trace's other issues sit below the view, outside the toggle.
-    const linkedIssues = screen.getByText('1 other issue appears in this trace.');
-    expect(
-      steps.compareDocumentPosition(linkedIssues) & Node.DOCUMENT_POSITION_FOLLOWING
-    ).toBeTruthy();
-    expect(screen.getByRole('radio', {name: 'Agent Activity'})).toBeChecked();
-    expect(trackAnalytics).toHaveBeenCalledWith('issue_details.agent_run.viewed', {
-      organization: agentOrganization,
-    });
-    expect(screen.getByRole('button', {name: 'View Full Trace'})).toHaveAttribute(
-      'href',
-      expect.stringContaining('tab=ai-spans')
-    );
-
-    await userEvent.click(screen.getByRole('radio', {name: 'Waterfall'}));
-    expect(screen.getAllByText('1 other issue appears in this trace.')).toHaveLength(1);
-    expect(screen.getByRole('button', {name: 'View Full Trace'})).not.toHaveAttribute(
-      'href',
-      expect.stringContaining('tab=ai-spans')
-    );
-
-    // Switching back to Agent Activity doesn't count as another view.
-    await userEvent.click(screen.getByRole('radio', {name: 'Agent Activity'}));
-    expect(
-      jest
-        .mocked(trackAnalytics)
-        .mock.calls.filter(([key]) => key === 'issue_details.agent_run.viewed')
-    ).toHaveLength(1);
   });
 
   it('does not render the trace section when the trace_id is synthetic', () => {

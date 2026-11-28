@@ -1,7 +1,7 @@
 import {useCallback, useMemo} from 'react';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {Link, type LinkProps} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
@@ -205,29 +205,24 @@ export function EventAgentActivity({
 }
 
 /**
- * Stands in for the whole Trace Preview while it works out which view to open, so
- * the section appears in one step instead of growing as each request finishes.
+ * Stands in for Agent Activity while the agent run's trace loads.
  */
-export function TraceViewSkeleton() {
+export function EventAgentActivitySkeleton() {
   return (
-    <Stack gap="md" data-test-id="trace-view-skeleton">
-      <Container border="primary" radius="md" overflow="hidden">
-        <Container padding="xs">
-          <AiSpanTimeline
-            nodes={[]}
-            selectedNodeKey={null}
-            onSelectNode={noop}
-            isLoading
-          />
-        </Container>
+    <Container
+      border="primary"
+      radius="md"
+      overflow="hidden"
+      data-test-id="agent-activity-skeleton"
+    >
+      <Container padding="xs">
+        <AiSpanTimeline nodes={[]} selectedNodeKey={null} onSelectNode={noop} isLoading />
       </Container>
-      <Placeholder height="16px" width="280px" />
-      <Placeholder height="80px" />
-    </Stack>
+    </Container>
   );
 }
 
-export function TraceViewActionsSkeleton() {
+export function EventAgentActivityActionsSkeleton() {
   return (
     <Flex align="center" gap="md">
       <Placeholder height="24px" width="96px" />

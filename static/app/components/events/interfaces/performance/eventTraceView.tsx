@@ -18,13 +18,12 @@ import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {
   AgentActivityFullTraceButton,
   EventAgentActivity,
-  TraceViewActionsSkeleton,
-  TraceViewSkeleton,
+  EventAgentActivityActionsSkeleton,
+  EventAgentActivitySkeleton,
 } from './agentRun/eventAgentRun';
 import {useEventAgentRun} from './agentRun/useEventAgentRun';
 import {TraceLinkedIssues} from './traceLinkedIssues';
 import {TracePreview, TracePreviewFullTraceButton} from './tracePreview';
-import {useTraceLinkedIssues} from './useTraceLinkedIssues';
 import {eventHasSyntheticTrace} from './utils';
 
 type TraceView = 'agent-activity' | 'waterfall';
@@ -56,13 +55,7 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
   const [isInView, setIsInView] = useState(false);
   const markInView = useCallback(() => setIsInView(true), []);
   const agentRun = useEventAgentRun(event, {enabled: canHaveAgentRun && isInView});
-  // Both views show the trace's other issues first. Fetch them alongside the agent run
-  // so the section can appear once, instead of the issues pushing the view down later.
-  const linkedIssues = useTraceLinkedIssues({
-    event,
-    enabled: canHaveAgentRun && isInView,
-  });
-  const isLoading = agentRun.type === 'loading' || linkedIssues.isPending;
+  const isLoadingAgentRun = agentRun.type === 'loading';
   const [selectedView, setSelectedView] = useState<TraceView | null>(null);
 
   const insideRun = agentRun.type === 'inside' ? agentRun : null;
@@ -92,9 +85,8 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
         <OnVisible onVisible={markInView} />
       </LazyRender>
     );
-  } else if (isLoading) {
-    // Wait for both so the preview neither opens on one view and switches, nor grows.
-    content = <TraceViewSkeleton />;
+  } else if (isLoadingAgentRun) {
+    content = <EventAgentActivitySkeleton />;
   } else if (insideRun && view === 'agent-activity') {
     // Tracked from inside the section so a collapsed section doesn't count as a view.
     content = (
@@ -108,6 +100,7 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
       </Fragment>
     );
   } else {
+    // Also shown while checking, since most errors aren't in an agent run.
     content = (
       <TracePreview
         event={event}
@@ -119,15 +112,15 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
   }
 
   // The other issues don't change with the view, so they sit below it, outside the toggle.
-  const showLinkedIssuesBelow = canHaveAgentRun && isInView && !isLoading;
+  const showLinkedIssuesBelow = canHaveAgentRun && isInView;
 
   return (
     <FoldSection
       sectionKey={SectionKey.TRACE}
       title={t('Trace Preview')}
       actions={
-        isLoading ? (
-          <TraceViewActionsSkeleton />
+        isLoadingAgentRun ? (
+          <EventAgentActivityActionsSkeleton />
         ) : (
           <Flex align="center" gap="md">
             {insideRun && view === 'agent-activity' ? (
