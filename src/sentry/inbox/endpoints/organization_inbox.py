@@ -74,9 +74,9 @@ class OrganizationInboxIndexPermission(OrganizationPermission):
 @extend_schema(tags=["Organizations"])
 class OrganizationInboxIndexEndpoint(OrganizationInboxEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.EXPERIMENTAL,
-        "PUT": ApiPublishStatus.EXPERIMENTAL,
-        "DELETE": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
+        "PUT": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
+        "DELETE": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
     # Retries can mark newer activity read or remove newly matching items.
     idempotent_methods = frozenset()

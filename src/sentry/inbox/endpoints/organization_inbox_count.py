@@ -20,7 +20,7 @@ from sentry.utils.auth import AuthenticatedHttpRequest
 @cell_silo_endpoint
 @extend_schema(tags=["Organizations"])
 class OrganizationInboxCountEndpoint(OrganizationInboxEndpoint):
-    publish_status = {"GET": ApiPublishStatus.EXPERIMENTAL}
+    publish_status = {"GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL}
 
     @extend_schema(
         operation_id="Count Personal Inbox Items",

@@ -23,7 +23,7 @@ from sentry.utils.cursors import StringCursor
 @cell_silo_endpoint
 @extend_schema(tags=["Organizations"])
 class OrganizationInboxItemEventsEndpoint(OrganizationInboxEndpoint):
-    publish_status = {"GET": ApiPublishStatus.EXPERIMENTAL}
+    publish_status = {"GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL}
 
     @extend_schema(
         operation_id="List Personal Inbox Item Events",
