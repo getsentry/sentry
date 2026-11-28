@@ -261,6 +261,7 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
                   <FieldRenderer
                     column={displayColumns.find(column => column.key === field)}
                     data={displayRow}
+                    disableTraceLinks
                     unit={getMetricsUnit(meta, field)}
                     meta={meta}
                     allowActions={
