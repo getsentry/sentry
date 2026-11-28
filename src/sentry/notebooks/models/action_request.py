@@ -41,10 +41,13 @@ class NotebookActionRequest(DefaultFieldsModel):
         # The unique constraint leads with notebook, so it serves per-notebook reads.
         db_index=False,
     )
+    workflow_run = FlexibleForeignKey(
+        "notebooks.NotebookWorkflowRun", null=True, on_delete=models.CASCADE
+    )
     # The producer's key; a later request with the same key updates this row.
     key = models.CharField(max_length=64)
     producer_revision = BoundedPositiveIntegerField()
-    # At most one live request is the primary next step.
+    # Each producer can designate one live primary next step.
     primary = models.BooleanField(default=False, db_default=False)
     anchor_type = models.CharField(
         max_length=32, choices=NotebookActionRequestAnchorType.choices, null=True
@@ -80,8 +83,13 @@ class NotebookActionRequest(DefaultFieldsModel):
         db_table = "notebooks_notebookactionrequest"
         constraints = [
             models.UniqueConstraint(
-                fields=["notebook", "key"], name="notebook_unique_action_request_key"
-            )
+                fields=["notebook", "key", "workflow_run"], name="notebook_action_workflow_key"
+            ),
+            models.UniqueConstraint(
+                fields=["notebook", "key"],
+                condition=models.Q(workflow_run__isnull=True),
+                name="notebook_action_legacy_key",
+            ),
         ]
 
     __repr__ = sane_repr("notebook_id", "key", "producer_revision", "state")

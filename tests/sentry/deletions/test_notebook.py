@@ -1,3 +1,5 @@
+from uuid import uuid4
+
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.investigations.models import InvestigationOrchestrationRun
 from sentry.models.organization import Organization, OrganizationStatus
@@ -9,9 +11,11 @@ from sentry.notebooks.models import (
     NotebookBlockExecution,
     NotebookBlockExecutionProject,
     NotebookComment,
+    NotebookEvidenceProject,
     NotebookFavoriteUser,
     NotebookProject,
     NotebookSeen,
+    NotebookWorkflowRun,
 )
 from sentry.notifications.models.inboxitem import InboxItem
 from sentry.notifications.models.inboxitemevent import InboxItemEvent
@@ -49,6 +53,12 @@ class DeleteNotebookTest(TransactionTestCase, HybridCloudTestMixin):
         self.notebook_project = self.create_notebook_project(
             notebook=self.notebook, project=self.project
         )
+        self.binding = NotebookWorkflowRun.objects.create(
+            organization=self.organization, run_id=uuid4(), notebook=self.notebook
+        )
+        self.evidence = NotebookEvidenceProject.objects.create(
+            notebook=self.notebook, project=self.project
+        )
         self.favorite = self.create_notebook_favorite(notebook=self.notebook, user=self.user)
         self.seen = self.create_notebook_seen(notebook=self.notebook, user=self.user)
 
@@ -81,6 +91,8 @@ class DeleteNotebookTest(TransactionTestCase, HybridCloudTestMixin):
     def assert_notebook_deleted(self) -> None:
         assert not Notebook.objects.filter(id=self.notebook.id).exists()
         assert not NotebookProject.objects.filter(id=self.notebook_project.id).exists()
+        assert not NotebookWorkflowRun.objects.filter(id=self.binding.id).exists()
+        assert not NotebookEvidenceProject.objects.filter(id=self.evidence.id).exists()
         assert not NotebookFavoriteUser.objects.filter(id=self.favorite.id).exists()
         assert not NotebookSeen.objects.filter(id=self.seen.id).exists()
         assert not NotebookComment.objects.filter(
@@ -152,6 +164,9 @@ class DeleteNotebookTest(TransactionTestCase, HybridCloudTestMixin):
         assert not NotebookBlockExecutionProject.objects.filter(
             id=self.execution_project.id
         ).exists()
+
+        self.evidence.refresh_from_db()
+        assert self.evidence.project_id is None
 
         # The notebook itself is org-scoped and outlives any one project.
         assert Notebook.objects.filter(id=self.notebook.id).exists()

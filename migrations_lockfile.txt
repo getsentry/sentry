@@ -21,13 +21,13 @@ hybridcloud: 0045_drop_scopes_bitfield_columns
 
 insights: 0001_squashed_0002_backfill_team_starred
 
-investigations: 0018_add_orchestration_run_notebook_fk
+investigations: 0019_workflow_runtime
 
 monitors: 0034_add_monitor_creator
 
 nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
-notebooks: 0005_add_comment_mentions
+notebooks: 0008_notebook_workflow_launch
 
 notifications: 0019_require_inbox_event_idempotency_key
 
