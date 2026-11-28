@@ -5,7 +5,7 @@ import sentry
 
 
 def get_package_version(module_name: str, app: object) -> str | None:
-    # sentry's package metadata is a static 0.0.0 (see pyproject.toml).
+    # An editable install's metadata lags behind VERSION until the next `uv sync`.
     if module_name == "sentry":
         return sentry.VERSION
 
