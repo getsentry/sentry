@@ -28,7 +28,6 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getAnalyticsDataForGroup, getMessage, getTitle} from 'sentry/utils/events';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {useNewIssuePriorityAndAssigneeUI} from 'sentry/utils/useNewIssuePriorityAndAssigneeUI';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {makeSeerLocation} from 'sentry/views/issueDetails/autofix/utils';
@@ -200,7 +199,6 @@ function IssuePreviewContent() {
     ),
     retry: false,
   });
-  const shouldUseNewUI = useNewIssuePriorityAndAssigneeUI();
 
   const issueDetailsUrl = normalizeUrl(
     `/organizations/${organization.slug}/issues/${group.id}/`
@@ -288,7 +286,7 @@ function IssuePreviewContent() {
           onContinueInSeer={() => openSeer()}
           onRetryCodeChanges={() => openSeer('retry_code_changes')}
         />
-        <Flex align="center" wrap="wrap" gap={shouldUseNewUI ? 'md' : 'lg'}>
+        <Flex align="center" wrap="wrap" gap="lg">
           <GroupPriority group={group} />
           <GroupHeaderAssigneeSelector
             group={group}
