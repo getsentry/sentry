@@ -19,6 +19,16 @@ describe('replayMaskFn', () => {
     expect(replayMaskFn('hello world')).toBe('***** *****');
   });
 
+  it('masks the same characters as a non-whitespace regex replace', () => {
+    const text = 'a\tb\nc\u00A0d\u2003e\u3000f\uFEFFg \u{1F600}';
+    expect(replayMaskFn(text)).toBe(text.replace(/\S/g, '*'));
+  });
+
+  it('masks very long strings', () => {
+    const text = 'word '.repeat(100_000);
+    expect(replayMaskFn(text)).toBe('**** '.repeat(100_000));
+  });
+
   it('returns static translation strings unmasked', () => {
     // Empty string is not considered a static string
     expect(replayMaskFn('')).toBe('');
