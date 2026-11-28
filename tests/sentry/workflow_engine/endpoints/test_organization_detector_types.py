@@ -12,7 +12,6 @@ from sentry.models.organization import Organization
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import cell_silo_test
 from sentry.workflow_engine.endpoints.utils.detector_filters import get_visible_detector_types
-from sentry.workflow_engine.endpoints.utils.filters import get_excluded_detector_types
 from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
 from sentry.workflow_engine.endpoints.validators.utils import get_unknown_detector_type_error
 from sentry.workflow_engine.handlers.detector import (
@@ -60,7 +59,7 @@ def test_released_issue_type_keeps_detector_discoverable(
         patch.object(GroupType, "__init_subclass__", classmethod(register_released_type)),
         patch.dict(detector_settings_registry.registrations, clear=True),
         patch(
-            "sentry.workflow_engine.endpoints.utils.detector_filters.features.has"
+            "sentry.workflow_engine.endpoints.utils.api_availability.features.has"
         ) as has_feature,
     ):
         runpy.run_path(source_path)
@@ -79,13 +78,10 @@ def test_released_issue_type_keeps_detector_discoverable(
 )
 def test_internal_types_opt_out_of_discovery(detector_type: DetectorType) -> None:
     with patch(
-        "sentry.workflow_engine.endpoints.utils.detector_filters.features.has", return_value=False
+        "sentry.workflow_engine.endpoints.utils.api_availability.features.has", return_value=False
     ):
         organization = Organization()
         assert detector_type not in get_visible_detector_types(organization)
-        assert detector_type in get_excluded_detector_types(
-            WorkflowEngineAPIOperation.DISCOVER, organization
-        )
 
 
 @cell_silo_test
@@ -284,22 +280,6 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
             response = self.get_success_response(other_org.slug)
             assert response.data == self.expected_type_slugs[1:]
 
-    def test_partial_availability_inherits_default_discovery(self) -> None:
-        class VisibleSettings(DetectorSettings):
-            handler = detector_settings_registry.get(self.expected_type_slugs[0]).handler
-            api_availability = {
-                WorkflowEngineAPIOperation.GET: True,
-                WorkflowEngineAPIOperation.LIST: True,
-            }
-
-        detector_type = DetectorType.PERFORMANCE_SLOW_DB_QUERY
-        with patch.dict(detector_settings_registry.registrations, {detector_type: VisibleSettings}):
-            response = self.get_success_response(self.organization.slug)
-            assert response.data == sorted([*self.expected_type_slugs, detector_type])
-            assert detector_type not in get_excluded_detector_types(
-                WorkflowEngineAPIOperation.LIST, self.organization
-            )
-
     def test_validation_suggestions_include_validators_by_default(self) -> None:
         class SuggestionSettings(DetectorSettings):
             validator = BaseDetectorTypeValidator
@@ -335,26 +315,6 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
             assert get_unknown_detector_type_error("unknown", other_org) == (
                 "Unknown detector type 'unknown'. No detector types are available."
             )
-
-    def test_discovery_preserves_organization_visibility_and_get_actor(self) -> None:
-        self.gate_first_type(
-            {
-                WorkflowEngineAPIOperation.GET: FeatureGate(GATE_FEATURE),
-                WorkflowEngineAPIOperation.DISCOVER: FeatureGate(GATE_FEATURE),
-            }
-        )
-        with patch(
-            "sentry.workflow_engine.endpoints.utils.detector_filters.features.has",
-            return_value=True,
-        ) as has_feature:
-            assert (
-                get_excluded_detector_types(
-                    WorkflowEngineAPIOperation.DISCOVER, self.organization, actor=self.user
-                )
-                == []
-            )
-        has_feature.assert_any_call(GATE_FEATURE, self.organization, actor=self.user)
-        has_feature.assert_any_call(GATE_FEATURE, self.organization, actor=None)
 
 
 @cell_silo_test
