@@ -1,4 +1,4 @@
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from typing import Any
 from unittest.mock import patch
 
@@ -329,32 +329,64 @@ def assert_relay_accepts_condition(condition: object) -> None:
     validate_rule_condition(json.dumps(condition))
 
 
+ERROR_EVENT_TYPES = ["error", "default", "csp"]
+
+
+def on_error_events(condition: Callable[[str], dict[str, object]]) -> dict[str, object]:
+    """
+    The shape of an error filter's condition: ``condition`` for the path prefix of each
+    error event type, combined with OR.
+    """
+    return {"op": "or", "inner": [condition(event_type) for event_type in ERROR_EVENT_TYPES]}
+
+
 def error_message_rule_condition(values: list[str]) -> dict[str, object]:
-    return {
-        "op": "or",
-        "inner": [
-            {
-                "op": "any",
-                "name": "event.exception.values",
-                "inner": {
-                    "op": "or",
-                    "inner": [
-                        {"op": "glob", "name": "ty", "value": values},
-                        {"op": "glob", "name": "value", "value": values},
-                    ],
+    return on_error_events(
+        lambda event: {
+            "op": "or",
+            "inner": [
+                {
+                    "op": "any",
+                    "name": f"{event}.exception.values",
+                    "inner": {
+                        "op": "or",
+                        "inner": [
+                            {"op": "glob", "name": "ty", "value": values},
+                            {"op": "glob", "name": "value", "value": values},
+                        ],
+                    },
                 },
-            },
-            {"op": "glob", "name": "event.logentry.formatted", "value": values},
-        ],
-    }
+                {"op": "glob", "name": f"{event}.logentry.formatted", "value": values},
+            ],
+        }
+    )
 
 
 def error_type_rule_condition(values: list[str]) -> dict[str, object]:
-    return {
-        "op": "any",
-        "name": "event.exception.values",
-        "inner": {"op": "glob", "name": "ty", "value": values},
-    }
+    return on_error_events(
+        lambda event: {
+            "op": "any",
+            "name": f"{event}.exception.values",
+            "inner": {"op": "glob", "name": "ty", "value": values},
+        }
+    )
+
+
+def error_glob_rule_condition(field: str, values: list[str]) -> dict[str, object]:
+    return on_error_events(
+        lambda event: {"op": "glob", "name": f"{event}.{field}", "value": values}
+    )
+
+
+def error_version_rule_condition(field: str, comparator: str, version: str) -> dict[str, object]:
+    return on_error_events(
+        lambda event: {
+            "op": "release",
+            "name": f"{event}.{field}",
+            "comparator": comparator,
+            "value": version,
+        }
+    )
 
 
 RELEASE_FIELDS = [
@@ -422,7 +454,7 @@ def release_version_rule_condition(comparator: str, release: str) -> dict[str, o
                 "op": "and",
                 "inner": [
                     error_message_rule_condition(["*ConnectionError*"]),
-                    {"op": "glob", "name": "event.release", "value": ["1.*", "2.*"]},
+                    error_glob_rule_condition("release", ["1.*", "2.*"]),
                 ],
             },
             id="error_message_and_release",
@@ -458,7 +490,7 @@ def release_version_rule_condition(comparator: str, release: str) -> dict[str, o
                 "op": "and",
                 "inner": [
                     error_type_rule_condition(["TypeError"]),
-                    {"op": "glob", "name": "event.release", "value": ["1.*"]},
+                    error_glob_rule_condition("release", ["1.*"]),
                 ],
             },
             id="error_type_and_release",
@@ -516,8 +548,8 @@ def release_version_rule_condition(comparator: str, release: str) -> dict[str, o
         pytest.param(
             "error",
             [{"type": "release", "value": ["1.*"]}],
-            {"op": "glob", "name": "event.release", "value": ["1.*"]},
-            id="release_on_errors_reads_the_event_field_only",
+            error_glob_rule_condition("release", ["1.*"]),
+            id="release_on_errors_reads_the_error_event_types",
         ),
         pytest.param(
             "all",
@@ -528,7 +560,7 @@ def release_version_rule_condition(comparator: str, release: str) -> dict[str, o
         pytest.param(
             "error",
             [{"type": "environment", "operator": "equals", "value": ["staging"]}],
-            {"op": "glob", "name": "event.environment", "value": ["staging"]},
+            error_glob_rule_condition("environment", ["staging"]),
             id="environment_on_errors",
         ),
         pytest.param(
@@ -620,18 +652,8 @@ def release_version_rule_condition(comparator: str, release: str) -> dict[str, o
             {
                 "op": "and",
                 "inner": [
-                    {
-                        "op": "release",
-                        "name": "event.release",
-                        "comparator": "gt",
-                        "value": "1.2.0",
-                    },
-                    {
-                        "op": "release",
-                        "name": "event.release",
-                        "comparator": "lte",
-                        "value": "myapp@2.0",
-                    },
+                    error_version_rule_condition("release", "gt", "1.2.0"),
+                    error_version_rule_condition("release", "lte", "myapp@2.0"),
                 ],
             },
             id="release_version_comparison_on_errors",
@@ -656,13 +678,8 @@ def release_version_rule_condition(comparator: str, release: str) -> dict[str, o
             {
                 "op": "and",
                 "inner": [
-                    {"op": "glob", "name": "event.contexts.browser.name", "value": ["Chrome"]},
-                    {
-                        "op": "release",
-                        "name": "event.contexts.browser.version",
-                        "comparator": "lt",
-                        "value": "110",
-                    },
+                    error_glob_rule_condition("contexts.browser.name", ["Chrome"]),
+                    error_version_rule_condition("contexts.browser.version", "lt", "110"),
                 ],
             },
             id="browser_on_errors_reads_the_browser_context",
@@ -670,7 +687,7 @@ def release_version_rule_condition(comparator: str, release: str) -> dict[str, o
         pytest.param(
             "error",
             [{"type": "browser_name", "operator": "glob", "value": ["Chrome*"]}],
-            {"op": "glob", "name": "event.contexts.browser.name", "value": ["Chrome*"]},
+            error_glob_rule_condition("contexts.browser.name", ["Chrome*"]),
             id="browser_name_trailing_wildcard",
         ),
         pytest.param(
@@ -694,7 +711,7 @@ def release_version_rule_condition(comparator: str, release: str) -> dict[str, o
         pytest.param(
             "error",
             [{"type": "browser_name", "operator": "equals", "value": ["Chrome*"]}],
-            {"op": "glob", "name": "event.contexts.browser.name", "value": [r"Chrome\*"]},
+            error_glob_rule_condition("contexts.browser.name", [r"Chrome\*"]),
             id="browser_name_equals_reads_the_wildcard_literally",
         ),
         pytest.param(
@@ -787,13 +804,13 @@ def release_version_rule_condition(comparator: str, release: str) -> dict[str, o
         pytest.param(
             "error",
             [{"type": "release", "operator": "equals", "value": ["1.0", "2.0"]}],
-            {"op": "glob", "name": "event.release", "value": ["1.0", "2.0"]},
+            error_glob_rule_condition("release", ["1.0", "2.0"]),
             id="equals_is_the_literal_glob",
         ),
         pytest.param(
             "error",
             [{"type": "release", "operator": "starts_with", "value": ["1."]}],
-            {"op": "glob", "name": "event.release", "value": ["1.*"]},
+            error_glob_rule_condition("release", ["1.*"]),
             id="starts_with",
         ),
         pytest.param(
@@ -811,7 +828,7 @@ def release_version_rule_condition(comparator: str, release: str) -> dict[str, o
         pytest.param(
             "error",
             [{"type": "release", "operator": "glob", "value": ["1.*", "2.?"]}],
-            {"op": "glob", "name": "event.release", "value": ["1.*", "2.?"]},
+            error_glob_rule_condition("release", ["1.*", "2.?"]),
             id="glob_passes_the_values_through",
         ),
         pytest.param(
@@ -863,7 +880,7 @@ def release_version_rule_condition(comparator: str, release: str) -> dict[str, o
                 "op": "and",
                 "inner": [
                     error_message_rule_condition([r"*\*\[401\]\**"]),
-                    {"op": "glob", "name": "event.release", "value": [r"a\?b\{c,d\}\\e"]},
+                    error_glob_rule_condition("release", [r"a\?b\{c,d\}\\e"]),
                 ],
             },
             id="glob_characters_in_a_value_are_escaped",
@@ -906,7 +923,7 @@ def release_version_rule_condition(comparator: str, release: str) -> dict[str, o
                 "op": "and",
                 "inner": [
                     error_message_rule_condition(["*timeout*"]),
-                    {"op": "release", "name": "event.release", "comparator": "gte", "value": "2.0"},
+                    error_version_rule_condition("release", "gte", "2.0"),
                     {"op": "cidr", "name": "envelope.client_ip", "value": ["10.0.0.0/8"]},
                 ],
             },
@@ -921,13 +938,13 @@ def release_version_rule_condition(comparator: str, release: str) -> dict[str, o
         pytest.param(
             "error",
             [{"type": "release", "value": ["1.*", "[23].?"]}],
-            {"op": "glob", "name": "event.release", "value": ["1.*", "[23].?"]},
+            error_glob_rule_condition("release", ["1.*", "[23].?"]),
             id="a_condition_without_an_operator_holds_raw_globs",
         ),
         pytest.param(
             "error",
             [{"type": "geo_country_code", "value": ["US", "CA"]}],
-            {"op": "glob", "name": "event.user.geo.country_code", "value": ["US", "CA"]},
+            error_glob_rule_condition("user.geo.country_code", ["US", "CA"]),
             id="geo_country_code_reads_the_event_user_geo",
         ),
         pytest.param(
@@ -992,7 +1009,12 @@ def relay_matches(condition: Mapping[str, Any], item: Mapping[str, str]) -> bool
     )
 
 
-RELEASE_FIELD_BY_DATA_TYPE = dict(zip(["error", "log", "metric", "span"], RELEASE_FIELDS))
+RELEASE_FIELD_BY_DATA_TYPE = {
+    "error": "error.release",
+    "log": "log.attributes.sentry.release.value",
+    "metric": "trace_metric.attributes.sentry.release.value",
+    "span": "span.attributes.sentry.release.value",
+}
 
 
 @django_db_all
@@ -1023,6 +1045,59 @@ def test_negated_condition_drops_only_items_of_its_data_type(
     assert not relay_matches(condition, kept_release)
     # An item without a release, of any type.
     assert not relay_matches(condition, {})
+
+
+# The fields Relay answers for each item that shares event fields with errors. Events
+# answer `event.` and their own type, replays `event.` and `replay.`, sessions `event.`.
+EVENT_LIKE_ITEMS = {
+    item_type: {
+        f"{prefix}.{field}": value
+        for prefix in prefixes
+        for field, value in {
+            "environment": "staging",
+            "release": "1.0",
+            "user.geo.country_code": "CA",
+        }.items()
+    }
+    for item_type, prefixes in {
+        "error": ["event", "error"],
+        "default": ["event", "default"],
+        "csp": ["event", "csp"],
+        "transaction": ["event", "transaction"],
+        "feedback": ["event", "feedback"],
+        "replay": ["event", "replay"],
+        "session": ["event"],
+    }.items()
+}
+
+
+@django_db_all
+@pytest.mark.parametrize(
+    "condition",
+    [
+        {"type": "environment", "value": ["staging"]},
+        {"type": "release", "value": ["1.0"]},
+        {"type": "geo_country_code", "value": ["CA"]},
+        {"type": "release", "operator": "does_not_start_with", "value": ["2."]},
+    ],
+    ids=["environment", "release", "geo_country_code", "negated_release"],
+)
+def test_error_filter_drops_only_error_events(
+    default_project: Project, factories: Factories, condition: dict[str, object]
+) -> None:
+    factories.create_project_custom_inbound_filter(
+        default_project, data_type="error", conditions=[condition]
+    )
+    [generic_filter] = get_custom_inbound_filter_generic_filters(default_project)
+    relay_condition = generic_filter["condition"]
+    assert relay_condition is not None
+
+    dropped = {
+        item_type
+        for item_type, item in EVENT_LIKE_ITEMS.items()
+        if relay_matches(relay_condition, item)
+    }
+    assert dropped == {"error", "default", "csp"}
 
 
 @django_db_all
@@ -1066,39 +1141,147 @@ def test_custom_inbound_filter_row_becomes_relay_config(
                             "op": "or",
                             "inner": [
                                 {
-                                    "op": "any",
-                                    "name": "event.exception.values",
-                                    "inner": {
-                                        "op": "or",
-                                        "inner": [
-                                            {
-                                                "op": "glob",
-                                                "name": "ty",
-                                                "value": ["*ConnectionError*"],
+                                    "op": "or",
+                                    "inner": [
+                                        {
+                                            "op": "any",
+                                            "name": "error.exception.values",
+                                            "inner": {
+                                                "op": "or",
+                                                "inner": [
+                                                    {
+                                                        "op": "glob",
+                                                        "name": "ty",
+                                                        "value": ["*ConnectionError*"],
+                                                    },
+                                                    {
+                                                        "op": "glob",
+                                                        "name": "ty",
+                                                        "value": ["*Timeout*"],
+                                                    },
+                                                    {
+                                                        "op": "glob",
+                                                        "name": "value",
+                                                        "value": ["*ConnectionError*"],
+                                                    },
+                                                    {
+                                                        "op": "glob",
+                                                        "name": "value",
+                                                        "value": ["*Timeout*"],
+                                                    },
+                                                ],
                                             },
-                                            {"op": "glob", "name": "ty", "value": ["*Timeout*"]},
-                                            {
-                                                "op": "glob",
-                                                "name": "value",
-                                                "value": ["*ConnectionError*"],
-                                            },
-                                            {"op": "glob", "name": "value", "value": ["*Timeout*"]},
-                                        ],
-                                    },
+                                        },
+                                        {
+                                            "op": "glob",
+                                            "name": "error.logentry.formatted",
+                                            "value": ["*ConnectionError*"],
+                                        },
+                                        {
+                                            "op": "glob",
+                                            "name": "error.logentry.formatted",
+                                            "value": ["*Timeout*"],
+                                        },
+                                    ],
                                 },
                                 {
-                                    "op": "glob",
-                                    "name": "event.logentry.formatted",
-                                    "value": ["*ConnectionError*"],
+                                    "op": "or",
+                                    "inner": [
+                                        {
+                                            "op": "any",
+                                            "name": "default.exception.values",
+                                            "inner": {
+                                                "op": "or",
+                                                "inner": [
+                                                    {
+                                                        "op": "glob",
+                                                        "name": "ty",
+                                                        "value": ["*ConnectionError*"],
+                                                    },
+                                                    {
+                                                        "op": "glob",
+                                                        "name": "ty",
+                                                        "value": ["*Timeout*"],
+                                                    },
+                                                    {
+                                                        "op": "glob",
+                                                        "name": "value",
+                                                        "value": ["*ConnectionError*"],
+                                                    },
+                                                    {
+                                                        "op": "glob",
+                                                        "name": "value",
+                                                        "value": ["*Timeout*"],
+                                                    },
+                                                ],
+                                            },
+                                        },
+                                        {
+                                            "op": "glob",
+                                            "name": "default.logentry.formatted",
+                                            "value": ["*ConnectionError*"],
+                                        },
+                                        {
+                                            "op": "glob",
+                                            "name": "default.logentry.formatted",
+                                            "value": ["*Timeout*"],
+                                        },
+                                    ],
                                 },
                                 {
-                                    "op": "glob",
-                                    "name": "event.logentry.formatted",
-                                    "value": ["*Timeout*"],
+                                    "op": "or",
+                                    "inner": [
+                                        {
+                                            "op": "any",
+                                            "name": "csp.exception.values",
+                                            "inner": {
+                                                "op": "or",
+                                                "inner": [
+                                                    {
+                                                        "op": "glob",
+                                                        "name": "ty",
+                                                        "value": ["*ConnectionError*"],
+                                                    },
+                                                    {
+                                                        "op": "glob",
+                                                        "name": "ty",
+                                                        "value": ["*Timeout*"],
+                                                    },
+                                                    {
+                                                        "op": "glob",
+                                                        "name": "value",
+                                                        "value": ["*ConnectionError*"],
+                                                    },
+                                                    {
+                                                        "op": "glob",
+                                                        "name": "value",
+                                                        "value": ["*Timeout*"],
+                                                    },
+                                                ],
+                                            },
+                                        },
+                                        {
+                                            "op": "glob",
+                                            "name": "csp.logentry.formatted",
+                                            "value": ["*ConnectionError*"],
+                                        },
+                                        {
+                                            "op": "glob",
+                                            "name": "csp.logentry.formatted",
+                                            "value": ["*Timeout*"],
+                                        },
+                                    ],
                                 },
                             ],
                         },
-                        {"op": "glob", "name": "event.release", "value": ["1.*"]},
+                        {
+                            "op": "or",
+                            "inner": [
+                                {"op": "glob", "name": "error.release", "value": ["1.*"]},
+                                {"op": "glob", "name": "default.release", "value": ["1.*"]},
+                                {"op": "glob", "name": "csp.release", "value": ["1.*"]},
+                            ],
+                        },
                     ],
                 },
             }
