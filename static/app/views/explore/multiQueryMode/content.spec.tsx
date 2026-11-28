@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
@@ -468,6 +469,38 @@ describe('MultiQueryModeContent', () => {
         fields: ['id', 'span.duration', 'timestamp'],
       },
     ]);
+  });
+
+  it('can remove a group by from the URL that is missing from the attribute list', async () => {
+    function Component() {
+      const [query] = useReadQueriesFromLocation();
+      return (
+        <Fragment>
+          <output>{query?.groupBys.join(',')}</output>
+          <MultiQueryModeContent />
+        </Fragment>
+      );
+    }
+
+    render(<Component />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/traces/compare',
+          query: {
+            queries: JSON.stringify({
+              groupBys: ['span.op', 'custom.release'],
+              yAxes: ['count(span.duration)'],
+            }),
+          },
+        },
+      },
+    });
+
+    const section = screen.getByTestId('section-group-by-0');
+    await userEvent.click(within(section).getByRole('button'));
+    await userEvent.click(within(section).getByRole('option', {name: 'custom.release'}));
+    expect(screen.getByText('span.op', {selector: 'output'})).toBeInTheDocument();
   });
 
   it('allows changing a query', async () => {
