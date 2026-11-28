@@ -12,7 +12,8 @@ from sentry.workflow_engine.endpoints.serializers.workflow_group_history_seriali
 )
 from sentry.workflow_engine.models import DetectorGroup
 from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHistory
-from sentry.workflow_engine.types import WorkflowType
+from sentry.workflow_engine.types import WorkflowEngineAPIOperation, WorkflowSettings, WorkflowType
+from tests.sentry.workflow_engine.endpoints.test_helpers import override_workflow_api_availability
 
 pytestmark = [requires_snuba]
 
@@ -99,18 +100,22 @@ class WorkflowGroupHistoryEndpointTest(APITestCase):
             WorkflowGroupHistorySerializer(),
         )
 
-    def test_hidden_workflow_is_not_found(self) -> None:
-        hidden_workflow = self.create_workflow(
+    def test_type_closed_for_get_is_not_found(self) -> None:
+        inbox_workflow = self.create_workflow(
             organization=self.organization, type=WorkflowType.INBOX
         )
 
-        self.get_error_response(
-            self.organization.slug,
-            hidden_workflow.id,
-            start=before_now(days=6),
-            end=before_now(days=0),
-            status_code=404,
-        )
+        with override_workflow_api_availability(
+            WorkflowType.INBOX,
+            {**WorkflowSettings.DEFAULT_API_AVAILABILITY, WorkflowEngineAPIOperation.GET: False},
+        ):
+            self.get_error_response(
+                self.organization.slug,
+                inbox_workflow.id,
+                start=before_now(days=6),
+                end=before_now(days=0),
+                status_code=404,
+            )
 
     def test_pagination(self) -> None:
         resp = self.get_success_response(

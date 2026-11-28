@@ -57,6 +57,7 @@ from sentry.workflow_engine.types import (
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 from tests.sentry.workflow_engine.endpoints.test_helpers import (
     GATE_FEATURE,
+    GET_AND_PUT_ONLY_AVAILABILITY,
     assert_querysets_unchanged,
     override_detector_api_availability,
     override_workflow_api_availability,
@@ -998,32 +999,38 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
                 == 1
             )
 
-    def test_update_workflows_cannot_attach_hidden_workflow(self) -> None:
-        hidden_workflow = self.create_workflow(
+    def test_update_workflows_cannot_attach_readable_workflow_type_closed_for_list(self) -> None:
+        inbox_workflow = self.create_workflow(
             organization_id=self.organization.id, type=WorkflowType.INBOX
         )
 
-        response = self.get_error_response(
-            self.organization.slug,
-            self.detector.id,
-            **{**self.valid_data, "workflowIds": [hidden_workflow.id]},
-            status_code=400,
-        )
+        with override_workflow_api_availability(WorkflowType.INBOX, GET_AND_PUT_ONLY_AVAILABILITY):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.detector.id,
+                **{**self.valid_data, "workflowIds": [inbox_workflow.id]},
+                status_code=400,
+            )
 
         assert "Some workflows do not exist" in str(response.data)
 
         assert not DetectorWorkflow.objects.filter(detector=self.detector).exists()
 
-    def test_update_workflows_keeps_hidden_workflow_connection(self) -> None:
+    def test_update_workflows_keeps_connection_to_readable_workflow_type_closed_for_list(
+        self,
+    ) -> None:
         alert_workflow = self.create_workflow(organization_id=self.organization.id)
 
-        hidden_workflow = self.create_workflow(
+        inbox_workflow = self.create_workflow(
             organization_id=self.organization.id, type=WorkflowType.INBOX
         )
 
-        self.create_detector_workflow(detector=self.detector, workflow=hidden_workflow)
+        self.create_detector_workflow(detector=self.detector, workflow=inbox_workflow)
 
-        with outbox_runner():
+        with (
+            override_workflow_api_availability(WorkflowType.INBOX, GET_AND_PUT_ONLY_AVAILABILITY),
+            outbox_runner(),
+        ):
             response = self.get_success_response(
                 self.organization.slug,
                 self.detector.id,
@@ -1039,7 +1046,7 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
             )
         )
 
-        assert connected_workflow_ids == {alert_workflow.id, hidden_workflow.id}
+        assert connected_workflow_ids == {alert_workflow.id, inbox_workflow.id}
 
     def test_update_workflows_can_attach_workflow_type_open_for_list(self) -> None:
         inbox_workflow = self.create_workflow(

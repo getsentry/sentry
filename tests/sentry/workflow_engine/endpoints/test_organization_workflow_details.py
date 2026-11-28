@@ -72,12 +72,16 @@ class OrganizationWorkflowIndexGetTest(OrganizationWorkflowDetailsBaseTest):
         workflow.save()
         self.get_error_response(self.organization.slug, workflow.id, status_code=404)
 
-    def test_hidden_workflow_is_not_found(self) -> None:
-        hidden_workflow = self.create_workflow(
+    def test_type_closed_for_get_is_not_found(self) -> None:
+        inbox_workflow = self.create_workflow(
             organization_id=self.organization.id, type=WorkflowType.INBOX
         )
 
-        self.get_error_response(self.organization.slug, hidden_workflow.id, status_code=404)
+        with override_workflow_api_availability(
+            WorkflowType.INBOX,
+            {**WorkflowSettings.DEFAULT_API_AVAILABILITY, WorkflowEngineAPIOperation.GET: False},
+        ):
+            self.get_error_response(self.organization.slug, inbox_workflow.id, status_code=404)
 
     def test_type_open_for_get_is_returned(self) -> None:
         inbox_workflow = self.create_workflow(
@@ -1867,17 +1871,6 @@ class OrganizationDeleteWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
     def setUp(self) -> None:
         super().setUp()
         self.workflow = self.create_workflow(organization_id=self.organization.id)
-
-    def test_hidden_workflow_not_found(self) -> None:
-        hidden_workflow = self.create_workflow(
-            organization_id=self.organization.id, type=WorkflowType.INBOX
-        )
-
-        self.get_error_response(self.organization.slug, hidden_workflow.id, status_code=404)
-
-        hidden_workflow.refresh_from_db()
-
-        assert hidden_workflow.status == ObjectStatus.ACTIVE
 
     def test_readable_type_closed_for_delete_is_not_found(self) -> None:
         inbox_workflow = self.create_workflow(
