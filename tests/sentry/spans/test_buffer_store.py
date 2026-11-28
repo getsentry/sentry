@@ -14,6 +14,7 @@ from sentry.spans.buffer_types import (
     FlushCandidate,
     FlushedSegment,
     InsertedSubsegment,
+    LoadedBytes,
     OutputSpan,
     Span,
     Subsegment,
@@ -318,7 +319,7 @@ def test_load_payloads_from_keys_decompresses_payload_batches(
     compressed = zstandard.ZstdCompressor(level=0).compress(b"\x00".join([span_a, span_b]))
     storage.client.sadd(payload_key, compressed)
 
-    payloads, decompress_latency_ms = storage.load_payloads_from_keys(
+    payloads, decompress_latency_ms, loaded_bytes = storage.load_payloads_from_keys(
         [segment_key],
         {segment_key: [payload_key]},
         page_size=1,
@@ -327,6 +328,10 @@ def test_load_payloads_from_keys_decompresses_payload_batches(
 
     assert set(payloads[segment_key]) == {span_a, span_b}
     assert decompress_latency_ms >= 0
+    assert loaded_bytes == LoadedBytes(
+        compressed=len(compressed),
+        decompressed=len(span_a) + len(span_b),
+    )
 
 
 def test_load_segments_reads_payloads_from_distributed_keys(
@@ -348,12 +353,15 @@ def test_load_segments_reads_payloads_from_distributed_keys(
     storage.client.set(b"span-buf:ibc:" + segment_key, len(span_a) + len(span_b) + len(span_c))
 
     with override_options({"spans.buffer.segment-page-size": 1}):
-        loaded_segments, _, _ = storage.load_segments(
+        loaded_segments, _, _, loaded_bytes = storage.load_segments(
             [FlushCandidate(0, storage.get_queue_key(0), segment_key, 5)],
             decompress_payload=_decompress_payload,
         )
     loaded_segment = loaded_segments[0]
 
+    # Uncompressed payloads are loaded as they are stored.
+    uncompressed_size = len(span_a) + len(span_b) + len(span_c)
+    assert loaded_bytes == LoadedBytes(compressed=uncompressed_size, decompressed=uncompressed_size)
     assert set(loaded_segment.payloads) == {span_a, span_b, span_c}
     assert set(loaded_segment.payload_keys) == {
         first_payload_key,
@@ -380,9 +388,11 @@ def test_load_segments_decompresses_payload_batches(
     storage.client.set(b"span-buf:ic:" + segment_key, 2)
 
     with override_options({"spans.buffer.segment-page-size": 1}):
-        loaded_segments, load_data_latency_ms, decompress_latency_ms = storage.load_segments(
-            [FlushCandidate(0, storage.get_queue_key(0), segment_key, 5)],
-            decompress_payload=_decompress_payload,
+        loaded_segments, load_data_latency_ms, decompress_latency_ms, loaded_bytes = (
+            storage.load_segments(
+                [FlushCandidate(0, storage.get_queue_key(0), segment_key, 5)],
+                decompress_payload=_decompress_payload,
+            )
         )
     loaded_segment = loaded_segments[0]
 
@@ -391,6 +401,10 @@ def test_load_segments_decompresses_payload_batches(
     assert loaded_segment.ingest_metadata.ingested_count == 2
     assert load_data_latency_ms >= 0
     assert decompress_latency_ms >= 0
+    assert loaded_bytes == LoadedBytes(
+        compressed=len(compressed),
+        decompressed=len(span_a) + len(span_b),
+    )
 
 
 def test_cleanup_flushed_segments_removes_segment_data(storage: SpansBufferStore) -> None:
