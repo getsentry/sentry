@@ -20,6 +20,7 @@ from sentry.integrations.types import (
 from sentry.issues.grouptype import (
     GROUP_CATEGORIES_CUSTOM_EMAIL,
     PERFORMANCE_ISSUE_CATEGORIES,
+    GroupCategory,
     PerformanceP95EndpointRegressionGroupType,
     ProfileFunctionRegressionType,
 )
@@ -70,6 +71,18 @@ def get_group_substatus_text(group: Group) -> str:
     elif group.substatus == GroupSubStatus.ESCALATING:
         return "Escalating issue"
     return "New Alert"
+
+
+def get_new_error_environment(
+    group: Group, environment: str | None, *, enhanced_privacy: bool
+) -> str | None:
+    if (
+        group.issue_category == GroupCategory.ERROR
+        and group.substatus == GroupSubStatus.NEW
+        and not enhanced_privacy
+    ):
+        return environment
+    return None
 
 
 GENERIC_TEMPLATE_NAME = "generic"
@@ -211,6 +224,9 @@ class AlertRuleNotification(ProjectNotification):
             "enhanced_privacy": enhanced_privacy,
             "commits": get_commits(self.project, self.event),
             "environment": environment,
+            "new_error_environment": get_new_error_environment(
+                self.group, environment, enhanced_privacy=enhanced_privacy
+            ),
             "slack_link": get_integration_link(
                 self.organization, IntegrationProviderSlug.SLACK.value, self.notification_uuid
             ),

@@ -11,7 +11,9 @@ Details
 {% else %}
 Details
 -------
-
+{% if new_error_environment %}
+Environment: {{ new_error_environment }}
+{% endif %}
 {{ link }}
 
 {% include "sentry/emails/_suspect_commits.txt" %}
