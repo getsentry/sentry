@@ -49,6 +49,7 @@ from sentry.utils import auth, json
 from sentry.utils.assets import get_frontend_dist_prefix
 from sentry.utils.email import is_smtp_enabled
 from sentry.utils.http import is_using_customer_domain
+from sentry.utils.latest_version import get_latest_version
 from sentry.utils.settings import (
     is_self_hosted,
     is_self_hosted_errors_only,
@@ -67,7 +68,7 @@ def _get_support_mail() -> str | None:
 def _get_version_info() -> dict[str, str | bool]:
     current = sentry.VERSION
 
-    latest = options.get("sentry:latest_version") or current
+    latest = get_latest_version() or current
     upgrade_available = parse_version(latest) > parse_version(current)
     build = sentry.__build__ or current
 
@@ -80,6 +81,9 @@ def _get_version_info() -> dict[str, str | bool]:
 
 
 def _needs_upgrade() -> bool:
+    if not settings.SENTRY_SELF_HOSTED:
+        return False
+
     version_configured = options.get("sentry:version-configured")
     if not version_configured:
         # If we were never previously upgraded (being a new install)
